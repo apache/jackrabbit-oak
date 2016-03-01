@@ -217,6 +217,7 @@ public class BenchmarkRunner {
             new ConcurrentWriteReadTest(),
             new ConcurrentWriteTest(),
             new SimpleSearchTest(),
+            new UUIDLookupTest(),
             new SQL2SearchTest(),
             new DescendantSearchTest(),
             new SQL2DescendantSearchTest(),
