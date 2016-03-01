@@ -182,7 +182,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
         int index = 1;
         if (itemDefTemplates != null) {
             for (ItemDefinitionTemplate template : itemDefTemplates) {
-                String name = (index == 1) ? nodeName : nodeName + '[' + index + ']';
+                String name = nodeName(nodeName, index);
                 tree = nodeTypeTree.getChild(name);
                 if (!tree.exists()) {
                     tree = nodeTypeTree.addChild(name);
@@ -193,11 +193,15 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
                 index++;
             }
         }
-        tree = nodeTypeTree.getChild(nodeName + '[' + index++ + ']');
+        tree = nodeTypeTree.getChild(nodeName(nodeName, index++));
         while (tree.exists()) {
             tree.remove();
-            tree = nodeTypeTree.getChild(nodeName + '[' + index++ + ']');
+            tree = nodeTypeTree.getChild(nodeName(nodeName, index++));
         }
+    }
+
+    private static String nodeName(String name, int index) {
+        return (index == 1) ? name : name + '[' + index + ']';
     }
 
     //------------------------------------------------------------< public >--
