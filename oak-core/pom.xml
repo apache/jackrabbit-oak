@@ -94,6 +94,7 @@
               org.apache.jackrabbit.oak.spi.whiteboard,
               org.apache.jackrabbit.oak.spi.xml,
               org.apache.jackrabbit.oak.stats,
+              org.apache.jackrabbit.oak.query,
               org.apache.jackrabbit.oak.query.fulltext,
               org.apache.jackrabbit.oak.query.facet,
               org.apache.jackrabbit.oak.security,
