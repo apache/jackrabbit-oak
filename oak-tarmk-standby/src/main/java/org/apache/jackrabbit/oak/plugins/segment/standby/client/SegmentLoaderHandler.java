@@ -23,13 +23,14 @@ import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.n
 import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.newGetSegmentReq;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.concurrent.EventExecutorGroup;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -42,51 +43,82 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
-        implements RemoteSegmentLoader {
+public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implements RemoteSegmentLoader {
 
-    private static final Logger log = LoggerFactory
-            .getLogger(SegmentLoaderHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(SegmentLoaderHandler.class);
 
     private final StandbyStore store;
     private final String clientID;
     private final RecordId head;
-    private final EventExecutorGroup loaderExecutor;
     private final AtomicBoolean running;
     private final int readTimeoutMs;
     private final boolean autoClean;
 
-    private ChannelHandlerContext ctx;
+    private volatile ChannelHandlerContext ctx;
 
-    final BlockingQueue<SegmentReply> segment = new LinkedBlockingQueue<SegmentReply>();
+    private final BlockingQueue<SegmentReply> segment = new LinkedBlockingQueue<SegmentReply>();
 
-    public SegmentLoaderHandler(final StandbyStore store, RecordId head,
-            EventExecutorGroup loaderExecutor,
-            String clientID, AtomicBoolean running, int readTimeoutMs, boolean autoClean) {
+    // Use a separate thread for sync'ing. Leave the I/O thread free to process
+    // I/O requests.
+    private ExecutorService syncExecutor;
+
+    public SegmentLoaderHandler(StandbyStore store, RecordId head, String clientID, AtomicBoolean running, int readTimeoutMs, boolean autoClean) {
         this.store = store;
         this.head = head;
-        this.loaderExecutor = loaderExecutor;
         this.clientID = clientID;
         this.running = running;
         this.readTimeoutMs = readTimeoutMs;
         this.autoClean = autoClean;
+        this.syncExecutor = Executors.newSingleThreadExecutor();
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) {
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        initSync();
     }
 
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt)
-            throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("Exception caught, closing channel.", cause);
+        close();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        syncExecutor.shutdown();
+        syncExecutor = null;
+    }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof SegmentReply) {
-            segment.offer((SegmentReply) evt);
+            onSegmentReply((SegmentReply) evt);
+        }
+
+        if (evt instanceof String) {
+            onCommand((String) evt);
         }
     }
 
-    private void initSync() {
+    private void onSegmentReply(SegmentReply reply) {
+        // Offer the reply from the I/O thread, unblocking the sync thread.
+        segment.offer(reply);
+    }
+
+    private void onCommand(String command) {
+        if (command.equals("sync")) {
+            syncExecutor.submit(new Runnable() {
+
+                @Override
+                public void run() {
+                    sync();
+                }
+
+            });
+        }
+    }
+
+    private void sync() {
         log.debug("new head id " + head);
         long t = System.currentTimeMillis();
         long preSyncSize = -1;
@@ -142,21 +174,18 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     @Override
     public Segment readSegment(final String id) {
+        // Use the I/O thread to write the request to the server
         ctx.writeAndFlush(newGetSegmentReq(this.clientID, id));
+        // Wait on the sync thread for the response.
         return getSegment(id);
     }
 
     @Override
     public Blob readBlob(String blobId) {
+        // Use the I/O thread to write the request to the server
         ctx.writeAndFlush(newGetBlobReq(this.clientID, blobId));
+        // Wait on the sync thread for the response.
         return getBlob(blobId);
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
-            throws Exception {
-        log.error("Exception caught, closing channel.", cause);
-        close();
     }
 
     private Segment getSegment(final String id) {
@@ -172,12 +201,14 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
         try {
             for (;;) {
                 try {
-                    SegmentReply r = segment.poll(readTimeoutMs,
-                            TimeUnit.MILLISECONDS);
+                    // Block the sync thread for a response from the server.
+                    SegmentReply r = segment.poll(readTimeoutMs, TimeUnit.MILLISECONDS);
+
                     if (r == null) {
                         log.warn("timeout waiting for {}", id);
                         return SegmentReply.empty();
                     }
+
                     if (r.getType() == type) {
                         switch (r.getType()) {
                         case SegmentReply.SEGMENT:
@@ -211,8 +242,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     @Override
     public boolean isClosed() {
-        return (loaderExecutor != null && (loaderExecutor.isShuttingDown() || loaderExecutor
-                .isShutdown()));
+        return !ctx.channel().isActive();
     }
 
     @Override
