@@ -15,7 +15,7 @@ use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.0
+Changes since Oak 1.2.0
 ---------------------
 
 Sub-task
@@ -871,6 +871,8 @@ Bug
     [OAK-4082] - Don't pool prepared statements using lists
     [OAK-4083] - Simplify concurrency when loading data from the
     primary
+    [OAK-4085] - Malformed node type definition when reregistered after
+    upgrade
 
 Documentation
 
