@@ -64,7 +64,6 @@ public class ConcurrentOakClusterTest {
         }
 
         await().atMost(2, TimeUnit.MINUTES).until(new Runnable() {
-            @Override
             public void run() {
                 while (from(writers).anyMatch(IS_ALIVE)) {
                     try {
@@ -87,7 +86,6 @@ public class ConcurrentOakClusterTest {
     }
 
     private static final Predicate<Thread> IS_ALIVE = new Predicate<Thread>() {
-        @Override
         public boolean apply(Thread thread) {
             return thread.isAlive();
         }

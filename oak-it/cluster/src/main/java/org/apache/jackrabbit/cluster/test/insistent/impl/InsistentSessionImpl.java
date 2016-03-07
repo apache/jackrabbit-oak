@@ -36,7 +36,7 @@ public class InsistentSessionImpl extends JackrabbitSessionWrapper implements In
                 }
                 return;
             } catch (RepositoryException e) {
-                log.warn(format("Exception during save operation, try %d of %d, %s", i, RETRIES, e.getMessage()));
+                log.warn(format("Exception during save operation, try %d of %d, %s, (%s)", i, RETRIES, e.getMessage(), e.getCause().getCause().getMessage()));
             }
         }
         saveNow(insistentChangePack);

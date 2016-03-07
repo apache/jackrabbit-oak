@@ -40,11 +40,6 @@ public class InsistentShortRunningSessionOakClusterTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void writeConcurrent1() throws Exception {
-        writeConcurrent(1, 10000);
-    }
-
-    @Test
     public void writeConcurrent2() throws Exception {
         writeConcurrent(2, 10000);
     }
@@ -64,16 +59,6 @@ public class InsistentShortRunningSessionOakClusterTest {
         writeConcurrent(50, 100);
     }
 
-    @Test
-    public void writeConcurrent75() throws Exception {
-        writeConcurrent(75, 100);
-    }
-
-    @Test
-    public void writeConcurrent100() throws Exception {
-        writeConcurrent(100, 30);
-    }
-
     private void writeConcurrent(final int concurrentWriters, final int nodesPerWriter) throws RepositoryException, InterruptedException, OakClusterRepository.OakClusterRepositoryException {
         log.info(format("start %d threads and write %d per thread", concurrentWriters, nodesPerWriter));
 
@@ -86,7 +71,6 @@ public class InsistentShortRunningSessionOakClusterTest {
 
         final String existing = "existing";
         sessionOne.save(new InsistentChangePack() {
-            @Override
             public void write() throws RepositoryException {
                 sessionOne.getRootNode().addNode(existing);
             }
@@ -103,7 +87,6 @@ public class InsistentShortRunningSessionOakClusterTest {
             writers.add(writer);
         }
         await().atMost(20, MINUTES).until(new Runnable() {
-            @Override
             public void run() {
                 while (from(writers).anyMatch(IS_ALIVE)) {
                     try {
@@ -118,7 +101,6 @@ public class InsistentShortRunningSessionOakClusterTest {
 
         // then
         await().atMost(60, SECONDS).until(new Runnable() {
-            @Override
             public void run() {
                 long size = 0;
                 while (size < concurrentWriters * nodesPerWriter)
@@ -135,14 +117,12 @@ public class InsistentShortRunningSessionOakClusterTest {
     }
 
     private static final Predicate<Thread> IS_ALIVE = new Predicate<Thread>() {
-        @Override
         public boolean apply(Thread thread) {
             return thread.isAlive();
         }
     };
 
     private static final Function<ChildWriter, String> TO_STATUS = new Function<ChildWriter, String>() {
-        @Override
         public String apply(ChildWriter childWriter) {
             return childWriter.status();
         }
@@ -175,7 +155,6 @@ public class InsistentShortRunningSessionOakClusterTest {
                     final InsistentSession insistentSession = new InsistentSessionImpl(OakTestUtil.session(repository));
                     //log.info(format("write: %s", childName));
                     InsistentChangePack writer = new InsistentChangePack() {
-                        @Override
                         public void write() throws RepositoryException {
                             insistentSession.getRootNode().getNode(parent).addNode(childName);
                         }
