@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static com.google.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -46,6 +47,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Tree;
@@ -178,12 +180,16 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     private static void writeItemDefinitions(@Nonnull Tree nodeTypeTree, @CheckForNull List<? extends ItemDefinitionTemplate> itemDefTemplates,
                                              @Nonnull String nodeName, @Nonnull String primaryTypeName) throws RepositoryException {
-        Tree tree;
+        // first remove existing
+        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName))) {
+            t.remove();
+        }
+        // now write definitions
         int index = 1;
         if (itemDefTemplates != null) {
             for (ItemDefinitionTemplate template : itemDefTemplates) {
                 String name = nodeName(nodeName, index);
-                tree = nodeTypeTree.getChild(name);
+                Tree tree = nodeTypeTree.getChild(name);
                 if (!tree.exists()) {
                     tree = nodeTypeTree.addChild(name);
                     tree.setProperty(
@@ -193,15 +199,25 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
                 index++;
             }
         }
-        tree = nodeTypeTree.getChild(nodeName(nodeName, index++));
-        while (tree.exists()) {
-            tree.remove();
-            tree = nodeTypeTree.getChild(nodeName(nodeName, index++));
-        }
     }
 
     private static String nodeName(String name, int index) {
         return (index == 1) ? name : name + '[' + index + ']';
+    }
+
+    private static final class SameNamePredicate implements Predicate<Tree> {
+
+        private final String name;
+
+        private SameNamePredicate(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public boolean apply(Tree t) {
+            String s = t.getName();
+            return s.equals(name) || s.startsWith(name + "[");
+        }
     }
 
     //------------------------------------------------------------< public >--
