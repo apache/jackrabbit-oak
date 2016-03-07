@@ -44,7 +44,7 @@ public class InsistentShortRunningSessionOakClusterTest {
         writeConcurrent(2, 10000);
     }
 
-    @Test
+    /*@Test
     public void writeConcurrent4() throws Exception {
         writeConcurrent(4, 2000);
     }
@@ -52,7 +52,7 @@ public class InsistentShortRunningSessionOakClusterTest {
     @Test
     public void writeConcurrent10() throws Exception {
         writeConcurrent(10, 1000);
-    }
+    }*/
 
     @Test
     public void writeConcurrent50() throws Exception {

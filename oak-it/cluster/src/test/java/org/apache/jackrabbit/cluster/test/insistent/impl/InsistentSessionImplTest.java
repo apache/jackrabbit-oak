@@ -6,6 +6,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
@@ -59,7 +60,7 @@ public class InsistentSessionImplTest {
     @Test
     public void shouldSaveOnSecondAttempt() throws Exception {
         // given
-        doThrow(InvalidItemStateException.class).doNothing().when(sessionMock).save();
+        doThrow(invalidItemStateException()).doNothing().when(sessionMock).save();
 
         // when
         underTest.save(insistentChangePackMock);
@@ -71,8 +72,8 @@ public class InsistentSessionImplTest {
     @Test
     public void shouldSaveOnThirdAttempt() throws Exception {
         // given
-        doThrow(InvalidItemStateException.class)
-                .doThrow(InvalidItemStateException.class)
+        doThrow(invalidItemStateException())
+                .doThrow(invalidItemStateException())
                 .doNothing()
                 .when(sessionMock).save();
 
@@ -87,7 +88,7 @@ public class InsistentSessionImplTest {
     public void shouldThrowExceptionAfterOngoingErrors() throws Exception {
         // given
         final String exceptionMessage = "exception message";
-        doThrow(new InvalidItemStateException(exceptionMessage))
+        doThrow(invalidItemStateException(exceptionMessage))
                 .when(sessionMock).save();
 
         // then / when
@@ -96,5 +97,13 @@ public class InsistentSessionImplTest {
         underTest.save(insistentChangePackMock);
     }
 
+
+    private InvalidItemStateException invalidItemStateException() {
+        return invalidItemStateException("");
+    }
+
+    private InvalidItemStateException invalidItemStateException(String message) {
+        return new InvalidItemStateException(message, mock(Exception.class, Answers.RETURNS_DEEP_STUBS.get()));
+    }
 
 }

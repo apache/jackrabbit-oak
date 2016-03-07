@@ -26,7 +26,6 @@ public class InsistentSessionImpl extends JackrabbitSessionWrapper implements In
         throw new IllegalArgumentException("Usage of safe() not permitted. Please use save(InsistentChangePack insistentChangPack) instead");
     }
 
-    @Override
     public void save(InsistentChangePack insistentChangePack) throws RepositoryException {
         for (int i = 1; i < RETRIES; i++) {
             try {
