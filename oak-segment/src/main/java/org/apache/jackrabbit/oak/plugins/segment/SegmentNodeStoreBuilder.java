@@ -34,18 +34,9 @@ public class SegmentNodeStoreBuilder {
 
     private boolean isCreated;
 
-    private boolean hasCompactionStrategy;
-    private boolean pauseCompaction;
-    private boolean cloneBinaries;
-    private String cleanup;
-    private long cleanupTs;
-    private byte memoryThreshold;
-    private int lockWaitTime;
-    private int retryCount;
-    private boolean forceAfterFail;
-    private boolean persistCompactionMap;
-    private byte gainThreshold;
-    private CompactionStrategy compactionStrategy;
+    private CompactionStrategy compactionStrategy = NO_COMPACTION;
+
+    private volatile SegmentNodeStore segmentNodeStore;
 
     static SegmentNodeStoreBuilder newSegmentNodeStore(SegmentStore store) {
         return new SegmentNodeStoreBuilder(store);
@@ -65,21 +56,44 @@ public class SegmentNodeStoreBuilder {
                 forceAfterFail, persistCompactionMap, GAIN_THRESHOLD_DEFAULT);
     }
 
+    public SegmentNodeStoreBuilder withCompactionStrategy(CompactionStrategy compactionStrategy) {
+        this.compactionStrategy = compactionStrategy;
+        return this;
+    }
+
     public SegmentNodeStoreBuilder withCompactionStrategy(
-            boolean pauseCompaction, boolean cloneBinaries, String cleanup,
-            long cleanupTs, byte memoryThreshold, final int lockWaitTime,
-            int retryCount, boolean forceAfterFail, boolean persistCompactionMap, byte gainThreshold) {
-        this.hasCompactionStrategy = true;
-        this.pauseCompaction = pauseCompaction;
-        this.cloneBinaries = cloneBinaries;
-        this.cleanup = cleanup;
-        this.cleanupTs = cleanupTs;
-        this.memoryThreshold = memoryThreshold;
-        this.lockWaitTime = lockWaitTime;
-        this.retryCount = retryCount;
-        this.forceAfterFail = forceAfterFail;
-        this.persistCompactionMap = persistCompactionMap;
-        this.gainThreshold = gainThreshold;
+            boolean pauseCompaction,
+            boolean cloneBinaries,
+            String cleanup,
+            long cleanupTs,
+            byte memoryThreshold,
+            final int lockWaitTime,
+            int retryCount,
+            boolean forceAfterFail,
+            boolean persistCompactionMap,
+            byte gainThreshold) {
+
+        compactionStrategy = new CompactionStrategy(
+                pauseCompaction,
+                cloneBinaries,
+                CleanupType.valueOf(cleanup),
+                cleanupTs,
+                memoryThreshold) {
+
+            @Override
+            public boolean compacted(Callable<Boolean> setHead) throws Exception {
+                // Need to guard against concurrent commits to avoid
+                // mixed segments. See OAK-2192.
+                return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
+            }
+
+        };
+
+        compactionStrategy.setRetryCount(retryCount);
+        compactionStrategy.setForceAfterFail(forceAfterFail);
+        compactionStrategy.setPersistCompactionMap(persistCompactionMap);
+        compactionStrategy.setGainThreshold(gainThreshold);
+
         return this;
     }
 
@@ -92,28 +106,8 @@ public class SegmentNodeStoreBuilder {
     public SegmentNodeStore create() {
         checkState(!isCreated);
         isCreated = true;
-        final SegmentNodeStore segmentStore = new SegmentNodeStore(store, true);
-        if (hasCompactionStrategy) {
-            compactionStrategy = new CompactionStrategy(pauseCompaction,
-                    cloneBinaries, CleanupType.valueOf(cleanup), cleanupTs,
-                    memoryThreshold) {
-
-                @Override
-                public boolean compacted(Callable<Boolean> setHead)
-                        throws Exception {
-                    // Need to guard against concurrent commits to avoid
-                    // mixed segments. See OAK-2192.
-                    return segmentStore.locked(setHead, lockWaitTime, SECONDS);
-                }
-            };
-            compactionStrategy.setRetryCount(retryCount);
-            compactionStrategy.setForceAfterFail(forceAfterFail);
-            compactionStrategy.setPersistCompactionMap(persistCompactionMap);
-            compactionStrategy.setGainThreshold(gainThreshold);
-        } else {
-            compactionStrategy = NO_COMPACTION;
-        }
-        return segmentStore;
+        segmentNodeStore = new SegmentNodeStore(store, true);
+        return segmentNodeStore;
     }
 
 }
