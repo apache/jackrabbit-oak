@@ -159,7 +159,7 @@ public interface NodeState {
      * Returns the boolean value of the named property. The implementation
      * is equivalent to the following code, but may be optimized.
      * <pre>
-	 * {@code
+     * {@code
      * PropertyState property = state.getProperty(name);
      * return property != null
      *     && property.getType() == Type.BOOLEAN
