@@ -16,7 +16,7 @@ import static org.junit.Assert.assertThat;
 /**
  * Created by Dominik Foerderreuther <df@adobe.com> on 03/03/16.
  */
-public class OakClusterRepositoryTest {
+public class OakClusterRepositoryJunitRuleTest {
 
     @Rule
     public OakClusterRepository oakClusterRepository = new OakClusterRepository();
