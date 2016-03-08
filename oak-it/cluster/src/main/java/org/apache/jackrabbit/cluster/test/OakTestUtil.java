@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.cluster.test.test;
+package org.apache.jackrabbit.cluster.test;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;

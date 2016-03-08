@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.cluster.test.test;
+package org.apache.jackrabbit.cluster.test;
 
 import com.mongodb.MongoClient;
 import de.flapdoodle.embed.mongo.Command;
@@ -21,7 +21,7 @@ import java.net.UnknownHostException;
 /**
  * Created by Dominik Foerderreuther <df@adobe.com> on 29/02/16.
  */
-public class EmbeddedMongoTestUtil {
+class EmbeddedMongoTestUtil {
 
     private static final int port = 34567;
 

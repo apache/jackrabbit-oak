@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.cluster.test.test;
+package org.apache.jackrabbit.cluster.test;
 
 import com.mongodb.MongoClient;
 
@@ -7,7 +7,7 @@ import java.net.UnknownHostException;
 /**
  * Created by Dominik Foerderreuther <df@adobe.com> on 29/02/16.
  */
-public class MongoTestUtil {
+class MongoTestUtil {
 
     public static void dropDatabase(MongoClient mongoClient, String dbname) {
         mongoClient.dropDatabase(dbname);

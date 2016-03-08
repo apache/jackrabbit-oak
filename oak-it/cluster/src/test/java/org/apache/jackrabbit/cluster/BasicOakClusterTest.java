@@ -1,7 +1,7 @@
-package org.apache.jackrabbit.cluster.test;
+package org.apache.jackrabbit.cluster;
 
-import org.apache.jackrabbit.cluster.test.test.OakClusterRepository;
-import org.apache.jackrabbit.cluster.test.test.OakTestUtil;
+import org.apache.jackrabbit.cluster.test.OakClusterRepository;
+import org.apache.jackrabbit.cluster.test.OakTestUtil;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.log4j.Logger;

@@ -1,7 +1,6 @@
 package org.apache.jackrabbit.cluster.test;
 
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.cluster.test.test.OakClusterRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.junit.Rule;

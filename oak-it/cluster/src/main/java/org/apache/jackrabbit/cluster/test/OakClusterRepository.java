@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.cluster.test.test;
+package org.apache.jackrabbit.cluster.test;
 
 import com.google.common.base.Preconditions;
 import com.mongodb.MongoClient;
@@ -8,9 +8,9 @@ import org.junit.rules.ExternalResource;
 import javax.jcr.Repository;
 import java.net.UnknownHostException;
 
-import static org.apache.jackrabbit.cluster.test.test.EmbeddedMongoTestUtil.mongoClient;
-import static org.apache.jackrabbit.cluster.test.test.MongoTestUtil.databaseExist;
 import static java.lang.Thread.sleep;
+import static org.apache.jackrabbit.cluster.test.EmbeddedMongoTestUtil.mongoClient;
+import static org.apache.jackrabbit.cluster.test.MongoTestUtil.databaseExist;
 
 /**
  * Created by Dominik Foerderreuther <df@adobe.com> on 02/03/16.

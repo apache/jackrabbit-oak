@@ -15,7 +15,7 @@
         <level value="error" />
     </logger>
 
-    <logger name="org.apache.jackrabbit.cluster.test">
+    <logger name="org.apache.jackrabbit.cluster">
 		<level value="info" />
 	</logger>
 
