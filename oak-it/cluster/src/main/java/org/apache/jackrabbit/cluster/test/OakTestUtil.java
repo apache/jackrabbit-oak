@@ -79,8 +79,7 @@ public class OakTestUtil {
                 .with(indexEditorProvider)
                 .with("test")
                 .withAsyncIndexing()
-                .with(whiteboard)
-                ;
+                .with(whiteboard);
 
 
 //        if (commitRateLimiter != null) {
