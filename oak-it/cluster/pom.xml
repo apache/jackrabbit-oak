@@ -12,14 +12,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>oak-it-cluster</artifactId>
-
+    <name>Oak Integration Tests with MongoDB Cluster</name>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
             <version>${project.version}</version>
-            <!--<version>1.0.27</version>-->
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
