@@ -2,7 +2,7 @@
 
 This project is a playground for reconstructing clustering problems with oak. It uses an embedded mongodb and brings a junit rule for creating oak cluster nodes.
 
-## Usage JUnit-Rule of OakClusterRepository: 
+## Usage of JUnit-Rule OakClusterRepository: 
 
 ```Java
 
