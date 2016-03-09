@@ -430,7 +430,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         String checkpointToRelease = afterCheckpoint;
         boolean updatePostRunStatus = false;
         try {
-            String newThreadName = "aysnc-index-update-" + name;
+            String newThreadName = "async-index-update-" + name;
             log.trace("Switching thread name to {}", newThreadName);
             threadNameChanged = true;
             Thread.currentThread().setName(newThreadName);
