@@ -241,12 +241,12 @@ public class RDBJDBCTools {
             int maj = md.getDriverMajorVersion();
             int min = md.getDriverMinorVersion();
 
-            if (maj < drmax || (maj == dbmax && min < dbmin)) {
+            if (maj < drmax || (maj == drmax && min < drmin)) {
                 if (result.length() != 0) {
                     result.append(", ");
                 }
                 result.append("Unsupported " + dbname + " driver version: " + md.getDriverName() + " " + maj + "." + min
-                        + ", expected at least " + dbmax + "." + dbmin);
+                        + ", expected at least " + drmax + "." + drmin);
             }
         }
 
