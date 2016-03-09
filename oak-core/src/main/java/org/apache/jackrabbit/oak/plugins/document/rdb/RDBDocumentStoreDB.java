@@ -77,7 +77,32 @@ public enum RDBDocumentStoreDB {
     POSTGRES("PostgreSQL") {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return RDBJDBCTools.versionCheck(md, 9, 3, description);
+            String result = RDBJDBCTools.versionCheck(md, 9, 5, 9, 4, description);
+
+            if (result.isEmpty()) {
+                // special case: we need 9.4.1208 or newer (see OAK-3977)
+                if (md.getDriverMajorVersion() == 9 && md.getDriverMinorVersion() == 4) {
+                    String versionString = md.getDriverVersion();
+                    String scanfor = "9.4.";
+                    int p = versionString.indexOf(scanfor);
+                    if (p >= 0) {
+                        StringBuilder build = new StringBuilder();
+                        for (char c : versionString.substring(p + scanfor.length()).toCharArray()) {
+                            if (c >= '0' && c <= '9') {
+                                build.append(c);
+                            } else {
+                                break;
+                            }
+                        }
+                        if (Integer.parseInt(build.toString()) < 1208) {
+                            result = "Unsupported " + description + " driver version: " + md.getDriverVersion() + ", found build "
+                                    + build + ", but expected at least build 1208";
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
 
         @Override
