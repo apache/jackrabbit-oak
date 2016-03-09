@@ -738,18 +738,20 @@ public class ClusterNodeInfo {
             now = getCurrentTime();
             leaseEndTime = now + leaseTime;
         }
+
         UpdateOp update = new UpdateOp("" + id, false);
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
-        ClusterNodeInfoDocument doc = null;
-        if (renewed && !leaseCheckDisabled) { // if leaseCheckDisabled, then we just update the lease without checking
+
+        if (renewed && !leaseCheckDisabled) {
+            // if leaseCheckDisabled, then we just update the lease without
+            // checking
             // OAK-3398:
             // if we renewed the lease ever with this instance/ClusterNodeInfo
             // (which is the normal case.. except for startup),
             // then we can now make an assertion that the lease is unchanged
             // and the incremental update must only succeed if no-one else
             // did a recover/inactivation in the meantime
-            update.setNew(false); // in this case it is *not* a new document
             // make two assertions: the leaseEnd must match ..
             update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
             // plus it must still be active ..
@@ -758,14 +760,14 @@ public class ClusterNodeInfo {
             // yet another field to clusterNodes: a runtimeId that we
             // create (UUID) at startup each time - and against that
             // we could also check here - but that goes a bit far IMO
-            doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
-        } else {
-            // this is only for startup - then we 'just' overwrite
-            // the lease - or create it - and don't care a lot about what the
-            // status of the lease was
-            doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
         }
-        if (doc==null) { // should not occur when leaseCheckDisabled
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Renewing lease for for cluster id " + id + " with UpdateOp " + update);
+        }
+        ClusterNodeInfoDocument doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+ 
+        if (doc == null) { // should not occur when leaseCheckDisabled
             // OAK-3398 : someone else either started recovering or is already through with that.
             // in both cases the local instance lost the lease-update-game - and hence
             // should behave and must consider itself as 'lease failed'
