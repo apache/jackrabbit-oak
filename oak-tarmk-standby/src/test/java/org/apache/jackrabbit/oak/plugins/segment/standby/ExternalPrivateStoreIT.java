@@ -27,8 +27,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
 import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
 
 
 public class ExternalPrivateStoreIT extends DataStoreTestBase {
@@ -58,12 +56,4 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
         return setupFileDataStore(d, secondaryStore.getAbsolutePath());
     }
 
-    @Override
-    @Test
-    @Ignore("OAK-4110")
-    public void testProxySkippedBytesIntermediateChange() throws Exception {
-        // overriddign for allowing the ignore of the specific test class
-        // remove the whole method once test no longer fails on jenkins
-        // https://issues.apache.org/jira/browse/OAK-4110
-    }
 }
