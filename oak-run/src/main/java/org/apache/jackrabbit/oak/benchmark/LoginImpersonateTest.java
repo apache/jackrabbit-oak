@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.Credentials;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -28,8 +26,8 @@ public class LoginImpersonateTest extends AbstractLoginTest {
     private SimpleCredentials creds;
 
     @Override
-    public void setUp(Repository repository, Credentials credentials) throws Exception {
-        super.setUp(repository, credentials);
+    public void beforeSuite() throws Exception {
+        super.beforeSuite();
 
         // will be close upon super.tearDown
         admin = loginAdministrative();

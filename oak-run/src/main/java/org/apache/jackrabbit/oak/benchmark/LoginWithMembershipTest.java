@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -50,8 +49,8 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
     }
 
     @Override
-    public void setUp(Repository repository, Credentials credentials) throws Exception {
-        super.setUp(repository, credentials);
+    public void beforeSuite() throws Exception {
+        super.beforeSuite();
 
         Session s = loginAdministrative();
         try {
@@ -78,9 +77,9 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
     }
 
     @Override
-    public void tearDown() throws Exception {
+    public void afterSuite() throws Exception {
+        Session s = loginAdministrative();
         try {
-            Session s = loginAdministrative();
 
             Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(GROUP);
             if (authorizable != null) {
@@ -89,10 +88,8 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
             }
 
             s.save();
-            s.logout();
-
         } finally {
-            super.tearDown();
+            s.logout();
         }
     }
 

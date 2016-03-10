@@ -77,6 +77,11 @@ abstract class AbstractLoginTest extends AbstractTest {
     @Override
     public void setUp(Repository repository, Credentials credentials) throws Exception {
         super.setUp(repository, buildCredentials(repository, credentials));
+
+    }
+
+    @Override
+    public void beforeSuite() throws Exception {
         Session s = loginAdministrative();
         try {
             AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
@@ -90,7 +95,7 @@ abstract class AbstractLoginTest extends AbstractTest {
     }
 
     @Override
-    public void tearDown() throws Exception {
+    public void afterSuite() throws Exception {
         Session s = loginAdministrative();
         try {
             Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(USER);
@@ -100,7 +105,6 @@ abstract class AbstractLoginTest extends AbstractTest {
             }
         } finally {
             s.logout();
-            super.tearDown();
         }
     }
 
