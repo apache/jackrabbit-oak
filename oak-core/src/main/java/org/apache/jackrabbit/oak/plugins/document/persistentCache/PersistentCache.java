@@ -101,7 +101,7 @@ public class PersistentCache implements Broadcaster.Listener {
         LOG.info("start, url={}", url);
         String[] parts = url.split(",");
         String dir = parts[0];
-        String broadcast = "tcp:";
+        String broadcast = "disabled";
         for (String p : parts) {
             if (p.equals("+docs")) {
                 cacheDocs = true;
