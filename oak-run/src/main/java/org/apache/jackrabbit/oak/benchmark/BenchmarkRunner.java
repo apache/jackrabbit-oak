@@ -101,7 +101,7 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
         OptionSpec<Integer> batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(ManyGroupMembersTest.DEFAULT_BATCH_SIZE);
+                .withOptionalArg().ofType(Integer.class).defaultsTo(AddMembersTest.DEFAULT_BATCH_SIZE);
         OptionSpec<String> importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
                                 .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
@@ -320,10 +320,41 @@ public class BenchmarkRunner {
             new GetGroupPrincipalsTest(
                     numberOfGroups.value(options),
                     nestedGroups.value(options)),
-            new ManyGroupMembersTest(
+
+            // benchmarks adding multiple or single members
+            new AddMembersTest(
                     numberOfUsers.value(options),
                     batchSize.value(options),
                     importBehavior.value(options)),
+            new AddMemberTest(
+                    numberOfUsers.value(options)),
+
+            // benchmark testing isMember/isDeclared member; each user only being member of 1 group
+            new IsMemberTest(
+                    numberOfUsers.value(options),
+                    nestedGroups.value(options)),
+            new IsDeclaredMemberTest(
+                    numberOfUsers.value(options),
+                    nestedGroups.value(options)),
+
+            // 4 benchmarks with the same setup test various membership operations.
+            new MemberDeclaredMemberOf(
+                    numberOfGroups.value(options),
+                    nestedGroups.value(options),
+                    numberOfUsers.value(options)),
+            new MemberMemberOf(
+                    numberOfGroups.value(options),
+                    nestedGroups.value(options),
+                    numberOfUsers.value(options)),
+            new MemberIsDeclaredMember(
+                    numberOfGroups.value(options),
+                    nestedGroups.value(options),
+                    numberOfUsers.value(options)),
+            new MemberIsMember(
+                    numberOfGroups.value(options),
+                    nestedGroups.value(options),
+                    numberOfUsers.value(options)),
+
             new FullTextSearchTest(
                     wikipedia.value(options),
                     flatStructure.value(options),
