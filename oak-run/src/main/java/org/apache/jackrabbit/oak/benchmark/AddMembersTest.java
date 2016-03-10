@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javax.annotation.Nonnull;
-import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -52,53 +51,47 @@ import org.apache.jackrabbit.util.Text;
  * following parameters can be used to run the benchmark:
  *
  * - numberOfMembers : the number of members that should be added in the test run
- * - batchSize : the number of members that should be added before calling Session.save
+ * - batchSize : the size of the memberID-array to be passed to the addMembers call
  * - importBehavior : the {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}; valid options are "besteffort", "ignore" and "abort"
  *
- * For simplicity this benchmark makes use of {@link Group#addMembers(String...)}.
  * An importbehavior of "ignore" and "abort" will required the members to exist
- * and will resolve each ID to the corresponding authorizble first. Those are
- * consequently almost equivalent to calling {@link Group#addMember(org.apache.jackrabbit.api.security.user.Authorizable)}.
- * In case of "besteffort" the member is not resolved to an authorizable.
+ * and will resolve each ID to the corresponding authorizble first (different test
+ * setup). In case of "besteffort" the member is not resolved to an authorizable.
  */
-public class ManyGroupMembersTest extends AbstractTest {
+public class AddMembersTest extends AbstractTest {
 
-    private final Random random = new Random();
-
-    private static final String REL_TEST_PATH = "testPath";
-    private static final String USER = "user";
-    private static final String GROUP = "group";
-    private static final int GROUP_CNT = 100;
-
+    static final String REL_TEST_PATH = "testPath";
+    static final String USER = "user";
+    static final String GROUP = "group";
+    static final int GROUP_CNT = 100;
     static final int DEFAULT_BATCH_SIZE = 1;
 
-    private final int numberOfMembers;
+    final Random random = new Random();
+    final int numberOfMembers;
     private final int batchSize;
     private final String importBehavior;
 
-    public ManyGroupMembersTest(int numberOfMembers, int batchSize, @Nonnull String importBehavior) {
+    private final List<String> groupPaths = new ArrayList(GROUP_CNT);
+
+    public AddMembersTest(int numberOfMembers, int batchSize, @Nonnull String importBehavior) {
         this.numberOfMembers = numberOfMembers;
         this.batchSize = batchSize;
         this.importBehavior = importBehavior;
     }
 
     @Override
-    public void setUp(Repository repository, Credentials credentials) throws Exception {
-        super.setUp(repository, credentials);
+    public void beforeSuite() throws Exception {
+        super.beforeSuite();
 
         Session s = loginAdministrative();
         try {
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
             for (int i = 0; i <= GROUP_CNT; i++) {
-                userManager.createGroup(new PrincipalImpl(GROUP + i), REL_TEST_PATH);
+                Group g = userManager.createGroup(new PrincipalImpl(GROUP + i), REL_TEST_PATH);
+                groupPaths.add(g.getPath());
             }
 
-            if (!ImportBehavior.NAME_BESTEFFORT.equals(importBehavior)) {
-                for (int i = 0; i <= numberOfMembers; i++) {
-                    String id = USER + i;
-                    userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
-                }
-            }
+            createUsers(userManager);
 
         } finally {
             s.save();
@@ -107,11 +100,19 @@ public class ManyGroupMembersTest extends AbstractTest {
         System.out.println("setup done");
     }
 
-    @Override
-    public void tearDown() throws Exception {
-        try {
-            Session s = loginAdministrative();
+    protected void createUsers(@Nonnull UserManager userManager) throws Exception {
+        if (!ImportBehavior.NAME_BESTEFFORT.equals(importBehavior)) {
+            for (int i = 0; i <= numberOfMembers; i++) {
+                String id = USER + i;
+                userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
+            }
+        }
+    }
 
+    @Override
+    public void afterSuite() throws Exception {
+        Session s = loginAdministrative();
+        try {
             Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(GROUP + "0");
             if (authorizable != null) {
                 Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
@@ -126,10 +127,8 @@ public class ManyGroupMembersTest extends AbstractTest {
                 }
             }
             s.save();
-            s.logout();
-
         } finally {
-            super.tearDown();
+            s.logout();
         }
     }
 
@@ -160,21 +159,9 @@ public class ManyGroupMembersTest extends AbstractTest {
                 }
             }, null);
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
-            String groupId = GROUP + random.nextInt(GROUP_CNT);
-            Group g = userManager.getAuthorizable(groupId, Group.class);
-            for (int i = 0; i <= numberOfMembers; i++) {
-                if (batchSize <= DEFAULT_BATCH_SIZE) {
-                    g.addMembers(USER + i);
-                } else {
-                    List<String> ids = new ArrayList<String>(batchSize);
-                    for (int j = 0; j < batchSize && i <= numberOfMembers; j++) {
-                        ids.add(USER + i);
-                        i++;
-                    }
-                    g.addMembers(ids.toArray(new String[ids.size()]));
-                }
-                s.save();
-            }
+            String groupPath = groupPaths.get(random.nextInt(GROUP_CNT));
+            Group g = (Group) userManager.getAuthorizableByPath(groupPath);
+            addMembers(userManager, g, s);
         } catch (RepositoryException e) {
             System.out.println(e.getMessage());
             if (s.hasPendingChanges()) {
@@ -184,6 +171,22 @@ public class ManyGroupMembersTest extends AbstractTest {
             if (s != null) {
                 s.logout();
             }
+        }
+    }
+
+    protected void addMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
+        for (int i = 0; i <= numberOfMembers; i++) {
+            if (batchSize <= DEFAULT_BATCH_SIZE) {
+                group.addMembers(USER + i);
+            } else {
+                String[] ids = new String[batchSize];
+                for (int j = 0; j < batchSize && i <= numberOfMembers; j++) {
+                    ids[j] = USER + i;
+                    i++;
+                }
+                group.addMembers(ids);
+            }
+            s.save();
         }
     }
 }
