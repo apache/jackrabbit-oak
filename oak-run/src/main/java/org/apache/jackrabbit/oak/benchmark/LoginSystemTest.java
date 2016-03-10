@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
-import javax.jcr.Credentials;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.Subject;
@@ -35,9 +33,9 @@ public class LoginSystemTest extends AbstractLoginTest {
     private Subject subject;
 
     @Override
-    public void setUp(Repository repository, Credentials credentials) throws Exception {
-        super.setUp(repository, credentials);
-        if (repository instanceof RepositoryImpl) {
+    public void beforeSuite() throws Exception {
+        super.beforeSuite();
+        if (getRepository() instanceof RepositoryImpl) {
             subject = SystemSubject.INSTANCE;
         } else {
             subject = new Subject(true, ImmutableSet.of(new SystemPrincipal()), Collections.emptySet(), Collections.emptySet());

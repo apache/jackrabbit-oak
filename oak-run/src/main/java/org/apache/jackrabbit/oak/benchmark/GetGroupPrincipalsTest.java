@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.security.Principal;
-import javax.jcr.Credentials;
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -48,8 +46,8 @@ public class GetGroupPrincipalsTest extends AbstractTest {
     }
 
     @Override
-    public void setUp(Repository repository, Credentials credentials) throws Exception {
-        super.setUp(repository, credentials);
+    public void beforeSuite() throws Exception {
+        super.beforeSuite();
 
         session = loginAdministrative();
 
@@ -77,24 +75,19 @@ public class GetGroupPrincipalsTest extends AbstractTest {
     }
 
     @Override
-    public void tearDown() throws Exception {
-        try {
-            UserManager userMgr = ((JackrabbitSession) session).getUserManager();
-            Authorizable authorizable = userMgr.getAuthorizable(USER);
-            if (authorizable != null) {
-                authorizable.remove();
-            }
-
-            authorizable = userMgr.getAuthorizable(GROUP);
-            if (authorizable != null) {
-                Node n = session.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
-                n.remove();
-            }
-
-            session.save();
-        } finally {
-            super.tearDown();
+    public void afterSuite() throws Exception {
+        UserManager userMgr = ((JackrabbitSession) session).getUserManager();
+        Authorizable authorizable = userMgr.getAuthorizable(USER);
+        if (authorizable != null) {
+            authorizable.remove();
         }
+
+        authorizable = userMgr.getAuthorizable(GROUP);
+        if (authorizable != null) {
+            Node n = session.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
+            n.remove();
+        }
+        session.save();
     }
 
     @Override
