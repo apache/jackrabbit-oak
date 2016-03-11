@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStr
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PERSIST_COMPACTION_MAP_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.TIMESTAMP_DEFAULT;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
@@ -42,9 +43,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -70,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -248,13 +250,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private FileStore store;
 
-    private volatile SegmentNodeStore delegate;
+    private volatile SegmentNodeStore segmentNodeStore;
 
     private ObserverTracker observerTracker;
 
     private GCMonitorTracker gcMonitor;
 
     private ComponentContext context;
+
+    private CompactionStrategy compactionStrategy;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
@@ -291,12 +295,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     @Override
     protected SegmentNodeStore getNodeStore() {
-        checkState(delegate != null, "service must be activated when used");
-        return delegate;
+        checkState(segmentNodeStore != null, "service must be activated when used");
+        return segmentNodeStore;
     }
 
     @Activate
-    private void activate(ComponentContext context) throws IOException {
+    public void activate(ComponentContext context) throws IOException {
         this.context = context;
         this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE));
 
@@ -307,198 +311,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
     }
 
-    public void registerNodeStore() throws IOException {
-        if (registerSegmentStore()) {
-            boolean standby = toBoolean(property(STANDBY), false);
-            providerRegistration = context.getBundleContext().registerService(
-                    SegmentStoreProvider.class.getName(), this, null);
-            if (!standby) {
-                Dictionary<String, Object> props = new Hashtable<String, Object>();
-                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
-                storeRegistration = context.getBundleContext().registerService(
-                        NodeStore.class.getName(), this, props);
-            }
-        }
+    protected void bindBlobStore(BlobStore blobStore) throws IOException {
+        this.blobStore = blobStore;
+        registerNodeStore();
     }
 
-    public synchronized boolean registerSegmentStore() throws IOException {
-        if (context == null) {
-            log.info("Component still not activated. Ignoring the initialization call");
-            return false;
-        }
-        Dictionary<?, ?> properties = context.getProperties();
-        name = String.valueOf(properties.get(NAME));
-
-        String directory = property(DIRECTORY);
-        if (directory == null) {
-            directory = "tarmk";
-        }else{
-            directory = FilenameUtils.concat(directory, "segmentstore");
-        }
-
-        String mode = property(MODE);
-        if (mode == null) {
-            mode = System.getProperty(MODE,
-                    System.getProperty("sun.arch.data.model", "32"));
-        }
-
-        String size = property(SIZE);
-        if (size == null) {
-            size = System.getProperty(SIZE, "256");
-        }
-
-        String cache = property(CACHE);
-        if (cache == null) {
-            cache = System.getProperty(CACHE);
-        }
-
-        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION),
-                PAUSE_DEFAULT);
-        boolean cloneBinaries = toBoolean(
-                property(COMPACTION_CLONE_BINARIES),
-                CLONE_BINARIES_DEFAULT);
-        long cleanupTs = toLong(property(COMPACTION_CLEANUP_TIMESTAMP),
-                TIMESTAMP_DEFAULT);
-        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT),
-                RETRY_COUNT_DEFAULT);
-        boolean forceCommit = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL),
-                FORCE_AFTER_FAIL_DEFAULT);
-        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME),
-                COMPACTION_LOCK_WAIT_TIME_DEFAULT);
-        boolean persistCompactionMap = toBoolean(property(PERSIST_COMPACTION_MAP),
-                PERSIST_COMPACTION_MAP_DEFAULT);
-        String cleanup = property(COMPACTION_CLEANUP);
-        if (cleanup == null) {
-            cleanup = CLEANUP_DEFAULT.toString();
-        }
-
-        String memoryThresholdS = property(COMPACTION_MEMORY_THRESHOLD);
-        byte memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
-        if (memoryThresholdS != null) {
-            memoryThreshold = Byte.valueOf(memoryThresholdS);
-        }
-
-        String gainThresholdS = property(COMPACTION_GAIN_THRESHOLD);
-        byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
-        if (gainThresholdS != null) {
-            gainThreshold = Byte.valueOf(gainThresholdS);
-        }
-
-        final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
-
-        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        gcMonitor = new GCMonitorTracker();
-        gcMonitor.start(whiteboard);
-        Builder storeBuilder = FileStore.newFileStore(new File(directory))
-                .withCacheSize(Integer.parseInt(cache))
-                .withMaxFileSize(Integer.parseInt(size))
-                .withMemoryMapping("64".equals(mode))
-                .withGCMonitor(gcMonitor)
-                .withStatisticsProvider(statisticsProvider);
-        if (customBlobStore) {
-            log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
-            store = storeBuilder.withBlobStore(blobStore).create();
-        } else {
-            store = storeBuilder.create();
-        }
-        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
-                .newSegmentNodeStore(store);
-        nodeStoreBuilder.withCompactionStrategy(pauseCompaction, cloneBinaries,
-                cleanup, cleanupTs, memoryThreshold, lockWaitTime, retryCount,
-                forceCommit, persistCompactionMap, gainThreshold);
-        delegate = nodeStoreBuilder.create();
-
-        CompactionStrategy compactionStrategy = nodeStoreBuilder
-                .getCompactionStrategy();
-        store.setCompactionStrategy(compactionStrategy);
-
-        CacheStats segmentCacheStats = store.getTracker().getSegmentCacheStats();
-        segmentCacheMBean = registerMBean(whiteboard, CacheStatsMBean.class,
-                segmentCacheStats,
-                CacheStats.TYPE, segmentCacheStats.getName());
-
-        CacheStats stringCacheStats = store.getTracker().getStringCacheStats();
-        if (stringCacheStats != null) {
-            stringCacheMBean = registerMBean(whiteboard, CacheStatsMBean.class,
-                    stringCacheStats,
-                    CacheStats.TYPE, stringCacheStats.getName());
-        }
-
-        FileStoreGCMonitor fsgcMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
-        fsgcMonitorMBean = new CompositeRegistration(
-                whiteboard.register(GCMonitor.class, fsgcMonitor, emptyMap()),
-                registerMBean(whiteboard, GCMonitorMBean.class, fsgcMonitor, GCMonitorMBean.TYPE,
-                        "File Store garbage collection monitor"),
-                scheduleWithFixedDelay(whiteboard, fsgcMonitor, 1));
-
-        observerTracker = new ObserverTracker(delegate);
-        observerTracker.start(context.getBundleContext());
-
-        executor = new WhiteboardExecutor();
-        executor.start(whiteboard);
-
-        checkpointRegistration = registerMBean(whiteboard, CheckpointMBean.class, new SegmentCheckpointMBean(delegate),
-                CheckpointMBean.TYPE, "Segment node store checkpoint management");
-
-        RevisionGC revisionGC = new RevisionGC(new Runnable() {
-            @Override
-            public void run() {
-                store.gc();
-            }
-        }, executor);
-        revisionGCRegistration = registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
-                RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
-
-        // ensure a clusterId is initialized 
-        // and expose it as 'oak.clusterid' repository descriptor
-        GenericDescriptors clusterIdDesc = new GenericDescriptors();
-        clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY, 
-                new SimpleValueFactory().createValue(
-                        ClusterRepositoryInfo.getOrCreateId(delegate)), true, false);
-        whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
-        
-        // If a shared data store register the repo id in the data store
-        String repoId = "";
-        if (SharedDataStoreUtils.isShared(blobStore)) {
-            try {
-                repoId = ClusterRepositoryInfo.getOrCreateId(delegate);
-                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                    SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
-            } catch (Exception e) {
-                throw new IOException("Could not register a unique repositoryId", e);
-            }
-        }
-
-        if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            BlobGarbageCollector gc = new MarkSweepGarbageCollector(
-                                                    new SegmentBlobReferenceRetriever(store.getTracker()),
-                                                    (GarbageCollectableBlobStore) store.getBlobStore(),
-                                                    executor, TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
-                                                    repoId);
-
-            blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
-                    BlobGCMBean.TYPE, "Segment node store blob garbage collection");
-        }
-
-        compactionStrategyRegistration = registerMBean(whiteboard,
-                CompactionStrategyMBean.class,
-                new DefaultCompactionStrategyMBean(compactionStrategy),
-                CompactionStrategyMBean.TYPE,
-                "Segment node store compaction strategy settings");
-
-        fileStoreStatsMBean = registerMBean(whiteboard,
-                FileStoreStatsMBean.class,
-                store.getStats(),
-                FileStoreStatsMBean.TYPE,
-                "FileStore statistics");
-
-        log.info("SegmentNodeStore initialized");
-        return true;
-    }
-
-    private String property(String name) {
-        return lookupConfigurationThenFramework(context, name);
+    protected void unbindBlobStore(BlobStore blobStore){
+        this.blobStore = null;
+        unregisterNodeStore();
     }
 
     @Deactivate
@@ -512,7 +332,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             if (gcMonitor != null) {
                 gcMonitor.stop();
             }
-            delegate = null;
+            segmentNodeStore = null;
 
             if (store != null) {
                 store.close();
@@ -521,14 +341,245 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
     }
 
-    protected void bindBlobStore(BlobStore blobStore) throws IOException {
-        this.blobStore = blobStore;
-        registerNodeStore();
+    private synchronized void registerNodeStore() throws IOException {
+        if (registerSegmentStore()) {
+            if (toBoolean(property(STANDBY), false)) {
+                return;
+            }
+
+            if (registerSegmentNodeStore()) {
+                Dictionary<String, Object> props = new Hashtable<String, Object>();
+                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
+                storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
+            }
+        }
     }
 
-    protected void unbindBlobStore(BlobStore blobStore){
-        this.blobStore = null;
-        unregisterNodeStore();
+    private boolean registerSegmentStore() throws IOException {
+        if (context == null) {
+            log.info("Component still not activated. Ignoring the initialization call");
+            return false;
+        }
+
+        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+
+        // Listen for GCMonitor services
+
+        gcMonitor = new GCMonitorTracker();
+        gcMonitor.start(whiteboard);
+
+        // Build the FileStore
+
+        Builder builder = FileStore.newFileStore(getDirectory())
+                .withCacheSize(getCacheSize())
+                .withMaxFileSize(getMaxFileSize())
+                .withMemoryMapping(getMode().equals("64"))
+                .withGCMonitor(gcMonitor)
+                .withStatisticsProvider(statisticsProvider);
+
+        if (customBlobStore) {
+            log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
+            builder.withBlobStore(blobStore);
+        }
+
+        store = builder.create();
+
+        // Create a compaction strategy
+
+        compactionStrategy = newCompactionStrategy();
+
+        // Expose an MBean to provide information about the compaction strategy
+
+        compactionStrategyRegistration = registerMBean(
+                whiteboard,
+                CompactionStrategyMBean.class,
+                new DefaultCompactionStrategyMBean(compactionStrategy),
+                CompactionStrategyMBean.TYPE,
+                "Segment node store compaction strategy settings"
+        );
+
+        // Let the FileStore be aware of the compaction strategy
+
+        store.setCompactionStrategy(compactionStrategy);
+
+        // Expose stats about the segment cache
+
+        CacheStats segmentCacheStats = store.getTracker().getSegmentCacheStats();
+
+        segmentCacheMBean = registerMBean(
+                whiteboard,
+                CacheStatsMBean.class,
+                segmentCacheStats,
+                CacheStats.TYPE,
+                segmentCacheStats.getName()
+        );
+
+        // Expose stats about the string cache, if available
+
+        CacheStats stringCacheStats = store.getTracker().getStringCacheStats();
+
+        if (stringCacheStats != null) {
+            stringCacheMBean = registerMBean(
+                    whiteboard,
+                    CacheStatsMBean.class,
+                    stringCacheStats,CacheStats.TYPE,
+                    stringCacheStats.getName()
+            );
+        }
+
+        // Listen for Executor services on the whiteboard
+
+        executor = new WhiteboardExecutor();
+        executor.start(whiteboard);
+
+        // Expose an MBean to trigger garbage collection
+
+        Runnable triggerGarbageCollection = new Runnable() {
+
+            @Override
+            public void run() {
+                store.gc();
+            }
+
+        };
+
+        revisionGCRegistration = registerMBean(
+                whiteboard,
+                RevisionGCMBean.class,
+                new RevisionGC(triggerGarbageCollection, executor),
+                RevisionGCMBean.TYPE,
+                "Segment node store revision garbage collection"
+        );
+
+        // Expose statistics about the FileStore
+
+        fileStoreStatsMBean = registerMBean(
+                whiteboard,
+                FileStoreStatsMBean.class,
+                store.getStats(),
+                FileStoreStatsMBean.TYPE,
+                "FileStore statistics"
+        );
+
+        // Register a monitor for the garbage collection of the FileStore
+
+        FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
+
+        fsgcMonitorMBean = new CompositeRegistration(
+                whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
+                registerMBean(
+                        whiteboard,
+                        GCMonitorMBean.class,
+                        fsgcm,
+                        GCMonitorMBean.TYPE,
+                        "File Store garbage collection monitor"
+                ),
+                scheduleWithFixedDelay(whiteboard, fsgcm, 1)
+        );
+
+        // Register a factory service to expose the FileStore
+
+        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
+
+        return true;
+    }
+
+    private CompactionStrategy newCompactionStrategy() {
+        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
+        boolean cloneBinaries = toBoolean(property(COMPACTION_CLONE_BINARIES), CLONE_BINARIES_DEFAULT);
+        long cleanupTs = toLong(property(COMPACTION_CLEANUP_TIMESTAMP), TIMESTAMP_DEFAULT);
+        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
+        boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
+        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
+        boolean persistCompactionMap = toBoolean(property(PERSIST_COMPACTION_MAP), PERSIST_COMPACTION_MAP_DEFAULT);
+
+        CleanupType cleanupType = getCleanUpType();
+        byte memoryThreshold = getMemoryThreshold();
+        byte gainThreshold = getGainThreshold();
+
+        // This is indeed a dirty hack, but it's needed to break a circular
+        // dependency between different components. The FileStore needs the
+        // CompactionStrategy, the CompactionStrategy needs the
+        // SegmentNodeStore, and the SegmentNodeStore needs the FileStore.
+
+        CompactionStrategy compactionStrategy = new CompactionStrategy(pauseCompaction, cloneBinaries, cleanupType, cleanupTs, memoryThreshold) {
+
+            @Override
+            public boolean compacted(Callable<Boolean> setHead) throws Exception {
+                // Need to guard against concurrent commits to avoid
+                // mixed segments. See OAK-2192.
+                return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
+            }
+
+        };
+
+        compactionStrategy.setRetryCount(retryCount);
+        compactionStrategy.setForceAfterFail(forceAfterFail);
+        compactionStrategy.setPersistCompactionMap(persistCompactionMap);
+        compactionStrategy.setGainThreshold(gainThreshold);
+
+        return compactionStrategy;
+    }
+
+    private boolean registerSegmentNodeStore() throws IOException {
+        Dictionary<?, ?> properties = context.getProperties();
+        name = String.valueOf(properties.get(NAME));
+
+        final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
+
+        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+
+        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.newSegmentNodeStore(store);
+        nodeStoreBuilder.withCompactionStrategy(compactionStrategy);
+        segmentNodeStore = nodeStoreBuilder.create();
+
+        observerTracker = new ObserverTracker(segmentNodeStore);
+        observerTracker.start(context.getBundleContext());
+
+        checkpointRegistration = registerMBean(whiteboard, CheckpointMBean.class, new SegmentCheckpointMBean(segmentNodeStore),
+                CheckpointMBean.TYPE, "Segment node store checkpoint management");
+
+        // ensure a clusterId is initialized
+        // and expose it as 'oak.clusterid' repository descriptor
+        GenericDescriptors clusterIdDesc = new GenericDescriptors();
+        clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
+                new SimpleValueFactory().createValue(
+                        ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
+        whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
+
+        // If a shared data store register the repo id in the data store
+        String repoId = "";
+        if (SharedDataStoreUtils.isShared(blobStore)) {
+            try {
+                repoId = ClusterRepositoryInfo.getOrCreateId(segmentNodeStore);
+                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                        SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+            } catch (Exception e) {
+                throw new IOException("Could not register a unique repositoryId", e);
+            }
+        }
+
+        if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
+            BlobGarbageCollector gc = new MarkSweepGarbageCollector(
+                    new SegmentBlobReferenceRetriever(store.getTracker()),
+                    (GarbageCollectableBlobStore) store.getBlobStore(),
+                    executor,
+                    TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
+                    repoId
+            );
+
+            blobGCRegistration = registerMBean(
+                    whiteboard,
+                    BlobGCMBean.class,
+                    new BlobGC(gc, executor),
+                    BlobGCMBean.TYPE,
+                    "Segment node store blob garbage collection"
+            );
+        }
+
+        log.info("SegmentNodeStore initialized");
+        return true;
     }
 
     private void unregisterNodeStore() {
@@ -578,6 +629,92 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
     }
 
+    private File getBaseDirectory() {
+        String directory = property(DIRECTORY);
+
+        if (directory != null) {
+            return new File(directory);
+        }
+
+        return new File("tarmk");
+    }
+
+    private File getDirectory() {
+        return new File(getBaseDirectory(), "segmentstore");
+    }
+
+    private String getMode() {
+        String mode = property(MODE);
+
+        if (mode != null) {
+            return mode;
+        }
+
+        return System.getProperty(MODE, System.getProperty("sun.arch.data.model", "32"));
+    }
+
+    private String getCacheSizeProperty() {
+        String cache = property(CACHE);
+
+        if (cache != null) {
+            return cache;
+        }
+
+        return System.getProperty(CACHE);
+    }
+
+    private int getCacheSize() {
+        return Integer.parseInt(getCacheSizeProperty());
+    }
+
+    private String getMaxFileSizeProperty() {
+        String size = property(SIZE);
+
+        if (size != null) {
+            return size;
+        }
+
+        return System.getProperty(SIZE, "256");
+    }
+
+    private int getMaxFileSize() {
+        return Integer.parseInt(getMaxFileSizeProperty());
+    }
+
+    private CleanupType getCleanUpType() {
+        String cleanupType = property(COMPACTION_CLEANUP);
+
+        if (cleanupType == null) {
+            return CLEANUP_DEFAULT;
+        }
+
+        return CleanupType.valueOf(cleanupType);
+    }
+
+    private byte getMemoryThreshold() {
+        String mt = property(COMPACTION_MEMORY_THRESHOLD);
+
+        if (mt == null) {
+            return MEMORY_THRESHOLD_DEFAULT;
+        }
+
+        return Byte.valueOf(mt);
+    }
+
+    private byte getGainThreshold() {
+        String gt = property(COMPACTION_GAIN_THRESHOLD);
+
+        if (gt == null) {
+            return GAIN_THRESHOLD_DEFAULT;
+        }
+
+        return Byte.valueOf(gt);
+    }
+
+    private String property(String name) {
+        return lookupConfigurationThenFramework(context, name);
+    }
+
     /**
      * needed for situations where you have to unwrap the
      * SegmentNodeStoreService, to get the SegmentStore, like the failover
@@ -598,6 +735,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     @Override
     public String toString() {
-        return name + ": " + delegate;
+        return name + ": " + segmentNodeStore;
     }
 }
