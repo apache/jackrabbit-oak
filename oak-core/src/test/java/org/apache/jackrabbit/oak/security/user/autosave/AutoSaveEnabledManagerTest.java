@@ -25,8 +25,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -38,15 +36,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class AutoSaveEnabledManagerTest extends AbstractSecurityTest {
-
-    private UserManager mgr;
-
-    @Override
-    public void before() throws Exception {
-        super.before();
-        mgr = getUserManager(root);
-    }
+public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
 
     @Override
     public void after() throws Exception {
