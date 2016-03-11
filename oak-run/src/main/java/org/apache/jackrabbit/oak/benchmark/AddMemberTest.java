@@ -16,20 +16,15 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 
@@ -56,33 +51,6 @@ public class AddMemberTest extends AddMembersTest {
             String id = USER + i;
             User u = userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
             userPaths.add(u.getPath());
-        }
-    }
-
-    @Override
-    public void runTest() throws Exception {
-        Session s = null;
-        try {
-            // use system session login to avoid measuring the login-performance here
-            s = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
-                @Override
-                public Session run() throws Exception {
-                    return getRepository().login(null, null);
-                }
-            }, null);
-            UserManager userManager = ((JackrabbitSession) s).getUserManager();
-            String groupId = GROUP + random.nextInt(GROUP_CNT);
-            Group g = userManager.getAuthorizable(groupId, Group.class);
-
-        } catch (RepositoryException e) {
-            System.out.println(e.getMessage());
-            if (s.hasPendingChanges()) {
-                s.refresh(false);
-            }
-        } finally {
-            if (s != null) {
-                s.logout();
-            }
         }
     }
 
