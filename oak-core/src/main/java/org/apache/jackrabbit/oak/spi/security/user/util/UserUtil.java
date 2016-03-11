@@ -20,6 +20,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -127,5 +129,18 @@ public final class UserUtil implements UserConstants {
             }
         }
         return null;
+    }
+
+    @CheckForNull
+    public static <T extends Authorizable> T castAuthorizable(@Nullable Authorizable authorizable, Class<T> authorizableClass) throws AuthorizableTypeException {
+        if (authorizable == null) {
+            return null;
+        }
+
+        if (authorizableClass != null && authorizableClass.isInstance(authorizable)) {
+            return authorizableClass.cast(authorizable);
+        } else {
+            throw new AuthorizableTypeException("Invalid authorizable type '" + ((authorizableClass == null) ? "null" : authorizableClass) + '\'');
+        }
     }
 }
