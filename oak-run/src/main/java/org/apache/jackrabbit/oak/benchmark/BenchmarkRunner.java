@@ -329,6 +329,13 @@ public class BenchmarkRunner {
             new AddMemberTest(
                     numberOfUsers.value(options)),
 
+            // benchmarks removing multiple or single members
+            new RemoveMembersTest(
+                    numberOfUsers.value(options),
+                    batchSize.value(options)),
+            new RemoveMemberTest(
+                    numberOfUsers.value(options)),
+
             // benchmark testing isMember/isDeclared member; each user only being member of 1 group
             new IsMemberTest(
                     numberOfUsers.value(options),

@@ -47,18 +47,17 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * Test the performance of adding a configured number of members to groups. The
+ * Test the performance of removing members from groups. The
  * following parameters can be used to run the benchmark:
  *
- * - numberOfMembers : the number of members that should be added in the test run
- * - batchSize : the size of the memberID-array to be passed to the addMembers call
- * - importBehavior : the {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}; valid options are "besteffort", "ignore" and "abort"
+ * - numberOfMembers : the number of members that should be added in the test setup
+ *   to each group (and removed during the test-run)
+ * - batchSize : the size of the memberID-array to be passed to the removeMembers call
  *
- * An importbehavior of "ignore" and "abort" will required the members to exist
- * and will resolve each ID to the corresponding authorizble first (different test
- * setup). In case of "besteffort" the member is not resolved to an authorizable.
+ * Note the members to be removed are picked randomly and may or may not/no longer
+ * be member of the target group.
  */
-public class AddMembersTest extends AbstractTest {
+public class RemoveMembersTest extends AbstractTest {
 
     static final String REL_TEST_PATH = "testPath";
     static final String USER = "user";
@@ -69,14 +68,12 @@ public class AddMembersTest extends AbstractTest {
     final Random random = new Random();
     final int numberOfMembers;
     private final int batchSize;
-    private final String importBehavior;
 
     private final List<String> groupPaths = new ArrayList(GROUP_CNT);
 
-    public AddMembersTest(int numberOfMembers, int batchSize, @Nonnull String importBehavior) {
+    public RemoveMembersTest(int numberOfMembers, int batchSize) {
         this.numberOfMembers = numberOfMembers;
         this.batchSize = batchSize;
-        this.importBehavior = importBehavior;
     }
 
     @Override
@@ -86,27 +83,28 @@ public class AddMembersTest extends AbstractTest {
         Session s = loginAdministrative();
         try {
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
+            createUsers(userManager);
+
             for (int i = 0; i <= GROUP_CNT; i++) {
                 Group g = userManager.createGroup(new PrincipalImpl(GROUP + i), REL_TEST_PATH);
                 groupPaths.add(g.getPath());
+
+                List<String> ids = new ArrayList<String>();
+                for (int j = 0; j <= numberOfMembers; j++) {
+                    ids.add(USER + j);
+                }
+                g.addMembers(ids.toArray(new String[ids.size()]));
+                s.save();
             }
-
-            createUsers(userManager);
-
         } finally {
-            s.save();
             s.logout();
         }
         System.out.println("setup done");
     }
 
+
     protected void createUsers(@Nonnull UserManager userManager) throws Exception {
-        if (!ImportBehavior.NAME_BESTEFFORT.equals(importBehavior)) {
-            for (int i = 0; i <= numberOfMembers; i++) {
-                String id = USER + i;
-                userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
-            }
-        }
+        // nothing to do here as we add|remove members by ID in the setup and the test
     }
 
     @Override
@@ -119,13 +117,13 @@ public class AddMembersTest extends AbstractTest {
                 n.remove();
             }
 
-            if (!ImportBehavior.NAME_BESTEFFORT.equals(importBehavior)) {
-                authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(USER + "0");
-                if (authorizable != null) {
-                    Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
-                    n.remove();
-                }
+            // remove test-users if they have been created
+            authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(USER + "0");
+            if (authorizable != null) {
+                Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
+                n.remove();
             }
+
             s.save();
         } finally {
             s.logout();
@@ -138,7 +136,8 @@ public class AddMembersTest extends AbstractTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehavior)));
+                    SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(UserConfiguration.NAME,
+                            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)));
                     return new Jcr(oak).with(sp);
                 }
             });
@@ -161,7 +160,7 @@ public class AddMembersTest extends AbstractTest {
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
             String groupPath = groupPaths.get(random.nextInt(GROUP_CNT));
             Group g = (Group) userManager.getAuthorizableByPath(groupPath);
-            addMembers(userManager, g, s);
+            removeMembers(userManager, g, s);
         } catch (RepositoryException e) {
             if (s.hasPendingChanges()) {
                 s.refresh(false);
@@ -173,17 +172,17 @@ public class AddMembersTest extends AbstractTest {
         }
     }
 
-    protected void addMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
+    protected void removeMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
         for (int i = 0; i <= numberOfMembers; i++) {
             if (batchSize <= DEFAULT_BATCH_SIZE) {
-                group.addMembers(USER + i);
+                group.removeMembers(USER + random.nextInt(numberOfMembers));
             } else {
                 List<String> ids = new ArrayList<String>(batchSize);
-                for (int j = 0; j < batchSize && i <= numberOfMembers; j++) {
-                    ids.add(USER + i);
+                for (int j = 0; j < batchSize; j++) {
+                    ids.add(USER + random.nextInt(numberOfMembers));
                     i++;
                 }
-                group.addMembers(ids.toArray(new String[ids.size()]));
+                group.removeMembers(ids.toArray(new String[ids.size()]));
             }
             s.save();
         }
