@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -343,11 +342,12 @@ public class RDBDocumentStoreJDBC {
 
         Set<String> successfulUpdates = new HashSet<String>();
         List<String> updatedKeys = new ArrayList<String>();
-        int[] batchResults;
+        int[] batchResults = new int[0];
 
         PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
             + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ? and MODCOUNT = ?");
         try {
+            boolean batchIsEmpty = true;
             for (T document : sortDocuments(documents)) {
                 Long modcount = (Long) document.get(MODCOUNT);
                 if (modcount == 1) {
@@ -381,9 +381,13 @@ public class RDBDocumentStoreJDBC {
                 stmt.setObject(si++, modcount - 1, Types.BIGINT);
                 stmt.addBatch();
                 updatedKeys.add(document.getId());
+
+                batchIsEmpty = false;
             }
-            batchResults = stmt.executeBatch();
-            connection.commit();
+            if (!batchIsEmpty) {
+                batchResults = stmt.executeBatch();
+                connection.commit();
+            }
         } catch (BatchUpdateException ex) {
             LOG.debug("Some of the batch updates failed", ex);
             batchResults = ex.getUpdateCounts();
@@ -399,49 +403,16 @@ public class RDBDocumentStoreJDBC {
         }
 
         if (upsert) {
-            List<T> remainingDocuments = new ArrayList<T>(documents.size() - successfulUpdates.size());
+            List<T> toBeInserted = new ArrayList<T>(documents.size());
             for (T doc : documents) {
-                if (!successfulUpdates.contains(doc.getId())) {
-                    remainingDocuments.add(doc);
+                if ((Long) doc.get(MODCOUNT) == 1) {
+                    toBeInserted.add(doc);
                 }
             }
 
-            if (!remainingDocuments.isEmpty()) {
-                Set<String> documentsWithUpdatedModcount = new HashSet<String>();
-                List<String> remainingDocumentIds = Lists.transform(remainingDocuments, idExtractor);
-                for (List<String> keys : Lists.partition(remainingDocumentIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
-                    PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", keys, tmd.isIdBinary());
-                    StringBuilder sql = new StringBuilder("select ID from ").append(tmd.getName());
-                    sql.append(" where ").append(inClause.getStatementComponent());
-
-                    PreparedStatement selectStmt = null;
-                    ResultSet rs = null;
-                    try {
-                        selectStmt = connection.prepareStatement(sql.toString());
-                        selectStmt.setPoolable(false);
-                        inClause.setParameters(selectStmt, 1);
-                        rs = selectStmt.executeQuery();
-                        while (rs.next()) {
-                            documentsWithUpdatedModcount.add(getIdFromRS(tmd, rs, 1));
-                        }
-                        connection.commit();
-                    } finally {
-                        closeResultSet(rs);
-                        closeStatement(selectStmt);
-                    }
-                }
-
-                Iterator<T> it = remainingDocuments.iterator();
-                while (it.hasNext()) {
-                    if (documentsWithUpdatedModcount.contains(it.next().getId())) {
-                        it.remove();
-                    }
-                }
-
-                if (!remainingDocuments.isEmpty()) {
-                    for (String id : insert(connection, tmd, remainingDocuments)) {
-                        successfulUpdates.add(id);
-                    }
+            if (!toBeInserted.isEmpty()) {
+                for (String id : insert(connection, tmd, toBeInserted)) {
+                    successfulUpdates.add(id);
                 }
             }
         }
