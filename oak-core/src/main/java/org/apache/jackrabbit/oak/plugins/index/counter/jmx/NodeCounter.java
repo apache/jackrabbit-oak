@@ -37,6 +37,13 @@ import org.apache.jackrabbit.oak.util.ApproximateCounter;
  */
 public class NodeCounter implements NodeCounterMBean {
     
+    /**
+     * Approximate count using the hashed name (deterministically, so that after
+     * adding a removing all nodes the count goes back to zero).
+     */
+    public final static boolean COUNT_HASH = 
+            Boolean.parseBoolean(System.getProperty("oak.countHashed", "true"));
+    
     private final NodeStore store;
     
     public NodeCounter(NodeStore store) {
@@ -90,6 +97,14 @@ public class NodeCounter implements NodeCounterMBean {
                 return syncCount;
             }
         }
+        if (COUNT_HASH) {
+            return getCombinedCount(root, path, s, max);
+        }
+        return getEstimatedNodeCountOld(root, s, path, max);
+    }
+    
+    private static long getEstimatedNodeCountOld(NodeState root, NodeState s, String path, boolean max) {
+        // old code from here
         PropertyState p = s.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME);
         if (p != null) {
             long x = p.getValue(Type.LONG);
@@ -133,6 +148,47 @@ public class NodeCounter implements NodeCounterMBean {
             x += ApproximateCounter.COUNT_RESOLUTION;
         }       
         return x;
+    }
+    
+    private static long getCombinedCount(NodeState root, String path, NodeState s, boolean max) {
+        Long value = getCombinedCountIfAvailable(s);
+        if (value != null) {
+            return value + (max ? ApproximateCounter.COUNT_RESOLUTION : 0);
+        }
+        // check in the counter index (if it exists)
+        s = child(root,
+                IndexConstants.INDEX_DEFINITIONS_NAME,
+                "counter");
+        if (s == null || !s.exists()) {
+            // no index
+            return -1;
+        }
+        s = child(s, NodeCounterEditor.DATA_NODE_NAME);
+        s = child(s, PathUtils.elements(path));
+        if (s != null && s.exists()) {
+            value = getCombinedCountIfAvailable(s);
+            if (value != null) {
+                return value + (max ? ApproximateCounter.COUNT_RESOLUTION : 0);
+            }
+        }
+        // we have an index, but no data
+        return max ? ApproximateCounter.COUNT_RESOLUTION * 20 : 0;
+    }
+    
+    private static Long getCombinedCountIfAvailable(NodeState s) {
+        boolean found = false;
+        long x = 0;
+        PropertyState p = s.getProperty(NodeCounterEditor.COUNT_HASH_PROPERTY_NAME);
+        if (p != null) {
+            found = true;
+            x = p.getValue(Type.LONG);
+        }
+        p = s.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME);
+        if (p != null) {
+            found = true;
+            x += p.getValue(Type.LONG);
+        }
+        return found ? x : null;
     }
     
     @Override
