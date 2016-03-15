@@ -327,14 +327,16 @@ public class BenchmarkRunner {
                     batchSize.value(options),
                     importBehavior.value(options)),
             new AddMemberTest(
-                    numberOfUsers.value(options)),
+                    numberOfUsers.value(options),
+                    batchSize.value(options)),
 
             // benchmarks removing multiple or single members
             new RemoveMembersTest(
                     numberOfUsers.value(options),
                     batchSize.value(options)),
             new RemoveMemberTest(
-                    numberOfUsers.value(options)),
+                    numberOfUsers.value(options),
+                    batchSize.value(options)),
 
             // benchmark testing isMember/isDeclared member; each user only being member of 1 group
             new IsMemberTest(

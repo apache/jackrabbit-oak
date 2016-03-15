@@ -41,8 +41,8 @@ public class RemoveMemberTest extends RemoveMembersTest {
 
     private final List<String> userPaths;
 
-    public RemoveMemberTest(int numberOfMembers) {
-        super(numberOfMembers, 1);
+    public RemoveMemberTest(int numberOfMembers, int batchSize) {
+        super(numberOfMembers, batchSize);
         userPaths = new ArrayList<String>(numberOfMembers);
     }
 
@@ -55,10 +55,16 @@ public class RemoveMemberTest extends RemoveMembersTest {
     }
 
     protected void removeMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
+        int j = 1;
         for (int i = 0; i <= numberOfMembers; i++) {
             Authorizable member = userManger.getAuthorizable(USER + random.nextInt(numberOfMembers));
             if (group.removeMember(member)) {
-                s.save();
+                if (j == batchSize) {
+                    s.save();
+                    j = 1;
+                } else {
+                    j++;
+                }
             }
         }
     }
