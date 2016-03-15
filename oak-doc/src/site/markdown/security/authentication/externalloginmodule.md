@@ -70,9 +70,13 @@ Note:
 
 ##### Supported Credentials
 
-Currently this login module supports the following credentials:
+As of Oak 1.5.1 the `ExternalLoginModule` can deal for any kind of `Credentials`
+implementations. By default (i.e. unless configured otherwise) the module supports
+`SimpleCredentials` and thus behaves backwards compatible to previous versions.
 
-- `SimpleCredentials`
+Additional/other credentials can be supported by providing an `ExternalIdentityProvider` 
+that additionally implements the [CredentialsSupport] interface.
+See section [Pluggability](#pluggability) for instructions and an example.
 
 ##### Authentication in Detail 
 
@@ -162,6 +166,82 @@ The default implementations ([ExternalIDPManagerImpl] and [SyncManagerImpl])
 extend `AbstractServiceTracker` and will automatically keep track of 
 new [ExternalIdentityProvider] and [SyncHandler] services, respectively.
 
+Since Oak 1.5.1 support for different or multiple types of `Credentials` can easily
+be plugged by providing an [ExternalIdentityProvider] that additionally implements 
+[CredentialsSupport]. This is an optional extension point for each IDP; if 
+missing the `ExternalLoginModule` will fall back to a default implementation and 
+assume the IDP only supports `SimpleCredentials`. See details below.
+ 
+#### Supported Credentials
+ 
+The following steps are required in order to change or extend the set credential 
+classes supported by the `ExternalLoginModule`:
+
+- Extend your `ExternalIdentityProvider` to additionally implement the [CredentialsSupport] interface.
+
+Don't forget to make sure that `ExternalIdentityProvider.authenticate(Credentials)` 
+handles the same set of supported credentials!
+
+##### Examples
+ 
+###### Example CredentialsSupport
+
+      @Component()
+      @Service(ExternalIdentityProvider.class, CredentialsSupport.class)
+      public class MyIdentityProvider implements ExternalIdentityProvider, CredentialsSupport {
+    
+          public MyCredentialsSupport() {}
+    
+          //-----------------------------------------< CredentialsSupport >---
+          @Nonnull
+          @Override
+          public Set<Class> getCredentialClasses() {
+              return ImmutableSet.<Class>of(MyCredentials.class);
+          }
+  
+          @CheckForNull
+          @Override
+          public String getUserId(@Nonnull Credentials credentials) {
+              if (credentials instanceof MyCredentials) {
+                  return ((MyCredentials) credentials).getID();
+              } else {
+                  return null;
+              }
+          }
+  
+          @Nonnull
+          @Override
+          public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
+              // our credentials never contain additional attributes
+              return ImmutableMap.of();
+          }
+          
+          //-------------------------------------< ExternalIdentityProvider >---
+          
+          @CheckForNull
+          @Override
+          public ExternalUser authenticate(@Nonnull Credentials credentials) {
+              if (credentials instanceof MyCredentials) {
+                  MyCredentials mc = (MyCredentials) credentials;
+                  if (internalAuthenticate(mc)) {
+                      return new MyExternalUser(mc.getID());
+                  } else {
+                      throw new LoginException();
+                  }
+              } else {
+                  return null;
+              }
+          }
+    
+          [...]
+          
+          //----------------------------------------------< SCR Integration >---
+          @Activate
+          private void activate() {
+              // TODO
+          }
+      }
+
 <!-- references -->
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncConfig.html
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
@@ -173,3 +253,4 @@ new [ExternalIdentityProvider] and [SyncHandler] services, respectively.
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
 [SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
 [SyncManagerImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/SyncManagerImpl.html
+[CredentialsSupport]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/credentials/CredentialsSupport.html

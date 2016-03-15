@@ -76,7 +76,7 @@ LoginModule is configured and succeeds, then only the Required and Requisite Log
 LoginModule need to have succeeded for the overall authentication to succeed. If no Required or Requisite LoginModules 
 are configured for an application, then at least one Sufficient or Optional LoginModule must succeed.
 
-<a href="jcr_api"/>
+<a name="jcr_api"/>
 ### JCR API
 
 Within the scope of JCR `Repository.login` is used to authenticate a given user.
@@ -104,7 +104,7 @@ for further details.
 In addition JCR defines `Session.impersonate(Credentials)` to impersonate another
 user or - as of JSR 333 -  clone an existing session.
 
-<a href="oak_api"/>
+<a name="oak_api"/>
 ### Oak API
 
 The Oak API contains the following authentication related methods and interfaces
@@ -138,7 +138,7 @@ security related interfaces (e.g. `PrincipalManager`).
 
 Subclasses are required to implement the following methods:
 
-- `getSupportedCredentials()`: return a set of supported credential classes.
+- `getSupportedCredentials()`: return a set of supported credential classes. See also section [Supported Credentials](#supported_credentials)
 - `login()`: The login method defined by `LoginModule`
 - `commit()`: The commit method defined by `LoginModule`
 
@@ -185,7 +185,17 @@ Subclasses are required to implement the following methods:
         }
     }
 
-<a href="default_implementation"/>
+<a name="supported_credentials"/>
+#### Supported Credentials
+
+Since Oak 1.5.1 the extensions additionally contain a dedicated interface that
+eases the support for different `Credentials` in the package space 
+`org.apache.jackrabbit.oak.spi.security.authentication.credentials`:
+                                                   
+- [CredentialsSupport]: Interface definition exposing the set of supported `Credentials` classes and some common utility methods.
+- [SimpleCredentialsSupport]: Default implementation for the widely used `SimpleCredentials`
+
+<a name="default_implementation"/>
 ### Oak Authentication Implementation
 
 A description of the various requirements covered by Oak by default as well
@@ -252,3 +262,5 @@ implementation on various levels:
 [AbstractLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AbstractLoginModule.html
 [AuthenticationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthenticationConfiguration.html
 [JAAS config]: http://docs.oracle.com/javase/6/docs/technotes/guides/security/jaas/JAASRefGuide.html
+[CredentialsSupport]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/credentials/CredentialsSupport.html
+[SimpleCredentialsSupport]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/credentials/SimpleCredentialsSupport.html
