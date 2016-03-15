@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.spi.security.authentication.external;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,12 +36,13 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -148,25 +149,7 @@ public class ExternalLoginModuleFactoryTest extends AbstractSecurityTest {
         };
     }
 
-    //~-------------------------------------------< tests >
-
-    /**
-     * Prepares the OSGi part with required services injected and configures
-     * the factory in JAAS options which then delegates to ExternalLoginModuleFactory
-     */
-    public void setUpJaasFactoryWithInjection() throws Exception{
-        context.registerService(Repository.class, EasyMock.createMock(Repository.class));
-        context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
-        context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
-
-        final LoginModuleFactory lmf = context.registerInjectActivateService(new ExternalLoginModuleFactory());
-        options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, new ProxyLoginModule.BootLoginModuleFactory() {
-            @Override
-            public LoginModule createLoginModule() {
-                return lmf.createLoginModule();
-            }
-        });
-    }
+    //~-------------------------------------------------------------< tests >---
 
     @Test
     public void testSyncCreateUser() throws Exception {
@@ -195,4 +178,21 @@ public class ExternalLoginModuleFactoryTest extends AbstractSecurityTest {
         }
     }
 
+    /**
+     * Prepares the OSGi part with required services injected and configures
+     * the factory in JAAS options which then delegates to ExternalLoginModuleFactory
+     */
+    private void setUpJaasFactoryWithInjection() throws Exception{
+        context.registerService(Repository.class, EasyMock.createMock(Repository.class));
+        context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
+        context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
+
+        final LoginModuleFactory lmf = context.registerInjectActivateService(new ExternalLoginModuleFactory());
+        options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, new ProxyLoginModule.BootLoginModuleFactory() {
+            @Override
+            public LoginModule createLoginModule() {
+                return lmf.createLoginModule();
+            }
+        });
+    }
 }
