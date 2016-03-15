@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import javax.annotation.Nonnull;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
@@ -230,9 +231,7 @@ class SysViewImportHandler extends TargetImportHandler {
 
             // check if all system properties (jcr:primaryType, jcr:uuid etc.)
             // have been collected and create node as necessary primaryType
-            if (currentPropName != null
-                    && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
-                    && currentPropName.getLocalName().equals("primaryType")) {
+            if (isSystemProperty("primaryType")) {
                 BufferedStringValue val = currentPropValues.get(0);
                 String s = null;
                 try {
@@ -243,9 +242,7 @@ class SysViewImportHandler extends TargetImportHandler {
                 } catch (RepositoryException e) {
                     throw new SAXException(new InvalidSerializedDataException("illegal node type name: " + s, e));
                 }
-            } else if (currentPropName != null
-                    && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
-                    && currentPropName.getLocalName().equals("mixinTypes")) {
+            } else if (isSystemProperty("mixinTypes")) {
                 if (state.mixinNames == null) {
                     state.mixinNames = new ArrayList<String>(currentPropValues.size());
                 }
@@ -260,9 +257,7 @@ class SysViewImportHandler extends TargetImportHandler {
                         throw new SAXException(new InvalidSerializedDataException("illegal mixin type name: " + s, e));
                     }
                 }
-            } else if (currentPropName != null
-                    && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
-                    && currentPropName.getLocalName().equals("uuid")) {
+            } else if (isSystemProperty("uuid")) {
                 BufferedStringValue val = currentPropValues.get(0);
                 try {
                     state.uuid = val.retrieve();
@@ -291,6 +286,12 @@ class SysViewImportHandler extends TargetImportHandler {
         } else {
             throw new SAXException(new InvalidSerializedDataException("invalid element in system view xml document: " + localName));
         }
+    }
+
+    private boolean isSystemProperty(@Nonnull String localName) {
+        return currentPropName != null
+                && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
+                && currentPropName.getLocalName().equals(localName);
     }
 
     //--------------------------------------------------------< inner classes >
