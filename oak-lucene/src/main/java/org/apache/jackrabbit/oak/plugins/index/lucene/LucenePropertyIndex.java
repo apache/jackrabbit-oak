@@ -454,7 +454,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         // ACL filter spellchecks
                         QueryParser qp = new QueryParser(Version.LUCENE_47, aclCheckField, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
-                            Query query = qp.createPhraseQuery(aclCheckField, suggestion.string);
+                            Query query = qp.createPhraseQuery(aclCheckField, qp.escape(suggestion.string));
 
                             query = addDescendantClauseIfRequired(query, plan);
 
@@ -482,7 +482,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         // ACL filter suggestions
                         for (Lookup.LookupResult suggestion : lookupResults) {
-                            Query query = qp.parse("\"" + suggestion.key.toString() + "\"");
+                            Query query = qp.parse("\"" + qp.escape(suggestion.key.toString()) + "\"");
 
                             query = addDescendantClauseIfRequired(query, plan);
 
