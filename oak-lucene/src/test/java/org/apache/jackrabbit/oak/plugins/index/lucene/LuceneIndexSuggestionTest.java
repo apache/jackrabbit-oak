@@ -218,6 +218,21 @@ public class LuceneIndexSuggestionTest {
                 suggestQueryText, shouldSuggest, false);
     }
 
+    //OAK-4126
+    @Test
+    public void testSuggestQuerySpecialChars() throws Exception {
+        final String nodeType = "nt:unstructured";
+        final String indexPropName = "description";
+        final String indexPropValue = "DD~@#$%^&*()_+{}\":?><`1234567890-=[]";
+        final String suggestQueryText = "dd";
+        final boolean shouldSuggest = true;
+
+        checkSuggestions(nodeType,
+                indexPropName, indexPropValue,
+                false, false,
+                suggestQueryText, shouldSuggest, false);
+    }
+
     //OAK-3156
     @Test
     public void testSuggestQueryWithUserAccess() throws Exception {
