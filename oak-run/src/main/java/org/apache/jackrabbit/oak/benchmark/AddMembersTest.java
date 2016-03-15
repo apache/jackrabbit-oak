@@ -68,7 +68,7 @@ public class AddMembersTest extends AbstractTest {
 
     final Random random = new Random();
     final int numberOfMembers;
-    private final int batchSize;
+    final int batchSize;
     private final String importBehavior;
 
     private final List<String> groupPaths = new ArrayList(GROUP_CNT);

@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
  * following parameters can be used to run the benchmark:
  *
  * - numberOfMembers : the number of members that should be added in the test run
+ * - batchSize : the number of users to be added as membes before {@link Session#save()} is called.
  *
  * In contrast to {@link AddMembersTest}, this benchmark will always call
  * {@link Group#addMember(Authorizable)}.
@@ -41,8 +42,8 @@ public class AddMemberTest extends AddMembersTest {
 
     private final List<String> userPaths;
 
-    public AddMemberTest(int numberOfMembers) {
-        super(numberOfMembers, 1, ImportBehavior.NAME_ABORT);
+    public AddMemberTest(int numberOfMembers, int batchSize) {
+        super(numberOfMembers, batchSize, ImportBehavior.NAME_ABORT);
         userPaths = new ArrayList<String>(numberOfMembers);
     }
 
@@ -56,10 +57,16 @@ public class AddMemberTest extends AddMembersTest {
 
     @Override
     protected void addMembers(@Nonnull UserManager userManager, @Nonnull Group group, @Nonnull Session s) throws Exception {
+        int j = 1;
         for (int i = 0; i <= numberOfMembers; i++) {
             String userPath = userPaths.get(random.nextInt(numberOfMembers));
             group.addMember(userManager.getAuthorizableByPath(userPath));
-            s.save();
+            if (j == batchSize) {
+                s.save();
+                j = 1;
+            } else {
+                j++;
+            }
         }
     }
 }
