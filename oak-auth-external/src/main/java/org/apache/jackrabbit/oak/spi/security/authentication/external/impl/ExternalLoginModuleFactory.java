@@ -158,6 +158,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
         }
     }
 
+    //-------------------------------------------------< LoginModuleFactory >---
     /**
      * {@inheritDoc}
      *
