@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -44,13 +44,7 @@ import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidAttributeValueException;
-import org.apache.directory.api.ldap.model.message.Response;
-import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
-import org.apache.directory.api.ldap.model.message.SearchRequest;
-import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
-import org.apache.directory.api.ldap.model.message.SearchResultDone;
-import org.apache.directory.api.ldap.model.message.SearchResultEntry;
-import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.api.ldap.model.message.*;
 import org.apache.directory.api.ldap.model.message.controls.PagedResults;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
@@ -268,18 +262,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     @Nonnull
     @Override
     public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
-        DebugTimer timer = new DebugTimer();
-        LdapConnection connection = connect();
-        timer.mark("connect");
         try {
-            final List<Entry> entries = getEntries(connection, config.getUserConfig());
-            timer.mark("lookup");
-            if (log.isDebugEnabled()) {
-                log.debug("listUsers() {}", timer.getString());
-            }
+            final Iterator<Entry> iter = getEntryIterator(config.getUserConfig());
             return new AbstractLazyIterator<ExternalUser>() {
-
-                private final Iterator<Entry> iter = entries.iterator();
 
                 @Override
                 protected ExternalUser getNext() {
@@ -294,29 +279,18 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                 }
             };
         } catch (LdapException e) {
-            throw lookupFailedException(e, timer);
+            throw lookupFailedException(e, null);
         } catch (CursorException e) {
-            throw lookupFailedException(e, timer);
-        } finally {
-            disconnect(connection);
+            throw lookupFailedException(e, null);
         }
     }
 
     @Nonnull
     @Override
     public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
-        DebugTimer timer = new DebugTimer();
-        LdapConnection connection = connect();
-        timer.mark("connect");
         try {
-            final List<Entry> entries = getEntries(connection, config.getGroupConfig());
-            timer.mark("lookup");
-            if (log.isDebugEnabled()) {
-                log.debug("listGroups() {}", timer.getString());
-            }
+            final Iterator<Entry> iter = getEntryIterator(config.getGroupConfig());
             return new AbstractLazyIterator<ExternalGroup>() {
-
-                private final Iterator<Entry> iter = entries.iterator();
 
                 @Override
                 protected ExternalGroup getNext() {
@@ -331,11 +305,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                 }
             };
         } catch (LdapException e) {
-            throw lookupFailedException(e, timer);
+            throw lookupFailedException(e, null);
         } catch (CursorException e) {
-            throw lookupFailedException(e, timer);
-        } finally {
-            disconnect(connection);
+            throw lookupFailedException(e, null);
         }
     }
 
@@ -391,6 +363,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     }
 
     //-----------------------------------------------------------< internal >---
+
     /**
      * Collects the declared (direct) groups of an identity
      * @param ref reference to the identity
@@ -611,13 +584,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         return resultEntry;
     }
 
-    /**
-     * currently fetch all entries so that we can close the connection afterwards. maybe switch to an iterator approach
-     * later.
-     */
+
     @Nonnull
-    private List<Entry> getEntries(@Nonnull LdapConnection connection, @Nonnull LdapProviderConfig.Identity idConfig)
-            throws CursorException, LdapException {
+    private SearchResultIterator getEntryIterator(@Nonnull LdapProviderConfig.Identity idConfig) throws LdapException, CursorException, ExternalIdentityException {
         StringBuilder filter = new StringBuilder();
         int num = 0;
         for (String objectClass: idConfig.getObjectClasses()) {
@@ -635,14 +604,60 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                 ? "(&" + filter + ')'
                 : filter.toString();
 
-        // do paged searches (OAK-2874)
-        int pageSize = 1000;
-        byte[] cookie = null;
+        return new SearchResultIterator(searchFilter, idConfig);
+    }
 
-        List<Entry> result = new LinkedList<Entry>();
-        do {
+    private final class SearchResultIterator implements Iterator<Entry> {
 
-            // Create the SearchRequest object
+        private final String searchFilter;
+        private final LdapProviderConfig.Identity idConfig;
+
+        private byte[] cookie;
+        private List page = Collections.emptyList();
+        private boolean searchComplete;
+        private int pos = -1;
+
+        public SearchResultIterator(
+                @Nonnull String searchFilter,
+                @Nonnull LdapProviderConfig.Identity idConfig) throws LdapException, CursorException, ExternalIdentityException {
+            this.searchFilter = searchFilter;
+            this.idConfig = idConfig;
+            findNextEntry();
+        }
+
+        //-------------------------------------------------------< Iterator >---
+
+        @Override
+        public boolean hasNext() {
+            return pos >= 0;
+        }
+
+        @Override
+        public Entry next() {
+            if (hasNext()) {
+                try {
+                    Entry entry = (Entry) page.get(pos);
+                    findNextEntry();
+                    return entry;
+                } catch (LdapException e) {
+                    log.error("Error while performing LDAP search", e);
+                } catch (CursorException e) {
+                    log.error("Error while performing LDAP search", e);
+                } catch (ExternalIdentityException e) {
+                    log.error("Error while performing LDAP search", e);
+                }
+            }
+            throw new NoSuchElementException();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        //-------------------------------------------------------< internal >---
+
+        private SearchRequest createSearchRequest(LdapConnection connection, byte[] cookie) throws LdapException {
             SearchRequest req = new SearchRequestImpl();
             req.setScope(SearchScope.SUBTREE);
             req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
@@ -651,21 +666,31 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             req.setFilter(searchFilter);
 
             PagedResults pagedSearchControl = new PagedResultsDecorator(connection.getCodecService());
-            pagedSearchControl.setSize(pageSize);
+            // do paged searches (OAK-2874)
+            pagedSearchControl.setSize(1000);
             pagedSearchControl.setCookie(cookie);
             req.addControl(pagedSearchControl);
 
-            // Process the request
+            return req;
+        }
+
+        private boolean loadNextPage() throws ExternalIdentityException, LdapException, CursorException {
+            if (searchComplete) {
+                return false;
+            }
             SearchCursor searchCursor = null;
+            DebugTimer timer = new DebugTimer();
+            LdapConnection connection = connect();
+            timer.mark("connect");
+            page = new ArrayList<Entry>();
             try {
-                searchCursor = connection.search(req);
+                searchCursor = connection.search(createSearchRequest(connection, cookie));
                 while (searchCursor.next()) {
                     Response response = searchCursor.get();
 
-                    // process the SearchResultEntry
                     if (response instanceof SearchResultEntry) {
                         Entry resultEntry = ((SearchResultEntry) response).getEntry();
-                        result.add(resultEntry);
+                        page.add(resultEntry);
                         if (log.isDebugEnabled()) {
                             log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
                         }
@@ -674,27 +699,38 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
                 SearchResultDone done = searchCursor.getSearchResultDone();
                 cookie = null;
-                if (done.getLdapResult().getResultCode() == ResultCodeEnum.UNWILLING_TO_PERFORM) {
-                    break;
-                }
+                if (done.getLdapResult().getResultCode() != ResultCodeEnum.UNWILLING_TO_PERFORM) {
 
-                PagedResults ctrl = (PagedResults) done.getControl(PagedResults.OID);
-                if (ctrl != null) {
-                    cookie = ctrl.getCookie();
+                    PagedResults ctrl = (PagedResults) done.getControl(PagedResults.OID);
+                    if (ctrl != null) {
+                        cookie = ctrl.getCookie();
+                    }
                 }
+                searchComplete = cookie == null;
+                timer.mark("lookup");
 
+                return !page.isEmpty();
             } finally {
                 if (searchCursor != null) {
                     searchCursor.close();
                 }
+                disconnect(connection);
             }
-
-        } while (cookie != null);
-
-        if (log.isDebugEnabled()) {
-            log.debug("search below {} with {} found {} entries.", idConfig.getBaseDN(), searchFilter, result.size());
         }
-        return result;
+
+        private void findNextEntry() throws LdapException, CursorException, ExternalIdentityException {
+            if (pos == -1 && !loadNextPage()) {
+                return;
+            }
+            if (pos + 1 == page.size()) {
+                pos = -1;
+                page = Collections.emptyList();
+                if (!loadNextPage()) {
+                    return;
+                }
+            }
+            pos++;
+        }
     }
 
     @Nonnull
