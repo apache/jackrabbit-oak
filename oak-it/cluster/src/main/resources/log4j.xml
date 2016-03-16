@@ -23,6 +23,10 @@
         <level value="error"/>
     </logger>
 
+    <!--<logger name="org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch">
+        <level value="trace" />
+    </logger>-->
+
 
     <!-- Root Logger -->
     <root>

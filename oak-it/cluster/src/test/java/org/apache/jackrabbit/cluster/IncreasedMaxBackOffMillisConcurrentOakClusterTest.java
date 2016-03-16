@@ -30,16 +30,15 @@ import static org.junit.Assert.assertThat;
 /**
  * Created by Dominik Foerderreuther <df@adobe.com> on 29/02/16.
  */
-public class ConcurrentOakClusterTest {
+public class IncreasedMaxBackOffMillisConcurrentOakClusterTest {
 
-    public static final Logger log = Logger.getLogger(ConcurrentOakClusterTest.class);
+    public static final Logger log = Logger.getLogger(IncreasedMaxBackOffMillisConcurrentOakClusterTest.class);
 
     @Rule
     public OakClusterRepository oakClusterRepository = new OakClusterRepository();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
 
 
     @Test
@@ -50,8 +49,8 @@ public class ConcurrentOakClusterTest {
 
         log.info(format("Test Oak-Cluster with two repository-nodes and %d concurrent writers (each with %d write attempts)", concurrentWriters, numberOfWriteAttempts));
 
-        Repository repositoryOne = oakClusterRepository.repository();
-        Repository repositoryTwo = oakClusterRepository.repository();
+        Repository repositoryOne = oakClusterRepository.repository(1000, 20000);
+        Repository repositoryTwo = oakClusterRepository.repository(1000, 20000);
 
         final Session session = session(repositoryOne);
 
@@ -121,8 +120,8 @@ public class ConcurrentOakClusterTest {
                     session.save();
                     session.logout();
                 } catch (RepositoryException e) {
-                    log.error(format("Exception during save operation %s", e.getMessage()));
-                    //log.error(format("Exception during save operation %s, %s", e.getMessage(), e.getCause().getCause().getMessage()));
+                    //log.error(format("Exception during save operation %s", e.getMessage()));
+                    log.error(format("Exception during save operation %s, %s", e.getMessage(), e.getCause().getCause().getMessage()));
                 }
             }
         }

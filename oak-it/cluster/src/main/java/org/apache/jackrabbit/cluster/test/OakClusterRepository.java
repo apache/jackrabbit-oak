@@ -8,7 +8,6 @@ import org.junit.rules.ExternalResource;
 import javax.jcr.Repository;
 import java.net.UnknownHostException;
 
-import static java.lang.Thread.sleep;
 import static org.apache.jackrabbit.cluster.test.EmbeddedMongoTestUtil.mongoClient;
 import static org.apache.jackrabbit.cluster.test.MongoTestUtil.databaseExist;
 
@@ -31,18 +30,25 @@ public class OakClusterRepository extends ExternalResource {
         Preconditions.checkArgument(!databaseExist(clientOne, DBNAME));
     }
 
-    public Repository repository() throws OakClusterRepositoryException {
-        Repository repository = null;
+    public Repository repository(int asyncDelay, int maxBackOffMillis) throws OakClusterRepositoryException {
+        Repository repository;
         try {
-            repository = OakTestUtil.connect(mongoClient(), DBNAME);
-            try {
-                sleep(2000);
-            } catch (InterruptedException e) {
-                log.error(e);
-            }
+            repository = OakTestUtil.connect(mongoClient(), DBNAME, asyncDelay, maxBackOffMillis);
         } catch (UnknownHostException e) {
             throw new OakClusterRepositoryException(e);
         }
+        sleep();
+        return repository;
+    }
+
+    public Repository repository() throws OakClusterRepositoryException {
+        Repository repository;
+        try {
+            repository = OakTestUtil.connect(mongoClient(), DBNAME);
+        } catch (UnknownHostException e) {
+            throw new OakClusterRepositoryException(e);
+        }
+        sleep();
         return repository;
     }
 
@@ -54,6 +60,14 @@ public class OakClusterRepository extends ExternalResource {
     public class OakClusterRepositoryException extends Exception {
         public OakClusterRepositoryException(Throwable cause) {
             super(cause);
+        }
+    }
+
+    private void sleep() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            log.error(e);
         }
     }
 

@@ -38,10 +38,24 @@ public class OakTestUtil {
         DocumentNodeStore ns = new DocumentMK.Builder()
                 .setMongoDB(db)
                 //.setLogging(true)
-                .setAsyncDelay(100)
+                //.setAsyncDelay(100)
                 .getNodeStore();
 
         //log.info(ns.getClusterInfo());
+        return createOakRepository(ns);
+    }
+
+    public static Repository connect(MongoClient mongoClient, String dbname, int asyncDelay, int maxBackOffMillis) throws UnknownHostException {
+        DB db = mongoClient.getDB(dbname);
+
+        DocumentNodeStore ns = new DocumentMK.Builder()
+                .setMongoDB(db)
+                //.setLogging(true)
+                .getNodeStore();
+
+        ns.setAsyncDelay(asyncDelay);
+        ns.setMaxBackOffMillis(maxBackOffMillis);
+
         return createOakRepository(ns);
     }
 
