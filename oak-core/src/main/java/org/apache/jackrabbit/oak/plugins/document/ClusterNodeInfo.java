@@ -715,6 +715,11 @@ public class ClusterNodeInfo {
      */
     public boolean renewLease() {
         long now = getCurrentTime();
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("renewLease - leaseEndTime: " + leaseEndTime + ", leaseTime: " + leaseTime + ", leaseUpdateInterval: " + leaseUpdateInterval);
+        }
+
         if (now < leaseEndTime - leaseTime + leaseUpdateInterval) {
             // no need to renew the lease - it is still within 'leaseUpdateInterval'
             return false;
@@ -763,9 +768,12 @@ public class ClusterNodeInfo {
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Renewing lease for for cluster id " + id + " with UpdateOp " + update);
+            LOG.debug("Renewing lease for cluster id " + id + " with UpdateOp " + update);
         }
         ClusterNodeInfoDocument doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Lease renewal for cluster id " + id + " resulted in: " + doc);
+        }
  
         if (doc == null) { // should not occur when leaseCheckDisabled
             // OAK-3398 : someone else either started recovering or is already through with that.
