@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedState
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 /**
  * Implements (most) DB interactions used in {@link RDBDocumentStore}.
  */
@@ -116,55 +118,63 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public boolean batchedAppendingUpdate(Connection connection, RDBTableMetaData tmd, List<String> ids, Long modified,
+    public boolean batchedAppendingUpdate(Connection connection, RDBTableMetaData tmd, List<String> allIds, Long modified,
             boolean setModifiedConditionally, String appendData) throws SQLException {
-        String appendDataWithComma = "," + appendData;
-        PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
-        PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
-        StringBuilder t = new StringBuilder();
-        t.append("update " + tmd.getName() + " set ");
-        t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
-        t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-        t.append("DATA = " + stringAppend.getStatementComponent() + " ");
-        t.append("where ").append(inClause.getStatementComponent());
-        PreparedStatement stmt = connection.prepareStatement(t.toString());
-        try {
-            int si = 1;
-            stmt.setObject(si++, modified, Types.BIGINT);
-            if (setModifiedConditionally) {
+        boolean result = true;
+        for (List<String> ids : Lists.partition(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+            String appendDataWithComma = "," + appendData;
+            PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
+            PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
+            StringBuilder t = new StringBuilder();
+            t.append("update " + tmd.getName() + " set ");
+            t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
+            t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
+            t.append("DATA = " + stringAppend.getStatementComponent() + " ");
+            t.append("where ").append(inClause.getStatementComponent());
+            PreparedStatement stmt = connection.prepareStatement(t.toString());
+            try {
+                int si = 1;
                 stmt.setObject(si++, modified, Types.BIGINT);
+                if (setModifiedConditionally) {
+                    stmt.setObject(si++, modified, Types.BIGINT);
+                }
+                stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
+                si = stringAppend.setParameters(stmt, si);
+                si = inClause.setParameters(stmt,  si);
+                int count = stmt.executeUpdate();
+                if (count != ids.size()) {
+                    LOG.debug("DB update failed: only " + result + " of " + ids.size() + " updated. Table: " + tmd.getName() + ", IDs:"
+                            + ids);
+                    result = false;
+                }
+            } finally {
+                stmt.close();
             }
-            stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
-            si = stringAppend.setParameters(stmt, si);
-            si = inClause.setParameters(stmt,  si);
-            int result = stmt.executeUpdate();
-            if (result != ids.size()) {
-                LOG.debug("DB update failed: only " + result + " of " + ids.size() + " updated. Table: " + tmd.getName() + ", IDs:"
-                        + ids);
-            }
-            return result == ids.size();
-        } finally {
-            stmt.close();
         }
+        return result;
     }
 
-    public int delete(Connection connection, RDBTableMetaData tmd, List<String> ids) throws SQLException {
-        PreparedStatement stmt;
-        int cnt = ids.size();
-        PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
-        String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
-        stmt = connection.prepareStatement(sql);
+    public int delete(Connection connection, RDBTableMetaData tmd, List<String> allIds) throws SQLException {
+        int count = 0;
+        for (List<String> ids : Lists.partition(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+            PreparedStatement stmt;
+            PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
+            String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
+            stmt = connection.prepareStatement(sql);
 
-        try {
-            inClause.setParameters(stmt, 1);
-            int result = stmt.executeUpdate();
-            if (result != cnt) {
-                LOG.debug("DB delete failed for " + tmd.getName() + "/" + ids);
+            try {
+                inClause.setParameters(stmt, 1);
+                int result = stmt.executeUpdate();
+                if (result != ids.size()) {
+                    LOG.debug("DB delete failed for " + tmd.getName() + "/" + ids);
+                }
+                count += result;
+            } finally {
+                stmt.close();
             }
-            return result;
-        } finally {
-            stmt.close();
         }
+
+        return count;
     }
 
     public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Map<Key, Condition>> toDelete)
