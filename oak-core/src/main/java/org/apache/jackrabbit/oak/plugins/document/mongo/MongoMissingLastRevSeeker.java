@@ -86,7 +86,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
         BasicDBObject setUpdates = new BasicDBObject();
         setUpdates.append(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
         if (recoveredBy != 0) {
-            setUpdates.append(ClusterNodeInfo.REV_RECOVERY_BY, recoveredBy);
+            setUpdates.append(ClusterNodeInfo.REV_RECOVERY_BY, (long) recoveredBy);
         }
 
         BasicDBObject update = new BasicDBObject();
