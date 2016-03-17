@@ -359,7 +359,7 @@ public class LastRevRecoveryAgent {
         for (ClusterNodeInfoDocument nodeInfo : clusters) {
             String id = nodeInfo.getId();
             if (nodeInfo.isBeingRecovered()) {
-                Long recoveredBy = (Long) nodeInfo.get(ClusterNodeInfo.REV_RECOVERY_BY);
+                Long recoveredBy = Utils.asLong((Number) nodeInfo.get(ClusterNodeInfo.REV_RECOVERY_BY));
                 beingRecoveredRightNow.add(nodeInfo == null ? id : String.format("%s (by %d)", id, recoveredBy));
             } else if (isRecoveryNeeded(nodeInfo)) {
                 candidateClusterNodes.add(Integer.valueOf(id));

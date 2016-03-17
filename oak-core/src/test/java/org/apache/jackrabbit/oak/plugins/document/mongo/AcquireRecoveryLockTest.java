@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -32,7 +31,6 @@ import static org.junit.Assert.assertNotNull;
 public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
 
     // OAK-4131
-    @Ignore
     @Test
     public void recoveryBy() throws Exception {
         MongoDocumentStore store = new MongoDocumentStore(
