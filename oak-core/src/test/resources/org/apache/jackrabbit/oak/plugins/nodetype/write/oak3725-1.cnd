@@ -253,13 +253,6 @@
   mixin
   - oak:counter (LONG) = '0' protected autocreated
 
-/**
- * allows restricting node types such as NT_FOLDER to have NT_UNSTRUCTURED. Required for oak:index
- */
-[mix:indexable]
-  mixin
-  + oak:index (nt:base) = nt:unstructured COPY
-
 //------------------------------------------------------------------------------
 // U N S T R U C T U R E D   C O N T E N T
 //------------------------------------------------------------------------------
