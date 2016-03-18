@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
-import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -116,6 +115,12 @@ public abstract class AbstractOak2OakTest {
     }
 
     static void verifyContent(Session session) throws RepositoryException {
+        Node root = session.getRootNode();
+        assertEquals("rep:root", root.getPrimaryNodeType().getName());
+        assertEquals(1, root.getMixinNodeTypes().length);
+        assertEquals("rep:AccessControllable", root.getMixinNodeTypes()[0].getName());
+        assertEquals("sling:redirect", root.getProperty("sling:resourceType").getString());
+
         Node allow = session.getNode("/apps");
         assertEquals("sling:Folder", allow.getProperty("jcr:primaryType").getString());
         assertEquals("admin", allow.getProperty("jcr:createdBy").getString());
