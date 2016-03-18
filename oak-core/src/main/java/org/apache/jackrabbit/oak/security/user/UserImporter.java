@@ -35,6 +35,7 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -639,9 +640,17 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
+                Set<String> memberContentIds = Sets.newLinkedHashSet();
+                Set<String> failedContentIds = Sets.newLinkedHashSet();
                 for (String member : nonExisting) {
-                    membershipProvider.addMember(groupTree, member);
+                    boolean success = membershipProvider.addMember(groupTree, member);
+                    if (success) {
+                        memberContentIds.add(member);
+                    } else {
+                        failedContentIds.add(member);
+                    }
                 }
+                userManager.onGroupUpdate(gr, false, true, memberContentIds, failedContentIds);
             }
         }
     }

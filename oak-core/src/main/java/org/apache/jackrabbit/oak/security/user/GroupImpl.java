@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -116,7 +117,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
             }
         }
 
-        return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
+        boolean success = getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
+
+        if (success) {
+            getUserManager().onGroupUpdate(this, false, authorizable);
+        }
+
+        return success;
     }
 
     @Override
@@ -154,7 +161,14 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         } else {
             Tree memberTree = ((AuthorizableImpl) authorizable).getTree();
-            return getMembershipProvider().removeMember(getTree(), memberTree);
+
+            boolean success = getMembershipProvider().removeMember(getTree(), memberTree);
+
+            if (success) {
+                getUserManager().onGroupUpdate(this, true, authorizable);
+            }
+
+            return success;
         }
     }
 
@@ -246,6 +260,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     private final Set<String> updateMembers(boolean isRemove, @Nonnull String... memberIds) throws RepositoryException {
         Set<String> idSet = Sets.newLinkedHashSet(Lists.newArrayList(memberIds));
+        Set<String> processedIds = Sets.newLinkedHashSet();
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
         Iterator<String> idIterator = idSet.iterator();
@@ -282,8 +297,12 @@ class GroupImpl extends AuthorizableImpl implements Group {
             }
             if (success) {
                 idIterator.remove();
+                processedIds.add(memberId);
             }
         }
+
+        getUserManager().onGroupUpdate(this, isRemove, false, processedIds, idSet);
+
         return idSet;
     }
 
