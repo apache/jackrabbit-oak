@@ -276,7 +276,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     try {
                         prep.setString(1, id);
                         prep.setBytes(2, data);
-                        prep.execute();
+                        int rows = prep.executeUpdate();
+                        LOG.trace("insert-data id={} rows={}", id, rows);
+                        if (rows != 1) {
+                            throw new SQLException("Insert of id " + id + " into " + this.tnData + " failed with result " + rows);
+                        }
                     } finally {
                         prep.close();
                     }
@@ -318,7 +322,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         prep.setString(1, id);
                         prep.setInt(2, level);
                         prep.setLong(3, now);
-                        prep.execute();
+                        int rows = prep.executeUpdate();
+                        LOG.trace("insert-meta id={} rows={}", id, rows);
+                        if (rows != 1) {
+                            throw new SQLException("Insert of id " + id + " into " + this.tnMeta + " failed with result " + rows);
+                        }
                     } finally {
                         prep.close();
                     }
@@ -464,9 +472,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
             for (String id : ids) {
                 prepDelMeta.setString(1, id);
-                prepDelMeta.execute();
+                int mrows = prepDelMeta.executeUpdate();
+                LOG.trace("delete-meta id={} rows={}", id, mrows);
                 prepDelData.setString(1, id);
-                prepDelData.execute();
+                int drows = prepDelData.executeUpdate();
+                LOG.trace("delete-data id={} rows={}", id, drows);
                 count++;
             }
             prepDelMeta.close();
@@ -527,7 +537,9 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 }
 
                 int deletedMeta = prepMeta.executeUpdate();
+                LOG.trace("delete-meta rows={}", deletedMeta);
                 int deletedData = prepData.executeUpdate();
+                LOG.trace("delete-data rows={}", deletedData);
 
                 if (deletedMeta != deletedData) {
                     String message = String.format(
