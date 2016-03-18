@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUD
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
+import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
 
 public class RepositorySidegrade {
@@ -272,5 +273,9 @@ public class RepositorySidegrade {
             .exclude(excludes)
             .merge(merges)
             .copy(sourceRoot, targetRoot);
+
+        if (includePaths.contains("/")) {
+            copyProperties(sourceRoot, targetRoot);
+        }
     }
 }
