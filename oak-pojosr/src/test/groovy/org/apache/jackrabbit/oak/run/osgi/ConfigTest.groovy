@@ -53,6 +53,11 @@ class ConfigTest {
         ]
     }
 
+    @After
+    void shutDown(){
+        OakOSGiRepositoryFactory.shutdown(registry, 5)
+    }
+
     @Test
     void testRuntimeConfig(){
         config[REPOSITORY_CONFIG] = createConfigMap()
