@@ -465,7 +465,8 @@ public class RepositoryUpgrade {
                     new RestrictionEditorProvider(),
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
-                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)
+                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
+                    new SameNameSiblingsEditor.Provider()
             )));
 
             // security-related hooks
