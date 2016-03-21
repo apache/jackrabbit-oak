@@ -58,6 +58,15 @@ abstract class AbstractRepositoryFactoryTest{
 
     @After
     void tearDown() {
+        try {
+            if (repository == null) {
+                PojoServiceRegistry registry = getRegistry()
+                OakOSGiRepositoryFactory.shutdown(registry, 5)
+            }
+        } catch (AssertionError ignore){
+
+        }
+
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
