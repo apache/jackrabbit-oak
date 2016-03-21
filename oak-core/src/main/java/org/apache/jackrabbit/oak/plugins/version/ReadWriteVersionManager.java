@@ -74,13 +74,13 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION
  * Extends the {@link ReadOnlyVersionManager} with methods to modify the
  * version store.
  */
-class ReadWriteVersionManager extends ReadOnlyVersionManager {
+public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     private final NodeBuilder versionStorageNode;
     private final NodeBuilder workspaceRoot;
     private ReadOnlyNodeTypeManager ntMgr;
 
-    ReadWriteVersionManager(NodeBuilder versionStorageNode,
+    public ReadWriteVersionManager(NodeBuilder versionStorageNode,
                             NodeBuilder workspaceRoot) {
         this.versionStorageNode = checkNotNull(versionStorageNode);
         this.workspaceRoot = checkNotNull(workspaceRoot);
@@ -119,7 +119,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
      *                                  {@code jcr:uuid} property.
      */
     @Nonnull
-    NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable, @Nonnull Map<String, Object> infoMap)
+    public NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable, @Nonnull Map<String, Object> infoMap)
             throws CommitFailedException {
         checkNotNull(versionable);
         String vUUID = uuidFromNode(versionable);
@@ -379,7 +379,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
         // jcr:frozenNode of created version
         VersionableState versionableState = VersionableState.fromVersion(
-                version, vHistory, versionable, this, ntMgr);
+                version, vHistory, versionable, this, getNodeTypeManager());
         if (!isRootVersion) {
             versionableState.create();
         }

@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.upgrade.version;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -29,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -43,6 +46,7 @@ import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryNodeState;
 
 /**
  * The VersionableEditor provides two possible ways to handle
@@ -58,6 +62,8 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP
  */
 public class VersionableEditor extends DefaultEditor {
 
+    private static final Logger logger = LoggerFactory.getLogger(VersionableEditor.class);
+
     private static final Set<String> SKIPPED_PATHS = of("/oak:index", "/jcr:system/jcr:versionStorage");
 
     private final Provider provider;
@@ -70,6 +76,8 @@ public class VersionableEditor extends DefaultEditor {
 
     private final VersionCopier versionCopier;
 
+    private final ReadWriteVersionManager vMgr;
+
     private String path;
 
     private VersionableEditor(Provider provider, NodeBuilder builder) {
@@ -79,6 +87,9 @@ public class VersionableEditor extends DefaultEditor {
         this.isReferenceable = new TypePredicate(builder.getNodeState(), MIX_REFERENCEABLE);
         this.versionCopier = new VersionCopier(provider.sourceRoot, builder);
         this.path = "/";
+
+        NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(NodeTypeConstants.JCR_VERSIONSTORAGE);
+        this.vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
     }
 
     public static class Provider implements EditorProvider {
@@ -128,7 +139,12 @@ public class VersionableEditor extends DefaultEditor {
             if (isVersionHistoryExists(versionableUuid)) {
                 setVersionablePath(versionableUuid);
             } else {
-                removeVersionProperties(getNodeBuilder(rootBuilder, this.path));
+                NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
+                removeVersionProperties(versionableBuilder);
+                if (isVersionable.apply(versionableBuilder.getNodeState())) {
+                    logger.warn("Node {} is still versionable. Creating empty version history.", path);
+                    createEmptyHistory(versionableBuilder);
+                }
             }
         }
 
@@ -149,7 +165,7 @@ public class VersionableEditor extends DefaultEditor {
     }
 
     private boolean isVersionHistoryExists(String versionableUuid) {
-        return VersionHistoryUtil.getVersionHistoryNodeState(rootBuilder.getNodeState(), versionableUuid).exists();
+        return getVersionHistoryNodeState(rootBuilder.getNodeState(), versionableUuid).exists();
     }
 
     private void removeVersionProperties(final NodeBuilder versionableBuilder) {
@@ -167,6 +183,10 @@ public class VersionableEditor extends DefaultEditor {
         versionableBuilder.removeProperty(JCR_PREDECESSORS);
         versionableBuilder.removeProperty(JCR_BASEVERSION);
         versionableBuilder.removeProperty(JCR_ISCHECKEDOUT);
+    }
+
+    private void createEmptyHistory(NodeBuilder versionable) throws CommitFailedException {
+        vMgr.getOrCreateVersionHistory(versionable, Collections.<String,Object>emptyMap());
     }
 
     @Override
