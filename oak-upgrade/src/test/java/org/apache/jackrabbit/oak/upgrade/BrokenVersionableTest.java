@@ -16,7 +16,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
@@ -35,11 +40,15 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
 
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class BrokenVersionableTest {
 
@@ -70,17 +79,27 @@ public class BrokenVersionableTest {
         SegmentNodeStore source = new SegmentNodeStore();
         RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(source)).createRepository();
         Session session = repository.login(CREDENTIALS);
-        String versionHistoryPath;
+        List<String> versionHistoryPaths = new ArrayList<String>();
         try {
+            CndImporter.registerNodeTypes(new StringReader("<test = 'http://jackrabbit.apache.org/ns/test'>\n"
+                    + "[test:Versionable] > nt:unstructured, mix:versionable"), session);
+
             Node root = session.getRootNode();
-            Node versionable = root.addNode("versionable", NT_UNSTRUCTURED);
-            versionable.addMixin(MIX_VERSIONABLE);
-            versionable.addNode("child", NT_UNSTRUCTURED);
+
+            Node versionable1 = root.addNode("versionable1", NT_UNSTRUCTURED);
+            versionable1.addMixin(MIX_VERSIONABLE);
+            versionable1.addNode("child", NT_UNSTRUCTURED);
+
+            Node versionable2 = root.addNode("versionable2", "test:Versionable");
+            versionable2.addNode("child", NT_UNSTRUCTURED);
+
             session.save();
 
             VersionManager vMgr = session.getWorkspace().getVersionManager();
-            vMgr.checkin("/versionable");
-            versionHistoryPath = vMgr.getVersionHistory("/versionable").getPath();
+            vMgr.checkin("/versionable1");
+            vMgr.checkin("/versionable2");
+            versionHistoryPaths.add(vMgr.getVersionHistory("/versionable1").getPath());
+            versionHistoryPaths.add(vMgr.getVersionHistory("/versionable2").getPath());
         } finally {
             session.logout();
             repository.shutdown();
@@ -88,9 +107,10 @@ public class BrokenVersionableTest {
 
         // remove version history to corrupt the JCR repository structure
         NodeBuilder rootBuilder = source.getRoot().builder();
-        NodeStateTestUtils.createOrGetBuilder(rootBuilder, versionHistoryPath).remove();
+        for (String versionHistoryPath : versionHistoryPaths) {
+            NodeStateTestUtils.createOrGetBuilder(rootBuilder, versionHistoryPath).remove();
+        }
         source.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
         return source;
     }
 
@@ -101,8 +121,16 @@ public class BrokenVersionableTest {
     @Test
     public void verifyNoVersionable() throws RepositoryException {
         Session session = createAdminSession();
+        VersionManager vMgr = session.getWorkspace().getVersionManager();
         try {
-            assertFalse(session.getNode("/versionable").isNodeType(MIX_VERSIONABLE));
+            assertFalse(session.getNode("/versionable1").isNodeType(MIX_VERSIONABLE));
+
+            Node versionable2 = session.getNode("/versionable2");
+            assertTrue(versionable2.isNodeType(MIX_VERSIONABLE));
+            VersionHistory history = vMgr.getVersionHistory(versionable2.getPath());
+            VersionIterator versions = history.getAllVersions();
+            assertEquals("jcr:rootVersion", versions.nextVersion().getName());
+            assertFalse(versions.hasNext());
         } finally {
             session.logout();
         }
