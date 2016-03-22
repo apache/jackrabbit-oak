@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.28
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.29
 
 Introduction
 ------------
@@ -8,45 +8,26 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.28 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.29 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.28
+Changes in Oak 1.0.29
 ---------------------
 
 Technical task
 
-   [OAK-3892] - RDBDocumentStore: StripedNodeDocumentLocks - special case root?
-   [OAK-4020] - RDBExport: misleading warning about column names
-   [OAK-4021] - RDBDocumentStore: create() for collections other than NODES is broken
-   [OAK-4033] - RDBDocumentStore: refactor version check to address driver version as well
-   [OAK-4034] - RDBDocumentStore: use and require Oracle 12.1 JDBC driver
+   [OAK-3843] - MS SQL doesn't support more than 2100 parameters in one request
+   [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
+   [OAK-4134] - RDBBlobStore: improve error handling and logging
 
 Bug
 
-   [OAK-3634] - RDB/MongoDocumentStore may return stale documents
-   [OAK-3653] - Incorrect last revision of cached node state
-   [OAK-3929] - RevisionGC does not invalidate document cache
-   [OAK-4017] - ObservationTest: tearDown() may fail with NPE
-   [OAK-4018] - Test failures after upgrading to JR 2.12.0
-   [OAK-4036] - LuceneIndexProviderService may miss on registering PreExtractedTextProvider
-
-Improvement
-
-   [OAK-3126] - Enable HybridMapFactory by default
-   [OAK-3649] - Extract node document cache from Mongo and RDB document stores
-   [OAK-3841] - Change return type of Document.getModCount() to Long
-   [OAK-4022] - DocumentNodeStoreService journal write should log write failures
-
-Task
-
-   [OAK-3613] - Backport TarMK revision gc related issues
-   [OAK-3651] - Remove HierarchicalCacheInvalidator
-   [OAK-3906] - NodeDocumentCache cleanup used inconsistently
+   [OAK-4050] - SplitOperations may not retain most recent committed _commitRoot entry
+   [OAK-4131] - LastRevisionRecoveryAgent may throw ClassCastException
 
 
 In addition to the above-mentioned changes, this release contains
