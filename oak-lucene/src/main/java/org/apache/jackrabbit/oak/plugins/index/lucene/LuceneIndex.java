@@ -390,6 +390,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         }
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
+                        noDocs = true;
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
@@ -410,9 +411,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         }
 
                         queue.add(new LuceneResultRow(suggestedWords));
-                        noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
                         SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
+                        noDocs = true;
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
                         // ACL filter suggestions
@@ -433,7 +434,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         }
 
                         queue.add(new LuceneResultRow(suggestedWords));
-                        noDocs = true;
                     }
                 } catch (IOException e) {
                     LOG.warn("query via {} failed.", LuceneIndex.this, e);
