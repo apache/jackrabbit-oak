@@ -98,6 +98,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler;
@@ -448,13 +449,14 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         }
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         String aclCheckField = indexNode.getDefinition().isFullTextEnabled() ? FieldNames.FULLTEXT : FieldNames.SPELLCHECK;
+                        noDocs = true;
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
                         QueryParser qp = new QueryParser(Version.LUCENE_47, aclCheckField, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
-                            Query query = qp.createPhraseQuery(aclCheckField, qp.escape(suggestion.string));
+                            Query query = qp.createPhraseQuery(aclCheckField, QueryParserBase.escape(suggestion.string));
 
                             query = addDescendantClauseIfRequired(query, plan);
 
@@ -470,9 +472,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             }
                         }
 
-                        noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
                         SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
+                        noDocs = true;
 
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
@@ -482,7 +484,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         // ACL filter suggestions
                         for (Lookup.LookupResult suggestion : lookupResults) {
-                            Query query = qp.parse("\"" + qp.escape(suggestion.key.toString()) + "\"");
+                            Query query = qp.parse("\"" + QueryParserBase.escape(suggestion.key.toString()) + "\"");
 
                             query = addDescendantClauseIfRequired(query, plan);
 
@@ -497,8 +499,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                 }
                             }
                         }
-
-                        noDocs = true;
                     }
                 } catch (Exception e) {
                     LOG.warn("query via {} failed.", LucenePropertyIndex.this, e);
