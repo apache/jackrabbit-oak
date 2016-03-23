@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.13
 
 Introduction
 ------------
@@ -7,46 +7,38 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.12 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.13 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.12
+Changes in Oak 1.2.13
 --------------------
 
 Technical task
-    
-    [OAK-3892] - RDBDocumentStore: StripedNodeDocumentLocks - special case root?
-    [OAK-4020] - RDBExport: misleading warning about column names
-    [OAK-4021] - RDBDocumentStore: create() for collections other than NODES is broken
-    [OAK-4033] - RDBDocumentStore: refactor version check to address driver version as well
-    [OAK-4034] - RDBDocumentStore: use and require Oracle 12.1 JDBC driver
 
+    [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
+    [OAK-4134] - RDBBlobStore: improve error handling and logging
 
 Bug
-    
-    [OAK-4017] - ObservationTest: tearDown() may fail with NPE
-    [OAK-4018] - Test failures after upgrading to JR 2.12.0
-    [OAK-4036] - LuceneIndexProviderService may miss on registering PreExtractedTextProvider
 
+    [OAK-4050] - SplitOperations may not retain most recent committed _commitRoot entry
+    [OAK-4078] - 1.2 branch can't use latest stable Jackrabbit release
+    [OAK-4117] - Backport OAK-4011 on the 1.2 branch
 
 Improvement
 
-    [OAK-4007] - "reset clusterId tool" in oak-run
-    [OAK-4008] - DataStoreBlobStore - Log blob deletion as info
-    [OAK-4022] - DocumentNodeStoreService journal write should log write failures
-    [OAK-4060] - Allow use of pre extrcated text cache for incremental indexing
+    [OAK-2748] - Oak Implementation for JCR-3836 and JCR-3837 (getting authorizable by type)
 
-New Feature
-    
-    [OAK-3352] - Expose Lucene search score explanation 
+Test
+
+    [OAK-2851] - Missing test dependency to jackrabbit-data tests artifact
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.11 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.12 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
