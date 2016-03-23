@@ -662,11 +662,6 @@ public class ClusterNodeInfo {
                     break;
                 }
             }
-            if (leaseCheckFailed) {
-                // someone else won and marked leaseCheckFailed - so we only log/throw
-                LOG.error(LEASE_CHECK_FAILED_MSG);
-                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
-            }
             leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
 
