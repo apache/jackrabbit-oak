@@ -173,6 +173,7 @@ public class Segment {
         this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
         this.refids[0] = id;
         this.version = SegmentVersion.fromByte(buffer[3]);
+        this.id.setSegment(this);
     }
 
     void access() {
