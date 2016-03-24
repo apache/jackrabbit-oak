@@ -765,12 +765,11 @@ public class FileStore implements SegmentStore {
         compactionThread.close();
         flushThread.close();
 
-        synchronized (this) {
-            try {
-                flush();
-
+        try {
+            flush();
+            tracker.getWriter().dropCache();
+            synchronized (this) {
                 writer.close();
-                tracker.getWriter().dropCache();
 
                 List<TarReader> list = readers;
                 readers = newArrayList();
@@ -781,10 +780,10 @@ public class FileStore implements SegmentStore {
                 lock.release();
                 lockFile.close();
                 journalFile.close();
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to close the TarMK at " + directory, e);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Failed to close the TarMK at " + directory, e);
         }
 
         System.gc(); // for any memory-mappings that are no longer used
