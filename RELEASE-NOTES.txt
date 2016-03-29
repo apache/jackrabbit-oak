@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.3.16
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.0
 
 Introduction
 ------------
@@ -7,84 +7,56 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.3.16 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.0 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
-improvements. For production use we recommend the latest stable 1.2.x
+improvements. For production use we recommend the latest stable 1.4.x
 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.3.16
+Changes in Oak 1.5.0
 ---------------------
 
-Sub-task
-
-    [OAK-3994] - Simple query on suggestion/spellcheck with
-    unambiguous index def and one descendant clause should work
+Release Notes - Jackrabbit Oak - Version 1.5.0
 
 Technical task
 
-    [OAK-4020] - RDBExport: misleading warning about column names
-    [OAK-4021] - RDBDocumentStore: create() for collections other than
-    NODES is broken
+    [OAK-3977] - RDBDocumentStore: remove PostgreSQL workaround after upgrading to JDBC driver 9.4.1208
+    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
+    [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
+    [OAK-4134] - RDBBlobStore: improve error handling and logging
 
 Bug
 
-    [OAK-3965] - SegmentPropertyState external binary property reports
-    unusual size
-    [OAK-3981] - Change in aggregation flow in OAK-3831 causes some
-    properties to be left out of aggregation
-    [OAK-3988] - Offline compaction should avoid loading external
-    binaries
-    [OAK-3991] - Incorrect resultset from XPATH, multiple ORs and
-    Lucene full-text
-    [OAK-3995] - Incorrect translation of old checkpoint format
-    [OAK-3999] - ParseException thrown for xpath query on 3 or more
-    jcr:primaryType "or" conditions
-    [OAK-4004] - The cold standby segment store doesn't delete the
-    files marked for deletion
-    [OAK-4009] - Search done via Lucene index might return duplicate
-    results
-    [OAK-4011] - Set online compaction default to paused
-    [OAK-4017] - ObservationTest: tearDown() may fail with NPE
-    [OAK-4018] - Test failures after upgrading to JR 2.12.0
+    [OAK-3972] - Forward edges missing in SegmentGraph
+    [OAK-4065] - Counter index can get out of sync
+    [OAK-4083] - Simplify concurrency when loading data from the primary
+    [OAK-4088] - CacheLIRS prevents cleanup from being effective
+    [OAK-4089] - The standby store shouldn't start the observation subsystem
+    [OAK-4091] - The standby store shouldn't initialize the segment node store with an initial state
+    [OAK-4116] - Broadcasting cache: disabled by default
+    [OAK-4126] - Suggestion and spellcheck queries throw exception if result contain lucene query character
 
 Improvement
 
-    [OAK-2761] - Persistent cache: add data in a different thread
-    [OAK-3274] - DefaultSyncConfigImpl: add information to
-    "user.membershipExpTime" about minimum expiration time
-    [OAK-3975] - Change DELETE_BATCH_SIZE to 100 (from 450), and make
-    it configurable
-    [OAK-3978] - Add segment size to segment graph
-    [OAK-3979] - RepositoryUpgrade skip on error must skip non
-    existing node bundle
-    [OAK-3989] - Add S3 datastore support for Text Pre Extraction
-    [OAK-3990] - Enable specifying the max clause limit in
-    BooleanClause
-    [OAK-3997] - Include eviction cause to the LIRS removal callback
-    [OAK-4006] - Enable cloning of repo for shared data store and
-    discovery-lite
-    [OAK-4007] - "reset clusterId tool" in oak-run
-    [OAK-4008] - DataStoreBlobStore - Log blob deletion as info
-    [OAK-4013] - DataStoreTextWriter should not write on close when
-    running in readOnly mode
+    [OAK-3563] - Improve DefaultSyncContext
+    [OAK-3725] - Add oak:Indexable mixin type
+    [OAK-3886] - Delegate supported Credentials types to ExternalIdentityProvider
+    [OAK-4029] - RDBDocumentStore: optimize the bulk update method
+    [OAK-4109] - Fix typo in async indexer thread name
+    [OAK-4123] - Persistent cache: allow to configure the add data concurrency
+    [OAK-4142] - allow skip UT in pedantic profile
 
 Task
 
-    [OAK-3946] - Document oak-authorization-cug
-    [OAK-3996] - Update Jackrabbit version to 2.12.0
-    [OAK-4002] - Consolidate maven-jar-plugin in oak-parent pom.xml
+    [OAK-4084] - Add 1.4 branch in Jenkins matrix
+    [OAK-4100] - ClusterNodeInfo lease renewal: add logging
+    [OAK-4118] - Benchmarks for Membership Operations
 
-Test
-
-    [OAK-3986] - simple performance regression IT (that would fail in
-    case commitRoots would not be purged)
-    [OAK-3998] - No SLF4J binding in oak-it
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.x release.
+all changes included up to the Apache Jackrabbit Oak 1.4.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
@@ -110,7 +82,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-The Oak effort is a part of the Apache Jackrabbit project. 
+The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 For more information, visit http://jackrabbit.apache.org/oak
