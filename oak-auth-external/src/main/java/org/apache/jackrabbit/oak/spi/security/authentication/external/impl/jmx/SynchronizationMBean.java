@@ -74,6 +74,16 @@ public interface SynchronizationMBean {
     String[] syncUsers(@Nonnull String[] userIds, boolean purge);
 
     /**
+      * Synchronizes the local users with the given user ids.
+      * @param userIds the user ids
+      * @param purge if {@code true} users that don't exist in the IDP are deleted.
+      * @param forceGroupSync if synchronization of containing groups shall be forced
+      * @return result messages.
+      */
+     @Nonnull
+     String[] syncUsers(@Nonnull String[] userIds, boolean purge, boolean forceGroupSync);
+
+    /**
      * Synchronizes all local users with the given user ids. Note that this can be an expensive operation since all
      * potential users need to be examined.
      *
@@ -84,12 +94,32 @@ public interface SynchronizationMBean {
     String[] syncAllUsers(boolean purge);
 
     /**
+     * Synchronizes all local users with the given user ids. Note that this can be an expensive operation since all
+     * potential users need to be examined.
+     *
+     * @param purge if {@code true} users that don't exist in the IDP are deleted.
+     * @param forceGroupSync if synchronization of containing groups shall be forced
+     * @return result messages.
+     */
+    @Nonnull
+    String[] syncAllUsers(boolean purge, boolean forceGroupSync);
+
+    /**
      * Synchronizes the external users with the given external ids.
      * @param externalIds the external id
      * @return result messages.
      */
     @Nonnull
     String[] syncExternalUsers(@Nonnull String[] externalIds);
+
+    /**
+     * Synchronizes the external users with the given external ids.
+     * @param externalIds the external id
+     * @param forceGroupSync if synchronization of containing groups shall be forced
+     * @return result messages.
+     */
+    @Nonnull
+    String[] syncExternalUsers(@Nonnull String[] externalIds, boolean forceGroupSync);
 
     /**
      * Synchronizes all the external users, i.e. basically imports the entire IDP. Note that this can be an expensive
@@ -99,6 +129,16 @@ public interface SynchronizationMBean {
      */
     @Nonnull
     String[] syncAllExternalUsers();
+
+    /**
+     * Synchronizes all the external users, i.e. basically imports the entire IDP. Note that this can be an expensive
+     * operation.
+     *
+     * @param forceGroupSync if synchronization of containing groups shall be forced
+     * @return result messages.
+     */
+    @Nonnull
+    String[] syncAllExternalUsers(boolean forceGroupSync);
 
     /**
      * Returns a list of orphaned users, i.e. users that don't exist anymore on the IDP. Note that this can be an

@@ -83,9 +83,15 @@ public class SyncMBeanImpl implements SynchronizationMBean {
     @Nonnull
     @Override
     public String[] syncUsers(@Nonnull String[] userIds, boolean purge) {
+        return syncUsers(userIds, purge, true);
+    }
+
+    @Nonnull
+    @Override
+    public String[] syncUsers(@Nonnull String[] userIds, boolean purge, boolean forceGroupSync) {
         Delegatee delegatee = getDelegatee();
         try {
-            return delegatee.syncUsers(userIds, purge);
+            return delegatee.syncUsers(userIds, purge, forceGroupSync);
         } finally {
             delegatee.close();
         }
@@ -94,9 +100,15 @@ public class SyncMBeanImpl implements SynchronizationMBean {
     @Nonnull
     @Override
     public String[] syncAllUsers(boolean purge) {
+        return syncAllUsers(purge, true);
+    }
+
+    @Nonnull
+    @Override
+    public String[] syncAllUsers(boolean purge, boolean forceGroupSync) {
         Delegatee delegatee = getDelegatee();
         try {
-            return delegatee.syncAllUsers(purge);
+            return delegatee.syncAllUsers(purge, forceGroupSync);
         } finally {
             delegatee.close();
         }
@@ -105,9 +117,15 @@ public class SyncMBeanImpl implements SynchronizationMBean {
     @Nonnull
     @Override
     public String[] syncExternalUsers(@Nonnull String[] externalIds) {
+        return syncExternalUsers(externalIds, true);
+    }
+
+    @Nonnull
+    @Override
+    public String[] syncExternalUsers(@Nonnull String[] externalIds, boolean forceGroupSync) {
         Delegatee delegatee = getDelegatee();
         try {
-            return delegatee.syncExternalUsers(externalIds);
+            return delegatee.syncExternalUsers(externalIds, forceGroupSync);
         } finally {
             delegatee.close();
         }
@@ -116,9 +134,15 @@ public class SyncMBeanImpl implements SynchronizationMBean {
     @Nonnull
     @Override
     public String[] syncAllExternalUsers() {
+        return syncAllExternalUsers(true);
+    }
+
+    @Nonnull
+    @Override
+    public String[] syncAllExternalUsers(boolean forceGroupSync) {
         Delegatee delegatee = getDelegatee();
         try {
-            return delegatee.syncAllExternalUsers();
+            return delegatee.syncAllExternalUsers(forceGroupSync);
         } finally {
             delegatee.close();
         }
