@@ -123,7 +123,10 @@ public class JournalGarbageCollector {
 
         sw.stop();
 
-        log.info("gc: Journal garbage collection took {}, deleted {} entries that were older than {} min.", sw, numDeleted, TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis));
+        if (numDeleted > 0) {
+            log.info("gc: Journal garbage collection took {}, deleted {} entries that were older than {} min.",
+                    sw, numDeleted, TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis));
+        }
         return numDeleted;
     }
 
