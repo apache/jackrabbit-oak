@@ -334,6 +334,8 @@ public class Oak {
      */
     private Map<String, Long> asyncTasks;
 
+    private boolean failOnMissingIndexProvider;
+
     public Oak(NodeStore store) {
         this.store = checkNotNull(store);
     }
@@ -551,6 +553,11 @@ public class Oak {
         return withAsyncIndexing("async", 5);
     }
 
+    public Oak withFailOnMissingIndexProvider(){
+        failOnMissingIndexProvider = true;
+        return this;
+    }
+
     public Oak withAtomicCounter() {
         return with(new AtomicCounterEditorProvider(
             new Supplier<Clusterable>() {
@@ -673,7 +680,7 @@ public class Oak {
                 workspaceInitializers, store, defaultWorkspaceName, indexEditors);
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        with(new IndexUpdateProvider(indexEditors));
+        with(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider));
         withEditorHook();
 
         // Register observer last to prevent sending events while initialising

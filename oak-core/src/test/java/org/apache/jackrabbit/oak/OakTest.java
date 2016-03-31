@@ -25,13 +25,22 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.NoSuchWorkspaceException;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Test;
 
@@ -149,6 +158,37 @@ public class OakTest {
         assertNotNull(async.get());
         assertTrue(async.get().isClosed());
         assertNull(WhiteboardUtils.getService(wb, AsyncIndexUpdate.class));
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void checkMissingStrategySetting() throws Exception{
+        Whiteboard wb = new DefaultWhiteboard();
+        WhiteboardIndexEditorProvider wbProvider = new WhiteboardIndexEditorProvider();
+        wbProvider.start(wb);
+
+        Registration r1 = wb.register(IndexEditorProvider.class, new PropertyIndexEditorProvider(), null);
+        Registration r2 = wb.register(IndexEditorProvider.class, new ReferenceEditorProvider(), null);
+
+        Oak oak = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(wb)
+                .with(wbProvider)
+                .withFailOnMissingIndexProvider();
+
+        ContentRepository repo = oak.createContentRepository();
+
+        ContentSession cs = repo.login(null, null);
+
+        Root root = cs.getLatestRoot();
+        Tree t = root.getTree("/");
+        t.setProperty("foo", "u1", Type.REFERENCE);
+
+        r1.unregister();
+
+        root.commit();
+        cs.close();
+        ((Closeable)repo).close();
     }
 
 }
