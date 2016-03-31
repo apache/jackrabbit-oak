@@ -58,16 +58,6 @@ import org.osgi.framework.ServiceRegistration;
  */
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @References({
-        @Reference(referenceInterface = IndexEditorProvider.class,
-                target = "(type=property)",
-                strategy = ReferenceStrategy.LOOKUP,
-                name = "propertyIndexEditor"
-        ),
-        @Reference(referenceInterface = IndexEditorProvider.class,
-                target = "(type=reference)",
-                strategy = ReferenceStrategy.LOOKUP,
-                name = "referenceIndexEditor"
-        ),
         @Reference(referenceInterface = StatisticsProvider.class,
                 strategy = ReferenceStrategy.LOOKUP
         )
@@ -103,6 +93,12 @@ public class RepositoryManager {
 
     @Reference
     private NodeStore store;
+
+    @Reference(target = "(type=property)")
+    private IndexEditorProvider propertyIndex;
+
+    @Reference(target = "(type=reference)")
+    private IndexEditorProvider referenceIndex;
 
     @Property(
         intValue = DEFAULT_OBSERVATION_QUEUE_LENGTH,
