@@ -187,6 +187,7 @@ public class RepositoryManager {
                 .with(editorProvider)
                 .with(indexEditorProvider)
                 .with(indexProvider)
+                .withFailOnMissingIndexProvider()
                 .withAsyncIndexing();
 
         for(RepositoryInitializer initializer : initializers.getServices()){
