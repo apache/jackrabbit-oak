@@ -60,7 +60,13 @@ import org.osgi.framework.ServiceRegistration;
 @References({
         @Reference(referenceInterface = IndexEditorProvider.class,
                 target = "(type=property)",
-                strategy = ReferenceStrategy.LOOKUP
+                strategy = ReferenceStrategy.LOOKUP,
+                name = "propertyIndexEditor"
+        ),
+        @Reference(referenceInterface = IndexEditorProvider.class,
+                target = "(type=reference)",
+                strategy = ReferenceStrategy.LOOKUP,
+                name = "referenceIndexEditor"
         ),
         @Reference(referenceInterface = StatisticsProvider.class,
                 strategy = ReferenceStrategy.LOOKUP
