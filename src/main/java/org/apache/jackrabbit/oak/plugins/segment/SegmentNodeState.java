@@ -555,33 +555,25 @@ public class SegmentNodeState extends Record implements NodeState {
                 }
             }
         } else if (beforeChildName != Template.MANY_CHILD_NODES) {
-            boolean beforeChildStillExists = false;
+            boolean beforeChildRemoved = true;
+            NodeState beforeChild =
+                    beforeTemplate.getChildNode(beforeChildName, beforeId);
             for (ChildNodeEntry entry
                     : afterTemplate.getChildNodeEntries(afterId)) {
                 String childName = entry.getName();
-                beforeChildStillExists |= childName.equals(beforeChildName);
                 NodeState afterChild = entry.getNodeState();
                 if (beforeChildName.equals(childName)) {
-                    NodeState beforeChild =
-                            beforeTemplate.getChildNode(beforeChildName, beforeId);
-                    if (beforeChild.exists()) {
-                        if (!fastEquals(afterChild, beforeChild)
-                                && !diff.childNodeChanged(
-                                        childName, beforeChild, afterChild)) {
-                            return false;
-                        }
-                    } else {
-                        if (!diff.childNodeAdded(childName, afterChild)) {
-                            return false;
-                        }
+                    beforeChildRemoved = false;
+                    if (!fastEquals(afterChild, beforeChild)
+                            && !diff.childNodeChanged(
+                                    childName, beforeChild, afterChild)) {
+                        return false;
                     }
                 } else if (!diff.childNodeAdded(childName, afterChild)) {
                     return false;
                 }
             }
-            if (!beforeChildStillExists) {
-                NodeState beforeChild =
-                        beforeTemplate.getChildNode(beforeChildName, beforeId);
+            if (beforeChildRemoved) {
                 if (!diff.childNodeDeleted(beforeChildName, beforeChild)) {
                     return false;
                 }
