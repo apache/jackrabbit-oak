@@ -814,7 +814,7 @@ public class FileStore implements SegmentStore {
                 fileStoreLock.writeLock().lock();
                 try {
                     log.debug("TarMK journal update {} -> {}", before, after);
-                    journalFile.writeBytes(after.toString10() + " root\n");
+                    journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis()+"\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
                 } finally {
