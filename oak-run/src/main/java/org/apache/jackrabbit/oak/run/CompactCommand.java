@@ -102,7 +102,7 @@ class CompactCommand implements Command {
             File journal = new File(directory, "journal.log");
             JournalReader journalReader = new JournalReader(journal);
             try {
-                head = journalReader.iterator().next() + " root\n";
+                head = journalReader.iterator().next() + " root " + System.currentTimeMillis()+"\n";
             } finally {
                 journalReader.close();
             }
