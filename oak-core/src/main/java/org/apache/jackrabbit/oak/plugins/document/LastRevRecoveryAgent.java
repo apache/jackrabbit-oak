@@ -92,16 +92,21 @@ public class LastRevRecoveryAgent {
 
                 // start time is the _lastRev timestamp of this cluster node
                 final long startTime;
+                final String reason;
                 //lastRev can be null if other cluster node did not got
                 //chance to perform lastRev rollup even once
                 if (lastRev != null) {
                     startTime = lastRev.getTimestamp();
+                    reason = "lastRev: " + lastRev.toString();
                 } else {
                     startTime = leaseEnd - leaseTime - asyncDelay;
+                    reason = String.format(
+                            "no lastRev for root, using timestamp based on leaseEnd %d - leaseTime %d - asyncDelay %d", leaseEnd,
+                            leaseTime, asyncDelay);
                 }
 
-                log.info("Recovering candidates modified after: [{}] for clusterId [{}]",
-                        Utils.timestampToString(startTime), clusterId);
+                log.info("Recovering candidates modified after: [{}] for clusterId [{}] [{}]",
+                        Utils.timestampToString(startTime), clusterId, reason);
 
                 return recoverCandidates(clusterId, startTime);
             }
