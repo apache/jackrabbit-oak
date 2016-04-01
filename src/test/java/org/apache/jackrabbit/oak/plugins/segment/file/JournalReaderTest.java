@@ -58,7 +58,7 @@ public class JournalReaderTest {
 
     @Test
     public void testMultiple() throws IOException {
-        JournalReader journalReader = createJournalReader("one 1\ntwo 2\nthree 3");
+        JournalReader journalReader = createJournalReader("one 1\ntwo 2\nthree 3 456");
         try {
             Iterator<String> journal = journalReader.iterator();
             assertTrue(journal.hasNext());
