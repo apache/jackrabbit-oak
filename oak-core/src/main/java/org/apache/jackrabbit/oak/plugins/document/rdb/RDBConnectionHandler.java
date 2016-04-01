@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -59,7 +57,7 @@ public class RDBConnectionHandler implements Closeable {
      * Obtain a {@link Connection} suitable for read-only operations.
      */
     public @Nonnull Connection getROConnection() throws SQLException {
-        Connection c = getDataSource().getConnection();
+        Connection c = getConnection();
         c.setAutoCommit(false);
         setReadOnly(c, true);
         return c;
@@ -69,7 +67,7 @@ public class RDBConnectionHandler implements Closeable {
      * Obtain a {@link Connection} suitable for read-write operations.
      */
     public @Nonnull Connection getRWConnection() throws SQLException {
-        Connection c = getDataSource().getConnection();
+        Connection c = getConnection();
         c.setAutoCommit(false);
         setReadOnly(c, false);
         return c;
@@ -141,6 +139,19 @@ public class RDBConnectionHandler implements Closeable {
                     + (System.currentTimeMillis() - this.closedTime) + "ms ago)");
         }
         return result;
+    }
+
+    @Nonnull
+    private Connection getConnection() throws IllegalStateException, SQLException {
+        long ts = System.currentTimeMillis();
+        Connection c = getDataSource().getConnection();
+        if (LOG.isDebugEnabled()) {
+            long elapsed = System.currentTimeMillis() - ts;
+            if (elapsed >= 100) {
+                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms");
+            }
+        }
+        return c;
     }
 
     // workaround for broken connection wrappers
