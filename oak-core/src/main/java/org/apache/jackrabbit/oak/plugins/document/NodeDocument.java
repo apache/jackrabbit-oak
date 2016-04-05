@@ -1183,12 +1183,17 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param context the revision context.
      * @param head    the head revision before this document was retrieved from
      *                the document store.
+     * @param isBinaryValue a predicate that returns {@code true} if the given
+     *                      String value is considered a binary; {@code false}
+     *                      otherwise.
      * @return the split operations.
      */
     @Nonnull
     public Iterable<UpdateOp> split(@Nonnull RevisionContext context,
-                                    @Nonnull RevisionVector head) {
-        return SplitOperations.forDocument(this, context, head, NUM_REVS_THRESHOLD);
+                                    @Nonnull RevisionVector head,
+                                    @Nonnull Predicate<String> isBinaryValue) {
+        return SplitOperations.forDocument(this, context, head,
+                isBinaryValue, NUM_REVS_THRESHOLD);
     }
 
     /**

@@ -35,11 +35,13 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Sets.filter;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
@@ -69,10 +71,12 @@ class SplitOperations {
     private final String id;
     private final Revision headRevision;
     private final RevisionContext context;
+    private final Predicate<String> isBinaryValue;
     private final int numRevsThreshold;
     private Revision high;
     private Revision low;
     private int numValues;
+    private boolean hasBinary;
     private Map<String, NavigableMap<Revision, String>> committedChanges;
     private Set<Revision> changes;
     private Map<String, Set<Revision>> garbage;
@@ -85,9 +89,11 @@ class SplitOperations {
     private SplitOperations(@Nonnull NodeDocument doc,
                             @Nonnull RevisionContext context,
                             @Nonnull RevisionVector headRevision,
+                            @Nonnull Predicate<String> isBinaryValue,
                             int numRevsThreshold) {
         this.doc = checkNotNull(doc);
         this.context = checkNotNull(context);
+        this.isBinaryValue = checkNotNull(isBinaryValue);
         this.path = doc.getPath();
         this.id = doc.getId();
         this.headRevision = checkNotNull(headRevision).getRevision(context.getClusterId());
@@ -106,6 +112,9 @@ class SplitOperations {
      * @param context the revision context.
      * @param headRevision the head revision before the document was retrieved
      *                     from the document store.
+     * @param isBinaryValue a predicate that returns {@code true} if the given
+     *                      String value is considered a binary; {@code false}
+     *                      otherwise.
      * @param numRevsThreshold only split off at least this number of revisions.
      * @return list of update operations. An empty list indicates the document
      *          does not require a split.
@@ -116,12 +125,14 @@ class SplitOperations {
     static List<UpdateOp> forDocument(@Nonnull NodeDocument doc,
                                       @Nonnull RevisionContext context,
                                       @Nonnull RevisionVector headRevision,
+                                      @Nonnull Predicate<String> isBinaryValue,
                                       int numRevsThreshold) {
         if (doc.isSplitDocument()) {
             throw new IllegalArgumentException(
                     "Not a main document: " + doc.getId());
         }
-        return new SplitOperations(doc, context, headRevision, numRevsThreshold).create();
+        return new SplitOperations(doc, context, headRevision,
+                isBinaryValue, numRevsThreshold).create();
 
     }
 
@@ -173,7 +184,8 @@ class SplitOperations {
         return doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size() > numRevsThreshold
                 || doc.getMemory() >= DOC_SIZE_THRESHOLD
                 || previous.size() >= PREV_SPLIT_FACTOR
-                || !doc.getStalePrev().isEmpty();
+                || !doc.getStalePrev().isEmpty()
+                || doc.hasBinary();
     }
 
     /**
@@ -188,6 +200,7 @@ class SplitOperations {
                 Revision r = splitMap.lastKey();
                 splitMap.remove(r);
                 splitRevs.addAll(splitMap.keySet());
+                hasBinary |= hasBinaryProperty(splitMap.values());
                 mostRecentRevs.add(r);
             }
             if (splitMap.isEmpty()) {
@@ -198,6 +211,10 @@ class SplitOperations {
             trackLow(splitMap.firstKey());
             numValues += splitMap.size();
         }
+    }
+
+    private boolean hasBinaryProperty(Iterable<String> values) {
+        return doc.hasBinary() && any(values, isBinaryValue);
     }
 
     /**
@@ -310,7 +327,8 @@ class SplitOperations {
         // check if we have enough data to split off
         if (high != null && low != null
                 && (numValues >= numRevsThreshold
-                || doc.getMemory() > DOC_SIZE_THRESHOLD)) {
+                || doc.getMemory() > DOC_SIZE_THRESHOLD
+                || hasBinary)) {
             // enough changes to split off
             // move to another document
             main = new UpdateOp(id, false);
@@ -342,8 +360,10 @@ class SplitOperations {
             UpdateUtils.applyChanges(oldDoc, old);
             setSplitDocProps(doc, oldDoc, old, high);
             // only split if enough of the data can be moved to old document
+            // or there are binaries to split off
             if (oldDoc.getMemory() > doc.getMemory() * SPLIT_RATIO
-                    || numValues >= numRevsThreshold) {
+                    || numValues >= numRevsThreshold
+                    || hasBinary) {
                 splitOps.add(old);
             } else {
                 main = null;

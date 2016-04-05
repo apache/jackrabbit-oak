@@ -64,6 +64,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
@@ -357,6 +358,23 @@ public final class DocumentNodeStore
                 throw new IllegalStateException(e);
             }
             return id;
+        }
+    };
+
+    /**
+     * A predicate, which takes a String and returns {@code true} if the String
+     * is a serialized binary value of a {@link DocumentPropertyState}. The
+     * apply method will throw an IllegalArgumentException if the String is
+     * malformed.
+     */
+    private final Predicate<String> isBinary = new Predicate<String>() {
+        @Override
+        public boolean apply(@Nullable String input) {
+            if (input == null) {
+                return false;
+            }
+            return new DocumentPropertyState(DocumentNodeStore.this,
+                    "p", input).getType().tag() == PropertyType.BINARY;
         }
     };
 
@@ -1972,7 +1990,7 @@ public final class DocumentNodeStore
             if (doc == null) {
                 continue;
             }
-            for (UpdateOp op : doc.split(this, head)) {
+            for (UpdateOp op : doc.split(this, head, isBinary)) {
                 NodeDocument before = null;
                 if (!op.isNew() ||
                         !store.create(Collection.NODES, Collections.singletonList(op))) {
