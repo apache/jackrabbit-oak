@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -105,7 +106,8 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         DocumentStore store = ns.getDocumentStore();
         NodeDocument doc = Utils.getRootDocument(store);
         List<UpdateOp> ops = SplitOperations.forDocument(doc,
-                ns, ns.getHeadRevision(), splitDocLimit/2);
+                ns, ns.getHeadRevision(), Predicates.<String>alwaysFalse(),
+                splitDocLimit/2);
         assertFalse(ops.isEmpty());
         for (UpdateOp op : ops) {
             if (!op.isNew() ||

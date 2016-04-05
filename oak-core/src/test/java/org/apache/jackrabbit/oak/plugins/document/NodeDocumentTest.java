@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -68,7 +69,7 @@ public class NodeDocumentTest {
         }
         UpdateUtils.applyChanges(doc, op);
         RevisionVector head = DummyRevisionContext.INSTANCE.getHeadRevision();
-        doc.split(DummyRevisionContext.INSTANCE, head);
+        doc.split(DummyRevisionContext.INSTANCE, head, Predicates.<String>alwaysFalse());
     }
 
     @Test
@@ -201,7 +202,8 @@ public class NodeDocumentTest {
             if (r.nextFloat() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
-                        getRootDocument(store), ns, head, 2)) {
+                        getRootDocument(store), ns, head,
+                        Predicates.<String>alwaysFalse(), 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -317,7 +319,7 @@ public class NodeDocumentTest {
                 NodeDocument doc = ns.getDocumentStore().find(
                         NODES, Utils.getIdFromPath("/test"));
                 for (UpdateOp op : SplitOperations.forDocument(
-                        doc, ns, head, 2)) {
+                        doc, ns, head, Predicates.<String>alwaysFalse(), 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -498,7 +500,8 @@ public class NodeDocumentTest {
             if (random.nextDouble() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
-                        getRootDocument(store), ns, head, 2)) {
+                        getRootDocument(store), ns, head,
+                        Predicates.<String>alwaysFalse(), 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -567,7 +570,8 @@ public class NodeDocumentTest {
             if (Math.random() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
-                        getRootDocument(store), ns, head, 2)) {
+                        getRootDocument(store), ns, head,
+                        Predicates.<String>alwaysFalse(), 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
