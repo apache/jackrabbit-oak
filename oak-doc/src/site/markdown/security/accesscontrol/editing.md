@@ -47,6 +47,10 @@ principals is actually allowed to perform a given action, it is recommend to
 use `Session.hasPermission(String, String)` and either pass the actions strings
 defined by JCR or the names of the Oak permissions.
 
+See section [Permissions vs Privileges](../permission/permissionsandprivileges.html) for an
+comprehensive overview on the differences between testing permissions on `Session`
+and privileges on `AccessControlManager`.
+
 
 #### Reading Policies
 
