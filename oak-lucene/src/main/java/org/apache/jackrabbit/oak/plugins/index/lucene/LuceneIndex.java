@@ -1145,6 +1145,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             return new IndexRow() {
 
                 @Override
+                public boolean isVirtualRow() {
+                    return getPath() == null;
+                }
+
+                @Override
                 public String getPath() {
                     return pathRow.getPath();
                 }
