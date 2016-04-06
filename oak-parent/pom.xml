@@ -61,7 +61,8 @@
     <logback.version>1.1.0</logback.version>
     <h2.version>1.4.190</h2.version>
     <findbugs.version>3.0.0</findbugs.version>
-
+    <derby.version>10.12.1.1</derby.version>
+    
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
       more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
@@ -589,6 +590,80 @@
       </build>
     </profile>
 
+   <!--  - - - - - - - - - - - - - - - - - - - will run all the required tests before a release -->
+   <profile>
+      <id>release</id>
+      <properties>
+         <nsfixtures />
+         <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
+      </properties>
+      <build>
+         <plugins>
+            <plugin>
+               <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+               <artifactId>maven-failsafe-plugin</artifactId>
+               <executions>
+                  <execution>
+                     <goals>
+                        <goal>integration-test</goal>
+                        <goal>verify</goal>
+                     </goals>
+                  </execution>
+               </executions>
+            </plugin>
+            <plugin>
+               <groupId>org.apache.rat</groupId>
+               <artifactId>apache-rat-plugin</artifactId>
+               <executions>
+                  <execution>
+                     <phase>verify</phase>
+                     <goals>
+                        <goal>check</goal>
+                     </goals>
+                  </execution>
+               </executions>
+            </plugin>
+            <plugin>
+               <artifactId>maven-checkstyle-plugin</artifactId>
+               <configuration>
+                  <failOnViolation>false</failOnViolation>
+               </configuration>
+               <executions>
+                  <execution>
+                     <goals>
+                        <goal>check</goal>
+                     </goals>
+                  </execution>
+               </executions>
+            </plugin>
+            <plugin>
+               <groupId>org.codehaus.mojo</groupId>
+               <artifactId>findbugs-maven-plugin</artifactId>
+               <version>${findbugs.version}</version>
+               <configuration>
+                  <failOnError>false</failOnError>
+               </configuration>
+               <executions>
+                  <execution>
+                     <goals>
+                        <goal>check</goal>
+                     </goals>
+                  </execution>
+               </executions>
+            </plugin>
+         </plugins>
+      </build>
+      <dependencies>
+         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>${derby.version}</version>
+         </dependency>
+      </dependencies>
+   </profile>
+   
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - other profiles -->
 
    <profile>
@@ -707,7 +782,7 @@
         <dependency>
           <groupId>org.apache.derby</groupId>
           <artifactId>derby</artifactId>
-          <version>10.12.1.1</version>
+          <version>${derby.version}</version>
         </dependency>
       </dependencies>
     </profile>
