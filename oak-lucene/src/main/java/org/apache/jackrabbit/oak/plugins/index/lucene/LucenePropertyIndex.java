@@ -1393,8 +1393,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
 
             };
-            //TODO should not use distinct
-            pathCursor = new PathCursor(pathIterator, true, settings);
+            pathCursor = new PathCursor(pathIterator, false, settings);
         }
 
 
