@@ -44,6 +44,9 @@ The actions are expected to be a comma separated list of any of the following st
 **Note**: As of Oak 1.0 the these methods also handle the names of the permissions
 defined by Oak (see `Permissions#getString(long permissions)`).
 
+See also section [Permissions vs Privileges](permission/permissionsandprivileges.html) for 
+a comparison of these permission checks and testing privileges on the `AccessControlManager`. 
+
 ##### Examples
 ###### Test if session has permission to add a new node
 
@@ -283,6 +286,7 @@ The supported configuration options of the default implementation are described 
 <a name="further_reading"/>
 ### Further Reading
 
+- [Permissions vs Privileges](permission/permissionsandprivileges.html)
 - [Differences wrt Jackrabbit 2.x](permission/differences.html)
 - [Permissions : The Default Implementation](permission/default.html)
 - [Permission Evaluation in Detail](permission/evaluation.html)
