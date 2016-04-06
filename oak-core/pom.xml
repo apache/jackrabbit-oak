@@ -132,6 +132,7 @@
         <configuration>
           <excludes>
             <exclude>**/test.json</exclude>
+            <exclude>derby.log</exclude>
           </excludes>
         </configuration>
       </plugin>
