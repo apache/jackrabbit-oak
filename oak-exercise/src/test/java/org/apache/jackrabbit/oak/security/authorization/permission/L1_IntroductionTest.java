@@ -52,7 +52,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Exercises:
  *
  * - Overview and Usages of Permission Evaluation
- *   Search and list for permission lated methods in the JCR API and recap what
+ *   Search and list for permission related methods in the JCR API and recap what
  *   the specification states about permissions compared to access control
  *   management.
  *
@@ -100,7 +100,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  *   Question: Can you list the relevant steps wrt permission evalution?
  *   Question: What is the nature of the returned tree objects?
- *   Question: How can you verify if the editing test session can actually read those trees without using the permission-evalution code?
+ *   Question: How can you verify if the editing test session can actually read those trees without using the permission-evaluation code?
  *   Question: How can you verify if the properties are accessible.
  *
  * - Write Permission Walkthrough
