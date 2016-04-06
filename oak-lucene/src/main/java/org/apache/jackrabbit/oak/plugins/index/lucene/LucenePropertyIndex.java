@@ -1334,18 +1334,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final String path;
         final double score;
         final Iterable<String> suggestWords;
+        final boolean isVirutal;
         final String excerpt;
         final String explanation;
 
         LuceneResultRow(String path, double score, String excerpt, String explanation) {
             this.explanation = explanation;
             this.excerpt = excerpt;
+            this.isVirutal = false;
             this.path = path;
             this.score = score;
             this.suggestWords = Collections.emptySet();
         }
 
         LuceneResultRow(Iterable<String> suggestWords) {
+            this.isVirutal = true;
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
@@ -1414,7 +1417,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                 @Override
                 public boolean isVirtualRow() {
-                    return getPath() == null;
+                    return currentRow.isVirutal;
                 }
 
                 @Override
