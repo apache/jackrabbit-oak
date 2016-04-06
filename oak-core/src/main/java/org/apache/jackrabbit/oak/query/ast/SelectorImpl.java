@@ -413,6 +413,9 @@ public class SelectorImpl extends SourceImpl {
                 // where [b].[jcr:path] = $path"
                 // because if we did, we would filter out
                 // correct results
+            } else if (currentRow.isVirtualRow()) {
+                // this is a virtual row and should be selected as is
+                return true;
             } else {
                 // we must check whether the _child_ is readable
                 // (even if no properties are read) for joins of type
@@ -438,6 +441,10 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateCurrentRow() {
+        if (currentRow.isVirtualRow()) {
+            //null path implies that all checks are already done -- we just need to pass it through
+            return true;
+        }
         if (!matchesAllTypes && !evaluateTypeMatch()) {
             return false;
         }
@@ -621,7 +628,7 @@ public class SelectorImpl extends SourceImpl {
     
     private PropertyValue currentOakProperty(Tree t, String oakPropertyName, Integer propertyType) {
         PropertyValue result;
-        if (t == null || !t.exists()) {
+        if ((t == null || !t.exists()) && (currentRow == null || !currentRow.isVirtualRow())) {
             return null;
         }
         if (oakPropertyName.equals(QueryImpl.JCR_PATH)) {

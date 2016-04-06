@@ -564,6 +564,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             return new IndexRow() {
 
                 @Override
+                public boolean isVirtualRow() {
+                    return false;
+                }
+
+                @Override
                 public String getPath() {
                     return pathRow.getPath();
                 }

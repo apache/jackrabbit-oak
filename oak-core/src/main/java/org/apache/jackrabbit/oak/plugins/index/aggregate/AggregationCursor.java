@@ -88,11 +88,13 @@ class AggregationCursor extends AbstractCursor {
         aggregates = null;
         if (cursor.hasNext()) {
             currentRow = cursor.next();
-            String path = currentRow.getPath();
-            aggregates = Iterators.filter(Iterators.concat(
-                    Iterators.singletonIterator(path),
-                    aggregator.getParents(rootState, path)), Predicates
-                    .not(Predicates.in(seenPaths)));
+            if (!currentRow.isVirtualRow()) {
+                String path = currentRow.getPath();
+                aggregates = Iterators.filter(Iterators.concat(
+                        Iterators.singletonIterator(path),
+                        aggregator.getParents(rootState, path)), Predicates
+                        .not(Predicates.in(seenPaths)));
+            }
             fetchNext();
             return;
         }
@@ -113,6 +115,11 @@ class AggregationCursor extends AbstractCursor {
         // where the path is different but all other
         // properties are kept
         return new IndexRow() {
+
+            @Override
+            public boolean isVirtualRow() {
+                return false;
+            }
 
             @Override
             public String getPath() {
