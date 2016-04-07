@@ -25,9 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.Repository;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -175,5 +177,11 @@ public class TestUtil {
         builder = builder.child(nodeName);
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
+    }
+
+    public static void shutdown(Repository repository) {
+        if (repository instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) repository).shutdown();
+        }
     }
 }
