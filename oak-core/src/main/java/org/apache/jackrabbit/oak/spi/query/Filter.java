@@ -131,6 +131,14 @@ public interface Filter {
     String getPathPlan();
 
     /**
+     * Returns the name of the filter node type.
+     *
+     * @return nodetype name
+     */
+    @Nullable
+    String getNodeType();
+
+    /**
      * Checks whether nodes of all types can match this filter.
      *
      * @return {@code true} iff there are no type restrictions
