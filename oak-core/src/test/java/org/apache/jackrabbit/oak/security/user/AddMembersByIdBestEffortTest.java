@@ -24,8 +24,10 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -33,6 +35,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -59,6 +62,44 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
                 ConfigurationParameters.of(
                         ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
         );
+    }
+
+    /**
+     * "Oddity" when adding per id + besteffort: everyone group will not be
+     * dealt with separately and will end up being listed in a rep:members property.
+     */
+    @Test
+    public void testEveryoneAsMember() throws Exception {
+        UserManagerImpl userManager = (UserManagerImpl) getUserManager(root);
+        Group everyone = userManager.createGroup(EveryonePrincipal.getInstance());
+        try {
+            Set<String> failed = testGroup.addMembers(everyone.getID());
+            assertTrue(failed.isEmpty());
+            root.commit();
+
+            assertFalse(testGroup.isDeclaredMember(everyone));
+            assertFalse(testGroup.isMember(everyone));
+            for (Iterator<Group> it = everyone.memberOf(); it.hasNext(); ) {
+                assertNotEquals(testGroup.getID(), it.next().getID());
+            }
+            for (Iterator<Group> it = everyone.declaredMemberOf(); it.hasNext(); ) {
+                assertNotEquals(testGroup.getID(), it.next().getID());
+            }
+
+            // oddity of the current impl that add members without testing for
+            boolean found = false;
+            MembershipProvider mp = userManager.getMembershipProvider();
+            for (Iterator<String> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+                String p = it.next();
+                if (testGroup.getPath().equals(p)) {
+                    found = true;
+                }
+            }
+            assertTrue(found);
+        } finally {
+            everyone.remove();
+            root.commit();
+        }
     }
 
     @Test
@@ -115,6 +156,22 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
             root.refresh();
             assertFalse(testGroup.isMember(memberGroup));
         }
+    }
 
+    @Test
+    public void testMemberListExistingMembers() throws Exception {
+        MembershipProvider mp = ((UserManagerImpl) getUserManager(root)).getMembershipProvider();
+        try {
+            mp.setMembershipSizeThreshold(5);
+            for (int i = 0; i < 10; i++) {
+                testGroup.addMembers("member" + i);
+            }
+
+            Set<String> failed = testGroup.addMembers("member2");
+            assertFalse(failed.isEmpty());
+
+        } finally {
+            mp.setMembershipSizeThreshold(100); // back to default
+        }
     }
 }

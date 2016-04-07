@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 
-import java.util.List;
+import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -30,7 +31,7 @@ public class GroupActionBestEffortTest extends GroupActionTest {
 
     @Test
     public void testMembersAddedNonExisting() throws Exception {
-        List<String> nonExisting = ImmutableList.of("blinder", "passagier");
+        Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.addMembers(nonExisting.toArray(new String[nonExisting.size()]));
         assertTrue(Iterables.elementsEqual(nonExisting, groupAction.memberIds));
@@ -39,11 +40,11 @@ public class GroupActionBestEffortTest extends GroupActionTest {
 
     @Test
     public void testMembersRemovedNonExisting() throws Exception {
-        List<String> nonExisting = ImmutableList.of("blinder", "passagier");
+        Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.removeMembers(nonExisting.toArray(new String[nonExisting.size()]));
         assertFalse(groupAction.memberIds.iterator().hasNext());
-        assertTrue(Iterables.elementsEqual(nonExisting, groupAction.failedIds));
+        assertEquals(nonExisting, groupAction.failedIds);
     }
 
     @Override

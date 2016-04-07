@@ -18,12 +18,14 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.security.Principal;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
@@ -100,7 +102,12 @@ public class NestedGroupTest extends AbstractUserTest {
             gr2 = createGroup(getTestPrincipal());
 
             assertTrue(addMember(gr1, gr2));
-            assertFalse(addMember(gr2, gr1));
+            try {
+                assertFalse(addMember(gr2, gr1));
+            } catch (ConstraintViolationException e) {
+                // cycle detected upon save => success
+                assertCyclicMembershipError(e);
+            }
 
         } finally {
             if (gr1 != null && gr1.isMember(gr2)) {
@@ -126,7 +133,12 @@ public class NestedGroupTest extends AbstractUserTest {
 
             assertTrue(addMember(gr1, gr2));
             assertTrue(addMember(gr2, gr3));
-            assertFalse(addMember(gr3, gr1));
+            try {
+                assertFalse(addMember(gr3, gr1));
+            } catch (ConstraintViolationException e) {
+                // cycle detected upon save => success
+                assertCyclicMembershipError(e);
+            }
 
         } finally {
             if (gr1 != null) {
@@ -143,6 +155,14 @@ public class NestedGroupTest extends AbstractUserTest {
             if (gr1 != null) removeGroup(gr1);
 
         }
+    }
+
+    private static void assertCyclicMembershipError(Exception e) {
+        Throwable th = e.getCause();
+        assertTrue(th instanceof CommitFailedException);
+        CommitFailedException ce = (CommitFailedException) th;
+        assertEquals(CommitFailedException.CONSTRAINT, ce.getType());
+        assertEquals(31, ce.getCode());
     }
 
     @Test

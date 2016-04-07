@@ -22,12 +22,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.util.Text;
 
 /**
  * Common utilities used for user/group queries.
@@ -84,27 +84,7 @@ public final class QueryUtil {
      */
     @Nonnull
     public static String escapeNodeName(@Nonnull String string) {
-        StringBuilder result = new StringBuilder();
-
-        int k = 0;
-        int j;
-        do {
-            j = string.indexOf('%', k);
-            if (j < 0) {
-                // jcr escape trail
-                result.append(Text.escapeIllegalJcrChars(string.substring(k)));
-            } else if (j > 0 && string.charAt(j - 1) == '\\') {
-                // literal occurrence of % -> jcr escape
-                result.append(Text.escapeIllegalJcrChars(string.substring(k, j) + '%'));
-            } else {
-                // wildcard occurrence of % -> jcr escape all but %
-                result.append(Text.escapeIllegalJcrChars(string.substring(k, j))).append('%');
-            }
-
-            k = j + 1;
-        } while (j >= 0);
-
-        return result.toString();
+        return QueryUtils.escapeNodeName(string);
     }
 
     @Nonnull
@@ -133,18 +113,7 @@ public final class QueryUtil {
 
     @Nonnull
     public static String escapeForQuery(@Nonnull String value) {
-        StringBuilder ret = new StringBuilder();
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c == '\\') {
-                ret.append("\\\\");
-            } else if (c == '\'') {
-                ret.append("''");
-            } else {
-                ret.append(c);
-            }
-        }
-        return ret.toString();
+        return QueryUtils.escapeForQuery(value);
     }
 
     @Nonnull
