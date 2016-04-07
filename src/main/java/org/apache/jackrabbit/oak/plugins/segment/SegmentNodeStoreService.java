@@ -107,7 +107,7 @@ import org.slf4j.LoggerFactory;
 @Component(policy = ConfigurationPolicy.REQUIRE,
         metatype = true,
         label = "Apache Jackrabbit Oak Segment NodeStore Service",
-        description = "NodeStore implementation based on Document model. For configuration option refer " +
+        description = "NodeStore implementation based on Segment model. For configuration option refer " +
                 "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#SegmentNodeStore. Note that for system " +
                 "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
                 "should be done via file system based config file and this view should ONLY be used to determine which " +
