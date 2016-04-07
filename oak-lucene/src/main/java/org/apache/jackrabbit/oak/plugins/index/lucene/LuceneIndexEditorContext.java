@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
@@ -149,6 +150,10 @@ public class LuceneIndexEditorContext {
      */
     private Set<MediaType> supportedMediaTypes;
 
+    //Intentionally static, so that it can be set without passing around clock objects
+    //Set for testing ONLY
+    private static Clock clock = Clock.SIMPLE;
+
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
                              @Nullable IndexCopier indexCopier, ExtractedTextCache extractedTextCache) {
         this.definitionBuilder = definition;
@@ -249,7 +254,7 @@ public class LuceneIndexEditorContext {
             //as to make IndexTracker detect changes when index
             //is stored in file system
             NodeBuilder status = definitionBuilder.child(":status");
-            status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
+            status.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
             PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
             
@@ -274,7 +279,7 @@ public class LuceneIndexEditorContext {
                 Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
                 int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
                 suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
-                if (Calendar.getInstance().after(suggesterLastUpdatedTime)) {
+                if (getCalendar().after(suggesterLastUpdatedTime)) {
                     updateSuggester = true;
                 }
             } else {
@@ -286,7 +291,7 @@ public class LuceneIndexEditorContext {
                 final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, ":suggest-data", definition, false);
                 try {
                     SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
-                    suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
+                    suggesterStatus.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
                 } catch (Throwable e) {
                     log.warn("could not update suggester", e);
                 } finally {
@@ -295,6 +300,18 @@ public class LuceneIndexEditorContext {
                 }
             }
         }
+    }
+
+    /** Only set for testing */
+    static void setClock(Clock c) {
+        checkNotNull(c);
+        clock = c;
+    }
+
+    static private Calendar getCalendar() {
+        Calendar ret = Calendar.getInstance();
+        ret.setTime(clock.getDate());
+        return ret;
     }
 
     public void enableReindexMode(){

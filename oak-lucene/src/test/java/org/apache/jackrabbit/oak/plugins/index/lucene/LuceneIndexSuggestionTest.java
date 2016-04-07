@@ -22,6 +22,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +44,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -71,6 +73,13 @@ public class LuceneIndexSuggestionTest {
         session = (JackrabbitSession)repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         root = session.getRootNode();
     }
+
+    @After
+    public void after() {
+        session.logout();
+        shutdown(repository);
+    }
+
     private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName)
             throws Exception {
         createSuggestIndex(name, indexedNodeType, indexedPropertyName, false, false);
@@ -162,6 +171,7 @@ public class LuceneIndexSuggestionTest {
         } else {
             assertNull("There shouldn't be any suggestion", value);
         }
+        userSession.logout();
     }
 
     private String createSuggestQuery(String nodeTypeName, String suggestFor) {

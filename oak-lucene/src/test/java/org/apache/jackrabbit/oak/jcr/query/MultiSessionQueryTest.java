@@ -28,8 +28,11 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 
 /**
  * Tests the Lucene index using multiple threads.
@@ -54,6 +57,11 @@ public class MultiSessionQueryTest {
         jcr.with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
+    }
+
+    @After
+    public void after() {
+        shutdown(repository);
     }
 
     protected Session createAdminSession() throws RepositoryException {
@@ -103,6 +111,7 @@ public class MultiSessionQueryTest {
             // Thread.sleep(100);
             // System.out.println("session " + node + " work");
         }
+        s.logout();
     }
 
 }
