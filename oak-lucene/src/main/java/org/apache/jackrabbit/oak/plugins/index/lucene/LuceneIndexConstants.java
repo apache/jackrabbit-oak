@@ -235,6 +235,11 @@ public interface LuceneIndexConstants {
     String PROP_USE_IN_SUGGEST = "useInSuggest";
 
     /**
+     * subnode holding configuration for suggestions
+     */
+    String SUGGESTION_CONFIG = "suggestion";
+
+    /**
      * update frequency of the suggester in minutes
      */
     String SUGGEST_UPDATE_FREQUENCY_MINUTES = "suggestUpdateFrequencyMinutes";

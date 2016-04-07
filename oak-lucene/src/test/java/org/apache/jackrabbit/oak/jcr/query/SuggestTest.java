@@ -33,6 +33,9 @@ import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.junit.After;
 import org.junit.Before;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGESTION_CONFIG;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES;
+
 /**
  * Tests the suggest support.
  */
@@ -43,13 +46,15 @@ public class SuggestTest extends AbstractQueryTest {
         super.setUp();
 
         // change suggester update frequency
-        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestUpdateFrequencyMinutes", 0);
+        superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
+                .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 0);
     }
 
     @After
     public void tearDown() throws Exception {
         // reset suggester update frequency
-        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestUpdateFrequencyMinutes", 10);
+        superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
+                .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
         super.tearDown();
     }
