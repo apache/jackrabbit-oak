@@ -380,7 +380,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         // because of LUCENE-5833 we have to merge the suggest fields into a single one
         Field suggestField = null;
         for (Field f : fields) {
-            if (FieldNames.SUGGEST.endsWith(f.name())) {
+            if (FieldNames.SUGGEST.equals(f.name())) {
                 if (suggestField == null) {
                     suggestField = FieldFactory.newSuggestField(f.stringValue());
                 } else {
@@ -425,7 +425,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     }
 
                     if (pd.useInSuggest) {
-                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, true));
+                        fields.add(FieldFactory.newSuggestField(value));
                     }
 
                     if (pd.useInSpellcheck) {

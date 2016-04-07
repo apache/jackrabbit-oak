@@ -73,8 +73,12 @@ class OakDirectory extends Directory {
     private final String indexName;
 
     public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition, boolean readOnly) {
+        this(directoryBuilder, null, definition, readOnly);
+    }
+
+    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition, boolean readOnly) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
-        this.directoryBuilder = directoryBuilder;
+        this.directoryBuilder = (dataNodeName == null) ? builder : builder.child(dataNodeName);
         this.definition = definition;
         this.readOnly = readOnly;
         this.fileNames.addAll(getListing());
