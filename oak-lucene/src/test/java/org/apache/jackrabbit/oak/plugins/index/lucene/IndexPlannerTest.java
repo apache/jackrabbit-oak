@@ -70,6 +70,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_N
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -87,6 +88,7 @@ public class IndexPlannerTest {
         IndexPlanner planner = new IndexPlanner(node, "/foo", createFilter("nt:base"),
                 ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
+        assertTrue(pr(planner.getPlan()).isUniquePathsRequired());
     }
 
     @Test
@@ -504,6 +506,7 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
 
         assertNotNull(plan);
+        assertFalse(pr(plan).isUniquePathsRequired());
     }
 
     @Test
@@ -519,6 +522,7 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
 
         assertNotNull(plan);
+        assertFalse(pr(plan).isUniquePathsRequired());
     }
 
     @Test

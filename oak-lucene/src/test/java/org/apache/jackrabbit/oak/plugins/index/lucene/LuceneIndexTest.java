@@ -74,7 +74,9 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -353,7 +355,14 @@ public class LuceneIndexTest {
         // would have already picked up 50 docs which would not be considered
         //deleted by QE for the revision at which query was triggered
         //So just checking for >
-        Assert.assertTrue(Iterators.size(cursor) > 0);
+        List<String> resultPaths = Lists.newArrayList();
+        while(cursor.hasNext()){
+            resultPaths.add(cursor.next().getPath());
+        }
+
+        Set<String> uniquePaths = Sets.newHashSet(resultPaths);
+        assertEquals(resultPaths.size(), uniquePaths.size());
+        assertTrue(!uniquePaths.isEmpty());
     }
 
     private void purgeDeletedDocs(NodeBuilder idx, IndexDefinition definition) throws IOException {

@@ -1429,7 +1429,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
 
             };
-            pathCursor = new PathCursor(pathIterator, false, settings);
+            pathCursor = new PathCursor(pathIterator, getPlanResult(plan).isUniquePathsRequired(), settings);
         }
 
 
