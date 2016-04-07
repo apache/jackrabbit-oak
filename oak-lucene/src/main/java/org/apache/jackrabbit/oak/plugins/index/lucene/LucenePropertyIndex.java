@@ -25,7 +25,6 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -417,7 +416,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
-                        Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
                         QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.string);
@@ -426,14 +424,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
                                     Document retrievedDoc = searcher.doc(doc.doc);
                                     if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
-                                        suggestedWords.add(suggestion.string);
+                                        queue.add(new LuceneResultRow(suggestion.string));
                                         break;
                                     }
                                 }
                             }
                         }
 
-                        queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
                         SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
@@ -441,7 +438,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
 
                         // ACL filter suggestions
-                        Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
                         QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (Lookup.LookupResult suggestion : lookupResults) {
                             Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.key.toString());
@@ -450,14 +446,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
                                     Document retrievedDoc = searcher.doc(doc.doc);
                                     if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
-                                        suggestedWords.add("{term=" + suggestion.key + ",weight=" + suggestion.value + "}");
+                                        queue.add(new LuceneResultRow(suggestion.key.toString(), suggestion.value));
                                         break;
                                     }
                                 }
                             }
                         }
 
-                        queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
                     }
                 } catch (IOException e) {
@@ -1333,7 +1328,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     static class LuceneResultRow {
         final String path;
         final double score;
-        final Iterable<String> suggestWords;
+        final String suggestion;
         final boolean isVirutal;
         final String excerpt;
         final String explanation;
@@ -1344,16 +1339,20 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.isVirutal = false;
             this.path = path;
             this.score = score;
-            this.suggestWords = Collections.emptySet();
+            this.suggestion = null;
         }
 
-        LuceneResultRow(Iterable<String> suggestWords) {
+        LuceneResultRow(String suggestion, long weight) {
             this.isVirutal = true;
             this.path = "/";
-            this.score = 1.0d;
-            this.suggestWords = suggestWords;
+            this.score = weight;
+            this.suggestion = suggestion;
             this.excerpt = null;
             this.explanation = null;
+        }
+
+        LuceneResultRow(String suggestion) {
+            this(suggestion, 1);
         }
 
         @Override
@@ -1437,7 +1436,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         return PropertyValues.newDouble(currentRow.score);
                     }
                     if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
-                        return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
+                        return PropertyValues.newString(currentRow.suggestion);
                     }
                     if (QueryImpl.OAK_SCORE_EXPLANATION.equals(columnName)) {
                         return PropertyValues.newString(currentRow.explanation);
