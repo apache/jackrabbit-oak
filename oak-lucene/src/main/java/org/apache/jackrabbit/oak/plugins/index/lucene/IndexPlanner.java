@@ -235,6 +235,11 @@ class IndexPlanner {
             }
         }
 
+        //Suggestion and SpellCheck use virtual paths which is same for all results
+        if (canHandleNativeFunction) {
+            result.disableUniquePaths();
+        }
+
         //If native function can be handled by this index then ensure
         // that lowest cost if returned
         return canHandleNativeFunction ? defaultPlan().setEstimatedEntryCount(1) : null;
@@ -519,6 +524,7 @@ class IndexPlanner {
         private boolean relativize;
         private boolean nodeTypeRestrictions;
         private boolean nodeNameRestriction;
+        private boolean uniquePathsRequired = true;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -536,6 +542,10 @@ class IndexPlanner {
 
         public boolean isPathTransformed(){
             return relativize;
+        }
+
+        public boolean isUniquePathsRequired() {
+            return uniquePathsRequired;
         }
 
         /**
@@ -592,6 +602,10 @@ class IndexPlanner {
 
         private void enableNodeNameRestriction(){
             nodeNameRestriction = true;
+        }
+
+        private void disableUniquePaths(){
+            uniquePathsRequired = false;
         }
     }
 }
