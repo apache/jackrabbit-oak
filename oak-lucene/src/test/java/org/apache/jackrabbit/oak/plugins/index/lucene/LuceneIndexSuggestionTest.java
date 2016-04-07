@@ -218,6 +218,49 @@ public class LuceneIndexSuggestionTest {
                 suggestQueryText, shouldSuggest, false);
     }
 
+    //OAK-4126
+    @Test
+    public void testSuggestQuerySpecialChars() throws Exception {
+        final String nodeType = "nt:unstructured";
+        final String indexPropName = "description";
+        final String indexPropValue = "DD~@#$%^&*()_+{}\":?><`1234567890-=[]";
+        final String suggestQueryText = "dd";
+        final boolean shouldSuggest = true;
+
+        checkSuggestions(nodeType,
+                indexPropName, indexPropValue,
+                false, false,
+                suggestQueryText, shouldSuggest, false);
+    }
+
+    @Test
+    public void avoidInfiniteSuggestions() throws Exception {
+        final String nodeType = "nt:unstructured";
+        final String indexPropName = "description";
+        final String higherRankPropValue = "DD DD DD DD";
+        final String exceptionThrowingPropValue = "DD~@#$%^&*()_+{}\":?><`1234567890-=[]";
+        final String suggestQueryText = "dd";
+
+        createSuggestIndex("lucene-suggest", nodeType, indexPropName);
+
+        root.addNode("higherRankNode", nodeType).setProperty(indexPropName, higherRankPropValue);
+        root.addNode("exceptionThrowingNode", nodeType).setProperty(indexPropName, exceptionThrowingPropValue);
+        session.save();
+
+        String suggQuery = createSuggestQuery(nodeType, suggestQueryText);
+        QueryManager queryManager = session.getWorkspace().getQueryManager();
+        QueryResult result = queryManager.createQuery(suggQuery, Query.JCR_SQL2).execute();
+        RowIterator rows = result.getRows();
+
+        int count = 0;
+        while (count < 3 && rows.hasNext()) {
+            count++;
+            rows.nextRow();
+        }
+
+        assertTrue("There must not be more than 2 suggestions", count <= 2);
+    }
+
     //OAK-3156
     @Test
     public void testSuggestQueryWithUserAccess() throws Exception {
