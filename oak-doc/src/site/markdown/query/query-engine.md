@@ -175,7 +175,7 @@ index, in a special property named `rep:spellcheck()`.
 
 Clients wanting to obtain spellchecks could use the following JCR code:
 
-`@until Oak 1.3.10` spellchecks are returned flat.
+`@until Oak 1.3.10, 1.2.13` spellchecks are returned flat.
        
     QueryManager qm = ...;
     String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";
@@ -190,7 +190,7 @@ The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w
 
     [hello, hold]
     
-`@since Oak 1.3.11` each spellcheck would be returned per row.
+`@since Oak 1.3.11, 1.2.14` each spellcheck would be returned per row.
 
     QueryManager qm = ...;
     String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";
@@ -223,7 +223,7 @@ suggested and scored by the used underlying index, in a special property named `
 
 Clients wanting to obtain suggestions could use the following JCR code:
 
-`@until Oak 1.3.10` suggestions are returned flat.
+`@until Oak 1.3.10, 1.2.13` suggestions are returned flat.
        
     QueryManager qm = ...;
     String xpath = "/jcr:root[rep:suggest('in ')]/(rep:suggest())";
@@ -239,7 +239,7 @@ The `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W
     [{term=in 2015 a red fox is still a fox,weight=1.5}, {term=in 2015 my fox is red, like mike's fox and john's fox,weight=0.7}]
     
     
-`@since Oak 1.3.11` each suggestion would be returned per row.
+`@since Oak 1.3.11, 1.2.14` each suggestion would be returned per row.
 
     QueryManager qm = ...;
     String xpath = "/jcr:root[rep:suggest('in ')]/(rep:suggest())";

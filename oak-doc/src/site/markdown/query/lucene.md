@@ -378,7 +378,7 @@ Property name can be one of following
 4. The string `:nodeName` - this special case indexes node name as if it's a
    virtual property of the node being indexed. Setting this along with
    `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
-   rule. (`@since Oak 1.3.15`)
+   rule. (`@since Oak 1.3.15, 1.2.14`)
 
 <a name="path-restrictions"></a>
 ##### Evaluate Path Restrictions
@@ -1002,7 +1002,7 @@ Once the above configuration has been done, by default, the Lucene suggester is
 updated every 10 minutes but that can be changed by setting the property 
 `suggestUpdateFrequencyMinutes` in `suggestion` node under the index definition
 node to a different value.
-_Note that up till Oak 1.3.14, `suggestUpdateFrequencyMinutes` was to be setup at
+_Note that up till Oak 1.3.14/1.2.14, `suggestUpdateFrequencyMinutes` was to be setup at
 index definition node itself. That is is still supported for backward compatibility,
 but having a separate `suggestion` node is preferred._
 
@@ -1028,7 +1028,7 @@ property.
           - useInSuggest = true
 ```
 
-`@since Oak 1.3.12` the index Analyzer can be used to perform a have more fine grained suggestions, e.g. single words 
+`@since Oak 1.3.12, 1.2.14` the index Analyzer can be used to perform a have more fine grained suggestions, e.g. single words 
 (whereas default suggest configuration returns entire property values, see [OAK-3407]: https://issues.apache.org/jira/browse/OAK-3407).
 Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to true, e.g.:
 
@@ -1042,13 +1042,13 @@ Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to tru
     - suggestUpdateFrequencyMinutes = 20
     - suggestAnalyzed = true
 ```
-_Note that up till Oak 1.3.14, `suggestAnalyzed` was to be setup at index definition node itself. That is is still
+_Note that up till Oak 1.3.14/1.2.14, `suggestAnalyzed` was to be setup at index definition node itself. That is is still
 supported for backward compatibility, but having a separate `suggestion` node is preferred._
 
 Setting up `useInSuggest=true` for a property definition having `name=:nodeName` would add node names to
 suggestion dictionary (See [property name](#property-names) for node name indexing)
 
-Since, Oak 1.3.16, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
+Since, Oak 1.3.16/1.2.14, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
 on a sub-tree.  It requires `evaluatePathRestrictions=true` on index definition. e.g.
 ```
 SELECT rep:suggest() FROM [nt:base] WHERE SUGGEST('test') AND ISDESCENDANTNODE('/a/b')
@@ -1073,7 +1073,7 @@ properties terms to be used for spellcheck corrections will be taken.
 Sample configuration for spellchecking based on terms contained in `jcr:title` 
 property.
 
-Since Oak 1.3.11, the each suggestion would be returned per row.
+Since Oak 1.3.11/1.2.14, the each suggestion would be returned per row.
 
 ```
 /oak:index/lucene-spellcheck
@@ -1092,7 +1092,7 @@ Since Oak 1.3.11, the each suggestion would be returned per row.
           - useInSpellcheck = true
 ```
 
-Since, Oak 1.3.16, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
+Since, Oak 1.3.16/1.2.14, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
 on a sub-tree. It requires `evaluatePathRestrictions=true` on index definition. e.g.
 ```
 SELECT rep:suggest() FROM [nt:base] WHERE SUGGEST('test') AND ISDESCENDANTNODE('/a/b')
