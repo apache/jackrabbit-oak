@@ -56,7 +56,9 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -318,10 +320,15 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         List<Field> fields = new ArrayList<Field>();
         boolean dirty = false;
-        for (PropertyState property : state.getProperties()) {
+
+        //We 'intentionally' are indexing node names only on root state as we don't support indexing relative or
+        //regex for node name indexing
+        PropertyState nodenamePS =
+                new StringPropertyState(FieldNames.NODE_NAME, getName(path));
+        for (PropertyState property : Iterables.concat(state.getProperties(), Collections.singleton(nodenamePS))) {
             String pname = property.getName();
 
-            if (!isVisible(pname)) {
+            if (!isVisible(pname) && !FieldNames.NODE_NAME.equals(pname)) {
                 continue;
             }
 

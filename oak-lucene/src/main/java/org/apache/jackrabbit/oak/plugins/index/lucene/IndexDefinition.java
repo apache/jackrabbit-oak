@@ -698,7 +698,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || anyNodeScopeIndexedProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
-            this.nodeNameIndexed = getOptionalValue(config, LuceneIndexConstants.INDEX_NODE_NAME, false);
+            this.nodeNameIndexed = evaluateNodeNameIndexed(config);
             validateRuleDefinition();
         }
 
@@ -1006,6 +1006,21 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                 return true;
             }
 
+            return false;
+        }
+
+        private boolean evaluateNodeNameIndexed(NodeState config) {
+            //check global config first
+            if (getOptionalValue(config, LuceneIndexConstants.INDEX_NODE_NAME, false)) {
+                return true;
+            }
+
+            //iterate over property definitions
+            for (PropertyDefinition pd : propConfigs.values()){
+                if (LuceneIndexConstants.PROPDEF_PROP_NODE_NAME.equals(pd.name)){
+                    return true;
+                }
+            }
             return false;
         }
 
