@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
@@ -204,21 +205,18 @@ public class IdentifierManager {
      * @param tree          The tree for which references should be searched.
      * @param propertyName  A name constraint for the reference properties;
      *                      {@code null} if no constraint should be enforced.
-     * @param nodeTypeNames Node type constraints to be enforced when using
-     *                      for reference properties; the specified names are expected to be internal
-     *                      oak names.
      * @return A set of oak paths of those reference properties referring to the
      *         specified {@code tree} and matching the constraints.
      */
     @Nonnull
-    public Iterable<String> getReferences(boolean weak, Tree tree, final String propertyName, final String... nodeTypeNames) {
+    public Iterable<String> getReferences(boolean weak, @Nonnull Tree tree, @Nullable final String propertyName) {
         if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
         final String uuid = getIdentifier(tree);
         String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
-        String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
+        String pName = propertyName == null ? "*" : QueryUtils.escapeForQuery(propertyName);
         Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
 
         try {
@@ -226,23 +224,20 @@ public class IdentifierManager {
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid" +
                     QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
-            return findPaths(result, uuid, propertyName, nodeTypeNames,
-                    weak ? Type.WEAKREFERENCE : Type.REFERENCE,
-                    weak ? Type.WEAKREFERENCES : Type.REFERENCES
-                    );
+            return findPaths(result, uuid, propertyName, weak);
         } catch (ParseException e) {
             log.error("query failed", e);
             return Collections.emptySet();
         }
     }
 
-    private Iterable<String> findPaths(final Result result, final String uuid, final String propertyName,
-            final String[] nodeTypeNames, final Type<?> type, final Type<?> types) {
+    @Nonnull
+    private Iterable<String> findPaths(@Nonnull final Result result, @Nonnull final String uuid,
+                                       @Nullable final String propertyName, final boolean weak) {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return Iterators.concat(
-                    transform(result.getRows().iterator(), new RowToPaths()));
+                return Iterators.concat(transform(result.getRows().iterator(), new RowToPaths()));
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {
@@ -254,6 +249,7 @@ public class IdentifierManager {
                         @Override
                         public String apply(PropertyState pState) {
                             if (pState.isArray()) {
+                                Type<?> types = (weak) ? Type.WEAKREFERENCES : Type.REFERENCES;
                                 if (pState.getType() == types) {
                                     for (String value : pState.getValue(Type.STRINGS)) {
                                         if (uuid.equals(value)) {
@@ -262,6 +258,7 @@ public class IdentifierManager {
                                     }
                                 }
                             } else {
+                                Type<?> type = (weak) ? Type.WEAKREFERENCE : Type.REFERENCE;
                                 if (pState.getType() == type) {
                                     if (uuid.equals(pState.getValue(Type.STRING))) {
                                         return PathUtils.concat(rowPath, pState.getName());
@@ -274,29 +271,17 @@ public class IdentifierManager {
 
                     // skip references from the version storage (OAK-1196)
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
-                        Tree tree = root.getTree(rowPath);
-                        if (nodeTypeNames.length == 0 || containsNodeType(tree, nodeTypeNames)) {
                             if (propertyName == null) {
                                 return filter(
-                                        transform(tree.getProperties().iterator(), new PropertyToPath()),
+                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()),
                                         notNull());
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that
                                 // the search found the correct one
                                 return singletonIterator(PathUtils.concat(rowPath, propertyName));
                             }
-                        }
                     }
                     return emptyIterator();
-                }
-
-                private boolean containsNodeType(Tree tree, String[] nodeTypeNames) {
-                    for (String ntName : nodeTypeNames) {
-                        if (nodeTypeManager.isNodeType(tree, ntName)) {
-                            return true;
-                        }
-                    }
-                    return false;
                 }
             }
         };
