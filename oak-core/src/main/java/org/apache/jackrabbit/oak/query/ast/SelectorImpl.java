@@ -712,6 +712,10 @@ public class SelectorImpl extends SourceImpl {
         }
     }
 
+    public boolean isVirtualRow() {
+        return currentRow != null && currentRow.isVirtualRow();
+    }
+
     @Override
     public SelectorImpl getSelector(String selectorName) {
         if (selectorName.equals(this.selectorName)) {
