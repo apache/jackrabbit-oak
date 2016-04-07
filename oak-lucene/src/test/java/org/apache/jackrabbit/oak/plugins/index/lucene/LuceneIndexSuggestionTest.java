@@ -43,6 +43,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -69,6 +70,10 @@ public class LuceneIndexSuggestionTest {
         repository = jcr.createRepository();
         session = (JackrabbitSession)repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         root = session.getRootNode();
+    }
+    private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName)
+            throws Exception {
+        createSuggestIndex(name, indexedNodeType, indexedPropertyName, false, false);
     }
 
     private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName, boolean addFullText, boolean suggestAnalyzed)
@@ -161,6 +166,31 @@ public class LuceneIndexSuggestionTest {
 
     private String createSuggestQuery(String nodeTypeName, String suggestFor) {
         return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeTypeName + "] WHERE suggest('" + suggestFor + "')";
+    }
+
+    //OAK-3825
+    @Test
+    public void suggestNodeName() throws Exception {
+        final String nodeType = "nt:unstructured";
+
+        createSuggestIndex("lucene-suggest", nodeType, LuceneIndexConstants.PROPDEF_PROP_NODE_NAME);
+
+        root.addNode("indexedNode", nodeType);
+        session.save();
+
+        String suggQuery = createSuggestQuery(nodeType, "indexedn");
+        QueryManager queryManager = session.getWorkspace().getQueryManager();
+        QueryResult result = queryManager.createQuery(suggQuery, Query.JCR_SQL2).execute();
+        RowIterator rows = result.getRows();
+
+        String value = null;
+        while (rows.hasNext()) {
+            Row firstRow = rows.nextRow();
+            value = firstRow.getValue("suggestion").getString();
+            break;
+        }
+
+        assertEquals("Node name should be suggested", "indexedNode", value);
     }
 
     //OAK-3157
