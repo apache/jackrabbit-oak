@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -111,7 +115,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param root the current root
      * @param config the security configuration
      */
-    MembershipProvider(Root root, ConfigurationParameters config) {
+    MembershipProvider(@Nonnull Root root, @Nonnull ConfigurationParameters config) {
         super(root, config);
     }
 
@@ -139,7 +143,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return an iterator over all membership paths.
      */
     @Nonnull
-    Iterator<String> getMembership(Tree authorizableTree, final boolean includeInherited) {
+    Iterator<String> getMembership(@Nonnull Tree authorizableTree, final boolean includeInherited) {
         return getMembership(authorizableTree, includeInherited, new HashSet<String>());
     }
 
@@ -152,18 +156,16 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return an iterator over all membership paths.
      */
     @Nonnull
-    private Iterator<String> getMembership(Tree authorizableTree, final boolean includeInherited,
-                                           final Set<String> processedPaths) {
+    private Iterator<String> getMembership(@Nonnull Tree authorizableTree, final boolean includeInherited,
+                                           @Nonnull final Set<String> processedPaths) {
         final Iterable<String> refPaths = identifierManager.getReferences(
-                true, authorizableTree, REP_MEMBERS, NT_REP_MEMBER_REFERENCES
+                authorizableTree, REP_MEMBERS, NT_REP_MEMBER_REFERENCES, true
         );
 
         return new AbstractMemberIterator(refPaths.iterator()) {
             @Override
-            protected String internalGetNext() {
+            protected String internalGetNext(@Nonnull String propPath) {
                 String next = null;
-                // get the next rep:members property path
-                String propPath = references.next();
                 int index = propPath.indexOf('/' + REP_MEMBERS_LIST);
                 if (index < 0) {
                     index = propPath.indexOf('/' + REP_MEMBERS);
@@ -177,7 +179,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
                             // inject a parent iterator of the inherited memberships is needed
                             Tree group = getByPath(groupPath);
                             if (UserUtil.isType(group, AuthorizableType.GROUP)) {
-                                parent = getMembership(group, true, processedPaths);
+                                remember(group);
                             }
                         }
                     }
@@ -186,7 +188,25 @@ class MembershipProvider extends AuthorizableBaseProvider {
                 }
                 return next;
             }
+
+            @Nonnull
+            @Override
+            protected Iterator<String> getNextIterator(@Nonnull Tree groupTree) {
+                return getMembership(groupTree, true, processedPaths);
+            }
         };
+    }
+
+    /**
+     * Tests if the membership of the specified {@code authorizableTree}
+     * contains the given target group as defined by {@code groupTree}.
+     *
+     * @param authorizableTree The tree of the authorizable for which to resolve the membership.
+     * @param groupPath The path of the group which needs to be tested.
+     * @return {@code true} if the group is contained in the membership of the specified authorizable.
+     */
+    private boolean hasMembership(@Nonnull Tree authorizableTree, @Nonnull String groupPath) {
+        return Iterators.contains(getMembership(authorizableTree, true), groupPath);
     }
 
     /**
@@ -214,11 +234,17 @@ class MembershipProvider extends AuthorizableBaseProvider {
     @Nonnull
     private Iterator<String> getMembers(@Nonnull final Tree groupTree, @Nonnull final AuthorizableType authorizableType,
                                         final boolean includeInherited, @Nonnull final Set<String> processedRefs) {
-
-        return new AbstractMemberIterator(new MemberReferenceIterator(groupTree, processedRefs)) {
+        MemberReferenceIterator mrit = new MemberReferenceIterator(groupTree) {
             @Override
-            protected String internalGetNext() {
-                String value = references.next();
+            protected boolean hasProcessedReference(@Nonnull String value) {
+                return processedRefs.add(value);
+            }
+        };
+
+        return new AbstractMemberIterator(mrit) {
+
+            @Override
+            protected String internalGetNext(@Nonnull String value) {
                 String next = identifierManager.getPath(PropertyValues.newWeakReference(value));
 
                 // filter by authorizable type, and/or get inherited members
@@ -227,13 +253,19 @@ class MembershipProvider extends AuthorizableBaseProvider {
                     AuthorizableType type = (auth == null) ? null : UserUtil.getType(auth);
 
                     if (includeInherited && type == AuthorizableType.GROUP) {
-                        parent = getMembers(auth, authorizableType, true, processedRefs);
+                        remember(auth);
                     }
                     if (authorizableType != AuthorizableType.AUTHORIZABLE && type != authorizableType) {
                         next = null;
                     }
                 }
                 return next;
+            }
+
+            @Nonnull
+            @Override
+            protected Iterator<String> getNextIterator(@Nonnull Tree groupTree) {
+                return getMembers(groupTree, authorizableType, true, processedRefs);
             }
         };
     }
@@ -243,41 +275,61 @@ class MembershipProvider extends AuthorizableBaseProvider {
      *
      * @param groupTree  The new member to be tested for cyclic membership.
      * @param authorizableTree The authorizable to check
-     * @param includeInherited {@code true} to also check inherited members
      *
      * @return true if the group has given member.
      */
-    boolean isMember(Tree groupTree, Tree authorizableTree, boolean includeInherited) {
-        return isMember(groupTree, getContentID(authorizableTree), includeInherited);
+    boolean isMember(@Nonnull Tree groupTree, @Nonnull Tree authorizableTree) {
+        if (!hasMembers(groupTree)) {
+            return false;
+        }
+        if (pendingChanges(groupTree)) {
+            return Iterators.contains(getMembers(groupTree, AuthorizableType.AUTHORIZABLE, true), authorizableTree.getPath());
+        } else {
+            return hasMembership(authorizableTree, groupTree.getPath());
+        }
+    }
+
+    boolean isDeclaredMember(@Nonnull Tree groupTree, @Nonnull Tree authorizableTree) {
+        if (!hasMembers(groupTree)) {
+            return false;
+        }
+
+        String contentId = getContentID(authorizableTree);
+        MemberReferenceIterator refs = new MemberReferenceIterator(groupTree) {
+            @Override
+            protected boolean hasProcessedReference(@Nonnull String value) {
+                return true;
+            }
+        };
+        return Iterators.contains(refs, contentId);
     }
 
     /**
-     * Returns {@code true} if the given {@code groupTree} contains a member with the given {@code contentId}
+     * Utility to determine if a given group has any members.
      *
-     * @param groupTree  The new member to be tested for cyclic membership.
-     * @param contentId The content ID of the group.
-     * @param includeInherited {@code true} to also check inherited members
-     *
-     * @return true if the group has given member.
+     * @param groupTree The tree of the target group.
+     * @return {@code true} if the group has any members i.e. if it has a rep:members
+     * property or a rep:membersList child node.
      */
-    boolean isMember(Tree groupTree, String contentId, boolean includeInherited) {
-        if (includeInherited) {
-            Set<String> refs = new HashSet<String>();
-            for (Iterator<String> it = getMembers(groupTree, AuthorizableType.AUTHORIZABLE, includeInherited, refs); it.hasNext();) {
-                it.next();
-                if (refs.contains(contentId)) {
-                    return true;
-                }
-            }
-        } else {
-            MemberReferenceIterator refs = new MemberReferenceIterator(groupTree, new HashSet<String>());
-            while (refs.hasNext()) {
-                if (contentId.equals(refs.next())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    private static boolean hasMembers(@Nonnull Tree groupTree) {
+        return groupTree.getPropertyStatus(REP_MEMBERS) != null || groupTree.hasChild(REP_MEMBERS_LIST);
+    }
+
+    /**
+     * Determine if the group has (potentially) been modified in which case the
+     * query can't be used:
+     * - rep:members property has been modified
+     * - any potential modification in the member-ref-list subtree, which is not
+     * easy to detect => relying on pending changes on the root object
+     *
+     * @param groupTree The tree of the target group.
+     * @return {@code true} if the specified group tree has an unmodified rep:members
+     * property or if the root has pending changes.
+     */
+    private boolean pendingChanges(@Nonnull Tree groupTree) {
+        Tree.Status memberPropStatus = groupTree.getPropertyStatus(REP_MEMBERS);
+        // rep:members is new or has been modified or root has pending changes
+        return Tree.Status.UNCHANGED != memberPropStatus || root.hasPendingChanges();
     }
 
     /**
@@ -287,19 +339,19 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return {@code true} if the member was added
      * @throws RepositoryException if an error occurs
      */
-    boolean addMember(Tree groupTree, Tree newMemberTree) throws RepositoryException {
+    boolean addMember(@Nonnull Tree groupTree, @Nonnull Tree newMemberTree) throws RepositoryException {
         return writer.addMember(groupTree, getContentID(newMemberTree));
     }
 
     /**
-     * Adds a new member to the given {@code groupTree}.
-     * @param groupTree the group to add the member to
-     * @param memberContentId the id of the new member
-     * @return {@code true} if the member was added
-     * @throws RepositoryException if an error occurs
+     * Add the members from the given group.
+     *
+     * @param groupTree group to add the new members
+     * @param memberIds Map of 'contentId':'memberId' of all members to be added.
+     * @return the set of member IDs that was not successfully processed.
      */
-    boolean addMember(Tree groupTree, String memberContentId) throws RepositoryException {
-        return writer.addMember(groupTree, memberContentId);
+    Set<String> addMembers(@Nonnull Tree groupTree, @Nonnull Map<String, String> memberIds) throws RepositoryException {
+        return writer.addMembers(groupTree, memberIds);
     }
 
     /**
@@ -309,7 +361,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param memberTree member to remove
      * @return {@code true} if the member was removed.
      */
-    boolean removeMember(Tree groupTree, Tree memberTree) {
+    boolean removeMember(@Nonnull Tree groupTree, @Nonnull Tree memberTree) {
         if (writer.removeMember(groupTree, getContentID(memberTree))) {
             return true;
         } else {
@@ -319,29 +371,25 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     /**
-     * Removes the member with the specified contentID from the given group.
+     * Removes the members from the given group.
      *
      * @param groupTree group to remove the member from
-     * @param memberContentId the contentID of the member to remove
-     * @return {@code true} if the member was removed.
+     * @param memberIds Map of 'contentId':'memberId' of all members that need to be removed.
+     * @return the set of member IDs that was not successfully processed.
      */
-    boolean removeMember(@Nonnull Tree groupTree, @Nonnull String memberContentId) {
-        return writer.removeMember(groupTree, memberContentId);
+    Set<String> removeMembers(@Nonnull Tree groupTree, @Nonnull Map<String, String> memberIds) {
+        return writer.removeMembers(groupTree, memberIds);
     }
 
     /**
      * Iterator that provides member references based on the rep:members properties of a underlying tree iterator.
      */
-    private static final class MemberReferenceIterator extends AbstractLazyIterator<String> {
-
-        private final Set<String> processedRefs;
+    private abstract class MemberReferenceIterator extends AbstractLazyIterator<String> {
 
         private final Iterator<Tree> trees;
-
         private Iterator<String> propertyValues;
 
-        private MemberReferenceIterator(@Nonnull Tree groupTree, @Nonnull Set<String> processedRefs) {
-            this.processedRefs = processedRefs;
+        private MemberReferenceIterator(@Nonnull Tree groupTree) {
             this.trees = Iterators.concat(
                     Iterators.singletonIterator(groupTree),
                     groupTree.getChild(REP_MEMBERS_LIST).getChildren().iterator()
@@ -352,7 +400,6 @@ class MembershipProvider extends AuthorizableBaseProvider {
         protected String getNext() {
             String next = null;
             while (next == null) {
-
                 if (propertyValues == null) {
                     // check if there are more trees that can provide a rep:members property
                     if (!trees.hasNext()) {
@@ -368,19 +415,22 @@ class MembershipProvider extends AuthorizableBaseProvider {
                     propertyValues = null;
                 } else {
                     String value = propertyValues.next();
-                    if (processedRefs.add(value)) {
+                    if (hasProcessedReference(value)) {
                         next = value;
                     }
                 }
             }
             return next;
         }
+
+        protected abstract boolean hasProcessedReference(@Nonnull String value);
     }
 
     private abstract class AbstractMemberIterator extends AbstractLazyIterator<String> {
 
-        protected Iterator<String> references;
-        protected Iterator<String> parent;
+        private Iterator<String> references;
+        private List<Tree> groupTrees;
+        private Iterator<String> parent;
 
         AbstractMemberIterator(@Nonnull Iterator<String> references) {
             this.references = references;
@@ -390,23 +440,62 @@ class MembershipProvider extends AuthorizableBaseProvider {
         protected String getNext() {
             String next = null;
             while (next == null) {
-                // process parent iterators first
-                if (parent != null) {
+                if (references.hasNext()) {
+                    next = internalGetNext(references.next());
+                } else if (parent != null) {
                     if (parent.hasNext()) {
                         next = parent.next();
                     } else {
+                        // force retrieval of next parent iterator
                         parent = null;
                     }
-                } else if (!references.hasNext()) {
-                    // if there are no more values left, reset the iterator
-                    break;
                 } else {
-                    next = internalGetNext();
+                    // try to retrieve the next 'parent' iterator for the first
+                    // group tree remembered in the list.
+                    if (groupTrees == null || groupTrees.isEmpty()) {
+                        // no more parents to process => reset the iterator.
+                        break;
+                    } else {
+                        parent = getNextIterator(groupTrees.remove(0));
+                    }
                 }
             }
             return next;
         }
 
-        protected abstract String internalGetNext();
+        /**
+         * Remember a group that needs to be search for references ('parent')
+         * once all 'references' have been processed.
+         *
+         * @param groupTree A tree associated with a group
+         * @see #getNextIterator(Tree)
+         */
+        protected void remember(@Nonnull Tree groupTree) {
+            if (groupTrees == null) {
+                groupTrees = new ArrayList<Tree>();
+            }
+            groupTrees.add(groupTree);
+        }
+
+        /**
+         * Abstract method to obtain the next authorizable path from the given
+         * reference value.
+         *
+         * @param nextReference The next reference as obtained from the iterator.
+         * @return The path of the authorizable identified by {@code nextReference}
+         * or {@code null} if it cannot be resolved.
+         */
+        @CheckForNull
+        protected abstract String internalGetNext(@Nonnull String nextReference);
+
+        /**
+         * Abstract method to retrieve the next member iterator for the given
+         * {@code groupTree}.
+         *
+         * @param groupTree Tree referring to a group.
+         * @return The next member reference 'parent' iterator to be processed.
+         */
+        @Nonnull
+        protected abstract Iterator<String> getNextIterator(@Nonnull Tree groupTree);
     }
 }

@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -40,6 +40,7 @@ import javax.jcr.RepositoryException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -91,10 +92,13 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         Group g1 = (Group) getUserManager().getAuthorizable("g1");
-        assertTrue(groupAction.onMemberAddedCalled);
         assertEquals(g1.getID(), groupAction.group.getID());
-        assertTrue(Iterables.elementsEqual(ImmutableList.of(user1.getID(), user2.getID()), groupAction.memberIds));
+
+        assertFalse(groupAction.onMemberAddedCalled);
         assertFalse(groupAction.onMembersAddedContentIdCalled);
+
+        assertTrue(groupAction.onMembersAddedCalled);
+        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
     }
 
     @Override
@@ -118,14 +122,21 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
     private class TestGroupAction extends AbstractGroupAction {
 
         private boolean onMemberAddedCalled = false;
+        private boolean onMembersAddedCalled = false;
         private boolean onMembersAddedContentIdCalled = false;
 
         Group group;
-        List<String> memberIds = Lists.newArrayList();
+        Set<String> memberIds = Sets.newHashSet();
+
+        @Override
+        public void onMembersAdded(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+            this.group = group;
+            this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
+            onMembersAddedCalled = true;
+        }
 
         @Override
         public void onMemberAdded(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
-            this.group = group;
             memberIds.add(member.getID());
             onMemberAddedCalled = true;
         }

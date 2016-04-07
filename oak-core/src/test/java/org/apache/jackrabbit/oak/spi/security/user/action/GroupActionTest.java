@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -41,6 +42,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -113,20 +115,20 @@ public class GroupActionTest extends AbstractSecurityTest {
         testUser02 = getUserManager(root).createUser(TEST_USER_PREFIX + "02", "");
         testGroup.addMember(testUser02);
 
-        List<String> memberIds = ImmutableList.of(testUser01.getID());
-        List<String> failedIds = ImmutableList.of(testUser02.getID(), testGroup.getID());
+        Set<String> memberIds = ImmutableSet.of(testUser01.getID());
+        Set<String> failedIds = ImmutableSet.of(testUser02.getID(), testGroup.getID());
         Iterable<String> ids = Iterables.concat(memberIds, failedIds);
 
         testGroup.addMembers(Iterables.toArray(ids, String.class));
         assertTrue(groupAction.onMembersAddedCalled);
         assertEquals(testGroup, groupAction.group);
-        assertTrue(Iterables.elementsEqual(memberIds, groupAction.memberIds));
-        assertTrue(Iterables.elementsEqual(failedIds, groupAction.failedIds));
+        assertEquals(memberIds, groupAction.memberIds);
+        assertEquals(failedIds, groupAction.failedIds);
     }
 
     @Test
     public void testMembersAddedNonExisting() throws Exception {
-        List<String> nonExisting = ImmutableList.of("blinder", "passagier");
+        Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.addMembers(nonExisting.toArray(new String[nonExisting.size()]));
         assertFalse(groupAction.memberIds.iterator().hasNext());
@@ -139,20 +141,20 @@ public class GroupActionTest extends AbstractSecurityTest {
         testUser02 = getUserManager(root).createUser(TEST_USER_PREFIX + "02", "");
         testGroup.addMember(testUser01);
 
-        List<String> memberIds = ImmutableList.of(testUser01.getID());
-        List<String> failedIds = ImmutableList.of(testUser02.getID(), testGroup.getID());
+        Set<String> memberIds = ImmutableSet.of(testUser01.getID());
+        Set<String> failedIds = ImmutableSet.of(testUser02.getID(), testGroup.getID());
         Iterable<String> ids = Iterables.concat(memberIds, failedIds);
 
         testGroup.removeMembers(Iterables.toArray(ids, String.class));
         assertTrue(groupAction.onMembersRemovedCalled);
         assertEquals(testGroup, groupAction.group);
-        assertTrue(Iterables.elementsEqual(memberIds, groupAction.memberIds));
-        assertTrue(Iterables.elementsEqual(failedIds, groupAction.failedIds));
+        assertEquals(memberIds, groupAction.memberIds);
+        assertEquals(failedIds, groupAction.failedIds);
     }
 
     @Test
     public void testMembersRemovedNonExisting() throws Exception {
-        List<String> nonExisting = ImmutableList.of("blinder", "passagier");
+        Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
         testGroup.removeMembers(nonExisting.toArray(new String[nonExisting.size()]));
         assertFalse(groupAction.memberIds.iterator().hasNext());
@@ -175,8 +177,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         boolean onMembersRemovedCalled = false;
 
         Group group;
-        Iterable<String> memberIds;
-        Iterable<String> failedIds;
+        Set<String> memberIds;
+        Set<String> failedIds;
         Authorizable member;
 
         @Override
@@ -189,8 +191,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         @Override
         public void onMembersAdded(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberIds = memberIds;
-            this.failedIds = failedIds;
+            this.memberIds = ImmutableSet.copyOf(memberIds);
+            this.failedIds = ImmutableSet.copyOf(failedIds);
             onMembersAddedCalled = true;
         }
 
@@ -204,8 +206,8 @@ public class GroupActionTest extends AbstractSecurityTest {
         @Override
         public void onMembersRemoved(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberIds = memberIds;
-            this.failedIds = failedIds;
+            this.memberIds = ImmutableSet.copyOf(memberIds);
+            this.failedIds = ImmutableSet.copyOf(failedIds);
             onMembersRemovedCalled = true;
         }
     }

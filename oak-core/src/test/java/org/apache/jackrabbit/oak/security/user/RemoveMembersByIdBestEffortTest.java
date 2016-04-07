@@ -62,4 +62,20 @@ public class RemoveMembersByIdBestEffortTest extends AbstractRemoveMembersByIdTe
         root.refresh();
         assertFalse(testGroup.isMember(memberGroup));
     }
+
+    @Test
+    public void testMemberListExistingMembers() throws Exception {
+        MembershipProvider mp = ((UserManagerImpl) getUserManager(root)).getMembershipProvider();
+        try {
+            mp.setMembershipSizeThreshold(5);
+            for (int i = 0; i < 10; i++) {
+                testGroup.addMembers("member" + i);
+            }
+
+            Set<String> failed = testGroup.removeMembers("member8");
+            assertTrue(failed.isEmpty());
+        } finally {
+            mp.setMembershipSizeThreshold(100); // back to default
+        }
+    }
 }
