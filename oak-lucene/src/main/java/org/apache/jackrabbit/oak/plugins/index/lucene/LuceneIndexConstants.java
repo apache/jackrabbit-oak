@@ -277,6 +277,12 @@ public interface LuceneIndexConstants {
      */
     String INDEX_PATH = "indexPath";
 
+    /*
+     * Optional property to set the suggest field to be analyzed and therefore allow more fine
+     * grained and flexible suggestions.
+     */
+    String SUGGEST_ANALYZED = "suggestAnalyzed";
+
     /**
      * Boolean property indicate that property should not be included in aggregation
      */

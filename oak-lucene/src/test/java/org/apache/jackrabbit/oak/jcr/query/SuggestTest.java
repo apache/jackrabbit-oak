@@ -26,13 +26,12 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
+import java.util.List;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.junit.After;
 import org.junit.Before;
-
-import java.util.List;
 
 /**
  * Tests the suggest support.
