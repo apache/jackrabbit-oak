@@ -54,6 +54,7 @@ import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -458,6 +459,127 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull(plan);
     }
+
+    //------ Suggestion/spellcheck plan tests
+    @Test
+    public void nonSuggestIndex() throws Exception {
+        //An index which doesn't define any property to support suggestions shouldn't turn up in plan.
+        String indexNodeType = "nt:base";
+        String queryNodeType = "nt:base";
+        boolean enableSuggestionIndex = false;
+        boolean enableSpellcheckIndex = false;
+        boolean queryForSugggestion = true;
+
+        IndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+
+        assertNull(plan);
+    }
+
+    @Test
+    public void nonSpellcheckIndex() throws Exception {
+        //An index which doesn't define any property to support spell check shouldn't turn up in plan.
+        String indexNodeType = "nt:base";
+        String queryNodeType = "nt:base";
+        boolean enableSuggestionIndex = false;
+        boolean enableSpellcheckIndex = false;
+        boolean queryForSugggestion = false;
+
+        IndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+
+        assertNull(plan);
+    }
+
+    @Test
+    public void simpleSuggestIndexPlan() throws Exception {
+        //An index defining a property for suggestions should turn up in plan.
+        String indexNodeType = "nt:base";
+        String queryNodeType = "nt:base";
+        boolean enableSuggestionIndex = true;
+        boolean enableSpellcheckIndex = false;
+        boolean queryForSugggestion = true;
+
+        IndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+
+        assertNotNull(plan);
+    }
+
+    @Test
+    public void simpleSpellcheckIndexPlan() throws Exception {
+        //An index defining a property for spellcheck should turn up in plan.
+        String indexNodeType = "nt:base";
+        String queryNodeType = "nt:base";
+        boolean enableSuggestionIndex = false;
+        boolean enableSpellcheckIndex = true;
+        boolean queryForSugggestion = false;
+
+        IndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+
+        assertNotNull(plan);
+    }
+
+    @Test
+    public void suggestionIndexingRuleHierarchy() throws Exception {
+        //An index defining a property for suggestion on a base type shouldn't turn up in plan.
+        String indexNodeType = "nt:base";
+        String queryNodeType = "nt:unstructured";
+        boolean enableSuggestionIndex = true;
+        boolean enableSpellcheckIndex = false;
+        boolean queryForSugggestion = true;
+
+        IndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+
+        assertNull(plan);
+    }
+
+    @Test
+    public void spellcheckIndexingRuleHierarchy() throws Exception {
+        //An index defining a property for spellcheck on a base type shouldn't turn up in plan.
+        String indexNodeType = "nt:base";
+        String queryNodeType = "nt:unstructured";
+        boolean enableSuggestionIndex = false;
+        boolean enableSpellcheckIndex = true;
+        boolean queryForSugggestion = false;
+
+        IndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+
+        assertNull(plan);
+    }
+
+    private IndexNode createSuggestionOrSpellcheckIndex(String nodeType,
+                                                        boolean enableSuggestion,
+                                                        boolean enableSpellcheck) throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(DECLARING_NODE_TYPES, nodeType);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/" + nodeType + "/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        if (enableSuggestion) {
+            foob.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+        } if (enableSpellcheck) {
+            foob.setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true);
+        }
+
+        IndexDefinition indexDefinition = new IndexDefinition(root, defn.getNodeState());
+        return createIndexNode(indexDefinition);
+    }
+
+    private QueryIndex.IndexPlan getSuggestOrSpellcheckIndexPlan(IndexNode indexNode, String nodeType,
+                                                                 boolean forSugggestion) throws Exception {
+        FilterImpl filter = createFilter(nodeType);
+        filter.restrictProperty(indexNode.getDefinition().getFunctionName(), Operator.EQUAL,
+                PropertyValues.newString((forSugggestion?"suggest":"spellcheck") + "?term=foo"));
+        IndexPlanner planner = new IndexPlanner(indexNode, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        return planner.getPlan();
+    }
+    //------ END - Suggestion/spellcheck plan tests
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {
         return new IndexNode("foo", defn, createSampleDirectory(numOfDocs), null);

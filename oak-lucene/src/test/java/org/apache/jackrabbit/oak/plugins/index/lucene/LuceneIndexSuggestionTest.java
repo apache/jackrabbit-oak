@@ -201,7 +201,7 @@ public class LuceneIndexSuggestionTest {
         final String indexPropName = "description";
         final String indexPropValue = "this is just a sample text which should get some response in suggestions";
         final String suggestQueryText = "th";
-        final boolean shouldSuggest = true;
+        final boolean shouldSuggest = false;
 
         checkSuggestions(indexNodeType, queryNodeType,
                 indexPropName, indexPropValue,
