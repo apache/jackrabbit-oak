@@ -48,6 +48,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexSuggestionTest {
