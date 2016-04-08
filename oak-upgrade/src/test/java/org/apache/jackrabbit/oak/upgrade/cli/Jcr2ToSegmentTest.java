@@ -53,7 +53,7 @@ public class Jcr2ToSegmentTest {
         OakUpgrade.main("--copy-binaries", tempDir.getPath(), destinationContainer.getDescription());
 
         destination = destinationContainer.open();
-        repository = (RepositoryImpl) new Jcr(destination).with(new ReferenceIndexProvider()).createRepository();
+        repository = (RepositoryImpl) new Jcr(destination).with("oak.sling").with(new ReferenceIndexProvider()).createRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 

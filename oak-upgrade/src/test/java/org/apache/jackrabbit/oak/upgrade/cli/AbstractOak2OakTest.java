@@ -86,7 +86,7 @@ public abstract class AbstractOak2OakTest {
         OakUpgrade.main(args);
 
         destination = getDestinationContainer().open();
-        repository = (RepositoryImpl) new Jcr(destination).with(new ReferenceIndexProvider()).createRepository();
+        repository = (RepositoryImpl) new Jcr(destination).with("oak.sling").with(new ReferenceIndexProvider()).createRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
