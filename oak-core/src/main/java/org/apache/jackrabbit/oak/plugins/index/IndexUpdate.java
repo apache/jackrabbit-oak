@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -195,6 +196,7 @@ public class IndexUpdate implements Editor {
                     // probably not an index def
                     continue;
                 }
+                manageIndexPath(definition, name);
                 boolean shouldReindex = shouldReindex(definition,
                         before, name);
                 String indexPath = getIndexPath(getPath(), name);
@@ -224,6 +226,13 @@ public class IndexUpdate implements Editor {
                     editors.add(editor);
                 }
             }
+        }
+    }
+
+    private void manageIndexPath(NodeBuilder definition, String name) {
+        String path = definition.getString(INDEX_PATH);
+        if (path == null){
+            definition.setProperty(INDEX_PATH, PathUtils.concat(getPath(), INDEX_DEFINITIONS_NAME, name));
         }
     }
 
