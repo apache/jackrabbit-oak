@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_N
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.text.ParseException;
 
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -85,4 +87,10 @@ public class FilterTest {
         assertEquals("[is not null]", f.getPropertyRestrictions("c").toString());
     }
 
+    @Ignore("OAK-4170")
+    @Test
+    public void fulltext() throws Exception {
+        Filter f = createFilterSQL("select * from [nt:unstructured] where CONTAINS([jcr:content/metadata/comment], 'december')");
+        assertNotNull(f.getPropertyRestriction("jcr:content/metadata/comment"));
+    }
 }
