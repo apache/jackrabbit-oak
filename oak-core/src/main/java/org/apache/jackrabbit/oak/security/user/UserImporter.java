@@ -630,12 +630,16 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // 2. adjust members of the group
             if (!toRemove.isEmpty()) {
                 Set<String> failed = gr.removeMembers(toRemove.keySet().toArray(new String[toRemove.size()]));
-                handleFailure("Failed removing members " + Iterables.toString(failed) + " to " + gr);
+                if (!failed.isEmpty()) {
+                    handleFailure("Failed removing members " + Iterables.toString(failed) + " to " + gr);
+                }
             }
 
             if (!toAdd.isEmpty()) {
                 Set<String> failed = gr.addMembers(toAdd.keySet().toArray(new String[toAdd.size()]));
-                handleFailure("Failed add members " + Iterables.toString(failed) + " to " + gr);
+                if (!failed.isEmpty()) {
+                    handleFailure("Failed add members " + Iterables.toString(failed) + " to " + gr);
+                }
             }
 
             // handling non-existing members in case of best-effort
