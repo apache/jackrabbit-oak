@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
@@ -46,7 +45,7 @@ public abstract class DocumentStoreFixture {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStoreFixture.class);
 
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
-    public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
+    public static final DocumentStoreFixture MONGO = new MongoFixture();
 
     public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
             "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
@@ -199,17 +198,8 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
-        public static final String DEFAULT_URI = "mongodb://localhost:27017/oak-test";
-        private String uri;
+        private String uri = MongoUtils.URL;
         private List<MongoConnection> connections = Lists.newArrayList();
-
-        public MongoFixture() {
-            this(DEFAULT_URI);
-        }
-
-        public MongoFixture(String dbUri) {
-            this.uri = dbUri;
-        }
 
         @Override
         public String getName() {
@@ -231,17 +221,7 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            try {
-                MongoConnection connection = new MongoConnection(uri);
-                try {
-                    connection.getDB().command(new BasicDBObject("ping", 1));
-                } finally {
-                    connection.close();
-                }
-                return true;
-            } catch (Exception e) {
-                return false;
-            }
+            return MongoUtils.isAvailable();
         }
 
         @Override
