@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.1
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.0 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.1 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,45 +15,47 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.0
+Changes in Oak 1.5.1
 ---------------------
-
-Release Notes - Jackrabbit Oak - Version 1.5.0
 
 Technical task
 
-    [OAK-3977] - RDBDocumentStore: remove PostgreSQL workaround after upgrading to JDBC driver 9.4.1208
-    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
-    [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
-    [OAK-4134] - RDBBlobStore: improve error handling and logging
+    [OAK-4156] - RDBConnectionHandler: add logging when getting the
+    connection takes long
 
 Bug
 
-    [OAK-3972] - Forward edges missing in SegmentGraph
-    [OAK-4065] - Counter index can get out of sync
-    [OAK-4083] - Simplify concurrency when loading data from the primary
-    [OAK-4088] - CacheLIRS prevents cleanup from being effective
-    [OAK-4089] - The standby store shouldn't start the observation subsystem
-    [OAK-4091] - The standby store shouldn't initialize the segment node store with an initial state
-    [OAK-4116] - Broadcasting cache: disabled by default
-    [OAK-4126] - Suggestion and spellcheck queries throw exception if result contain lucene query character
+    [OAK-4135] - Test failure:
+    org.apache.jackrabbit.j2ee.TomcatIT.testTomcat
+    [OAK-4148] - RAT plugin complains about derby files
+    [OAK-4155] - oaj.oak.spi.security.authentication.credentials not
+    exported
 
 Improvement
 
-    [OAK-3563] - Improve DefaultSyncContext
-    [OAK-3725] - Add oak:Indexable mixin type
-    [OAK-3886] - Delegate supported Credentials types to ExternalIdentityProvider
-    [OAK-4029] - RDBDocumentStore: optimize the bulk update method
-    [OAK-4109] - Fix typo in async indexer thread name
-    [OAK-4123] - Persistent cache: allow to configure the add data concurrency
-    [OAK-4142] - allow skip UT in pedantic profile
+    [OAK-2392] - [DocumentMK] Garbage Collect older revisions of
+    binary properties in main document
+    [OAK-4095] - Include timestamp in journal log entries
+    [OAK-4108] - Reduce logging from JournalGarbageCollector
+    [OAK-4130] - Simplify IdentifierManager.getReferences
+    [OAK-4136] - release profile in maven
+    [OAK-4152] - Expose the index path to IndexEditor
+    [OAK-4159] - Expose an option in Oak class to enable failing of
+    commit upon missing index editor provider
+    [OAK-4160] - Expose type property for ReferenceEditorProvider
+    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
+    [OAK-4164] - Expose path stats for Lucene index
+
+New Feature
+
+    [OAK-4144] - Expose PropertyIndex stats
 
 Task
 
-    [OAK-4084] - Add 1.4 branch in Jenkins matrix
-    [OAK-4100] - ClusterNodeInfo lease renewal: add logging
-    [OAK-4118] - Benchmarks for Membership Operations
-
+    [OAK-4076] - Benchmark to measure affect of number of indexes on
+    uuid lookup performance
+    [OAK-4132] - JaasConfigSpiTest fails intermittently with missing
+    LoginModule exception
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
