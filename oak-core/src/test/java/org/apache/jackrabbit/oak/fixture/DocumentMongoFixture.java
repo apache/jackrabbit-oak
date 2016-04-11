@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -34,15 +35,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 public class DocumentMongoFixture extends NodeStoreFixture {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentMongoFixture.class);
-
-    public static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
 
     private final String uri;
 
@@ -60,7 +57,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
     }
 
     public DocumentMongoFixture() {
-        this(System.getProperty("mongo.url", DEFAULT_URI), null);
+        this(MongoUtils.URL, null);
     }
 
     @Override
@@ -89,34 +86,11 @@ public class DocumentMongoFixture extends NodeStoreFixture {
     }
 
     @Override
-    public synchronized boolean isAvailable() {
+    public boolean isAvailable() {
         if (isAvailable == null) {
-            isAvailable = testMongoAvailability(uri);
+            isAvailable = MongoUtils.isAvailable();
         }
         return isAvailable;
-    }
-
-    private static boolean testMongoAvailability(String uri) {
-        Mongo mongo = null;
-        try {
-            StringBuilder uriWithTimeout = new StringBuilder(uri);
-            if (uri.contains("?")) {
-                uriWithTimeout.append("&");
-            } else {
-                uriWithTimeout.append("?");
-            }
-            uriWithTimeout.append("connectTimeoutMS=3000");
-            MongoClientURI mongoUri = new MongoClientURI(uriWithTimeout.toString());
-            mongo = new MongoClient(mongoUri);
-            mongo.getDatabaseNames();
-            return true;
-        } catch (Exception e) {
-            return false;
-        } finally {
-            if (mongo != null) {
-                mongo.close();
-            }
-        }
     }
 
     @Override

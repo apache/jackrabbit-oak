@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -33,12 +35,15 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.AssumptionViolatedException;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +58,11 @@ public class NonLocalObservationIT extends AbstractClusterTest {
     private static final Logger log = LoggerFactory.getLogger(NonLocalObservationIT.class);
 
     AtomicReference<Exception> exception = new AtomicReference<Exception>();
+
+    @BeforeClass
+    public static void assumeMongoDB() {
+        assumeTrue(FixturesHelper.getFixtures().contains(DOCUMENT_NS) && MongoUtils.isAvailable());
+    }
 
     @Override
     protected NodeStoreFixture getFixture() {

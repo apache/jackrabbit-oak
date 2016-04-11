@@ -36,6 +36,9 @@ public class MongoUtils {
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
+    public static final String URL =
+            System.getProperty("mongo.url", "mongodb://" + HOST + ":" + PORT + "/" + DB + "?connectTimeoutMS=3000");
+
     protected static Exception exception;
 
     /**
@@ -44,7 +47,7 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection() {
-        return getConnection(DB);
+        return getConnectionByURL(URL);
     }
 
     /**
@@ -54,19 +57,7 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection(String dbName) {
-        if (exception != null) {
-            return null;
-        }
-        MongoConnection mongoConnection = null;
-        try {
-            mongoConnection = new MongoConnection(HOST, PORT, dbName);
-            mongoConnection.getDB().command(new BasicDBObject("ping", 1));
-            // dropCollections(mongoConnection.getDB());
-        } catch (Exception e) {
-            exception = e;
-            mongoConnection = null;
-        }
-        return mongoConnection;
+        return getConnectionByURL("mongodb://" + HOST + ":" + PORT + "/" + dbName);
     }
 
     /**
@@ -133,4 +124,27 @@ public class MongoUtils {
         }
     }
 
+    //----------------------------< internal >----------------------------------
+
+    /**
+     * Get a connection if available. If not available, null is returned.
+     *
+     * @param url the mongodb url
+     * @return the connection or null
+     */
+    private static MongoConnection getConnectionByURL(String url) {
+        if (exception != null) {
+            return null;
+        }
+        MongoConnection mongoConnection;
+        try {
+            mongoConnection = new MongoConnection(url);
+            mongoConnection.getDB().command(new BasicDBObject("ping", 1));
+            // dropCollections(mongoConnection.getDB());
+        } catch (Exception e) {
+            exception = e;
+            mongoConnection = null;
+        }
+        return mongoConnection;
+    }
 }
