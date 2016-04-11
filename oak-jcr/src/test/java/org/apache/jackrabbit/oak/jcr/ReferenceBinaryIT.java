@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
@@ -151,7 +152,7 @@ public class ReferenceBinaryIT {
             fixtures.add(new Object[] {segmentFixtureFBS});
         }
 
-        DocumentMongoFixture documentFixture = new DocumentMongoFixture(DocumentMongoFixture.DEFAULT_URI, createBlobStore());
+        DocumentMongoFixture documentFixture = new DocumentMongoFixture(MongoUtils.URL, createBlobStore());
         if (documentFixture.isAvailable()) {
             fixtures.add(new Object[]{documentFixture});
         }
