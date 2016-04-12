@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import javax.naming.directory.Attribute;
+import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
@@ -73,6 +75,17 @@ class InternalLdapServer extends AbstractServer {
         LdapContext ctxt = getWiredContext();
         BasicAttributes attrs = new BasicAttributes();
         attrs.put("member", memberDN);
+        ctxt.modifyAttributes(groupDN, DirContext.ADD_ATTRIBUTE, attrs);
+    }
+
+    public void addMembers(String groupDN, Iterable<String> memberDNs) throws Exception {
+        LdapContext ctxt = getWiredContext();
+        Attribute attr = new BasicAttribute("member");
+        for (String dn : memberDNs) {
+            attr.add(dn);
+        }
+        BasicAttributes attrs = new BasicAttributes();
+        attrs.put(attr);
         ctxt.modifyAttributes(groupDN, DirContext.ADD_ATTRIBUTE, attrs);
     }
 
