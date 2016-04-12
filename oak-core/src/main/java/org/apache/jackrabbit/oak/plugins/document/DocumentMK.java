@@ -511,6 +511,7 @@ public class DocumentMK {
         private boolean timing;
         private boolean logging;
         private boolean leaseCheck = true; // OAK-2739 is enabled by default also for non-osgi
+        private boolean isReadOnlyMode = false;
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -684,6 +685,15 @@ public class DocumentMK {
 
         public boolean getLeaseCheck() {
             return leaseCheck;
+        }
+
+        public Builder setReadOnlyMode() {
+            this.isReadOnlyMode = true;
+            return this;
+        }
+
+        public boolean getReadOnlyMode() {
+            return isReadOnlyMode;
         }
 
         public Builder setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
