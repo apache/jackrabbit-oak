@@ -71,13 +71,13 @@ import static com.google.common.base.Preconditions.checkArgument;
  * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
  */
 public class DocumentMK implements MicroKernel {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(DocumentMK.class);
-    
+
     /**
      * The path where the persistent cache is stored.
      */
-    static final String DEFAULT_PERSISTENT_CACHE_URI = 
+    static final String DEFAULT_PERSISTENT_CACHE_URI =
             System.getProperty("oak.documentMK.persCache");
 
     /**
@@ -710,12 +710,12 @@ public class DocumentMK implements MicroKernel {
             this.clusterId = clusterId;
             return this;
         }
-        
+
         public Builder setCacheSegmentCount(int cacheSegmentCount) {
             this.cacheSegmentCount = cacheSegmentCount;
             return this;
         }
-        
+
         public Builder setCacheStackMoveDistance(int cacheSegmentCount) {
             this.cacheStackMoveDistance = cacheSegmentCount;
             return this;
@@ -754,7 +754,7 @@ public class DocumentMK implements MicroKernel {
             this.memoryCacheSize = memoryCacheSize;
             return this;
         }
-        
+
         public Builder memoryCacheDistribution(int nodeCachePercentage,
                                                int childrenCachePercentage,
                                                int docChildrenCachePercentage,
@@ -763,7 +763,7 @@ public class DocumentMK implements MicroKernel {
             checkArgument(childrenCachePercentage>= 0);
             checkArgument(docChildrenCachePercentage >= 0);
             checkArgument(diffCachePercentage >= 0);
-            checkArgument(nodeCachePercentage + childrenCachePercentage + 
+            checkArgument(nodeCachePercentage + childrenCachePercentage +
                     docChildrenCachePercentage + diffCachePercentage < 100);
             this.nodeCachePercentage = nodeCachePercentage;
             this.childrenCachePercentage = childrenCachePercentage;
@@ -781,7 +781,7 @@ public class DocumentMK implements MicroKernel {
         }
 
         public long getDocumentCacheSize() {
-            return memoryCacheSize - getNodeCacheSize() - getChildrenCacheSize() 
+            return memoryCacheSize - getNodeCacheSize() - getChildrenCacheSize()
                     - getDiffCacheSize() - getDocChildrenCacheSize();
         }
 
@@ -868,19 +868,19 @@ public class DocumentMK implements MicroKernel {
         public DocumentMK open() {
             return new DocumentMK(this);
         }
-        
+
         public Cache<PathRev, DocumentNodeState> buildNodeCache(DocumentNodeStore store) {
             return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
         }
-        
+
         public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache() {
-            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), null, null);            
+            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), null, null);
         }
-        
+
         public Cache<StringValue, NodeDocument.Children> buildDocChildrenCache() {
             return buildCache(CacheType.DOC_CHILDREN, getDocChildrenCacheSize(), null, null);
         }
-        
+
         public Cache<PathRev, StringValue> buildMemoryDiffCache() {
             return buildCache(CacheType.DIFF, getMemoryDiffCacheSize(), null, null);
         }
@@ -915,7 +915,7 @@ public class DocumentMK implements MicroKernel {
             }
             return cache;
         }
-        
+
         private PersistentCache getPersistentCache() {
             if (persistentCacheURI == null) {
                 return null;
@@ -930,7 +930,7 @@ public class DocumentMK implements MicroKernel {
             }
             return persistentCache;
         }
-        
+
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 long maxWeight) {
             if (LIRS_CACHE || persistentCacheURI != null) {
@@ -952,5 +952,5 @@ public class DocumentMK implements MicroKernel {
         }
 
     }
-    
+
 }
