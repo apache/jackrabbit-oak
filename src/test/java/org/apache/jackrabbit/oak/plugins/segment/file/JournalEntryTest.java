@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -33,11 +37,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class JournalEntryTest {
 
     @Rule
@@ -45,8 +44,8 @@ public class JournalEntryTest {
 
     @Test
     public void timestampInJournalEntry() throws Exception{
-        FileStore fileStore = newFileStore(tempFolder.getRoot()).withMaxFileSize(5)
-                .withNoCache().withMemoryMapping(true).create();
+        FileStore fileStore = FileStore.builder(tempFolder.getRoot()).withMaxFileSize(5)
+                .withNoCache().withMemoryMapping(true).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
 

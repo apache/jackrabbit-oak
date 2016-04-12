@@ -49,7 +49,7 @@ public class ExternalBlobReferenceTest {
     @Before
     public void createFileStore() throws Exception {
         blobStore = mock(BlobStore.class);
-        fileStore = FileStore.newFileStore(segmentFolder.getRoot()).withBlobStore(blobStore).create();
+        fileStore = FileStore.builder(segmentFolder.getRoot()).withBlobStore(blobStore).build();
     }
 
     @After
