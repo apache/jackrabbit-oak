@@ -355,6 +355,40 @@ public class ClusterNodeInfo {
     }
 
     /**
+     * Create a dummy cluster node info instance to be utilized for read only access to underlying store.
+     * @param store
+     * @return the cluster node info
+     */
+    public static ClusterNodeInfo getReadOnlyInstance(DocumentStore store) {
+        return new ClusterNodeInfo(0, store, MACHINE_ID, WORKING_DIR, ClusterNodeState.ACTIVE,
+                RecoverLockState.NONE, null, true) {
+            @Override
+            public void dispose() {
+            }
+
+            @Override
+            public long getLeaseTime() {
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public void performLeaseCheck() {
+            }
+
+            @Override
+            public boolean renewLease() {
+                return false;
+            }
+
+            @Override
+            public void setInfo(Map<String, String> info) {}
+
+            @Override
+            public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {}
+        };
+    }
+
+    /**
      * Create a cluster node info instance for the store, with the
      *
      * @param store the document store (for the lease)

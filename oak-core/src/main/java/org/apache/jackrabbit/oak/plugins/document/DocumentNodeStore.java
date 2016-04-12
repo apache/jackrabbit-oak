@@ -87,6 +87,7 @@ import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
+import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -398,6 +399,8 @@ public final class DocumentNodeStore
 
     private final DocumentNodeStoreMBean mbean;
 
+    private final boolean readOnlyMode;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -410,13 +413,23 @@ public final class DocumentNodeStore
         if (builder.getLogging()) {
             s = new LoggingDocumentStoreWrapper(s);
         }
+        if (builder.getReadOnlyMode()) {
+            s = ReadOnlyDocumentStoreWrapperFactory.getInstance(s);
+            readOnlyMode = true;
+        } else {
+            readOnlyMode = false;
+        }
         this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
 
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
-        clusterNodeInfo = ClusterNodeInfo.getInstance(s, cid);
+        if (readOnlyMode) {
+            clusterNodeInfo = ClusterNodeInfo.getReadOnlyInstance(s);
+        } else {
+            clusterNodeInfo = ClusterNodeInfo.getInstance(s, cid);
+        }
         // TODO we should ensure revisions generated from now on
         // are never "older" than revisions already in the repository for
         // this cluster id
@@ -426,6 +439,7 @@ public final class DocumentNodeStore
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
         }
+
         this.store = s;
         this.clusterId = cid;
         this.branches = new UnmergedBranches();
@@ -484,12 +498,16 @@ public final class DocumentNodeStore
                 throw new IllegalStateException("Root document does not exist");
             }
         } else {
-            checkLastRevRecovery();
+            if (!readOnlyMode) {
+                checkLastRevRecovery();
+            }
             initializeRootState(rootDoc);
             // check if _lastRev for our clusterId exists
             if (!rootDoc.getLastRev().containsKey(clusterId)) {
                 unsavedLastRevisions.put("/", getRoot().getRevision().getRevision(clusterId));
-                backgroundWrite();
+                if (!readOnlyMode) {
+                    backgroundWrite();
+                }
             }
         }
 
@@ -513,7 +531,9 @@ public final class DocumentNodeStore
         backgroundUpdateThread.setDaemon(true);
 
         backgroundReadThread.start();
-        backgroundUpdateThread.start();
+        if (!readOnlyMode) {
+            backgroundUpdateThread.start();
+        }
 
         leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
                 "DocumentNodeStore lease update thread " + threadNamePostfix);
@@ -522,10 +542,12 @@ public final class DocumentNodeStore
         // has higher likelihood of succeeding than other threads
         // on a very busy machine - so as to prevent lease timeout.
         leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
-        leaseUpdateThread.start();
+        if (!readOnlyMode) {
+            leaseUpdateThread.start();
+        }
         
         PersistentCache pc = builder.getPersistentCache();
-        if (pc != null) {
+        if (!readOnlyMode && pc != null) {
             DynamicBroadcastConfig broadcastConfig = new DocumentBroadcastConfig(this);
             pc.setBroadcastConfig(broadcastConfig);
         }
@@ -567,16 +589,18 @@ public final class DocumentNodeStore
 
         // do a final round of background operations after
         // the background thread stopped
-        try{
-            internalRunBackgroundUpdateOperations();
-        } catch(AssertionError ae) {
-            // OAK-3250 : when a lease check fails, subsequent modifying requests
-            // to the DocumentStore will throw an AssertionError. Since as a result
-            // of a failing lease check a bundle.stop is done and thus a dispose of the
-            // DocumentNodeStore happens, it is very likely that in that case 
-            // you run into an AssertionError. We should still continue with disposing
-            // though - thus catching and logging..
-            LOG.error("dispose: an AssertionError happened during dispose's last background ops: "+ae, ae);
+        if (!readOnlyMode) {
+            try {
+                internalRunBackgroundUpdateOperations();
+            } catch (AssertionError ae) {
+                // OAK-3250 : when a lease check fails, subsequent modifying requests
+                // to the DocumentStore will throw an AssertionError. Since as a result
+                // of a failing lease check a bundle.stop is done and thus a dispose of the
+                // DocumentNodeStore happens, it is very likely that in that case
+                // you run into an AssertionError. We should still continue with disposing
+                // though - thus catching and logging..
+                LOG.error("dispose: an AssertionError happened during dispose's last background ops: " + ae, ae);
+            }
         }
 
         try {
@@ -604,7 +628,7 @@ public final class DocumentNodeStore
     }
 
     private String getClusterNodeInfoDisplayString() {
-        return clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
+        return (readOnlyMode?"readOnly:true, ":"") + clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
     }
 
     void setRoot(@Nonnull RevisionVector newHead) {
@@ -1654,7 +1678,7 @@ public final class DocumentNodeStore
 
     /** Note: made package-protected for testing purpose, would otherwise be private **/
     void runBackgroundUpdateOperations() {
-        if (isDisposed.get()) {
+        if (readOnlyMode || isDisposed.get()) {
             return;
         }
         try {
