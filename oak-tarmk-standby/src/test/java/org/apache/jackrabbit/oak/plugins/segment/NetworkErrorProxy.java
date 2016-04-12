@@ -93,7 +93,7 @@ public class NetworkErrorProxy {
 
     public void close() {
         if (f != null) {
-            f.channel().close();
+            f.channel().close().syncUninterruptibly();
         }
         if (bossGroup != null && !bossGroup.isShuttingDown()) {
             bossGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).syncUninterruptibly();
