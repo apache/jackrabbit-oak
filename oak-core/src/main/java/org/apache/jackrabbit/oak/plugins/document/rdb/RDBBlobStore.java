@@ -543,8 +543,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
                 if (deletedMeta != deletedData) {
                     String message = String.format(
-                            "chunk deletion affected different numbers of DATA records (%s) and META records (%s)", deletedMeta,
-                            deletedData);
+                            "chunk deletion affected different numbers of DATA records (%s) and META records (%s)", deletedData,
+                            deletedMeta);
                     LOG.info(message);
                 }
 
