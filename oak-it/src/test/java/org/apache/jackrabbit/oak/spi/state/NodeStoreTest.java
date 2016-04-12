@@ -101,6 +101,7 @@ public class NodeStoreTest extends OakBaseTest {
     @Test
     public void addExistingNode() throws CommitFailedException {
         // FIXME OAK-1550 Incorrect handling of addExistingNode conflict in NodeStore
+        assumeTrue(fixture != NodeStoreFixtures.DOCUMENT_MEM);
         assumeTrue(fixture != NodeStoreFixtures.DOCUMENT_NS);
         assumeTrue(fixture != NodeStoreFixtures.DOCUMENT_RDB);
 
