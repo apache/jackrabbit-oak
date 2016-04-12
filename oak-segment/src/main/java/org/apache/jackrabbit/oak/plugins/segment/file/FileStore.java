@@ -389,11 +389,11 @@ public class FileStore implements SegmentStore {
         }
 
         if (builder.cacheSize < 0) {
-            this.tracker = new SegmentTracker(this, 0, getVersion());
+            this.tracker = new SegmentTracker(this, 0, version);
         } else if (builder.cacheSize > 0) {
-            this.tracker = new SegmentTracker(this, builder.cacheSize, getVersion());
+            this.tracker = new SegmentTracker(this, builder.cacheSize, version);
         } else {
-            this.tracker = new SegmentTracker(this, getVersion());
+            this.tracker = new SegmentTracker(this, version);
         }
         this.blobStore = builder.blobStore;
         this.directory = builder.directory;
