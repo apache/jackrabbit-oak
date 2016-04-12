@@ -22,10 +22,9 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import com.mongodb.BasicDBObject;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
@@ -33,15 +32,6 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
  * A repository stub using the DocumentNodeStore.
  */
 public class OakMongoNSRepositoryStub extends OakRepositoryStub {
-
-    protected static final String HOST =
-            System.getProperty("mongo.host", "127.0.0.1");
-
-    protected static final int PORT =
-            Integer.getInteger("mongo.port", 27017);
-
-    protected static final String DB =
-            System.getProperty("mongo.db", "MongoMKDB");
 
     private final MongoConnection connection;
     private final Repository repository;
@@ -57,7 +47,7 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
         Session session = null;
         final DocumentNodeStore store;
         try {
-            this.connection = new MongoConnection(HOST, PORT, DB);
+            this.connection = MongoUtils.getConnection();
             store = new DocumentMK.Builder().
                     memoryCacheSize(64 * 1024 * 1024).
                     setPersistentCache("target/persistentCache,time").
@@ -86,31 +76,11 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
     }
 
     public static boolean isMongoDBAvailable() {
-        MongoConnection connection = null;
-        try {
-            connection = createConnection(DB);
-            return true;
-        } catch (Exception e) {
-            return false;
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
+        return MongoUtils.isAvailable();
     }
 
     static MongoConnection createConnection(String db) throws Exception {
-        boolean success = false;
-        MongoConnection con = new MongoConnection(HOST, PORT, db);
-        try {
-            con.getDB().command(new BasicDBObject("ping", 1));
-            success = true;
-        } finally {
-            if (!success) {
-                con.close();
-            }
-        }
-        return con;
+        return MongoUtils.getConnection(db);
     }
 
     /**
