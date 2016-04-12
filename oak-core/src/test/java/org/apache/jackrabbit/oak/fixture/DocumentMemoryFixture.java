@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class DocumentMemoryFixture extends NodeStoreFixture {
@@ -27,6 +28,13 @@ public class DocumentMemoryFixture extends NodeStoreFixture {
     @Override
     public NodeStore createNodeStore() {
         return new DocumentMK.Builder().getNodeStore();
+    }
+
+    @Override
+    public void dispose(NodeStore nodeStore) {
+        if (nodeStore instanceof DocumentNodeStore) {
+            ((DocumentNodeStore) nodeStore).dispose();
+        }
     }
 
     @Override
