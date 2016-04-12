@@ -115,7 +115,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
     }
 
     private void refreshStore() throws IOException {
-        this.store = new ReadOnlyStore(path);
+        this.store = FileStore.builder(path).buildReadOnly();
     }
 
     private void refreshModel() {

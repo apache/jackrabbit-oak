@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.backup;
 
 import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.newSegmentNodeStore;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -63,7 +62,7 @@ public class FileStoreBackupTest {
 
     @Test
     public void testBackup() throws Exception {
-        FileStore source = newFileStore(src).withMaxFileSize(8).create();
+        FileStore source = FileStore.builder(src).withMaxFileSize(8).build();
 
         NodeStore store = newSegmentNodeStore(source).create();
         init(store);
@@ -82,7 +81,7 @@ public class FileStoreBackupTest {
 
     @Test
     public void testRestore() throws Exception {
-        FileStore source = newFileStore(src).withMaxFileSize(8).create();
+        FileStore source = FileStore.builder(src).withMaxFileSize(8).build();
 
         NodeStore store = newSegmentNodeStore(source).create();
         init(store);
@@ -92,7 +91,7 @@ public class FileStoreBackupTest {
 
         FileStoreRestore.restore(destination, src);
 
-        source = newFileStore(src).withMaxFileSize(8).create();
+        source = FileStore.builder(src).withMaxFileSize(8).build();
         compare(source, destination);
         source.close();
     }
@@ -116,7 +115,7 @@ public class FileStoreBackupTest {
 
     private static void compare(FileStore store, File destination)
             throws IOException {
-        FileStore backup = newFileStore(destination).withMaxFileSize(8).create();
+        FileStore backup = FileStore.builder(destination).withMaxFileSize(8).build();
         assertEquals(store.getHead(), backup.getHead());
         backup.close();
     }

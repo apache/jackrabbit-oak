@@ -37,7 +37,6 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 import static org.slf4j.helpers.MessageFormatter.format;
@@ -231,10 +230,10 @@ public class SegmentCompactionIT {
         directory.delete();
         directory.mkdir();
 
-        fileStore = newFileStore(directory)
+        fileStore = FileStore.builder(directory)
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
-                .create();
+                .build();
         SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
                 .newSegmentNodeStore(fileStore);
         nodeStoreBuilder.withCompactionStrategy(false, false,

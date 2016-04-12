@@ -40,17 +40,16 @@ import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Function;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
-import com.google.common.base.Function;
 
 public class FileStoreDiff {
 
@@ -139,7 +138,7 @@ public class FileStoreDiff {
                     + "'.");
             return;
         }
-        ReadOnlyStore store = new ReadOnlyStore(dir, newBasicReadOnlyBlobStore());
+        ReadOnlyStore store = FileStore.builder(dir).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
         RecordId idL = null;
         RecordId idR = null;
         try {

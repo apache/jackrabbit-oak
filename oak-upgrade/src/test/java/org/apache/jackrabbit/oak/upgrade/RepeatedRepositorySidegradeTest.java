@@ -43,7 +43,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
             sourceDir.mkdirs();
 
-            FileStore fileStore = FileStore.newFileStore(sourceDir).create();
+            FileStore fileStore = FileStore.builder(sourceDir).build();
             SegmentNodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
             RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             Session session = repository.login(CREDENTIALS);
@@ -60,7 +60,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
             doUpgradeRepository(sourceDir, target);
             fileStore.flush();
 
-            fileStore = FileStore.newFileStore(sourceDir).create();
+            fileStore = FileStore.builder(sourceDir).build();
             segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
             repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             session = repository.login(CREDENTIALS);
@@ -82,7 +82,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
     @Override
     protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
-        FileStore fileStore = FileStore.newFileStore(source).create();
+        FileStore fileStore = FileStore.builder(source).build();
         SegmentNodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);

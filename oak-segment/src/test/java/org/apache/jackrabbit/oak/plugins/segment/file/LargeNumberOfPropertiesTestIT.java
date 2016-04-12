@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -77,8 +76,8 @@ public class LargeNumberOfPropertiesTestIT {
 
     @Test
     public void corruption() throws Exception {
-        FileStore fileStore = newFileStore(directory).withMaxFileSize(5)
-                .withNoCache().withMemoryMapping(true).create();
+        FileStore fileStore = FileStore.builder(directory).withMaxFileSize(5)
+                .withNoCache().withMemoryMapping(true).build();
         SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
 
         NodeBuilder root = nodeStore.getRoot().builder();

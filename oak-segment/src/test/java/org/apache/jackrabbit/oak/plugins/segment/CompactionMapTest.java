@@ -100,7 +100,7 @@ public class CompactionMapTest {
 
     public CompactionMapTest(boolean usePersistedMap) throws IOException {
         directory = mkDir();
-        store = FileStore.newFileStore(directory).create();
+        store = FileStore.builder(directory).build();
 
         compactionMap1 = createCompactionMap(usePersistedMap);
         referenceMap1 = randomRecordIdMap(rnd, store.getTracker(), 10, 10);

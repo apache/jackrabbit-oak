@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.backup;
 
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
-
 import java.io.File;
 import java.io.IOException;
 
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -30,8 +29,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
 
 public class FileStoreRestore {
 
@@ -49,10 +46,10 @@ public class FileStoreRestore {
                     + " is not a valid FileStore directory");
         }
 
-        FileStore restore = new ReadOnlyStore(source);
+        FileStore restore = FileStore.builder(source).buildReadOnly();
         Stopwatch watch = Stopwatch.createStarted();
 
-        FileStore store = newFileStore(destination).create();
+        FileStore store = FileStore.builder(destination).build();
         SegmentNodeState current = store.getHead();
         try {
             Compactor compactor = new Compactor(store.getTracker());

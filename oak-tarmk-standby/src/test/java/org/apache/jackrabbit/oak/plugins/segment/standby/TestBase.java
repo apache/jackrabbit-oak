@@ -80,11 +80,11 @@ public class TestBase {
     }
 
     private static FileStore newFileStore(File directory) throws IOException {
-        return FileStore.newFileStore(directory)
+        return FileStore.builder(directory)
             .withMaxFileSize(1)
             .withMemoryMapping(false)
             .withNoCache()
-            .create();
+            .build();
     }
 
     protected FileStore setupPrimary(File directory) throws IOException {

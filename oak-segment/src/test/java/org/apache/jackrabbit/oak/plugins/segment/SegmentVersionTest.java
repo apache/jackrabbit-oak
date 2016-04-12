@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_10;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.junit.Assert.assertEquals;
@@ -86,13 +87,7 @@ public class SegmentVersionTest {
 
     @Test
     public void compareOldRevision() throws Exception {
-        FileStore fileStoreV10 = new FileStore(directory, 1) {
-            @SuppressWarnings("deprecation")
-            @Override
-            public SegmentVersion getVersion() {
-                return SegmentVersion.V_10;
-            }
-        };
+        FileStore fileStoreV10 = FileStore.builder(directory).withMaxFileSize(1).withSegmentVersion(V_10).build();
         try {
             NodeState content = addTestContent(fileStoreV10, "content").getChildNode("content");
             assertVersion(content, SegmentVersion.V_10);
@@ -142,13 +137,7 @@ public class SegmentVersionTest {
 
     @Test
     public void readOldVersions() throws Exception {
-        FileStore fileStoreV10 = new FileStore(directory, 1) {
-            @SuppressWarnings("deprecation")
-            @Override
-            public SegmentVersion getVersion() {
-                return SegmentVersion.V_10;
-            }
-        };
+        FileStore fileStoreV10 = FileStore.builder(directory).withMaxFileSize(1).withSegmentVersion(V_10).build();
         try {
             NodeState content = addTestContent(fileStoreV10, "content");
             assertVersion(content, SegmentVersion.V_10);
@@ -156,7 +145,7 @@ public class SegmentVersionTest {
             fileStoreV10.close();
         }
 
-        FileStore fileStoreV11 = new FileStore(directory, 1);
+        FileStore fileStoreV11 = FileStore.builder(directory).withMaxFileSize(1).build();
         try {
             verifyContent(fileStoreV11, "content");
         } finally {
@@ -166,13 +155,7 @@ public class SegmentVersionTest {
 
     @Test
     public void mixedVersions() throws IOException, CommitFailedException {
-        FileStore fileStoreV10 = new FileStore(directory, 1) {
-            @SuppressWarnings("deprecation")
-            @Override
-            public SegmentVersion getVersion() {
-                return SegmentVersion.V_10;
-            }
-        };
+        FileStore fileStoreV10 = FileStore.builder(directory).withMaxFileSize(1).withSegmentVersion(V_10).build();
         try {
             NodeState content10 = addTestContent(fileStoreV10, "content10");
             assertVersion(content10, SegmentVersion.V_10);
@@ -180,7 +163,7 @@ public class SegmentVersionTest {
             fileStoreV10.close();
         }
 
-        FileStore fileStoreV11 = new FileStore(directory, 1);
+        FileStore fileStoreV11 = FileStore.builder(directory).withMaxFileSize(1).build();
         try {
             NodeState content11 = addTestContent(fileStoreV11, "content11");
             assertVersion(content11, V_11);
@@ -193,20 +176,14 @@ public class SegmentVersionTest {
 
     @Test
     public void migrate() throws IOException, CommitFailedException {
-        FileStore fileStoreV10 = new FileStore(directory, 1) {
-            @SuppressWarnings("deprecation")
-            @Override
-            public SegmentVersion getVersion() {
-                return SegmentVersion.V_10;
-            }
-        };
+        FileStore fileStoreV10 = FileStore.builder(directory).withMaxFileSize(1).withSegmentVersion(V_10).build();
         try {
             addTestContent(fileStoreV10, "content10");
         } finally {
             fileStoreV10.close();
         }
 
-        FileStore fileStoreV11 = new FileStore(directory, 1);
+        FileStore fileStoreV11 = FileStore.builder(directory).withMaxFileSize(1).build();
         try {
             fileStoreV11.setCompactionStrategy(new CompactionStrategy(false, false,
                     CLEAN_NONE, 0, (byte) 0) {

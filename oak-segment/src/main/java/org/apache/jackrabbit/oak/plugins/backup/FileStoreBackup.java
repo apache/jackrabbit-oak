@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.backup;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,12 +47,12 @@ public class FileStoreBackup {
         checkArgument(store instanceof SegmentNodeStore);
         Stopwatch watch = Stopwatch.createStarted();
         NodeState current = ((SegmentNodeStore) store).getSuperRoot();
-        FileStore.Builder builder = newFileStore(destination)
+        FileStore.Builder builder = FileStore.builder(destination)
                 .withDefaultMemoryMapping();
         if (USE_FAKE_BLOBSTORE) {
             builder.withBlobStore(new BasicReadOnlyBlobStore());
         }
-        FileStore backup = builder.create();
+        FileStore backup = builder.build();
         try {
             SegmentNodeState state = backup.getHead();
             Compactor compactor = new Compactor(backup.getTracker());

@@ -63,10 +63,10 @@ public class LuceneBlobCacheTest {
     public void setUp() throws Exception {
         fileDataStore = new ReadAccessCountingDataStore();
         fileDataStore.init(tempFolder.newFolder().getAbsolutePath());
-        FileStore.Builder fileStoreBuilder = FileStore.newFileStore(tempFolder.newFolder())
+        FileStore.Builder fileStoreBuilder = FileStore.builder(tempFolder.newFolder())
                                         .withBlobStore(new DataStoreBlobStore(fileDataStore)).withMaxFileSize(256)
                                         .withCacheSize(64).withMemoryMapping(false);
-        store = fileStoreBuilder.create();
+        store = fileStoreBuilder.build();
         NodeStore nodeStore = new SegmentNodeStore(store);
         root = nodeStore.getRoot();
         builder = root.builder();

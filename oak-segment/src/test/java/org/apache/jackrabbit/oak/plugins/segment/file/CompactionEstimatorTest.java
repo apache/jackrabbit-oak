@@ -60,7 +60,7 @@ public class CompactionEstimatorTest {
         final int MB = 1024 * 1024;
         final int blobSize = 2 * MB;
 
-        FileStore fileStore = new FileStore(directory, 2, false);
+        FileStore fileStore = FileStore.builder(directory).withMaxFileSize(2).withMemoryMapping(false).build();
         SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
 
         // 1. Create some blob properties

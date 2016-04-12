@@ -62,12 +62,12 @@ public class DataStoreTestBase extends TestBase {
         fds.setMinRecordLength(4092);
         fds.init(path);
         DataStoreBlobStore blobStore = new DataStoreBlobStore(fds);
-        return FileStore.newFileStore(d)
+        return FileStore.builder(d)
             .withMaxFileSize(1)
             .withMemoryMapping(false)
             .withNoCache()
             .withBlobStore(blobStore)
-            .create();
+            .build();
     }
 
     protected byte[] addTestContent(NodeStore store, String child, int size)

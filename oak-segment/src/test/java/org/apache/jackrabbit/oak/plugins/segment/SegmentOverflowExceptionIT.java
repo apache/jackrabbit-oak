@@ -23,7 +23,6 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
@@ -109,7 +108,7 @@ public class SegmentOverflowExceptionIT {
 
     @Test
     public void run() throws IOException, CommitFailedException, InterruptedException {
-        FileStore fileStore = newFileStore(directory).withGCMonitor(gcMonitor).create();
+        FileStore fileStore = FileStore.builder(directory).withGCMonitor(gcMonitor).build();
         try {
             final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
             fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_OLD, 1000, MEMORY_THRESHOLD_DEFAULT) {

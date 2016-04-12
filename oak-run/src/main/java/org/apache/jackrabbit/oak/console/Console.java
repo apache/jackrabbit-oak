@@ -95,8 +95,7 @@ public class Console {
                     setClusterId(clusterId.value(options)).getNodeStore();
             fixture = new MongoFixture(store);
         } else {
-            fixture = new SegmentFixture(new FileStore(
-                    new File(nonOptions.get(0)), 256));
+            fixture = new SegmentFixture(FileStore.builder(new File(nonOptions.get(0))).withMaxFileSize(256).build());
         }
 
         List<String> scriptArgs = nonOptions.size() > 1 ?
