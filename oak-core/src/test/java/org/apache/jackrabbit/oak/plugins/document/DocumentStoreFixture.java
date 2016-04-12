@@ -36,9 +36,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.mongodb.DB;
 
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
 
 public abstract class DocumentStoreFixture {
 
@@ -73,7 +73,7 @@ public abstract class DocumentStoreFixture {
 
     public static List<Object[]> getFixtures() {
         List<Object[]> fixtures = Lists.newArrayList();
-        if (FixturesHelper.getFixtures().contains(MEMORY_NS)) {
+        if (FixturesHelper.getFixtures().contains(DOCUMENT_MEM)) {
             fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
         }
 
