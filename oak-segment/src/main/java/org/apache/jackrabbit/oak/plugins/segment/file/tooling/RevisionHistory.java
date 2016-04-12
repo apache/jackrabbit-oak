@@ -53,7 +53,7 @@ public class RevisionHistory {
      * @throws IOException
      */
     public RevisionHistory(@Nonnull File directory) throws IOException {
-        this.store = new ReadOnlyStore(checkNotNull(directory));
+        this.store = FileStore.builder(checkNotNull(directory)).buildReadOnly();
     }
 
     private static NodeState getNode(SegmentNodeState root, String path) {

@@ -35,10 +35,10 @@ import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.RecordType;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -48,8 +48,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
-
-import com.google.common.collect.ImmutableSet;
 
 public class FileStoreRevisionRecovery {
 
@@ -104,12 +102,7 @@ public class FileStoreRevisionRecovery {
             SortedMap<String, UUID> candidates, final SegmentVersion version)
             throws IOException {
 
-        ReadOnlyStore store = new ReadOnlyStore(dir) {
-            @Override
-            public SegmentVersion getVersion() {
-                return version;
-            }
-        };
+        ReadOnlyStore store = FileStore.builder(dir).withSegmentVersion(version).buildReadOnly();
 
         final SortedMap<String, String> roots = newTreeMap(reverseOrder());
 

@@ -345,7 +345,11 @@ public abstract class OakFixture {
 
         @Override
         public Oak getOak(int clusterId) throws Exception {
-            FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
+            FileStore fs = FileStore.builder(base)
+                    .withMaxFileSize(maxFileSizeMB)
+                    .withCacheSize(cacheSizeMB)
+                    .withMemoryMapping(memoryMapping)
+                    .build();
             return newOak(new SegmentNodeStore(fs));
         }
 
@@ -364,10 +368,13 @@ public abstract class OakFixture {
                     blobStore = blobStoreFixtures[i].setUp();
                 }
 
-                stores[i] = new FileStore(blobStore,
-                        new File(base, unique),
-                        EmptyNodeState.EMPTY_NODE,
-                        maxFileSizeMB, cacheSizeMB, memoryMapping);
+                stores[i] = FileStore.builder(new File(base, unique))
+                        .withBlobStore(blobStore)
+                        .withRoot(EmptyNodeState.EMPTY_NODE)
+                        .withMaxFileSize(maxFileSizeMB)
+                        .withCacheSize(cacheSizeMB)
+                        .withMemoryMapping(memoryMapping)
+                        .build();
                 cluster[i] = newOak(new SegmentNodeStore(stores[i]));
             }
             return cluster;

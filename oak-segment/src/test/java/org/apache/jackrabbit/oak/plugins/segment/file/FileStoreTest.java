@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static java.io.File.createTempFile;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,7 +50,7 @@ public class FileStoreTest {
     @Ignore("OAK-4054")  // FIXME OAK-4054
     @Test
     public void containsSegment() throws IOException {
-        FileStore fileStore = newFileStore(directory).create();
+        FileStore fileStore = FileStore.builder(directory).build();
         try {
             SegmentId id = new SegmentId(fileStore.getTracker(), 0, 0);
             if (fileStore.containsSegment(id)) {

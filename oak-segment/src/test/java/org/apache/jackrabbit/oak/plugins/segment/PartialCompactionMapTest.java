@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newValidOffset;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.randomRecordIdMap;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -102,7 +101,7 @@ public class PartialCompactionMapTest {
         directory.delete();
         directory.mkdir();
 
-        segmentStore = newFileStore(directory).create();
+        segmentStore = FileStore.builder(directory).build();
     }
 
     @After

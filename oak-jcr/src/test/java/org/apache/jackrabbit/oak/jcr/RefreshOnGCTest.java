@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static java.io.File.createTempFile;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -89,9 +88,9 @@ public class RefreshOnGCTest {
             }
         };
         strategy.setPersistCompactionMap(usePersistedMap);
-        fileStore = newFileStore(directory)
+        fileStore = FileStore.builder(directory)
                 .withGCMonitor(gcMonitor)
-                .create()
+                .build()
                 .setCompactionStrategy(strategy);
 
         NodeStore nodeStore = new SegmentNodeStore(fileStore);

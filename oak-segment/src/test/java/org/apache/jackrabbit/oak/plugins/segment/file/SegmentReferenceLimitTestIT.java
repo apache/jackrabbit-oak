@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -85,8 +84,8 @@ public class SegmentReferenceLimitTestIT {
 
     @Test
     public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
-        FileStore fileStore = newFileStore(directory).withMaxFileSize(1)
-                .withNoCache().withMemoryMapping(true).create();
+        FileStore fileStore = FileStore.builder(directory).withMaxFileSize(1)
+                .withNoCache().withMemoryMapping(true).build();
         SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
 
         NodeBuilder root = nodeStore.getRoot().builder();

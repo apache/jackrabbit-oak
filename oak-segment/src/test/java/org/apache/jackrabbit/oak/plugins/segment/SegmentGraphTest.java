@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.Graph;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.junit.After;
 import org.junit.Before;
@@ -109,7 +110,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraph() throws IOException {
-        ReadOnlyStore store = new ReadOnlyStore(storeDir);
+        ReadOnlyStore store = FileStore.builder(storeDir).buildReadOnly();
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store, Predicates.<UUID>alwaysTrue());
             assertEquals(segments, newHashSet(segmentGraph.vertices()));
@@ -125,7 +126,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraphWithFilter() throws IOException {
-        ReadOnlyStore store = new ReadOnlyStore(storeDir);
+        ReadOnlyStore store = FileStore.builder(storeDir).buildReadOnly();
         try {
             Predicate<UUID> filter = createRegExpFilter(".*testWriter.*", store.getTracker());
             Graph<UUID> segmentGraph = parseSegmentGraph(store, filter);
@@ -142,7 +143,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testGCGraph() throws IOException {
-        ReadOnlyStore store = new ReadOnlyStore(storeDir);
+        ReadOnlyStore store = FileStore.builder(storeDir).buildReadOnly();
         try {
             Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
             assertEquals(gcGenerations, newHashSet(gcGraph.vertices()));

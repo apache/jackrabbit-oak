@@ -371,7 +371,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         // Build the FileStore
 
-        Builder builder = FileStore.newFileStore(getDirectory())
+        Builder builder = FileStore.builder(getDirectory())
                 .withCacheSize(getCacheSize())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
@@ -383,7 +383,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             builder.withBlobStore(blobStore);
         }
 
-        store = builder.create();
+        store = builder.build();
 
         // Create a compaction strategy
 

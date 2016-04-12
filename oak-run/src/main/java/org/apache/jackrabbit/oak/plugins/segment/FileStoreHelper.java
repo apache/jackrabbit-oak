@@ -24,12 +24,9 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
 import static java.util.Collections.sort;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -208,29 +205,34 @@ public final class FileStoreHelper {
 
     public static FileStore openFileStore(String directory, boolean force)
             throws IOException {
-        return newFileStore(checkFileStoreVersionOrFail(directory, force))
+        return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
-                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).create();
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).build();
     }
 
     public static FileStore openFileStore(String directory, boolean force,
             BlobStore blobStore) throws IOException {
-        return newFileStore(checkFileStoreVersionOrFail(directory, force))
+        return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
-                .withBlobStore(blobStore).create();
+                .withBlobStore(blobStore).build();
     }
 
     public static ReadOnlyStore openReadOnlyFileStore(File directory)
             throws IOException {
-        return new ReadOnlyStore(isValidFileStoreOrFail(directory),
-                TAR_SEGMENT_CACHE_SIZE, TAR_STORAGE_MEMORY_MAPPED);
+        return FileStore.builder(isValidFileStoreOrFail(directory))
+                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+                .buildReadOnly();
     }
 
     public static ReadOnlyStore openReadOnlyFileStore(File directory,
             BlobStore blobStore) throws IOException {
-        return new ReadOnlyStore(isValidFileStoreOrFail(directory),
-                TAR_SEGMENT_CACHE_SIZE, TAR_STORAGE_MEMORY_MAPPED, blobStore);
+        return FileStore.builder(isValidFileStoreOrFail(directory))
+                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+                .withBlobStore(blobStore)
+                .buildReadOnly();
     }
 
     public static BlobStore newBasicReadOnlyBlobStore() {
