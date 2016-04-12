@@ -611,11 +611,7 @@ public class DocumentMK {
          * @return this
          */
         public Builder setRDBConnection(DataSource ds) {
-            this.documentStore = new RDBDocumentStore(ds, this);
-            if(this.blobStore == null) {
-                this.blobStore = new RDBBlobStore(ds);
-                configureBlobStore(blobStore);
-            }
+            setRDBConnection(ds, new RDBOptions());
             return this;
         }
 
@@ -635,16 +631,6 @@ public class DocumentMK {
         }
 
         /**
-         * Sets the persistent cache option.
-         *
-         * @return this
-         */
-        public Builder setPersistentCache(String persistentCache) {
-            this.persistentCacheURI = persistentCache;
-            return this;
-        }
-
-        /**
          * Sets a {@link DataSource}s to use for the RDB document and blob
          * stores.
          *
@@ -654,6 +640,16 @@ public class DocumentMK {
             this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
             this.blobStore = new RDBBlobStore(blobStoreDataSource);
             configureBlobStore(blobStore);
+            return this;
+        }
+
+        /**
+         * Sets the persistent cache option.
+         *
+         * @return this
+         */
+        public Builder setPersistentCache(String persistentCache) {
+            this.persistentCacheURI = persistentCache;
             return this;
         }
 
