@@ -77,6 +77,7 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
 
         Session session = repository.login(new SimpleCredentials("batman", "password".toCharArray()))
         assert session
+        session.logout()
     }
 
     public static class TestLoginModule extends AbstractLoginModule {
