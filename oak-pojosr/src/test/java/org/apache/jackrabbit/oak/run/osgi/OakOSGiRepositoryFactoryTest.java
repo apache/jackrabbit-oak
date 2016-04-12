@@ -124,6 +124,7 @@ public class OakOSGiRepositoryFactoryTest {
         session.save();
 
         assertEquals("newPassword", newPassword);
+        session.logout();
     }
 
     private void basicCrudTest(Repository repository) throws RepositoryException {

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsMBean
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection
 import org.apache.jackrabbit.oak.spi.blob.BlobStore
@@ -220,8 +221,8 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         registry = repositoryFactory.initializeServiceRegistry(config)
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
-                        mongouri       : MongoUtils.mongoURI,
-                        db             : MongoUtils.mongoDB,
+                        mongouri       : MongoUtils.URL,
+                        db             : MongoUtils.DB,
                         customBlobStore: true
                 ]
         ])
@@ -244,8 +245,8 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         registry = repositoryFactory.initializeServiceRegistry(config)
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
-                        mongouri: MongoUtils.mongoURI,
-                        db      : MongoUtils.mongoDB,
+                        mongouri: MongoUtils.URL,
+                        db      : MongoUtils.DB,
                         blobCacheSize      : 1,
                 ]
         ])
@@ -311,7 +312,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     private mongoCheck() {
         //Somehow in Groovy assumeNotNull cause issue as Groovy probably
         //does away with null array causing a NPE
-        assumeTrue(mongoConn != null)
+        assumeTrue(MongoUtils.isAvailable())
     }
 
     private Collection<String> getCollectionNames() {

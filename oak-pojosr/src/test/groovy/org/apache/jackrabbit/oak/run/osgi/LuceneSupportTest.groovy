@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
+import org.junit.After
 import org.junit.Before
 import org.junit.Ignore;
 import org.junit.Test
@@ -49,6 +50,11 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
     void setupRepo() {
         repositoryFactory = new CustomFactory()
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
+    }
+
+    @After
+    void logout() {
+        session.logout()
     }
 
     @Test
