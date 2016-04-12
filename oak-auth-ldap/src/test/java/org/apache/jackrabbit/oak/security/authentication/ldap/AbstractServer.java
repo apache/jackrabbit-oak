@@ -55,7 +55,7 @@ import org.apache.directory.server.core.api.DirectoryService;
 import org.apache.directory.server.core.api.InstanceLayout;
 import org.apache.directory.server.core.api.schema.SchemaPartition;
 import org.apache.directory.server.core.jndi.CoreContextFactory;
-import org.apache.directory.server.core.partition.ldif.LdifPartition;
+import org.apache.directory.server.core.partition.impl.avl.AvlPartition;
 import org.apache.directory.server.core.shared.DefaultDnFactory;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.ldap.handlers.extended.StartTlsHandler;
@@ -199,24 +199,21 @@ public abstract class AbstractServer {
         directoryService.setSchemaManager(schemaManager);
         directoryService.setDnFactory(new DefaultDnFactory(directoryService.getSchemaManager(), cache.getCache("dnCache")));
 
-        LdifPartition schLdifPart = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        AvlPartition schLdifPart = new AvlPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
         schLdifPart.setId("schema");
-        schLdifPart.setPartitionPath(new File(directoryService.getInstanceLayout().getPartitionsDirectory(), "schema").toURI());
         schLdifPart.setSuffixDn(directoryService.getDnFactory().create(ServerDNConstants.CN_SCHEMA_DN));
         SchemaPartition schPart = new SchemaPartition(directoryService.getSchemaManager());
         schPart.setWrappedPartition(schLdifPart);
         directoryService.setSchemaPartition(schPart);
 
 
-        LdifPartition sysPart = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        AvlPartition sysPart = new AvlPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
         sysPart.setId(SystemSchemaConstants.SCHEMA_NAME);
-        sysPart.setPartitionPath(new File(directoryService.getInstanceLayout().getPartitionsDirectory(), SystemSchemaConstants.SCHEMA_NAME).toURI());
         sysPart.setSuffixDn(directoryService.getDnFactory().create(ServerDNConstants.SYSTEM_DN));
         directoryService.setSystemPartition(sysPart);
 
-        LdifPartition examplePart = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        AvlPartition examplePart = new AvlPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
         examplePart.setId("example");
-        examplePart.setPartitionPath(new File(directoryService.getInstanceLayout().getPartitionsDirectory(), "example").toURI());
         examplePart.setSuffixDn(directoryService.getDnFactory().create(EXAMPLE_DN));
         examplePart.setCacheService(cache);
         directoryService.addPartition(examplePart);
