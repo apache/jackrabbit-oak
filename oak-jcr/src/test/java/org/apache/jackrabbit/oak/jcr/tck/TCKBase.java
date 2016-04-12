@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.jcr.OakDocumentMemRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakDocumentRDBRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakMongoNSRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakTarMKRepositoryStub;
@@ -64,6 +65,9 @@ public abstract class TCKBase extends TestSuite {
             if (OakDocumentRDBRepositoryStub.isAvailable()) {
                 Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
             }
+        }
+        if (FIXTURES.contains(Fixture.DOCUMENT_MEM)) {
+            Setup.wrap(this, OakDocumentMemRepositoryStub.class.getName());
         }
     }
 
