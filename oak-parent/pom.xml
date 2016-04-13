@@ -267,6 +267,7 @@
               <mongo.url>${mongo.url}</mongo.url>
               <segment.db>${segment.db}</segment.db>
               <nsfixtures>${fixtures}</nsfixtures>
+              <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
             </systemPropertyVariables>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
           </configuration>
@@ -282,6 +283,7 @@
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
               <nsfixtures>${fixtures}</nsfixtures>
+              <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -596,13 +598,19 @@
       <properties>
          <nsfixtures />
          <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
+         <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
       </properties>
       <build>
          <plugins>
             <plugin>
                <artifactId>maven-surefire-plugin</artifactId>
+               <configuration>
+                    <systemProperties>
+                        <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+                    </systemProperties>
+               </configuration>
             </plugin>
-            <plugin>
+             <plugin>
                <artifactId>maven-failsafe-plugin</artifactId>
                <executions>
                   <execution>
@@ -610,6 +618,11 @@
                         <goal>integration-test</goal>
                         <goal>verify</goal>
                      </goals>
+                     <configuration>
+                        <systemProperties>
+                            <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+                        </systemProperties>
+                     </configuration>
                   </execution>
                </executions>
             </plugin>
