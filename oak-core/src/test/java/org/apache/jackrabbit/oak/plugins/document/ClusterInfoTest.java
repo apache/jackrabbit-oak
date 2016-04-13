@@ -145,11 +145,14 @@ public class ClusterInfoTest {
 
     @Test
     public void useAbandoned() throws InterruptedException {
-
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        ClusterNodeInfo.setClock(clock);
         MemoryDocumentStore mem = new MemoryDocumentStore();
 
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
+                clock(clock).
                 setAsyncDelay(0).
                 setLeaseCheck(false).
                 getNodeStore();
@@ -167,18 +170,20 @@ public class ClusterInfoTest {
         UpdateOp up = new UpdateOp("" + cid, false);
         up.set(Document.ID, "" + cid);
         up.set(ClusterNodeInfo.STATE, ClusterNodeState.ACTIVE.toString());
-        long now = System.currentTimeMillis();
+        long now = clock.getTime();
         up.set(ClusterNodeInfo.LEASE_END_KEY, now + waitFor);
         ds.findAndUpdate(Collection.CLUSTER_NODES, up);
 
         // try restart
         ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
+                clock(clock).
                 setAsyncDelay(0).
                 setLeaseCheck(false).
                 getNodeStore();
  
         assertEquals("should have re-used existing cluster id", cid, ns1.getClusterId());
+        ns1.dispose();
     }
 
     @After
