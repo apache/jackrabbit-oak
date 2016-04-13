@@ -590,7 +590,7 @@ public class ClusterNodeInfo {
             LOG.info("Waiting for cluster node " + key + "'s lease to expire: " + (waitUntil - getCurrentTime()) / 1000 + "s left");
 
             try {
-                Thread.sleep(5000);
+                clock.waitUntil(getCurrentTime() + 5000);
             } catch (InterruptedException e) {
                 // ignored
             }
