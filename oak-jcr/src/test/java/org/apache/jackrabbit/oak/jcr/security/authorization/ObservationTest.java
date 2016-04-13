@@ -38,16 +38,16 @@ public class ObservationTest extends AbstractEvaluationTest {
         ObservationManager obsMgr = testSession.getWorkspace().getObservationManager();
         EventResult listener = new EventResult(this.log);
         try {
-            obsMgr.addEventListener(listener, Event.NODE_REMOVED, path, true, new String[0], new String[0], true);
+            obsMgr.addEventListener(listener, Event.NODE_REMOVED, testRoot, true, null, null, true);
 
-            // superuser removes the node with childNPath in order to provoke
-            // events being generated
+            // superuser removes the node with childNPath & siblingPath in
+            // order to provoke events being generated
             superuser.getItem(childNPath).remove();
+            superuser.getItem(siblingPath).remove();
             superuser.save();
 
-            obsMgr.removeEventListener(listener);
             // since the testUser does not have read-permission on the removed
-            // node, no corresponding event must be generated.
+            // childNPath, no corresponding event must be generated.
             Event[] evts = listener.getEvents(DEFAULT_WAIT_TIMEOUT);
             for (Event evt : evts) {
                 if (evt.getType() == Event.NODE_REMOVED &&
