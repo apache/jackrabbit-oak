@@ -46,6 +46,10 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
         this(new IndexTracker());
     }
 
+    public LuceneIndexProvider(IndexCopier indexCopier) {
+        this(new IndexTracker(indexCopier));
+    }
+
     public LuceneIndexProvider(IndexTracker tracker) {
         this.tracker = tracker;
     }

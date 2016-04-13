@@ -68,6 +68,9 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.FilterDirectory;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -101,6 +104,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.containsString;
@@ -116,6 +121,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private String corDir = null;
+    private String cowDir = null;
+
     private LuceneIndexEditorProvider editorProvider;
 
     @Override
@@ -125,8 +133,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        editorProvider = new LuceneIndexEditorProvider(createIndexCopier(), new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
-        LuceneIndexProvider provider = new LuceneIndexProvider();
+        IndexCopier copier = createIndexCopier();
+        editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
+        LuceneIndexProvider provider = new LuceneIndexProvider(copier);
         return new Oak()
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
@@ -140,7 +149,44 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private IndexCopier createIndexCopier() {
         try {
-            return new IndexCopier(executorService, temporaryFolder.getRoot());
+            return new IndexCopier(executorService, temporaryFolder.getRoot()) {
+                @Override
+                public Directory wrapForRead(String indexPath, IndexDefinition definition,
+                                             Directory remote) throws IOException {
+                    Directory ret = super.wrapForRead(indexPath, definition, remote);
+                    corDir = getFSDirPath(ret);
+                    return ret;
+                }
+
+                @Override
+                public Directory wrapForWrite(IndexDefinition definition,
+                                              Directory remote, boolean reindexMode) throws IOException {
+                    Directory ret = super.wrapForWrite(definition, remote, reindexMode);
+                    cowDir = getFSDirPath(ret);
+                    return ret;
+                }
+
+                private String getFSDirPath(Directory dir){
+                    if (dir instanceof IndexCopier.CopyOnReadDirectory){
+                        dir = ((CopyOnReadDirectory) dir).getLocal();
+                    }
+
+                    dir = unwrap(dir);
+
+                    if (dir instanceof FSDirectory){
+                        return ((FSDirectory) dir).getDirectory().getAbsolutePath();
+                    }
+                    return null;
+                }
+
+                private Directory unwrap(Directory dir){
+                    if (dir instanceof FilterDirectory){
+                        return unwrap(((FilterDirectory) dir).getDelegate());
+                    }
+                    return dir;
+                }
+
+            };
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -1593,6 +1639,58 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String propabQuery = "select [jcr:path] from [mix:title] where [jcr:content/type] = 'foo-a'";
         assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
         assertQuery(propabQuery, asList("/test/a"));
+    }
+
+    //OAK-4024
+    @Test
+    public void reindexWithCOWWithIndexPath() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        idx.setProperty(LuceneIndexConstants.INDEX_PATH, "/oak:index/test1");
+        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        //force CoR
+        executeQuery("SELECT * FROM [mix:title]", SQL2);
+
+        assertNotNull(corDir);
+        String localPathBeforeReindex = corDir;
+
+        //CoW with re-indexing
+        idx.setProperty("reindex", true);
+        root.commit();
+
+        assertNotNull(cowDir);
+        String localPathAfterReindex = cowDir;
+
+        assertNotEquals("CoW should write to different dir on reindexing", localPathBeforeReindex, localPathAfterReindex);
+    }
+
+    @Test
+    public void reindexWithCOWWithoutIndexPath() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        //force CoR
+        executeQuery("SELECT * FROM [mix:title]", SQL2);
+
+        assertNotNull(corDir);
+        String localPathBeforeReindex = corDir;
+
+        //CoW with re-indexing
+        idx.setProperty("reindex", true);
+        root.commit();
+
+        assertNotNull(cowDir);
+        String localPathAfterReindex = cowDir;
+
+        assertNotEquals("CoW should write to different dir on reindexing", localPathBeforeReindex, localPathAfterReindex);
     }
 
     private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
