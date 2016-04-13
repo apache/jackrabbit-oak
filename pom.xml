@@ -82,7 +82,6 @@
             <exclude>oak-doc/.*/**</exclude>
             <exclude>oak-doc/*.iml</exclude>
             <exclude>oak-doc/target/**</exclude>
-            <exclude>**/derby.log</exclude>
           </excludes>
         </configuration>
       </plugin>
