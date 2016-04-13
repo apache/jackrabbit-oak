@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -192,7 +191,6 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
     }
 
-    @Ignore("OAK-4199")
     @Test
     public void testDeleteChunks() throws Exception {
         byte[] data1 = new byte[256];
