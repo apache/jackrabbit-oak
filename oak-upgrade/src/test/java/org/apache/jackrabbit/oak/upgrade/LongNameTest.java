@@ -125,7 +125,7 @@ public class LongNameTest {
     public void longNameOnSegmentStoreWorksFine() throws RepositoryException, IOException {
         SegmentStore memoryStore = new MemoryStore();
         try {
-            SegmentNodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(memoryStore).create();
+            SegmentNodeStore nodeStore = SegmentNodeStore.builder(memoryStore).build();
             upgrade(nodeStore, false);
 
             NodeState parent = getParent(nodeStore.getRoot());

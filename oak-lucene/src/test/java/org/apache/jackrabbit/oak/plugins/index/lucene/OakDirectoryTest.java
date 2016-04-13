@@ -319,7 +319,7 @@ public class OakDirectoryTest {
                 .withMemoryMapping(false)
                 .withBlobStore(new BlackHoleBlobStore())
                 .build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(store).create();
+        SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
         IndexDefinition defn = new IndexDefinition(INITIAL_CONTENT, EmptyNodeState.EMPTY_NODE);
         Directory directory = new OakDirectory(nodeStore.getRoot().builder(), defn, false);
 
@@ -374,7 +374,7 @@ public class OakDirectoryTest {
                 .withMemoryMapping(false)
                 .withBlobStore(blobStore)
                 .build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(store).create();
+        SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
 
         String indexPath = "/foo/bar";
 

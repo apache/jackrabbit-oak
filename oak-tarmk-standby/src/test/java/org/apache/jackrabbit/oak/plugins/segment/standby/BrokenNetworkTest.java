@@ -119,7 +119,7 @@ public class BrokenNetworkTest extends TestBase {
         p.flipByte(flipPosition);
         p.run();
 
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         final StandbyServer server = new StandbyServer(port, storeS, ssl);
         server.start();
         addTestContent(store, "server");

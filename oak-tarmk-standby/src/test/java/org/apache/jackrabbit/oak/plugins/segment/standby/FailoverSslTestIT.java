@@ -45,7 +45,7 @@ public class FailoverSslTestIT extends TestBase {
     @Test
     public void testFailoverSecure() throws Exception {
 
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         final StandbyServer server = new StandbyServer(port, storeS, true);
         server.start();
         addTestContent(store, "server");
@@ -65,7 +65,7 @@ public class FailoverSslTestIT extends TestBase {
     @Test
     public void testFailoverSecureServerPlainClient() throws Exception {
 
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         final StandbyServer server = new StandbyServer(port, storeS, true);
         server.start();
         addTestContent(store, "server");
@@ -85,7 +85,7 @@ public class FailoverSslTestIT extends TestBase {
     @Test
     public void testFailoverPlainServerSecureClient() throws Exception {
 
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         final StandbyServer server = new StandbyServer(port, storeS);
         server.start();
         addTestContent(store, "server");

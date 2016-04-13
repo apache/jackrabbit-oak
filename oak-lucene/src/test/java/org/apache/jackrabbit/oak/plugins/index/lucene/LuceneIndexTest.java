@@ -73,7 +73,6 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -88,6 +87,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
@@ -704,7 +704,7 @@ public class LuceneIndexTest {
         //Issue is not reproducible with MemoryNodeBuilder and
         //MemoryNodeState as they cannot determine change in childNode without
         //entering
-        NodeStore nodeStore = new SegmentNodeStore();
+        NodeStore nodeStore = SegmentNodeStore.builder(new MemoryStore()).build();
         final IndexTracker tracker = new IndexTracker();
         ((Observable)nodeStore).addObserver(new Observer() {
             @Override

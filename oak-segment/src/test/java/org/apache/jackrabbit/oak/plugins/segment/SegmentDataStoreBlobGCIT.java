@@ -121,7 +121,7 @@ public class SegmentDataStoreBlobGCIT {
                 };
             compactionStrategy.setPersistCompactionMap(usePersistedMap);
             store.setCompactionStrategy(compactionStrategy);
-            nodeStore = new SegmentNodeStore(store);
+            nodeStore = SegmentNodeStore.builder(store).build();
         }
         return nodeStore;
     }

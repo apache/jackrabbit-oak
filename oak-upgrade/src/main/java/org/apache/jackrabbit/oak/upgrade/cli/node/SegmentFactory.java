@@ -51,7 +51,7 @@ public class SegmentFactory implements NodeStoreFactory {
         builder.withMaxFileSize(256).withMemoryMapping(mmap);
         FileStore fs = builder.build();
         closer.register(asCloseable(fs));
-        return SegmentNodeStore.newSegmentNodeStore(fs).create();
+        return SegmentNodeStore.builder(fs).build();
     }
 
     public File getRepositoryDir() {

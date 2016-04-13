@@ -54,7 +54,7 @@ public class HiddenNodeTest {
 
     @Before
     public void before() throws Exception {
-        store = new SegmentNodeStore(new MemoryStore());
+        store = SegmentNodeStore.builder(new MemoryStore()).build();
         repo = new Jcr(store).createRepository();
         session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
         vMgr = session.getWorkspace().getVersionManager();

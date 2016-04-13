@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
@@ -27,6 +28,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.GAIN_THRESHOLD_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -47,7 +50,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -69,8 +72,82 @@ import org.slf4j.LoggerFactory;
  */
 public class SegmentNodeStore implements NodeStore, Observable {
 
-    private static final Logger log = LoggerFactory
-            .getLogger(SegmentNodeStore.class);
+    public static class SegmentNodeStoreBuilder {
+
+        private final SegmentStore store;
+
+        private boolean isCreated;
+
+        private CompactionStrategy compactionStrategy = NO_COMPACTION;
+
+        private volatile SegmentNodeStore segmentNodeStore;
+
+        private SegmentNodeStoreBuilder(@Nonnull SegmentStore store) {
+            this.store = store;
+        }
+
+        SegmentNodeStoreBuilder withCompactionStrategy(CompactionStrategy compactionStrategy) {
+            this.compactionStrategy = compactionStrategy;
+            return this;
+        }
+
+        SegmentNodeStoreBuilder withCompactionStrategy(
+                boolean pauseCompaction,
+                boolean cloneBinaries,
+                String cleanup,
+                long cleanupTs,
+                byte memoryThreshold,
+                final int lockWaitTime,
+                int retryCount,
+                boolean forceAfterFail,
+                boolean persistCompactionMap,
+                byte gainThreshold) {
+
+            compactionStrategy = new CompactionStrategy(
+                    pauseCompaction,
+                    cloneBinaries,
+                    CompactionStrategy.CleanupType.valueOf(cleanup),
+                    cleanupTs,
+                    memoryThreshold) {
+
+                @Override
+                public boolean compacted(Callable<Boolean> setHead) throws Exception {
+                    // Need to guard against concurrent commits to avoid
+                    // mixed segments. See OAK-2192.
+                    return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
+                }
+
+            };
+
+            compactionStrategy.setRetryCount(retryCount);
+            compactionStrategy.setForceAfterFail(forceAfterFail);
+            compactionStrategy.setPersistCompactionMap(persistCompactionMap);
+            compactionStrategy.setGainThreshold(gainThreshold);
+
+            return this;
+        }
+
+        CompactionStrategy getCompactionStrategy() {
+            checkState(isCreated);
+            return compactionStrategy;
+        }
+
+        @Nonnull
+        public SegmentNodeStore build() {
+            checkState(!isCreated);
+            isCreated = true;
+            segmentNodeStore = new SegmentNodeStore(this);
+            return segmentNodeStore;
+        }
+
+    }
+
+    @Nonnull
+    public static SegmentNodeStoreBuilder builder(@Nonnull SegmentStore store) {
+        return new SegmentNodeStoreBuilder(checkNotNull(store));
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(SegmentNodeStore.class);
 
     static final String ROOT = "root";
 
@@ -107,33 +184,14 @@ public class SegmentNodeStore implements NodeStore, Observable {
     private final boolean commitFairLock = Boolean
             .getBoolean("oak.segmentNodeStore.commitFairLock");
 
-    @Nonnull
-    public static SegmentNodeStoreBuilder newSegmentNodeStore(
-            @Nonnull SegmentStore store) {
-        return SegmentNodeStoreBuilder.newSegmentNodeStore(checkNotNull(store));
-    }
-
-    /**
-     * @deprecated Use {@link SegmentNodeStore#newSegmentNodeStore(SegmentStore)} instead
-     * 
-     */
-    @Deprecated
-    public SegmentNodeStore(SegmentStore store) {
-        this(store, false);
-    }
-
-    SegmentNodeStore(SegmentStore store, boolean internal) {
+    private SegmentNodeStore(SegmentNodeStoreBuilder builder) {
         if (commitFairLock) {
             log.info("initializing SegmentNodeStore with the commitFairLock option enabled.");
         }
         this.commitSemaphore = new Semaphore(1, commitFairLock);
-        this.store = store;
+        this.store = builder.store;
         this.head = new AtomicReference<SegmentNodeState>(store.getHead());
         this.changeDispatcher = new ChangeDispatcher(getRoot());
-    }
-
-    public SegmentNodeStore() throws IOException {
-        this(new MemoryStore());
     }
 
     void setMaximumBackoff(long max) {
@@ -589,4 +647,5 @@ public class SegmentNodeStore implements NodeStore, Observable {
     void setCheckpointsLockWaitTime(int checkpointsLockWaitTime) {
         this.checkpointsLockWaitTime = checkpointsLockWaitTime;
     }
+
 }

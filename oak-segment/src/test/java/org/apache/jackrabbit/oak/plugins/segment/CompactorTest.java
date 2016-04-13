@@ -51,7 +51,7 @@ public class CompactorTest {
 
     @Test
     public void testCompactor() throws Exception {
-        NodeStore store = new SegmentNodeStore(segmentStore);
+        NodeStore store = SegmentNodeStore.builder(segmentStore).build();
         init(store);
 
         Compactor compactor = new Compactor(segmentStore.getTracker());
@@ -74,7 +74,7 @@ public class CompactorTest {
         // early cancellation is the reason why the returned SegmentNodeState
         // doesn't have the child named "b".
 
-        NodeStore store = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+        NodeStore store = SegmentNodeStore.builder(segmentStore).build();
         Compactor compactor = new Compactor(segmentStore.getTracker(), Suppliers.ofInstance(true));
         SegmentNodeState sns = compactor.compact(store.getRoot(), addChild(store.getRoot(), "b"), store.getRoot());
         assertFalse(sns.hasChildNode("b"));

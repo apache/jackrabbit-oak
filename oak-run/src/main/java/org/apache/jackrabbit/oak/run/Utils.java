@@ -83,7 +83,7 @@ class Utils {
 
         FileStore fs = openFileStore(src);
         closer.register(asCloseable(fs));
-        return SegmentNodeStore.newSegmentNodeStore(fs).create();
+        return SegmentNodeStore.builder(fs).build();
     }
 
     static Closeable asCloseable(final FileStore fs) {

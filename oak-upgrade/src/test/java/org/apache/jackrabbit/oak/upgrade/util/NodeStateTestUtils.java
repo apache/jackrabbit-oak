@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -49,7 +50,7 @@ public class NodeStateTestUtils {
     }
 
     public static NodeStore createNodeStoreWithContent(String... paths) throws CommitFailedException, IOException {
-        final SegmentNodeStore store = new SegmentNodeStore();
+        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
         final NodeBuilder builder = store.getRoot().builder();
         for (String path : paths) {
             create(builder, path);

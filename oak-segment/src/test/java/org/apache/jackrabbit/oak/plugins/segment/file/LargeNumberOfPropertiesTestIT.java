@@ -78,7 +78,7 @@ public class LargeNumberOfPropertiesTestIT {
     public void corruption() throws Exception {
         FileStore fileStore = FileStore.builder(directory).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
-        SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
 
         NodeBuilder root = nodeStore.getRoot().builder();
 

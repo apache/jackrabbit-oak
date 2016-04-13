@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.backup;
 
 import static org.apache.commons.io.FileUtils.deleteQuietly;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.newSegmentNodeStore;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.builder;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -64,7 +64,7 @@ public class FileStoreBackupTest {
     public void testBackup() throws Exception {
         FileStore source = FileStore.builder(src).withMaxFileSize(8).build();
 
-        NodeStore store = newSegmentNodeStore(source).create();
+        NodeStore store = builder(source).build();
         init(store);
 
         // initial content
@@ -83,7 +83,7 @@ public class FileStoreBackupTest {
     public void testRestore() throws Exception {
         FileStore source = FileStore.builder(src).withMaxFileSize(8).build();
 
-        NodeStore store = newSegmentNodeStore(source).create();
+        NodeStore store = builder(source).build();
         init(store);
         FileStoreBackup.backup(store, destination);
         addTestContent(store);

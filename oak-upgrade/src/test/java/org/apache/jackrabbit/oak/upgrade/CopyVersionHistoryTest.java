@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
@@ -241,7 +242,7 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
         final RepositoryConfig sourceConfig = RepositoryConfig.create(source);
         final RepositoryContext sourceContext = RepositoryContext.create(sourceConfig);
-        final NodeStore targetNodeStore = new SegmentNodeStore();
+        final NodeStore targetNodeStore = SegmentNodeStore.builder(new MemoryStore()).build();
         try {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(sourceContext, targetNodeStore);
             setup.setup(upgrade.versionCopyConfiguration);

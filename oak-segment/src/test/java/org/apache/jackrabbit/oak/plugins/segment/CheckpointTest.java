@@ -40,7 +40,7 @@ public class CheckpointTest {
 
     @Test
     public void testCheckpoint() throws CommitFailedException, IOException {
-        SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
+        SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
         addTestNode(store, "test-checkpoint");
         verifyNS(store, true);
         rmTestNode(store, "test-checkpoint");
@@ -52,7 +52,7 @@ public class CheckpointTest {
 
     @Test
     public void testRelease() throws CommitFailedException, IOException {
-        SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
+        SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
         addTestNode(store, "test-checkpoint");
         String cp = verifyNS(store, true);
 
@@ -97,7 +97,7 @@ public class CheckpointTest {
      */
     @Test
     public void testShortWait() throws Exception {
-        final SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
+        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
         store.setCheckpointsLockWaitTime(1);
 
         final Semaphore semaphore = new Semaphore(0);
@@ -146,7 +146,7 @@ public class CheckpointTest {
     @Test
     public void testLongWait() throws Exception {
         final int blockTime = 1;
-        final SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
+        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
         store.setCheckpointsLockWaitTime(blockTime + 1);
 
         final Semaphore semaphore = new Semaphore(0);

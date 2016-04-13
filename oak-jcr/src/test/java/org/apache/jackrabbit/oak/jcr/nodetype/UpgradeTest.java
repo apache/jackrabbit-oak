@@ -42,7 +42,7 @@ import org.junit.Test;
 
 import net.lingala.zip4j.core.ZipFile;
 
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.newSegmentNodeStore;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.builder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -63,7 +63,7 @@ public class UpgradeTest {
         tmpZip.delete();
 
         SegmentStore store = FileStore.builder(repoHome).build();
-        Repository repo = new Jcr(newSegmentNodeStore(store).create()).createRepository();
+        Repository repo = new Jcr(builder(store).build()).createRepository();
         Session s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         Node myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");

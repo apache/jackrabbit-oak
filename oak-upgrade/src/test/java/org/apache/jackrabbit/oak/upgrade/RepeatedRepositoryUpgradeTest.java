@@ -37,7 +37,6 @@ import org.junit.Test;
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.File;
@@ -59,7 +58,7 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
 
     @Override
     protected NodeStore createTargetNodeStore() {
-        return new SegmentNodeStore(fileStore);
+        return SegmentNodeStore.builder(fileStore).build();
     }
 
     @BeforeClass

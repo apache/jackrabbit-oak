@@ -215,7 +215,7 @@ public class SegmentVersionTest {
     @SuppressWarnings("deprecation")
     private static NodeState addTestContent(FileStore fs, String nodeName)
             throws CommitFailedException {
-        NodeStore store = new SegmentNodeStore(fs);
+        NodeStore store = SegmentNodeStore.builder(fs).build();
         NodeBuilder builder = store.getRoot().builder();
 
         NodeBuilder content = builder.child(nodeName);
@@ -232,7 +232,7 @@ public class SegmentVersionTest {
     }
 
     private static void verifyContent(FileStore fs, String nodeName) {
-        NodeStore store = new SegmentNodeStore(fs);
+        NodeStore store = SegmentNodeStore.builder(fs).build();
         SegmentNodeState content = (SegmentNodeState) store.getRoot()
                 .getChildNode(nodeName);
 

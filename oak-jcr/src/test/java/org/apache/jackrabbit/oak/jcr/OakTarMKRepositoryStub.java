@@ -50,7 +50,7 @@ public class OakTarMKRepositoryStub extends OakRepositoryStub {
             File directory =
                     new File("target", "tarmk-" + System.currentTimeMillis());
             this.store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
-            Jcr jcr = new Jcr(new Oak(new SegmentNodeStore(store)));
+            Jcr jcr = new Jcr(new Oak(SegmentNodeStore.builder(store).build()));
             QueryEngineSettings qs = new QueryEngineSettings();
             qs.setFullTextComparisonWithoutIndex(true);
             jcr.with(qs);

@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -67,7 +66,7 @@ public class LuceneBlobCacheTest {
                                         .withBlobStore(new DataStoreBlobStore(fileDataStore)).withMaxFileSize(256)
                                         .withCacheSize(64).withMemoryMapping(false);
         store = fileStoreBuilder.build();
-        NodeStore nodeStore = new SegmentNodeStore(store);
+        NodeStore nodeStore = SegmentNodeStore.builder(store).build();
         root = nodeStore.getRoot();
         builder = root.builder();
     }

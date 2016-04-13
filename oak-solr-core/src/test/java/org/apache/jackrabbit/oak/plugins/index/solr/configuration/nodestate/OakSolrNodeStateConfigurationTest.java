@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -37,7 +38,7 @@ public class OakSolrNodeStateConfigurationTest {
 
     @Before
     public void setUp() throws Exception {
-        store = new SegmentNodeStore();
+        store = SegmentNodeStore.builder(new MemoryStore()).build();
         NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1)
                .setProperty("b", 2)

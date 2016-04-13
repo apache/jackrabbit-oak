@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -60,7 +61,7 @@ public class BrokenVersionableTest {
 
     @Before
     public synchronized void upgradeRepository() throws Exception {
-        targetNodeStore = new SegmentNodeStore();
+        targetNodeStore = SegmentNodeStore.builder(new MemoryStore()).build();
         targetRepository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
         NodeStore source = createSourceContent();
         RepositorySidegrade sidegrade = new RepositorySidegrade(source, targetNodeStore);
@@ -76,7 +77,7 @@ public class BrokenVersionableTest {
     }
 
     private NodeStore createSourceContent() throws Exception {
-        SegmentNodeStore source = new SegmentNodeStore();
+        SegmentNodeStore source = SegmentNodeStore.builder(new MemoryStore()).build();
         RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(source)).createRepository();
         Session session = repository.login(CREDENTIALS);
         List<String> versionHistoryPaths = new ArrayList<String>();

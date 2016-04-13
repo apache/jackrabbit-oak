@@ -34,7 +34,7 @@ public class InitializerTest {
 
     @Test
     public void testInitializerSegment() throws CommitFailedException, IOException {
-        NodeStore store = new SegmentNodeStore(new MemoryStore());
+        NodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
 
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);

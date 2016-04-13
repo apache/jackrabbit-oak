@@ -39,7 +39,7 @@ public class IncludeExcludeSidegradeTest extends IncludeExcludeUpgradeTest {
             File source = new File(directory, "source");
             source.mkdirs();
             FileStore fileStore = FileStore.builder(source).build();
-            SegmentNodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
+            SegmentNodeStore segmentNodeStore = SegmentNodeStore.builder(fileStore).build();
             RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             Session session = repository.login(CREDENTIALS);
             try {
@@ -59,7 +59,7 @@ public class IncludeExcludeSidegradeTest extends IncludeExcludeUpgradeTest {
     @Override
     protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
         FileStore fileStore = FileStore.builder(source).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStore.builder(fileStore).build();
         try {
             final RepositorySidegrade sidegrade = new RepositorySidegrade(segmentNodeStore, target);
             sidegrade.setIncludes(

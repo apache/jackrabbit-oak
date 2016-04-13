@@ -93,7 +93,7 @@ public class RefreshOnGCTest {
                 .build()
                 .setCompactionStrategy(strategy);
 
-        NodeStore nodeStore = new SegmentNodeStore(fileStore);
+        NodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
         Oak oak = new Oak(nodeStore);
         oak.with(whiteboard);
         repository = new Jcr(oak).createRepository();

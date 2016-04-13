@@ -101,7 +101,7 @@ public class ResetClusterIdCommand implements Command {
             } else {
                 FileStore fs = openFileStore(args[0]);
                 closer.register(Utils.asCloseable(fs));
-                store = SegmentNodeStore.newSegmentNodeStore(fs).create();
+                store = SegmentNodeStore.builder(fs).build();
             }
             
             deleteClusterId(store);

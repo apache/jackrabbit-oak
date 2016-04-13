@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -88,7 +89,7 @@ public class RepositorySidegradeTest {
 
     @Before
     public synchronized void upgradeRepository() throws Exception {
-        targetNodeStore = new SegmentNodeStore();
+        targetNodeStore = SegmentNodeStore.builder(new MemoryStore()).build();
         targetRepository = new Jcr(new Oak(targetNodeStore)).createRepository();
         NodeStore source = createSourceContent();
         RepositorySidegrade sidegrade = new RepositorySidegrade(source, targetNodeStore);
@@ -115,7 +116,7 @@ public class RepositorySidegradeTest {
 
     @SuppressWarnings("unchecked")
     protected NodeStore createSourceContent() throws Exception {
-        NodeStore source = new SegmentNodeStore();
+        NodeStore source = SegmentNodeStore.builder(new MemoryStore()).build();
         setAsync(source);
         
         Repository repository = new Jcr(new Oak(source)).createRepository();
