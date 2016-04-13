@@ -1294,6 +1294,9 @@ public class MongoDocumentStore implements DocumentStore {
                 Object o = n.get(key);
                 if (o instanceof String) {
                     copy.put(key, o);
+                } else if (o instanceof Number &&
+                        (NodeDocument.MODIFIED_IN_SECS.equals(key) || Document.MOD_COUNT.equals(key))) {
+                    copy.put(key, Utils.asLong((Number) o));
                 } else if (o instanceof Long) {
                     copy.put(key, o);
                 } else if (o instanceof Integer) {
