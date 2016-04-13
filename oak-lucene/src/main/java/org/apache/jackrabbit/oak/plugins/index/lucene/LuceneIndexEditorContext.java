@@ -122,7 +122,7 @@ public class LuceneIndexEditorContext {
 
     private static final Parser defaultParser = createDefaultParser();
 
-    private final IndexDefinition definition;
+    private IndexDefinition definition;
 
     private final NodeBuilder definitionBuilder;
 
@@ -145,6 +145,8 @@ public class LuceneIndexEditorContext {
     private final TextExtractionStats textExtractionStats = new TextExtractionStats();
 
     private final ExtractedTextCache extractedTextCache;
+
+    private final NodeState root;
     /**
      * The media types supported by the parser used.
      */
@@ -156,6 +158,7 @@ public class LuceneIndexEditorContext {
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
                              @Nullable IndexCopier indexCopier, ExtractedTextCache extractedTextCache) {
+        this.root = root;
         this.definitionBuilder = definition;
         this.indexCopier = indexCopier;
         this.definition = new IndexDefinition(root, definition);
@@ -318,6 +321,9 @@ public class LuceneIndexEditorContext {
         reindex = true;
         IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
+
+        //Refresh the index definition based on update builder state
+        definition = new IndexDefinition(root, definitionBuilder);
     }
 
     public long incIndexedNodes() {
