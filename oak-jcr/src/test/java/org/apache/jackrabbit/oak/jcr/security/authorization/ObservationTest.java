@@ -59,4 +59,36 @@ public class ObservationTest extends AbstractEvaluationTest {
             obsMgr.removeEventListener(listener);
         }
     }
+
+    // OAK-4196
+    @Test
+    public void testEventDeniedNode() throws Exception {
+        // withdraw the READ privilege on childNPath
+        deny(childNPath, readPrivileges);
+
+        // testUser registers a event listener for changes under testRoot
+        ObservationManager obsMgr = testSession.getWorkspace().getObservationManager();
+        EventResult listener = new EventResult(this.log);
+        try {
+            obsMgr.addEventListener(listener, Event.NODE_REMOVED, testRoot, true, null, null, true);
+
+            // superuser removes the node with childNPath & childNPath2 in
+            // order to provoke events being generated
+            superuser.getItem(childNPath).remove();
+            superuser.getItem(childNPath2).remove();
+            superuser.save();
+
+            // since the testUser does not have read-permission on the removed
+            // childNPath, no corresponding event must be generated.
+            Event[] evts = listener.getEvents(DEFAULT_WAIT_TIMEOUT);
+            for (Event evt : evts) {
+                if (evt.getType() == Event.NODE_REMOVED &&
+                        evt.getPath().equals(childNPath)) {
+                    fail("TestUser does not have READ permission on " + childNPath);
+                }
+            }
+        } finally {
+            obsMgr.removeEventListener(listener);
+        }
+    }
 }
