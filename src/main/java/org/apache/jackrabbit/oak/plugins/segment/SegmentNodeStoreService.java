@@ -530,9 +530,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
-        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.newSegmentNodeStore(store);
+        SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.builder(store);
         nodeStoreBuilder.withCompactionStrategy(compactionStrategy);
-        segmentNodeStore = nodeStoreBuilder.create();
+        segmentNodeStore = nodeStoreBuilder.build();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());

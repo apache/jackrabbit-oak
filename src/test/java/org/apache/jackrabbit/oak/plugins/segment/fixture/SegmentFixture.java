@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class SegmentFixture extends NodeStoreFixture {
@@ -42,12 +43,12 @@ public class SegmentFixture extends NodeStoreFixture {
     public NodeStore createNodeStore() {
         if (store == null) {
             try {
-                return new SegmentNodeStore();
+                return SegmentNodeStore.builder(new MemoryStore()).build();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else {
-            return SegmentNodeStore.newSegmentNodeStore(store).create();
+            return SegmentNodeStore.builder(store).build();
         }
     }
 

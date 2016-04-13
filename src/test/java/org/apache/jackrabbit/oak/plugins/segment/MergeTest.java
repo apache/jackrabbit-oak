@@ -40,7 +40,7 @@ public class MergeTest {
 
     @Test
     public void testSequentialMerge() throws CommitFailedException, IOException {
-        NodeStore store = new SegmentNodeStore(new MemoryStore());
+        NodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
 
         assertFalse(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
@@ -62,7 +62,7 @@ public class MergeTest {
 
     @Test
     public void testOptimisticMerge() throws CommitFailedException, IOException {
-        NodeStore store = new SegmentNodeStore(new MemoryStore());
+        NodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
 
         NodeBuilder a = store.getRoot().builder();
         a.setProperty("foo", "abc");
@@ -86,7 +86,7 @@ public class MergeTest {
 
     @Test
     public void testPessimisticMerge() throws Exception {
-        final SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
+        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
         final Semaphore semaphore = new Semaphore(0);
         final AtomicBoolean running = new AtomicBoolean(true);
 

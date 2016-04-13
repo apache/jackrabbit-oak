@@ -44,7 +44,7 @@ public class DepthFirstNodeIteratorTest {
 
     @Before
     public void setup() throws CommitFailedException, IOException {
-        store = SegmentNodeStore.newSegmentNodeStore(new MemoryStore()).create();
+        store = SegmentNodeStore.builder(new MemoryStore()).build();
         NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder countries = rootBuilder.child("countries");
         countries.child("uk").child("cities").child("london").child("districts").child("frognal");

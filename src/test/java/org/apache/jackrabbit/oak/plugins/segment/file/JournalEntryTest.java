@@ -47,7 +47,7 @@ public class JournalEntryTest {
         FileStore fileStore = FileStore.builder(tempFolder.getRoot()).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
 
-        SegmentNodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
+        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
 
         long startTime = System.currentTimeMillis();
 

@@ -110,7 +110,7 @@ public class SegmentOverflowExceptionIT {
     public void run() throws IOException, CommitFailedException, InterruptedException {
         FileStore fileStore = FileStore.builder(directory).withGCMonitor(gcMonitor).build();
         try {
-            final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+            final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
             fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_OLD, 1000, MEMORY_THRESHOLD_DEFAULT) {
                 @Override
                 public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
