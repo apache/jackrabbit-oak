@@ -304,7 +304,7 @@ public class TextExtractorMain {
         }
         FileStore fs = openFileStore(src, false, blobStore);
         closer.register(asCloseable(fs));
-        return SegmentNodeStore.newSegmentNodeStore(fs).create();
+        return SegmentNodeStore.builder(fs).build();
     }
 
     private static Closeable asCloseable(final FileStore fs) {

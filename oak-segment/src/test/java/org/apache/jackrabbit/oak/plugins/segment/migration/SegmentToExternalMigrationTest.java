@@ -42,7 +42,7 @@ public class SegmentToExternalMigrationTest extends AbstractMigratorTest {
             builder.withBlobStore(blobStore);
         }
         segmentStore = builder.build();
-        return SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+        return SegmentNodeStore.builder(segmentStore).build();
     }
 
     @Override

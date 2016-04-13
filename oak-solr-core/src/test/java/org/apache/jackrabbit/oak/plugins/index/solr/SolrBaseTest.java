@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -51,7 +52,7 @@ public abstract class SolrBaseTest {
 
     @Before
     public void setUp() throws Exception {
-        store = new SegmentNodeStore();
+        store = SegmentNodeStore.builder(new MemoryStore()).build();
         provider = new TestUtils();
         server = provider.getSolrServer();
         configuration = provider.getConfiguration();

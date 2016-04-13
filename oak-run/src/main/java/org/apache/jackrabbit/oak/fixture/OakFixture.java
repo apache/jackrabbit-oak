@@ -350,7 +350,7 @@ public abstract class OakFixture {
                     .withCacheSize(cacheSizeMB)
                     .withMemoryMapping(memoryMapping)
                     .build();
-            return newOak(new SegmentNodeStore(fs));
+            return newOak(SegmentNodeStore.builder(fs).build());
         }
 
         @Override
@@ -375,7 +375,7 @@ public abstract class OakFixture {
                         .withCacheSize(cacheSizeMB)
                         .withMemoryMapping(memoryMapping)
                         .build();
-                cluster[i] = newOak(new SegmentNodeStore(stores[i]));
+                cluster[i] = newOak(SegmentNodeStore.builder(stores[i]).build());
             }
             return cluster;
         }

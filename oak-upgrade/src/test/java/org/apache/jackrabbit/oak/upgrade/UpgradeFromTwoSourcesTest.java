@@ -44,7 +44,7 @@ public class UpgradeFromTwoSourcesTest extends AbstractRepositoryUpgradeTest {
 
     @Override
     protected NodeStore createTargetNodeStore() {
-        return new SegmentNodeStore(fileStore);
+        return SegmentNodeStore.builder(fileStore).build();
     }
 
     @BeforeClass

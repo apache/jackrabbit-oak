@@ -234,8 +234,8 @@ public class SegmentCompactionIT {
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .build();
-        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
-                .newSegmentNodeStore(fileStore);
+        SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
+                .builder(fileStore);
         nodeStoreBuilder.withCompactionStrategy(false, false,
                 CLEAN_OLD.toString(), CompactionStrategy.TIMESTAMP_DEFAULT,
                 CompactionStrategy.MEMORY_THRESHOLD_DEFAULT, lockWaitTime,
@@ -243,7 +243,7 @@ public class SegmentCompactionIT {
                 CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT,
                 PERSIST_COMPACTION_MAP,
                 CompactionStrategy.GAIN_THRESHOLD_DEFAULT);
-        nodeStore = nodeStoreBuilder.create();
+        nodeStore = nodeStoreBuilder.build();
 
         compactionStrategy = nodeStoreBuilder
                 .getCompactionStrategy();

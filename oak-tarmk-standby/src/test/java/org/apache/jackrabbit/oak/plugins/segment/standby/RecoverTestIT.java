@@ -47,7 +47,7 @@ public class RecoverTestIT extends TestBase {
     @Test
     public void testBrokenConnection() throws Exception {
 
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         DebugSegmentStore s = new DebugSegmentStore(storeS);
         addTestContent(store, "server");
         storeS.flush();
@@ -74,12 +74,12 @@ public class RecoverTestIT extends TestBase {
     @Test
     public void testLocalChanges() throws Exception {
 
-        NodeStore store = new SegmentNodeStore(storeC);
+        NodeStore store = SegmentNodeStore.builder(storeC).build();
         addTestContent(store, "client");
 
         final StandbyServer server = new StandbyServer(port, storeS);
         server.start();
-        store = new SegmentNodeStore(storeS);
+        store = SegmentNodeStore.builder(storeS).build();
         addTestContent(store, "server");
         storeS.flush();
 

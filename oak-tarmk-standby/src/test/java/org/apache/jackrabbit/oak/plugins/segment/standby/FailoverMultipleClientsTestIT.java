@@ -44,7 +44,7 @@ public class FailoverMultipleClientsTestIT extends TestBase {
 
     @Test
     public void testMultipleClients() throws Exception {
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         final StandbyServer server = new StandbyServer(port, storeS);
         server.start();
         SegmentTestUtils.addTestContent(store, "server");

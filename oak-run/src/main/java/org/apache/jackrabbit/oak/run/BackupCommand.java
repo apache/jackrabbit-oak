@@ -44,7 +44,7 @@ class BackupCommand implements Command {
                 fs = openReadOnlyFileStore(new File(args[0]));
             }
             closer.register(asCloseable(fs));
-            NodeStore store = SegmentNodeStore.newSegmentNodeStore(fs).create();
+            NodeStore store = SegmentNodeStore.builder(fs).build();
             FileStoreBackup.backup(store, new File(args[1]));
         } catch (Throwable e) {
             throw closer.rethrow(e);

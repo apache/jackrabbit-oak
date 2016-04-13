@@ -156,7 +156,7 @@ public class Console {
 
         private SegmentFixture(SegmentStore segmentStore) {
             this.segmentStore = segmentStore;
-            this.nodeStore = new SegmentNodeStore(segmentStore);
+            this.nodeStore = SegmentNodeStore.builder(segmentStore).build();
         }
 
         @Override

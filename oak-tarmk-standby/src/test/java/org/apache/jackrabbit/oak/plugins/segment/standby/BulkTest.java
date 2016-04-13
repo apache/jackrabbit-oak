@@ -97,7 +97,7 @@ public class BulkTest extends TestBase {
 
     private void test(int number, int minExpectedSegments, int maxExpectedSegments, long minExpectedBytes, long maxExpectedBytes,
                       boolean useSSL) throws Exception {
-        NodeStore store = new SegmentNodeStore(storeS);
+        NodeStore store = SegmentNodeStore.builder(storeS).build();
         NodeBuilder rootbuilder = store.getRoot().builder();
         NodeBuilder b = rootbuilder.child("store");
         for (int j=0; j<=number / 1000; j++) {

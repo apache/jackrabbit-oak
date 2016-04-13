@@ -38,7 +38,7 @@ public class ExternalToExternalMigrationTest extends AbstractMigratorTest {
     protected NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException {
         File segmentDir = new File(repository, "segmentstore");
         segmentStore = FileStore.builder(segmentDir).withBlobStore(blobStore).build();
-        return SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+        return SegmentNodeStore.builder(segmentStore).build();
     }
 
     @Override

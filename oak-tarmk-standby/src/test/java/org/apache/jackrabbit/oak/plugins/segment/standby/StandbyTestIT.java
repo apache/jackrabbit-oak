@@ -91,7 +91,7 @@ public class StandbyTestIT extends TestBase {
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
-        NodeStore store = new SegmentNodeStore(primary);
+        NodeStore store = SegmentNodeStore.builder(primary).build();
         final StandbyServer server = new StandbyServer(port, primary);
         server.start();
         byte[] data = addTestContent(store, "server", blobSize, dataNodes);

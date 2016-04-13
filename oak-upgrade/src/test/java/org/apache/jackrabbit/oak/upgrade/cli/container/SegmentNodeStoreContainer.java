@@ -55,7 +55,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
             builder.withBlobStore(blob.open());
         }
         fs = builder.build();
-        return SegmentNodeStore.newSegmentNodeStore(fs).create();
+        return SegmentNodeStore.builder(fs).build();
     }
 
     @Override

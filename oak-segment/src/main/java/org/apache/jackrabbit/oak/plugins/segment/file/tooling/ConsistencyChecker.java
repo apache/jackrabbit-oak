@@ -145,7 +145,7 @@ public class ConsistencyChecker {
     private String checkPath(String path, long binLen) {
         try {
             print("Checking {}", path);
-            NodeState root = new SegmentNodeStore(store).getRoot();
+            NodeState root = SegmentNodeStore.builder(store).build().getRoot();
             String parentPath = getParentPath(path);
             String name = getName(path);
             NodeState parent = getNode(root, parentPath);
@@ -173,7 +173,7 @@ public class ConsistencyChecker {
             store.setRevision(revision);
             nodeCount = 0;
             propertyCount = 0;
-            String result = traverse(new SegmentNodeStore(store).getRoot(), "/", true, binLen);
+            String result = traverse(SegmentNodeStore.builder(store).build().getRoot(), "/", true, binLen);
             print("Traversed {} nodes and {} properties", nodeCount, propertyCount);
             return result;
         } catch (RuntimeException e) {
