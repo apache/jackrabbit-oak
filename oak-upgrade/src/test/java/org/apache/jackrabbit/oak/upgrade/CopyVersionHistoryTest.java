@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -38,7 +39,10 @@ import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,10 +52,13 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.getOrAddNodeWithMixins;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -151,9 +158,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
             }
         });
 
+        assertVersionableProperties(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertExistingHistories(session,
                 VERSIONABLES_OLD, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
         assertVersionablePaths(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
+        assertVersionsCanBeRestored(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
     }
 
     @Test
@@ -165,9 +174,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
             }
         });
 
+        assertVersionableProperties(session, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
         assertVersionablePaths(session, VERSIONABLES_YOUNG);
         assertMissingHistories(session, VERSIONABLES_OLD, VERSIONABLES_OLD_ORPHANED);
+        assertVersionsCanBeRestored(session, VERSIONABLES_YOUNG);
     }
 
     @Test
@@ -179,9 +190,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
             }
         });
 
+        assertVersionableProperties(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
         assertVersionablePaths(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertMissingHistories(session, VERSIONABLES_OLD_ORPHANED);
+        assertVersionsCanBeRestored(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
     }
 
     @Test
@@ -192,9 +205,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
                 config.setCopyOrphanedVersions(null);
             }
         });
+        assertVersionableProperties(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
         assertVersionablePaths(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);;
         assertMissingHistories(session, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG_ORPHANED);
+        assertVersionsCanBeRestored(session, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
     }
 
     @Test
@@ -206,9 +221,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
                 config.setCopyOrphanedVersions(null);
             }
         });
+        assertVersionableProperties(session, VERSIONABLES_YOUNG);
         assertExistingHistories(session, VERSIONABLES_YOUNG);
         assertVersionablePaths(session, VERSIONABLES_YOUNG);
         assertMissingHistories(session, VERSIONABLES_OLD, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG_ORPHANED);
+        assertVersionsCanBeRestored(session, VERSIONABLES_YOUNG);
     }
 
     @Test
@@ -283,6 +300,26 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         return null;
     }
 
+    private static void assertVersionableProperties(final Session session, final String... names) throws RepositoryException {
+        VersionManager vMgr = session.getWorkspace().getVersionManager();
+        for (final String mixin : MIXINS) {
+            final String pathPrefix = VERSIONABLES_PATH_PREFIX + mixin + "/";
+            for (final String name : names) {
+                final String path = pathPrefix + name;
+                Node versionable = session.getNode(path);
+
+                String versionHistoryUuid = versionable.getProperty(JCR_VERSIONHISTORY).getString();
+                assertEquals(getVersionHistoryForPath(session, path).getIdentifier(), versionHistoryUuid);
+
+                final Version baseVersion = vMgr.getBaseVersion(path);
+                assertEquals("1.2", baseVersion.getName());
+                final Value[] predecessors = versionable.getProperty(JCR_PREDECESSORS).getValues();
+                assertEquals(1, predecessors.length);
+                assertEquals(baseVersion.getIdentifier(), predecessors[0].getString());
+            }
+        }
+    }
+
     private static void assertExistingHistories(final Session session, final String... names)
             throws RepositoryException {
         for (final String mixin : MIXINS) {
@@ -330,5 +367,33 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         final Property pathProperty = history.getProperty(workspaceName);
         assertEquals(PropertyType.PATH, pathProperty.getType());
         assertEquals(versionablePath, pathProperty.getString());
+    }
+
+    private static void assertVersionsCanBeRestored(final Session session, final String... names) throws RepositoryException {
+        VersionManager vMgr = session.getWorkspace().getVersionManager();
+        for (final String mixin : MIXINS) {
+            final String pathPrefix = VERSIONABLES_PATH_PREFIX + mixin + "/";
+            for (final String name : names) {
+                final String path = pathPrefix + name;
+                VersionHistory history = vMgr.getVersionHistory(path);
+                assertEquals("1.2", session.getNode(path).getProperty("version").getString());
+                vMgr.restore(history.getVersion("1.0"), false);
+
+                Node versionable = session.getNode(path);
+                assertEquals("1.0", versionable.getProperty("version").getString());
+
+                // restored node should have correct properties
+                String versionHistoryUuid = versionable.getProperty(JCR_VERSIONHISTORY).getString();
+                assertEquals(history.getIdentifier(), versionHistoryUuid);
+
+                final Version baseVersion = vMgr.getBaseVersion(path);
+                assertEquals("1.0", baseVersion.getName());
+                final Value[] predecessors = versionable.getProperty(JCR_PREDECESSORS).getValues();
+                assertEquals(0, predecessors.length);
+                assertFalse(vMgr.isCheckedOut(path));
+            }
+        }
+        // after restoring, the paths should be still versionable
+        assertVersionablePaths(session, names);
     }
 }
