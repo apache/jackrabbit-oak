@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static java.io.File.createTempFile;
 import static org.apache.commons.io.FileUtils.write;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,9 +28,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class JournalReaderTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
     public void testEmpty() throws IOException {
@@ -107,8 +111,8 @@ public class JournalReaderTest {
         }
     }
 
-    private static JournalReader createJournalReader(String s) throws IOException {
-        File journalFile = createTempFile("jrt", null);
+    private JournalReader createJournalReader(String s) throws IOException {
+        File journalFile = folder.newFile("jrt");
         write(journalFile, s);
         return new JournalReader(journalFile);
     }
