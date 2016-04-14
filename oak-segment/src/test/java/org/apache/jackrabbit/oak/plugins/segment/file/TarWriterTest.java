@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.io.File.createTempFile;
 import static java.nio.ByteBuffer.allocate;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
@@ -43,9 +42,14 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.TarWriterTest.SegmentGraphBuilder.Node;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TarWriterTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     /**
      * Regression test for OAK-2800
@@ -71,7 +75,7 @@ public class TarWriterTest {
         assertEquals(singleton(z), y.getReferences());
         assertTrue(z.getReferences().isEmpty());
 
-        File tar = createTempFile(getClass().getName(), "tar");
+        File tar = folder.newFile(getClass().getName() + ".tar");
         TarWriter tarWriter = new TarWriter(tar);
         try {
             y.write(tarWriter);
