@@ -43,6 +43,7 @@ public class RemoteSolrServerProviderIT {
         req.setParam("replicationFactor", "2");
         req.setParam("collection.configName", "myconf");
         CloudSolrServer cloudSolrServer = new CloudSolrServer(host);
+        cloudSolrServer.setZkConnectTimeout(1000);
         NamedList<Object> request = cloudSolrServer.request(req);
         return request != null && request.get("success") != null;
     }
