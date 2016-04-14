@@ -48,9 +48,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.Graph;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class SegmentGraphTest {
     private final Set<UUID> segments = newHashSet(
@@ -92,25 +95,22 @@ public class SegmentGraphTest {
         "1", singleton("0")
     );
 
-    private File storeDir;
+    @Rule
+    public TemporaryFolder storeFolder = new TemporaryFolder();
+
+    private File getStoreFolder() {
+        return storeFolder.getRoot();
+    }
 
     @Before
     public void setup() throws IOException {
-        storeDir = createTempFile(SegmentGraph.class.getSimpleName(), null);
-        storeDir.delete();
-        storeDir.mkdir();
-
-        unzip(SegmentGraphTest.class.getResourceAsStream("file-store.zip"), storeDir);
-    }
-
-    @After
-    public void tearDown() {
-        storeDir.delete();
+        System.out.println(getStoreFolder());
+        unzip(SegmentGraphTest.class.getResourceAsStream("file-store.zip"), getStoreFolder());
     }
 
     @Test
     public void testSegmentGraph() throws IOException {
-        ReadOnlyStore store = FileStore.builder(storeDir).buildReadOnly();
+        ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store, Predicates.<UUID>alwaysTrue());
             assertEquals(segments, newHashSet(segmentGraph.vertices()));
@@ -126,7 +126,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraphWithFilter() throws IOException {
-        ReadOnlyStore store = FileStore.builder(storeDir).buildReadOnly();
+        ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
         try {
             Predicate<UUID> filter = createRegExpFilter(".*testWriter.*", store.getTracker());
             Graph<UUID> segmentGraph = parseSegmentGraph(store, filter);
@@ -143,7 +143,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testGCGraph() throws IOException {
-        ReadOnlyStore store = FileStore.builder(storeDir).buildReadOnly();
+        ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
         try {
             Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
             assertEquals(gcGenerations, newHashSet(gcGraph.vertices()));
