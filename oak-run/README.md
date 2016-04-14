@@ -85,6 +85,11 @@ To start the console for a DocumentMK/RDB repository, use:
 
     $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
     
+To start the console connecting to a DocumentMK repository in read-only mode, use either of:
+
+    $ java -jar oak-run-*.jar console --read-only mongodb://host
+    $ java -jar oak-run-*.jar console --read-only --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+
 Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one 
 can use all Groovy constructs. It also exposes the `org.apache.jackrabbit.oak.console.ConsoleSession`
 instance as through `session` variable. For example when using SegmentNodeStore you can 
