@@ -74,6 +74,7 @@ public class JournalEntryTest {
 
         JournalReader jr = new JournalReader(journal);
         assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), jr.iterator().next());
+        jr.close();
     }
 
     private List<String> journalParts(String line){
