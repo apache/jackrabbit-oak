@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
-
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.io.File.createTempFile;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.createRegExpFilter;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.parseSegmentGraph;
@@ -48,8 +46,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.Graph;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

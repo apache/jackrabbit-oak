@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newTreeSet;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -48,35 +47,23 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class FileStoreIT {
 
-    private File directory;
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private File getFileStoreFolder() {
+        return folder.getRoot();
+    }
 
     @BeforeClass
     public static void assumptions() {
         assumeTrue(getFixtures().contains(SEGMENT_MK));
-    }
-
-    @Before
-    public void setUp() throws IOException {
-        directory = File.createTempFile(
-                "FileStoreIT", "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-    }
-
-    @After
-    public void tearDown() {
-        try {
-            deleteDirectory(directory);
-        } catch (IOException e) {
-            //
-        }
     }
 
     @Test
@@ -90,10 +77,10 @@ public class FileStoreIT {
     }
 
     public void testRestartAndGC(boolean memoryMapping) throws IOException {
-        FileStore store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
         store.close();
 
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
         byte[] data = new byte[10 * 1024 * 1024];
@@ -105,12 +92,12 @@ public class FileStoreIT {
         store.setHead(store.getHead(), base);
         store.close();
 
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
         store.gc();
         store.flush();
         store.close();
 
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
         store.close();
     }
 
@@ -118,7 +105,7 @@ public class FileStoreIT {
     public void testCompaction() throws IOException {
         int largeBinarySize = 10 * 1024 * 1024;
 
-        FileStore store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         SegmentWriter writer = store.getTracker().getWriter();
 
         SegmentNodeState base = store.getHead();
@@ -140,7 +127,7 @@ public class FileStoreIT {
 
         // First simulate the case where during compaction a reference to the
         // older segments is added to a segment that the compactor is writing
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         head = store.getHead();
         assertTrue(store.size() > largeBinarySize);
         builder = head.builder();
@@ -150,7 +137,7 @@ public class FileStoreIT {
         store.close();
 
         // In this case the revision cleanup is unable to reclaim the old data
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertTrue(store.size() > largeBinarySize);
         store.cleanup();
         assertTrue(store.size() > largeBinarySize);
@@ -158,7 +145,7 @@ public class FileStoreIT {
 
         // Now we do the same thing, but let the compactor use a different
         // SegmentWriter
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         head = store.getHead();
         assertTrue(store.size() > largeBinarySize);
         writer = new SegmentWriter(store, V_11, "");
@@ -172,7 +159,7 @@ public class FileStoreIT {
         store.close();
 
         // Revision cleanup is now able to reclaim the extra space (OAK-1932)
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertTrue(store.size() > largeBinarySize);
         store.cleanup();
         assertTrue(store.size() < largeBinarySize);
@@ -181,10 +168,10 @@ public class FileStoreIT {
 
     @Test
     public void testRecovery() throws IOException {
-        FileStore store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         store.flush();
 
-        RandomAccessFile data0 = new RandomAccessFile(new File(directory, "data00000a.tar"), "r");
+        RandomAccessFile data0 = new RandomAccessFile(new File(getFileStoreFolder(), "data00000a.tar"), "r");
         long pos0 = data0.length();
 
         SegmentNodeState base = store.getHead();
@@ -201,49 +188,49 @@ public class FileStoreIT {
         store.setHead(base, builder.getNodeState());
         store.close();
 
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertEquals("b", store.getHead().getString("step"));
         store.close();
 
         RandomAccessFile file = new RandomAccessFile(
-                new File(directory, "data00000a.tar"), "rw");
+                new File(getFileStoreFolder(), "data00000a.tar"), "rw");
         file.setLength(pos1);
         file.close();
 
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertEquals("a", store.getHead().getString("step"));
         store.close();
 
         file = new RandomAccessFile(
-                new File(directory, "data00000a.tar"), "rw");
+                new File(getFileStoreFolder(), "data00000a.tar"), "rw");
         file.setLength(pos0);
         file.close();
 
-        store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertFalse(store.getHead().hasProperty("step"));
         store.close();
     }
 
     @Test
     public void testRearrangeOldData() throws IOException {
-        new FileOutputStream(new File(directory, "data00000.tar")).close();
-        new FileOutputStream(new File(directory, "data00010a.tar")).close();
-        new FileOutputStream(new File(directory, "data00030.tar")).close();
-        new FileOutputStream(new File(directory, "bulk00002.tar")).close();
-        new FileOutputStream(new File(directory, "bulk00005a.tar")).close();
+        new FileOutputStream(new File(getFileStoreFolder(), "data00000.tar")).close();
+        new FileOutputStream(new File(getFileStoreFolder(), "data00010a.tar")).close();
+        new FileOutputStream(new File(getFileStoreFolder(), "data00030.tar")).close();
+        new FileOutputStream(new File(getFileStoreFolder(), "bulk00002.tar")).close();
+        new FileOutputStream(new File(getFileStoreFolder(), "bulk00005a.tar")).close();
 
-        Map<Integer, ?> files = FileStore.collectFiles(directory);
+        Map<Integer, ?> files = FileStore.collectFiles(getFileStoreFolder());
         assertEquals(
                 newArrayList(0, 1, 31, 32, 33),
                 newArrayList(newTreeSet(files.keySet())));
 
-        assertTrue(new File(directory, "data00000a.tar").isFile());
-        assertTrue(new File(directory, "data00001a.tar").isFile());
-        assertTrue(new File(directory, "data00031a.tar").isFile());
-        assertTrue(new File(directory, "data00032a.tar").isFile());
-        assertTrue(new File(directory, "data00033a.tar").isFile());
+        assertTrue(new File(getFileStoreFolder(), "data00000a.tar").isFile());
+        assertTrue(new File(getFileStoreFolder(), "data00001a.tar").isFile());
+        assertTrue(new File(getFileStoreFolder(), "data00031a.tar").isFile());
+        assertTrue(new File(getFileStoreFolder(), "data00032a.tar").isFile());
+        assertTrue(new File(getFileStoreFolder(), "data00033a.tar").isFile());
 
-        files = FileStore.collectFiles(directory);
+        files = FileStore.collectFiles(getFileStoreFolder());
         assertEquals(
                 newArrayList(0, 1, 31, 32, 33),
                 newArrayList(newTreeSet(files.keySet())));
@@ -252,7 +239,7 @@ public class FileStoreIT {
     @Test  // See OAK-2049
     public void segmentOverflow() throws IOException {
         for (int n = 1; n < 255; n++) {  // 255 = ListRecord.LEVEL_SIZE
-            FileStore store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+            FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
             SegmentWriter writer = store.getTracker().getWriter();
             // writer.length == 32  (from the root node)
 
@@ -284,7 +271,7 @@ public class FileStoreIT {
 
     @Test
     public void nonBlockingROStore() throws IOException {
-        FileStore store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+        FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         store.flush(); // first 1kB
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
@@ -294,7 +281,7 @@ public class FileStoreIT {
 
         ReadOnlyStore ro = null;
         try {
-            ro = FileStore.builder(directory).buildReadOnly();
+            ro = FileStore.builder(getFileStoreFolder()).buildReadOnly();
             assertEquals(store.getHead(), ro.getHead());
         } finally {
             if (ro != null) {

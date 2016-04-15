@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.file.ReversedLinesReader
 import static org.apache.jackrabbit.oak.plugins.segment.file.ReversedLinesReaderTestData.WINDOWS_31J_BIN;
 import static org.apache.jackrabbit.oak.plugins.segment.file.ReversedLinesReaderTestData.X_WINDOWS_949_BIN;
 import static org.apache.jackrabbit.oak.plugins.segment.file.ReversedLinesReaderTestData.X_WINDOWS_950_BIN;
-import static org.apache.jackrabbit.oak.plugins.segment.file.ReversedLinesReaderTestData.createFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -31,7 +30,9 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -46,6 +47,13 @@ public class ReversedLinesFileReaderTestParamBlockSize {
 
     private static final String UTF_8 = "UTF-8";
     private static final String ISO_8859_1 = "ISO-8859-1";
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private File createFile(byte[] data) throws IOException {
+        return ReversedLinesReaderTestData.createFile(folder.newFile(), data);
+    }
 
     @SuppressWarnings("boxing")
     @Parameters // small and uneven block sizes are not used in reality but are good to show that the algorithm is solid

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.backup;
 
-import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.builder;
 import static org.junit.Assert.assertEquals;
 
@@ -37,27 +36,23 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class FileStoreBackupTest {
 
     private File src;
     private File destination;
 
-    @Before
-    public void before() {
-        long run = System.currentTimeMillis();
-        File root = new File("target");
-        src = new File(root, "tar-src-" + run);
-        destination = new File(root, "tar-dest-" + run);
-    }
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
-    @After
-    public void after() {
-        deleteQuietly(src);
-        deleteQuietly(destination);
+    @Before
+    public void before() throws Exception {
+        src = folder.newFolder("src");
+        destination = folder.newFolder("dst");
     }
 
     @Test
