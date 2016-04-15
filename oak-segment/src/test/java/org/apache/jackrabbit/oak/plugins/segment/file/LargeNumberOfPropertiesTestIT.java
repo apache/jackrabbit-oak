@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -28,9 +27,10 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,31 +52,21 @@ public class LargeNumberOfPropertiesTestIT {
     private static final boolean ENABLED = Boolean
             .getBoolean(LargeNumberOfPropertiesTestIT.class.getSimpleName());
 
-    private File directory;
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private File getFileStoreFolder() {
+        return folder.getRoot();
+    }
 
     @Before
     public void setUp() throws IOException {
         assumeTrue(ENABLED);
-        directory = File.createTempFile(getClass().getSimpleName(), "dir",
-                new File("target"));
-        directory.delete();
-        directory.mkdir();
-    }
-
-    @After
-    public void cleanDir() {
-        try {
-            if (directory != null) {
-                deleteDirectory(directory);
-            }
-        } catch (IOException e) {
-            LOG.error("Error cleaning directory", e);
-        }
     }
 
     @Test
     public void corruption() throws Exception {
-        FileStore fileStore = FileStore.builder(directory).withMaxFileSize(5)
+        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
         SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
 

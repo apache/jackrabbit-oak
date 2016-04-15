@@ -65,12 +65,20 @@ public class DataStoreUtils {
      */
     public static long time = -1;
 
-    public static DataStoreBlobStore getBlobStore() throws Exception {
+    public static DataStoreBlobStore getBlobStore(File homeDir) throws Exception {
+        return getBlobStore(homeDir.getAbsolutePath());
+    }
+
+    public static DataStoreBlobStore getBlobStore(String homeDir) throws Exception {
         String className = System.getProperty(DS_CLASS_NAME, OakFileDataStore.class.getName());
         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
         PropertiesUtil.populate(ds, getConfig(), false);
-        ds.init(getHomeDir());
+        ds.init(homeDir);
         return new DataStoreBlobStore(ds);
+    }
+
+    public static DataStoreBlobStore getBlobStore() throws Exception {
+        return getBlobStore(getHomeDir());
     }
 
     public static boolean isS3DataStore() {

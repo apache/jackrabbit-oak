@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -34,25 +33,17 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class CompactionEstimatorTest {
 
-    private File directory;
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
-    @Before
-    public void setUp() throws IOException {
-        directory = File.createTempFile(
-                "FileStoreTest", "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-    }
-
-    @After
-    public void cleanDir() throws IOException {
-        deleteDirectory(directory);
+    private File getFileStoreFolder() {
+        return folder.getRoot();
     }
 
     @Test
@@ -60,7 +51,7 @@ public class CompactionEstimatorTest {
         final int MB = 1024 * 1024;
         final int blobSize = 2 * MB;
 
-        FileStore fileStore = FileStore.builder(directory).withMaxFileSize(2).withMemoryMapping(false).build();
+        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(2).withMemoryMapping(false).build();
         SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
 
         // 1. Create some blob properties

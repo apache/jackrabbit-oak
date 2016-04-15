@@ -22,9 +22,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Iterables.get;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.io.File.createTempFile;
 import static java.util.Collections.singleton;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newRecordId;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.randomRecordIdMap;
@@ -32,8 +30,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,66 +37,46 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CompactionMapTest {
 
-    private final File directory;
-    private final FileStore store;
     private final Random rnd = new Random();
 
-    private final Map<RecordId, RecordId> referenceMap1;
-    private final Map<RecordId, RecordId> referenceMap2;
-    private final Map<RecordId, RecordId> referenceMap3;
-    private final Map<RecordId, RecordId> referenceMap = newHashMap();
+    private final boolean usePersistedMap;
 
-    private final PartialCompactionMap compactionMap1;
-    private final PartialCompactionMap compactionMap2;
-    private final PartialCompactionMap compactionMap3;
-    private final CompactionMap compactionMap;
+    private FileStore store;
+
+    private Map<RecordId, RecordId> referenceMap1;
+    private Map<RecordId, RecordId> referenceMap2;
+    private Map<RecordId, RecordId> referenceMap3;
+    private Map<RecordId, RecordId> referenceMap = newHashMap();
+
+    private PartialCompactionMap compactionMap1;
+    private PartialCompactionMap compactionMap2;
+    private PartialCompactionMap compactionMap3;
+    private CompactionMap compactionMap;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Parameterized.Parameters
     public static List<Boolean[]> fixtures() {
         return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
     }
 
-    @After
-    public void tearDown() {
-        store.close();
-        try {
-            deleteDirectory(directory);
-        } catch (IOException e) {
-            //
-        }
-    }
-
-    private PartialCompactionMap createCompactionMap(boolean persisted) {
-        if (persisted) {
-            return new PersistedCompactionMap(store.getTracker());
-        } else {
-            return new InMemoryCompactionMap(store.getTracker());
-        }
-    }
-
-    @Nonnull
-    private static File mkDir() throws IOException {
-        File directory = createTempFile(CompactionMapTest.class.getSimpleName(), "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-        return directory;
-    }
-
-    public CompactionMapTest(boolean usePersistedMap) throws IOException {
-        directory = mkDir();
-        store = FileStore.builder(directory).build();
+    @Before
+    public void setUp() throws Exception {
+        store = FileStore.builder(folder.getRoot()).build();
 
         compactionMap1 = createCompactionMap(usePersistedMap);
         referenceMap1 = randomRecordIdMap(rnd, store.getTracker(), 10, 10);
@@ -118,6 +94,23 @@ public class CompactionMapTest {
         referenceMap.putAll(referenceMap3);
 
         this.compactionMap = CompactionMap.EMPTY.cons(compactionMap3).cons(compactionMap2).cons(compactionMap1);
+    }
+
+    @After
+    public void tearDown() {
+        store.close();
+    }
+
+    private PartialCompactionMap createCompactionMap(boolean persisted) {
+        if (persisted) {
+            return new PersistedCompactionMap(store.getTracker());
+        } else {
+            return new InMemoryCompactionMap(store.getTracker());
+        }
+    }
+
+    public CompactionMapTest(boolean usePersistedMap) {
+        this.usePersistedMap = usePersistedMap;
     }
 
     private static void putAll(PartialCompactionMap map1, Map<RecordId, RecordId> recordIdRecordIdMap) {

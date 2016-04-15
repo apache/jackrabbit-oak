@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static java.io.File.createTempFile;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -49,8 +47,7 @@ public final class ReversedLinesReaderTestData {
             13, 10,
     };
 
-    public static File createFile(byte[] data) throws IOException {
-        File file = createTempFile(ReversedLinesReaderTestData.class.getSimpleName(), null);
+    public static File createFile(File file, byte[] data) throws IOException {
         FileOutputStream os = new FileOutputStream(file);
         try {
             os.write(data);
