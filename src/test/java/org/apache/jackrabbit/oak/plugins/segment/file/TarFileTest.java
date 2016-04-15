@@ -25,15 +25,20 @@ import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TarFileTest {
 
     private File file;
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     @Before
     public void setUp() throws IOException {
-        file = File.createTempFile("TarFileTest", ".tar", new File("target"));
+        file = folder.newFile();
     }
 
     @Test

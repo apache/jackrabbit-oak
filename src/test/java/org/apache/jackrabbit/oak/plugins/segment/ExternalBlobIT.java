@@ -53,13 +53,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ExternalBlobIT {
 
     private SegmentStore store;
     private SegmentNodeStore nodeStore;
     private FileBlob fileBlob;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void assumptions() {
@@ -152,7 +157,6 @@ public class ExternalBlobIT {
         if (store != null) {
             store.close();
         }
-        FileUtils.cleanDirectory(getWorkDir());
     }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
@@ -177,13 +181,12 @@ public class ExternalBlobIT {
     }
 
     private File getWorkDir(){
-        return new File("target", "ExternalBlobTest");
+        return folder.getRoot();
     }
 
     private FileBlob getFileBlob() throws IOException {
         if (fileBlob == null) {
-            File file = File.createTempFile("blob", "tmp");
-            file.deleteOnExit();
+            File file = folder.newFile();
 
             byte[] data = new byte[2345];
             new Random().nextBytes(data);

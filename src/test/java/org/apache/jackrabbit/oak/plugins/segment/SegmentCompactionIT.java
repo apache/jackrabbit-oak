@@ -26,14 +26,12 @@ import static com.google.common.collect.Sets.newConcurrentHashSet;
 import static com.google.common.util.concurrent.Futures.addCallback;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
-import static java.io.File.createTempFile;
 import static java.lang.Boolean.getBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
@@ -42,7 +40,6 @@ import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 import static org.slf4j.helpers.MessageFormatter.format;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -94,7 +91,9 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,7 +133,6 @@ public class SegmentCompactionIT {
     private final Set<ListenableScheduledFuture<?>> references = newConcurrentHashSet();
     private final SegmentCompactionITMBean segmentCompactionMBean = new SegmentCompactionITMBean();
 
-    private File directory;
     private FileStore fileStore;
     private SegmentNodeStore nodeStore;
     private CompactionStrategy compactionStrategy;
@@ -161,6 +159,9 @@ public class SegmentCompactionIT {
     private volatile boolean stopping;
     private volatile Reference rootReference;
     private volatile long fileStoreSize;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     public synchronized void stop() {
         stopping = true;
@@ -226,11 +227,7 @@ public class SegmentCompactionIT {
             }
         }, 1, 1, SECONDS);
 
-        directory = createTempFile(getClass().getSimpleName(), "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-
-        fileStore = FileStore.builder(directory)
+        fileStore = FileStore.builder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .build();
@@ -269,22 +266,15 @@ public class SegmentCompactionIT {
 
     @After
     public void tearDown() {
-        try {
-            if (mBeanRegistration != null) {
-                mBeanRegistration.unregister();
-            }
-            remove(writers, MAX_VALUE);
-            remove(readers, MAX_VALUE);
-            remove(references, MAX_VALUE);
-            scheduler.shutdown();
-            if (fileStore != null) {
-                fileStore.close();
-            }
-            if (directory != null) {
-                deleteDirectory(directory);
-            }
-        } catch (IOException e) {
-            LOG.error("Error cleaning directory", e);
+        if (mBeanRegistration != null) {
+            mBeanRegistration.unregister();
+        }
+        remove(writers, MAX_VALUE);
+        remove(readers, MAX_VALUE);
+        remove(references, MAX_VALUE);
+        scheduler.shutdown();
+        if (fileStore != null) {
+            fileStore.close();
         }
     }
 

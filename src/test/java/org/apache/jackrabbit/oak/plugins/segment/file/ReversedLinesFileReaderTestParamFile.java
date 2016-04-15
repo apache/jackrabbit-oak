@@ -35,7 +35,9 @@ import java.util.Collection;
 import java.util.Stack;
 
 import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -65,6 +67,9 @@ public class ReversedLinesFileReaderTestParamFile {
     private final String encoding;
     private final int buffSize;
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     public ReversedLinesFileReaderTestParamFile(byte[] data, String encoding, Integer buffSize) {
         this.data = data;
         this.encoding = encoding;
@@ -73,7 +78,7 @@ public class ReversedLinesFileReaderTestParamFile {
 
     @Test
     public void testDataIntegrityWithBufferedReader() throws URISyntaxException, IOException {
-        File testFileIso = createFile(data);
+        File testFileIso = createFile(folder.newFile(), data);
         reversedLinesFileReader = new ReversedLinesFileReader(testFileIso, buffSize, encoding);
 
         Stack<String> lineStack = new Stack<String>();

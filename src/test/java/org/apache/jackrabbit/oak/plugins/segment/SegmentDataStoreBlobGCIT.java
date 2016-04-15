@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -49,9 +49,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import com.google.common.io.Closeables;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
@@ -71,7 +69,9 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
@@ -90,6 +90,9 @@ public class SegmentDataStoreBlobGCIT {
     FileStore store;
     DataStoreBlobStore blobStore;
     Date startDate;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @BeforeClass
     public static void assumptions() {
@@ -126,13 +129,13 @@ public class SegmentDataStoreBlobGCIT {
         return nodeStore;
     }
 
-    private static File getWorkDir() {
-        return new File("target", "DataStoreBlobGCTest");
+    private File getWorkDir() {
+        return folder.getRoot();
     }
 
     public DataStoreState setUp() throws Exception {
         if (blobStore == null) {
-            blobStore = DataStoreUtils.getBlobStore();
+            blobStore = DataStoreUtils.getBlobStore(folder.newFolder());
         }
         nodeStore = getNodeStore(blobStore);
         startDate = new Date();
@@ -303,7 +306,7 @@ public class SegmentDataStoreBlobGCIT {
         }
         TestGarbageCollector gc = new TestGarbageCollector(
             new SegmentBlobReferenceRetriever(store.getTracker()),
-            (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, 5000, repoId);
+            (GarbageCollectableBlobStore) store.getBlobStore(), executor, folder.newFolder().getAbsolutePath(), 5, 5000, repoId);
         gc.collectGarbage(false);
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
@@ -356,7 +359,7 @@ public class SegmentDataStoreBlobGCIT {
         }
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
             new SegmentBlobReferenceRetriever(store.getTracker()),
-            (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 2048, blobGcMaxAgeInSecs,
+            (GarbageCollectableBlobStore) store.getBlobStore(), executor, folder.newFolder().getAbsolutePath(), 2048, blobGcMaxAgeInSecs,
             repoId);
         return gc;
     }    
@@ -377,8 +380,6 @@ public class SegmentDataStoreBlobGCIT {
             store.close();
         }
         DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
-        FileUtils.deleteDirectory(getWorkDir());
-        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
     }
 
     static InputStream randomStream(int seed, int size) {

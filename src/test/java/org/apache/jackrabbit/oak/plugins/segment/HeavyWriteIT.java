@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.commons.CIHelper.travis;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
@@ -47,10 +46,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -60,7 +59,12 @@ public class HeavyWriteIT {
 
     private final boolean usePersistedMap;
 
-    private File directory;
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private File getFileStoreFolder() {
+        return folder.getRoot();
+    }
 
     @Parameterized.Parameters(name="usePersistedMap: {0}")
     public static List<Boolean[]> fixtures() {
@@ -76,23 +80,10 @@ public class HeavyWriteIT {
         assumeTrue(!travis());  // FIXME OAK-2375. Often fails on Travis
         assumeTrue(FIXTURES.contains(SEGMENT_MK));
     }
-    
-    @Before
-    public void setUp() throws IOException {
-        directory = File.createTempFile(
-                "FileStoreTest", "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-    }
-
-    @After
-    public void cleanDir() throws IOException {
-        deleteDirectory(directory);
-    }
 
     @Test
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
-        final FileStore store = FileStore.builder(directory).withMaxFileSize(128).withMemoryMapping(false).build();
+        final FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
         CompactionStrategy custom = new CompactionStrategy(false, false,
                 CLEAN_OLD, 30000, (byte) 0) {
