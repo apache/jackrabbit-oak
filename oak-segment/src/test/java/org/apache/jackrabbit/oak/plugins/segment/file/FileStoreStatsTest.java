@@ -56,6 +56,7 @@ public class FileStoreStatsTest {
 
     @After
     public void shutDown(){
+        fileStore.close();
         new ExecutorCloser(executor).close();
     }
 
