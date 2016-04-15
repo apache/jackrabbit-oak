@@ -68,6 +68,8 @@ public class OptionParserFactory {
 
     public static final String MERGE_PATHS = "merge-paths";
 
+    public static final String SKIP_INIT = "skip-init";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);
@@ -132,5 +134,6 @@ public class OptionParserFactory {
         op.accepts(EARLY_SHUTDOWN,
                 "Shutdown the source repository after nodes are copied and before the commit hooks are applied");
         op.accepts(CACHE_SIZE, "Cache size in MB").withRequiredArg().ofType(Integer.class).defaultsTo(256);
+        op.accepts(SKIP_INIT, "Skip the repository initialization; only copy data");
     }
 }

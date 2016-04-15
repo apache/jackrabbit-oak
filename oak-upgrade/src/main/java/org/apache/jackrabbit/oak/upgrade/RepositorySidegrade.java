@@ -83,6 +83,8 @@ public class RepositorySidegrade {
 
     private boolean skipLongNames = true;
 
+    private boolean skipInitialization = false;
+
     private List<CommitHook> customCommitHooks = null;
 
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
@@ -195,6 +197,16 @@ public class RepositorySidegrade {
     }
 
     /**
+     * Skip the new repository initialization. Only copy content passed in the
+     * {@link #includePaths}.
+     *
+     * @param skipInitialization
+     */
+    public void setSkipInitialization(boolean skipInitialization) {
+        this.skipInitialization = skipInitialization;
+    }
+
+    /**
      * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer. 
      */
     public void copy() throws RepositoryException {
@@ -219,9 +231,13 @@ public class RepositorySidegrade {
         try {
             NodeBuilder targetRoot = target.getRoot().builder();
 
-            new InitialContent().initialize(targetRoot);
-            if (initializer != null) {
-                initializer.initialize(targetRoot);
+            if (skipInitialization) {
+                LOG.info("Skipping the repository initialization");
+            } else {
+                new InitialContent().initialize(targetRoot);
+                if (initializer != null) {
+                    initializer.initialize(targetRoot);
+                }
             }
 
             final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", 10000, -1));
