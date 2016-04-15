@@ -180,6 +180,8 @@ public class RepositoryUpgrade {
 
     private boolean skipLongNames = true;
 
+    private boolean skipInitialization = false;
+
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
     /**
@@ -256,6 +258,14 @@ public class RepositoryUpgrade {
 
     public void setSkipLongNames(boolean skipLongNames) {
         this.skipLongNames = skipLongNames;
+    }
+
+    public boolean isSkipInitialization() {
+        return skipInitialization;
+    }
+
+    public void setSkipInitialization(boolean skipInitialization) {
+        this.skipInitialization = skipInitialization;
     }
 
     /**
@@ -369,23 +379,27 @@ public class RepositoryUpgrade {
             SecurityProviderImpl security = new SecurityProviderImpl(
                     mapSecurityConfig(config.getSecurityConfig()));
 
-            // init target repository first
-            logger.info("Initializing initial repository content from {}", config.getHomeDir());
-            new InitialContent().initialize(targetBuilder);
-            if (initializer != null) {
-                initializer.initialize(targetBuilder);
-            }
-            logger.debug("InitialContent completed from {}", config.getHomeDir());
+            if (skipInitialization) {
+                logger.info("Skipping the repository initialization");
+            } else {
+                // init target repository first
+                logger.info("Initializing initial repository content from {}", config.getHomeDir());
+                new InitialContent().initialize(targetBuilder);
+                if (initializer != null) {
+                    initializer.initialize(targetBuilder);
+                }
+                logger.debug("InitialContent completed from {}", config.getHomeDir());
 
-            for (SecurityConfiguration sc : security.getConfigurations()) {
-                RepositoryInitializer ri = sc.getRepositoryInitializer();
-                ri.initialize(targetBuilder);
-                logger.debug("Repository initializer '" + ri.getClass().getName() + "' completed", config.getHomeDir());
-            }
-            for (SecurityConfiguration sc : security.getConfigurations()) {
-                WorkspaceInitializer wi = sc.getWorkspaceInitializer();
-                wi.initialize(targetBuilder, workspaceName);
-                logger.debug("Workspace initializer '" + wi.getClass().getName() + "' completed", config.getHomeDir());
+                for (SecurityConfiguration sc : security.getConfigurations()) {
+                    RepositoryInitializer ri = sc.getRepositoryInitializer();
+                    ri.initialize(targetBuilder);
+                    logger.debug("Repository initializer '" + ri.getClass().getName() + "' completed", config.getHomeDir());
+                }
+                for (SecurityConfiguration sc : security.getConfigurations()) {
+                    WorkspaceInitializer wi = sc.getWorkspaceInitializer();
+                    wi.initialize(targetBuilder, workspaceName);
+                    logger.debug("Workspace initializer '" + wi.getClass().getName() + "' completed", config.getHomeDir());
+                }
             }
 
             HashBiMap<String, String> uriToPrefix = HashBiMap.create();
@@ -393,32 +407,36 @@ public class RepositoryUpgrade {
             copyNamespaces(targetBuilder, uriToPrefix);
             logger.debug("Namespace registration completed.");
 
-            logger.info("Copying registered node types");
-            NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
-                @Override
-                protected Tree getTypes() {
-                    return upgradeRoot.getTree(NODE_TYPES_PATH);
-                }
+            if (skipInitialization) {
+                logger.info("Skipping registering node types and privileges");
+            } else {
+                logger.info("Copying registered node types");
+                NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
+                    @Override
+                    protected Tree getTypes() {
+                        return upgradeRoot.getTree(NODE_TYPES_PATH);
+                    }
 
-                @Nonnull
-                @Override
-                protected Root getWriteRoot() {
-                    return upgradeRoot;
-                }
-            };
-            copyNodeTypes(ntMgr, new ValueFactoryImpl(upgradeRoot, NamePathMapper.DEFAULT));
-            logger.debug("Node type registration completed.");
+                    @Nonnull
+                    @Override
+                    protected Root getWriteRoot() {
+                        return upgradeRoot;
+                    }
+                };
+                copyNodeTypes(ntMgr, new ValueFactoryImpl(upgradeRoot, NamePathMapper.DEFAULT));
+                logger.debug("Node type registration completed.");
 
-            // migrate privileges
-            logger.info("Copying registered privileges");
-            PrivilegeConfiguration privilegeConfiguration = security.getConfiguration(PrivilegeConfiguration.class);
-            copyCustomPrivileges(privilegeConfiguration.getPrivilegeManager(upgradeRoot, NamePathMapper.DEFAULT));
-            logger.debug("Privilege registration completed.");
+                // migrate privileges
+                logger.info("Copying registered privileges");
+                PrivilegeConfiguration privilegeConfiguration = security.getConfiguration(PrivilegeConfiguration.class);
+                copyCustomPrivileges(privilegeConfiguration.getPrivilegeManager(upgradeRoot, NamePathMapper.DEFAULT));
+                logger.debug("Privilege registration completed.");
 
-            // Triggers compilation of type information, which we need for
-            // the type predicates used by the bulk  copy operations below.
-            new TypeEditorProvider(false).getRootEditor(
-                    targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder, null);
+                // Triggers compilation of type information, which we need for
+                // the type predicates used by the bulk  copy operations below.
+                new TypeEditorProvider(false).getRootEditor(
+                        targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder, null);
+            }
 
             final NodeState reportingSourceRoot = ReportingNodeState.wrap(
                     JackrabbitNodeState.createRootNodeState(

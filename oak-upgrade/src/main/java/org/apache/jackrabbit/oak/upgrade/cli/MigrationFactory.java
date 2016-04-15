@@ -93,6 +93,7 @@ public class MigrationFactory {
         upgrade.setSkipLongNames(stores.isSkipLongNames());
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
+        upgrade.setSkipInitialization(options.isSkipInitialization());
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
         Iterator<CommitHook> iterator = loader.iterator();
         ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook> builder().addAll(iterator);
@@ -114,6 +115,7 @@ public class MigrationFactory {
             sidegrade.setMerges(options.getMergePaths());
         }
         sidegrade.setSkipLongNames(stores.isSkipLongNames());
+        sidegrade.setSkipInitialization(options.isSkipInitialization());
         return sidegrade;
     }
 
