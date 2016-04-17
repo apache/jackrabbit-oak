@@ -1009,6 +1009,7 @@ public class IndexCopierTest {
         byte[] result = new byte[(int)wrapped.fileLength(fileName)];
         i.readBytes(result, 0, result.length);
         assertTrue(Arrays.equals(expectedData, result));
+        i.close();
     }
 
     private static void copy(Directory source, Directory dest) throws IOException {
