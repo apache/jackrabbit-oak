@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
@@ -131,6 +132,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private String cowDir = null;
 
     private LuceneIndexEditorProvider editorProvider;
+
+    @After
+    public void after() {
+        new ExecutorCloser(executorService).close();
+    }
 
     @Override
     protected void createTestIndexNode() throws Exception {
