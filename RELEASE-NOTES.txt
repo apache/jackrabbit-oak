@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.29
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.30
 
 Introduction
 ------------
@@ -8,26 +8,35 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.29 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.30 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.29
+Changes in Oak 1.0.30
 ---------------------
 
 Technical task
 
-   [OAK-3843] - MS SQL doesn't support more than 2100 parameters in one request
-   [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
-   [OAK-4134] - RDBBlobStore: improve error handling and logging
+    [OAK-4156] - RDBConnectionHandler: add logging when getting the connection takes long
+    [OAK-4193] - RDBBlobStore: logging for garbage collection has parameters reversed
+    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA records when there was subsequent blobstore activity
 
 Bug
 
-   [OAK-4050] - SplitOperations may not retain most recent committed _commitRoot entry
-   [OAK-4131] - LastRevisionRecoveryAgent may throw ClassCastException
+    [OAK-3235] - Deadlock when closing a concurrently used FileStore
+    [OAK-3493] - Deadlock when closing a concurrently used FileStore 2.0
+    [OAK-4024] - CoW uses incorrect directory on re-indexing when indexPath property is used
+
+Improvement
+
+    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
+
+Task
+
+    [OAK-4150] - Backport OAK-3235 and OAK-3493 to the 1.0 branch
 
 
 In addition to the above-mentioned changes, this release contains
