@@ -26,6 +26,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
@@ -147,6 +148,13 @@ public final class DocumentNodeStore
      */
     private boolean fairBackgroundOperationLock =
             Boolean.parseBoolean(System.getProperty("oak.fairBackgroundOperationLock", "true"));
+
+    /**
+     * The timeout in milliseconds to wait for the recovery performed by
+     * another cluster node.
+     */
+    private long recoveryWaitTimeoutMS =
+            Long.getLong("oak.recoveryWaitTimeoutMS", 60000);
 
     /**
      * The document store (might be used by multiple node stores).
@@ -559,9 +567,26 @@ public final class DocumentNodeStore
 
     /**
      * Recover _lastRev recovery if needed.
+     *
+     * @throws DocumentStoreException if recovery did not finish within
+     *          {@link #recoveryWaitTimeoutMS}.
      */
-    private void checkLastRevRecovery() {
-        lastRevRecoveryAgent.recover(clusterId);
+    private void checkLastRevRecovery() throws DocumentStoreException {
+        long timeout = clock.getTime() + recoveryWaitTimeoutMS;
+        int numRecovered = lastRevRecoveryAgent.recover(clusterId, timeout);
+        if (numRecovered == -1) {
+            ClusterNodeInfoDocument doc = store.find(CLUSTER_NODES, String.valueOf(clusterId));
+            String otherId = "n/a";
+            if (doc != null) {
+                otherId = String.valueOf(doc.get(ClusterNodeInfo.REV_RECOVERY_BY));
+            }
+            String msg = "This cluster node (" + clusterId + ") requires " +
+                    "_lastRev recovery which is currently performed by " +
+                    "another cluster node (" + otherId + "). Recovery is " +
+                    "still ongoing after " + recoveryWaitTimeoutMS + " ms. " +
+                    "Failing startup of this DocumentNodeStore now!";
+            throw new DocumentStoreException(msg);
+        }
     }
 
     public void dispose() {

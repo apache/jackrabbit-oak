@@ -18,29 +18,53 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
 
+import com.mongodb.DB;
+
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
+
+    private Clock clock = new Clock.Virtual();
+
+    @Before
+    public void before() throws Exception {
+        clock.waitUntil(System.currentTimeMillis());
+    }
+
+    @Override
+    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
+        // disable lease check because test waits until lease times out
+        return super.newBuilder(db).setLeaseCheck(false);
+    }
+
+    @Override
+    protected Clock getTestClock() throws InterruptedException {
+        return clock;
+    }
 
     // OAK-4131
     @Test
     public void recoveryBy() throws Exception {
         MongoDocumentStore store = new MongoDocumentStore(
                 mongoConnection.getDB(), new DocumentMK.Builder());
-        MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store);
+        MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock());
         List<ClusterNodeInfoDocument> infoDocs = newArrayList(seeker.getAllClusters());
         assertEquals(1, infoDocs.size());
         int clusterId = infoDocs.get(0).getClusterId();
         int otherClusterId = clusterId + 1;
-        seeker.acquireRecoveryLock(clusterId, otherClusterId);
+        getTestClock().waitUntil(getTestClock().getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS + 1000);
+        assertTrue(seeker.acquireRecoveryLock(clusterId, otherClusterId));
         ClusterNodeInfoDocument doc = seeker.getClusterNodeInfo(clusterId);
         Object recoveryBy = doc.get(ClusterNodeInfo.REV_RECOVERY_BY);
         assertNotNull(recoveryBy);

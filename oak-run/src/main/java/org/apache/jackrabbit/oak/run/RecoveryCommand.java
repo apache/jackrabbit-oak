@@ -50,7 +50,8 @@ class RecoveryCommand implements Command {
             }
             MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
             LastRevRecoveryAgent agent = new LastRevRecoveryAgent(dns);
-            MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(docStore);
+            MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(
+                    docStore, dns.getClock());
             CloseableIterable<NodeDocument> docs = seeker.getCandidates(0);
             closer.register(docs);
             boolean dryRun = Arrays.asList(args).contains("dryRun");

@@ -738,7 +738,7 @@ public class DocumentNodeStoreService {
 
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
         long leaseTime = toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
-                ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+                ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         Runnable recoverJob = new Runnable() {
             @Override
             public void run() {

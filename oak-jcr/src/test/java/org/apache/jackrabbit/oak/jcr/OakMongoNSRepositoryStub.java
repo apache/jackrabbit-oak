@@ -33,6 +33,14 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
  */
 public class OakMongoNSRepositoryStub extends OakRepositoryStub {
 
+    static {
+        MongoConnection c = MongoUtils.getConnection();
+        if (c != null) {
+            MongoUtils.dropCollections(c.getDB());
+            c.close();
+        }
+    }
+
     private final MongoConnection connection;
     private final Repository repository;
 
