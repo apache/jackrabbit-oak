@@ -19,14 +19,20 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -43,11 +49,15 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * ExternalLoginModuleTest...
+ * Abstract base test for external-authentication tests.
  */
 public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
 
-    private Set<String> ids = new HashSet<String>();
+    protected static final String USER_ID = TestIdentityProvider.ID_TEST_USER;
+    protected static final String TEST_CONSTANT_PROPERTY_NAME = "profile/constantProperty";
+    protected static final String TEST_CONSTANT_PROPERTY_VALUE = "constant-value";
+
+    private Set<String> ids;
 
     private Registration testIdpReg;
 
@@ -68,11 +78,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
     @Before
     public void before() throws Exception {
         super.before();
-        UserManager userManager = getUserManager(root);
-        Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-        while (iter.hasNext()) {
-            ids.add(iter.next().getID());
-        }
+        ids = Sets.newHashSet(getAllAuthorizableIds(getUserManager(root)));
         idp = createIDP();
 
         testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
@@ -87,7 +93,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         mapping.put("email", "email");
         mapping.put("profile/name", "profile/name");
         mapping.put("profile/age", "profile/age");
-        mapping.put("profile/constantProperty", "\"constant-value\"");
+        mapping.put(TEST_CONSTANT_PROPERTY_NAME, "\"" + TEST_CONSTANT_PROPERTY_VALUE + "\"");
         syncConfig.user().setPropertyMapping(mapping);
         syncConfig.user().setMembershipNestingDepth(1);
         setSyncConfig(syncConfig);
@@ -104,15 +110,18 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         setSyncConfig(null);
 
         try {
+            // discard any pending changes
+            root.refresh();
+
             UserManager userManager = getUserManager(root);
-            Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
+            Iterator<String> iter = getAllAuthorizableIds(userManager);
             while (iter.hasNext()) {
-                ids.remove(iter.next().getID());
-            }
-            for (String id : ids) {
-                Authorizable a = userManager.getAuthorizable(id);
-                if (a != null) {
-                    a.remove();
+                String id = iter.next();
+                if (!ids.remove(id)) {
+                    Authorizable a = userManager.getAuthorizable(id);
+                    if (a != null) {
+                        a.remove();
+                    }
                 }
             }
             root.commit();
@@ -120,6 +129,24 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
             root.refresh();
             super.after();
         }
+    }
+
+    private static Iterator<String> getAllAuthorizableIds(@Nonnull UserManager userManager) throws Exception {
+        Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
+        return Iterators.filter(Iterators.transform(iter, new Function<Authorizable, String>() {
+            @Nullable
+            @Override
+            public String apply(Authorizable input) {
+                try {
+                    if (input != null) {
+                        return input.getID();
+                    }
+                } catch (RepositoryException e) {
+                    // failed to retrieve ID
+                }
+                return null;
+            }
+        }), Predicates.notNull());
     }
 
     @Override
@@ -141,7 +168,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
     protected abstract void destroyIDP(ExternalIdentityProvider idp);
 
     protected SynchronizationMBean createMBean() {
-        // todo: how to retrieve JCR repository here? maybe we should base the sync mbean on oak directly.
+        // todo: how to retrieve JCR repository here? maybe we should base the sync mbean on oak directly (=> OAK-4218).
         // JackrabbitRepository repository =  null;
         // return new SyncMBeanImpl(repository, syncManager, "default", idpManager, idp.getName());
 
