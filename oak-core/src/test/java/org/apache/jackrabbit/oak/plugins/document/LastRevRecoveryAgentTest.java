@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -151,11 +152,11 @@ public class LastRevRecoveryAgentTest {
 
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
-        List<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
-        assertEquals(1, cids.size());
-        assertEquals(c2Id, cids.get(0).intValue());
+        Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        assertEquals(1, Iterables.size(cids));
+        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
-        ds1.getLastRevRecoveryAgent().recover(cids.get(0));
+        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
 
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/x").getLastRev().get(c2Id));

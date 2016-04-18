@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -172,10 +173,10 @@ public class LastRevSingleNodeRecoveryTest {
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
 
         LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
-        List<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
+        Iterable<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
 
-        assertEquals(1, cids.size());
-        assertEquals(Integer.valueOf(1), cids.get(0));
+        assertEquals(1, Iterables.size(cids));
+        assertEquals(Integer.valueOf(1), Iterables.get(cids, 0));
     }
     
     private void setupScenario() throws InterruptedException {

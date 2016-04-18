@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
@@ -71,8 +73,33 @@ public class ClusterNodeInfoDocument extends Document {
         return getState() == ClusterNodeState.ACTIVE;
     }
 
+    /**
+     * @return {@code true} if the recovery lock state is
+     *          {@link RecoverLockState#ACQUIRED ACQUIRED}.
+     */
     public boolean isBeingRecovered(){
         return getRecoveryState() == RecoverLockState.ACQUIRED;
+    }
+
+    /**
+     * Returns {@code true} if the cluster node represented by this document
+     * is currently being recovered by the given {@code clusterId}.
+     *
+     * @param clusterId the id of a cluster node.
+     * @return {@code true} if being recovered by the given id; {@code false}
+     *          otherwise.
+     */
+    public boolean isBeingRecoveredBy(int clusterId) {
+        return Long.valueOf(clusterId).equals(getRecoveryBy());
+    }
+
+    /**
+     * @return the id of the cluster node performing recovery or {@code null} if
+     *          currently not set.
+     */
+    @CheckForNull
+    public Long getRecoveryBy() {
+        return (Long) get(ClusterNodeInfo.REV_RECOVERY_BY);
     }
 
     public int getClusterId() {

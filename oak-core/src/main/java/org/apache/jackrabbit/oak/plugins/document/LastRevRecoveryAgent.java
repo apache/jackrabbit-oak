@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -26,20 +27,20 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,16 +62,37 @@ public class LastRevRecoveryAgent {
     }
 
     public LastRevRecoveryAgent(DocumentNodeStore nodeStore) {
-        this(nodeStore, new MissingLastRevSeeker(nodeStore.getDocumentStore()));
+        this(nodeStore, new MissingLastRevSeeker(
+                nodeStore.getDocumentStore(), nodeStore.getClock()));
     }
 
     /**
-     * Recover the correct _lastRev updates for potentially missing candidate nodes.
+     * Recover the correct _lastRev updates for potentially missing candidate
+     * nodes. If another cluster node is already performing the recovery for the
+     * given {@code clusterId}, this method will {@code waitUntil} the given
+     * time in milliseconds for the recovery to finish.
+     *
+     * This method will return:
+     * <ul>
+     *     <li>{@code -1} when another cluster node is busy performing recovery
+     *     for the given {@code clusterId} and the {@code waitUntil} time is
+     *     reached.</li>
+     *     <li>{@code 0} when no recovery was needed or this thread waited
+     *     for another cluster node to finish the recovery within the given
+     *     {@code waitUntil} time.</li>
+     *     <li>A positive value for the number of recovered documents when
+     *     recovery was performed by this thread / cluster node.</li>
+     * </ul>
      *
      * @param clusterId the cluster id for which the _lastRev are to be recovered
-     * @return the number of restored nodes
+     * @param waitUntil wait until this time is milliseconds for recovery of the
+     *                  given {@code clusterId} if another cluster node is
+     *                  already performing the recovery.
+     * @return the number of restored nodes or {@code -1} if a timeout occurred
+     *          while waiting for an ongoing recovery by another cluster node.
      */
-    public int recover(int clusterId) {
+    public int recover(int clusterId, long waitUntil)
+            throws DocumentStoreException {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
 
         //TODO Currently leaseTime remains same per cluster node. If this
@@ -80,15 +102,15 @@ public class LastRevRecoveryAgent {
 
         if (nodeInfo != null) {
             // Check if _lastRev recovery needed for this cluster node
-            // state is Active && recoveryLock not held by someone
-            if (isRecoveryNeeded(nodeInfo)) {
+            // state is Active && current time past leaseEnd
+            if (missingLastRevUtil.isRecoveryNeeded(nodeInfo)) {
                 long leaseEnd = nodeInfo.getLeaseEndTime();
 
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
 
-                // start time is the _lastRev timestamp of this cluster node
+                // start time is the _lastRev timestamp of the cluster node
                 final long startTime;
                 final String reason;
                 //lastRev can be null if other cluster node did not got
@@ -103,15 +125,24 @@ public class LastRevRecoveryAgent {
                             leaseTime, asyncDelay);
                 }
 
-                log.info("Recovering candidates modified after: [{}] for clusterId [{}] [{}]",
-                        Utils.timestampToString(startTime), clusterId, reason);
-
-                return recoverCandidates(clusterId, startTime);
+                return recoverCandidates(nodeInfo, startTime, waitUntil, reason);
             }
         }
 
         log.debug("No recovery needed for clusterId {}", clusterId);
         return 0;
+    }
+
+    /**
+     * Same as {@link #recover(int, long)}, but does not wait for ongoing
+     * recovery.
+     *
+     * @param clusterId the cluster id for which the _lastRev are to be recovered
+     * @return the number of restored nodes or {@code -1} if there is an ongoing
+     *          recovery by another cluster node.
+     */
+    public int recover(int clusterId) {
+        return recover(clusterId, 0);
     }
 
     /**
@@ -277,40 +308,72 @@ public class LastRevRecoveryAgent {
      * Retrieves possible candidates which have been modified after the given
      * {@code startTime} and recovers the missing updates.
      *
-     * @param clusterId the cluster id
+     * @param nodeInfo the info of the cluster node to recover.
      * @param startTime the start time
-     * @return the number of restored nodes
+     * @param waitUntil wait at most until this time for an ongoing recovery
+     *                  done by another cluster node.
+     * @param info a string with additional information how recovery is run.
+     * @return the number of restored nodes or {@code -1} if recovery is still
+     *      ongoing by another process even when {@code waitUntil} time was
+     *      reached.
      */
-    private int recoverCandidates(final int clusterId, final long startTime) {
+    private int recoverCandidates(final ClusterNodeInfoDocument nodeInfo,
+                                  final long startTime,
+                                  final long waitUntil,
+                                  final String info) {
+        ClusterNodeInfoDocument infoDoc = nodeInfo;
+        int clusterId = infoDoc.getClusterId();
+        for (;;) {
+            if (missingLastRevUtil.acquireRecoveryLock(
+                    clusterId, nodeStore.getClusterId())) {
+                break;
+            }
 
-        int myClusterId = nodeStore.getClusterId();
-        boolean lockAcquired = missingLastRevUtil.acquireRecoveryLock(clusterId, myClusterId);
+            Clock clock = nodeStore.getClock();
+            long remaining = waitUntil - clock.getTime();
+            if (remaining < 0) {
+                // no need to wait for lock release, waitUntil already reached
+                return -1;
+            }
 
-        //TODO What if recovery is being performed for current clusterNode by some other node
-        //should we halt the startup
-        if(!lockAcquired){
-            log.info("Last revision recovery already being performed by some other node. " +
-                    "Would not attempt recovery");
-            return 0;
+            log.info("Last revision recovery already being performed by " +
+                    "cluster node {}. Waiting at most until {} for recovery " +
+                    "to finish ({} seconds remaining).",
+                    infoDoc.getRecoveryBy(), Utils.timestampToString(waitUntil),
+                    remaining / 1000);
+            // check once every five seconds
+            long time = Math.min(waitUntil, clock.getTime() + 5000);
+            try {
+                clock.waitUntil(time);
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+                String msg = "Interrupted while waiting for _lastRev recovery to finish.";
+                throw new DocumentStoreException(msg, e);
+            }
+            infoDoc = missingLastRevUtil.getClusterNodeInfo(clusterId);
+            if (!missingLastRevUtil.isRecoveryNeeded(infoDoc)) {
+                // meanwhile another process finished recovery
+                return 0;
+            }
         }
 
-        Iterable<NodeDocument> suspects = missingLastRevUtil.getCandidates(startTime);
-
-        log.info("Performing Last Revision Recovery for clusterNodeId {}", clusterId);
-
+        // if we get here, the recovery lock was acquired successfully
+        boolean success = false;
         try {
-            return recover(suspects.iterator(), clusterId);
-        } finally {
-            Utils.closeIfCloseable(suspects);
+            log.info("Recovering candidates modified after: [{}] for clusterId [{}] [{}]",
+                    Utils.timestampToString(startTime), clusterId, info);
 
-            // Relinquish the lock on the recovery for the cluster on the
-            // clusterInfo
-            // TODO: in case recover throws a RuntimeException (or Error..) then
-            // the recovery might have failed, yet the instance is marked
-            // as 'recovered' (by setting the state to NONE).
-            // is this really fine here? or should we not retry - or at least
-            // log the throwable?
-            missingLastRevUtil.releaseRecoveryLock(clusterId);
+            Iterable<NodeDocument> suspects = missingLastRevUtil.getCandidates(startTime);
+            try {
+                log.info("Performing Last Revision Recovery for clusterNodeId {}", clusterId);
+                int num = recover(suspects.iterator(), clusterId);
+                success = true;
+                return num;
+            } finally {
+                Utils.closeIfCloseable(suspects);
+            }
+        } finally {
+            missingLastRevUtil.releaseRecoveryLock(clusterId, success);
 
             nodeStore.signalClusterStateChange();
         }
@@ -347,60 +410,50 @@ public class LastRevRecoveryAgent {
 
     /**
      * Determines if any of the cluster node failed to renew its lease and
-     * did not properly shutdown. If any such cluster node is found then are potential
-     * candidates for last rev recovery
+     * did not properly shutdown. If any such cluster node is found then are
+     * potential candidates for last rev recovery. This method also returns
+     * true when there is a cluster node with an ongoing recovery.
      *
-     * @return true if last rev recovery needs to be performed for any of the cluster nodes
+     * @return true if last rev recovery needs to be performed for any of the
+     *          cluster nodes
      */
     public boolean isRecoveryNeeded(){
-        return missingLastRevUtil.isRecoveryNeeded(nodeStore.getClock().getTime());
+        return missingLastRevUtil.isRecoveryNeeded();
     }
 
     public void performRecoveryIfNeeded() {
         if (isRecoveryNeeded()) {
-            List<Integer> clusterIds = getRecoveryCandidateNodes();
-            log.info("ClusterNodeId [{}] starting Last Revision Recovery for clusterNodeId(s) {}", nodeStore.getClusterId(),
-                    clusterIds);
+            Iterable<Integer> clusterIds = getRecoveryCandidateNodes();
+            log.info("ClusterNodeId [{}] starting Last Revision Recovery for clusterNodeId(s) {}",
+                    nodeStore.getClusterId(), clusterIds);
             for (int clusterId : clusterIds) {
-                recover(clusterId);
+                if (recover(clusterId) == -1) {
+                    log.info("Last Revision Recovery for cluster node {} " +
+                            "ongoing by other cluster node.", clusterId);
+                }
             }
         }
     }
 
     /**
-     * Gets the _lastRev recovery candidate cluster nodes.
+     * Gets the _lastRev recovery candidate cluster nodes. This also includes
+     * cluster nodes that are currently being recovered.
      *
-     * @return the recovery candidate nodes
+     * @return the recovery candidate nodes.
      */
-    public List<Integer> getRecoveryCandidateNodes() {
-
-        Iterable<ClusterNodeInfoDocument> clusters = missingLastRevUtil.getAllClusters();
-        List<Integer> candidateClusterNodes = Lists.newArrayList();
-        List<String> beingRecoveredRightNow = Lists.newArrayList();
-
-        for (ClusterNodeInfoDocument nodeInfo : clusters) {
-            String id = nodeInfo.getId();
-            if (nodeInfo.isBeingRecovered()) {
-                Long recoveredBy = (Long) nodeInfo.get(ClusterNodeInfo.REV_RECOVERY_BY);
-                beingRecoveredRightNow.add(nodeInfo == null ? id : String.format("%s (by %d)", id, recoveredBy));
-            } else if (isRecoveryNeeded(nodeInfo)) {
-                candidateClusterNodes.add(Integer.valueOf(id));
+    public Iterable<Integer> getRecoveryCandidateNodes() {
+        return Iterables.transform(filter(missingLastRevUtil.getAllClusters(),
+                new Predicate<ClusterNodeInfoDocument>() {
+            @Override
+            public boolean apply(ClusterNodeInfoDocument input) {
+                return missingLastRevUtil.isRecoveryNeeded(input);
             }
-        }
-
-        if (!beingRecoveredRightNow.isEmpty()) {
-            log.info("Active cluster nodes already in the process of being recovered: " + beingRecoveredRightNow);
-        }
-
-        return candidateClusterNodes;
-    }
-
-    /**
-     * Check if _lastRev recovery needed for this cluster node state is Active
-     * && currentTime past the leaseEnd time && recoveryLock not held by someone
-     */
-    private boolean isRecoveryNeeded(@Nonnull ClusterNodeInfoDocument nodeInfo) {
-        return nodeInfo.isActive() && nodeStore.getClock().getTime() > nodeInfo.getLeaseEndTime() && !nodeInfo.isBeingRecovered();
+        }), new Function<ClusterNodeInfoDocument, Integer>() {
+            @Override
+            public Integer apply(ClusterNodeInfoDocument input) {
+                return input.getClusterId();
+            }
+        });
     }
 
     private static class ClusterPredicate implements Predicate<Revision> {
