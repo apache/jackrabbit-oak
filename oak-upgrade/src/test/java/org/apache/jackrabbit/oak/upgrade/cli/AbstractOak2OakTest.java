@@ -96,6 +96,7 @@ public abstract class AbstractOak2OakTest {
         repository.shutdown();
         getDestinationContainer().close();
         getDestinationContainer().clean();
+        getSourceContainer().clean();
     }
 
     private void initContent(NodeStore target) throws IOException, RepositoryException {
