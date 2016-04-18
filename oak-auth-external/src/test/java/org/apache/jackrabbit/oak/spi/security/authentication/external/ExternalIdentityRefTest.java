@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
@@ -28,7 +30,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class ExternalIdentityRefTest {
 
@@ -93,22 +94,41 @@ public class ExternalIdentityRefTest {
 
     @Test
     public void testEquals() {
-        assertTrue(refNullProvider.equals(refNullProvider));
-        assertTrue(refNullProvider.equals(new ExternalIdentityRef(USERID, refNullProvider.getProviderName())));
-        assertTrue(refNullProvider.equals(new ExternalIdentityRef(USERID, refEmptyProvider.getProviderName())));
+        assertEquals(refNullProvider, refNullProvider);
+        assertEquals(refNullProvider, new ExternalIdentityRef(USERID, refNullProvider.getProviderName()));
+        assertEquals(refNullProvider, new ExternalIdentityRef(USERID, refEmptyProvider.getProviderName()));
 
-        assertTrue(refNullProvider.equals(refEmptyProvider));
-        assertTrue(refEmptyProvider.equals(refNullProvider));
+        assertEquals(refNullProvider, refEmptyProvider);
+        assertEquals(refEmptyProvider, refNullProvider);
 
-        assertFalse(refNullProvider.equals(ref));
-        assertFalse(ref.equals(refNullProvider));
+        assertEquals(ref, ref);
+        assertEquals(ref, new ExternalIdentityRef(ref.getId(), ref.getProviderName()));
+        assertEquals(ref, new ExternalIdentityRef(USERID, PROVIDER_NAME));
+    }
 
-        assertFalse(refNullProvider.equals(null));
-        assertFalse(refNullProvider.equals(new ExternalIdentityRef("anotherId", null)));
+    @Test
+    public void testNotEquals() {
+        Map<ExternalIdentityRef, ExternalIdentityRef> notEqual = new HashMap();
+        notEqual.put(refNullProvider, ref);
+        notEqual.put(refEmptyProvider, ref);
+        notEqual.put(refNullProvider, null);
+        notEqual.put(refNullProvider, new ExternalIdentityRef("anotherId", null));
+        notEqual.put(ref, new ExternalIdentityRef("anotherId", PROVIDER_NAME));
+        notEqual.put(ref, new ExternalIdentityRef(USERID, "anotherProvider"));
 
-        assertTrue(ref.equals(ref));
-        assertTrue(ref.equals(new ExternalIdentityRef(ref.getId(), ref.getProviderName())));
-        assertTrue(ref.equals(new ExternalIdentityRef(USERID, PROVIDER_NAME)));
+        for (Map.Entry<ExternalIdentityRef, ExternalIdentityRef> entry : notEqual.entrySet()) {
+            ExternalIdentityRef r1 = entry.getKey();
+            ExternalIdentityRef r2 = entry.getValue();
+
+            assertFalse(r1.equals(r2));
+            if (r2 != null) {
+                assertFalse(r2.equals(r1));
+            }
+        }
+    }
+
+    @Test
+    public void testNotEqualsExternalIdentity() {
         assertFalse(ref.equals(new ExternalIdentity() {
             @Nonnull
             @Override
@@ -136,7 +156,7 @@ public class ExternalIdentityRefTest {
 
             @Nonnull
             @Override
-            public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
+            public Iterable<ExternalIdentityRef> getDeclaredGroups() {
                 return ImmutableSet.of();
             }
 
@@ -146,5 +166,12 @@ public class ExternalIdentityRefTest {
                 return ImmutableMap.of();
             }
         }));
+    }
+
+    @Test
+    public void testToString() {
+        for (ExternalIdentityRef r : ImmutableList.of(ref, refEmptyProvider, refEmptyProvider)) {
+            assertEquals("ExternalIdentityRef{" + "id='" + r.getId() + '\'' + ", providerName='" + r.getProviderName() + '\'' + '}', r.toString());
+        }
     }
 }
