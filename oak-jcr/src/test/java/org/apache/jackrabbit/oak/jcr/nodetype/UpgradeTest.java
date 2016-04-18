@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.StringReader;
 
 import javax.jcr.Node;
@@ -56,8 +57,11 @@ public class UpgradeTest {
         File repoHome = new File(testFolder, "test-repo-1.0");
         repoHome.delete();
         File tmpZip = File.createTempFile("test-repo", null);
-        IOUtils.copy(NodeTypeTest.class.getResourceAsStream("test-repo-1.0.zip"),
-                new FileOutputStream(tmpZip));
+        InputStream in = NodeTypeTest.class.getResourceAsStream("test-repo-1.0.zip");
+        FileOutputStream out = new FileOutputStream(tmpZip);
+        IOUtils.copy(in, out);
+        in.close();
+        out.close();
         ZipFile repoZip = new ZipFile(tmpZip);
         repoZip.extractAll(testFolder.getPath());
         tmpZip.delete();
