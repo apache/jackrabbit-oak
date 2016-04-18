@@ -56,8 +56,6 @@ import static org.junit.Assert.assertTrue;
  */
 public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
-    private String userId = TestIdentityProvider.ID_TEST_USER;
-
     private UserManager userManager;
     private DefaultSyncHandler syncHandler;
 
@@ -129,13 +127,13 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testFindExternalIdentity() throws Exception {
-        login(new SimpleCredentials(userId, new char[0])).close();
+        login(new SimpleCredentials(USER_ID, new char[0])).close();
         root.refresh();
 
-        SyncedIdentity id = syncHandler.findIdentity(userManager, userId);
+        SyncedIdentity id = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull("known authorizable should exist", id);
         assertEquals("external user should have correct external ref.idp", idp.getName(), id.getExternalIdRef().getProviderName());
-        assertEquals("external user should have correct external ref.id", userId, id.getExternalIdRef().getId());
+        assertEquals("external user should have correct external ref.id", USER_ID, id.getExternalIdRef().getId());
     }
 
     @Test
@@ -153,23 +151,23 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testFindIdentityWithRemovedExternalId() throws Exception {
-        sync(userId, false);
+        sync(USER_ID, false);
 
         // NOTE: this is only possible as long the rep:externalId property is not protected
-        Authorizable authorizable = userManager.getAuthorizable(userId);
+        Authorizable authorizable = userManager.getAuthorizable(USER_ID);
         authorizable.removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
         root.commit();
 
-        SyncedIdentity si = syncHandler.findIdentity(userManager, userId);
+        SyncedIdentity si = syncHandler.findIdentity(userManager, USER_ID);
         assertNull(si.getExternalIdRef());
     }
 
     @Test
     public void testRequiresSyncAfterCreate() throws Exception {
-        login(new SimpleCredentials(userId, new char[0])).close();
+        login(new SimpleCredentials(USER_ID, new char[0])).close();
         root.refresh();
 
-        SyncedIdentity id = syncHandler.findIdentity(userManager, userId);
+        SyncedIdentity id = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull("Known authorizable should exist", id);
 
         assertFalse("Freshly synced id should not require sync", syncHandler.requiresSync(id));
@@ -177,18 +175,18 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testRequiresSyncExpiredSyncProperty() throws Exception {
-        login(new SimpleCredentials(userId, new char[0])).close();
+        login(new SimpleCredentials(USER_ID, new char[0])).close();
         root.refresh();
 
         final Calendar nowCal = Calendar.getInstance();
         nowCal.setTimeInMillis(nowCal.getTimeInMillis() - 1000);
         Value nowValue = getValueFactory().createValue(nowCal);
 
-        Authorizable a = userManager.getAuthorizable(userId);
+        Authorizable a = userManager.getAuthorizable(USER_ID);
         a.setProperty(DefaultSyncContext.REP_LAST_SYNCED, nowValue);
         root.commit();
 
-        SyncedIdentity id = syncHandler.findIdentity(userManager, userId);
+        SyncedIdentity id = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull("known authorizable should exist", id);
 
         assertTrue("synced id should require sync", syncHandler.requiresSync(id));
@@ -196,25 +194,25 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testRequiresSyncMissingSyncProperty() throws Exception {
-        sync(userId, false);
+        sync(USER_ID, false);
 
-        Authorizable a = userManager.getAuthorizable(userId);
+        Authorizable a = userManager.getAuthorizable(USER_ID);
         a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
         root.commit();
 
-        SyncedIdentity si = syncHandler.findIdentity(userManager, userId);
+        SyncedIdentity si = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull(si);
         assertTrue(syncHandler.requiresSync(si));
     }
 
     @Test
     public void testRequiresSyncMissingExternalIDRef() throws Exception {
-        assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(userId, null, false, Long.MAX_VALUE)));
+        assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(USER_ID, null, false, Long.MAX_VALUE)));
     }
 
     @Test
     public void testRequiresSyncNotYetSynced() throws Exception {
-        assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(userId, idp.getUser(userId).getExternalId(), false, Long.MIN_VALUE)));
+        assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(USER_ID, idp.getUser(USER_ID).getExternalId(), false, Long.MIN_VALUE)));
     }
 
     @Test
@@ -238,11 +236,11 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testListIdentitiesAfterSync() throws Exception {
-        sync(userId, false);
+        sync(USER_ID, false);
 
-        // membership-nesting is 1 => expect only 'userId' plus the declared group-membership
-        Set<String> expected = Sets.newHashSet(userId);
-        for (ExternalIdentityRef extRef : idp.getUser(userId).getDeclaredGroups()) {
+        // membership-nesting is 1 => expect only 'USER_ID' plus the declared group-membership
+        Set<String> expected = Sets.newHashSet(USER_ID);
+        for (ExternalIdentityRef extRef : idp.getUser(USER_ID).getDeclaredGroups()) {
             expected.add(extRef.getId());
         }
 
