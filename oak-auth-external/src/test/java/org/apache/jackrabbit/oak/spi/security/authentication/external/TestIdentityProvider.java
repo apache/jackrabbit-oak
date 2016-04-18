@@ -29,9 +29,10 @@ import javax.security.auth.login.LoginException;
 
 public class TestIdentityProvider implements ExternalIdentityProvider {
 
+    public static final String ID_TEST_USER = "testUser";
+
     private final Map<String, ExternalGroup> externalGroups = new HashMap<String, ExternalGroup>();
     private final Map<String, ExternalUser> externalUsers = new HashMap<String, ExternalUser>();
-
 
     public TestIdentityProvider() {
         addGroup(new TestGroup("aa"));
@@ -40,7 +41,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         addGroup(new TestGroup("b").withGroups("a"));
         addGroup(new TestGroup("c"));
 
-        addUser(new TestUser("testUser")
+        addUser(new TestUser(ID_TEST_USER)
                 .withProperty("name", "Test User")
                 .withProperty("profile/name", "Public Name")
                 .withProperty("profile/age", 72)
