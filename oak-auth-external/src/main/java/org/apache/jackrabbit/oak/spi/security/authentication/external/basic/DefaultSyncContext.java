@@ -579,7 +579,7 @@ public class DefaultSyncContext implements SyncContext {
     protected void syncProperties(@Nonnull ExternalIdentity ext, @Nonnull Authorizable auth, @Nonnull Map<String, String> mapping)
             throws RepositoryException {
         Map<String, ?> properties = ext.getProperties();
-        for (Map.Entry<String, String> entry: mapping.entrySet()) {
+        for (Map.Entry<String, String> entry : mapping.entrySet()) {
             String relPath = entry.getKey();
             String name = entry.getValue();
             Object obj = properties.get(name);
