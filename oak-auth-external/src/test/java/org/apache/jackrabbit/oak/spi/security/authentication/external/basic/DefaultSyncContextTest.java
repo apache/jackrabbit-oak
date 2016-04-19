@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -24,7 +25,10 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.Binary;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,8 +38,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -64,13 +66,14 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
     @Before
     public void before() throws Exception {
         super.before();
-        syncCtx = new DefaultSyncContext(config, idp, getUserManager(root), new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
+        syncCtx = new DefaultSyncContext(config, idp, getUserManager(root), getValueFactory());
     }
 
     @After
     public void after() throws Exception {
         try {
             syncCtx.close();
+            root.refresh();
             UserManager umgr = getUserManager(root);
             Iterator<ExternalIdentity> ids = Iterators.concat(idp.listGroups(), idp.listUsers());
             while (ids.hasNext()) {
@@ -339,6 +342,36 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         // since the group is not associated with the test-IDP the group-membership
         // must NOT be modified during the sync.
         assertTrue(gr.isDeclaredMember(user));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4231">OAK-4231</a>
+     */
+    @Test
+    public void testCreateValueFromBinary() throws Exception {
+        byte[] bytes = new byte[]{'a', 'b'};
+        ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+        Binary binary = getValueFactory().createBinary(is);
+
+        Value v = syncCtx.createValue(binary);
+        assertNotNull(v);
+        assertEquals(PropertyType.BINARY, v.getType());
+        assertEquals(binary, v.getBinary());
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4231">OAK-4231</a>
+     */
+    @Test
+    public void testCreateValueFromInputStream() throws Exception {
+        byte[] bytes = new byte[]{'a', 'b'};
+        ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+        Binary binary = getValueFactory().createBinary(is);
+
+        Value v = syncCtx.createValue(is);
+        assertNotNull(v);
+        assertEquals(PropertyType.BINARY, v.getType());
+        assertEquals(binary, v.getBinary());
     }
 
     /**
