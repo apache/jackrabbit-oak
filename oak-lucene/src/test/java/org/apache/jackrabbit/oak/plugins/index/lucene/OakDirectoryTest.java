@@ -409,6 +409,8 @@ public class OakDirectoryTest {
             assertThat(e.getMessage(), containsString(indexPath));
             assertThat(e.getMessage(), containsString("test3.txt"));
         }
+
+        store.close();
     }
 
     @Test
