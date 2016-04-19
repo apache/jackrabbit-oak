@@ -34,8 +34,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.json.JsopStream;
-import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -64,7 +62,6 @@ public class Commit {
     private final RevisionVector baseRevision;
     private final Revision revision;
     private final HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
-    private final JsopWriter diff = new JsopStream();
     private final Set<Revision> collisions = new LinkedHashSet<Revision>();
     private Branch b;
 
@@ -143,14 +140,6 @@ public class Commit {
     @Nonnull
     Iterable<String> getModifiedPaths() {
         return modifiedNodes;
-    }
-
-    void addNodeDiff(DocumentNodeState n) {
-        diff.tag('+').key(n.getPath());
-        diff.object();
-        n.append(diff, false);
-        diff.endObject();
-        diff.newline();
     }
 
     void updateProperty(String path, String propertyName, String value) {
@@ -684,14 +673,6 @@ public class Commit {
         cacheEntry.done();
     }
 
-    public void moveNode(String sourcePath, String targetPath) {
-        diff.tag('>').key(sourcePath).value(targetPath);
-    }
-
-    public void copyNode(String sourcePath, String targetPath) {
-        diff.tag('*').key(sourcePath).value(targetPath);
-    }
-
     private void markChanged(String path) {
         if (!denotesRoot(path) && !PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("path: " + path);
@@ -705,14 +686,6 @@ public class Commit {
             }
             path = PathUtils.getParentPath(path);
         }
-    }
-
-    public void updatePropertyDiff(String path, String propertyName, String value) {
-        diff.tag('^').key(PathUtils.concat(path, propertyName)).value(value);
-    }
-
-    public void removeNodeDiff(String path) {
-        diff.tag('-').value(path).newline();
     }
 
     public void removeNode(String path, NodeState state) {
