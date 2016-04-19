@@ -86,6 +86,7 @@ public class NodeStoreBinaryResourceProviderTest {
         CSVFileBinaryResourceProvider csvbrp = new CSVFileBinaryResourceProvider(csv, blobStore);
         assertEquals(2, csvbrp.getBinaries("/").size());
 
+        csvbrp.close();
     }
 
     private NodeBuilder createFileNode(NodeBuilder base, String name, Blob content, String mimeType) {

@@ -45,6 +45,7 @@ public class CSVFileGenerator {
         try{
             CSVPrinter printer = new CSVPrinter(Files.newWriter(outFile, Charsets.UTF_8),
                     CSVFileBinaryResourceProvider.FORMAT);
+            closer.register(printer);
             for (BinaryResource br : binaries){
                 count++;
                 printer.printRecord(
