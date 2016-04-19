@@ -17,7 +17,13 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,9 +36,12 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -40,18 +49,24 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultSyncContextTest extends AbstractSecurityTest {
@@ -100,8 +115,171 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         return gr;
     }
 
+    /**
+     * Test utility method to synchronize the given identity into the repository.
+     * This is intended to simplify those tests that require a given user/group
+     * to be synchronized before executing the test.
+     *
+     * @param externalIdentity The external identity to be synchronized.
+     * @throws Exception
+     */
+    private void sync(@Nonnull ExternalIdentity externalIdentity) throws Exception {
+        SyncResult result = syncCtx.sync(externalIdentity);
+        assertSame(SyncResult.Status.ADD, result.getStatus());
+        root.commit();
+    }
+
     private void setExternalID(@Nonnull Authorizable authorizable, @Nullable String idpName) throws RepositoryException {
         authorizable.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, getValueFactory().createValue(authorizable.getID() + ';' + idpName));
+    }
+
+    @Test
+    public void testCreateSyncedIdentityNull() throws Exception {
+        assertNull(DefaultSyncContext.createSyncedIdentity(null));
+    }
+
+    @Test
+    public void testCreateSyncedIdentityLocalGroup() throws Exception {
+        Group gr = createTestGroup();
+        SyncedIdentity si = DefaultSyncContext.createSyncedIdentity(gr);
+
+        assertNotNull(si);
+        assertEquals(gr.getID(), si.getId());
+        assertNull(si.getExternalIdRef());
+        assertTrue(si.isGroup());
+        assertEquals(-1, si.lastSynced());
+    }
+
+    @Test
+    public void testCreateSyncedIdentityLocalUser() throws Exception {
+        User u = getTestUser();
+        SyncedIdentity si = DefaultSyncContext.createSyncedIdentity(u);
+
+        assertNotNull(si);
+        assertEquals(u.getID(), si.getId());
+        assertNull(si.getExternalIdRef());
+        assertFalse(si.isGroup());
+        assertEquals(-1, si.lastSynced());
+    }
+
+    @Test
+    public void testCreateSyncedIdentitySyncedGroup() throws Exception {
+        ExternalIdentity externalGroup = idp.listGroups().next();
+        sync(externalGroup);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalGroup.getId());
+        SyncedIdentity si = DefaultSyncContext.createSyncedIdentity(a);
+
+        assertNotNull(si);
+        assertEquals(a.getID(), si.getId());
+        assertNotNull(si.getExternalIdRef());
+        assertTrue(si.isGroup());
+        assertEquals(syncCtx.now, si.lastSynced());
+    }
+
+    @Test
+    public void testCreateSyncedIdentitySyncedUser() throws Exception {
+        ExternalIdentity externalUser = idp.listUsers().next();
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+        SyncedIdentity si = DefaultSyncContext.createSyncedIdentity(a);
+
+        assertNotNull(si);
+        assertEquals(a.getID(), si.getId());
+        assertNotNull(si.getExternalIdRef());
+        assertFalse(si.isGroup());
+        assertEquals(syncCtx.now, si.lastSynced());
+    }
+
+    @Test
+    public void testCreateSyncedIdentityEmptyLastSyncedProperty() throws Exception {
+        Group gr = createTestGroup();
+        gr.setProperty(DefaultSyncContext.REP_LAST_SYNCED, new Value[0]);
+
+        SyncedIdentity si = DefaultSyncContext.createSyncedIdentity(gr);
+        assertNotNull(si);
+        assertEquals(-1, si.lastSynced());
+    }
+
+    @Test
+    public void testGetIdentityRefNull() throws Exception {
+        assertNull(DefaultSyncContext.getIdentityRef(null));
+    }
+
+    @Test
+    public void testGetIdentityRefLocalGroup() throws Exception {
+        assertNull(DefaultSyncContext.getIdentityRef(createTestGroup()));
+    }
+
+    @Test
+    public void testGetIdentityRefLocalUser() throws Exception {
+        assertNull(DefaultSyncContext.getIdentityRef(getTestUser()));
+    }
+
+    @Test
+    public void testGetIdentityRefSyncGroup() throws Exception {
+        ExternalIdentity externalGroup = idp.listGroups().next();
+        sync(externalGroup);
+
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(getUserManager(root).getAuthorizable(externalGroup.getId()));
+        assertNotNull(ref);
+        assertEquals(externalGroup.getExternalId(), ref);
+    }
+
+    @Test
+    public void testGetIdentityRefSyncUser() throws Exception {
+        ExternalIdentity externalGroupUser = idp.listGroups().next();
+        sync(externalGroupUser);
+
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(getUserManager(root).getAuthorizable(externalGroupUser.getId()));
+        assertNotNull(ref);
+        assertEquals(externalGroupUser.getExternalId(), ref);
+    }
+
+    @Test
+    public void testGetIdentityRefEmptyMvProperty() throws Exception {
+        Group gr = createTestGroup();
+        // NOTE: making rep:externalId a multivalue property without any value
+        //       not committing the changes as this prop is expected to become
+        //       protected to prevent unintentional or malicious modification.
+        gr.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, new Value[0]);
+
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(gr);
+        assertNull(ref);
+    }
+
+    @Test
+    public void testIsKeepMissing() {
+        assertFalse(syncCtx.isKeepMissing());
+
+        assertSame(syncCtx, syncCtx.setKeepMissing(true));
+        assertTrue(syncCtx.isKeepMissing());
+
+        assertSame(syncCtx, syncCtx.setKeepMissing(false));
+        assertFalse(syncCtx.isKeepMissing());
+    }
+
+    @Test
+    public void testIsForceUserSync() {
+        assertFalse(syncCtx.isForceUserSync());
+
+        assertSame(syncCtx, syncCtx.setForceUserSync(true));
+        assertTrue(syncCtx.isForceUserSync());
+
+        assertSame(syncCtx, syncCtx.setForceUserSync(false));
+        assertFalse(syncCtx.isForceUserSync());
+    }
+
+    @Test
+    public void testIsForceGroupSync() {
+        assertFalse(syncCtx.isForceGroupSync());
+
+        assertSame(syncCtx, syncCtx.setForceGroupSync(true));
+        assertTrue(syncCtx.isForceGroupSync());
+
+        assertSame(syncCtx, syncCtx.setForceGroupSync(false));
+        assertFalse(syncCtx.isForceGroupSync());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -140,6 +318,16 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         syncCtx.setForceGroupSync(true);
         result = syncCtx.sync(gr);
         assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+    }
+
+    @Ignore("OAK-4224")
+    @Test(expected = SyncException.class)
+    public void testSyncForeignExternalIdentity() throws Exception {
+        ExternalIdentity foreign = new ForeignExternalUser();
+
+        syncCtx.sync(foreign);
+        // don't commit changes as the after-call would not properly remove any
+        // authorizable created this way.
     }
 
     @Test
@@ -259,6 +447,14 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
     }
 
+    @Test(expected = SyncException.class)
+    public void testSyncByIdUsingExceptionId() throws Exception {
+        Group gr = getUserManager(root).createGroup(TestIdentityProvider.ID_EXCEPTION);
+        setExternalID(gr, idp.getName());
+
+        syncCtx.sync(TestIdentityProvider.ID_EXCEPTION);
+    }
+
     @Test
     public void testSyncAutoMembership() throws Exception {
         Group gr = createTestGroup();
@@ -344,6 +540,510 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         assertTrue(gr.isDeclaredMember(user));
     }
 
+    @Test
+    public void testGetAuthorizableUser() throws Exception {
+        ExternalIdentity extUser = idp.listUsers().next();
+        User user = syncCtx.getAuthorizable(extUser, User.class);
+        assertNull(user);
+
+        sync(extUser);
+
+        user = syncCtx.getAuthorizable(extUser, User.class);
+        assertNotNull(user);
+    }
+
+    @Test(expected = SyncException.class)
+    public void testGetAuthorizableUserWrongType() throws Exception {
+        ExternalIdentity extUser = idp.listUsers().next();
+        sync(extUser);
+        syncCtx.getAuthorizable(extUser, Group.class);
+    }
+
+    @Test
+    public void testGetAuthorizableGroup() throws Exception {
+        ExternalIdentity extGroup = idp.listGroups().next();
+        Group gr = syncCtx.getAuthorizable(extGroup, Group.class);
+        assertNull(gr);
+
+        sync(extGroup);
+
+        gr = syncCtx.getAuthorizable(extGroup, Group.class);
+        assertNotNull(gr);
+    }
+
+    @Test(expected = SyncException.class)
+    public void testGetAuthorizableGroupWrongType() throws Exception {
+        ExternalIdentity extGroup = idp.listGroups().next();
+        sync(extGroup);
+        syncCtx.getAuthorizable(extGroup, User.class);
+    }
+
+    @Test
+    public void testSyncMembershipDepthNoSync() throws Exception {
+        ExternalUser externalUser = idp.listUsers().next();
+        Authorizable a = syncCtx.createUser(externalUser);
+        root.commit();
+
+        assertTrue(externalUser.getDeclaredGroups().iterator().hasNext());
+
+        syncCtx.syncMembership(externalUser, a, 0);
+        assertFalse(root.hasPendingChanges());
+
+        syncCtx.syncMembership(externalUser, a, -1);
+        assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testSyncMembershipDepth1() throws Exception {
+        ExternalUser externalUser = idp.listUsers().next();
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        syncCtx.syncMembership(externalUser, a, 1);
+        assertTrue(root.hasPendingChanges());
+
+        UserManager uMgr = getUserManager(root);
+        for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
+            Group g = uMgr.getAuthorizable(ref.getId(), Group.class);
+            assertNotNull(g);
+            assertTrue(g.isDeclaredMember(a));
+        }
+    }
+
+    @Test
+    public void testSyncMembershipDepthInfinite() throws Exception {
+        ExternalUser externalUser = idp.listUsers().next();
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        syncCtx.syncMembership(externalUser, a, Long.MAX_VALUE);
+        assertTrue(root.hasPendingChanges());
+        root.commit();
+
+        UserManager uMgr = getUserManager(root);
+        for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
+            ExternalIdentity extGr = idp.getIdentity(ref);
+            assertNotNull(extGr);
+
+            for (ExternalIdentityRef inheritedGrRef : extGr.getDeclaredGroups()) {
+                Group g = uMgr.getAuthorizable(inheritedGrRef.getId(), Group.class);
+                assertNotNull(g);
+                if (Iterables.contains(externalUser.getDeclaredGroups(), inheritedGrRef)) {
+                    assertTrue(g.isDeclaredMember(a));
+                } else {
+                    assertFalse(g.isDeclaredMember(a));
+                }
+                assertTrue(g.isMember(a));
+            }
+        }
+    }
+
+    @Test
+    public void testSyncMembershipGroupIsExternalUser() throws Exception {
+        // sync the 'wrong' external group into the repository
+        ExternalIdentity externalIdentity = idp.listUsers().next();
+        sync(externalIdentity);
+
+        // create external user with an synced-ext-user as declared group
+        ExternalUser withWrongDeclaredGroup = new ExternalUserWithDeclaredGroup(externalIdentity.getExternalId());
+
+        try {
+            Authorizable a = syncCtx.createUser(withWrongDeclaredGroup);
+            root.commit();
+
+            syncCtx.syncMembership(withWrongDeclaredGroup, a, 1);
+            assertFalse(root.hasPendingChanges());
+        } finally {
+            Authorizable a = getUserManager(root).getAuthorizable(withWrongDeclaredGroup.getId());
+            if (a != null) {
+                a.remove();
+                root.commit();
+            }
+        }
+    }
+
+    @Test
+    public void testSyncMembershipGroupIsSyncedAsUser() throws Exception {
+        ExternalUser fromIDP = idp.listUsers().next();
+        ExternalIdentityRef groupRef = fromIDP.getDeclaredGroups().iterator().next();
+
+        // sync the the ext-user from the idp (but make it just declare a single group)
+        ExternalUser extuser = new ExternalUserWithDeclaredGroup(groupRef, fromIDP);
+        Authorizable a = syncCtx.createUser(extuser);
+
+        // create an external-user based on info that the IDP knows as group and sync it
+        ExternalUser externalIdentity = new ExternalUserFromGroup(idp.getIdentity(groupRef));
+        Authorizable a2 = syncCtx.createUser(externalIdentity);
+        assertFalse(a2.isGroup());
+        root.commit();
+
+        // now sync-ing the membership should not have any effect as the external
+        // group referenced from 'extuser' has already been created in the system
+        // as user.
+        syncCtx.syncMembership(extuser, a, 1);
+        assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testApplyMembershipNonExistingGroup() throws Exception {
+        User u = getTestUser();
+
+        assertNull(getUserManager(root).getAuthorizable("anyGroup", Group.class));
+        syncCtx.applyMembership(u, ImmutableSet.of("anyGroup"));
+        assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testApplyMembershipNonGroup() throws Exception {
+        ExternalUser externalUser = idp.listUsers().next();
+        sync(externalUser);
+        User u = getTestUser();
+
+        syncCtx.applyMembership(getUserManager(root).getAuthorizable(externalUser.getId()), ImmutableSet.of(u.getID()));
+        assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testApplyMembership() throws Exception {
+        User u = getTestUser();
+        Group gr = createTestGroup();
+
+        syncCtx.applyMembership(u, ImmutableSet.of(gr.getID()));
+        assertTrue(gr.isDeclaredMember(u));
+        assertTrue(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testSyncPropertiesEmptyMap() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        syncCtx.syncProperties(externalUser, a, ImmutableMap.<String, String>of());
+
+        for (String propName : externalUser.getProperties().keySet()) {
+            assertFalse(a.hasProperty(propName));
+        }
+    }
+
+    @Test
+    public void testSyncPropertiesEmptyMapExistingProps() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        Value anyValue = getValueFactory().createValue("any");
+
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            a.setProperty(propName, anyValue);
+        }
+
+        syncCtx.syncProperties(externalUser, a, ImmutableMap.<String, String>of());
+        for (String propName : extProps.keySet()) {
+            assertTrue(a.hasProperty(propName));
+            assertEquals(anyValue, a.getProperty(propName)[0]);
+        }
+    }
+
+    @Test
+    public void testSyncPropertiesMappingRemovesExisting() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+
+        // create mapping that doesn't match to names in the external-properties
+        // -> previously synced properties must be removed
+        Map<String, String> mapping = new HashMap();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put(propName, "any");
+        }
+
+        syncCtx.syncProperties(externalUser, a, mapping);
+        for (String propName : extProps.keySet()) {
+            assertFalse(a.hasProperty(propName));
+        }
+    }
+
+    @Test
+    public void testSyncPropertiesMappingConstants() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+
+        // create mapping that doesn't match to names in the external-properties
+        // -> previously synced properties must be removed
+        Map<String, String> mapping = new HashMap();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put(propName, "\"any\"");
+        }
+
+        syncCtx.syncProperties(externalUser, a, mapping);
+        Value anyValue = getValueFactory().createValue("any");
+        for (String propName : extProps.keySet()) {
+            assertTrue(a.hasProperty(propName));
+            assertEquals(anyValue, a.getProperty(propName)[0]);
+        }
+    }
+
+    @Test
+    public void testSyncPropertiesMappingDQuoteName() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+
+        // mapping to '"' (i.e. name size = 1) which doesn't qualify as constant
+        // -> same behavior expected as with 'testSyncPropertiesMappingRemovesExisting'
+        Map<String, String> mapping = new HashMap();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put(propName, "\"");
+        }
+
+        syncCtx.syncProperties(externalUser, a, mapping);
+        for (String propName : extProps.keySet()) {
+            assertFalse(a.hasProperty(propName));
+        }
+    }
+
+    @Test
+    public void testSyncPropertiesMappingNameStartsWithDQuote() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+
+        // mapping to '"any', which doesn't qualify as constant
+        // -> same behavior expected as with 'testSyncPropertiesMappingRemovesExisting'
+        Map<String, String> mapping = new HashMap();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put(propName, "\"any");
+        }
+
+        syncCtx.syncProperties(externalUser, a, mapping);
+        for (String propName : extProps.keySet()) {
+            assertFalse(a.hasProperty(propName));
+        }
+    }
+
+    @Test
+    public void testSyncProperties() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        // create exact mapping
+        Map<String, String> mapping = new HashMap();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put(propName, propName);
+        }
+        syncCtx.syncProperties(externalUser, a, mapping);
+
+        for (String propName : extProps.keySet()) {
+            assertTrue(a.hasProperty(propName));
+
+            Object obj = extProps.get(propName);
+            Value[] vs = a.getProperty(propName);
+            if (vs.length == 1) {
+                assertEquals(syncCtx.createValue(obj), a.getProperty(propName)[0]);
+            } else {
+                Value[] expected = (obj instanceof Collection) ?
+                        syncCtx.createValues((Collection) obj) :
+                        syncCtx.createValues(Arrays.asList((Object[]) obj));
+                assertArrayEquals(expected, a.getProperty(propName));
+            }
+        }
+    }
+
+    @Test
+    public void testSyncPropertiesRemapped() throws Exception {
+        ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+        Authorizable a = syncCtx.createUser(externalUser);
+
+        // create exact mapping
+        Map<String, String> mapping = new HashMap();
+        Map<String, ?> extProps = externalUser.getProperties();
+        for (String propName : extProps.keySet()) {
+            mapping.put("a/"+propName, propName);
+        }
+        syncCtx.syncProperties(externalUser, a, mapping);
+
+        for (String propName : extProps.keySet()) {
+            String relPath = "a/" + propName;
+
+            assertTrue(a.hasProperty(relPath));
+
+            Object obj = extProps.get(propName);
+            Value[] vs = a.getProperty(relPath);
+            if (vs.length == 1) {
+                assertEquals(syncCtx.createValue(obj), a.getProperty(relPath)[0]);
+            } else {
+                Value[] expected = (obj instanceof Collection) ?
+                        syncCtx.createValues((Collection) obj) :
+                        syncCtx.createValues(Arrays.asList((Object[]) obj));
+                assertArrayEquals(expected, a.getProperty(relPath));
+            }
+        }
+    }
+
+    @Test
+    public void testIsExpiredLocalGroup() throws Exception {
+        Group gr = createTestGroup();
+        assertTrue(syncCtx.isExpired(gr, config.group().getExpirationTime(), "any"));
+    }
+
+    @Test
+    public void testIsExpiredEmptyLastSyncedProperty() throws Exception {
+        Group gr = createTestGroup();
+        gr.setProperty(DefaultSyncContext.REP_LAST_SYNCED, new Value[0]);
+
+        assertTrue(syncCtx.isExpired(gr, config.group().getExpirationTime(), "any"));
+    }
+
+    @Test
+    public void testIsExpiredSyncedUser() throws Exception {
+        ExternalIdentity externalUser = idp.listUsers().next();
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+        assertFalse(syncCtx.isExpired(a, config.user().getExpirationTime(), "any"));
+        assertTrue(syncCtx.isExpired(a, -1, "any"));
+
+        // create a ctx with a newer 'now'
+        DefaultSyncContext ctx = new DefaultSyncContext(config, idp, getUserManager(root), getValueFactory());
+        assertTrue(ctx.isExpired(a, 1, "any"));
+
+        // remove last-sync property
+        a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
+        assertTrue(syncCtx.isExpired(a, config.user().getExpirationTime(), "any"));
+    }
+
+    @Test
+    public void testIsExpiredSyncedGroup() throws Exception {
+        ExternalIdentity externalGroup = idp.listGroups().next();
+        sync(externalGroup);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalGroup.getId());
+        assertFalse(syncCtx.isExpired(a, config.group().getExpirationTime(), "any"));
+        assertTrue(syncCtx.isExpired(a, -1, "any"));
+
+        // create a ctx with a newer 'now'
+        DefaultSyncContext ctx = new DefaultSyncContext(config, idp, getUserManager(root), getValueFactory());
+        assertTrue(ctx.isExpired(a, 1, "any"));
+
+        // remove last-sync property
+        a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
+        assertTrue(syncCtx.isExpired(a, config.group().getExpirationTime(), "any"));
+    }
+
+    @Test
+    public void testCreateValueNull() throws Exception {
+        assertNull(syncCtx.createValue(null));
+    }
+
+    @Test
+    public void testCreateValueString() throws Exception {
+        Value v = syncCtx.createValue("s");
+        assertNotNull(v);
+        assertEquals(PropertyType.STRING, v.getType());
+        assertEquals("s", v.getString());
+
+        v = syncCtx.createValue(new char[] {'s'});
+        assertNotNull(v);
+        assertEquals(PropertyType.STRING, v.getType());
+        assertEquals("s", v.getString());
+
+        Object o = new ForeignExternalUser();
+        v = syncCtx.createValue(o);
+        assertNotNull(v);
+        assertEquals(PropertyType.STRING, v.getType());
+        assertEquals(o.toString(), v.getString());
+    }
+
+    @Test
+    public void testCreateValueBoolean() throws Exception {
+        Value v = syncCtx.createValue(true);
+        assertNotNull(v);
+        assertEquals(PropertyType.BOOLEAN, v.getType());
+        assertEquals(true, v.getBoolean());
+    }
+
+    @Test
+    public void testCreateValueLong() throws Exception {
+        Value v = syncCtx.createValue(Long.MAX_VALUE);
+        assertNotNull(v);
+        assertEquals(PropertyType.LONG, v.getType());
+        assertEquals(Long.MAX_VALUE, v.getLong());
+
+        v = syncCtx.createValue(Integer.valueOf(23));
+        assertNotNull(v);
+        assertEquals(PropertyType.LONG, v.getType());
+        assertEquals(23, v.getLong());
+
+        v = syncCtx.createValue(Short.MIN_VALUE);
+        assertNotNull(v);
+        assertEquals(PropertyType.LONG, v.getType());
+        assertEquals(Short.MIN_VALUE, v.getLong());
+
+        v = syncCtx.createValue(Byte.MAX_VALUE);
+        assertNotNull(v);
+        assertEquals(PropertyType.LONG, v.getType());
+        assertEquals(Byte.MAX_VALUE, v.getLong());
+    }
+
+    @Test
+    public void testCreateValueDouble() throws Exception {
+        Value v = syncCtx.createValue(Double.valueOf(1.1));
+        assertNotNull(v);
+        assertEquals(PropertyType.DOUBLE, v.getType());
+        assertEquals(1.1, v.getDouble(), 0);
+
+        v = syncCtx.createValue(Float.NaN);
+        assertNotNull(v);
+        assertEquals(PropertyType.DOUBLE, v.getType());
+        assertEquals(Float.NaN, v.getDouble(), 0);
+    }
+
+    @Test
+    public void testCreateValueDate() throws Exception {
+        Date d = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(d);
+
+        Value v = syncCtx.createValue(cal);
+        assertNotNull(v);
+        assertEquals(PropertyType.DATE, v.getType());
+
+        Value v2 = syncCtx.createValue(d);
+        assertNotNull(v2);
+        assertEquals(PropertyType.DATE, v2.getType());
+
+        assertEquals(v, v2);
+    }
+
+    @Test
+    public void testCreateValueDecimal() throws Exception {
+        BigDecimal dec = new BigDecimal(123);
+        Value v = syncCtx.createValue(dec);
+        assertNotNull(v);
+        assertEquals(PropertyType.DECIMAL, v.getType());
+        assertEquals(dec, v.getDecimal());
+    }
+
+    @Test
+    public void testCreateValueFromBytesArray() throws Exception {
+        byte[] bytes = new byte[]{'a', 'b'};
+        ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+        Binary binary = getValueFactory().createBinary(is);
+
+        Value v = syncCtx.createValue(bytes);
+        assertNotNull(v);
+        assertEquals(PropertyType.BINARY, v.getType());
+        assertEquals(binary, v.getBinary());
+    }
+
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4231">OAK-4231</a>
      */
@@ -374,10 +1074,88 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         assertEquals(binary, v.getBinary());
     }
 
+    @Test
+    public void testCreateValuesEmptyCollection() throws Exception {
+        Value[] vs = syncCtx.createValues(ImmutableList.of());
+        assertNotNull(vs);
+        assertEquals(0, vs.length);
+    }
+
+    @Test
+    public void testCreateValuesSkipsNull() throws Exception {
+        List<String> strings = Lists.newArrayList("s", null, null, "t");
+        Value[] vs = syncCtx.createValues(strings);
+        assertNotNull(vs);
+        assertEquals(2, vs.length);
+    }
+
+    @Test
+    public void testIsSameIDPNull() throws Exception {
+        assertFalse(syncCtx.isSameIDP(null));
+    }
+
+    @Test
+    public void testIsSameIDPLocalGroup() throws Exception {
+        assertFalse(syncCtx.isSameIDP(createTestGroup()));
+    }
+
+    @Test
+    public void testIsSameIDPLocalUser() throws Exception {
+        assertFalse(syncCtx.isSameIDP(getTestUser()));
+    }
+
+    @Test
+    public void testIsSameIDPSyncedGroup() throws Exception {
+        ExternalIdentity externalGroup = idp.listGroups().next();
+        sync(externalGroup);
+
+        assertTrue(syncCtx.isSameIDP(getUserManager(root).getAuthorizable(externalGroup.getId())));
+    }
+
+    @Test
+    public void testIsSameIDPSyncedUser() throws Exception {
+        ExternalIdentity externalUser = idp.listUsers().next();
+        sync(externalUser);
+
+        assertTrue(syncCtx.isSameIDP(getUserManager(root).getAuthorizable(externalUser.getId())));
+    }
+
+    @Test
+    public void testIsSameIDPMissingExternalId() throws Exception {
+        ExternalIdentity externalUser = idp.listUsers().next();
+        sync(externalUser);
+
+        Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
+        a.removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
+
+        assertFalse(syncCtx.isSameIDP(a));
+    }
+
+    @Test
+    public void testIsSameIDPForeign() throws Exception {
+        Group gr = createTestGroup();
+        setExternalID(gr, "some_other_idp");
+
+        assertFalse(syncCtx.isSameIDP(gr));
+    }
+
     /**
      * ExternalIdentity implementation that is neither user nor group.
      */
-    private final class TestExternalIdentity implements ExternalIdentity {
+    private class TestExternalIdentity implements ExternalIdentity {
+
+        private final String id;
+        private final String principalName;
+
+        private TestExternalIdentity() {
+            this.id = "externalId";
+            this.principalName = "principalName";
+        }
+
+        private TestExternalIdentity(ExternalIdentity base) {
+            this.id = base.getId();
+            this.principalName = base.getPrincipalName();
+        }
 
         @Nonnull
         @Override
@@ -388,13 +1166,13 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         @Nonnull
         @Override
         public String getId() {
-            return "externalId";
+            return id;
         }
 
         @Nonnull
         @Override
         public String getPrincipalName() {
-            return "principalName";
+            return principalName;
         }
 
         @CheckForNull
@@ -405,7 +1183,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
 
         @Nonnull
         @Override
-        public Iterable<ExternalIdentityRef> getDeclaredGroups() {
+        public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
             return ImmutableSet.of();
         }
 
@@ -413,6 +1191,42 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         @Override
         public Map<String, ?> getProperties() {
             return ImmutableMap.of();
+        }
+    }
+
+    private final class ForeignExternalUser extends TestExternalIdentity implements ExternalUser {
+
+        @Nonnull
+        @Override
+        public ExternalIdentityRef getExternalId() {
+            return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
+        }
+    }
+
+    private final class ExternalUserWithDeclaredGroup extends TestExternalIdentity implements ExternalUser {
+
+        private final ExternalIdentityRef declaredGroupRef;
+
+        private ExternalUserWithDeclaredGroup(@Nonnull ExternalIdentityRef declaredGroupRef) {
+            this.declaredGroupRef = declaredGroupRef;
+        }
+
+        private ExternalUserWithDeclaredGroup(@Nonnull ExternalIdentityRef declaredGroupRef, @Nonnull ExternalIdentity base) {
+            super(base);
+            this.declaredGroupRef = declaredGroupRef;
+        }
+
+        @Nonnull
+        @Override
+        public Iterable<ExternalIdentityRef> getDeclaredGroups() {
+            return ImmutableSet.of(declaredGroupRef);
+        }
+    }
+
+    private final class ExternalUserFromGroup extends TestExternalIdentity implements ExternalUser {
+
+        private ExternalUserFromGroup(@Nonnull ExternalIdentity base) {
+            super(base);
         }
     }
 }
