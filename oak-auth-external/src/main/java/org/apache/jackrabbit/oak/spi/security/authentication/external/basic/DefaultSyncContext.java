@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -670,6 +671,10 @@ public class DefaultSyncContext implements SyncContext {
         } else if (v instanceof byte[]) {
             Binary bin = valueFactory.createBinary(new ByteArrayInputStream((byte[])v));
             return valueFactory.createValue(bin);
+        } else if (v instanceof Binary) {
+            return valueFactory.createValue((Binary) v);
+        } else if (v instanceof InputStream) {
+            return valueFactory.createValue((InputStream) v);
         } else if (v instanceof char[]) {
             return valueFactory.createValue(new String((char[]) v));
         } else {
