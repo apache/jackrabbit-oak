@@ -50,6 +50,7 @@ interfaces and classes:
 - `AuthorizableType`: ease handling with the different authorizable types.
 - `AuthorizableAction` and `AuthorizableActionProvider`: see [Authorizable Actions](user/authorizableaction.html) for details.
 - `AuthorizableNodeName`: see section  [Authorizable Node Name Generation](user/authorizablenodename.html).
+- `GroupAction` (via `AuthorizableActionProvider`): see [Group Actions](user/groupaction.html) for details.
 - `UserAuthenticationFactory`: see sections [pluggability](user/default.html#pluggability) 
 and [user authentication](authentication/default.html#user_authentication) for additional details.
 
