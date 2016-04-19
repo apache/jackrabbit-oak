@@ -20,6 +20,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -28,6 +30,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -52,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -309,6 +313,52 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
+    /**
+     * Upon a group being updated (single {@code Authorizable} successfully added or removed),
+     * call available {@code GroupAction}s and execute the method specific to removal or addition.
+     * {@code GroupAction}s may then validate or modify the changes.
+     *
+     * @param group    The target group.
+     * @param isRemove Indicates whether the member is removed or added.
+     * @param member   The member successfully removed or added.
+     * @throws RepositoryException If an error occurs.
+     */
+    void onGroupUpdate(@Nonnull Group group, boolean isRemove, @Nonnull Authorizable member) throws RepositoryException {
+        for (GroupAction action : selectGroupActions()) {
+            if (isRemove) {
+                action.onMemberRemoved(group, member, root, namePathMapper);
+            } else {
+                action.onMemberAdded(group, member, root, namePathMapper);
+            }
+        }
+    }
+
+    /**
+     * Upon a group being updated (multiple {@code memberIds} added or removed),
+     * call available {@code GroupAction}s and execute the method specific to removal or addition.
+     * {@code GroupAction}s may then validate or modify the changes.
+     *
+     * @param group       The target group.
+     * @param isRemove    Indicates whether the member is removed or added.
+     * @param isContentId Indicates whether member ids are expressed as content-ids (UUID) or member-ids.
+     * @param memberIds   The IDs of all members successfully removed or added.
+     * @param failedIds   The IDs of all members whose addition or removal failed.
+     * @throws RepositoryException If an error occurs.
+     */
+    void onGroupUpdate(@Nonnull Group group, boolean isRemove, boolean isContentId, @Nonnull Set<String> memberIds, @Nonnull Set<String> failedIds) throws RepositoryException {
+        for (GroupAction action : selectGroupActions()) {
+            if (isRemove) {
+                action.onMembersRemoved(group, memberIds, failedIds, root, namePathMapper);
+            } else {
+                if (isContentId) {
+                    action.onMembersAddedContentId(group, memberIds, failedIds, root, namePathMapper);
+                } else {
+                    action.onMembersAdded(group, memberIds, failedIds, root, namePathMapper);
+                }
+            }
+        }
+    }
+
     //--------------------------------------------------------------------------
     @CheckForNull
     Authorizable getAuthorizable(@CheckForNull Tree tree) throws RepositoryException {
@@ -438,5 +488,21 @@ public class UserManagerImpl implements UserManager {
             queryManager = new UserQueryManager(this, namePathMapper, config, root);
         }
         return queryManager;
+    }
+
+    /**
+     * Select only {@code GroupAction}s from the available {@code AuthorizableAction}s.
+     *
+     * @return A {@code List} of {@code GroupAction}s. List may be empty.
+     */
+    @Nonnull
+    private List<GroupAction> selectGroupActions() {
+        List<GroupAction> actions = Lists.newArrayList();
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            if (action instanceof GroupAction) {
+                actions.add((GroupAction) action);
+            }
+        }
+        return actions;
     }
 }
