@@ -467,7 +467,7 @@ public class ExternalSort {
             }
         } finally {
             fbw.close();
-            for (BinaryFileBuffer bfb : pq) {
+            for (BinaryFileBuffer bfb : buffers) {
                 bfb.close();
             }
         }

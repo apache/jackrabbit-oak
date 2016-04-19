@@ -36,7 +36,9 @@ import java.util.List;
 import java.util.Scanner;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Unit test for simple App.
@@ -101,6 +103,9 @@ public class ExternalSortTest {
     private File csvFile;
     private File csvFile2;
     private List<File> fileList;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     /**
      * @throws Exception
@@ -167,8 +172,8 @@ public class ExternalSortTest {
 
     @Test
     public void testEmptyFiles() throws Exception {
-        File f1 = File.createTempFile("tmp", "unit");
-        File f2 = File.createTempFile("tmp", "unit");
+        File f1 = folder.newFile();
+        File f2 = folder.newFile();
         ExternalSort.mergeSortedFiles(ExternalSort.sortInBatch(f1), f2);
         if (f2.length() != 0) {
             throw new RuntimeException("empty files should end up emtpy");
@@ -186,7 +191,7 @@ public class ExternalSortTest {
                 return o1.compareTo(o2);
             }
         };
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         ExternalSort.mergeSortedFiles(this.fileList, out, cmp,
                 Charset.defaultCharset(), false);
 
@@ -212,7 +217,7 @@ public class ExternalSortTest {
                 return o1.compareTo(o2);
             }
         };
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         ExternalSort.mergeSortedFiles(this.fileList, out, cmp,
                 Charset.defaultCharset(), true);
 
@@ -239,7 +244,7 @@ public class ExternalSortTest {
             }
         };
 
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         writeStringToFile(out, "HEADER, HEADER\n");
 
         ExternalSort.mergeSortedFiles(this.fileList, out, cmp,
@@ -363,7 +368,7 @@ public class ExternalSortTest {
      */    
     public void testCSVSortKeyValue(boolean distinct) throws Exception {
         
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         
         Comparator<String> cmp =   new Comparator<String>() {
             @Override
@@ -402,7 +407,7 @@ public class ExternalSortTest {
      */
     public void testCSVSortingWithParams(boolean usegzip) throws Exception {
 
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
 
         Comparator<String> cmp = new Comparator<String>() {
             @Override
@@ -439,11 +444,15 @@ public class ExternalSortTest {
     }
 
     public static ArrayList<String> readLines(File f) throws IOException {
-        BufferedReader r = new BufferedReader(new FileReader(f));
         ArrayList<String> answer = new ArrayList<String>();
-        String line;
-        while ((line = r.readLine()) != null) {
-            answer.add(line);
+        BufferedReader r = new BufferedReader(new FileReader(f));
+        try {
+            String line;
+            while ((line = r.readLine()) != null) {
+                answer.add(line);
+            }
+        } finally {
+            r.close();
         }
         return answer;
     }
