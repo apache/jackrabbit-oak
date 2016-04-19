@@ -27,9 +27,14 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.collect.ImmutableList;
+
 public class TestIdentityProvider implements ExternalIdentityProvider {
 
     public static final String ID_TEST_USER = "testUser";
+    public static final String ID_SECOND_USER = "secondUser";
+
+    public static final String ID_EXCEPTION = "throw!";
 
     private final Map<String, ExternalGroup> externalGroups = new HashMap<String, ExternalGroup>();
     private final Map<String, ExternalUser> externalUsers = new HashMap<String, ExternalUser>();
@@ -40,6 +45,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         addGroup(new TestGroup("a").withGroups("aa", "aaa"));
         addGroup(new TestGroup("b").withGroups("a"));
         addGroup(new TestGroup("c"));
+        addGroup(new TestGroup("secondGroup"));
 
         addUser(new TestUser(ID_TEST_USER)
                 .withProperty("name", "Test User")
@@ -48,6 +54,15 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
                 .withProperty("email", "test@testuser.com")
                 .withGroups("a", "b", "c")
         );
+
+        addUser(new TestUser(ID_SECOND_USER)
+                .withProperty("profile/name", "Second User")
+                .withProperty("age", 24)
+                .withProperty("col", ImmutableList.of("v1", "v2", "v3"))
+                .withProperty("boolArr", new Boolean[]{true, false})
+                .withProperty("charArr", new char[]{'t', 'o', 'b'})
+                .withProperty("byteArr", new byte[0])
+                .withGroups("secondGroup"));
     }
 
     private void addUser(TestIdentity user) {
@@ -75,6 +90,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     @Override
     public ExternalUser getUser(@Nonnull String userId) throws ExternalIdentityException {
+        if (ID_EXCEPTION.equals(userId)) {
+            throw new ExternalIdentityException(ID_EXCEPTION);
+        }
         return externalUsers.get(userId.toLowerCase());
     }
 
@@ -95,6 +113,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     @Override
     public ExternalGroup getGroup(@Nonnull String name) throws ExternalIdentityException {
+        if (ID_EXCEPTION.equals(name)) {
+            throw new ExternalIdentityException(ID_EXCEPTION);
+        }
         return externalGroups.get(name.toLowerCase());
     }
 
