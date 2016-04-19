@@ -409,7 +409,6 @@ public class DocumentMK {
                     }
                     commit.removeNode(path, toRemove);
                     nodeStore.markAsDeleted(toRemove, commit, true);
-                    commit.removeNodeDiff(path);
                     break;
                 case '^':
                     t.read(':');
@@ -425,7 +424,6 @@ public class DocumentMK {
                     }
                     String propertyName = PathUtils.getName(path);
                     commit.updateProperty(p, propertyName, value);
-                    commit.updatePropertyDiff(p, propertyName, value);
                     break;
                 case '>': {
                     // TODO support moving nodes that were modified within this commit
@@ -440,7 +438,6 @@ public class DocumentMK {
                     } else if (nodeExists(targetPath, baseRevId)) {
                         throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
-                    commit.moveNode(path, targetPath);
                     nodeStore.moveNode(source, targetPath, commit);
                     break;
                 }
@@ -457,7 +454,6 @@ public class DocumentMK {
                     } else if (nodeExists(targetPath, baseRevId)) {
                         throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
-                    commit.copyNode(path, targetPath);
                     nodeStore.copyNode(source, targetPath, commit);
                     break;
                 }
@@ -485,7 +481,6 @@ public class DocumentMK {
             t.read('}');
         }
         commit.addNode(n);
-        commit.addNodeDiff(n);
     }
 
     //----------------------------< Builder >-----------------------------------
