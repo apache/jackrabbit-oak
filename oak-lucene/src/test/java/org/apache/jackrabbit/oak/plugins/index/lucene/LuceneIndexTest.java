@@ -138,6 +138,8 @@ public class LuceneIndexTest {
 
     private Set<File> dirs = newHashSet();
 
+    private IndexTracker tracker;
+
     @Test
     public void testLuceneV1NonExistentProperty() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
@@ -150,7 +152,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LuceneIndex(tracker, null);
 
@@ -184,7 +186,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
@@ -214,7 +216,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
@@ -247,7 +249,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
@@ -286,7 +288,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
@@ -320,7 +322,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
 
         //Perform query and get hold of cursor
@@ -401,7 +403,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
@@ -432,7 +434,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
@@ -468,7 +470,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
@@ -503,7 +505,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
@@ -539,7 +541,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
@@ -573,7 +575,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
@@ -620,7 +622,7 @@ public class LuceneIndexTest {
         builder.child("b").setProperty("jcr:createdBy", "foo bar");
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         tracker.update(indexed);
 
         SimpleScorerFactory factory = new SimpleScorerFactory();
@@ -705,7 +707,7 @@ public class LuceneIndexTest {
         //MemoryNodeState as they cannot determine change in childNode without
         //entering
         NodeStore nodeStore = SegmentNodeStore.builder(new MemoryStore()).build();
-        final IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
         ((Observable)nodeStore).addObserver(new Observer() {
             @Override
             public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
@@ -749,7 +751,7 @@ public class LuceneIndexTest {
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
         File indexRootDir = new File(getIndexDir());
-        IndexTracker tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
+        tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo", "bar");
@@ -774,7 +776,7 @@ public class LuceneIndexTest {
         NodeState indexed = HOOK.processCommit(before, builder.getNodeState(),CommitInfo.EMPTY);
 
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), new File(getIndexDir()));
-        IndexTracker tracker = new IndexTracker(copier);
+        tracker = new IndexTracker(copier);
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo", "bar");
@@ -831,7 +833,7 @@ public class LuceneIndexTest {
 
     @Test
     public void indexNodeLockHandling() throws Exception{
-        IndexTracker tracker = new IndexTracker();
+        tracker = new IndexTracker();
 
         //Create 2 indexes. /oak:index/lucene and /test/oak:index/lucene
         //The way LuceneIndexLookup works is. It collect child first and then
@@ -882,6 +884,9 @@ public class LuceneIndexTest {
 
     @After
     public void cleanUp(){
+        if (tracker != null) {
+            tracker.close();
+        }
         for (File d: dirs){
             FileUtils.deleteQuietly(d);
         }
