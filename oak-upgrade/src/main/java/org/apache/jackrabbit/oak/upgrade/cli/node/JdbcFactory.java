@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.io.Closer;
 
 import javax.sql.DataSource;
+import java.io.Closeable;
 
 public class JdbcFactory implements NodeStoreFactory {
 
@@ -62,6 +63,9 @@ public class JdbcFactory implements NodeStoreFactory {
                 builder.isDisableBranches());
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         closer.register(MongoFactory.asCloseable(documentNodeStore));
+        if (ds instanceof Closeable) {
+            closer.register((Closeable)ds);
+        }
         return documentNodeStore;
     }
 
