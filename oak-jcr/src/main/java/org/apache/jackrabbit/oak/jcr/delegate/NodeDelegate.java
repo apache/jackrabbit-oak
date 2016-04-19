@@ -720,7 +720,7 @@ public class NodeDelegate extends ItemDelegate {
      *
      * @return whether this node is locked
      */
-    // FIXME: access to locking status should not depend on access rights
+    // FIXME: access to locking status should not depend on access rights (OAK-4234)
     public boolean isLocked() {
         return getLock() != null;
     }
@@ -753,7 +753,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private boolean holdsLock(Tree tree, boolean deep) {
-        // FIXME: access to locking status should not depend on access rights
+        // FIXME: access to locking status should not depend on access rights (OAK-4234)
         PropertyState property = tree.getProperty(JCR_LOCKISDEEP);
         return property != null
                 && property.getType() == Type.BOOLEAN
