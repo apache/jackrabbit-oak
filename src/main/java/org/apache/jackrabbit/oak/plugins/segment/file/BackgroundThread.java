@@ -96,6 +96,9 @@ class BackgroundThread extends Thread implements Closeable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error(name + " interrupted", e);
+        } catch (Error e) {
+            log.error("Unhandled error in background thread", e);
+            throw e;
         } catch (RuntimeException e) {
             log.error("Unhandled exception in background thread", e);
             throw e;
