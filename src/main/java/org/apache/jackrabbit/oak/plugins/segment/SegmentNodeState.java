@@ -86,7 +86,7 @@ public class SegmentNodeState extends Record implements NodeState {
         return segment.readMap(segment.readRecordId(getOffset(0, 2)));
     }
 
-    String getId() {
+    public String getId() {
         RecordId id = getSegment().readRecordId(getOffset());
         return Segment.readString(id);
     }

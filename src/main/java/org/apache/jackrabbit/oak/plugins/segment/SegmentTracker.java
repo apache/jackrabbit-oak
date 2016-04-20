@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
+import static java.lang.String.valueOf;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -26,6 +27,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -143,6 +145,17 @@ public class SegmentTracker {
                 }
             })
             .build();
+    }
+
+    private final AtomicLong nextId = new AtomicLong();
+
+    public void setInitialId(long id) {
+        nextId.set(id);
+    }
+
+    String createId() {
+        AtomicLong nextId = this.nextId;
+        return valueOf(nextId.getAndIncrement());
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
