@@ -120,7 +120,7 @@ public class Segment {
 
     static final int BLOBREF_COUNT_OFFSET = 8;
 
-    static final int GC_GEN_OFFSET = 10;
+    public static final int GC_GEN_OFFSET = 10;
 
     private final SegmentTracker tracker;
 
@@ -312,6 +312,7 @@ public class Segment {
         return data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
     }
 
+    // could we make it part of the tar file index!?
     public int getGcGen() {
         return data.getInt(GC_GEN_OFFSET);
     }
