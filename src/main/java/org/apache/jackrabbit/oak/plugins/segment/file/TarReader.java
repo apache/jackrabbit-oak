@@ -900,7 +900,7 @@ class TarReader implements Closeable {
      */
     private ByteBuffer loadGraph() throws IOException {
         // read the graph metadata just before the tar index entry
-        int pos = access.length() - 2 * BLOCK_SIZE - getEntrySize(index.remaining());
+        int pos = access.length() - 2 * BLOCK_SIZE - getEntrySize(index.remaining() + 16);
         ByteBuffer meta = access.read(pos - 16, 16);
         int crc32 = meta.getInt();
         int count = meta.getInt();
