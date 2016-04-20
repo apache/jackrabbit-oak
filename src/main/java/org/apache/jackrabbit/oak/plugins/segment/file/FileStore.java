@@ -1136,7 +1136,7 @@ public class FileStore implements SegmentStore {
         closeAndLogOnFail(diskSpaceThread);
         try {
             flush();
-            tracker.getWriter().dropCache();
+            // FIXME OAK-3348 XXX replace with some sort of close call tracker.getWriter().dropCache();
             fileStoreLock.writeLock().lock();
             try {
                 closeAndLogOnFail(writer);
@@ -1475,11 +1475,6 @@ public class FileStore implements SegmentStore {
             // might result in mixed segments. See OAK-2192.
             if (setHead(before, after)) {
                 tracker.setCompactionMap(compactor.getCompactionMap());
-
-                // Drop the SegmentWriter caches and flush any existing state
-                // in an attempt to prevent new references to old pre-compacted
-                // content. TODO: There should be a cleaner way to do this. (implement GCMonitor!?)
-                tracker.getWriter().dropCache();
 
                 CompactionMap cm = tracker.getCompactionMap();
                 gcMonitor.compacted(cm.getSegmentCounts(), cm.getRecordCounts(), cm.getEstimatedWeights());
