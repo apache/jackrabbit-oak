@@ -47,10 +47,12 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.Graph;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+@Ignore
 public class SegmentGraphTest {
     private final Set<UUID> segments = newHashSet(
         UUID.fromString("5be0c2ea-b6ba-4f80-acad-657a20f920b6"),
