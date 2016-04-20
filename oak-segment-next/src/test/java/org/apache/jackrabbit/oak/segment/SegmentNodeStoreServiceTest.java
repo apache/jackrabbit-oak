@@ -27,20 +27,16 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreService;
-import org.apache.jackrabbit.oak.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
-@Ignore  // FIXME OAK-3348 fix failing test SegmentNodeStoreServiceTest
 public class SegmentNodeStoreServiceTest {
 
     @Rule
