@@ -29,9 +29,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Callable;
-
-import javax.annotation.Nonnull;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -104,13 +101,7 @@ public class SegmentOverflowExceptionIT {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withGCMonitor(gcMonitor).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-            fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_OLD, 1000, MEMORY_THRESHOLD_DEFAULT) {
-                @Override
-                public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-                    return nodeStore.locked(setHead);
-                }
-            });
-
+            fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_OLD, 1000, MEMORY_THRESHOLD_DEFAULT));
             long start = System.currentTimeMillis();
             int snfeCount = 0;
             while (System.currentTimeMillis() - start < TIMEOUT) {

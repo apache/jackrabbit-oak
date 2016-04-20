@@ -106,19 +106,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     cloneBinaries,
                     CompactionStrategy.CleanupType.valueOf(cleanup),
                     cleanupTs,
-                    memoryThreshold) {
-
-                @Override
-                public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                    // Need to guard against concurrent commits to avoid
-                    // mixed segments. See OAK-2192.
-                    return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
-                }
-
-            };
+                    memoryThreshold);
 
             compactionStrategy.setRetryCount(retryCount);
             compactionStrategy.setForceAfterFail(forceAfterFail);
+            compactionStrategy.setLockWaitTime(lockWaitTime);
             compactionStrategy.setGainThreshold(gainThreshold);
 
             return this;
