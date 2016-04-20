@@ -798,6 +798,9 @@ class TarReader implements Closeable {
                     access.length() - size, access.length(), name);
             return this;
         }
+        if (!hasGraph()) {
+            log.warn("Recovering {}, which is missing its graph.", name);
+        }
 
         int pos = name.length() - "a.tar".length();
         char generation = name.charAt(pos);
