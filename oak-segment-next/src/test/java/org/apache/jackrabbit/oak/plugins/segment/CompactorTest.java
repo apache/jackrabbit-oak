@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static org.junit.Assert.assertFalse;
-
 import java.io.IOException;
 
-import com.google.common.base.Suppliers;
-import junit.framework.Assert;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -33,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 
 public class CompactorTest {
 
@@ -47,37 +42,6 @@ public class CompactorTest {
     @After
     public void closeSegmentStore() {
         segmentStore.close();
-    }
-
-    @Test
-    public void testCompactor() throws Exception {
-        NodeStore store = SegmentNodeStore.builder(segmentStore).build();
-        init(store);
-
-        Compactor compactor = new Compactor(segmentStore.getTracker());
-        addTestContent(store, 0);
-
-        NodeState initial = store.getRoot();
-        SegmentNodeState after = compactor
-                .compact(initial, store.getRoot(), initial);
-        Assert.assertEquals(store.getRoot(), after);
-
-        addTestContent(store, 1);
-        after = compactor.compact(initial, store.getRoot(), initial);
-        Assert.assertEquals(store.getRoot(), after);
-    }
-
-    @Test
-    public void testCancel() throws Throwable {
-
-        // Create a Compactor that will cancel itself as soon as possible. The
-        // early cancellation is the reason why the returned SegmentNodeState
-        // doesn't have the child named "b".
-
-        NodeStore store = SegmentNodeStore.builder(segmentStore).build();
-        Compactor compactor = new Compactor(segmentStore.getTracker(), Suppliers.ofInstance(true));
-        SegmentNodeState sns = compactor.compact(store.getRoot(), addChild(store.getRoot(), "b"), store.getRoot());
-        assertFalse(sns.hasChildNode("b"));
     }
 
     private NodeState addChild(NodeState current, String name) {
