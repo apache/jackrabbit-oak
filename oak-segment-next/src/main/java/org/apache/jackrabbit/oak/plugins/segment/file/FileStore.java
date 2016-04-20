@@ -24,7 +24,6 @@ import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static java.lang.Thread.currentThread;
 import static java.util.Collections.emptyMap;
@@ -476,7 +475,6 @@ public class FileStore implements SegmentStore {
         }
 
         if (id != null) {
-            tracker.setInitialId(1 + parseLong(new SegmentNodeState(id).getId()));
             head = new AtomicReference<RecordId>(id);
             persistedHead = new AtomicReference<RecordId>(id);
         } else {

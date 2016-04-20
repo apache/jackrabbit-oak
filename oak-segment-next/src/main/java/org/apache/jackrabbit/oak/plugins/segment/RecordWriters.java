@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.RecordType.LIST;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.TEMPLATE;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.VALUE;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
@@ -137,8 +138,8 @@ final class RecordWriters {
             childNameId, propNamesId, version);
     }
 
-    public static RecordWriter newNodeStateWriter(List<RecordId> ids) {
-        return new NodeStateWriter(ids);
+    public static RecordWriter newNodeStateWriter(RecordId nodeId, List<RecordId> ids) {
+        return new NodeStateWriter(nodeId, ids);
     }
 
     /**
@@ -496,13 +497,21 @@ final class RecordWriters {
      * @see RecordType#NODE
      */
     private static class NodeStateWriter extends RecordWriter {
-        private NodeStateWriter(List<RecordId> ids) {
-            super(NODE, 0, ids);
+        private final RecordId nodeId;
+
+        private NodeStateWriter(RecordId nodeId, List<RecordId> ids) {
+            super(NODE, RECORD_ID_BYTES, ids);
+            this.nodeId = nodeId;
         }
 
         @Override
-        protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+        protected RecordId writeRecordContent(RecordId id, SegmentBufferWriter writer) {
+            if (nodeId == null) {
+                writer.writeRecordId(id);
+            } else {
+                writer.writeRecordId(nodeId);
+            }
+
             for (RecordId recordId : ids) {
                 writer.writeRecordId(recordId);
             }
