@@ -52,7 +52,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-@Ignore
+@Ignore // FIXME OAK-3348 fix SegmentGraphTest
 public class SegmentGraphTest {
     private final Set<UUID> segments = newHashSet(
         UUID.fromString("5be0c2ea-b6ba-4f80-acad-657a20f920b6"),

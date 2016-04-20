@@ -37,7 +37,7 @@ import org.junit.Test;
 /**
  * Test case for ensuring that segment size remains within bounds.
  */
-@Ignore
+@Ignore  // FIXME OAK-3348 fix failing test SegmentSizeTest
 public class SegmentSizeTest {
 
     @Test

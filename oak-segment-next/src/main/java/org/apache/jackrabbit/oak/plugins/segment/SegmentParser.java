@@ -410,6 +410,7 @@ public class SegmentParser {
 
         Segment segment = nodeId.getSegment();
         int offset = nodeId.getOffset();
+        // FIXME OAK-3348 Call onString for the node id, which was introduced here
         //segment.readRecordId(offset);
         offset += RECORD_ID_BYTES;
         RecordId templateId = segment.readRecordId(offset);

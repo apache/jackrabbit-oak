@@ -246,6 +246,7 @@ public class SegmentTracker {
         segmentCache.put(id, segment, segment.size());
     }
 
+    // FIXME OAK-3348 Improve retrieving current GC generation.
     // See also the comments in FileStore regarding initialisation and
     // cyclic dependencies.
     public int getGcGen() {
@@ -330,6 +331,8 @@ public class SegmentTracker {
         return getSegmentId(msb, lsb);
     }
 
+    // FIXME OAK-3348 with clean brutal we need to remove those ids that have been cleaned
+    // i.e. those whose segment was from an old generation
     public synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
         for (SegmentIdTable table : tables) {
             table.clearSegmentIdTables(strategy);

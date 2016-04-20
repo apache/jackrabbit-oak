@@ -92,6 +92,7 @@ public class SegmentIdFactoryTest {
     /**
      * OAK-2049 - error for data segments
      */
+    // FIXME OAK-3348 fix test
 //    @Test(expected = IllegalStateException.class)
 //    public void dataAIOOBE() {
 //        SegmentId id = factory.newDataSegmentId();
