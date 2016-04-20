@@ -25,9 +25,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
@@ -97,17 +94,18 @@ public class SegmentIdFactoryTest {
     /**
      * OAK-2049 - error for data segments
      */
-    // FIXME OAK-3348 fix test
-//    @Test(expected = IllegalStateException.class)
-//    public void dataAIOOBE() {
-//        SegmentId id = factory.newDataSegmentId();
-//        byte[] buffer = SegmentBufferWriter.createNewBuffer(SegmentVersion.V_11);
-//        ByteBuffer data = ByteBuffer.allocate(Segment.MAX_SEGMENT_SIZE);
-//        data.put(buffer);
-//        data.rewind();
-//        Segment s = new Segment(factory, id, data);
-//        s.getRefId(1);
-//    }
+    @Test(expected = IllegalStateException.class)
+    public void dataAIOOBE() throws IOException {
+        MemoryStore store = new MemoryStore();
+        Segment segment = store.getHead().getSegment();
+        byte[] buffer = new byte[segment.size()];
+        segment.readBytes(Segment.MAX_SEGMENT_SIZE - segment.size(), buffer, 0, segment.size());
+
+        SegmentId id = factory.newDataSegmentId();
+        ByteBuffer data = ByteBuffer.wrap(buffer);
+        Segment s = new Segment(factory, id, data);
+        s.getRefId(1);
+    }
 
     /**
      * OAK-2049 - error for bulk segments
