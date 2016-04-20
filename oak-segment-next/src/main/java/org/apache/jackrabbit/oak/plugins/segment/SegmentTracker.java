@@ -31,15 +31,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.cache.RemovalCause;
 
 /**
  * Tracker of references to segment identifiers and segment instances
@@ -130,7 +130,8 @@ public class SegmentTracker {
         this.store = store;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
-        this.writer = createSegmentWriter("sys");
+        this.writer = new SegmentWriter(store, version,
+                            new SegmentBufferWriterPool(store, version, "sys"));
         StringCache c;
         if (DISABLE_STRING_CACHE) {
             c = null;
@@ -170,13 +171,6 @@ public class SegmentTracker {
         return segmentCounter.incrementAndGet();
     }
 
-    /**
-     * @return  a new {@link SegmentWriter} instance for writing to this store.
-     */
-    public final SegmentWriter createSegmentWriter(String wid) {
-        return new SegmentWriter(store, segmentVersion, wid);
-    }
-
     public boolean isTracking(SegmentId segmentId) {
         return this == segmentId.getTracker();
     }
@@ -199,6 +193,10 @@ public class SegmentTracker {
 
     public SegmentStore getStore() {
         return store;
+    }
+
+    public SegmentVersion getSegmentVersion() {
+        return segmentVersion;
     }
 
     /**
@@ -265,6 +263,14 @@ public class SegmentTracker {
     @Nonnull
     public CompactionMap getCompactionMap() {
         return compactionMap.get();
+    }
+
+    int getGcGen() {
+        if (store instanceof FileStore) {
+            return ((FileStore) store).getGcGen();
+        } else {
+            return 0;
+        }
     }
 
     /**

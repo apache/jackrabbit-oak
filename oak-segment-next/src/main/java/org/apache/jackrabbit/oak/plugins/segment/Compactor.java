@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
@@ -132,8 +134,7 @@ public class Compactor {
 
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
         this.tracker = tracker;
-        String wid = "c-" + (tracker.getCompactionMap().getGeneration() + 1);
-        this.writer = tracker.createSegmentWriter(wid);
+        this.writer = createSegmentWriter(tracker);
         if (compactionStrategy.getPersistCompactionMap()) {
             this.map = new PersistedCompactionMap(tracker);
         } else {
@@ -144,6 +145,12 @@ public class Compactor {
             includeInMap = new OfflineCompactionPredicate();
         }
         this.cancel = cancel;
+    }
+
+    @Nonnull
+    private static SegmentWriter createSegmentWriter(SegmentTracker tracker) {
+        return new SegmentWriter(tracker.getStore(), tracker.getSegmentVersion(),
+            new SegmentBufferWriter(tracker.getStore(), tracker.getSegmentVersion(), "c", tracker.getGcGen() + 1));
     }
 
     protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) throws IOException {
