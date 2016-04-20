@@ -27,12 +27,12 @@ class Record {
         return a instanceof Record && fastEquals((Record) a, b);
     }
 
-    static boolean fastEquals(Record a, Object b) {
+    private static boolean fastEquals(@Nonnull Record a, Object b) {
         return b instanceof Record && fastEquals(a, (Record) b);
     }
 
-    static boolean fastEquals(Record a, Record b) {
-        return a.offset == b.offset && a.segmentId.equals(b.segmentId);
+    private static boolean fastEquals(@Nonnull Record a, @Nonnull Record b) {
+        return a == b || (a.offset == b.offset && a.segmentId.equals(b.segmentId));
     }
 
     /**

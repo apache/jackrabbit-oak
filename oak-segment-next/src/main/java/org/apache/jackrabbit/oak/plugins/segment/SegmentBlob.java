@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -206,11 +207,27 @@ public class SegmentBlob extends Record implements Blob {
 
     @Override
     public boolean equals(Object object) {
-        if (object == this || fastEquals(this, object)) {
+        if (Record.fastEquals(this, object)) {
             return true;
         }
+
+        if (object instanceof SegmentBlob) {
+            SegmentBlob that = (SegmentBlob) object;
+            if (this.length() != that.length()) {
+                return false;
+            }
+            List<RecordId> bulkIds = this.getBulkRecordIds();
+            if (bulkIds != null && bulkIds.equals(that.getBulkRecordIds())) {
+                return true;
+            }
+        }
+
         return object instanceof Blob
                 && AbstractBlob.equal(this, (Blob) object);
+    }
+
+    private static boolean isLongBlob(byte head) {
+        return (head & 0xe0) == 0xc0;
     }
 
     @Override
@@ -232,7 +249,7 @@ public class SegmentBlob extends Record implements Blob {
         return Segment.readString(blobIdRecordId);
     }
 
-    private Iterable<SegmentId> getBulkSegmentIds() {
+    private List<RecordId> getBulkRecordIds() {
         Segment segment = getSegment();
         int offset = getOffset();
         byte head = segment.readByte(offset);
@@ -241,14 +258,23 @@ public class SegmentBlob extends Record implements Blob {
             long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
             int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
             ListRecord list = new ListRecord(
-                    segment.readRecordId(offset + 8), listSize);
+                segment.readRecordId(offset + 8), listSize);
+            return list.getEntries();
+        } else {
+            return null;
+        }
+    }
+
+    private Iterable<SegmentId> getBulkSegmentIds() {
+        List<RecordId> recordIds = getBulkRecordIds();
+        if (recordIds == null) {
+            return emptySet();
+        } else {
             Set<SegmentId> ids = newHashSet();
-            for (RecordId id : list.getEntries()) {
+            for (RecordId id : recordIds) {
                 ids.add(id.getSegmentId());
             }
             return ids;
-        } else {
-            return emptySet();
         }
     }
 

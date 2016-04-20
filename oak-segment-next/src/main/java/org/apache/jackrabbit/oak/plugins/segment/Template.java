@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
@@ -33,7 +32,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -180,7 +178,7 @@ public class Template {
         checkElementIndex(index, properties.length);
         Segment segment = checkNotNull(recordId).getSegment();
 
-        int offset = recordId.getOffset() + RECORD_ID_BYTES;
+        int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
         if (childName != ZERO_CHILD_NODES) {
             offset += RECORD_ID_BYTES;
         }
@@ -199,7 +197,7 @@ public class Template {
     MapRecord getChildNodeMap(RecordId recordId) {
         checkState(childName != ZERO_CHILD_NODES);
         Segment segment = recordId.getSegment();
-        int offset = recordId.getOffset() + RECORD_ID_BYTES;
+        int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
         return segment.readMap(childNodesId);
     }
@@ -217,7 +215,7 @@ public class Template {
             }
         } else if (name.equals(childName)) {
             Segment segment = recordId.getSegment();
-            int offset = recordId.getOffset() + RECORD_ID_BYTES;
+            int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
             RecordId childNodeId = segment.readRecordId(offset);
             return new SegmentNodeState(childNodeId);
         } else {
@@ -233,7 +231,7 @@ public class Template {
             return map.getEntries();
         } else {
             Segment segment = recordId.getSegment();
-            int offset = recordId.getOffset() + RECORD_ID_BYTES;
+            int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
             RecordId childNodeId = segment.readRecordId(offset);
             return Collections.singletonList(new MemoryChildNodeEntry(
                     childName, new SegmentNodeState(childNodeId)));
@@ -264,7 +262,7 @@ public class Template {
             // TODO: Leverage the HAMT data structure for the comparison
             MapRecord thisMap = getChildNodeMap(thisId);
             MapRecord thatMap = getChildNodeMap(thatId);
-            if (fastEquals(thisMap, thatMap)) {
+            if (Record.fastEquals(thisMap, thatMap)) {
                 return true; // shortcut
             } else if (thisMap.size() != thatMap.size()) {
                 return false; // shortcut
