@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Strings.repeat;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.io.File.createTempFile;
 import static junitx.framework.ComparableAssert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
@@ -38,10 +39,8 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,9 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentParser.ListInfo;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentParser.MapInfo;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentParser.NodeInfo;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentParser.ValueInfo;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,6 +68,7 @@ import org.junit.runners.Parameterized;
 public class SegmentParserTest {
     private final SegmentVersion segmentVersion;
 
+    private File directory;
     private SegmentStore store;
     private SegmentWriter writer;
 
@@ -152,11 +154,19 @@ public class SegmentParserTest {
     }
 
     @Before
-    public void setup() {
-        store = mock(SegmentStore.class, withSettings().stubOnly());
-        SegmentTracker tracker = new SegmentTracker(store);
-        when(store.getTracker()).thenReturn(tracker);
+    public void setup() throws IOException {
+        directory = createTempFile(getClass().getSimpleName(), "dir", new File("target"));
+        directory.delete();
+        directory.mkdir();
+
+        store = FileStore.builder(directory).build();
         writer = new SegmentWriter(store, segmentVersion, "");
+    }
+
+    @After
+    public void tearDown() {
+        store.close();
+        directory.delete();
     }
 
     @Test
@@ -293,10 +303,10 @@ public class SegmentParserTest {
         assertEquals(456, size.get());
     }
 
-    private Map<String, RecordId> createMap(int size, Random rnd) {
+    private Map<String, RecordId> createMap(int size, Random rnd) throws IOException {
         Map<String, RecordId> map = newHashMap();
         for (int k = 0; k < size; k++) {
-            map.put("k" + k, newRecordId(store.getTracker(), rnd));
+            map.put("k" + k, writer.writeString("string" + rnd.nextLong()));
         }
         return map;
     }
@@ -443,7 +453,7 @@ public class SegmentParserTest {
         Random rnd = new Random();
         List<RecordId> list = newArrayListWithCapacity(count);
         for (int k = 0; k < count; k++) {
-            list.add(newRecordId(store.getTracker(), rnd));
+            list.add(writer.writeString("string " + rnd.nextLong()));
         }
         RecordId listId = writer.writeList(list);
         ListInfo listInfo = new TestParser("nonEmptyList"){

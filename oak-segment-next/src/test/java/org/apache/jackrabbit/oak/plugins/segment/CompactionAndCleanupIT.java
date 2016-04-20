@@ -67,6 +67,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -89,7 +91,7 @@ public class CompactionAndCleanupIT {
     public static void assumptions() {
         assumeTrue(getFixtures().contains(SEGMENT_MK));
     }
-    
+
     @Test
     public void compactionNoBinaryClone() throws Exception {
         // 2MB data, 5MB blob
@@ -427,7 +429,6 @@ public class CompactionAndCleanupIT {
      * Test asserting OAK-3348: Cross gc sessions might introduce references to pre-compacted segments
      */
     @Test
-    @Ignore("OAK-3348")  // FIXME OAK-3348
     public void preCompactionReferences() throws IOException, CommitFailedException, InterruptedException {
         for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
             File repoDir = new File(getFileStoreFolder(), ref);
