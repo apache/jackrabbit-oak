@@ -28,53 +28,45 @@ import java.util.Collections;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
-import org.junit.Ignore;
 import org.junit.Test;
 
 
 /**
  * Test case for ensuring that segment size remains within bounds.
  */
-@Ignore  // FIXME OAK-3348 fix failing test SegmentSizeTest
 public class SegmentSizeTest {
 
     @Test
     public void testNodeSize() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         expectSize(96, builder);
-        expectAmortizedSize(4, builder);
+        expectAmortizedSize(8, builder);
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         expectSize(112, builder);
-        expectAmortizedSize(8, builder);
+        expectAmortizedSize(12, builder);
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
         expectSize(128, builder);
-        expectAmortizedSize(16, builder);
+        expectAmortizedSize(20, builder);
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         expectSize(128, builder);
-        expectAmortizedSize(12, builder);
+        expectAmortizedSize(20, builder);
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        expectSize(144, builder);
-        expectAmortizedSize(40, builder);
+        expectSize(160, builder);
+        expectAmortizedSize(52, builder);
     }
 
     @Test
@@ -91,13 +83,13 @@ public class SegmentSizeTest {
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(12, string), Type.STRINGS));
         RecordId id2 = builder.getNodeState().getRecordId();
-        assertEquals(16 + 12 * Segment.RECORD_ID_BYTES,
+        assertEquals(20 + 12 * Segment.RECORD_ID_BYTES,
                 id1.getOffset() - id2.getOffset());
 
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(100, string), Type.STRINGS));
         RecordId id3 = builder.getNodeState().getRecordId();
-        assertEquals(16 + 100 * Segment.RECORD_ID_BYTES,
+        assertEquals(20 + 100 * Segment.RECORD_ID_BYTES,
                 id2.getOffset() - id3.getOffset());
     }
 
@@ -115,13 +107,13 @@ public class SegmentSizeTest {
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(12, now), Type.DATES));
         RecordId id2 = builder.getNodeState().getRecordId();
-        assertEquals(16 + 12 * Segment.RECORD_ID_BYTES,
+        assertEquals(20 + 12 * Segment.RECORD_ID_BYTES,
                 id1.getOffset() - id2.getOffset());
 
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(100, now), Type.DATES));
         RecordId id3 = builder.getNodeState().getRecordId();
-        assertEquals(16 + 100 * Segment.RECORD_ID_BYTES,
+        assertEquals(20 + 100 * Segment.RECORD_ID_BYTES,
                 id2.getOffset() - id3.getOffset());
     }
 
@@ -130,7 +122,7 @@ public class SegmentSizeTest {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
         expectSize(96, builder);
-        expectAmortizedSize(4, builder);
+        expectAmortizedSize(8, builder);
 
         NodeBuilder deny = builder.child("deny");
         deny.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
@@ -138,15 +130,15 @@ public class SegmentSizeTest {
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
         expectSize(240, builder);
-        expectAmortizedSize(32, builder);
+        expectAmortizedSize(40, builder);
 
         NodeBuilder allow = builder.child("allow");
         allow.setProperty("jcr:primaryType", "rep:GrantACE");
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        expectSize(368, builder);
-        expectAmortizedSize(84, builder);
+        expectSize(384, builder);
+        expectAmortizedSize(96, builder);
 
         NodeBuilder deny0 = builder.child("deny0");
         deny0.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
@@ -154,16 +146,16 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        expectSize(464, builder);
-        expectAmortizedSize(124, builder);
+        expectSize(480, builder);
+        expectAmortizedSize(136, builder);
 
         NodeBuilder allow0 = builder.child("allow0");
         allow0.setProperty("jcr:primaryType", "rep:GrantACE");
         allow0.setProperty("rep:principalName", "user-administrators");
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        expectSize(528, builder);
-        expectAmortizedSize(160, builder);
+        expectSize(544, builder);
+        expectAmortizedSize(176, builder);
     }
 
     @Test
@@ -179,7 +171,7 @@ public class SegmentSizeTest {
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(27584, segment.size());
+        assertEquals(31584, segment.size());
 
         writer.flush(); // force flushing of the previous segment
 
