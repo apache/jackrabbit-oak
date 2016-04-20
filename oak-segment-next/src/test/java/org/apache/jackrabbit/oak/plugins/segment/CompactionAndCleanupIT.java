@@ -64,9 +64,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -535,6 +532,39 @@ public class CompactionAndCleanupIT {
                 fileStore.readSegment(id);
                 fail("Segment " + id + "should be gc'ed");
             } catch (SegmentNotFoundException ignore) {}
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    @Test
+    public void checkpointDeduplicationTest() throws IOException, CommitFailedException {
+        FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
+        CompactionStrategy strategy = new CompactionStrategy(false, false, CLEAN_NONE, 0, (byte) 0);
+        fileStore.setCompactionStrategy(strategy);
+        try {
+            SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
+            builder.setChildNode("a").setChildNode("aa");
+            builder.setChildNode("b").setChildNode("bb");
+            builder.setChildNode("c").setChildNode("cc");
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            String cpId = nodeStore.checkpoint(Long.MAX_VALUE);
+
+            NodeState uncompacted = nodeStore.getRoot();
+            fileStore.compact();
+            NodeState compacted = nodeStore.getRoot();
+
+            assertEquals(uncompacted, compacted);
+            assertTrue(uncompacted instanceof SegmentNodeState);
+            assertTrue(compacted instanceof SegmentNodeState);
+            assertEquals(((SegmentNodeState)uncompacted).getId(), ((SegmentNodeState)compacted).getId());
+
+            NodeState checkpoint = nodeStore.retrieve(cpId);
+            assertTrue(checkpoint instanceof SegmentNodeState);
+            assertEquals("Checkpoint should get de-duplicated",
+                ((Record) compacted).getRecordId(), ((Record) checkpoint).getRecordId());
         } finally {
             fileStore.close();
         }
