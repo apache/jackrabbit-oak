@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.encode;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -86,6 +87,25 @@ public final class RecordId implements Comparable<RecordId> {
 
     public Segment getSegment() {
         return segmentId.getSegment();
+    }
+
+    private static void writeLong(byte[] buffer, int pos, long value) {
+        for (int k = 0; k < 8; k++) {
+            buffer[pos + k] = (byte) (value >> (56 - (k << 3)));
+        }
+    }
+
+    private static void writeShort(byte[] buffer, int pos, short value) {
+        buffer[pos] = (byte) (value >> 8);
+        buffer[pos + 1] = (byte) value;
+    }
+
+    byte[] toArray() {
+        byte[] buffer = new byte[18];
+        writeLong(buffer, 0, segmentId.getMostSignificantBits());
+        writeLong(buffer, 8, segmentId.getLeastSignificantBits());
+        writeShort(buffer, 16, encode(offset));
+        return buffer;
     }
 
     //--------------------------------------------------------< Comparable >--
