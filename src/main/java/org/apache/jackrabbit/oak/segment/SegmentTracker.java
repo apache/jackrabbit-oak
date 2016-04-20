@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
@@ -113,8 +114,8 @@ public class SegmentTracker {
 
     private final SegmentVersion segmentVersion;
 
-    public SegmentTracker(SegmentStore store, int cacheSizeMB,
-            SegmentVersion version) {
+    public SegmentTracker(SegmentStore store, int cacheSizeMB, SegmentVersion version) {
+        checkArgument(SegmentVersion.isValid(version));
         this.segmentVersion = version;
 
         for (int i = 0; i < tables.length; i++) {
@@ -152,7 +153,7 @@ public class SegmentTracker {
     }
 
     public SegmentTracker(SegmentStore store) {
-        this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
+        this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.LATEST_VERSION);
     }
 
     /**
