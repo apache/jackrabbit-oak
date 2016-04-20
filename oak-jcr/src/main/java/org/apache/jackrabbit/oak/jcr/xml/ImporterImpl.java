@@ -34,7 +34,6 @@ import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -189,19 +188,11 @@ public class ImporterImpl implements Importer {
     }
 
     private void createProperty(Tree tree, PropInfo pInfo, PropertyDefinition def) throws RepositoryException {
-        List<Value> values = pInfo.getValues(pInfo.getTargetType(def));
-        PropertyState propertyState;
-        String name = pInfo.getName();
+        tree.setProperty(pInfo.asPropertyState(def));
         int type = pInfo.getType();
-        if (values.size() == 1 && !def.isMultiple()) {
-            propertyState = PropertyStates.createProperty(name, values.get(0));
-        } else {
-            propertyState = PropertyStates.createProperty(name, values);
-        }
-        tree.setProperty(propertyState);
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
             // store reference for later resolution
-            refTracker.processedReference(new Reference(tree, name));
+            refTracker.processedReference(new Reference(tree, pInfo.getName()));
         }
     }
 
