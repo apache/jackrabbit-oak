@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -32,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +48,7 @@ public class RecordCache<T> {
     // FIXME OAK-3348 make this a feature flag
     private static final int RETENTION_THRESHOLD = 1;
 
-    private final ConcurrentMap<Integer, Cache<T>> generations = newConcurrentMap();
+    private final ConcurrentMap<Integer, Supplier<Cache<T>>> generations = newConcurrentMap();
 
     public abstract static class Cache<T> {
         public static <T> Cache<T> disabled() {
@@ -70,27 +73,25 @@ public class RecordCache<T> {
         };
     }
 
-    /**
-     * FIXME OAK-3348 The getCache might get called multiple times per generation
-     * as per the comment below. Either come up with a fix for this race
-     * or clearly state that API consumers need to be prepared for this.
-     */
     protected Cache<T> getCache(int generation) {
         return Cache.disabled();
     }
 
-    public Cache<T> generation(int generation) {
-        // Avoid calling getCache on every invocation.
+    public Cache<T> generation(final int generation) {
+        // Preemptive check to limit the number of wasted Supplier instances
         if (!generations.containsKey(generation)) {
-            // The small race here might still result in getCache being called
-            // more than once. Implementors much take this into account.
-            generations.putIfAbsent(generation, getCache(generation));
+            generations.putIfAbsent(generation, memoize(new Supplier<Cache<T>>() {
+                @Override
+                public Cache<T> get() {
+                    return getCache(generation);
+                }
+            }));
         }
-        return generations.get(generation);
+        return generations.get(generation).get();
     }
 
     public void put(Cache<T> cache, int generation) {
-        generations.put(generation, cache);
+        generations.put(generation, Suppliers.ofInstance(cache));
     }
 
     public void clearUpTo(int maxGen) {
