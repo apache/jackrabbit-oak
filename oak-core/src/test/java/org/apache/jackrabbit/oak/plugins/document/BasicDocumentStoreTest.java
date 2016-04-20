@@ -268,6 +268,18 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         testMaxId(false);
     }
 
+    @Test
+    public void testLongId() {
+        String id = "0:/" + generateId(2048, true);
+        assertNull("find() with ultra-long id needs to return 'null'", super.ds.find(Collection.NODES, id));
+
+        if (! super.dsname.contains("Memory")) {
+            UpdateOp up = new UpdateOp(id,  true);
+            up.set("_id", id);
+            assertFalse("create() with ultra-long id needs to fail", super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        }
+    }
+
     private int testMaxId(boolean ascii) {
         int min = 0;
         int max = 32768;
