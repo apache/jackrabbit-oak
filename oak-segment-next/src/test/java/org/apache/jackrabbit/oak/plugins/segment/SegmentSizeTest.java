@@ -30,12 +30,14 @@ import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Ignore;
 import org.junit.Test;
 
 
 /**
  * Test case for ensuring that segment size remains within bounds.
  */
+@Ignore
 public class SegmentSizeTest {
 
     @Test

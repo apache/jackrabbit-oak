@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -102,6 +103,7 @@ public class FileStoreIT {
     }
 
     @Test
+    @Ignore
     public void testCompaction() throws IOException {
         int largeBinarySize = 10 * 1024 * 1024;
 
