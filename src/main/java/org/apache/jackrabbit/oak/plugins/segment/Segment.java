@@ -753,11 +753,7 @@ public class Segment {
                     JsopTokenizer tokenizer = new JsopTokenizer(info);
                     tokenizer.read('{');
                     Map<String, String> properties = JsonObject.create(tokenizer).getProperties();
-                    int gen = parseInt(properties.get("gc"));
-                    if (properties.get("wid").contains("c-")) {
-                        gen++;
-                    }
-                    gcGen = gen;
+                    gcGen = parseInt(properties.get("gc"));
                     return gcGen;
                 }
             }

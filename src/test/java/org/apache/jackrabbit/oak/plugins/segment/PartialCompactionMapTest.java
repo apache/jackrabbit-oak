@@ -27,7 +27,6 @@ import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.commons.benchmark.MicroBenchmark.run;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newValidOffset;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.randomRecordIdMap;
 import static org.junit.Assert.assertEquals;
@@ -110,7 +109,6 @@ public class PartialCompactionMapTest {
     }
 
     private PartialCompactionMap createCompactionMap() {
-        SegmentWriter writer = new SegmentWriter(segmentStore, V_11, "");
         if (usePersistedMap) {
             return new PersistedCompactionMap(segmentStore.getTracker());
         } else {

@@ -539,6 +539,17 @@ public class FileStore implements SegmentStore {
         log.debug("TarMK readers {}", this.readers);
     }
 
+    public int getGcGen() {
+        if (head == null) {
+            return 0;  // not fully initialised
+        }
+        RecordId headId = head.get();
+        if (headId == null) {
+            return 0;  // not fully initialised
+        }
+        return headId.getSegment().getGcGen();
+    }
+
     public boolean maybeCompact(boolean cleanup) throws IOException {
         gcMonitor.info("TarMK GC #{}: started", gcCount.incrementAndGet());
 

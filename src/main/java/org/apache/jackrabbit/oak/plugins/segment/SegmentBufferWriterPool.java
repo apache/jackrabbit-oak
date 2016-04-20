@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.Thread.currentThread;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.Set;
 /**
  * FIXME OAK-3348 document
  */
-class SegmentBufferWriterPool {
+class SegmentBufferWriterPool implements WriteOperationHandler {
     private final Map<Object, SegmentBufferWriter> writers = newHashMap();
     private final Set<SegmentBufferWriter> borrowed = newHashSet();
     private final Set<SegmentBufferWriter> disposed = newHashSet();
@@ -47,7 +48,18 @@ class SegmentBufferWriterPool {
         this.wid = wid;
     }
 
-    void flush() throws IOException {
+    @Override
+    public RecordId execute(WriteOperation writeOperation) throws IOException {
+        SegmentBufferWriter writer = borrowWriter(currentThread());
+        try {
+            return writeOperation.execute(writer);
+        } finally {
+            returnWriter(currentThread(), writer);
+        }
+    }
+
+    @Override
+    public void flush() throws IOException {
         List<SegmentBufferWriter> toFlush = newArrayList();
         synchronized (this) {
             toFlush.addAll(writers.values());
@@ -63,11 +75,11 @@ class SegmentBufferWriterPool {
         }
     }
 
-    synchronized SegmentBufferWriter borrowWriter(Object key) throws IOException {
+    private synchronized SegmentBufferWriter borrowWriter(Object key) {
         SegmentBufferWriter writer = writers.remove(key);
         if (writer == null) {
             writer = new SegmentBufferWriter(store, version, getWriterId(wid));
-        } else if (writer.getGeneration() != store.getTracker().getCompactionMap().getGeneration()) {  // FIXME OAK-3348 improve generation tracking
+        } else if (writer.getGeneration() != store.getTracker().getGcGen()) {
             disposed.add(writer);
             writer = new SegmentBufferWriter(store, version, getWriterId(wid));
         }
@@ -75,7 +87,7 @@ class SegmentBufferWriterPool {
         return writer;
     }
 
-    synchronized void returnWriter(Object key, SegmentBufferWriter writer) throws IOException {
+    private synchronized void returnWriter(Object key, SegmentBufferWriter writer) {
         if (borrowed.remove(writer)) {
             writers.put(key, writer);
         } else {
@@ -84,7 +96,7 @@ class SegmentBufferWriterPool {
         }
     }
 
-    private synchronized String getWriterId(String wid) {
+    private String getWriterId(String wid) {
         if (++writerId > 9999) {
             writerId = 0;
         }
