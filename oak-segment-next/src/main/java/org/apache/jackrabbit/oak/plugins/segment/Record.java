@@ -59,11 +59,6 @@ class Record {
         this.offset = offset;
     }
 
-    protected boolean wasCompactedTo(Record after) {
-        CompactionMap map = segmentId.getTracker().getCompactionMap();
-        return map.wasCompactedTo(getRecordId(), after.getRecordId());
-    }
-
     /**
      * Returns the tracker of the segment that contains this record.
      *

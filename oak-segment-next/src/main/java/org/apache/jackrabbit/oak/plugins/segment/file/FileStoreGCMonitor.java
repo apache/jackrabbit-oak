@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.text.DateFormat.getDateTimeInstance;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
@@ -54,9 +53,6 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     private final Clock clock;
 
     private long lastCompaction;
-    private long[] segmentCounts = new long[0];
-    private long[] recordCounts = new long[0];
-    private long[] compactionMapWeights = new long[0];
     private long lastCleanup;
     private String lastError;
     private String status = "NA";
@@ -103,9 +99,6 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     @Override
     public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
         lastCompaction = clock.getTime();
-        this.segmentCounts = segmentCounts;
-        this.recordCounts = recordCounts;
-        this.compactionMapWeights = compactionMapWeights;
     }
 
     @Override
@@ -145,23 +138,6 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     @Override
     public String getStatus() {
         return status;
-    }
-
-    @Override
-    public String getCompactionMapStats() {
-        StringBuilder sb = new StringBuilder();
-        String sep = "";
-        for (int k = 0; k < segmentCounts.length; k++) {
-            sb.append(sep).append('[')
-                .append("Estimated Weight: ")
-                .append(humanReadableByteCount(compactionMapWeights[k])).append(", ")
-                .append("Segments: ")
-                .append(segmentCounts[k]).append(", ")
-                .append("Records: ")
-                .append(recordCounts[k]).append(']');
-            sep = ", ";
-        }
-        return sb.toString();
     }
 
     @Nonnull

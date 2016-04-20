@@ -114,7 +114,6 @@ public class CompactionAndCleanupIT {
         };
         // Use in memory compaction map as gains asserted later on
         // do not take additional space of the compaction map into consideration
-        custom.setPersistCompactionMap(false);
         fileStore.setCompactionStrategy(custom);
 
         // 1a. Create a bunch of data
@@ -198,77 +197,6 @@ public class CompactionAndCleanupIT {
             byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
                     .getProperty("a2").getValue(Type.BINARY).getNewStream());
             assertEquals(blobSize, blob.length);
-        } finally {
-            fileStore.close();
-        }
-    }
-
-    @Test
-    public void noCleanupOnCompactionMap() throws Exception {
-        // 2MB data, 5MB blob
-        final int blobSize = 5 * 1024 * 1024;
-        final int dataNodes = 10000;
-
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
-        final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-        CompactionStrategy custom = new CompactionStrategy(false, false,
-                CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0) {
-            @Override
-            public boolean compacted(@Nonnull Callable<Boolean> setHead)
-                    throws Exception {
-                return nodeStore.locked(setHead);
-            }
-        };
-        fileStore.setCompactionStrategy(custom);
-
-        // 1a. Create a bunch of data
-        NodeBuilder extra = nodeStore.getRoot().builder();
-        NodeBuilder content = extra.child("content");
-        for (int i = 0; i < dataNodes; i++) {
-            NodeBuilder c = content.child("c" + i);
-            for (int j = 0; j < 1000; j++) {
-                c.setProperty("p" + i, "v" + i);
-            }
-        }
-        nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        final long dataSize = fileStore.size();
-        log.debug("File store dataSize {}", byteCountToDisplaySize(dataSize));
-
-        try {
-            // 1. Create a property with 5 MB blob
-            NodeBuilder builder = nodeStore.getRoot().builder();
-            builder.setProperty("a1", createBlob(nodeStore, blobSize));
-            builder.setProperty("b", "foo");
-            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-            // 2. Now remove the property
-            builder = nodeStore.getRoot().builder();
-            builder.removeProperty("a1");
-            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-            // 3. Compact
-            fileStore.maybeCompact(false);
-
-            // 4. Add some more property to flush the current TarWriter
-            builder = nodeStore.getRoot().builder();
-            builder.setProperty("a2", createBlob(nodeStore, blobSize));
-            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-            // There should be no SNFE when running cleanup as compaction map segments
-            // should be pinned and thus not collected
-            fileStore.maybeCompact(false);
-            fileStore.cleanup();
-
-            // refresh the ts ref, to simulate a long wait time
-            custom.setOlderThan(0);
-            TimeUnit.MILLISECONDS.sleep(5);
-
-            boolean needsCompaction = true;
-            for (int i = 0; i < 3 && needsCompaction; i++) {
-                needsCompaction = fileStore.maybeCompact(false);
-                fileStore.cleanup();
-            }
         } finally {
             fileStore.close();
         }
@@ -603,7 +531,6 @@ public class CompactionAndCleanupIT {
                 }
             };
             // CLEAN_ALL and persisted compaction map results in SNFE in compaction map segments
-            strategy.setPersistCompactionMap(false);
             fileStore.setCompactionStrategy(strategy);
 
             // Add a property

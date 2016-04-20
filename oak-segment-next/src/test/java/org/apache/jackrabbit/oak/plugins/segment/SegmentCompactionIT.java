@@ -33,7 +33,6 @@ import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
@@ -238,7 +237,6 @@ public class SegmentCompactionIT {
                 CompactionStrategy.MEMORY_THRESHOLD_DEFAULT, lockWaitTime,
                 CompactionStrategy.RETRY_COUNT_DEFAULT,
                 CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT,
-                PERSIST_COMPACTION_MAP,
                 CompactionStrategy.GAIN_THRESHOLD_DEFAULT);
         nodeStore = nodeStoreBuilder.build();
 
@@ -978,11 +976,6 @@ public class SegmentCompactionIT {
         }
 
         @Override
-        public boolean getPersistCompactionMap() {
-            return compactionStrategy.getPersistCompactionMap();
-        }
-
-        @Override
         public int getReaderCount() {
             return readers.size();
         }
@@ -1000,30 +993,6 @@ public class SegmentCompactionIT {
         @Override
         public long getFileStoreSize() {
             return fileStoreSize;
-        }
-
-        private CompactionMap getCompactionMap() {
-            return fileStore.getTracker().getCompactionMap();
-        }
-
-        @Override
-        public long getCompactionMapWeight() {
-            return sum(getCompactionMap().getEstimatedWeights());
-        }
-
-        @Override
-        public long getSegmentCount() {
-            return sum(getCompactionMap().getSegmentCounts());
-        }
-
-        @Override
-        public long getRecordCount() {
-            return sum(getCompactionMap().getRecordCounts());
-        }
-
-        @Override
-        public int getCompactionMapDepth() {
-             return getCompactionMap().getDepth();
         }
 
         @Override
