@@ -29,10 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import junit.framework.Assert;
-
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -111,13 +108,6 @@ public class SegmentIdTableTest {
         
         tbl.clearSegmentIdTables(new CompactionStrategy(false, false, 
                 CleanupType.CLEAN_NONE, originalCount, (byte) 0) {
-
-            @Override
-            public boolean compacted(@Nonnull Callable<Boolean> setHead)
-                    throws Exception {
-                return true;
-            }
-
             @Override
             public boolean canRemove(SegmentId id) {
                 return id.getMostSignificantBits() < 4;

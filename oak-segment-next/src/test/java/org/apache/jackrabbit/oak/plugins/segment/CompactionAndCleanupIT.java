@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.Integer.getInteger;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
@@ -51,8 +50,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.Nonnull;
 
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -105,13 +102,7 @@ public class CompactionAndCleanupIT {
                 .build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
         CompactionStrategy custom = new CompactionStrategy(false, false,
-                CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0) {
-            @Override
-            public boolean compacted(@Nonnull Callable<Boolean> setHead)
-                    throws Exception {
-                return nodeStore.locked(setHead);
-            }
-        };
+                CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0);
         // Use in memory compaction map as gains asserted later on
         // do not take additional space of the compaction map into consideration
         fileStore.setCompactionStrategy(custom);
@@ -232,13 +223,7 @@ public class CompactionAndCleanupIT {
         FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(2).withMemoryMapping(true).build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
         final AtomicBoolean compactionSuccess = new AtomicBoolean(true);
-        CompactionStrategy strategy = new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5) {
-            @Override
-            public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                compactionSuccess.set(nodeStore.locked(setHead, 1, MINUTES));
-                return compactionSuccess.get();
-            }
-        };
+        CompactionStrategy strategy = new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5);
         strategy.setForceAfterFail(true);
         store.setCompactionStrategy(strategy);
 
@@ -362,13 +347,7 @@ public class CompactionAndCleanupIT {
             File repoDir = new File(getFileStoreFolder(), ref);
             FileStore fileStore = FileStore.builder(repoDir).withMaxFileSize(2).build();
             final SegmentNodeStore nodeStore = builder(fileStore).build();
-            fileStore.setCompactionStrategy(new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5) {
-                @Override
-                public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                    return nodeStore.locked(setHead);
-                }
-            });
-
+            fileStore.setCompactionStrategy(new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5));
             try {
                 // add some content
                 NodeBuilder preGCBuilder = nodeStore.getRoot().builder();
@@ -523,13 +502,7 @@ public class CompactionAndCleanupIT {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-            CompactionStrategy strategy = new CompactionStrategy(false, false, CLEAN_ALL, 0, (byte) 0) {
-                @Override
-                public boolean compacted(@Nonnull Callable<Boolean> setHead)
-                        throws Exception {
-                    return nodeStore.locked(setHead);
-                }
-            };
+            CompactionStrategy strategy = new CompactionStrategy(false, false, CLEAN_ALL, 0, (byte) 0);
             // CLEAN_ALL and persisted compaction map results in SNFE in compaction map segments
             fileStore.setCompactionStrategy(strategy);
 

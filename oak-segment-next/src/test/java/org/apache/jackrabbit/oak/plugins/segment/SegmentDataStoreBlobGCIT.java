@@ -36,13 +36,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
@@ -102,12 +100,7 @@ public class SegmentDataStoreBlobGCIT {
             store = builder.build();
             CompactionStrategy compactionStrategy =
                 new CompactionStrategy(false, true,
-                    CompactionStrategy.CleanupType.CLEAN_OLD, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-                    @Override
-                    public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-                        return setHead.call();
-                    }
-                };
+                    CompactionStrategy.CleanupType.CLEAN_OLD, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT);
             store.setCompactionStrategy(compactionStrategy);
             nodeStore = SegmentNodeStore.builder(store).build();
         }
