@@ -42,6 +42,7 @@ public enum SegmentVersion {
 
     V_11((byte) 11);
 
+
     /**
      * Latest segment version
      */
