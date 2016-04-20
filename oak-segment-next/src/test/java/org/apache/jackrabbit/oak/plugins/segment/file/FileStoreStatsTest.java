@@ -84,7 +84,7 @@ public class FileStoreStatsTest {
 
         File file = segmentFolder.newFile();
         TarWriter writer = new TarWriter(file, stats);
-        writer.writeEntry(msb, lsb, data, 0, data.length);
+        writer.writeEntry(msb, lsb, data, 0, data.length, 0);
         writer.close();
 
         assertEquals(stats.getApproximateSize(), file.length());
