@@ -32,11 +32,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
+@Ignore
 public class SegmentNodeStoreServiceTest {
 
     @Rule
