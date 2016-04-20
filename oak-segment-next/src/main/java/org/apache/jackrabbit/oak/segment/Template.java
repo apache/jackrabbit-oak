@@ -183,15 +183,9 @@ public class Template {
         if (childName != ZERO_CHILD_NODES) {
             offset += RECORD_ID_BYTES;
         }
-        RecordId rid = null;
-        if (segment.getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-            RecordId lid = segment.readRecordId(offset);
-            ListRecord props = new ListRecord(lid, properties.length);
-            rid = props.getEntry(index);
-        } else {
-            offset += index * RECORD_ID_BYTES;
-            rid = segment.readRecordId(offset);
-        }
+        RecordId lid = segment.readRecordId(offset);
+        ListRecord props = new ListRecord(lid, properties.length);
+        RecordId rid = props.getEntry(index);
         return new SegmentPropertyState(rid, properties[index]);
     }
 

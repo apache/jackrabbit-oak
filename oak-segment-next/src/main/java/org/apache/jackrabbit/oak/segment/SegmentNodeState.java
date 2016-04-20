@@ -153,29 +153,15 @@ public class SegmentNodeState extends Record implements NodeState {
                 template.getPropertyTemplate(name);
         if (propertyTemplate != null) {
             Segment segment = getSegment();
-            RecordId id;
-            if (getSegment().getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-                id = getRecordIdV11(segment, template, propertyTemplate);
-            } else {
-                id = getRecordIdV10(segment, template, propertyTemplate);
-            }
+            RecordId id = getRecordId(segment, template, propertyTemplate);
             return new SegmentPropertyState(id, propertyTemplate);
         } else {
             return null;
         }
     }
 
-    private RecordId getRecordIdV10(Segment segment, Template template,
-            PropertyTemplate propertyTemplate) {
-        int ids = 2 + propertyTemplate.getIndex();
-        if (template.getChildName() != Template.ZERO_CHILD_NODES) {
-            ids++;
-        }
-        return segment.readRecordId(getOffset(0, ids));
-    }
-
-    private RecordId getRecordIdV11(Segment segment, Template template,
-            PropertyTemplate propertyTemplate) {
+    private RecordId getRecordId(Segment segment, Template template,
+                                 PropertyTemplate propertyTemplate) {
         int ids = 2;
         if (template.getChildName() != Template.ZERO_CHILD_NODES) {
             ids++;
@@ -209,20 +195,12 @@ public class SegmentNodeState extends Record implements NodeState {
             ids++;
         }
 
-        if (segment.getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-            if (propertyTemplates.length > 0) {
-                ListRecord pIds = new ListRecord(
-                        segment.readRecordId(getOffset(0, ids)),
-                        propertyTemplates.length);
-                for (int i = 0; i < propertyTemplates.length; i++) {
-                    RecordId propertyId = pIds.getEntry(i);
-                    list.add(new SegmentPropertyState(propertyId,
-                            propertyTemplates[i]));
-                }
-            }
-        } else {
+        if (propertyTemplates.length > 0) {
+            ListRecord pIds = new ListRecord(
+                    segment.readRecordId(getOffset(0, ids)),
+                    propertyTemplates.length);
             for (int i = 0; i < propertyTemplates.length; i++) {
-                RecordId propertyId = segment.readRecordId(getOffset(0, ids++));
+                RecordId propertyId = pIds.getEntry(i);
                 list.add(new SegmentPropertyState(propertyId,
                         propertyTemplates[i]));
             }
@@ -302,12 +280,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         Segment segment = getSegment();
-        RecordId id;
-        if (segment.getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-            id = getRecordIdV11(segment, template, propertyTemplate);
-        } else {
-            id = getRecordIdV10(segment, template, propertyTemplate);
-        }
+        RecordId id = getRecordId(segment, template, propertyTemplate);
         return readString(id);
     }
 
@@ -345,12 +318,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         Segment segment = getSegment();
-        RecordId id;
-        if (getSegment().getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-            id = getRecordIdV11(segment, template, propertyTemplate);
-        } else {
-            id = getRecordIdV10(segment, template, propertyTemplate);
-        }
+        RecordId id = getRecordId(segment, template, propertyTemplate);
         segment = id.getSegment();
         int size = segment.readInt(id.getOffset());
         if (size == 0) {
