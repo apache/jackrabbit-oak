@@ -301,6 +301,35 @@ with dedicated _copyFields_ for specific properties.
 
         <copyField source="jcr:primaryType" dest="jcr:primaryType_facet"/> <!-- facet on jcr:primaryType field/property -->
 
+#### Persisted configuration
+
+`@since Oak 1.4.0`
+
+It's possible to create (multiple) Solr indexes via persisted configuration.
+A persisted Oak Solr index is created whenever an index definition with _type = solr_ has a child node named _server_ 
+and such a child node has the _solrServerType_ property set (to either _embedded_ or _remote_).
+If no such child node exists, an Oak Solr index will be only created upon explicit registration of a [SolrServerProvider]
+ e.g. via OSGi.
+All the [OakSolrConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/OakSolrConfiguration.html)
+ and [SolrServerConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/SolrServerConfiguration.html)
+ properties are exposed and configurable, see also [OakSolrNodeStateConfiguration#Properties](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/java/org/apache/jackrabbit/oak/plugins/index/solr/configuration/nodestate/OakSolrNodeStateConfiguration.java#L245)
+  and [NodeStateSolrServerConfigurationProvider#Properties](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/java/org/apache/jackrabbit/oak/plugins/index/solr/configuration/nodestate/NodeStateSolrServerConfigurationProvider.java#L94)
+
+```
+/oak:index/solrRemote
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - type = "solr"
+  - async = "async"
+  + server
+    - jcr:primaryType = "nt:unstructured"
+    - solrServerType = "remote"
+    - httpUrl = "http://localhost:8983/solr/oak"
+```
+
+If such configurations exists in the repository the [NodeStateSolrServersObserver](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/nodestate/NodeStateSolrServersObserver.html) 
+should be registered too (e.g. via [NodeStateSolrServersObserverService](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/osgi/NodeStateSolrServersObserverService.html) 
+OSGi service).
+
 #### Notes
 As of Oak version 1.0.0:
 
