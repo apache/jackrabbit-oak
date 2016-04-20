@@ -16,33 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.hash.Hashing;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -58,53 +40,11 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
-    /**
-     * Locks down the RecordId persistence structure
-     */
-    static long[] recordAsKey(RecordId r) {
-        return new long[] { r.getSegmentId().getMostSignificantBits(),
-                r.getSegmentId().getLeastSignificantBits(), r.getOffset() };
-    }
-
     private final SegmentTracker tracker;
 
     private final SegmentWriter writer;
 
-    /**
-     * Filters nodes that will be included in the compaction map, allowing for
-     * optimization in case of an offline compaction
-     */
-    private Predicate<NodeState> includeInMap = Predicates.alwaysTrue();
-
     private final ProgressTracker progress = new ProgressTracker();
-
-    /**
-     * Map from {@link #getBlobKey(Blob) blob keys} to matching compacted
-     * blob record identifiers. Used to de-duplicate copies of the same
-     * binary values.
-     */
-    private final Map<String, List<RecordId>> binaries = newHashMap();
-
-    /**
-     * If the compactor should copy large binaries as streams or just copy the
-     * refs
-     */
-    private final boolean cloneBinaries;
-
-    /**
-     * In the case of large inlined binaries, compaction will verify if all
-     * referenced segments exist in order to determine if a full clone is
-     * necessary, or just a shallow copy of the RecordId list is enough
-     * (Used in Backup scenario)
-     */
-    private boolean deepCheckLargeBinaries;
-
-    /**
-     * Flag to use content equality verification before actually compacting the
-     * state, on the childNodeChanged diff branch
-     * (Used in Backup scenario)
-     */
-    private boolean contentEqualityCheck;
 
     /**
      * Allows the cancellation of the compaction process. If this {@code
@@ -118,21 +58,15 @@ public class Compactor {
         this(tracker, Suppliers.ofInstance(false));
     }
 
-    public Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
+    Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
         this.tracker = tracker;
         this.writer = tracker.getWriter();
-        this.cloneBinaries = false;
         this.cancel = cancel;
-    }
-
-    public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy) {
-        this(tracker, compactionStrategy, Suppliers.ofInstance(false));
     }
 
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
         this.tracker = tracker;
         this.writer = createSegmentWriter(tracker);
-        this.cloneBinaries = compactionStrategy.cloneBinaries();
         this.cancel = cancel;
     }
 
@@ -140,12 +74,6 @@ public class Compactor {
     private static SegmentWriter createSegmentWriter(SegmentTracker tracker) {
         return new SegmentWriter(tracker.getStore(), tracker.getSegmentVersion(),
             new SegmentBufferWriter(tracker.getStore(), tracker.getSegmentVersion(), "c", tracker.getGcGen() + 1));
-    }
-
-    protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) throws IOException {
-        SegmentNodeBuilder builder = new SegmentNodeBuilder(writer.writeNode(onto), writer);
-        new CompactDiff(builder).diff(before, after);
-        return builder;
     }
 
     /**
@@ -158,7 +86,9 @@ public class Compactor {
      */
     public SegmentNodeState compact(NodeState before, NodeState after, NodeState onto) throws IOException {
         progress.start();
-        SegmentNodeState compacted = process(before, after, onto).getNodeState();
+        SegmentNodeBuilder builder = new SegmentNodeBuilder(writer.writeNode(onto), writer);
+        new CompactDiff(builder).diff(before, after);
+        SegmentNodeState compacted = builder.getNodeState();
         writer.flush();
         progress.stop();
         return compacted;
@@ -202,36 +132,32 @@ public class Compactor {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (path != null) {
-                log.trace("propertyAdded {}/{}", path, after.getName());
+            try {
+                progress.onProperty("propertyAdded", path, after);
+                return super.propertyAdded(writer.writeProperty(after));
+            } catch (IOException e) {
+                exception = e;
+                return false;
             }
-            progress.onProperty();
-            return super.propertyAdded(compact(after));
         }
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (path != null) {
-                log.trace("propertyChanged {}/{}", path, after.getName());
+            try {
+                progress.onProperty("propertyChanged", path, after);
+                return super.propertyChanged(before, writer.writeProperty(after));
+            } catch (IOException e) {
+                exception = e;
+                return false;
             }
-            progress.onProperty();
-            return super.propertyChanged(before, compact(after));
         }
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (path != null) {
-                log.trace("childNodeAdded {}/{}", path, name);
-            }
-
-            progress.onNode();
             try {
-                NodeBuilder child = EMPTY_NODE.builder();
-                boolean success =  new CompactDiff(child, path, name).diff(EMPTY_NODE, after);
-                if (success) {
-                    builder.setChildNode(name, writer.writeNode(child.getNodeState()));
-                }
-                return success;
+                progress.onNode("childNodeAdded", path, name);
+                super.childNodeAdded(name, writer.writeNode(after));
+                return true;
             } catch (IOException e) {
                 exception = e;
                 return false;
@@ -239,121 +165,16 @@ public class Compactor {
         }
 
         @Override
-        public boolean childNodeChanged(
-                String name, NodeState before, NodeState after) {
-            if (path != null) {
-                log.trace("childNodeChanged {}/{}", path, name);
-            }
-
-            if (contentEqualityCheck && before.equals(after)) {
-                return true;
-            }
-
-            progress.onNode();
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
             try {
-                NodeBuilder child = builder.getChildNode(name);
-                boolean success = new CompactDiff(child, path, name).diff(before, after);
-                if (success) {
-                    writer.writeNode(child.getNodeState()).getRecordId();
-                }
-                return success;
+                progress.onNode("childNodeChanged", path, name);
+                return new CompactDiff(builder.getChildNode(name), path, name).diff(before, after);
             } catch (IOException e) {
                 exception = e;
                 return false;
             }
         }
-    }
 
-    private PropertyState compact(PropertyState property) {
-        String name = property.getName();
-        Type<?> type = property.getType();
-        if (type == BINARY) {
-            Blob blob = compact(property.getValue(Type.BINARY));
-            return BinaryPropertyState.binaryProperty(name, blob);
-        } else if (type == BINARIES) {
-            List<Blob> blobs = new ArrayList<Blob>();
-            for (Blob blob : property.getValue(BINARIES)) {
-                blobs.add(compact(blob));
-            }
-            return MultiBinaryPropertyState.binaryPropertyFromBlob(name, blobs);
-        } else {
-            Object value = property.getValue(type);
-            return PropertyStates.createProperty(name, value, type);
-        }
-    }
-
-    /**
-     * Compacts (and de-duplicates) the given blob.
-     *
-     * @param blob blob to be compacted
-     * @return compacted blob
-     */
-    private Blob compact(Blob blob) {
-        if (blob instanceof SegmentBlob) {
-            SegmentBlob sb = (SegmentBlob) blob;
-            try {
-                // Check if we've already cloned this specific record
-                progress.onBinary();
-
-                // if the blob is inlined or external, just clone it
-                if (sb.isExternal() || sb.length() < Segment.MEDIUM_LIMIT) {
-                    return sb.clone(writer, false);
-                }
-
-                // alternatively look if the exact same binary has been cloned
-                String key = getBlobKey(blob);
-                List<RecordId> ids = binaries.get(key);
-                if (ids != null) {
-                    for (RecordId duplicateId : ids) {
-                        if (new SegmentBlob(duplicateId).equals(sb)) {
-                            return new SegmentBlob(duplicateId);
-                        }
-                    }
-                }
-
-                boolean clone = cloneBinaries;
-                if (deepCheckLargeBinaries) {
-                    clone = clone
-                            || !tracker.getStore().containsSegment(
-                                    sb.getRecordId().getSegmentId());
-                    if (!clone) {
-                        for (SegmentId bid : SegmentBlob.getBulkSegmentIds(sb)) {
-                            if (!tracker.getStore().containsSegment(bid)) {
-                                clone = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // if not, clone the large blob and keep track of the result
-                sb = sb.clone(writer, clone);
-                if (ids == null) {
-                    ids = newArrayList();
-                    binaries.put(key, ids);
-                }
-                ids.add(sb.getRecordId());
-
-                return sb;
-            } catch (IOException e) {
-                log.warn("Failed to compact a blob", e);
-                // fall through
-            }
-        }
-
-        // no way to compact this blob, so we'll just keep it as-is
-        return blob;
-    }
-
-    private static String getBlobKey(Blob blob) throws IOException {
-        InputStream stream = blob.getNewStream();
-        try {
-            byte[] buffer = new byte[SegmentWriter.BLOCK_SIZE];
-            int n = IOUtils.readFully(stream, buffer, 0, buffer.length);
-            return blob.length() + ":" + Hashing.sha1().hashBytes(buffer, 0, n);
-        } finally {
-            stream.close();
-        }
     }
 
     private static class ProgressTracker {
@@ -373,14 +194,20 @@ public class Compactor {
             start = System.currentTimeMillis();
         }
 
-        void onNode() {
+        void onNode(String msg, String path, String nodeName) {
+            if (path != null) {
+                log.trace("{} {}/{}", msg, path, nodeName);
+            }
             if (++nodes % logAt == 0) {
                 logProgress(start, false);
                 start = System.currentTimeMillis();
             }
         }
 
-        void onProperty() {
+        void onProperty(String msg, String path, PropertyState propertyState) {
+            if (path != null) {
+                log.trace("{} {}/{}", msg, path, propertyState.getName());
+            }
             properties++;
         }
 
@@ -403,54 +230,6 @@ public class Compactor {
                         nodes, properties, binaries);
             }
         }
-    }
-
-    private static class OfflineCompactionPredicate implements
-            Predicate<NodeState> {
-
-        /**
-         * over 64K in size, node will be included in the compaction map
-         */
-        private static final long offlineThreshold = 65536;
-
-        @Override
-        public boolean apply(NodeState state) {
-            if (state.getChildNodeCount(2) > 1) {
-                return true;
-            }
-            long count = 0;
-            for (PropertyState ps : state.getProperties()) {
-                Type<?> type = ps.getType();
-                for (int i = 0; i < ps.count(); i++) {
-                    long size = 0;
-                    if (type == BINARY || type == BINARIES) {
-                        Blob blob = ps.getValue(BINARY, i);
-                        if (blob instanceof SegmentBlob) {
-                            if (!((SegmentBlob) blob).isExternal()) {
-                                size += blob.length();
-                            }
-                        } else {
-                            size += blob.length();
-                        }
-                    } else {
-                        size = ps.size(i);
-                    }
-                    count += size;
-                    if (size >= offlineThreshold || count >= offlineThreshold) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-    }
-
-    public void setDeepCheckLargeBinaries(boolean deepCheckLargeBinaries) {
-        this.deepCheckLargeBinaries = deepCheckLargeBinaries;
-    }
-
-    public void setContentEqualityCheck(boolean contentEqualityCheck) {
-        this.contentEqualityCheck = contentEqualityCheck;
     }
 
 }
