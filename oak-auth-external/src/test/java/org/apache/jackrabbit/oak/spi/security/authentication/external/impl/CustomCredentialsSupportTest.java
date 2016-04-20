@@ -52,8 +52,6 @@ import static org.junit.Assert.fail;
  */
 public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
 
-    private final IDP idp = new IDP();
-
     private static void assertAttributes(@Nonnull Map<String, ?> expected, @Nonnull AuthInfo info) {
         assertEquals(expected.size(), info.getAttributeNames().length);
         for (String aName : info.getAttributeNames()) {
@@ -69,7 +67,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         try {
             AuthInfo info = cs.getAuthInfo();
             assertEquals("testUser", info.getUserID());
-            assertAttributes(idp.getAttributes(creds), info);
+            assertAttributes(((IDP) idp).getAttributes(creds), info);
         } finally {
             cs.close();
         }
@@ -93,12 +91,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
 
     @Override
     protected ExternalIdentityProvider createIDP() {
-        return idp;
-    }
-
-    @Override
-    protected void destroyIDP(ExternalIdentityProvider idp) {
-        // ignore
+        return new IDP();
     }
 
     private static final class TestCredentials implements Credentials {

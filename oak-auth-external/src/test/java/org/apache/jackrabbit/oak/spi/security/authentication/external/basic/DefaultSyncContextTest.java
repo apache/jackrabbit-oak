@@ -24,7 +24,6 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,13 +39,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -69,10 +67,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class DefaultSyncContextTest extends AbstractSecurityTest {
+public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     private TestIdentityProvider idp = new TestIdentityProvider();
-    private DefaultSyncConfig config = new DefaultSyncConfig();
 
     private DefaultSyncContext syncCtx;
 
@@ -81,7 +78,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
     @Before
     public void before() throws Exception {
         super.before();
-        syncCtx = new DefaultSyncContext(config, idp, getUserManager(root), getValueFactory());
+        syncCtx = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory());
     }
 
     @After
@@ -90,13 +87,6 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
             syncCtx.close();
             root.refresh();
             UserManager umgr = getUserManager(root);
-            Iterator<ExternalIdentity> ids = Iterators.concat(idp.listGroups(), idp.listUsers());
-            while (ids.hasNext()) {
-                Authorizable a = umgr.getAuthorizable(ids.next().getId());
-                if (a != null) {
-                    a.remove();
-                }
-            }
             for (String id : authorizableIds) {
                 Authorizable a = umgr.getAuthorizable(id);
                 if (a != null) {
@@ -107,6 +97,11 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         } finally {
             super.after();
         }
+    }
+
+    @Override
+    protected DefaultSyncConfig createSyncConfig() {
+        return new DefaultSyncConfig();
     }
 
     private Group createTestGroup() throws Exception {
@@ -459,7 +454,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
     public void testSyncAutoMembership() throws Exception {
         Group gr = createTestGroup();
 
-        config.user().setAutoMembership(gr.getID());
+        syncConfig.user().setAutoMembership(gr.getID());
 
         SyncResult result = syncCtx.sync(idp.listUsers().next());
         assertEquals(SyncResult.Status.ADD, result.getStatus());
@@ -470,7 +465,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
 
     @Test
     public void testSyncAutoMembershipListsNonExistingGroup() throws Exception {
-        config.user().setAutoMembership("nonExistingGroup");
+        syncConfig.user().setAutoMembership("nonExistingGroup");
 
         SyncResult result = syncCtx.sync(idp.listUsers().next());
         assertEquals(SyncResult.Status.ADD, result.getStatus());
@@ -479,7 +474,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
     @Test
     public void testSyncAutoMembershipListsUser() throws Exception {
         // set auto-membership config to point to a user instead a group
-        config.user().setAutoMembership(getTestUser().getID());
+        syncConfig.user().setAutoMembership(getTestUser().getID());
         syncCtx.sync(idp.listUsers().next());
     }
 
@@ -500,15 +495,15 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
 
         // enforce synchronization of the user and it's group membership
         syncCtx.setForceUserSync(true);
-        config.user().setMembershipExpirationTime(-1);
+        syncConfig.user().setMembershipExpirationTime(-1);
 
         // 1. membership nesting is < 0 => membership not synchronized
-        config.user().setMembershipNestingDepth(-1);
+        syncConfig.user().setMembershipNestingDepth(-1);
         syncCtx.sync(user.getID()).getStatus();
         assertTrue(gr.isDeclaredMember(user));
 
         // 2. membership nesting is > 0 => membership gets synchronized
-        config.user().setMembershipNestingDepth(1);
+        syncConfig.user().setMembershipNestingDepth(1);
         assertEquals(SyncResult.Status.UPDATE, syncCtx.sync(user.getID()).getStatus());
 
         assertFalse(gr.isDeclaredMember(user));
@@ -530,8 +525,8 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
 
         // enforce synchronization of the user and it's group membership
         syncCtx.setForceUserSync(true);
-        config.user().setMembershipExpirationTime(-1);
-        config.user().setMembershipNestingDepth(1);
+        syncConfig.user().setMembershipExpirationTime(-1);
+        syncConfig.user().setMembershipNestingDepth(1);
 
         assertEquals(SyncResult.Status.UPDATE, syncCtx.sync(user.getID()).getStatus());
 
@@ -891,7 +886,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
     @Test
     public void testIsExpiredLocalGroup() throws Exception {
         Group gr = createTestGroup();
-        assertTrue(syncCtx.isExpired(gr, config.group().getExpirationTime(), "any"));
+        assertTrue(syncCtx.isExpired(gr, syncConfig.group().getExpirationTime(), "any"));
     }
 
     @Test
@@ -899,7 +894,7 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         Group gr = createTestGroup();
         gr.setProperty(DefaultSyncContext.REP_LAST_SYNCED, new Value[0]);
 
-        assertTrue(syncCtx.isExpired(gr, config.group().getExpirationTime(), "any"));
+        assertTrue(syncCtx.isExpired(gr, syncConfig.group().getExpirationTime(), "any"));
     }
 
     @Test
@@ -908,16 +903,16 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         sync(externalUser);
 
         Authorizable a = getUserManager(root).getAuthorizable(externalUser.getId());
-        assertFalse(syncCtx.isExpired(a, config.user().getExpirationTime(), "any"));
+        assertFalse(syncCtx.isExpired(a, syncConfig.user().getExpirationTime(), "any"));
         assertTrue(syncCtx.isExpired(a, -1, "any"));
 
         // create a ctx with a newer 'now'
-        DefaultSyncContext ctx = new DefaultSyncContext(config, idp, getUserManager(root), getValueFactory());
+        DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory());
         assertTrue(ctx.isExpired(a, 1, "any"));
 
         // remove last-sync property
         a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
-        assertTrue(syncCtx.isExpired(a, config.user().getExpirationTime(), "any"));
+        assertTrue(syncCtx.isExpired(a, syncConfig.user().getExpirationTime(), "any"));
     }
 
     @Test
@@ -926,16 +921,16 @@ public class DefaultSyncContextTest extends AbstractSecurityTest {
         sync(externalGroup);
 
         Authorizable a = getUserManager(root).getAuthorizable(externalGroup.getId());
-        assertFalse(syncCtx.isExpired(a, config.group().getExpirationTime(), "any"));
+        assertFalse(syncCtx.isExpired(a, syncConfig.group().getExpirationTime(), "any"));
         assertTrue(syncCtx.isExpired(a, -1, "any"));
 
         // create a ctx with a newer 'now'
-        DefaultSyncContext ctx = new DefaultSyncContext(config, idp, getUserManager(root), getValueFactory());
+        DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory());
         assertTrue(ctx.isExpired(a, 1, "any"));
 
         // remove last-sync property
         a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
-        assertTrue(syncCtx.isExpired(a, config.group().getExpirationTime(), "any"));
+        assertTrue(syncCtx.isExpired(a, syncConfig.group().getExpirationTime(), "any"));
     }
 
     @Test
