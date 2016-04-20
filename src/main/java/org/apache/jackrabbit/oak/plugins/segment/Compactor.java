@@ -20,12 +20,10 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.RecordCache.Cache;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,6 +39,8 @@ public class Compactor {
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
     private final SegmentTracker tracker;
+
+    private final int gcGeneration;
 
     private final SegmentWriter writer;
 
@@ -60,20 +60,27 @@ public class Compactor {
 
     Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
         this.tracker = tracker;
+        this.gcGeneration = -1;
         this.writer = tracker.getWriter();
         this.cancel = cancel;
     }
 
-    public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
+    public Compactor(SegmentTracker tracker, final Cache<String> cache, Supplier<Boolean> cancel) {
         this.tracker = tracker;
-        this.writer = createSegmentWriter(tracker);
+        this.gcGeneration = tracker.getGcGen() + 1;
+        this.writer = new SegmentWriter(tracker.getStore(), tracker.getSegmentVersion(),
+            new SegmentBufferWriter(tracker.getStore(), tracker.getSegmentVersion(), "c", gcGeneration),
+                new RecordCache<String>() {
+                    @Override
+                    protected Cache<String> getCache(int generation) {
+                        return cache;
+                    }
+                });
         this.cancel = cancel;
     }
 
-    @Nonnull
-    private static SegmentWriter createSegmentWriter(SegmentTracker tracker) {
-        return new SegmentWriter(tracker.getStore(), tracker.getSegmentVersion(),
-            new SegmentBufferWriter(tracker.getStore(), tracker.getSegmentVersion(), "c", tracker.getGcGen() + 1));
+    public int getGCGeneration() {
+        return gcGeneration;
     }
 
     /**
