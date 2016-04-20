@@ -38,7 +38,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
-@Ignore
+@Ignore  // FIXME OAK-3348 fix failing test SegmentNodeStoreServiceTest
 public class SegmentNodeStoreServiceTest {
 
     @Rule

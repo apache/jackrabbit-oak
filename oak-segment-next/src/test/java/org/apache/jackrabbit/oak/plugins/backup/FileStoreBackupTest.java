@@ -43,6 +43,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 @Ignore
+// FIXME OAK-3348 FileStoreBackupTest
 public class FileStoreBackupTest {
 
     private File src;

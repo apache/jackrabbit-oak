@@ -475,6 +475,7 @@ class TarWriter implements Closeable {
         return header;
     }
 
+    // FIXME OAK-3348 this method is not used anymore. Remove unless we decide
     // to offer an alternative cleanup strategy based on reachability, in which
     // case it will still be needed
     /**

@@ -741,7 +741,7 @@ class TarReader implements Closeable {
             UUID id = new UUID(entry.msb(), entry.lsb());
             if ((!isDataSegmentId(entry.lsb()) && !bulkRefs.remove(id)) ||
                 (isDataSegmentId(entry.lsb()) && entry.generation() < generation)) {
-                // non references bulk segment or old data segment
+                // non referenced bulk segment or old data segment
                 reclaim.add(id);
             } else {
                 if (isDataSegmentId(entry.lsb())) {
