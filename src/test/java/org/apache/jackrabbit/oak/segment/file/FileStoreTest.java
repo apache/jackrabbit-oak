@@ -23,8 +23,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -38,7 +36,6 @@ public class FileStoreTest {
         return folder.getRoot();
     }
 
-    @Ignore("OAK-4054")  // FIXME OAK-4054
     @Test
     public void containsSegment() throws IOException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
