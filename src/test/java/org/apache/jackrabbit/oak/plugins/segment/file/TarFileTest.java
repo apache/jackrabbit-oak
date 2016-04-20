@@ -50,7 +50,7 @@ public class TarFileTest {
 
         TarWriter writer = new TarWriter(file);
         try {
-            writer.writeEntry(msb, lsb, data, 0, data.length);
+            writer.writeEntry(msb, lsb, data, 0, data.length, 0);
             assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         } finally {
             writer.close();

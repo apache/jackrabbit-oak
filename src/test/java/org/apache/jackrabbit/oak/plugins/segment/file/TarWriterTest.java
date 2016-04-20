@@ -186,7 +186,7 @@ public class TarWriterTest {
             public void write(TarWriter tarWriter) throws IOException {
                 long msb = getSegmentId().getMostSignificantBits();
                 long lsb = getSegmentId().getLeastSignificantBits();
-                tarWriter.writeEntry(msb, lsb, data, 0, data.length);
+                tarWriter.writeEntry(msb, lsb, data, 0, data.length, 0);
             }
 
             public UUID getUUID() {
