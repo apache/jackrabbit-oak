@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.List;
 
@@ -157,8 +158,13 @@ public class GarbageCollectorFileState implements Closeable{
     
     public static File copy(InputStream stream) throws IOException {
         File file = createTempFile();
-        IOUtils.copy(stream, 
-                new FileOutputStream(file));
+        OutputStream out = null;
+        try {
+            out = new FileOutputStream(file);
+            IOUtils.copy(stream, out);
+        } finally {
+            IOUtils.closeQuietly(out);
+        }
         return file;
     }
 
