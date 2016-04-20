@@ -56,8 +56,8 @@ public class FileStoreBackup {
         try {
             SegmentNodeState state = backup.getHead();
             Compactor compactor = new Compactor(backup.getTracker());
-            compactor.setDeepCheckLargeBinaries(true);
-            compactor.setContentEqualityCheck(true);
+//            compactor.setDeepCheckLargeBinaries(true);
+//            compactor.setContentEqualityCheck(true);
             SegmentNodeState after = compactor.compact(state, current, state);
             backup.setHead(state, after);
         } finally {

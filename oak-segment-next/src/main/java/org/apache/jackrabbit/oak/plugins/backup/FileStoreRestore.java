@@ -25,7 +25,6 @@ import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +52,6 @@ public class FileStoreRestore {
         SegmentNodeState current = store.getHead();
         try {
             Compactor compactor = new Compactor(store.getTracker());
-            compactor.setDeepCheckLargeBinaries(true);
             SegmentNodeState after = compactor.compact(current,
                     restore.getHead(), current);
             store.setHead(current, after);

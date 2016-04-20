@@ -23,8 +23,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
@@ -164,42 +162,6 @@ public class SegmentBlob extends Record implements Blob {
             return readLongBlobId(segment, offset);
         } else {
             return null;
-        }
-    }
-
-    public SegmentBlob clone(SegmentWriter writer, boolean cloneLargeBinaries) throws IOException {
-        Segment segment = getSegment();
-        int offset = getOffset();
-        byte head = segment.readByte(offset);
-        if ((head & 0x80) == 0x00) {
-            // 0xxx xxxx: small value
-            return writer.writeStream(new BufferedInputStream(getNewStream()));
-        } else if ((head & 0xc0) == 0x80) {
-            // 10xx xxxx: medium value
-            return writer.writeStream(new BufferedInputStream(getNewStream()));
-        } else if ((head & 0xe0) == 0xc0) {
-            // 110x xxxx: long value
-            if (cloneLargeBinaries) {
-                return writer.writeStream(new BufferedInputStream(
-                        getNewStream()));
-            } else {
-                // this was the previous (default) behavior
-                long length = (segment.readLong(offset) & 0x1fffffffffffffffL)
-                        + MEDIUM_LIMIT;
-                int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-                ListRecord list = new ListRecord(
-                        segment.readRecordId(offset + 8), listSize);
-                return writer.writeLargeBlob(length, list.getEntries());
-            }
-        } else if ((head & 0xf0) == 0xe0) {
-            // 1110 xxxx: external value, short blob ID
-            return writer.writeExternalBlob(getBlobId());
-        } else if ((head & 0xf8) == 0xf0) {
-            // 1111 0xxx: external value, long blob ID
-            return writer.writeExternalBlob(getBlobId());
-        } else {
-            throw new IllegalStateException(String.format(
-                    "Unexpected value record type: %02x", head & 0xff));
         }
     }
 

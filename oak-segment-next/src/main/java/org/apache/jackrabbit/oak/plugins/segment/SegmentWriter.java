@@ -112,6 +112,7 @@ public class SegmentWriter {
         TPL_RECORDS_CACHE_SIZE <= 0 ? 0 : (int) (TPL_RECORDS_CACHE_SIZE * 1.2),
         TPL_RECORDS_CACHE_SIZE, TPL_RECORDS_CACHE_SIZE <= 0);
 
+
     private final SegmentStore store;
 
     /**
@@ -190,26 +191,6 @@ public class SegmentWriter {
         });
     }
 
-    SegmentBlob writeExternalBlob(final String blobId) throws IOException {
-        return new SegmentBlob(
-            writeOperationHandler.execute(new SegmentWriteOperation() {
-                @Override
-                public RecordId execute(SegmentBufferWriter writer) throws IOException {
-                    return with(writer).writeExternalBlob(blobId);
-                }
-            }));
-    }
-
-    SegmentBlob writeLargeBlob(final long length, final List<RecordId> list) throws IOException {
-        return new SegmentBlob(
-            writeOperationHandler.execute(new SegmentWriteOperation() {
-                @Override
-                public RecordId execute(SegmentBufferWriter writer) throws IOException {
-                    return with(writer).writeLargeBlob(length, list);
-                }
-            }));
-    }
-
     /**
      * Writes a stream value record. The given stream is consumed <em>and closed</em> by
      * this method.
@@ -226,6 +207,16 @@ public class SegmentWriter {
                     return with(writer).writeStream(stream);
                 }
             }));
+    }
+
+    SegmentPropertyState writeProperty(final PropertyState state) throws IOException {
+        RecordId id = writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Override
+            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+                return with(writer).writeProperty(state);
+            }
+        });
+        return new SegmentPropertyState(id, state.getName(), state.getType());
     }
 
     public SegmentNodeState writeNode(final NodeState state) throws IOException {
@@ -563,14 +554,6 @@ public class SegmentWriter {
             return newBlockWriter(bytes, offset, length).write(writer);
         }
 
-        private RecordId writeExternalBlob(String blobId) throws IOException {
-            return writeBlobId(blobId);
-        }
-
-        private RecordId writeLargeBlob(long length, List<RecordId> list) throws IOException {
-            return writeValueRecord(length, writeList(list));
-        }
-
         private RecordId writeStream(InputStream stream) throws IOException {
             boolean threw = true;
             try {
@@ -586,15 +569,23 @@ public class SegmentWriter {
         }
 
         private RecordId internalWriteStream(InputStream stream) throws IOException {
-            BlobStore blobStore = store.getBlobStore();
-            byte[] data = new byte[Segment.MEDIUM_LIMIT];
-            int n = read(stream, data, 0, data.length);
+            if (stream instanceof SegmentStream) {
+                SegmentStream segmentStream = (SegmentStream) stream;
+                List<RecordId> blockIds = segmentStream.getBlockIds();
+                if (blockIds != null) {
+                    return writeValueRecord(segmentStream.getLength(), writeList(blockIds));
+                }
+            }
 
             // Special case for short binaries (up to about 16kB):
             // store them directly as small- or medium-sized value records
+            byte[] data = new byte[Segment.MEDIUM_LIMIT];
+            int n = read(stream, data, 0, data.length);
             if (n < Segment.MEDIUM_LIMIT) {
                 return writeValueRecord(n, data);
             }
+
+            BlobStore blobStore = store.getBlobStore();
             if (blobStore != null) {
                 String blobId = blobStore.writeBlob(new SequenceInputStream(
                     new ByteArrayInputStream(data, 0, n), stream));
