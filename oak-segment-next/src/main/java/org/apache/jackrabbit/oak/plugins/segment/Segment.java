@@ -23,9 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static java.lang.Boolean.getBoolean;
-import static java.lang.Integer.parseInt;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
@@ -38,7 +36,6 @@ import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.CheckForNull;
@@ -50,8 +47,6 @@ import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.json.JsonObject;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
@@ -124,6 +119,8 @@ public class Segment {
     static final int ROOT_COUNT_OFFSET = 6;
 
     static final int BLOBREF_COUNT_OFFSET = 8;
+
+    static final int GC_GEN_OFFSET = 10;
 
     private final SegmentTracker tracker;
 
@@ -313,6 +310,10 @@ public class Segment {
 
     public int getRootCount() {
         return data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
+    }
+
+    public int getGcGen() {
+        return data.getInt(GC_GEN_OFFSET);
     }
 
     public RecordType getRootType(int index) {
@@ -678,7 +679,7 @@ public class Segment {
         writer.format("Segment %s (%d bytes)%n", id, length);
         String segmentInfo = getSegmentInfo();
         if (segmentInfo != null) {
-            writer.format("Info: %s%n", segmentInfo);
+            writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGen());
         }
         if (id.isDataSegmentId()) {
             writer.println("--------------------------------------------------------------------------");
@@ -742,24 +743,4 @@ public class Segment {
         return string.toString();
     }
 
-    private volatile int gcGen = -1;
-
-    // FIXME OAK-3348 improve generation handling
-    public int getGcGen() {
-        if (gcGen < 0) {
-            if (isDataSegmentId(id.getLeastSignificantBits())) {
-                String info = getSegmentInfo();
-                if (info != null) {
-                    JsopTokenizer tokenizer = new JsopTokenizer(info);
-                    tokenizer.read('{');
-                    Map<String, String> properties = JsonObject.create(tokenizer).getProperties();
-                    gcGen = parseInt(properties.get("gc"));
-                    return gcGen;
-                }
-            }
-            gcGen = Integer.MAX_VALUE;
-            return gcGen;
-        }
-        return gcGen;
-    }
 }

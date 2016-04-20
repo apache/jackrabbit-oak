@@ -30,6 +30,7 @@ import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordWriters.newValueWriter;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.GC_GEN_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
@@ -121,8 +122,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         this.tracker = store.getTracker();
         this.generation = generation;
-        this.buffer = createNewBuffer(version);
-        newSegment(this.wid);
+        newSegment();
     }
 
     public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid) {
@@ -151,31 +151,36 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * <li>{@code T} is a time stamp according to {@link System#currentTimeMillis()}.</li>
      * </ul>
      * The segment meta data is guaranteed to be the first string record in a segment.
-     * @param wid  the writer id
      */
-    private void newSegment(String wid) {
+    private void newSegment() {
+        buffer = new byte[Segment.MAX_SEGMENT_SIZE];
+        buffer[0] = '0';
+        buffer[1] = 'a';
+        buffer[2] = 'K';
+        buffer[3] = SegmentVersion.asByte(version);
+        buffer[4] = 0; // reserved
+        buffer[5] = 0; // refcount
+
+        buffer[GC_GEN_OFFSET] = (byte) (generation >> 24);
+        buffer[GC_GEN_OFFSET + 1] = (byte) (generation >> 16);
+        buffer[GC_GEN_OFFSET + 2] = (byte) (generation >> 8);
+        buffer[GC_GEN_OFFSET + 3] = (byte) generation;
+        length = 0;
+        position = buffer.length;
+        roots.clear();
+        blobrefs.clear();
+
         String metaInfo = "{\"wid\":\"" + wid + '"' +
             ",\"sno\":" + tracker.getNextSegmentNo() +
             ",\"gc\":" + generation +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
-            this.segment = new Segment(tracker, buffer, metaInfo);
+            segment = new Segment(tracker, buffer, metaInfo);
             byte[] data = metaInfo.getBytes(UTF_8);
             newValueWriter(data.length, data).write(this);
         } catch (IOException e) {
             LOG.error("Unable to write meta info to segment {} {}", segment.getSegmentId(), metaInfo);
         }
-    }
-
-    static byte[] createNewBuffer(SegmentVersion v) {
-        byte[] buffer = new byte[Segment.MAX_SEGMENT_SIZE];
-        buffer[0] = '0';
-        buffer[1] = 'a';
-        buffer[2] = 'K';
-        buffer[3] = SegmentVersion.asByte(v);
-        buffer[4] = 0; // reserved
-        buffer[5] = 0; // refcount
-        return buffer;
     }
 
     public void writeByte(byte value) {
@@ -349,13 +354,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             // written to the store since as soon as it is in the cache it becomes eligible
             // for eviction, which might lead to SNFEs when it is not yet in the store at that point.
             tracker.setSegment(segmentId, new Segment(tracker, segmentId, data));
-
-            buffer = createNewBuffer(version);
-            roots.clear();
-            blobrefs.clear();
-            length = 0;
-            position = buffer.length;
-            newSegment(wid);
+            newSegment();
         }
     }
 
