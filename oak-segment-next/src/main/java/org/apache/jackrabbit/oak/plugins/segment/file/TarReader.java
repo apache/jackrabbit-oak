@@ -25,9 +25,10 @@ import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
+import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.GC_GEN_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.getGcGen;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.file.TarWriter.GRAPH_MAGIC;
 
@@ -211,10 +212,11 @@ class TarReader implements Closeable {
         for (Map.Entry<UUID, byte[]> entry : entries.entrySet()) {
             UUID uuid = entry.getKey();
             byte[] data = entry.getValue();
+            int generation = getGcGen(wrap(data));
             writer.writeEntry(
                     uuid.getMostSignificantBits(),
                     uuid.getLeastSignificantBits(),
-                    data, 0, data.length);
+                    data, 0, data.length, generation);
         }
         writer.close();
     }
@@ -375,7 +377,7 @@ class TarReader implements Closeable {
             index.get(entry);
             checksum.update(entry);
 
-            ByteBuffer buffer = ByteBuffer.wrap(entry);
+            ByteBuffer buffer = wrap(entry);
             long msb   = buffer.getLong();
             long lsb   = buffer.getLong();
             int offset = buffer.getInt();
@@ -447,7 +449,7 @@ class TarReader implements Closeable {
             }
 
             // The header checksum passes, so read the entry name and size
-            ByteBuffer buffer = ByteBuffer.wrap(header);
+            ByteBuffer buffer = wrap(header);
             String name = readString(buffer, 100);
             buffer.position(124);
             int size = readNumber(buffer, 12);
@@ -645,7 +647,8 @@ class TarReader implements Closeable {
                     index.getLong(position),
                     index.getLong(position + 8),
                     index.getInt(position + 16),
-                    index.getInt(position + 20));
+                    index.getInt(position + 20),
+                    index.getInt(position + 24));
             position += TarEntry.SIZE;
         }
         Arrays.sort(entries, TarEntry.OFFSET_ORDER);
@@ -730,11 +733,6 @@ class TarReader implements Closeable {
         }
     }
 
-    private int getGCGeneration(TarEntry entry) throws IOException {
-        ByteBuffer segment = access.read(entry.offset(), GC_GEN_OFFSET + 4);
-        return segment.getInt(GC_GEN_OFFSET);
-    }
-
     void mark(Set<UUID> bulkRefs, Set<UUID> reclaim, int generation) throws IOException {
         Map<UUID, List<UUID>> graph = getGraph(true);
         TarEntry[] entries = getEntries();
@@ -742,7 +740,7 @@ class TarReader implements Closeable {
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
             if ((!isDataSegmentId(entry.lsb()) && !bulkRefs.remove(id)) ||
-                (isDataSegmentId(entry.lsb()) && getGCGeneration(entry) < generation)) {
+                (isDataSegmentId(entry.lsb()) && entry.generation() < generation)) {
                 // non references bulk segment or old data segment
                 reclaim.add(id);
             } else {
@@ -817,7 +815,7 @@ class TarReader implements Closeable {
                 byte[] data = new byte[entry.size()];
                 access.read(entry.offset(), entry.size()).get(data);
                 writer.writeEntry(
-                        entry.msb(), entry.lsb(), data, 0, entry.size());
+                        entry.msb(), entry.lsb(), data, 0, entry.size(), entry.generation());
             }
         }
         writer.close();

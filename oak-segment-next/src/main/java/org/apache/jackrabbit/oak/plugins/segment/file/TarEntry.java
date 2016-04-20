@@ -25,7 +25,7 @@ import java.util.Comparator;
 class TarEntry {
 
     /** Size in bytes a tar entry takes up in the tar file */
-    static final int SIZE = 24;
+    static final int SIZE = 28;
 
     static final Comparator<TarEntry> OFFSET_ORDER = new Comparator<TarEntry>() {
         @Override
@@ -65,11 +65,14 @@ class TarEntry {
 
     private final int size;
 
-    TarEntry(long msb, long lsb, int offset, int size) {
+    private final int generation;
+
+    TarEntry(long msb, long lsb, int offset, int size, int generation) {
         this.msb = msb;
         this.lsb = lsb;
         this.offset = offset;
         this.size = size;
+        this.generation = generation;
     }
 
     long msb() {
@@ -86,6 +89,10 @@ class TarEntry {
 
     int size() {
         return size;
+    }
+
+    int generation() {
+        return generation;
     }
 
 }

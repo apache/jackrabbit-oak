@@ -26,6 +26,7 @@ import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.lang.Thread.currentThread;
+import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -1278,10 +1279,11 @@ public class FileStore implements SegmentStore {
     public void writeSegment(SegmentId id, byte[] data, int offset, int length) throws IOException {
         fileStoreLock.writeLock().lock();
         try {
+            int generation = Segment.getGcGen(wrap(data, offset, length));
             long size = writer.writeEntry(
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits(),
-                    data, offset, length);
+                    data, offset, length, generation);
             if (size >= maxFileSize) {
                 newWriter();
             }

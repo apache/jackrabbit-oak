@@ -206,7 +206,7 @@ class TarWriter implements Closeable {
     }
 
     long writeEntry(
-            long msb, long lsb, byte[] data, int offset, int size)
+            long msb, long lsb, byte[] data, int offset, int size, int generation)
             throws IOException {
         checkNotNull(data);
         checkPositionIndexes(offset, offset + size, data.length);
@@ -218,11 +218,11 @@ class TarWriter implements Closeable {
         byte[] header = newEntryHeader(entryName, size);
 
         log.debug("Writing segment {} to {}", uuid, file);
-        return writeEntry(uuid, header, data, offset, size);
+        return writeEntry(uuid, header, data, offset, size, generation);
     }
 
     private synchronized long writeEntry(
-            UUID uuid, byte[] header, byte[] data, int offset, int size)
+            UUID uuid, byte[] header, byte[] data, int offset, int size, int generation)
             throws IOException {
         checkState(!closed);
         if (access == null) {
@@ -242,7 +242,7 @@ class TarWriter implements Closeable {
         checkState(currentLength <= Integer.MAX_VALUE);
         TarEntry entry = new TarEntry(
                 uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(),
-                (int) (currentLength - size - padding), size);
+                (int) (currentLength - size - padding), size, generation);
         index.put(uuid, entry);
 
         if (isDataSegmentId(uuid.getLeastSignificantBits())) {
@@ -403,6 +403,7 @@ class TarWriter implements Closeable {
             buffer.putLong(entry.lsb());
             buffer.putInt(entry.offset());
             buffer.putInt(entry.size());
+            buffer.putInt(entry.generation());
         }
 
         CRC32 checksum = new CRC32();

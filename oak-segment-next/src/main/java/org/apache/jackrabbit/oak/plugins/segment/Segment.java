@@ -312,9 +312,12 @@ public class Segment {
         return data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
     }
 
-    // could we make it part of the tar file index!?
-    public int getGcGen() {
+    public static int getGcGen(ByteBuffer data) {
         return data.getInt(GC_GEN_OFFSET);
+    }
+
+    public int getGcGen() {
+        return getGcGen(data);
     }
 
     public RecordType getRootType(int index) {
