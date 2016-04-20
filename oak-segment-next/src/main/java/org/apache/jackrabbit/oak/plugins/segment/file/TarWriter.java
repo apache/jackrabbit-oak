@@ -474,6 +474,8 @@ class TarWriter implements Closeable {
         return header;
     }
 
+    // to offer an alternative cleanup strategy based on reachability, in which
+    // case it will still be needed
     /**
      * Add all segment ids that are reachable from {@code referencedIds} via
      * this writer's segment graph and subsequently remove those segment ids

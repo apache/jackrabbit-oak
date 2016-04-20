@@ -26,6 +26,7 @@ import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.GC_GEN_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.file.TarWriter.GRAPH_MAGIC;
@@ -47,7 +48,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.io.FileUtils;
@@ -506,6 +506,8 @@ class TarReader implements Closeable {
 
     private volatile boolean closed;
 
+    private volatile boolean hasGraph;
+
     private TarReader(File file, FileAccess access, ByteBuffer index) {
         this.file = file;
         this.access = access;
@@ -650,10 +652,11 @@ class TarReader implements Closeable {
         return entries;
     }
 
-    @CheckForNull
+    @Nonnull
     private List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) throws IOException {
         if (graph != null) {
-            return graph.get(id);
+            List<UUID> uuids = graph.get(id);
+            return uuids == null ? Collections.<UUID>emptyList() : uuids;
         } else {
             // a pre-compiled graph is not available, so read the
             // references directly from this segment
@@ -684,7 +687,7 @@ class TarReader implements Closeable {
         @Nonnull SegmentGraphVisitor visitor) throws IOException {
         checkNotNull(roots);
         checkNotNull(visitor);
-        Map<UUID, List<UUID>> graph = getGraph();
+        Map<UUID, List<UUID>> graph = getGraph(false);
 
         TarEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
@@ -692,14 +695,9 @@ class TarReader implements Closeable {
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (roots.remove(id) && isDataSegmentId(entry.lsb())) {
                 // this is a referenced data segment, so follow the graph
-                List<UUID> refIds = getReferences(entry, id, graph);
-                if (refIds != null) {
-                    for (UUID refId : refIds) {
-                        visitor.accept(id, refId);
-                        roots.add(refId);
-                    }
-                } else {
-                    visitor.accept(id, null);
+                for (UUID refId : getReferences(entry, id, graph)) {
+                    visitor.accept(id, refId);
+                    roots.add(refId);
                 }
             } else {
                 // this segment is not referenced anywhere
@@ -717,65 +715,70 @@ class TarReader implements Closeable {
      *
      * @throws IOException
      */
+    // FIXME OAK-3348 reference from utilities only. Can we move this somewhere else?
     void calculateForwardReferences(Set<UUID> referencedIds) throws IOException {
-        Map<UUID, List<UUID>> graph = getGraph();
+        Map<UUID, List<UUID>> graph = getGraph(false);
         TarEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (referencedIds.remove(id)) {
                 if (isDataSegmentId(entry.lsb())) {
-                    // this is a referenced data segment, so follow the graph
-                    List<UUID> refIds = getReferences(entry, id, graph);
-                    if (refIds != null) {
-                        referencedIds.addAll(refIds);
+                    referencedIds.addAll(getReferences(entry, id, graph));
+                }
+            }
+        }
+    }
+
+    private int getGCGeneration(TarEntry entry) throws IOException {
+        ByteBuffer segment = access.read(entry.offset(), GC_GEN_OFFSET + 4);
+        return segment.getInt(GC_GEN_OFFSET);
+    }
+
+    void mark(Set<UUID> bulkRefs, Set<UUID> reclaim, int generation) throws IOException {
+        Map<UUID, List<UUID>> graph = getGraph(true);
+        TarEntry[] entries = getEntries();
+        for (int i = entries.length - 1; i >= 0; i--) {
+            TarEntry entry = entries[i];
+            UUID id = new UUID(entry.msb(), entry.lsb());
+            if ((!isDataSegmentId(entry.lsb()) && !bulkRefs.remove(id)) ||
+                (isDataSegmentId(entry.lsb()) && getGCGeneration(entry) < generation)) {
+                // non references bulk segment or old data segment
+                reclaim.add(id);
+            } else {
+                if (isDataSegmentId(entry.lsb())) {
+                    for (UUID refId : getReferences(entry, id, graph)) {
+                        if (!isDataSegmentId(refId.getLeastSignificantBits())) {
+                            // keep the extra check for bulk segments for the case where a
+                            // pre-compiled graph is not available and getReferences also
+                            // includes data references
+                            if (!reclaim.remove(id)) {
+                                bulkRefs.add(refId);
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    /**
-     * Garbage collects segments in this file. First it collects the set of
-     * segments that are referenced / reachable, then (if more than 25% is
-     * garbage) creates a new generation of the file.
-     * <p>
-     * The old generation files are not removed (they can't easily be removed,
-     * for memory mapped files).
-     * 
-     * @param referencedIds the referenced segment ids (input and output).
-     * @param removed a set which will receive the uuids of all segments that
-     *                have been cleaned.
-     * @return this (if the file is kept as is), or the new generation file, or
-     *         null if the file is fully garbage
-     */
-    synchronized TarReader cleanup(Set<UUID> referencedIds, Set<UUID> removed) throws IOException {
+    TarReader sweep(Set<UUID> reclaim) throws IOException {
         String name = file.getName();
         log.debug("Cleaning up {}", name);
 
         Set<UUID> cleaned = newHashSet();
-        Map<UUID, List<UUID>> graph = getGraph();
-        TarEntry[] entries = getEntries();
-
         int size = 0;
         int count = 0;
-        for (int i = entries.length - 1; i >= 0; i--) {
+        TarEntry[] entries = getEntries();
+        for (int i = 0; i < entries.length; i++) {
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
-            if (!referencedIds.remove(id)) {
-                // this segment is not referenced anywhere
+            if (reclaim.contains(id)) {
                 cleaned.add(id);
                 entries[i] = null;
             } else {
                 size += getEntrySize(entry.size());
                 count += 1;
-                if (isDataSegmentId(entry.lsb())) {
-                    // this is a referenced data segment, so follow the graph
-                    List<UUID> refIds = getReferences(entry, id, graph);
-                    if (refIds != null) {
-                        referencedIds.addAll(refIds);
-                    }
-                }
             }
         }
         size += getEntrySize(24 * count + 16);
@@ -783,10 +786,10 @@ class TarReader implements Closeable {
 
         if (count == 0) {
             log.debug("None of the entries of {} are referenceable.", name);
-            removed.addAll(cleaned);
             logCleanedSegments(cleaned);
             return null;
-        } else if (size >= access.length() * 3 / 4 && graph != null) {
+        }
+        if (size >= access.length() * 3 / 4 && hasGraph()) {
             // the space savings are not worth it at less than 25%,
             // unless this tar file lacks a pre-compiled segment graph
             // in which case we'll always generate a new tar file with
@@ -823,7 +826,6 @@ class TarReader implements Closeable {
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
             logCleanedSegments(cleaned);
-            removed.addAll(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
@@ -872,13 +874,22 @@ class TarReader implements Closeable {
      * @return the parsed graph, or {@code null} if one was not found
      * @throws IOException if the tar file could not be read
      */
-    Map<UUID, List<UUID>> getGraph() throws IOException {
+    Map<UUID, List<UUID>> getGraph(boolean bulkOnly) throws IOException {
         ByteBuffer graph = loadGraph();
         if (graph == null) {
             return null;
         } else {
-            return parseGraph(graph);
+            return parseGraph(graph, bulkOnly);
         }
+    }
+
+    private boolean hasGraph() {
+        if (!hasGraph) {
+            try {
+                loadGraph();
+            } catch (IOException ignore) { }
+        }
+        return hasGraph;
     }
 
     /**
@@ -921,10 +932,11 @@ class TarReader implements Closeable {
             return null; // checksum mismatch
         }
 
+        hasGraph = true;
         return graph;
     }
 
-    private static Map<UUID, List<UUID>> parseGraph(ByteBuffer graphByteBuffer) {
+    private static Map<UUID, List<UUID>> parseGraph(ByteBuffer graphByteBuffer, boolean bulkOnly) {
         int count = graphByteBuffer.getInt(graphByteBuffer.limit() - 12);
 
         ByteBuffer buffer = graphByteBuffer.duplicate();
@@ -941,7 +953,10 @@ class TarReader implements Closeable {
             List<UUID> list = newArrayList();
             int refid = buffer.getInt();
             while (refid != -1) {
-                list.add(uuids.get(refid));
+                UUID ref = uuids.get(refid);
+                if (!bulkOnly || !isDataSegmentId(ref.getLeastSignificantBits())) {
+                    list.add(ref);
+                }
                 refid = buffer.getInt();
             }
             graph.put(uuid, list);

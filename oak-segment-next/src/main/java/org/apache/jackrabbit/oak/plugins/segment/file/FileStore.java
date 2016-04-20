@@ -32,6 +32,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.Closeable;
@@ -837,7 +838,7 @@ public class FileStore implements SegmentStore {
     public List<File> cleanup() throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
-        Set<UUID> referencedIds = newHashSet();
+        Set<UUID> bulkRefs = newHashSet();
         Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
         fileStoreLock.writeLock().lock();
@@ -853,9 +854,10 @@ public class FileStore implements SegmentStore {
             System.gc();
 
             for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                referencedIds.add(id.asUUID());
+                if (!isDataSegmentId(id.getLeastSignificantBits())) {
+                    bulkRefs.add(id.asUUID());
+                }
             }
-            writer.collectReferences(referencedIds);
             for (TarReader reader : readers) {
                 cleaned.put(reader, reader);
             }
@@ -865,11 +867,18 @@ public class FileStore implements SegmentStore {
 
         // Do actual cleanup outside of the lock to prevent blocking
         // concurrent writers for a long time
-        includeForwardReferences(cleaned.keySet(), referencedIds);
-        LinkedList<File> toRemove = newLinkedList();
-        Set<UUID> cleanedIds = newHashSet();
+        int generation = getGcGen() - 1;
+        Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
-            cleaned.put(reader, reader.cleanup(referencedIds, cleanedIds));
+            reader.mark(bulkRefs, reclaim, generation);
+            log.info("Size of bulk references/reclaim set {}/{}", bulkRefs.size(), reclaim.size());
+            if (shutdown) {
+                gcMonitor.info("TarMK GC #{}: cleanup interrupted", gcCount);
+                break;
+            }
+        }
+        for (TarReader reader : cleaned.keySet()) {
+            cleaned.put(reader, reader.sweep(reclaim));
             if (shutdown) {
                 gcMonitor.info("TarMK GC #{}: cleanup interrupted", gcCount);
                 break;
@@ -902,6 +911,7 @@ public class FileStore implements SegmentStore {
 
         // Close old readers *after* setting readers to the new readers to avoid accessing
         // a closed reader from readSegment()
+        LinkedList<File> toRemove = newLinkedList();
         for (TarReader oldReader : oldReaders) {
             closeAndLogOnFail(oldReader);
             File file = oldReader.getFile();
@@ -919,28 +929,6 @@ public class FileStore implements SegmentStore {
                 humanReadableByteCount(finalSize), finalSize,
                 humanReadableByteCount(initialSize - finalSize), initialSize - finalSize);
         return toRemove;
-    }
-
-    /**
-     * Include the ids of all segments transitively reachable through forward references from
-     * {@code referencedIds}. See OAK-3864.
-     */
-    private void includeForwardReferences(Iterable<TarReader> readers, Set<UUID> referencedIds)
-            throws IOException {
-        Set<UUID> fRefs = newHashSet(referencedIds);
-        do {
-            // Add direct forward references
-            for (TarReader reader : readers) {
-                reader.calculateForwardReferences(fRefs);
-                if (fRefs.isEmpty()) {
-                    break;  // Optimisation: bail out if no references left
-                }
-            }
-            if (!fRefs.isEmpty()) {
-                gcMonitor.info("TarMK GC #{}: cleanup found forward references to {}", gcCount, fRefs);
-            }
-            // ... as long as new forward references are found.
-        } while (referencedIds.addAll(fRefs));
     }
 
     /**
@@ -1351,7 +1339,7 @@ public class FileStore implements SegmentStore {
                 for (UUID uuid : reader.getUUIDs()) {
                     graph.put(uuid, null);
                 }
-                Map<UUID, List<UUID>> g = reader.getGraph();
+                Map<UUID, List<UUID>> g = reader.getGraph(false);
                 if (g != null) {
                     graph.putAll(g);
                 }
@@ -1419,6 +1407,25 @@ public class FileStore implements SegmentStore {
         }
 
         /**
+         * Include the ids of all segments transitively reachable through forward references from
+         * {@code referencedIds}. See OAK-3864.
+         */
+        private static void includeForwardReferences(Iterable<TarReader> readers, Set<UUID> referencedIds)
+            throws IOException {
+            Set<UUID> fRefs = newHashSet(referencedIds);
+            do {
+                // Add direct forward references
+                for (TarReader reader : readers) {
+                    reader.calculateForwardReferences(fRefs);
+                    if (fRefs.isEmpty()) {
+                        break;  // Optimisation: bail out if no references left
+                    }
+                }
+                // ... as long as new forward references are found.
+            } while (referencedIds.addAll(fRefs));
+        }
+
+        /**
          * Build the graph of segments reachable from an initial set of segments
          * @param roots     the initial set of segments
          * @param visitor   visitor receiving call back while following the segment graph
@@ -1429,7 +1436,7 @@ public class FileStore implements SegmentStore {
             @Nonnull SegmentGraphVisitor visitor) throws IOException {
 
             List<TarReader> readers = super.readers;
-            super.includeForwardReferences(readers, roots);
+            includeForwardReferences(readers, roots);
             for (TarReader reader : readers) {
                 reader.traverseSegmentGraph(checkNotNull(roots), checkNotNull(visitor));
             }
