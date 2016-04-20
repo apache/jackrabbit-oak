@@ -29,6 +29,8 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 
 /**
@@ -193,5 +195,16 @@ public class PropInfo {
             }
         }
         return null;
+    }
+
+    public PropertyState asPropertyState(@Nonnull PropertyDefinition propertyDefinition) throws RepositoryException {
+        List<Value> values = getValues(getTargetType(propertyDefinition));
+        PropertyState propertyState;
+        if (values.size() == 1 && !propertyDefinition.isMultiple()) {
+            propertyState = PropertyStates.createProperty(name, values.get(0));
+        } else {
+            propertyState = PropertyStates.createProperty(name, values);
+        }
+        return propertyState;
     }
 }
