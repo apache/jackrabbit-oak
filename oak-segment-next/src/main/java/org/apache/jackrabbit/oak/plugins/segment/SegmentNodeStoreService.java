@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStr
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.GAIN_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PAUSE_DEFAULT;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PERSIST_COMPACTION_MAP_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.TIMESTAMP_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
@@ -221,14 +220,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     "respectively to wait for the exclusive write lock for force committing."
     )
     public static final String COMPACTION_LOCK_WAIT_TIME = "compaction.lockWaitTime";
-
-    @Property(
-            boolValue = PERSIST_COMPACTION_MAP_DEFAULT,
-            label = "Persist Compaction Map",
-            description = "When enabled the compaction map would be persisted instead of being " +
-                    "held in memory"
-    )
-    public static final String PERSIST_COMPACTION_MAP = "persistCompactionMap";
 
     @Property(
             boolValue = false,
@@ -492,7 +483,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
         boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
         final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
-        boolean persistCompactionMap = toBoolean(property(PERSIST_COMPACTION_MAP), PERSIST_COMPACTION_MAP_DEFAULT);
 
         CleanupType cleanupType = getCleanUpType();
         byte memoryThreshold = getMemoryThreshold();
@@ -516,7 +506,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         compactionStrategy.setRetryCount(retryCount);
         compactionStrategy.setForceAfterFail(forceAfterFail);
-        compactionStrategy.setPersistCompactionMap(persistCompactionMap);
         compactionStrategy.setGainThreshold(gainThreshold);
 
         return compactionStrategy;

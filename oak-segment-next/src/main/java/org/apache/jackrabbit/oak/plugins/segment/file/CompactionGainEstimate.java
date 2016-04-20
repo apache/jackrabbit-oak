@@ -100,14 +100,13 @@ class CompactionGainEstimate implements TarEntryVisitor {
      * Returns a percentage estimate (scale 0-100) for how much disk space
      * running compaction (and cleanup) could potentially release.
      *
-     * @param offset  number of bytes to offset the reachable size with
      * @return percentage of disk space that could be freed with compaction
      */
-    public long estimateCompactionGain(long offset) {
+    public long estimateCompactionGain() {
         if (totalSize == 0) {
             return 0;
         }
-        return 100 * (totalSize - reachableSize - offset) / totalSize;
+        return 100 * (totalSize - reachableSize) / totalSize;
     }
 
     public long getTotalSize() {

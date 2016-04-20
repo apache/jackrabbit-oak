@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.GAIN_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.Closeable;
@@ -100,7 +99,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 final int lockWaitTime,
                 int retryCount,
                 boolean forceAfterFail,
-                boolean persistCompactionMap,
                 byte gainThreshold) {
 
             compactionStrategy = new CompactionStrategy(
@@ -121,7 +119,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
             compactionStrategy.setRetryCount(retryCount);
             compactionStrategy.setForceAfterFail(forceAfterFail);
-            compactionStrategy.setPersistCompactionMap(persistCompactionMap);
             compactionStrategy.setGainThreshold(gainThreshold);
 
             return this;

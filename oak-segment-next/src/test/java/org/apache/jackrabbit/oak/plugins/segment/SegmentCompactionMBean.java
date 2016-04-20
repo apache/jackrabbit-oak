@@ -250,12 +250,6 @@ public interface SegmentCompactionMBean {
     boolean getRootReference();
 
     /**
-     * Determine whether the compaction map is persisted or in memory
-     * @return  {@code true} if persisted, {@code false} otherwise
-     */
-    boolean getPersistCompactionMap();
-
-    /**
      * @return  actual number of concurrent readers
      */
     int getReaderCount();
@@ -274,26 +268,6 @@ public interface SegmentCompactionMBean {
      * @return  current size of the {@link org.apache.jackrabbit.oak.plugins.segment.file.FileStore}
      */
     long getFileStoreSize();
-
-    /**
-     * @return  current weight of the compaction map
-     */
-    long getCompactionMapWeight();
-
-    /**
-     * @return  number of record referenced by the keys in this map.
-     */
-    long getRecordCount();
-
-    /**
-     * @return  number of segments referenced by the keys in this map.
-     */
-    long getSegmentCount();
-
-    /**
-     * @return  current depth of the compaction map
-     */
-    int getCompactionMapDepth();
 
     /**
      * @return  last error

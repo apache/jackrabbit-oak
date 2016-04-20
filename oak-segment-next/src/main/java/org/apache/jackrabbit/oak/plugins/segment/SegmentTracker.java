@@ -26,7 +26,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -85,13 +84,6 @@ public class SegmentTracker {
     private final SegmentWriter writer;
 
     /**
-     * Serialized map that contains the link between old record
-     * identifiers and identifiers of the corresponding records
-     * after compaction.
-     */
-    private final AtomicReference<CompactionMap> compactionMap;
-
-    /**
      * Hash table of weak references to segment identifiers that are
      * currently being accessed. The size of the table is always a power
      * of two, which optimizes the {@code refresh()} operation. The table is
@@ -128,8 +120,6 @@ public class SegmentTracker {
         }
 
         this.store = store;
-        this.compactionMap = new AtomicReference<CompactionMap>(
-                CompactionMap.EMPTY);
         this.writer = new SegmentWriter(store, version,
                             new SegmentBufferWriterPool(store, version, "sys"));
         StringCache c;
@@ -254,15 +244,6 @@ public class SegmentTracker {
     void setSegment(SegmentId id, Segment segment) {
         id.setSegment(segment);
         segmentCache.put(id, segment, segment.size());
-    }
-
-    public void setCompactionMap(PartialCompactionMap map) {
-        compactionMap.set(compactionMap.get().cons(map));
-    }
-
-    @Nonnull
-    public CompactionMap getCompactionMap() {
-        return compactionMap.get();
     }
 
     int getGcGen() {

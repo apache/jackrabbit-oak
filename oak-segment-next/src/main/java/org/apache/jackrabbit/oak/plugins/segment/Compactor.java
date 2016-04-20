@@ -70,8 +70,6 @@ public class Compactor {
 
     private final SegmentWriter writer;
 
-    private final PartialCompactionMap map;
-
     /**
      * Filters nodes that will be included in the compaction map, allowing for
      * optimization in case of an offline compaction
@@ -123,7 +121,6 @@ public class Compactor {
     public Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
         this.tracker = tracker;
         this.writer = tracker.getWriter();
-        this.map = new InMemoryCompactionMap(tracker);
         this.cloneBinaries = false;
         this.cancel = cancel;
     }
@@ -135,15 +132,7 @@ public class Compactor {
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
         this.tracker = tracker;
         this.writer = createSegmentWriter(tracker);
-        if (compactionStrategy.getPersistCompactionMap()) {
-            this.map = new PersistedCompactionMap(tracker);
-        } else {
-            this.map = new InMemoryCompactionMap(tracker);
-        }
         this.cloneBinaries = compactionStrategy.cloneBinaries();
-        if (compactionStrategy.isOfflineCompaction()) {
-            includeInMap = new OfflineCompactionPredicate();
-        }
         this.cancel = cancel;
     }
 
@@ -173,11 +162,6 @@ public class Compactor {
         writer.flush();
         progress.stop();
         return compacted;
-    }
-
-    public PartialCompactionMap getCompactionMap() {
-        map.compress();
-        return map;
     }
 
     private class CompactDiff extends ApplyDiff {
@@ -240,26 +224,12 @@ public class Compactor {
                 log.trace("childNodeAdded {}/{}", path, name);
             }
 
-            RecordId id = null;
-            if (after instanceof SegmentNodeState) {
-                id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = map.get(id);
-                if (compactedId != null) {
-                    builder.setChildNode(name, new SegmentNodeState(compactedId));
-                    return true;
-                }
-            }
-
             progress.onNode();
             try {
                 NodeBuilder child = EMPTY_NODE.builder();
                 boolean success =  new CompactDiff(child, path, name).diff(EMPTY_NODE, after);
                 if (success) {
-                    SegmentNodeState state = writer.writeNode(child.getNodeState());
-                    builder.setChildNode(name, state);
-                    if (id != null && includeInMap.apply(after)) {
-                        map.put(id, state.getRecordId());
-                    }
+                    builder.setChildNode(name, writer.writeNode(child.getNodeState()));
                 }
                 return success;
             } catch (IOException e) {
@@ -275,16 +245,6 @@ public class Compactor {
                 log.trace("childNodeChanged {}/{}", path, name);
             }
 
-            RecordId id = null;
-            if (after instanceof SegmentNodeState) {
-                id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = map.get(id);
-                if (compactedId != null) {
-                    builder.setChildNode(name, new SegmentNodeState(compactedId));
-                    return true;
-                }
-            }
-
             if (contentEqualityCheck && before.equals(after)) {
                 return true;
             }
@@ -294,10 +254,7 @@ public class Compactor {
                 NodeBuilder child = builder.getChildNode(name);
                 boolean success = new CompactDiff(child, path, name).diff(before, after);
                 if (success) {
-                    RecordId compactedId = writer.writeNode(child.getNodeState()).getRecordId();
-                    if (id != null) {
-                        map.put(id, compactedId);
-                    }
+                    writer.writeNode(child.getNodeState()).getRecordId();
                 }
                 return success;
             } catch (IOException e) {
@@ -336,19 +293,11 @@ public class Compactor {
             SegmentBlob sb = (SegmentBlob) blob;
             try {
                 // Check if we've already cloned this specific record
-                RecordId id = sb.getRecordId();
-                RecordId compactedId = map.get(id);
-                if (compactedId != null) {
-                    return new SegmentBlob(compactedId);
-                }
-
                 progress.onBinary();
 
                 // if the blob is inlined or external, just clone it
                 if (sb.isExternal() || sb.length() < Segment.MEDIUM_LIMIT) {
-                    SegmentBlob clone = sb.clone(writer, false);
-                    map.put(id, clone.getRecordId());
-                    return clone;
+                    return sb.clone(writer, false);
                 }
 
                 // alternatively look if the exact same binary has been cloned
@@ -357,7 +306,6 @@ public class Compactor {
                 if (ids != null) {
                     for (RecordId duplicateId : ids) {
                         if (new SegmentBlob(duplicateId).equals(sb)) {
-                            map.put(id, duplicateId);
                             return new SegmentBlob(duplicateId);
                         }
                     }
@@ -367,7 +315,7 @@ public class Compactor {
                 if (deepCheckLargeBinaries) {
                     clone = clone
                             || !tracker.getStore().containsSegment(
-                                    id.getSegmentId());
+                                    sb.getRecordId().getSegmentId());
                     if (!clone) {
                         for (SegmentId bid : SegmentBlob.getBulkSegmentIds(sb)) {
                             if (!tracker.getStore().containsSegment(bid)) {
@@ -380,7 +328,6 @@ public class Compactor {
 
                 // if not, clone the large blob and keep track of the result
                 sb = sb.clone(writer, clone);
-                map.put(id, sb.getRecordId());
                 if (ids == null) {
                     ids = newArrayList();
                     binaries.put(key, ids);
