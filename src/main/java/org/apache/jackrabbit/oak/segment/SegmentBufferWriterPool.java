@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -89,7 +90,7 @@ class SegmentBufferWriterPool implements WriteOperationHandler {
 
     private synchronized void returnWriter(Object key, SegmentBufferWriter writer) {
         if (borrowed.remove(writer)) {
-            writers.put(key, writer);
+            checkState(writers.put(key, writer) == null);
         } else {
             // Defer flush this writer as it was borrowed while flush() was called.
             disposed.add(writer);
