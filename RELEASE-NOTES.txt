@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.14
 
 Introduction
 ------------
@@ -7,38 +7,64 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.13 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.14 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.13
+Changes in Oak 1.2.14
 --------------------
+
+Sub-task
+
+    [OAK-3230] - Query engine should support virtual index rows
+    [OAK-3994] - Simple query on suggestion/spellcheck with unambiguous index def and one descendant clause should work
+
 
 Technical task
 
-    [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
-    [OAK-4134] - RDBBlobStore: improve error handling and logging
+    [OAK-4156] - RDBConnectionHandler: add logging when getting the connection takes long
+    [OAK-4193] - RDBBlobStore: logging for garbage collection has parameters reversed
+    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA records when there was subsequent blobstore activity
+
 
 Bug
 
-    [OAK-4050] - SplitOperations may not retain most recent committed _commitRoot entry
-    [OAK-4078] - 1.2 branch can't use latest stable Jackrabbit release
-    [OAK-4117] - Backport OAK-4011 on the 1.2 branch
+    [OAK-3149] - SuggestHelper should manage a suggestor per index definition
+    [OAK-3156] - Lucene suggestions index definition can't be restricted to a specific type of node
+    [OAK-3235] - Deadlock when closing a concurrently used FileStore
+    [OAK-3493] - Deadlock when closing a concurrently used FileStore 2.0
+    [OAK-3692] - java.lang.NoClassDefFoundError: org/apache/lucene/index/sorter/Sorter$DocComparator
+    [OAK-3838] - IndexPlanner incorrectly lets all full text indices to participate for suggest/spellcheck queries
+    [OAK-4009] - Search done via Lucene index might return duplicate results
+    [OAK-4024] - CoW uses incorrect directory on re-indexing when indexPath property is used
+    [OAK-4059] - Tests in oak-lucene do not shut down repository
+    [OAK-4068] - Align default value of suggestUpdateFrequencyMinutes to match documented 10 minutes
+    [OAK-4126] - Suggestion and spellcheck queries throw exception if result contain lucene query character
+
 
 Improvement
 
-    [OAK-2748] - Oak Implementation for JCR-3836 and JCR-3837 (getting authorizable by type)
+    [OAK-2477] - Move suggester specific config to own configuration node
+    [OAK-2754] - Use non unique PathCursor in LucenePropertyIndex
+    [OAK-3407] - Configuration to pass suggestion fields through analyzer
+    [OAK-3509] - Lucene suggestion results should have 1 row per suggestion with appropriate column names
+    [OAK-3825] - Including Resource name to suggestions
+    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
 
-Test
 
-    [OAK-2851] - Missing test dependency to jackrabbit-data tests artifact
+Task
+
+    [OAK-4070] - Refactor LuceneIndexEditorContext to allow for switchable clock for testing
+    [OAK-4149] - Backport OAK-3235 and OAK-3493 to the 1.2 branch
+    [OAK-4158] - OAK 1.2: update Jackrabbit dependency to 2.10.2
+    [OAK-4167] - Collect and backport lucene based suggestion improvements done in 1.4 into 1.2 branch
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.12 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.13 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
