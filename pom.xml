@@ -27,10 +27,10 @@
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>oak-segment</artifactId>
+    <artifactId>oak-segment-next</artifactId>
     <packaging>bundle</packaging>
 
-    <name>Oak Segment</name>
+    <name>Oak Segment Next</name>
 
     <build>
         <plugins>
