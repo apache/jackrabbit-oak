@@ -118,7 +118,9 @@ public class DefaultSyncConfig {
         }
 
         /**
-         * Sets the auto membership
+         * Sets the auto membership. Note that the passed group names will be trimmed
+         * and empty string values will be ignored (along with {@code null} values).
+         *
          * @param autoMembership the membership
          * @return {@code this}
          * @see #getAutoMembership()
@@ -127,7 +129,7 @@ public class DefaultSyncConfig {
         public Authorizable setAutoMembership(@Nonnull String ... autoMembership) {
             this.autoMembership = new HashSet<String>();
             for (String groupName: autoMembership) {
-                if (!groupName.trim().isEmpty()) {
+                if (groupName != null && !groupName.trim().isEmpty()) {
                     this.autoMembership.add(groupName.trim());
                 }
             }
