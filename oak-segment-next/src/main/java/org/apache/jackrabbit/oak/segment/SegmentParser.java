@@ -441,26 +441,17 @@ public class SegmentParser {
 
         // Recurse into properties
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
-        if (segment.getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-            if (propertyTemplates.length > 0) {
-                size += RECORD_ID_BYTES;
-                RecordId id = segment.readRecordId(offset + ids * RECORD_ID_BYTES);
-                ListRecord pIds = new ListRecord(id,
-                        propertyTemplates.length);
-                for (int i = 0; i < propertyTemplates.length; i++) {
-                    RecordId propertyId = pIds.getEntry(i);
-                    onProperty(nodeId, propertyId, propertyTemplates[i]);
-                    propertyCount++;
-                }
-                onList(nodeId, id, propertyTemplates.length);
-            }
-        } else {
-            for (PropertyTemplate propertyTemplate : propertyTemplates) {
-                size += RECORD_ID_BYTES;
-                RecordId propertyId = segment.readRecordId(offset + ids++ * RECORD_ID_BYTES);
-                onProperty(nodeId, propertyId, propertyTemplate);
+        if (propertyTemplates.length > 0) {
+            size += RECORD_ID_BYTES;
+            RecordId id = segment.readRecordId(offset + ids * RECORD_ID_BYTES);
+            ListRecord pIds = new ListRecord(id,
+                    propertyTemplates.length);
+            for (int i = 0; i < propertyTemplates.length; i++) {
+                RecordId propertyId = pIds.getEntry(i);
+                onProperty(nodeId, propertyId, propertyTemplates[i]);
                 propertyCount++;
             }
+            onList(nodeId, id, propertyTemplates.length);
         }
         return new NodeInfo(nodeId, nodeCount, propertyCount, size);
     }
@@ -504,25 +495,16 @@ public class SegmentParser {
             size += RECORD_ID_BYTES;
         }
 
-        if (segment.getSegmentVersion().onOrAfter(SegmentVersion.V_11)) {
-            if (propertyCount > 0) {
-                RecordId listId = segment.readRecordId(offset + size);
-                size += RECORD_ID_BYTES;
-                ListRecord propertyNames = new ListRecord(listId, propertyCount);
-                for (int i = 0; i < propertyCount; i++) {
-                    RecordId propertyNameId = propertyNames.getEntry(i);
-                    size++; // type
-                    onString(templateId, propertyNameId);
-                }
-                onList(templateId, listId, propertyCount);
-            }
-        } else {
+        if (propertyCount > 0) {
+            RecordId listId = segment.readRecordId(offset + size);
+            size += RECORD_ID_BYTES;
+            ListRecord propertyNames = new ListRecord(listId, propertyCount);
             for (int i = 0; i < propertyCount; i++) {
-                RecordId propertyNameId = segment.readRecordId(offset + size);
-                size += RECORD_ID_BYTES;
-                size++;  // type
+                RecordId propertyNameId = propertyNames.getEntry(i);
+                size++; // type
                 onString(templateId, propertyNameId);
             }
+            onList(templateId, listId, propertyCount);
         }
 
         return new TemplateInfo(templateId, hasPrimaryType, hasMixinTypes,

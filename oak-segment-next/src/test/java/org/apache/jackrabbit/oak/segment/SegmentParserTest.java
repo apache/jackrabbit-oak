@@ -34,8 +34,7 @@ import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.LONG;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.MEDIUM;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.SMALL;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.V_10;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.V_11;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -61,25 +60,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 public class SegmentParserTest {
-    private final SegmentVersion segmentVersion;
-
     private File directory;
     private SegmentStore store;
     private SegmentWriter writer;
-
-    @Parameterized.Parameters
-    public static List<SegmentVersion[]> fixtures() {
-        return ImmutableList.of(new SegmentVersion[] {V_10}, new SegmentVersion[] {V_11});
-    }
-
-    public SegmentParserTest(SegmentVersion segmentVersion) {
-        this.segmentVersion = segmentVersion;
-    }
 
     private static class TestParser extends SegmentParser {
         private final String name;
@@ -160,8 +145,8 @@ public class SegmentParserTest {
         directory.mkdir();
 
         store = FileStore.builder(directory).build();
-        writer = new SegmentWriter(store, segmentVersion,
-            new SegmentBufferWriter(store, segmentVersion, ""));
+        writer = new SegmentWriter(store, LATEST_VERSION,
+            new SegmentBufferWriter(store, LATEST_VERSION, ""));
     }
 
     @After
@@ -209,12 +194,7 @@ public class SegmentParserTest {
             @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
             @Override protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) { }
             @Override protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) { }
-            @Override
-            protected void onList(RecordId parentId, RecordId listId, int count) {
-                if (segmentVersion == V_10) {
-                    super.onList(parentId, listId, count);
-                }
-            }
+            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
         }.parseNode(node.getRecordId());
         assertEquals(node.getRecordId(), info.nodeId);
         assertEquals(2, info.nodeCount);
@@ -246,12 +226,7 @@ public class SegmentParserTest {
             @Override protected void onString(RecordId parentId, RecordId stringId) { }
             @Override protected void onNode(RecordId parentId, RecordId nodeId) { }
             @Override protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) { }
-            @Override
-            protected void onList(RecordId parentId, RecordId listId, int count) {
-                if (segmentVersion == V_10) {
-                    super.onList(parentId, listId, count);
-                }
-            }
+            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
         }.parseNode(node.getRecordId());
     }
 
@@ -327,12 +302,7 @@ public class SegmentParserTest {
             }
             @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
             @Override protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) { }
-            @Override
-            protected void onList(RecordId parentId, RecordId listId, int count) {
-                if (segmentVersion == V_10) {
-                    super.onList(parentId, listId, count);
-                }
-            }
+            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
         }.parseNode(node.getRecordId());
     }
 

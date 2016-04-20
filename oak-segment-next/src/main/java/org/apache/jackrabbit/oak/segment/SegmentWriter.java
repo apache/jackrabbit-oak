@@ -41,11 +41,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
-import static org.apache.jackrabbit.oak.segment.RecordWriters.newBlobIdWriter;
-import static org.apache.jackrabbit.oak.segment.RecordWriters.newListWriter;
-import static org.apache.jackrabbit.oak.segment.RecordWriters.newMapBranchWriter;
-import static org.apache.jackrabbit.oak.segment.RecordWriters.newMapLeafWriter;
-import static org.apache.jackrabbit.oak.segment.RecordWriters.newValueWriter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -747,13 +742,9 @@ public class SegmentWriter {
             }
 
             RecordId propNamesId = null;
-            if (version.onOrAfter(SegmentVersion.V_11)) {
-                if (propertyNames.length > 0) {
-                    propNamesId = writeList(asList(propertyNames));
-                    ids.add(propNamesId);
-                }
-            } else {
-                ids.addAll(asList(propertyNames));
+            if (propertyNames.length > 0) {
+                propNamesId = writeList(asList(propertyNames));
+                ids.add(propNamesId);
             }
 
             checkState(propertyNames.length < (1 << 18));
@@ -880,11 +871,7 @@ public class SegmentWriter {
             }
 
             if (!pIds.isEmpty()) {
-                if (version.onOrAfter(SegmentVersion.V_11)) {
-                    ids.add(writeList(pIds));
-                } else {
-                    ids.addAll(pIds);
-                }
+                ids.add(writeList(pIds));
             }
 
             RecordId nodeId = null;

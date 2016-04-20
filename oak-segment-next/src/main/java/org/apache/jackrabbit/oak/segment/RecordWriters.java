@@ -33,7 +33,6 @@ import static org.apache.jackrabbit.oak.segment.RecordType.TEMPLATE;
 import static org.apache.jackrabbit.oak.segment.RecordType.VALUE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.V_11;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -478,16 +477,10 @@ final class RecordWriters {
             if (childNameId != null) {
                 writer.writeRecordId(childNameId);
             }
-            if (version.onOrAfter(V_11)) {
-                if (propNamesId != null) {
-                    writer.writeRecordId(propNamesId);
-                }
+            if (propNamesId != null) {
+                writer.writeRecordId(propNamesId);
             }
             for (int i = 0; i < propertyNames.length; i++) {
-                if (!version.onOrAfter(V_11)) {
-                    // V10 only
-                    writer.writeRecordId(propertyNames[i]);
-                }
                 writer.writeByte(propertyTypes[i]);
             }
             return id;

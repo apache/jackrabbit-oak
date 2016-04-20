@@ -46,7 +46,7 @@ import com.google.common.collect.Maps;
  */
 public class MemoryStore implements SegmentStore {
 
-    private final SegmentTracker tracker = new SegmentTracker(this, 16, SegmentVersion.V_11);
+    private final SegmentTracker tracker = new SegmentTracker(this, 16, SegmentVersion.LATEST_VERSION);
 
     private SegmentNodeState head;
 
