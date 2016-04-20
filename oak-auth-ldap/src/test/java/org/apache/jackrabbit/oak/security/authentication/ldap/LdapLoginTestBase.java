@@ -162,7 +162,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
     }
 
     @Override
-    protected void destroyIDP(ExternalIdentityProvider idp) {
+    protected void destroyIDP() {
         ((LdapIdentityProvider) idp).close();
     }
 
