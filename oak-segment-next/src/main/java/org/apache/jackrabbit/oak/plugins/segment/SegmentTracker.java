@@ -246,7 +246,9 @@ public class SegmentTracker {
         segmentCache.put(id, segment, segment.size());
     }
 
-    int getGcGen() {
+    // See also the comments in FileStore regarding initialisation and
+    // cyclic dependencies.
+    public int getGcGen() {
         if (store instanceof FileStore) {
             return ((FileStore) store).getGcGen();
         } else {
