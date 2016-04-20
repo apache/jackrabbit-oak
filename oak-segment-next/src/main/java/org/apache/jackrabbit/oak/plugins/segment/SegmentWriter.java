@@ -30,6 +30,7 @@ import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.io.ByteStreams.read;
+import static java.lang.String.valueOf;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -62,6 +63,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.PropertyType;
 
@@ -767,16 +769,19 @@ public class SegmentWriter {
                 }
             }
 
-            Template template = new Template(state);
-            RecordId templateId;
-            if (template.equals(beforeTemplate)) {
-                templateId = before.getTemplateId();
+            List<RecordId> ids = newArrayList();
+            if (state instanceof SegmentNodeState) {
+                ids.add(writeString(((SegmentNodeState) state).getId()));
             } else {
-                templateId = writeTemplate(template);
+                ids.add(writeString(createId()));
             }
 
-            List<RecordId> ids = newArrayList();
-            ids.add(templateId);
+            Template template = new Template(state);
+            if (template.equals(beforeTemplate)) {
+                ids.add(before.getTemplateId());
+            } else {
+                ids.add(writeTemplate(template));
+            }
 
             String childName = template.getChildName();
             if (childName == Template.MANY_CHILD_NODES) {
@@ -909,6 +914,11 @@ public class SegmentWriter {
 
     private SegmentTracker getTracker() {
         return store.getTracker();
+    }
+
+    private static final AtomicLong NEXT_ID = new AtomicLong();
+    private static String createId() {
+        return valueOf(NEXT_ID.getAndIncrement());
     }
 
     private static final class Key<T> {
