@@ -177,6 +177,10 @@ public class SegmentTracker {
         return new SegmentWriter(store, segmentVersion, wid);
     }
 
+    public boolean isTracking(SegmentId segmentId) {
+        return this == segmentId.getTracker();
+    }
+
     @Nonnull
     public CacheStats getSegmentCacheStats() {
         return new CacheStats(segmentCache, "Segment Cache", null, -1);

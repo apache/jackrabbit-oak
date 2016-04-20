@@ -517,7 +517,7 @@ public class SegmentWriter {
 
             // write as many full bulk segments as possible
             while (pos + MAX_SEGMENT_SIZE <= data.length) {
-                SegmentId bulkId = store.getTracker().newBulkSegmentId();
+                SegmentId bulkId = getTracker().newBulkSegmentId();
                 store.writeSegment(bulkId, data, pos, MAX_SEGMENT_SIZE);
                 for (int i = 0; i < MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
                     blockIds.add(new RecordId(bulkId, i));
@@ -537,7 +537,7 @@ public class SegmentWriter {
 
         private boolean hasSegment(Blob blob) {
             return (blob instanceof SegmentBlob)
-                    && store.containsSegment(((Record) blob).getRecordId().getSegmentId());
+                    && (getTracker().isTracking(((Record) blob).getRecordId().getSegmentId()));
         }
 
         private SegmentBlob writeBlob(Blob blob) throws IOException {
@@ -633,7 +633,7 @@ public class SegmentWriter {
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
-                SegmentId bulkId = store.getTracker().newBulkSegmentId();
+                SegmentId bulkId = getTracker().newBulkSegmentId();
                 int len = align(n, 1 << Segment.RECORD_ALIGN_BITS);
                 LOG.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
                 store.writeSegment(bulkId, data, 0, len);
@@ -873,12 +873,12 @@ public class SegmentWriter {
         }
 
         private boolean hasSegment(SegmentNodeState node) {
-            return store.containsSegment(node.getRecordId().getSegmentId());
+            return getTracker().isTracking(node.getRecordId().getSegmentId());
         }
 
         private boolean hasSegment(PropertyState property) {
             return (property instanceof SegmentPropertyState)
-                && store.containsSegment(((Record) property).getRecordId().getSegmentId());
+                && (getTracker().isTracking(((Record) property).getRecordId().getSegmentId()));
         }
 
         /**
@@ -946,7 +946,10 @@ public class SegmentWriter {
                 return true;
             }
         }
+    }
 
+    private SegmentTracker getTracker() {
+        return store.getTracker();
     }
 
 }
