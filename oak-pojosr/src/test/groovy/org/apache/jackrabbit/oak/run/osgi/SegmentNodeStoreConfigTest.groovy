@@ -51,7 +51,8 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         //1. Get NodeStore created
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService': [
-                        cache: 256
+                        cache: 256,
+                        "tarmk.mode": 32
                 ]
         ])
         getServiceWithWait(NodeStore.class)
@@ -65,7 +66,8 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         //which first wait for nodeStoreLatch and then on NodeStoreTracker lock
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService': [
-                        cache: 200
+                        cache: 200,
+                        "tarmk.mode": 32
                 ]
         ])
 
