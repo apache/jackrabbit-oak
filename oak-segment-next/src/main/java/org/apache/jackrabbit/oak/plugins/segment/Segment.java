@@ -23,7 +23,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static java.lang.Boolean.getBoolean;
+import static java.lang.Integer.parseInt;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
@@ -36,6 +38,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.CheckForNull;
@@ -47,6 +50,8 @@ import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
@@ -254,9 +259,10 @@ public class Segment {
         }
     }
 
-    Segment(SegmentTracker tracker, byte[] buffer) {
+    Segment(SegmentTracker tracker, byte[] buffer, String info) {
         this.tracker = checkNotNull(tracker);
         this.id = tracker.newDataSegmentId();
+        this.info = info;
         if (tracker.getStringCache() == null) {
             strings = newConcurrentMap();
             stringCache = null;
@@ -322,6 +328,8 @@ public class Segment {
                 << RECORD_ALIGN_BITS;
     }
 
+    private volatile String info;
+
     /**
      * Returns the segment meta data of this segment or {@code null} if none is present.
      * <p>
@@ -339,11 +347,10 @@ public class Segment {
      */
     @CheckForNull
     public String getSegmentInfo() {
-        if (getRootCount() == 0) {
-            return null;
-        } else {
-            return readString(getRootOffset(0));
+        if (info == null && getRefCount() != 0) {
+            info = readString(getRootOffset(0));
         }
+        return info;
     }
 
     SegmentId getRefId(int index) {
@@ -735,4 +742,28 @@ public class Segment {
         return string.toString();
     }
 
+    private volatile int gcGen = -1;
+
+    // FIXME OAK-3348 improve generation handling
+    public int getGcGen() {
+        if (gcGen < 0) {
+            if (isDataSegmentId(id.getLeastSignificantBits())) {
+                String info = getSegmentInfo();
+                if (info != null) {
+                    JsopTokenizer tokenizer = new JsopTokenizer(info);
+                    tokenizer.read('{');
+                    Map<String, String> properties = JsonObject.create(tokenizer).getProperties();
+                    int gen = parseInt(properties.get("gc"));
+                    if (properties.get("wid").contains("c-")) {
+                        gen++;
+                    }
+                    gcGen = gen;
+                    return gcGen;
+                }
+            }
+            gcGen = Integer.MAX_VALUE;
+            return gcGen;
+        }
+        return gcGen;
+    }
 }
