@@ -22,15 +22,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
 
-import java.util.concurrent.Callable;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class CompactionStrategy {
+public class CompactionStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(CompactionStrategy.class);
 
     public enum CleanupType {
@@ -93,12 +91,7 @@ public abstract class CompactionStrategy {
      * No compaction at all
      */
     public static final CompactionStrategy NO_COMPACTION = new CompactionStrategy(
-            true, false, CleanupType.CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT) {
-        @Override
-        public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-            return false;
-        }
-    };
+            true, false, CleanupType.CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT);
 
     private boolean paused;
 
@@ -121,6 +114,8 @@ public abstract class CompactionStrategy {
 
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
 
+    private int lockWaitTime = 60;
+
     private long compactionStart = currentTimeMillis();
 
     /**
@@ -128,7 +123,7 @@ public abstract class CompactionStrategy {
      */
     private byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
 
-    protected CompactionStrategy(boolean paused,
+    public CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
         checkArgument(olderThan >= 0);
         this.paused = paused;
@@ -236,6 +231,14 @@ public abstract class CompactionStrategy {
         this.forceAfterFail = forceAfterFail;
     }
 
+    public void setLockWaitTime(int lockWaitTime) {
+        this.lockWaitTime = lockWaitTime;
+    }
+
+    public int getLockWaitTime() {
+        return lockWaitTime;
+    }
+
     /**
      * Get the number of tries to compact concurrent commits on top of already
      * compacted commits
@@ -271,8 +274,6 @@ public abstract class CompactionStrategy {
     public void setGainThreshold(byte gainThreshold) {
         this.gainThreshold = gainThreshold;
     }
-
-    public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;
 
     /**
      * Check if the approximate repository size is getting too big compared with

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
@@ -42,7 +41,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -488,26 +486,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
 
-        // This is indeed a dirty hack, but it's needed to break a circular
-        // dependency between different components. The FileStore needs the
-        // CompactionStrategy, the CompactionStrategy needs the
-        // SegmentNodeStore, and the SegmentNodeStore needs the FileStore.
-
-        CompactionStrategy compactionStrategy = new CompactionStrategy(pauseCompaction, cloneBinaries, cleanupType, cleanupTs, memoryThreshold) {
-
-            @Override
-            public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                // Need to guard against concurrent commits to avoid
-                // mixed segments. See OAK-2192.
-                return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
-            }
-
-        };
-
+        CompactionStrategy compactionStrategy = new CompactionStrategy(pauseCompaction, cloneBinaries, cleanupType, cleanupTs, memoryThreshold);
         compactionStrategy.setRetryCount(retryCount);
         compactionStrategy.setForceAfterFail(forceAfterFail);
         compactionStrategy.setGainThreshold(gainThreshold);
-
+        compactionStrategy.setLockWaitTime(lockWaitTime);
         return compactionStrategy;
     }
 

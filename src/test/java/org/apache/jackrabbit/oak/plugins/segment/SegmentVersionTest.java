@@ -32,9 +32,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.Callable;
-
-import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -170,12 +167,7 @@ public class SegmentVersionTest {
         FileStore fileStoreV11 = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
         try {
             fileStoreV11.setCompactionStrategy(new CompactionStrategy(false, false,
-                    CLEAN_NONE, 0, (byte) 0) {
-                @Override
-                public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-                    return setHead.call();
-                }
-            });
+                    CLEAN_NONE, 0, (byte) 0));
             checkAllVersions(fileStoreV11.getHead(), SegmentVersion.V_10);
             fileStoreV11.compact();
             checkAllVersions(fileStoreV11.getHead(), V_11);
