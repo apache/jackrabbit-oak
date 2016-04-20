@@ -354,15 +354,15 @@ class TarReader implements Closeable {
             return null; // magic byte mismatch
         }
 
-        if (count < 1 || bytes < count * 24 + 16 || bytes % BLOCK_SIZE != 0) {
+        if (count < 1 || bytes < count * TarEntry.SIZE + 16 || bytes % BLOCK_SIZE != 0) {
             log.warn("Invalid index metadata in tar file {}", name);
             return null; // impossible entry and/or byte counts
         }
 
         // this involves seeking backwards in the file, which might not
         // perform well, but that's OK since we only do this once per file
-        ByteBuffer index = ByteBuffer.allocate(count * 24);
-        file.seek(length - 2 * BLOCK_SIZE - 16 - count * 24);
+        ByteBuffer index = ByteBuffer.allocate(count * TarEntry.SIZE);
+        file.seek(length - 2 * BLOCK_SIZE - 16 - count * TarEntry.SIZE);
         file.readFully(index.array());
         index.mark();
 
@@ -370,7 +370,7 @@ class TarReader implements Closeable {
         long limit = length - 2 * BLOCK_SIZE - bytes - BLOCK_SIZE;
         long lastmsb = Long.MIN_VALUE;
         long lastlsb = Long.MIN_VALUE;
-        byte[] entry = new byte[24];
+        byte[] entry = new byte[TarEntry.SIZE];
         for (int i = 0; i < count; i++) {
             index.get(entry);
             checksum.update(entry);
@@ -524,7 +524,7 @@ class TarReader implements Closeable {
      * @return number of segments
      */
     int count() {
-        return index.capacity() / 24;
+        return index.capacity() / TarEntry.SIZE;
     }
 
     /**
@@ -542,18 +542,18 @@ class TarReader implements Closeable {
                     file,
                     index.getInt(position + 16),
                     index.getInt(position + 20));
-            position += 24;
+            position += TarEntry.SIZE;
         }
     }
 
     Set<UUID> getUUIDs() {
-        Set<UUID> uuids = newHashSetWithExpectedSize(index.remaining() / 24);
+        Set<UUID> uuids = newHashSetWithExpectedSize(index.remaining() / TarEntry.SIZE);
         int position = index.position();
         while (position < index.limit()) {
             uuids.add(new UUID(
                     index.getLong(position),
                     index.getLong(position + 8)));
-            position += 24;
+            position += TarEntry.SIZE;
         }
         return uuids;
     }
@@ -598,7 +598,7 @@ class TarReader implements Closeable {
         // matching entry in the index. The average runtime is O(log log n).
 
         int lowIndex = 0;
-        int highIndex = index.remaining() / 24 - 1;
+        int highIndex = index.remaining() / TarEntry.SIZE - 1;
         float lowValue = Long.MIN_VALUE;
         float highValue = Long.MAX_VALUE;
         float targetValue = msb;
@@ -608,7 +608,7 @@ class TarReader implements Closeable {
                     (highIndex - lowIndex)
                     * (targetValue - lowValue)
                     / (highValue - lowValue));
-            int position = index.position() + guessIndex * 24;
+            int position = index.position() + guessIndex * TarEntry.SIZE;
             long m = index.getLong(position);
             if (msb < m) {
                 highIndex = guessIndex - 1;
@@ -638,7 +638,7 @@ class TarReader implements Closeable {
 
     @Nonnull
     private TarEntry[] getEntries() {
-        TarEntry[] entries = new TarEntry[index.remaining() / 24];
+        TarEntry[] entries = new TarEntry[index.remaining() / TarEntry.SIZE];
         int position = index.position();
         for (int i = 0; position < index.limit(); i++) {
             entries[i]  = new TarEntry(
@@ -646,7 +646,7 @@ class TarReader implements Closeable {
                     index.getLong(position + 8),
                     index.getInt(position + 16),
                     index.getInt(position + 20));
-            position += 24;
+            position += TarEntry.SIZE;
         }
         Arrays.sort(entries, TarEntry.OFFSET_ORDER);
         return entries;
@@ -781,7 +781,7 @@ class TarReader implements Closeable {
                 count += 1;
             }
         }
-        size += getEntrySize(24 * count + 16);
+        size += getEntrySize(TarEntry.SIZE * count + 16);
         size += 2 * BLOCK_SIZE;
 
         if (count == 0) {

@@ -389,7 +389,7 @@ class TarWriter implements Closeable {
     }
 
     private void writeIndex() throws IOException {
-        int indexSize = index.size() * 24 + 16;
+        int indexSize = index.size() * TarEntry.SIZE + 16;
         int padding = getPaddingSize(indexSize);
 
         String indexName = file.getName() + ".idx";

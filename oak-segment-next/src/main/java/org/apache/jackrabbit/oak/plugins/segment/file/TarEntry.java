@@ -24,6 +24,9 @@ import java.util.Comparator;
  */
 class TarEntry {
 
+    /** Size in bytes a tar entry takes up in the tar file */
+    static final int SIZE = 24;
+
     static final Comparator<TarEntry> OFFSET_ORDER = new Comparator<TarEntry>() {
         @Override
         public int compare(TarEntry a, TarEntry b) {
