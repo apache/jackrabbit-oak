@@ -437,9 +437,6 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         SegmentNodeState that = (SegmentNodeState) base;
-        if (that.wasCompactedTo(this)) {
-            return true; // no changes during compaction
-        }
 
         Template beforeTemplate = that.getTemplate();
         RecordId beforeId = that.getRecordId();

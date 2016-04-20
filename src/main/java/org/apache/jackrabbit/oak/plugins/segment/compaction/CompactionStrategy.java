@@ -77,8 +77,6 @@ public abstract class CompactionStrategy {
 
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
-    public static final boolean PERSIST_COMPACTION_MAP_DEFAULT = true;
-
     public static final byte GAIN_THRESHOLD_DEFAULT = 10;
 
     /**
@@ -119,8 +117,6 @@ public abstract class CompactionStrategy {
 
     private byte memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
 
-    private boolean persistedCompactionMap = PERSIST_COMPACTION_MAP_DEFAULT;
-
     private int retryCount = RETRY_COUNT_DEFAULT;
 
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
@@ -131,12 +127,6 @@ public abstract class CompactionStrategy {
      * Compaction gain estimate threshold beyond which compaction should run
      */
     private byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
-
-    /**
-     * Flag that allows turning on an optimized version of the compaction
-     * process in the case of offline compaction
-     */
-    private boolean offlineCompaction = false;
 
     protected CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
@@ -208,11 +198,9 @@ public abstract class CompactionStrategy {
                 ", cleanupType=" + cleanupType +
                 ", olderThan=" + olderThan +
                 ", memoryThreshold=" + memoryThreshold +
-                ", persistedCompactionMap=" + persistedCompactionMap +
                 ", retryCount=" + retryCount +
                 ", forceAfterFail=" + forceAfterFail +
                 ", compactionStart=" + compactionStart +
-                ", offlineCompaction=" + offlineCompaction +
                 '}';
     }
 
@@ -226,14 +214,6 @@ public abstract class CompactionStrategy {
 
     public void setMemoryThreshold(byte memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
-    }
-
-    public boolean getPersistCompactionMap() {
-        return persistedCompactionMap;
-    }
-
-    public void setPersistCompactionMap(boolean persist) {
-        persistedCompactionMap = persist;
     }
 
     /**
@@ -293,14 +273,6 @@ public abstract class CompactionStrategy {
     }
 
     public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;
-
-    public boolean isOfflineCompaction() {
-        return offlineCompaction;
-    }
-
-    public void setOfflineCompaction(boolean offlineCompaction) {
-        this.offlineCompaction = offlineCompaction;
-    }
 
     /**
      * Check if the approximate repository size is getting too big compared with

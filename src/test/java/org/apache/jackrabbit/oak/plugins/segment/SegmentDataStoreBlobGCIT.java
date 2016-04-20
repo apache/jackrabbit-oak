@@ -72,19 +72,14 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Tests for SegmentNodeStore DataStore GC
  */
-@RunWith(Parameterized.class)
 public class SegmentDataStoreBlobGCIT {
     private static final Logger log = LoggerFactory.getLogger(SegmentDataStoreBlobGCIT.class);
-
-    private final boolean usePersistedMap;
 
     SegmentNodeStore nodeStore;
     FileStore store;
@@ -97,15 +92,6 @@ public class SegmentDataStoreBlobGCIT {
     @BeforeClass
     public static void assumptions() {
         assumeTrue(getFixtures().contains(SEGMENT_MK));
-    }
-    
-    @Parameterized.Parameters
-    public static List<Boolean[]> fixtures() {
-        return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
-    }
-
-    public SegmentDataStoreBlobGCIT(boolean usePersistedMap) {
-        this.usePersistedMap = usePersistedMap;
     }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
@@ -122,7 +108,6 @@ public class SegmentDataStoreBlobGCIT {
                         return setHead.call();
                     }
                 };
-            compactionStrategy.setPersistCompactionMap(usePersistedMap);
             store.setCompactionStrategy(compactionStrategy);
             nodeStore = SegmentNodeStore.builder(store).build();
         }

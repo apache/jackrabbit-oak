@@ -31,7 +31,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.Closeable;
@@ -63,9 +62,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
-import org.apache.jackrabbit.oak.plugins.segment.PersistedCompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.SegmentGraphVisitor;
@@ -555,10 +552,7 @@ public class FileStore implements SegmentStore {
 
         Runtime runtime = Runtime.getRuntime();
         long avail = runtime.totalMemory() - runtime.freeMemory();
-        long[] weights = tracker.getCompactionMap().getEstimatedWeights();
-        long delta = weights.length > 0
-            ? weights[0]
-            : 0;
+        long delta = 0;
         long needed = delta * compactionStrategy.getMemoryThreshold();
         if (needed >= avail) {
             gcMonitor.skipped(
@@ -578,10 +572,6 @@ public class FileStore implements SegmentStore {
         compactionStrategy.setCompactionStart(System.currentTimeMillis());
         boolean compacted = false;
 
-        long offset = compactionStrategy.getPersistCompactionMap()
-            ? sum(tracker.getCompactionMap().getRecordCounts()) * PersistedCompactionMap.BYTES_PER_ENTRY
-            : 0;
-
         byte gainThreshold = compactionStrategy.getGainThreshold();
         boolean runCompaction = true;
         if (gainThreshold <= 0) {
@@ -598,7 +588,7 @@ public class FileStore implements SegmentStore {
                 return false;
             }
 
-            long gain = estimate.estimateCompactionGain(offset);
+            long gain = estimate.estimateCompactionGain();
             runCompaction = gain >= gainThreshold;
             if (runCompaction) {
                 gcMonitor.info(
@@ -917,19 +907,15 @@ public class FileStore implements SegmentStore {
             toRemove.addLast(file);
         }
 
-        CompactionMap cm = tracker.getCompactionMap();
-        cm.remove(cleanedIds);
         long finalSize = size();
         approximateSize.set(finalSize);
         stats.reclaimed(initialSize - finalSize);
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
-                " and space reclaimed {} ({} bytes). Compaction map weight/depth is {}/{} ({} bytes/{}).",
+                " and space reclaimed {} ({} bytes).",
                 gcCount, watch, watch.elapsed(MILLISECONDS),
                 humanReadableByteCount(finalSize), finalSize,
-                humanReadableByteCount(initialSize - finalSize), initialSize - finalSize,
-                humanReadableByteCount(sum(cm.getEstimatedWeights())), cm.getDepth(),
-                sum(cm.getEstimatedWeights()), cm.getDepth());
+                humanReadableByteCount(initialSize - finalSize), initialSize - finalSize);
         return toRemove;
     }
 
@@ -1485,11 +1471,8 @@ public class FileStore implements SegmentStore {
             // needs to be called inside the commitSemaphore as doing otherwise
             // might result in mixed segments. See OAK-2192.
             if (setHead(before, after)) {
-                tracker.setCompactionMap(compactor.getCompactionMap());
-
-                CompactionMap cm = tracker.getCompactionMap();
-                gcMonitor.compacted(cm.getSegmentCounts(), cm.getRecordCounts(), cm.getEstimatedWeights());
                 tracker.clearSegmentIdTables(compactionStrategy);
+                gcMonitor.compacted(new long[0], new long[0], new long[0]);
                 return true;
             } else {
                 return false;

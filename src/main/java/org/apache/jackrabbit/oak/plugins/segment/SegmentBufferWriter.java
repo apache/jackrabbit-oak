@@ -227,7 +227,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private void checkGCGen(SegmentId id) {
         try {
             if (isDataSegmentId(id.getLeastSignificantBits())) {
-                if (id.getSegment().getGcGen() < generation && !isCompactionMap(id)) {
+                if (id.getSegment().getGcGen() < generation) {
                     LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
                         info(this.segment), info(id.getSegment()), new Exception());
                 }
@@ -236,11 +236,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             LOG.warn("Detected reference from {} to non existing segment {}",
                 info(this.segment), id, snfe);
         }
-    }
-
-    private static boolean isCompactionMap(SegmentId id) {
-        String info = id.getSegment().getSegmentInfo();
-        return info != null && info.contains("cm");
     }
 
     private static String info(Segment segment) {
