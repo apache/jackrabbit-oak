@@ -60,11 +60,17 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
  */
 public class SegmentPropertyState extends Record implements PropertyState {
 
-    private final PropertyTemplate template;
+    private final String name;
+    private final Type<?> type;
 
-    public SegmentPropertyState(RecordId id, PropertyTemplate template) {
+    SegmentPropertyState(RecordId id, String name, Type<?> type) {
         super(id);
-        this.template = checkNotNull(template);
+        this.name = checkNotNull(name);
+        this.type = checkNotNull(type);
+    }
+
+    SegmentPropertyState(RecordId id, PropertyTemplate template) {
+        this(id, template.getName(), template.getType());
     }
 
     private ListRecord getValueList(Segment segment) {
@@ -99,12 +105,12 @@ public class SegmentPropertyState extends Record implements PropertyState {
 
     @Override @Nonnull
     public String getName() {
-        return template.getName();
+        return name;
     }
 
     @Override
     public Type<?> getType() {
-        return template.getType();
+        return type;
     }
 
     @Override
@@ -219,9 +225,10 @@ public class SegmentPropertyState extends Record implements PropertyState {
         // optimize for common cases
         if (this == object) { // don't use fastEquals here due to value sharing
             return true;
-        } else if (object instanceof SegmentPropertyState) {
+        }
+        if (object instanceof SegmentPropertyState) {
             SegmentPropertyState that = (SegmentPropertyState) object;
-            if (!template.equals(that.template)) {
+            if (!type.equals(that.type) || !name.equals(that.name)) {
                 return false;
             } else if (getRecordId().equals(that.getRecordId())) {
                 return true;

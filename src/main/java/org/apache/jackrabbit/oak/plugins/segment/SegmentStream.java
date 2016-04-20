@@ -76,6 +76,14 @@ public class SegmentStream extends InputStream {
         this.length = inline.length;
     }
 
+    List<RecordId> getBlockIds() {
+        if (blocks == null) {
+            return null;
+        } else {
+            return blocks.getEntries();
+        }
+    }
+
     public long getLength() {
         return length;
     }
