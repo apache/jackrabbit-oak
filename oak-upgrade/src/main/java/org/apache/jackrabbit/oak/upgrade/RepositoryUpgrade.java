@@ -117,6 +117,7 @@ import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
+import org.apache.jackrabbit.oak.upgrade.version.VersionablePropertiesEditor;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -469,6 +470,10 @@ public class RepositoryUpgrade {
                     new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
                     new SameNameSiblingsEditor.Provider()
             )));
+
+            // this editor works on the VersionableEditor output, so it can't be
+            // a part of the same EditorHook
+            hooks.add(new EditorHook(new VersionablePropertiesEditor.Provider()));
 
             // security-related hooks
             for (SecurityConfiguration sc : security.getConfigurations()) {
