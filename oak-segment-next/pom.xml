@@ -39,12 +39,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>
-                            org.apache.jackrabbit.oak.plugins.backup,
-                            org.apache.jackrabbit.oak.plugins.segment,
-                            org.apache.jackrabbit.oak.plugins.segment.http,
-                            org.apache.jackrabbit.oak.plugins.segment.file,
-                        </Export-Package>
+                        <Export-Package/>
                     </instructions>
                 </configuration>
             </plugin>
