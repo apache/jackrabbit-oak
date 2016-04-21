@@ -63,10 +63,8 @@ If a user needs re-authentication (for example, if the cache validity expired or
 if the user is not yet present in the local system at all), the login module must
 check the credentials with the external system during the `login()` method.
 
-Note:
-
-* users (and groups) that are synced from the 3rd party system contain a `rep:externalId` property. This allows to identify the external users and distinguish them from others.
-* to reduce expensive syncing, the synced users and groups have sync timestamp `rep:lastSynced` and are considered valid for a configurable time. if they expire, they need to be validated against the 3rd party system again.
+The details of the default user/group synchronization mechanism are described in section
+[User and Group Synchronization : The Default Implementation](defaultusersync.html)
 
 ##### Supported Credentials
 
