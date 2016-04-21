@@ -131,7 +131,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
                     @Nonnull
                     @Override
                     public ExternalIdentityRef getExternalId() {
-                        return new ExternalIdentityRef(uid, "test");
+                        return new ExternalIdentityRef(uid, getName());
                     }
 
                     @Nonnull

@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -68,8 +67,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultSyncContextTest extends AbstractExternalAuthTest {
-
-    private TestIdentityProvider idp = new TestIdentityProvider();
 
     private DefaultSyncContext syncCtx;
 
@@ -315,14 +312,48 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(SyncResult.Status.UPDATE, result.getStatus());
     }
 
-    @Ignore("OAK-4224")
-    @Test(expected = SyncException.class)
-    public void testSyncForeignExternalIdentity() throws Exception {
+    @Test
+    public void testSyncForeignExternalUser() throws Exception {
         ExternalIdentity foreign = new ForeignExternalUser();
 
-        syncCtx.sync(foreign);
-        // don't commit changes as the after-call would not properly remove any
-        // authorizable created this way.
+        SyncResult res = syncCtx.sync(foreign);
+        assertNotNull(res);
+        assertSame(SyncResult.Status.FOREIGN, res.getStatus());
+
+        // expect {@code SyncedIdentity} in accordance with {@code sync(String userId)},
+        // where the authorizable is found to be linked to a different IDP.
+        SyncedIdentity si = res.getIdentity();
+        assertNotNull(si);
+        assertEquals(foreign.getId(), si.getId());
+        ExternalIdentityRef ref = si.getExternalIdRef();
+        assertNotNull(ref);
+        assertEquals(foreign.getExternalId(), ref);
+        assertFalse(si.isGroup());
+        assertEquals(-1, si.lastSynced());
+
+        assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testSyncForeignExternalGroup() throws Exception {
+        ExternalIdentity foreign = new ForeignExternalGroup();
+
+        SyncResult res = syncCtx.sync(foreign);
+        assertNotNull(res);
+        assertSame(SyncResult.Status.FOREIGN, res.getStatus());
+
+        // expect {@code SyncedIdentity} in accordance with {@code sync(String userId)},
+        // where the authorizable is found to be linked to a different IDP.
+        SyncedIdentity si = res.getIdentity();
+        assertNotNull(si);
+        assertEquals(foreign.getId(), si.getId());
+        ExternalIdentityRef ref = si.getExternalIdRef();
+        assertNotNull(ref);
+        assertEquals(foreign.getExternalId(), ref);
+        assertTrue(si.isGroup());
+        assertEquals(-1, si.lastSynced());
+
+        assertFalse(root.hasPendingChanges());
     }
 
     @Test
@@ -430,7 +461,11 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     @Test
     public void testSyncByForeignId() throws Exception {
         SyncResult result = syncCtx.sync(getTestUser().getID());
+
         assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertNull(si.getExternalIdRef());
     }
 
     @Test
@@ -440,6 +475,9 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         SyncResult result = syncCtx.sync(u.getID());
         assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertEquals(DefaultSyncContext.getIdentityRef(u), si.getExternalIdRef());
     }
 
     @Test(expected = SyncException.class)
@@ -1195,6 +1233,21 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         @Override
         public ExternalIdentityRef getExternalId() {
             return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
+        }
+    }
+
+    private final class ForeignExternalGroup extends TestExternalIdentity implements ExternalGroup {
+
+        @Nonnull
+        @Override
+        public ExternalIdentityRef getExternalId() {
+            return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
+        }
+
+        @Nonnull
+        @Override
+        public Iterable<ExternalIdentityRef> getDeclaredMembers() {
+            return ImmutableList.of();
         }
     }
 

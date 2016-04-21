@@ -222,6 +222,12 @@ public class DefaultSyncContext implements SyncContext {
     @Nonnull
     @Override
     public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
+        ExternalIdentityRef ref = identity.getExternalId();
+        if (!isSameIDP(ref)) {
+            // create result in accordance with sync(String) where status is FOREIGN
+            boolean isGroup = (identity instanceof ExternalGroup);
+            return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, isGroup, -1), SyncResult.Status.FOREIGN);
+        }
         try {
             DebugTimer timer = new DebugTimer();
             DefaultSyncResultImpl ret;
@@ -250,7 +256,7 @@ public class DefaultSyncContext implements SyncContext {
                 throw new IllegalArgumentException("identity must be user or group but was: " + identity);
             }
             if (log.isDebugEnabled()) {
-                log.debug("sync({}) -> {} {}", identity.getExternalId().getString(), identity.getId(), timer.getString());
+                log.debug("sync({}) -> {} {}", ref.getString(), identity.getId(), timer.getString());
             }
             if (created) {
                 ret.setStatus(SyncResult.Status.ADD);
@@ -277,8 +283,8 @@ public class DefaultSyncContext implements SyncContext {
             }
             // check if we need to deal with this authorizable
             ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(auth);
-            if (ref == null || !idp.getName().equals(ref.getProviderName())) {
-                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, null, false, -1), SyncResult.Status.FOREIGN);
+            if (ref == null || !isSameIDP(ref)) {
+                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, ref, false, -1), SyncResult.Status.FOREIGN);
             }
 
             if (auth.isGroup()) {
@@ -712,5 +718,17 @@ public class DefaultSyncContext implements SyncContext {
     protected boolean isSameIDP(@Nullable Authorizable auth) throws RepositoryException {
         ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(auth);
         return ref != null && idp.getName().equals(ref.getProviderName());
+    }
+
+    /**
+     * Tests if the given {@link ExternalIdentityRef} refers to the same IDP
+     * as associated with this context instance.
+     *
+     * @param ref The {@link ExternalIdentityRef} to be tested.
+     * @return {@code true} if {@link ExternalIdentityRef#getProviderName()} refers
+     * to the IDP associated with this context instance.
+     */
+    private boolean isSameIDP(@Nonnull ExternalIdentityRef ref) {
+        return idp.getName().equals(ref.getProviderName());
     }
 }
