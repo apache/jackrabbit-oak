@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import javax.jcr.Repository;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -33,22 +29,14 @@ import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.jaas.boot.ProxyLoginModule;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -57,32 +45,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-/**
- * This test uses quite a bit of logic from ExternalLoginModuleTestBase
- * As we need to create very specific scenario it would be easier to control
- * the whole scenario
- */
-public class ExternalLoginModuleFactoryTest extends AbstractSecurityTest {
-    private final static String TEST_CONSTANT_PROPERTY_NAME = "profile/constantProperty";
-
-    private final static String TEST_CONSTANT_PROPERTY_VALUE = "constant-value";
+public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase {
 
     @Rule
     public final OsgiContext context = new OsgiContext();
-
-    private final HashMap<String, Object> options = new HashMap<String, Object>();
-
-    private final String userId = "testUser";
-
-    private ExternalIdentityProvider idp;
-
-    private DefaultSyncConfig syncConfig;
-
-    private Registration testIdpReg;
-
-    private Registration syncHandlerReg;
-
-    private Whiteboard whiteboard;
 
     @Override
     protected Oak withEditors(Oak oak) {
@@ -92,47 +58,6 @@ public class ExternalLoginModuleFactoryTest extends AbstractSecurityTest {
         //are preset
         whiteboard = oak.getWhiteboard();
         return oak;
-    }
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        idp = new TestIdentityProvider();
-        testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
-
-        options.put(ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, "default");
-        options.put(ExternalLoginModule.PARAM_IDP_NAME, idp.getName());
-
-        // set default sync config
-        syncConfig = new DefaultSyncConfig();
-        Map<String, String> mapping = new HashMap<String, String>();
-        mapping.put("name", "name");
-        mapping.put("email", "email");
-        mapping.put("profile/name", "profile/name");
-        mapping.put("profile/age", "profile/age");
-        mapping.put(TEST_CONSTANT_PROPERTY_NAME, "\"constant-value\"");
-        syncConfig.user().setPropertyMapping(mapping);
-        syncConfig.user().setMembershipNestingDepth(1);
-        syncHandlerReg = whiteboard.register(SyncHandler.class, new DefaultSyncHandler(syncConfig), Collections.<String, Object>emptyMap());
-    }
-
-    @After
-    public void after() throws Exception {
-        testIdpReg.unregister();
-        syncHandlerReg.unregister();
-
-        try {
-            UserManager userManager = getUserManager(root);
-            Authorizable a = userManager.getAuthorizable(userId);
-            if (a != null) {
-                a.remove();
-            }
-            root.commit();
-        } finally {
-            root.refresh();
-            super.after();
-        }
     }
 
     protected Configuration getConfiguration() {
@@ -157,15 +82,15 @@ public class ExternalLoginModuleFactoryTest extends AbstractSecurityTest {
         UserManager userManager = getUserManager(root);
         ContentSession cs = null;
         try {
-            assertNull(userManager.getAuthorizable(userId));
+            assertNull(userManager.getAuthorizable(USER_ID));
 
-            cs = login(new SimpleCredentials(userId, new char[0]));
+            cs = login(new SimpleCredentials(USER_ID, new char[0]));
 
             root.refresh();
 
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = userManager.getAuthorizable(USER_ID);
             assertNotNull(a);
-            ExternalUser user = idp.getUser(userId);
+            ExternalUser user = idp.getUser(USER_ID);
             for (String prop : user.getProperties().keySet()) {
                 assertTrue(a.hasProperty(prop));
             }
