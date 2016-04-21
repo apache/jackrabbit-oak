@@ -134,6 +134,10 @@ public class NodeDocumentCache implements Closeable {
     /**
      * Return the document matching given key, optionally loading it from an
      * external source.
+     * <p>
+     * This method can modify the cache, so it's synchronized. The {@link #getIfPresent(String)}
+     * is not synchronized and will be faster if you need to get the cached value
+     * outside the critical section.
      *
      * @see Cache#get(Object, Callable)
      * @param key document key
@@ -143,10 +147,15 @@ public class NodeDocumentCache implements Closeable {
     @Nonnull
     public NodeDocument get(@Nonnull String key, @Nonnull Callable<NodeDocument> valueLoader)
             throws ExecutionException {
-        if (isLeafPreviousDocId(key)) {
-            return prevDocumentsCache.get(new StringValue(key), valueLoader);
-        } else {
-            return nodeDocumentsCache.get(new StringValue(key), valueLoader);
+        Lock lock = locks.acquire(key);
+        try {
+            if (isLeafPreviousDocId(key)) {
+                return prevDocumentsCache.get(new StringValue(key), valueLoader);
+            } else {
+                return nodeDocumentsCache.get(new StringValue(key), valueLoader);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
