@@ -282,9 +282,9 @@ public class DefaultSyncContext implements SyncContext {
                 return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, null, false, -1), SyncResult.Status.NO_SUCH_AUTHORIZABLE);
             }
             // check if we need to deal with this authorizable
-            ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(auth);
+            ExternalIdentityRef ref = getIdentityRef(auth);
             if (ref == null || !isSameIDP(ref)) {
-                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, ref, false, -1), SyncResult.Status.FOREIGN);
+                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, ref, auth.isGroup(), -1), SyncResult.Status.FOREIGN);
             }
 
             if (auth.isGroup()) {
@@ -320,7 +320,7 @@ public class DefaultSyncContext implements SyncContext {
     private DefaultSyncResultImpl handleMissingIdentity(@Nonnull String id,
                                                         @Nonnull Authorizable authorizable,
                                                         @Nonnull DebugTimer timer) throws RepositoryException {
-        DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(authorizable);
+        DefaultSyncedIdentity syncId = createSyncedIdentity(authorizable);
         SyncResult.Status status;
         if (authorizable.isGroup() && ((Group) authorizable).getDeclaredMembers().hasNext()) {
             log.info("won't remove local group with members: {}", id);
@@ -561,7 +561,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param groups set of groups.
      */
     protected void applyMembership(@Nonnull Authorizable member, @Nonnull Set<String> groups) throws RepositoryException {
-        for (String groupName: groups) {
+        for (String groupName : groups) {
             Authorizable group = userManager.getAuthorizable(groupName);
             if (group == null) {
                 log.warn("Unable to apply auto-membership to {}. No such group: {}", member.getID(), groupName);
@@ -716,7 +716,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return {@code true} if same IDP.
      */
     protected boolean isSameIDP(@Nullable Authorizable auth) throws RepositoryException {
-        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(auth);
+        ExternalIdentityRef ref = getIdentityRef(auth);
         return ref != null && idp.getName().equals(ref.getProviderName());
     }
 

@@ -459,13 +459,25 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     }
 
     @Test
-    public void testSyncByForeignId() throws Exception {
+    public void testSyncByForeignUserId() throws Exception {
         SyncResult result = syncCtx.sync(getTestUser().getID());
 
         assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
         SyncedIdentity si = result.getIdentity();
         assertNotNull(si);
         assertNull(si.getExternalIdRef());
+        assertFalse(si.isGroup());
+    }
+
+    @Test
+    public void testSyncByForeignGroupId() throws Exception {
+        SyncResult result = syncCtx.sync(createTestGroup().getID());
+
+        assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertNull(si.getExternalIdRef());
+        assertTrue(si.isGroup());
     }
 
     @Test
