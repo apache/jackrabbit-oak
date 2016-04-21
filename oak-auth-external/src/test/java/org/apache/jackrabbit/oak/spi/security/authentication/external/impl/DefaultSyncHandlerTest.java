@@ -85,6 +85,8 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     private void sync(@Nonnull String id, boolean isGroup) throws Exception {
         SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
         ExternalIdentity exIdentity = (isGroup) ? idp.getGroup(id) : idp.getUser(id);
+        assertNotNull(exIdentity);
+
         SyncResult res = ctx.sync(exIdentity);
         assertSame(SyncResult.Status.ADD, res.getStatus());
         root.commit();
@@ -121,7 +123,9 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
         SyncedIdentity id = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull("known authorizable should exist", id);
-        assertEquals("external user should have correct external ref.idp", idp.getName(), id.getExternalIdRef().getProviderName());
+        ExternalIdentityRef ref = id.getExternalIdRef();
+        assertNotNull(ref);
+        assertEquals("external user should have correct external ref.idp", idp.getName(), ref.getProviderName());
         assertEquals("external user should have correct external ref.id", USER_ID, id.getExternalIdRef().getId());
     }
 
@@ -148,6 +152,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
         root.commit();
 
         SyncedIdentity si = syncHandler.findIdentity(userManager, USER_ID);
+        assertNotNull(si);
         assertNull(si.getExternalIdRef());
     }
 

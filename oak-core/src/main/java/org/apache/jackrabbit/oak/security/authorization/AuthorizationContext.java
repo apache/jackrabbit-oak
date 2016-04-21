@@ -61,7 +61,7 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
     @Override
     public boolean definesTree(@Nonnull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
-        return isNtName(ntName);
+        return ntName != null && isNtName(ntName);
     }
 
     @Override
