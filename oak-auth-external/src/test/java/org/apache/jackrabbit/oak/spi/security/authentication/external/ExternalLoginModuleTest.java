@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import java.util.HashMap;
-
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
@@ -40,8 +38,6 @@ import static org.junit.Assert.fail;
  * ExternalLoginModuleTest...
  */
 public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
-
-    protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
     @Before
     public void before() throws Exception {
