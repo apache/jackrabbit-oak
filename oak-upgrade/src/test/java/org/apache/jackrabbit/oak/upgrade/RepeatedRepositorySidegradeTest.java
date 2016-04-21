@@ -57,7 +57,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
             }
 
             final NodeStore target = getTargetNodeStore();
-            doUpgradeRepository(sourceDir, target);
+            doUpgradeRepository(sourceDir, target, false);
             fileStore.flush();
 
             fileStore = FileStore.newFileStore(sourceDir).create();
@@ -73,7 +73,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
                 fileStore.close();
             }
 
-            doUpgradeRepository(sourceDir, target);
+            doUpgradeRepository(sourceDir, target, true);
             fileStore.flush();
 
             upgradeComplete = true;
@@ -81,11 +81,12 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
     }
 
     @Override
-    protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
+    protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
         FileStore fileStore = FileStore.newFileStore(source).create();
         SegmentNodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);
+            repositoryUpgrade.setSkipInitialization(skipInit);
             repositoryUpgrade.copy(new RepositoryInitializer() {
                 @Override
                 public void initialize(@Nonnull NodeBuilder builder) {
