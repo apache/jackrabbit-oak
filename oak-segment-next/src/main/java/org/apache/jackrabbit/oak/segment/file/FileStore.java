@@ -468,7 +468,7 @@ public class FileStore implements SegmentStore {
                     } else {
                         log.warn("Unable to access revision {}, rewinding...", last);
                     }
-                } catch (IllegalArgumentException e) {
+                } catch (IllegalArgumentException ignore) {
                     log.warn("Skipping invalid record id {}", head);
                 }
             }
