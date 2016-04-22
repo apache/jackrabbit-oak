@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -251,6 +252,8 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
      */
     @Test
     public void testConcurrentWithConflict() throws InterruptedException {
+        assumeTrue(this.dsf != DocumentStoreFixture.RDB_DERBY);
+
         int threadCount = 10;
         int amount = 500;
 
