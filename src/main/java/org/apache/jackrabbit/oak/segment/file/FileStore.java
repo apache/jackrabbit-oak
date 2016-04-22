@@ -1078,7 +1078,8 @@ public class FileStore implements SegmentStore {
                             "Most likely compaction didn't get exclusive access to the store.", gcCount);
                     }
                 }
-                // FIXME OAK-3348 giving up leaves garbage that will only be cleaned up 2 generations later!
+                // FIXME OAK-4284: Garbage left behind when compaction does not succeed
+                // Giving up leaves garbage that will only be cleaned up 2 generations later!
             }
 
             gcMonitor.info("TarMK GC #{}: compaction completed in {} ({} ms), after {} cycles",
