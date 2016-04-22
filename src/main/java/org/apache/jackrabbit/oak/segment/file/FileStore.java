@@ -1015,7 +1015,8 @@ public class FileStore implements SegmentStore {
         gcMonitor.info("TarMK GC #{}: compaction started, strategy={}", gcCount, compactionStrategy);
         Stopwatch watch = Stopwatch.createStarted();
 
-        // FIXME OAK-3348 Make the capacity and initial depth of the deduplication cache configurable
+        // FIXME OAK-4277: Finalise de-duplication caches
+        // Make the capacity and initial depth of the deduplication cache configurable
         final DeduplicationCache<String> nodeCache = new DeduplicationCache<String>(1000000, 20);
 
         // FIXME OAK-3348 this way of compacting has not progress logging and cannot be cancelled
