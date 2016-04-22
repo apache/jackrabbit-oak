@@ -831,6 +831,7 @@ class TarReader implements Closeable {
         }
     }
 
+    // FIXME OAK-4165: Too verbose logging during revision gc
     private void logCleanedSegments(Set<UUID> cleaned) {
         StringBuilder uuids = new StringBuilder();
         String newLine = System.getProperty("line.separator", "\n") + "        ";
