@@ -1565,6 +1565,14 @@ public class MongoDocumentStore implements DocumentStore {
         // assumption here: server returns UTC - ie the returned
         // date object is correctly taking care of time zones.
         final Date serverLocalTime = db.command("serverStatus").getDate("localTime");
+        if (serverLocalTime == null) {
+        	// OAK-4107 : looks like this can happen - at least
+        	// has been seen once on mongo 3.0.9
+        	// let's handle this gently and issue a log.warn
+        	// instead of throwing a NPE
+        	LOG.warn("determineServerTimeDifferenceMillis: db.serverStatus.localTime returned null - cannot determine time difference - assuming 0ms");
+        	return 0;
+        }
         final long end = System.currentTimeMillis();
 
         final long midPoint = (start + end) / 2;
