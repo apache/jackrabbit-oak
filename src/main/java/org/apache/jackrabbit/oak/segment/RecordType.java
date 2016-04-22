@@ -59,7 +59,7 @@ public enum RecordType {
     /**
      * A bucket (a list of references). It always includes at least 2 elements,
      * up to 255 entries (because each entry could in theory point to a
-     * different segment, in which case this couldn't be stored in a segement).
+     * different segment, in which case this couldn't be stored in a segment).
      * This contains just the record ids. The size of the list is not stored, as
      * it is stored along with the reference to this record.
      */

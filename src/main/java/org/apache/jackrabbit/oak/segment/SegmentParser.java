@@ -623,7 +623,7 @@ public class SegmentParser {
     }
 
     /**
-     * Parse a value racrod
+     * Parse a value record
      * @param parentId  parent of the value record, {@code null} if none
      * @param valueId
      * @param type
