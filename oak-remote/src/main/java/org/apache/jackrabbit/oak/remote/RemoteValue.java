@@ -451,7 +451,7 @@ public class RemoteValue {
             }
 
             @Override
-            public Boolean asBoolean() {
+            public boolean asBoolean() {
                 return value;
             }
 
@@ -1023,8 +1023,8 @@ public class RemoteValue {
      * @return The value of this remote value if this remote value is of type
      * boolean, false otherwise.
      */
-    public Boolean asBoolean() {
-        return null;
+    public boolean asBoolean() {
+        return false;
     }
 
     /**
