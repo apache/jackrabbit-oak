@@ -53,7 +53,7 @@ public enum SegmentVersion {
     /**
      * Latest segment version
      */
-    public static SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
+    public static final SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
         new Comparator<SegmentVersion>() {
             @Override
             public int compare(SegmentVersion v1, SegmentVersion v2) {
