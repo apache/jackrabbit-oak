@@ -38,14 +38,13 @@ import com.google.common.base.Suppliers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * FIXME OAK-3348 document
- */
-// FIXME OAK-3348 implement monitoring for this cache
-// FIXME OAK-3348 unit test
+// FIXME OAK-4277: Finalise de-duplication caches
+// implement monitoring for this cache
+// add unit tests
 public class RecordCache<T> {
     private static final Logger LOG = LoggerFactory.getLogger(RecordCache.class);
-    // FIXME OAK-3348 make this a feature flag
+    // FIXME OAK-4277: Finalise de-duplication caches
+    // make this configurable
     private static final int RETENTION_THRESHOLD = 1;
 
     private final ConcurrentMap<Integer, Supplier<Cache<T>>> generations = newConcurrentMap();
@@ -170,7 +169,8 @@ public class RecordCache<T> {
 
         @Override
         public synchronized void put(T key, RecordId value, int cost) {
-            // FIXME OAK-3348 Validate and optimise the eviction strategy.
+            // FIXME OAK-4277: Finalise de-duplication caches
+            // Validate and optimise the eviction strategy.
             // Nodes with many children should probably get a boost to
             // protecting them from preemptive eviction. Also it might be
             // necessary to implement pinning (e.g. for checkpoints).
