@@ -182,7 +182,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             byte[] data = metaInfo.getBytes(UTF_8);
             RecordWriters.newValueWriter(data.length, data).write(this);
         } catch (IOException e) {
-            LOG.error("Unable to write meta info to segment {} {}", segment.getSegmentId(), metaInfo);
+            LOG.error("Unable to write meta info to segment {} {}", segment.getSegmentId(), metaInfo, e);
         }
     }
 
