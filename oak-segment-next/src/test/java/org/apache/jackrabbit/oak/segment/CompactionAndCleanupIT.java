@@ -374,7 +374,8 @@ public class CompactionAndCleanupIT {
                     nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 }
 
-                // FIXME OAK-3348 need to compact twice because of the generation cleanup threshold
+                // FIXME OAK-4282: Make the number of retained gc generation configurable
+                // Need to compact twice because of the generation cleanup threshold
                 // (currently hard coded to 2);
                 fileStore.compact();
                 fileStore.compact();
