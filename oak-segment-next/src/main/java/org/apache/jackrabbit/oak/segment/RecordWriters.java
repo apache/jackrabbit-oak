@@ -314,7 +314,6 @@ final class RecordWriters {
 
     /**
      * Single RecordId record writer.
-     * @see SegmentWriter#writeValueRecord
      * @see RecordType#VALUE
      */
     private static class SingleValueWriter extends RecordWriter {
@@ -340,7 +339,6 @@ final class RecordWriters {
      * Bye array record writer. Used as a special case for short binaries (up to
      * about {@code Segment#MEDIUM_LIMIT}): store them directly as small or
      * medium-sized value records.
-     * @see SegmentWriter#writeValueRecord
      * @see Segment#MEDIUM_LIMIT
      * @see RecordType#VALUE
      */
