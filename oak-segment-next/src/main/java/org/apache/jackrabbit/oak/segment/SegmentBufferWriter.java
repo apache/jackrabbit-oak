@@ -29,7 +29,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
-import static org.apache.jackrabbit.oak.segment.RecordWriters.newValueWriter;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GEN_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;

@@ -393,7 +393,7 @@ public class FileStore implements SegmentStore {
             checkNotNull(builder.directory).mkdirs();
         }
 
-        // FIXME OAK-3348 Improve the setup of FileStore and SegmentTracker.
+        // FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
         // SegmentTracker and FileStore have a cyclic dependency, which we should
         // try to break. Here we pass along a not fully initialised instances of the
         // FileStore to the SegmentTracker, which in turn is in later invoked to write
@@ -551,8 +551,9 @@ public class FileStore implements SegmentStore {
         log.debug("TarMK readers {}", this.readers);
     }
 
-    // FIXME OAK-3348 hack: We cannot determine the current GC generation before
-    // the FileStore is fully initialised so just return 0 for now.
+    // FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
+    // We cannot determine the current GC generation before the FileStore is fully
+    // initialised so just return 0 for now.
     public int getGcGen() {
         if (head == null) {
             return 0;  // not fully initialised
@@ -885,7 +886,7 @@ public class FileStore implements SegmentStore {
         Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
             reader.mark(bulkRefs, reclaim, generation);
-            // FIXME OAK-3348 log at debug level
+            // FIXME OAK-4165: Too verbose logging during revision gc
             log.info("Size of bulk references/reclaim set {}/{}", bulkRefs.size(), reclaim.size());
             if (shutdown) {
                 gcMonitor.info("TarMK GC #{}: cleanup interrupted", gcCount);
@@ -1138,8 +1139,8 @@ public class FileStore implements SegmentStore {
         return new SegmentNodeState(head.get());
     }
 
-    // FIXME OAK-3348 Maybe us a lock implementation that could expedite important commits
-    // like compaction and checkpoints. See OAK-4015. Needs to be evaluated.
+    // FIXME OAK-4015: Expedite commits from the compactor
+    // use a lock that can expedite important commits like compaction and checkpoints.
     private ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     @Override
