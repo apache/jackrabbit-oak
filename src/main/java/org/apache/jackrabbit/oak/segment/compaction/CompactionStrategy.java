@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// FIXME OAK-3348 Refactor this into a proper AST. Identify and remove "legacy" parts
+// FIXME OAK-4276: Refactor / rework compaction strategies
+// Refactor this into a proper AST. Identify and remove "legacy" parts
 public class CompactionStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(CompactionStrategy.class);
 
@@ -116,7 +117,8 @@ public class CompactionStrategy {
 
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
 
-    // FIXME OAK-3348 Make the lock wait time configurable
+    // FIXME OAK-4276: Refactor / rework compaction strategies
+    // Make the lock wait time configurable
     private int lockWaitTime = 60;
 
     private long compactionStart = currentTimeMillis();
