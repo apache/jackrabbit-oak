@@ -33,7 +33,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
@@ -1149,7 +1148,7 @@ public class FileStore implements SegmentStore {
 
     // FIXME OAK-4015: Expedite commits from the compactor
     // use a lock that can expedite important commits like compaction and checkpoints.
-    private ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     @Override
     public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
