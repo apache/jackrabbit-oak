@@ -876,7 +876,8 @@ public class SegmentWriter {
 
             RecordId nodeId = null;
             if (state instanceof SegmentNodeState) {
-                // FIXME OAK-3348 offline compaction could remove those ids
+                // FIXME OAK-4279: Rework offline compaction
+                // Offline compaction could remove these ids
                 byte[] id = ((Record) state).getRecordId().toArray();
                 nodeId = writeBlock(id, 0, id.length);
             }
