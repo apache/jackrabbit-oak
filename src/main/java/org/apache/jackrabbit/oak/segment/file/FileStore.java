@@ -1065,7 +1065,8 @@ public class FileStore implements SegmentStore {
             if (success) {
                 tracker.getWriter().addCachedNodes(gcGeneration, nodeCache);
                 tracker.clearSegmentIdTables(compactionStrategy);
-                // FIXME OAK-3348 refactor GCMonitor: there is no more compaction map stats
+                // FIXME OAK-4283: Align GCMonitor API with implementation
+                // Refactor GCMonitor: there is no more compaction map stats
                 gcMonitor.compacted(new long[]{}, new long[]{}, new long[]{});
             } else {
                 gcMonitor.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
