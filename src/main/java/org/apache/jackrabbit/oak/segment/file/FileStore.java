@@ -1019,6 +1019,7 @@ public class FileStore implements SegmentStore {
         // Make the capacity and initial depth of the deduplication cache configurable
         final DeduplicationCache<String> nodeCache = new DeduplicationCache<String>(1000000, 20);
 
+        // FIXME OAK-4280: Compaction cannot be cancelled
         // FIXME OAK-4279: Rework offline compaction
         // This way of compacting has not progress logging and cannot be cancelled
         int gcGeneration = tracker.getGcGen() + 1;
