@@ -570,7 +570,9 @@ public class FileStore implements SegmentStore {
 
         Runtime runtime = Runtime.getRuntime();
         long avail = runtime.totalMemory() - runtime.freeMemory();
-        long delta = 0;  // FIXME OAK-3348 what value should we use for delta?
+        // FIXME OAK-4281: Rework memory estimation for compaction
+        // What value should we use for delta?
+        long delta = 0;
         long needed = delta * compactionStrategy.getMemoryThreshold();
         if (needed >= avail) {
             gcMonitor.skipped(
