@@ -334,7 +334,8 @@ public class SegmentTracker {
         return getSegmentId(msb, lsb);
     }
 
-    // FIXME OAK-3348 with clean brutal we need to remove those ids that have been cleaned
+    // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
+    // ith clean brutal we need to remove those ids that have been cleaned
     // i.e. those whose segment was from an old generation
     public synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
         for (SegmentIdTable table : tables) {
