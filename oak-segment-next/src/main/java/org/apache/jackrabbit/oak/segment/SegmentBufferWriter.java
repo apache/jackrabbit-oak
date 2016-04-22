@@ -226,7 +226,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
     }
 
-    // FIXME OAK-3348 disable/remove this in production
+    // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGen
+    // Disable/remove this in production
     private void checkGCGen(SegmentId id) {
         try {
             if (isDataSegmentId(id.getLeastSignificantBits())) {
