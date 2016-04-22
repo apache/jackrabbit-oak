@@ -55,7 +55,8 @@ public class FileStoreBackup {
         FileStore backup = builder.build();
         try {
             SegmentNodeState state = backup.getHead();
-            // FIXME OAK-3348 Use dedicated implementation instead of compactor.
+            // FIXME OAK-4278: Fix backup and restore
+            // Use dedicated implementation instead of compactor.
             // This is allows us to decouple and fix problems for online compaction independent
             // of backup / restore.
 //            Compactor compactor = new Compactor(backup.getTracker());
