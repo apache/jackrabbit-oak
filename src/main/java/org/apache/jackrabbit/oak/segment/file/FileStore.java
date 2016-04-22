@@ -882,9 +882,8 @@ public class FileStore implements SegmentStore {
             fileStoreLock.writeLock().unlock();
         }
 
-        // Do actual cleanup outside of the lock to prevent blocking
-        // concurrent writers for a long time
-        int generation = getGcGen() - 1;  // FIXME OAK-3348 make the generation threshold configurable
+        // FIXME OAK-4282: Make the number of retained gc generation configurable
+        int generation = getGcGen() - 1;
         Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
             reader.mark(bulkRefs, reclaim, generation);
