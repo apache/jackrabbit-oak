@@ -340,7 +340,9 @@ public class S3Backend implements SharedS3Backend {
                 }
             });
         } catch (Exception e) {
-            callback.onAbort(new AsyncTouchResult(identifier));
+            if (callback != null) {
+                callback.onAbort(new AsyncTouchResult(identifier));
+            }
             throw new DataStoreException("Cannot touch the record "
                 + identifier.toString(), e);
         } finally {
