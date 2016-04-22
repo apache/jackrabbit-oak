@@ -51,7 +51,8 @@ public class FileStoreRestore {
         FileStore store = FileStore.builder(destination).build();
         SegmentNodeState current = store.getHead();
         try {
-            // FIXME OAK-3348 Use dedicated implementation instead of compactor.
+            // FIXME OAK-4278: Fix backup and restore
+            // Use dedicated implementation instead of compactor.
             // This is allows us to decouple and fix problems for online compaction independent
             // of backup / restore.
             // compactor.setDeepCheckLargeBinaries(true);
