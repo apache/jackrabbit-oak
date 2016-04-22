@@ -33,6 +33,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
@@ -798,12 +799,16 @@ public class FileStore implements SegmentStore {
             RecordId after = head.get();
 
             if (cleanup || !after.equals(before)) {
-                // needs to happen outside the synchronization block below to
-                // avoid a deadlock with another thread flushing the writer
                 tracker.getWriter().flush();
 
-                // needs to happen outside the synchronization block below to
-                // prevent the flush from stopping concurrent reads and writes
+                // FIXME OAK-4291: FileStore.flush prone to races leading to corruption
+                // There is a small windows that could lead to a corrupted store:
+                // if we crash right after setting the persisted head but before any delay-flushed
+                // SegmentBufferWriter instance flushes (see SegmentBufferWriterPool.returnWriter())
+                // then that data is lost although it might be referenced from the persisted head already.
+
+                // Need a test case. Possible fix: return a future from flush() and set the persisted head
+                // in the completion handler.
                 writer.flush();
 
                 fileStoreLock.writeLock().lock();
@@ -816,9 +821,6 @@ public class FileStore implements SegmentStore {
                     fileStoreLock.writeLock().unlock();
                 }
 
-                // Needs to happen outside the synchronization block above to
-                // prevent the flush from stopping concurrent reads and writes
-                // by the persisted compaction map. See OAK-3264
                 if (cleanup) {
                     // Explicitly give up reference to the previous root state
                     // otherwise they would block cleanup. See OAK-3347
@@ -1173,7 +1175,8 @@ public class FileStore implements SegmentStore {
         closeAndLogOnFail(diskSpaceThread);
         try {
             flush();
-            // FIXME OAK-3348 Replace this with a way to "close" the underlying SegmentBufferWriter(s)
+            // FIXME OAK-4291: FileStore.flush prone to races leading to corruption
+            // Replace this with a way to "close" the underlying SegmentBufferWriter(s)
             // tracker.getWriter().dropCache();
             fileStoreLock.writeLock().lock();
             try {
