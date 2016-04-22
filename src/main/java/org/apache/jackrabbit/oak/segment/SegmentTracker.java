@@ -249,9 +249,9 @@ public class SegmentTracker {
         segmentCache.put(id, segment, segment.size());
     }
 
-    // FIXME OAK-3348 Improve retrieving current GC generation.
-    // See also the comments in FileStore regarding initialisation and
-    // cyclic dependencies.
+    // FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
+    // Improve retrieving current GC generation. (OAK-4102)
+    // See also the comments in FileStore regarding initialisation and cyclic dependencies.
     public int getGcGen() {
         if (store instanceof FileStore) {
             return ((FileStore) store).getGcGen();

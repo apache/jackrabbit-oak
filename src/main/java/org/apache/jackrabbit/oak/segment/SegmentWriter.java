@@ -71,7 +71,8 @@ import org.slf4j.LoggerFactory;
  * Converts nodes, properties, and values to records, which are written to segments.
  * FIXME OAK-3348 doc thread safety properties
  */
-// FIXME OAK-3348 Improve the way how SegmentWriter instances are created.
+// FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
+// Improve the way how SegmentWriter instances are created. (OAK-4102)
 public class SegmentWriter {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
 
