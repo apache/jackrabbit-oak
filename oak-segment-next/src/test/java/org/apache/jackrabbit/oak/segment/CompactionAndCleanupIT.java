@@ -88,7 +88,9 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    @Ignore  // FIXME OAK-3348 fix failing test compactionNoBinaryClone
+    @Ignore
+    // FIXME OAK-4286: Rework failing tests in CompactionAndCleanupIT
+    // Fix failing test compactionNoBinaryClone
     public void compactionNoBinaryClone() throws Exception {
         // 2MB data, 5MB blob
         final int blobSize = 5 * 1024 * 1024;
@@ -497,7 +499,9 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    @Ignore  // FIXME OAK-3348 fix failing test propertyRetention
+    @Ignore
+    // FIXME OAK-4286: Rework failing tests in CompactionAndCleanupIT
+    // Fix failing test propertyRetention
     public void propertyRetention() throws IOException, CommitFailedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
         try {
