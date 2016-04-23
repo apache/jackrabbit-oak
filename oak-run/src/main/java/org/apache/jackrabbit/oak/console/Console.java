@@ -31,6 +31,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
+import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -38,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.codehaus.groovy.tools.shell.IO;
 
@@ -55,6 +58,7 @@ public class Console {
         OptionSpec quiet = parser.accepts("quiet", "be less chatty");
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
         OptionSpec readOnly = parser.accepts("read-only", "connect to repository in read-only mode");
+        OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
         // RDB specific options
@@ -76,6 +80,19 @@ public class Console {
             System.exit(1);
         }
 
+        BlobStore blobStore = null;
+        String fdsPath = fdsPathSpec.value(options);
+        if (!"".equals(fdsPath)) {
+            File fdsDir = new File(fdsPath);
+            if (fdsDir.exists()) {
+                FileDataStore fds = new FileDataStore();
+                fds.setPath(fdsDir.getAbsolutePath());
+                fds.init(null);
+
+                blobStore = new DataStoreBlobStore(fds);
+            }
+        }
+
         NodeStoreFixture fixture;
         if (nonOptions.get(0).startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(nonOptions.get(0));
@@ -85,8 +102,11 @@ public class Console {
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
 
-            DocumentMK.Builder builder = new DocumentMK.Builder().
-                    setMongoDB(mongo.getDB()).
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            if (blobStore != null) {
+                builder.setBlobStore(blobStore);
+            }
+            builder.setMongoDB(mongo.getDB()).
                     setClusterId(clusterId.value(options));
             if (options.has(readOnly)) {
                 builder.setReadOnlyMode();
@@ -96,13 +116,20 @@ public class Console {
         } else if (nonOptions.get(0).startsWith("jdbc")) {
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(nonOptions.get(0), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options));
-            DocumentMK.Builder builder = new DocumentMK.Builder().
-                    setRDBConnection(ds).
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            if (blobStore != null) {
+                builder.setBlobStore(blobStore);
+            }
+            builder.setRDBConnection(ds).
                     setClusterId(clusterId.value(options));
             DocumentNodeStore store = builder.getNodeStore();
             fixture = new MongoFixture(store);
         } else {
-            fixture = new SegmentFixture(FileStore.builder(new File(nonOptions.get(0))).withMaxFileSize(256).build());
+            FileStore.Builder fsBuilder = FileStore.builder(new File(nonOptions.get(0))).withMaxFileSize(256);
+            if (blobStore != null) {
+                fsBuilder.withBlobStore(blobStore);
+            }
+            fixture = new SegmentFixture(fsBuilder.build());
         }
 
         List<String> scriptArgs = nonOptions.size() > 1 ?
