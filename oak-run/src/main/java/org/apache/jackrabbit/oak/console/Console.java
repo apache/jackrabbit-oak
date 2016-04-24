@@ -129,7 +129,13 @@ public class Console {
             if (blobStore != null) {
                 fsBuilder.withBlobStore(blobStore);
             }
-            fixture = new SegmentFixture(fsBuilder.build());
+            FileStore store;
+            if (options.has(readOnly)) {
+                store = fsBuilder.buildReadOnly();
+            } else {
+                store = fsBuilder.build();
+            }
+            fixture = new SegmentFixture(store);
         }
 
         List<String> scriptArgs = nonOptions.size() > 1 ?
