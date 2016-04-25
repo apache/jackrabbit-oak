@@ -24,6 +24,7 @@ Technical task
 
 Bug
 
+    [OAK-4148] - RAT plugin complains about derby files
     [OAK-4166] - Simple versionable nodes are invalid after migration
 
 Documentation
@@ -33,6 +34,7 @@ Documentation
 
 Improvement
 
+    [OAK-4136] - release profile in maven
     [OAK-4175] - Allow to skip the repository initialization in
     oak-upgrade
     [OAK-4242] - Counter index should be rebuilt after successful
