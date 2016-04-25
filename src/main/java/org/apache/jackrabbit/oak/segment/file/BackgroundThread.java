@@ -97,7 +97,7 @@ class BackgroundThread extends Thread implements Closeable {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(name + " interrupted", e);
+            log.error("{} interrupted", name, e);
         } catch (Error e) {
             log.error("Unhandled error in background thread", e);
             throw e;
@@ -118,7 +118,7 @@ class BackgroundThread extends Thread implements Closeable {
             join();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(name + " join interrupted", e);
+            log.error("{} join interrupted", name, e);
         }
     }
 

@@ -192,7 +192,7 @@ class TarReader implements Closeable {
                 access.close();
             }
         } catch (IOException e) {
-            log.warn("Could not read tar file " + file + ", skipping...", e);
+            log.warn("Could not read tar file {}, skipping...", file, e);
         }
 
         if (backup) {
@@ -209,7 +209,7 @@ class TarReader implements Closeable {
      */
     private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries,
             File file) throws IOException {
-        log.info("Regenerating tar file " + file);
+        log.info("Regenerating tar file {}", file);
         TarWriter writer = new TarWriter(file);
         for (Map.Entry<UUID, byte[]> entry : entries.entrySet()) {
             UUID uuid = entry.getKey();
@@ -233,7 +233,7 @@ class TarReader implements Closeable {
      */
     private static void backupSafely(File file) throws IOException {
         File backup = findAvailGen(file, ".bak");
-        log.info("Backing up " + file + " to " + backup.getName());
+        log.info("Backing up {} to {}", file, backup.getName());
         if (!file.renameTo(backup)) {
             log.warn("Renaming failed, so using copy to backup {}", file);
             FileUtils.copyFile(file, backup);
@@ -288,19 +288,13 @@ class TarReader implements Closeable {
                                         indexSize);
                                 return new TarReader(file, mapped, index);
                             } catch (IOException e) {
-                                log.warn("Failed to mmap tar file " + name
-                                                 + ". Falling back to normal file IO,"
-                                                 + " which will negatively impact"
-                                                 + " repository performance. This"
-                                                 + " problem may have been caused by"
-                                                 + " restrictions on the amount of"
-                                                 + " virtual memory available to the"
-                                                 + " JVM. Please make sure that a"
-                                                 + " 64-bit JVM is being used and"
-                                                 + " that the process has access to"
-                                                 + " unlimited virtual memory"
-                                                 + " (ulimit option -v).",
-                                         e);
+                                log.warn("Failed to mmap tar file {}. Falling back to normal file " +
+                                        "IO, which will negatively impact repository performance. " +
+                                        "This problem may have been caused by restrictions on the " +
+                                        "amount of virtual memory available to the JVM. Please make " +
+                                        "sure that a 64-bit JVM is being used and that the process " +
+                                        "has access to unlimited virtual memory (ulimit option -v).",
+                                        name, e);
                             }
                         }
 
@@ -316,7 +310,7 @@ class TarReader implements Closeable {
                     }
                 }
             } catch (IOException e) {
-                log.warn("Could not read tar file " + name + ", skipping...", e);
+                log.warn("Could not read tar file {}, skipping...", name, e);
             }
         }
 
