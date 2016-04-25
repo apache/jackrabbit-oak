@@ -47,9 +47,12 @@ abstract class FileAccess {
      */
     static class Mapped extends FileAccess {
 
-        private final MappedByteBuffer buffer;
+        private final RandomAccessFile file;
+
+        private MappedByteBuffer buffer;
 
         Mapped(RandomAccessFile file) throws IOException {
+            this.file = file;
             this.buffer = file.getChannel().map(READ_ONLY, 0, file.length());
         }
 
@@ -72,7 +75,9 @@ abstract class FileAccess {
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
+            buffer = null;
+            file.close();
         }
 
     }
