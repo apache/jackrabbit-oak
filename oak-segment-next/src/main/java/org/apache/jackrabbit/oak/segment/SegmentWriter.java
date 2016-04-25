@@ -68,12 +68,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Converts nodes, properties, and values to records, which are written to segments.
- * FIXME OAK-3348 doc thread safety properties
+ * A {@code SegmentWriter} converts nodes, properties, values, etc. to records and
+ * persists them with the help of a {@link WriteOperationHandler}.
+ * All public methods of this class are thread safe if and only if the
+ * {@code WriteOperationHandler} passed to the constructor is thread safe.
  */
+public class SegmentWriter {
 // FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
 // Improve the way how SegmentWriter instances are created. (OAK-4102)
-public class SegmentWriter {
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
@@ -129,6 +132,15 @@ public class SegmentWriter {
 
     private final WriteOperationHandler writeOperationHandler;
 
+    /**
+     * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
+     * pointed out in the class comment.
+     *
+     * @param store      store to write to
+     * @param version    segment version to write
+     * @param writeOperationHandler  handler for write operations.
+     * @param nodeCache  de-duplication cache for nodes
+     */
     public SegmentWriter(SegmentStore store, SegmentVersion version, WriteOperationHandler writeOperationHandler,
             RecordCache<String> nodeCache) {
         this.store = store;
@@ -138,9 +150,12 @@ public class SegmentWriter {
     }
 
     /**
-     * @param store     store to write to
-     * @param version   segment version to write
-     * FIXME OAK-3348 document
+     * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
+     * pointed out in the class comment.
+     *
+     * @param store      store to write to
+     * @param version    segment version to write
+     * @param writeOperationHandler  handler for write operations.
      */
     public SegmentWriter(SegmentStore store, SegmentVersion version, WriteOperationHandler writeOperationHandler) {
         this(store, version, writeOperationHandler, new RecordCache<String>());
@@ -255,7 +270,12 @@ public class SegmentWriter {
             }));
     }
 
-    // FIXME OAK-3348 document: not thread safe
+    /**
+     * This {@code WriteOperation} implementation is used internally to provide
+     * context to a recursive chain of calls without having pass the context
+     * as a separate argument (a poor mans monad). As such it is entirely
+     * <em>not thread safe</em>.
+     */
     private abstract class SegmentWriteOperation implements WriteOperation {
         private SegmentBufferWriter writer;
 
