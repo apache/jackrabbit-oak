@@ -173,8 +173,6 @@ public class Segment {
 
     private static final boolean DISABLE_TEMPLATE_CACHE = getBoolean("oak.segment.disableTemplateCache");
 
-    private volatile long accessed;
-
     /**
      * Decode a 4 byte aligned segment offset.
      * @param offset  4 byte aligned segment offset
@@ -610,23 +608,11 @@ public class Segment {
         }
 
         PropertyTemplate[] properties;
-        properties = readPropsV11(propertyCount, offset);
+        properties = readProps(propertyCount, offset);
         return new Template(primaryType, mixinTypes, properties, childName);
     }
 
-    private PropertyTemplate[] readPropsV10(int propertyCount, int offset) {
-        PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
-        for (int i = 0; i < propertyCount; i++) {
-            RecordId propertyNameId = readRecordId(offset);
-            offset += RECORD_ID_BYTES;
-            byte type = readByte(offset++);
-            properties[i] = new PropertyTemplate(i, readString(propertyNameId),
-                    Type.fromTag(Math.abs(type), type < 0));
-        }
-        return properties;
-    }
-
-    private PropertyTemplate[] readPropsV11(int propertyCount, int offset) {
+    private PropertyTemplate[] readProps(int propertyCount, int offset) {
         PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
         if (propertyCount > 0) {
             RecordId id = readRecordId(offset);
