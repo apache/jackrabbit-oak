@@ -77,17 +77,11 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     private volatile Segment segment;
 
-    private SegmentId(SegmentTracker tracker, long msb, long lsb,
-            Segment segment, long creationTime) {
+    public SegmentId(SegmentTracker tracker, long msb, long lsb) {
         this.tracker = tracker;
         this.msb = msb;
         this.lsb = lsb;
-        this.segment = segment;
-        this.creationTime = creationTime;
-    }
-
-    public SegmentId(SegmentTracker tracker, long msb, long lsb) {
-        this(tracker, msb, lsb, null, System.currentTimeMillis());
+        this.creationTime = System.currentTimeMillis();
     }
 
     /**
