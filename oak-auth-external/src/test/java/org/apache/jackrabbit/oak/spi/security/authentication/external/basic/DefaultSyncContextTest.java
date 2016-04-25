@@ -221,12 +221,12 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testGetIdentityRefSyncUser() throws Exception {
-        ExternalIdentity externalGroupUser = idp.listGroups().next();
-        sync(externalGroupUser);
+        ExternalIdentity externalUser = idp.listUsers().next();
+        sync(externalUser);
 
-        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(getUserManager(root).getAuthorizable(externalGroupUser.getId()));
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(getUserManager(root).getAuthorizable(externalUser.getId()));
         assertNotNull(ref);
-        assertEquals(externalGroupUser.getExternalId(), ref);
+        assertEquals(externalUser.getExternalId(), ref);
     }
 
     @Test
