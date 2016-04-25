@@ -154,8 +154,7 @@ public class SegmentIdTable {
             // something is wrong, possibly a concurrency problem, a SegmentId
             // hashcode or equals bug, or a problem with this hash table
             // algorithm
-            LOG.warn("Unexpected entry count mismatch, expected " + 
-                    entryCount + " got " + ids.size());
+            LOG.warn("Unexpected entry count mismatch, expected {} got {}", entryCount, ids.size());
             // we fix the count, because having a wrong entry count would be
             // very problematic; even worse than having a concurrency problem
             entryCount = ids.size();

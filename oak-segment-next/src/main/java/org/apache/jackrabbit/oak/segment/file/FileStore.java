@@ -507,8 +507,7 @@ public class FileStore implements SegmentStore {
                             try {
                                 flush();
                             } catch (IOException e) {
-                                log.warn("Failed to flush the TarMK at" +
-                                        directory, e);
+                                log.warn("Failed to flush the TarMK at {}", directory, e);
                             }
                         }
                     });
@@ -1260,7 +1259,7 @@ public class FileStore implements SegmentStore {
                     return new Segment(tracker, id, buffer);
                 }
             } catch (IOException e) {
-                log.warn("Failed to read from tar file " + reader, e);
+                log.warn("Failed to read from tar file {}", reader, e);
             }
         }
 
@@ -1273,7 +1272,7 @@ public class FileStore implements SegmentStore {
                         return new Segment(tracker, id, buffer);
                     }
                 } catch (IOException e) {
-                    log.warn("Failed to read from tar file " + writer, e);
+                    log.warn("Failed to read from tar file {}", writer, e);
                 }
             } finally {
                 fileStoreLock.readLock().unlock();
@@ -1296,7 +1295,7 @@ public class FileStore implements SegmentStore {
                     return new Segment(tracker, id, buffer);
                 }
             } catch (IOException e) {
-                log.warn("Failed to read from tar file " + reader, e);
+                log.warn("Failed to read from tar file {}", reader, e);
             }
         }
 
