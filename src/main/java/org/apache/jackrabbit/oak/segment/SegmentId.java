@@ -102,10 +102,6 @@ public class SegmentId implements Comparable<SegmentId> {
         return (lsb >>> 60) == 0xBL;
     }
 
-    public boolean equals(long msb, long lsb) {
-        return this.msb == msb && this.lsb == lsb;
-    }
-
     public long getMostSignificantBits() {
         return msb;
     }
@@ -159,13 +155,6 @@ public class SegmentId implements Comparable<SegmentId> {
 
     public long getCreationTime() {
         return creationTime;
-    }
-
-    /**
-     * Pins this segment so it won't be cleaned by the {@code CLEAN_OLD} strategy.
-     */
-    void pin() {
-        creationTime = Long.MAX_VALUE;
     }
 
     /**

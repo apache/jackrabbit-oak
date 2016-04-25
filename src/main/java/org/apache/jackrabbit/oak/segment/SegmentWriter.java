@@ -777,14 +777,6 @@ public class SegmentWriter {
             return tid;
         }
 
-        private RecordId toCache(NodeState state, int depth, RecordId recordId) {
-            if (state instanceof SegmentNodeState) {
-                SegmentNodeState sns = (SegmentNodeState) state;
-                nodeCache.generation(generation()).put(sns.getId(), recordId, depth);
-            }
-            return recordId;
-        }
-
         private RecordId writeNode(NodeState state, int depth) throws IOException {
             if (state instanceof SegmentNodeState) {
                 SegmentNodeState sns = ((SegmentNodeState) state);

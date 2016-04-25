@@ -190,10 +190,6 @@ public class SegmentBlob extends Record implements Blob {
                 && AbstractBlob.equal(this, (Blob) object);
     }
 
-    private static boolean isLongBlob(byte head) {
-        return (head & 0xe0) == 0xc0;
-    }
-
     @Override
     public int hashCode() {
         return 0;
