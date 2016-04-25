@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
+import static org.apache.commons.lang.StringUtils.removeStart;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
 
 import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentNextFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.MigrationDirection;
 
@@ -94,12 +97,24 @@ enum StoreType {
     SEGMENT {
         @Override
         public boolean matches(String argument) {
+            return argument.startsWith(SEGMENT_OLD_PREFIX);
+        }
+
+        @Override
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+            String path = removeStart(paths[0], SEGMENT_OLD_PREFIX);
+            return new StoreFactory(new SegmentFactory(path, arguments.getOptions().isMmap()));
+        }
+    },
+    SEGMENT_NEXT {
+        @Override
+        public boolean matches(String argument) {
             return true;
         }
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new SegmentFactory(paths[0], arguments.getOptions().isMmap()));
+            return new StoreFactory(new SegmentNextFactory(paths[0], arguments.getOptions().isMmap()));
         }
     };
 

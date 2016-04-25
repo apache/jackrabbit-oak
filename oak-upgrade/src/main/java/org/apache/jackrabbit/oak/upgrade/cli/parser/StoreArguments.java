@@ -53,6 +53,8 @@ public class StoreArguments {
 
     private static final String REPOSITORY_XML = "repository.xml";
 
+    public static final String SEGMENT_OLD_PREFIX = "segment-old:";
+
     private static final Logger log = LoggerFactory.getLogger(StoreArguments.class);
 
     private final MigrationCliArguments parser;
