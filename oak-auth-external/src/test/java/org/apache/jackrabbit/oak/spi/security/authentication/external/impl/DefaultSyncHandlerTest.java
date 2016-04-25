@@ -48,6 +48,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * DefaultSyncHandlerTest
@@ -222,9 +223,9 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     @Test
     public void testListIdentitiesBeforeSync() throws Exception {
         Iterator<SyncedIdentity> identities = syncHandler.listIdentities(userManager);
-        while (identities.hasNext()) {
+        if (identities.hasNext()) {
             SyncedIdentity si = identities.next();
-            assertNull(si.getExternalIdRef());
+            fail("Sync handler returned unexpected identity: " + si);
         }
     }
 
@@ -245,7 +246,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
                 expected.remove(si.getId());
                 assertNotNull(si.getExternalIdRef());
             } else {
-                assertNull(si.getExternalIdRef());
+                fail("Sync handler returned unexpected identity: " + si);
             }
         }
         assertTrue(expected.isEmpty());
