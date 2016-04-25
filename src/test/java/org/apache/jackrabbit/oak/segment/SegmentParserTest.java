@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Strings.repeat;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
-import static java.io.File.createTempFile;
 import static junitx.framework.ComparableAssert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
@@ -39,7 +38,6 @@ import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -59,10 +57,11 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class SegmentParserTest {
-    private File directory;
     private SegmentStore store;
     private SegmentWriter writer;
 
@@ -138,13 +137,12 @@ public class SegmentParserTest {
         }
     }
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     @Before
     public void setup() throws IOException {
-        directory = createTempFile(getClass().getSimpleName(), "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-
-        store = FileStore.builder(directory).build();
+        store = FileStore.builder(folder.getRoot()).build();
         writer = new SegmentWriter(store, LATEST_VERSION,
             new SegmentBufferWriter(store, LATEST_VERSION, ""));
     }
@@ -152,7 +150,6 @@ public class SegmentParserTest {
     @After
     public void tearDown() {
         store.close();
-        directory.delete();
     }
 
     @Test
