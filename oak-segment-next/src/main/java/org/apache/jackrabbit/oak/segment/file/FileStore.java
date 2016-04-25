@@ -822,7 +822,7 @@ public class FileStore implements SegmentStore {
 
                 if (cleanup) {
                     // Explicitly give up reference to the previous root state
-                    // otherwise they would block cleanup. See OAK-3347
+                    // otherwise they could block cleanup. See OAK-3347
                     before = null;
                     after = null;
                     pendingRemove.addAll(cleanup());
