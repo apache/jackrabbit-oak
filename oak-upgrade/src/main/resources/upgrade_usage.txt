@@ -34,7 +34,8 @@ in-place. Old files will be moved to the repository/crx2 directory.
 
 An descriptor of the Oak node store. Possible options:
 
-  * path to the segment store
+  * path to the segment-next store
+  * segment-old:/path/to/classic/segment
   * jdbc:... (requires passing username and password as separate parameters)
   * mongodb://host:port/database
 

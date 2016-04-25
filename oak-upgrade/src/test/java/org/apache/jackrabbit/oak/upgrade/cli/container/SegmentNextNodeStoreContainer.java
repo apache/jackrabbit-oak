@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
+import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.google.common.io.Files;
-
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
-
-public class SegmentNodeStoreContainer implements NodeStoreContainer {
+public class SegmentNextNodeStoreContainer implements NodeStoreContainer {
 
     private final File directory;
 
@@ -36,16 +33,16 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     private FileStore fs;
 
-    public SegmentNodeStoreContainer() {
+    public SegmentNextNodeStoreContainer() {
         this(Files.createTempDir());
     }
 
-    public SegmentNodeStoreContainer(File directory) {
+    public SegmentNextNodeStoreContainer(File directory) {
         this.blob = null;
         this.directory = directory;
     }
 
-    public SegmentNodeStoreContainer(BlobStoreContainer blob) {
+    public SegmentNextNodeStoreContainer(BlobStoreContainer blob) {
         this.blob = blob;
         this.directory = Files.createTempDir();
     }
@@ -75,7 +72,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public String getDescription() {
-        return SEGMENT_OLD_PREFIX + directory.getPath();
+        return directory.getPath();
     }
 
 }
