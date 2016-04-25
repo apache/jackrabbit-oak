@@ -56,7 +56,6 @@ public abstract class AbstractRandomizedTest {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
         jackrabbitRepository = JcrUtils.getRepository(
                 new File("target", "jackrabbit").toURI().toURL().toString());
         oakRepository = new Jcr().createRepository();
