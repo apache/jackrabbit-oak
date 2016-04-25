@@ -37,7 +37,6 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <systemPropertyVariables>
-            <derby.stream.error.file>target/derby.log</derby.stream.error.file>
             <s3.properties>${s3.properties}</s3.properties>
           </systemPropertyVariables>
         </configuration>
