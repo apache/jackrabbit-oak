@@ -222,11 +222,9 @@ public class StringCache {
 
         @Override
         public String toString() {
-            StringBuilder buff = new StringBuilder();
-            buff.append(Long.toHexString(msb)).
-                append(':').append(Long.toHexString(lsb)).
-                append('+').append(Integer.toHexString(offset));
-            return buff.toString();
+            return Long.toHexString(msb) +
+                ':' + Long.toHexString(lsb) +
+                '+' + Integer.toHexString(offset);
         }
 
     }
