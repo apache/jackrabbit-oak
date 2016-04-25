@@ -31,7 +31,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * FIXME OAK-3348 document
+ * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
+ * which it passes to its {@link #execute(WriteOperation) execute} method.
  */
 class SegmentBufferWriterPool implements WriteOperationHandler {
     private final Map<Object, SegmentBufferWriter> writers = newHashMap();
