@@ -489,7 +489,6 @@ class TarWriter implements Closeable {
      * any of the readers.
      *
      * @param referencedIds
-     * @throws IOException
      */
     synchronized void collectReferences(Set<UUID> referencedIds) {
         for (UUID uuid : reverse(newArrayList(index.keySet()))) {
