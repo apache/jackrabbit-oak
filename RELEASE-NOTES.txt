@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.2
 
 Introduction
 ------------
@@ -7,40 +7,41 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.1 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.2 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.1
+Changes in Oak 1.4.2
 ---------------------
 
 Technical task
 
-    [OAK-4113] - RDBJDBCTools: fix JDBC driver version check
+    [OAK-4204] - GarbageCollectorFileState.copy() leaks
+    FileOutputStream
 
 Bug
 
-    [OAK-3910] - Migrating node inheriting from mix:versionable
-    without version history
-    [OAK-4092] - Backport OAK-4083 to the 1.4 branch
-    [OAK-4093] - Backport OAK-4089 to the 1.4 branch
-    [OAK-4116] - Broadcasting cache: disabled by default
-    [OAK-4126] - Suggestion and spellcheck queries throw exception if
-    result contain lucene query character
-    [OAK-4128] - RepositorySidegrade doesn't copy root node properties
+    [OAK-4166] - Simple versionable nodes are invalid after migration
+
+Documentation
+
+    [OAK-4151] - Broken link to oak-mongo.js function on Command Line
+    Tools page
 
 Improvement
 
-    [OAK-3846] - Add parameter to skip SNS nodes
-    [OAK-4123] - Persistent cache: allow to configure the add data
-    concurrency
+    [OAK-4175] - Allow to skip the repository initialization in
+    oak-upgrade
+    [OAK-4242] - Counter index should be rebuilt after successful
+    migration
 
 Task
 
-    [OAK-4100] - ClusterNodeInfo lease renewal: add logging
+    [OAK-4235] - Backport OAK-4003 to 1.4 branch
+    [OAK-4273] - Disable testConcurrentWithConflict on Derby
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.x release.
