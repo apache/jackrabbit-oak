@@ -144,7 +144,7 @@ public class DefaultSyncHandler implements SyncHandler {
                 while (iter.hasNext()) {
                     try {
                         SyncedIdentity id = DefaultSyncContext.createSyncedIdentity(iter.next());
-                        if (id != null) {
+                        if (id != null && id.getExternalIdRef() != null) {
                             return id;
                         }
                     } catch (RepositoryException e) {
