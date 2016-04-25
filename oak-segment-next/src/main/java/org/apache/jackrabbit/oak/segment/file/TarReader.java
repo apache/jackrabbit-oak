@@ -249,7 +249,6 @@ class TarReader implements Closeable {
      * overwrite another existing file.
      * 
      * @param file
-     * @throws IOException
      */
     private static File findAvailGen(File file, String ext) {
         File parent = file.getParentFile();
