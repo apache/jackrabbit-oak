@@ -221,6 +221,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-segment-next</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
@@ -241,6 +246,13 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-segment</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-segment-next</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>

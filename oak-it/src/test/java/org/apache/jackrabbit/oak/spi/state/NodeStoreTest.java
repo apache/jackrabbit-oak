@@ -451,7 +451,7 @@ public class NodeStoreTest extends OakBaseTest {
     public void moveToDescendant() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
-        if (fixture == NodeStoreFixtures.SEGMENT_MK || fixture == NodeStoreFixtures.MEMORY_NS) {
+        if (fixture == NodeStoreFixtures.SEGMENT_NEXT || fixture == NodeStoreFixtures.SEGMENT_MK || fixture == NodeStoreFixtures.MEMORY_NS) {
             assertTrue(x.moveTo(x, "xx"));
             assertFalse(x.exists());
             assertFalse(test.hasChildNode("x"));
