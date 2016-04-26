@@ -84,6 +84,9 @@ public class SegmentParser {
         /** Id of this record*/
         public final RecordId nodeId;
 
+        /** Stable id of this node */
+        public final String stableId;
+
         /** Number of child nodes */
         public final int nodeCount;
 
@@ -93,8 +96,9 @@ public class SegmentParser {
         /** Size in bytes of this node */
         public final int size;
 
-        public NodeInfo(RecordId nodeId, int nodeCount, int propertyCount, int size) {
+        public NodeInfo(RecordId nodeId, String stableId, int nodeCount, int propertyCount, int size) {
             this.nodeId = nodeId;
+            this.stableId = stableId;
             this.nodeCount = nodeCount;
             this.propertyCount = propertyCount;
             this.size = size;
@@ -409,9 +413,7 @@ public class SegmentParser {
 
         Segment segment = nodeId.getSegment();
         int offset = nodeId.getOffset();
-        // FIXME OAK-4290: Update segment parser to work with the new segment format
-        // Process the node id (a RecordId) if present calling the respective call back
-        //segment.readRecordId(offset);
+        String stableId = new SegmentNodeState(nodeId).getStableId();
         offset += RECORD_ID_BYTES;
         RecordId templateId = segment.readRecordId(offset);
         onTemplate(nodeId, templateId);
@@ -454,7 +456,7 @@ public class SegmentParser {
             }
             onList(nodeId, id, propertyTemplates.length);
         }
-        return new NodeInfo(nodeId, nodeCount, propertyCount, size);
+        return new NodeInfo(nodeId, stableId, nodeCount, propertyCount, size);
     }
 
     /**
