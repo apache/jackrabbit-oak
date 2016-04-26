@@ -61,6 +61,8 @@ class IndexTracker {
 
     private volatile Map<String, IndexNode> indices = emptyMap();
 
+    private volatile boolean refresh;
+
     IndexTracker() {
         this(null);
     }
@@ -83,6 +85,17 @@ class IndexTracker {
     }
 
     synchronized void update(final NodeState root) {
+        if (refresh) {
+            this.root = root;
+            close();
+            refresh = false;
+            log.info("Refreshed the opened indexes");
+        } else {
+            diffAndUpdate(root);
+        }
+    }
+
+    private synchronized void diffAndUpdate(final NodeState root) {
         Map<String, IndexNode> original = indices;
         final Map<String, IndexNode> updates = newHashMap();
 
@@ -127,6 +140,10 @@ class IndexTracker {
                 }
             }
         }
+    }
+
+    void refresh() {
+        refresh = true;
     }
 
     IndexNode acquireIndexNode(String path) {
@@ -177,5 +194,4 @@ class IndexTracker {
 
         return null;
     }
-
 }
