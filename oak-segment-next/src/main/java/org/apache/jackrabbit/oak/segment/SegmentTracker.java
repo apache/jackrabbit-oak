@@ -33,12 +33,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import com.google.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,9 +337,9 @@ public class SegmentTracker {
     // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
     // ith clean brutal we need to remove those ids that have been cleaned
     // i.e. those whose segment was from an old generation
-    public synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
+    public synchronized void clearSegmentIdTables(Predicate<SegmentId> canRemove) {
         for (SegmentIdTable table : tables) {
-            table.clearSegmentIdTables(strategy);
+            table.clearSegmentIdTables(canRemove);
         }
     }
 

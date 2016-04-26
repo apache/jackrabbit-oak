@@ -34,8 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType;
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
@@ -109,16 +108,14 @@ public class SegmentIdTableTest {
         }
         assertEquals(originalCount, tbl.getEntryCount());
         assertEquals(0, tbl.getMapRebuildCount());
-        
-        tbl.clearSegmentIdTables(new CompactionStrategy(false, false, 
-                CleanupType.CLEAN_NONE, originalCount, (byte) 0) {
+
+        tbl.clearSegmentIdTables(new Predicate<SegmentId>() {
             @Override
-            public boolean canRemove(SegmentId id) {
+            public boolean apply(SegmentId id) {
                 return id.getMostSignificantBits() < 4;
             }
-            
         });
-        
+
         assertEquals(4, tbl.getEntryCount());
 
         for (SegmentId id : refs) {

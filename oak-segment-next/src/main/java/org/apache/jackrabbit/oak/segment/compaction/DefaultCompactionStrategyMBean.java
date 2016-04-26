@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.compaction;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType;
 
 public class DefaultCompactionStrategyMBean
         extends AnnotatedStandardMBean
@@ -34,63 +33,33 @@ public class DefaultCompactionStrategyMBean
     }
 
     @Override
-    public boolean isCloneBinaries() {
-        return strategy.cloneBinaries();
-    }
-
-    @Override
-    public void setCloneBinaries(boolean cloneBinaries) {
-        strategy.setCloneBinaries(cloneBinaries);
-    }
-
-    @Override
     public boolean isPausedCompaction() {
         return strategy.isPaused();
     }
 
     @Override
-    public void setPausedCompaction(boolean pausedCompaction) {
-        strategy.setPaused(pausedCompaction);
+    public void setPausedCompaction(boolean paused) {
+        strategy.setPaused(paused);
     }
 
     @Override
-    public String getCleanupStrategy() {
-        return strategy.getCleanupType();
+    public int getGainThreshold() {
+        return strategy.getGainThreshold();
     }
 
     @Override
-    public void setCleanupStrategy(String cleanup) {
-        strategy.setCleanupType(CleanupType.valueOf(cleanup));
+    public void setGainThreshold(int gainThreshold) {
+        strategy.setGainThreshold(gainThreshold);
     }
 
     @Override
-    public long getOlderThan() {
-        return strategy.getOlderThan();
-    }
-
-    @Override
-    public void setOlderThan(long olderThan) {
-        strategy.setOlderThan(olderThan);
-    }
-
-    @Override
-    public byte getMemoryThreshold() {
+    public int getMemoryThreshold() {
         return strategy.getMemoryThreshold();
     }
 
     @Override
-    public void setMemoryThreshold(byte memory) {
-        strategy.setMemoryThreshold(memory);
-    }
-
-    @Override
-    public boolean getForceAfterFail() {
-        return strategy.getForceAfterFail();
-    }
-
-    @Override
-    public void setForceAfterFail(boolean forceAfterFail) {
-        strategy.setForceAfterFail(forceAfterFail);
+    public void setMemoryThreshold(int memoryThreshold) {
+        strategy.setMemoryThreshold(memoryThreshold);
     }
 
     @Override
@@ -104,13 +73,22 @@ public class DefaultCompactionStrategyMBean
     }
 
     @Override
-    public byte getGainThreshold() {
-        return strategy.getGainThreshold();
+    public boolean getForceAfterFail() {
+        return strategy.getForceAfterFail();
     }
 
     @Override
-    public void setGainThreshold(byte gainThreshold) {
-        strategy.setGainThreshold(gainThreshold);
+    public void setForceAfterFail(boolean forceAfterFail) {
+        strategy.setForceAfterFail(forceAfterFail);
     }
 
+    @Override
+    public int getLockWaitTime() {
+        return strategy.getLockWaitTime();
+    }
+
+    @Override
+    public void setLockWaitTime(int lockWaitTime) {
+        strategy.setLockWaitTime(lockWaitTime);
+    }
 }

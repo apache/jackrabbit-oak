@@ -36,7 +36,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.Closeable;
 import java.io.File;
@@ -63,6 +62,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -172,7 +172,7 @@ public class FileStore implements SegmentStore {
      */
     private final BackgroundThread diskSpaceThread;
 
-    private CompactionStrategy compactionStrategy = NO_COMPACTION;
+    private final CompactionStrategy compactionStrategy;
 
     /**
      * Flag to request revision cleanup during the next flush.
@@ -248,6 +248,8 @@ public class FileStore implements SegmentStore {
         private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
 
         private SegmentVersion version = SegmentVersion.LATEST_VERSION;
+
+        private CompactionStrategy compactionStrategy = CompactionStrategy.DEFAULT;
 
         private Builder(File directory) {
             this.directory = directory;
@@ -361,6 +363,12 @@ public class FileStore implements SegmentStore {
             return this;
         }
 
+        @Nonnull
+        public Builder withCompactionStrategy(CompactionStrategy strategy) {
+            this.compactionStrategy = strategy;
+            return this;
+        }
+
         /**
          * Create a new {@link FileStore} instance with the settings specified in this
          * builder. If none of the {@code with} methods have been called before calling
@@ -418,6 +426,7 @@ public class FileStore implements SegmentStore {
         this.maxFileSize = builder.maxFileSize * MB;
         this.memoryMapping = builder.memoryMapping;
         this.gcMonitor = builder.gcMonitor;
+        this.compactionStrategy = builder.compactionStrategy;
 
         if (readOnly) {
             journalFile = new RandomAccessFile(new File(directory,
@@ -594,10 +603,9 @@ public class FileStore implements SegmentStore {
         }
 
         Stopwatch watch = Stopwatch.createStarted();
-        compactionStrategy.setCompactionStart(System.currentTimeMillis());
         boolean compacted = false;
 
-        byte gainThreshold = compactionStrategy.getGainThreshold();
+        int gainThreshold = compactionStrategy.getGainThreshold();
         boolean runCompaction = true;
         if (gainThreshold <= 0) {
             gcMonitor.info("TarMK GC #{}: estimation skipped because gain threshold value ({} <= 0)", GC_COUNT,
@@ -1017,8 +1025,6 @@ public class FileStore implements SegmentStore {
      * reference to them).
      */
     public void compact() throws IOException {
-        checkState(!compactionStrategy.equals(NO_COMPACTION),
-                "You must set a compactionStrategy before calling compact");
         gcMonitor.info("TarMK GC #{}: compaction started, strategy={}", GC_COUNT, compactionStrategy);
         Stopwatch watch = Stopwatch.createStarted();
 
@@ -1070,7 +1076,10 @@ public class FileStore implements SegmentStore {
             }
             if (success) {
                 tracker.getWriter().addCachedNodes(gcGeneration, nodeCache);
-                tracker.clearSegmentIdTables(compactionStrategy);
+                // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
+                // ith clean brutal we need to remove those ids that have been cleaned
+                // i.e. those whose segment was from an old generation
+                tracker.clearSegmentIdTables(Predicates.<SegmentId>alwaysFalse());
                 // FIXME OAK-4283: Align GCMonitor API with implementation
                 // Refactor GCMonitor: there is no more compaction map stats
                 gcMonitor.compacted(new long[]{}, new long[]{}, new long[]{});
@@ -1360,9 +1369,6 @@ public class FileStore implements SegmentStore {
 
     @Override
     public void gc() {
-        if (compactionStrategy == NO_COMPACTION) {
-            log.warn("Call to gc while compaction strategy set to {}. ", NO_COMPACTION);
-        }
         compactionThread.trigger();
     }
 
@@ -1389,12 +1395,6 @@ public class FileStore implements SegmentStore {
             }
         }
         return emptyMap();
-    }
-
-    public FileStore setCompactionStrategy(CompactionStrategy strategy) {
-        this.compactionStrategy = strategy;
-        log.info("Compaction strategy set to: {}", strategy);
-        return this;
     }
 
     private void setRevision(String rootRevision) {

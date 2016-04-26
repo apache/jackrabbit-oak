@@ -29,7 +29,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -50,7 +49,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -73,63 +71,19 @@ import org.slf4j.LoggerFactory;
 public class SegmentNodeStore implements NodeStore, Observable {
 
     public static class SegmentNodeStoreBuilder {
-
         private final SegmentStore store;
-
         private boolean isCreated;
-
-        private CompactionStrategy compactionStrategy = NO_COMPACTION;
-
-        private volatile SegmentNodeStore segmentNodeStore;
 
         private SegmentNodeStoreBuilder(@Nonnull SegmentStore store) {
             this.store = store;
-        }
-
-        SegmentNodeStoreBuilder withCompactionStrategy(CompactionStrategy compactionStrategy) {
-            this.compactionStrategy = compactionStrategy;
-            return this;
-        }
-
-        SegmentNodeStoreBuilder withCompactionStrategy(
-                boolean pauseCompaction,
-                boolean cloneBinaries,
-                String cleanup,
-                long cleanupTs,
-                byte memoryThreshold,
-                final int lockWaitTime,
-                int retryCount,
-                boolean forceAfterFail,
-                byte gainThreshold) {
-
-            compactionStrategy = new CompactionStrategy(
-                    pauseCompaction,
-                    cloneBinaries,
-                    CompactionStrategy.CleanupType.valueOf(cleanup),
-                    cleanupTs,
-                    memoryThreshold);
-
-            compactionStrategy.setRetryCount(retryCount);
-            compactionStrategy.setForceAfterFail(forceAfterFail);
-            compactionStrategy.setLockWaitTime(lockWaitTime);
-            compactionStrategy.setGainThreshold(gainThreshold);
-
-            return this;
-        }
-
-        CompactionStrategy getCompactionStrategy() {
-            checkState(isCreated);
-            return compactionStrategy;
         }
 
         @Nonnull
         public SegmentNodeStore build() {
             checkState(!isCreated);
             isCreated = true;
-            segmentNodeStore = new SegmentNodeStore(this);
-            return segmentNodeStore;
+            return new SegmentNodeStore(this);
         }
-
     }
 
     @Nonnull

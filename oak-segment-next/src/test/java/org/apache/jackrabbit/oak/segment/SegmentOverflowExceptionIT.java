@@ -20,8 +20,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
@@ -32,7 +30,6 @@ import java.util.Random;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -99,7 +96,6 @@ public class SegmentOverflowExceptionIT {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withGCMonitor(gcMonitor).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-            fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_OLD, 1000, MEMORY_THRESHOLD_DEFAULT));
             long start = System.currentTimeMillis();
             int snfeCount = 0;
             while (System.currentTimeMillis() - start < TIMEOUT) {
