@@ -444,7 +444,7 @@ public class FileStore implements SegmentStore {
                     humanReadableByteCount(needed),
                     humanReadableByteCount(delta));
             if (cleanup) {
-                cleanupNeeded.set(true);
+                cleanupNeeded.set(!compactionStrategy.isPaused());
             }
             return false;
         }
@@ -477,7 +477,7 @@ public class FileStore implements SegmentStore {
                     humanReadableByteCount(estimate.getTotalSize()));
         }
         if (cleanup) {
-            cleanupNeeded.set(true);
+            cleanupNeeded.set(!compactionStrategy.isPaused());
         }
         return compacted;
     }
