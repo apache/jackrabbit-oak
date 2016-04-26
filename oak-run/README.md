@@ -85,11 +85,11 @@ To start the console for a DocumentMK/RDB repository, use:
 
     $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
     
-To start the console connecting to a repository in read-only mode, use either of:
+To start the console connecting to a repository in read-write mode, use either of:
 
-    $ java -jar oak-run-*.jar console --read-only /path/to/oak/repository
-    $ java -jar oak-run-*.jar console --read-only mongodb://host
-    $ java -jar oak-run-*.jar console --read-only --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+    $ java -jar oak-run-*.jar console --read-write /path/to/oak/repository
+    $ java -jar oak-run-*.jar console --read-write mongodb://host
+    $ java -jar oak-run-*.jar console --read-write --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
 
 To specify FDS path while connecting to a repository, use `--fds-path` option (valid for segment and document repos):
 
