@@ -81,7 +81,7 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -165,14 +165,14 @@ public class FileStore implements SegmentStore {
     private final BackgroundThread compactionThread;
 
     /**
-     * This background thread periodically asks the {@code CompactionStrategy}
+     * This background thread periodically asks the {@code SegmentGCOptions}
      * to compare the approximate size of the repository with the available disk
      * space. The result of this comparison is stored in the state of this
      * {@code FileStore}.
      */
     private final BackgroundThread diskSpaceThread;
 
-    private final CompactionStrategy compactionStrategy;
+    private final SegmentGCOptions gcOptions;
 
     /**
      * Flag to request revision cleanup during the next flush.
@@ -202,8 +202,8 @@ public class FileStore implements SegmentStore {
     private final AtomicLong approximateSize;
 
     /**
-     * This flag is periodically updated by calling the {@code
-     * CompactionStrategy} at regular intervals.
+     * This flag is periodically updated by calling the {@code SegmentGCOptions}
+     * at regular intervals.
      */
     private final AtomicBoolean sufficientDiskSpace;
 
@@ -249,7 +249,7 @@ public class FileStore implements SegmentStore {
 
         private SegmentVersion version = SegmentVersion.LATEST_VERSION;
 
-        private CompactionStrategy compactionStrategy = CompactionStrategy.DEFAULT;
+        private SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
 
         private Builder(File directory) {
             this.directory = directory;
@@ -364,8 +364,8 @@ public class FileStore implements SegmentStore {
         }
 
         @Nonnull
-        public Builder withCompactionStrategy(CompactionStrategy strategy) {
-            this.compactionStrategy = strategy;
+        public Builder withGCOptions(SegmentGCOptions gcOptions) {
+            this.gcOptions = gcOptions;
             return this;
         }
 
@@ -426,7 +426,7 @@ public class FileStore implements SegmentStore {
         this.maxFileSize = builder.maxFileSize * MB;
         this.memoryMapping = builder.memoryMapping;
         this.gcMonitor = builder.gcMonitor;
-        this.compactionStrategy = builder.compactionStrategy;
+        this.gcOptions = builder.gcOptions;
 
         if (readOnly) {
             journalFile = new RandomAccessFile(new File(directory,
@@ -587,7 +587,7 @@ public class FileStore implements SegmentStore {
         // FIXME OAK-4281: Rework memory estimation for compaction
         // What value should we use for delta?
         long delta = 0;
-        long needed = delta * compactionStrategy.getMemoryThreshold();
+        long needed = delta * gcOptions.getMemoryThreshold();
         if (needed >= avail) {
             gcMonitor.skipped(
                     "TarMK GC #{}: not enough available memory {} ({} bytes), needed {} ({} bytes)," +
@@ -597,7 +597,7 @@ public class FileStore implements SegmentStore {
                     humanReadableByteCount(needed), needed,
                     humanReadableByteCount(delta), delta);
             if (cleanup) {
-                cleanupNeeded.set(!compactionStrategy.isPaused());
+                cleanupNeeded.set(!gcOptions.isPaused());
             }
             return false;
         }
@@ -605,12 +605,12 @@ public class FileStore implements SegmentStore {
         Stopwatch watch = Stopwatch.createStarted();
         boolean compacted = false;
 
-        int gainThreshold = compactionStrategy.getGainThreshold();
+        int gainThreshold = gcOptions.getGainThreshold();
         boolean runCompaction = true;
         if (gainThreshold <= 0) {
             gcMonitor.info("TarMK GC #{}: estimation skipped because gain threshold value ({} <= 0)", GC_COUNT,
                 gainThreshold);
-        } else if (compactionStrategy.isPaused()) {
+        } else if (gcOptions.isPaused()) {
             gcMonitor.info("TarMK GC #{}: estimation skipped because compaction is paused", GC_COUNT);
         } else {
             gcMonitor.info("TarMK GC #{}: estimation started", GC_COUNT);
@@ -648,7 +648,7 @@ public class FileStore implements SegmentStore {
         }
 
         if (runCompaction) {
-            if (!compactionStrategy.isPaused()) {
+            if (!gcOptions.isPaused()) {
                 compact();
                 compacted = true;
             } else {
@@ -656,7 +656,7 @@ public class FileStore implements SegmentStore {
             }
         }
         if (cleanup) {
-            cleanupNeeded.set(!compactionStrategy.isPaused());
+            cleanupNeeded.set(!gcOptions.isPaused());
         }
         return compacted;
     }
@@ -1025,7 +1025,7 @@ public class FileStore implements SegmentStore {
      * reference to them).
      */
     public void compact() throws IOException {
-        gcMonitor.info("TarMK GC #{}: compaction started, strategy={}", GC_COUNT, compactionStrategy);
+        gcMonitor.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
         Stopwatch watch = Stopwatch.createStarted();
 
         // FIXME OAK-4277: Finalise de-duplication caches
@@ -1061,7 +1061,7 @@ public class FileStore implements SegmentStore {
         try {
             int cycles = 0;
             boolean success = false;
-            while (cycles++ < compactionStrategy.getRetryCount()
+            while (cycles++ < gcOptions.getRetryCount()
                 && !(success = setHead(before, after))) {
                 // Some other concurrent changes have been made.
                 // Rebase (and compact) those changes on top of the
@@ -1086,7 +1086,7 @@ public class FileStore implements SegmentStore {
             } else {
                 gcMonitor.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
                         GC_COUNT, cycles - 1);
-                if (compactionStrategy.getForceAfterFail()) {
+                if (gcOptions.getForceAfterFail()) {
                     gcMonitor.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
                     if (!forceCompact(writer)) {
                         gcMonitor.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
@@ -1114,7 +1114,7 @@ public class FileStore implements SegmentStore {
     }
 
     private boolean forceCompact(SegmentWriter writer) throws InterruptedException, IOException {
-        if (rwLock.writeLock().tryLock(compactionStrategy.getLockWaitTime(), TimeUnit.SECONDS)) {
+        if (rwLock.writeLock().tryLock(gcOptions.getLockWaitTime(), TimeUnit.SECONDS)) {
             try {
                 SegmentNodeState head = getHead();
                 return setHead(head, compact(writer, head));
@@ -1411,7 +1411,7 @@ public class FileStore implements SegmentStore {
     private void checkDiskSpace() {
         long repositoryDiskSpace = approximateSize.get();
         long availableDiskSpace = directory.getFreeSpace();
-        boolean updated = compactionStrategy.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
+        boolean updated = gcOptions.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
         boolean previous = sufficientDiskSpace.getAndSet(updated);
 
         if (previous && !updated) {

@@ -73,11 +73,11 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.segment.compaction.DefaultCompactionStrategyMBean;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategyMBean;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -103,7 +103,7 @@ import org.slf4j.LoggerFactory;
  * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
  * All of which can be interactively modified through the accompanying
  * {@link SegmentCompactionITMBean}, the
- * {@link CompactionStrategyMBean} and the
+ * {@link SegmentRevisionGC} and the
  * {@link GCMonitorMBean}.</p>
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
@@ -226,11 +226,11 @@ public class SegmentCompactionIT {
             }
         }, 1, 1, SECONDS);
 
-        CompactionStrategy gcOptions = CompactionStrategy.DEFAULT.setLockWaitTime(lockWaitTime);
+        SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT.setLockWaitTime(lockWaitTime);
         fileStore = FileStore.builder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
-                .withCompactionStrategy(gcOptions)
+                .withGCOptions(gcOptions)
                 .build();
         nodeStore = SegmentNodeStore.builder(fileStore).build();
 
@@ -239,8 +239,8 @@ public class SegmentCompactionIT {
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
-        registrations.add(registerMBean(new DefaultCompactionStrategyMBean(gcOptions),
-                new ObjectName("IT:TYPE=Compaction Strategy")));
+        registrations.add(registerMBean(new SegmentRevisionGCMBean(gcOptions),
+                new ObjectName("IT:TYPE=Segment Revision GC")));
         registrations.add(registerMBean(fileStoreGCMonitor,
                 new ObjectName("IT:TYPE=GC Monitor")));
         registrations.add(registerMBean(segmentCacheStats,

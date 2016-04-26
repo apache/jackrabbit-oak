@@ -24,11 +24,11 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.GAIN_THRESHOLD_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.PAUSE_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.RETRY_COUNT_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_AFTER_FAIL_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -65,9 +65,9 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategyMBean;
-import org.apache.jackrabbit.oak.segment.compaction.DefaultCompactionStrategyMBean;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
@@ -228,7 +228,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private Registration checkpointRegistration;
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
-    private Registration compactionStrategyRegistration;
+    private Registration gcOptionsRegistration;
     private Registration segmentCacheMBean;
     private Registration stringCacheMBean;
     private Registration fsgcMonitorMBean;
@@ -325,8 +325,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
 
-        // Create the compaction strategy
-        CompactionStrategy compactionStrategy = newCompactionStrategy();
+        // Create the gc options
+        SegmentGCOptions gcOptions = newGCOptions();
 
         // Build the FileStore
         Builder builder = FileStore.builder(getDirectory())
@@ -335,7 +335,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .withMemoryMapping(getMode().equals("64"))
                 .withGCMonitor(gcMonitor)
                 .withStatisticsProvider(statisticsProvider)
-                .withCompactionStrategy(compactionStrategy);
+                .withGCOptions(gcOptions);
 
         if (customBlobStore) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
@@ -344,14 +344,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         store = builder.build();
 
-        // Expose an MBean to provide information about the compaction strategy
+        // Expose an MBean to provide information about the gc options
 
-        compactionStrategyRegistration = registerMBean(
+        gcOptionsRegistration = registerMBean(
                 whiteboard,
-                CompactionStrategyMBean.class,
-                new DefaultCompactionStrategyMBean(compactionStrategy),
-                CompactionStrategyMBean.TYPE,
-                "Segment node store compaction strategy settings"
+                SegmentRevisionGC.class,
+                new SegmentRevisionGCMBean(gcOptions),
+                SegmentRevisionGC.TYPE,
+                "Segment node store gc options"
         );
 
         // Expose stats about the segment cache
@@ -436,7 +436,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         return true;
     }
 
-    private CompactionStrategy newCompactionStrategy() {
+    private SegmentGCOptions newGCOptions() {
         boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
         boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
@@ -445,7 +445,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
 
-        CompactionStrategy segmentGCOptions = new CompactionStrategy(
+        SegmentGCOptions segmentGCOptions = new SegmentGCOptions(
                 pauseCompaction, memoryThreshold, gainThreshold, retryCount, forceAfterFail, lockWaitTime);
         segmentGCOptions.setForceAfterFail(forceAfterFail);
         return segmentGCOptions;
@@ -538,9 +538,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             blobGCRegistration.unregister();
             blobGCRegistration = null;
         }
-        if (compactionStrategyRegistration != null) {
-            compactionStrategyRegistration.unregister();
-            compactionStrategyRegistration = null;
+        if (gcOptionsRegistration != null) {
+            gcOptionsRegistration.unregister();
+            gcOptionsRegistration = null;
         }
         if (fsgcMonitorMBean != null) {
             fsgcMonitorMBean.unregister();

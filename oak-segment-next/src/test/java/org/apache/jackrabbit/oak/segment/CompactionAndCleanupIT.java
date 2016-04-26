@@ -52,7 +52,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -211,7 +211,7 @@ public class CompactionAndCleanupIT {
         FileStore store = FileStore.builder(getFileStoreFolder())
                 .withMaxFileSize(2)
                 .withMemoryMapping(true)
-                .withCompactionStrategy(CompactionStrategy.DEFAULT.setForceAfterFail(true))
+                .withGCOptions(SegmentGCOptions.DEFAULT.setForceAfterFail(true))
                 .build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
         final AtomicBoolean compactionSuccess = new AtomicBoolean(true);
