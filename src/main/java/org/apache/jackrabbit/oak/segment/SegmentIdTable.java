@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
+import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,15 +194,14 @@ public class SegmentIdTable {
         return ((int) lsb) & (references.size() - 1);
     }
 
-    synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
+    synchronized void clearSegmentIdTables(Predicate<SegmentId> canRemove) {
         int size = references.size();
         boolean dirty = false;
-        for (int i = 0; i < size; i++) {
-            WeakReference<SegmentId> reference = references.get(i);
+        for (WeakReference<SegmentId> reference : references) {
             if (reference != null) {
                 SegmentId id = reference.get();
                 if (id != null) {
-                    if (strategy.canRemove(id)) {
+                    if (canRemove.apply(id)) {
                         // we clear the reference here, but we must not
                         // remove the reference from the list, because
                         // that could cause duplicate references

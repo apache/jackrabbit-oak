@@ -24,14 +24,11 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CLEANUP_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CLONE_BINARIES_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.GAIN_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.RETRY_COUNT_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.TIMESTAMP_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -50,7 +47,6 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -70,7 +66,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -145,35 +140,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String CACHE = "cache";
 
     @Property(
-            boolValue = CLONE_BINARIES_DEFAULT,
-            label = "Clone Binaries",
-            description = "Clone the binary segments while performing compaction"
-    )
-    public static final String COMPACTION_CLONE_BINARIES = "compaction.cloneBinaries";
-
-    @Property(options = {
-            @PropertyOption(name = "CLEAN_ALL", value = "CLEAN_ALL"),
-            @PropertyOption(name = "CLEAN_NONE", value = "CLEAN_NONE"),
-            @PropertyOption(name = "CLEAN_OLD", value = "CLEAN_OLD") },
-            value = "CLEAN_OLD",
-            label = "Cleanup Strategy",
-            description = "Cleanup strategy used for live in memory segment references while performing cleanup. "+
-                    "1. CLEAN_NONE: All in memory references are considered valid, " +
-                    "2. CLEAN_OLD: Only in memory references older than a " +
-                    "certain age are considered valid (compaction.cleanup.timestamp), " +
-                    "3. CLEAN_ALL: None of the in memory references are considered valid"
-    )
-    public static final String COMPACTION_CLEANUP = "compaction.cleanup";
-
-    @Property(
-            longValue = TIMESTAMP_DEFAULT,
-            label = "Reference expiry time (ms)",
-            description = "Time interval in ms beyond which in memory segment references would be ignored " +
-                    "while performing cleanup"
-    )
-    public static final String COMPACTION_CLEANUP_TIMESTAMP = "compaction.cleanup.timestamp";
-
-    @Property(
             byteValue = MEMORY_THRESHOLD_DEFAULT,
             label = "Memory Multiplier",
             description = "TarMK compaction available memory multiplier needed to run compaction"
@@ -213,6 +179,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
 
     public static final int COMPACTION_LOCK_WAIT_TIME_DEFAULT = 60;
+
     @Property(
             intValue = COMPACTION_LOCK_WAIT_TIME_DEFAULT,
             label = "Compaction Lock Wait Time",
@@ -248,8 +215,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private GCMonitorTracker gcMonitor;
 
     private ComponentContext context;
-
-    private CompactionStrategy compactionStrategy;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
@@ -360,14 +325,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
 
-        // Build the FileStore
+        // Create the compaction strategy
+        CompactionStrategy compactionStrategy = newCompactionStrategy();
 
+        // Build the FileStore
         Builder builder = FileStore.builder(getDirectory())
                 .withCacheSize(getCacheSize())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
                 .withGCMonitor(gcMonitor)
-                .withStatisticsProvider(statisticsProvider);
+                .withStatisticsProvider(statisticsProvider)
+                .withCompactionStrategy(compactionStrategy);
 
         if (customBlobStore) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
@@ -375,10 +343,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         store = builder.build();
-
-        // Create a compaction strategy
-
-        compactionStrategy = newCompactionStrategy();
 
         // Expose an MBean to provide information about the compaction strategy
 
@@ -389,10 +353,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 CompactionStrategyMBean.TYPE,
                 "Segment node store compaction strategy settings"
         );
-
-        // Let the FileStore be aware of the compaction strategy
-
-        store.setCompactionStrategy(compactionStrategy);
 
         // Expose stats about the segment cache
 
@@ -478,22 +438,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private CompactionStrategy newCompactionStrategy() {
         boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
-        boolean cloneBinaries = toBoolean(property(COMPACTION_CLONE_BINARIES), CLONE_BINARIES_DEFAULT);
-        long cleanupTs = toLong(property(COMPACTION_CLEANUP_TIMESTAMP), TIMESTAMP_DEFAULT);
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
         boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
         final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
 
-        CleanupType cleanupType = getCleanUpType();
         byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
 
-        CompactionStrategy compactionStrategy = new CompactionStrategy(pauseCompaction, cloneBinaries, cleanupType, cleanupTs, memoryThreshold);
-        compactionStrategy.setRetryCount(retryCount);
-        compactionStrategy.setForceAfterFail(forceAfterFail);
-        compactionStrategy.setGainThreshold(gainThreshold);
-        compactionStrategy.setLockWaitTime(lockWaitTime);
-        return compactionStrategy;
+        CompactionStrategy segmentGCOptions = new CompactionStrategy(
+                pauseCompaction, memoryThreshold, gainThreshold, retryCount, forceAfterFail, lockWaitTime);
+        segmentGCOptions.setForceAfterFail(forceAfterFail);
+        return segmentGCOptions;
     }
 
     private boolean registerSegmentNodeStore() throws IOException {
@@ -504,9 +459,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
-        SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.builder(store);
-        nodeStoreBuilder.withCompactionStrategy(compactionStrategy);
-        segmentNodeStore = nodeStoreBuilder.build();
+        segmentNodeStore = SegmentNodeStore.builder(store).build();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());
@@ -653,16 +606,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private int getMaxFileSize() {
         return Integer.parseInt(getMaxFileSizeProperty());
-    }
-
-    private CleanupType getCleanUpType() {
-        String cleanupType = property(COMPACTION_CLEANUP);
-
-        if (cleanupType == null) {
-            return CLEANUP_DEFAULT;
-        }
-
-        return CleanupType.valueOf(cleanupType);
     }
 
     private byte getMemoryThreshold() {
