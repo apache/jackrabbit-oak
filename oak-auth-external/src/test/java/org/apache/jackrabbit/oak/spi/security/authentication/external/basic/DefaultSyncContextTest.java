@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Binary;
@@ -48,7 +47,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
@@ -280,7 +278,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSyncInvalidExternalIdentity() throws Exception {
-        syncCtx.sync(new TestExternalIdentity());
+        syncCtx.sync(new TestIdentityProvider.TestIdentity());
     }
 
     @Test
@@ -318,7 +316,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testSyncForeignExternalUser() throws Exception {
-        ExternalIdentity foreign = new ForeignExternalUser();
+        ExternalIdentity foreign = new TestIdentityProvider.ForeignExternalUser();
 
         SyncResult res = syncCtx.sync(foreign);
         assertNotNull(res);
@@ -340,7 +338,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testSyncForeignExternalGroup() throws Exception {
-        ExternalIdentity foreign = new ForeignExternalGroup();
+        ExternalIdentity foreign = new TestIdentityProvider.ForeignExternalGroup();
 
         SyncResult res = syncCtx.sync(foreign);
         assertNotNull(res);
@@ -1004,7 +1002,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(PropertyType.STRING, v.getType());
         assertEquals("s", v.getString());
 
-        Object o = new ForeignExternalUser();
+        Object o = new TestIdentityProvider.ForeignExternalUser();
         v = syncCtx.createValue(o);
         assertNotNull(v);
         assertEquals(PropertyType.STRING, v.getType());
@@ -1188,90 +1186,12 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertFalse(syncCtx.isSameIDP(gr));
     }
 
-    /**
-     * ExternalIdentity implementation that is neither user nor group.
-     */
-    private class TestExternalIdentity implements ExternalIdentity {
-
-        private final String id;
-        private final String principalName;
-
-        private TestExternalIdentity() {
-            this.id = "externalId";
-            this.principalName = "principalName";
-        }
-
-        private TestExternalIdentity(ExternalIdentity base) {
-            this.id = base.getId();
-            this.principalName = base.getPrincipalName();
-        }
-
-        @Nonnull
-        @Override
-        public ExternalIdentityRef getExternalId() {
-            return new ExternalIdentityRef(getId(), idp.getName());
-        }
-
-        @Nonnull
-        @Override
-        public String getId() {
-            return id;
-        }
-
-        @Nonnull
-        @Override
-        public String getPrincipalName() {
-            return principalName;
-        }
-
-        @CheckForNull
-        @Override
-        public String getIntermediatePath() {
-            return null;
-        }
-
-        @Nonnull
-        @Override
-        public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
-            return ImmutableSet.of();
-        }
-
-        @Nonnull
-        @Override
-        public Map<String, ?> getProperties() {
-            return ImmutableMap.of();
-        }
-    }
-
-    private final class ForeignExternalUser extends TestExternalIdentity implements ExternalUser {
-
-        @Nonnull
-        @Override
-        public ExternalIdentityRef getExternalId() {
-            return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
-        }
-    }
-
-    private final class ForeignExternalGroup extends TestExternalIdentity implements ExternalGroup {
-
-        @Nonnull
-        @Override
-        public ExternalIdentityRef getExternalId() {
-            return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
-        }
-
-        @Nonnull
-        @Override
-        public Iterable<ExternalIdentityRef> getDeclaredMembers() {
-            return ImmutableList.of();
-        }
-    }
-
-    private final class ExternalUserWithDeclaredGroup extends TestExternalIdentity implements ExternalUser {
+    private final class ExternalUserWithDeclaredGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {
 
         private final ExternalIdentityRef declaredGroupRef;
 
         private ExternalUserWithDeclaredGroup(@Nonnull ExternalIdentityRef declaredGroupRef) {
+            super("externalId");
             this.declaredGroupRef = declaredGroupRef;
         }
 
@@ -1287,7 +1207,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         }
     }
 
-    private final class ExternalUserFromGroup extends TestExternalIdentity implements ExternalUser {
+    private final class ExternalUserFromGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {
 
         private ExternalUserFromGroup(@Nonnull ExternalIdentity base) {
             super(base);
