@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
+import static org.apache.jackrabbit.oak.segment.RecordWriters.newNodeStateWriter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -786,7 +787,7 @@ public class SegmentWriter {
                 SegmentNodeState sns = ((SegmentNodeState) state);
                 if (hasSegment(sns)) {
                     if (isOldGen(sns.getRecordId())) {
-                        RecordId cachedId = nodeCache.generation(generation()).get(sns.getId());
+                        RecordId cachedId = nodeCache.generation(generation()).get(sns.getStableId());
                         if (cachedId != null) {
                             return cachedId;
                         }
@@ -799,7 +800,7 @@ public class SegmentWriter {
             RecordId recordId = writeNodeUncached(state, depth);
             if (state instanceof SegmentNodeState) {
                 SegmentNodeState sns = (SegmentNodeState) state;
-                nodeCache.generation(generation()).put(sns.getId(), recordId, depth);
+                nodeCache.generation(generation()).put(sns.getStableId(), recordId, depth);
             }
             return recordId;
         }
@@ -890,14 +891,14 @@ public class SegmentWriter {
                 ids.add(writeList(pIds));
             }
 
-            RecordId nodeId = null;
+            RecordId stableId = null;
             if (state instanceof SegmentNodeState) {
                 // FIXME OAK-4279: Rework offline compaction
-                // Offline compaction could remove these ids
+                // Offline compaction could remove the stable ids again
                 byte[] id = ((Record) state).getRecordId().toArray();
-                nodeId = writeBlock(id, 0, id.length);
+                stableId = writeBlock(id, 0, id.length);
             }
-            return RecordWriters.newNodeStateWriter(nodeId, ids).write(writer);
+            return newNodeStateWriter(stableId, ids).write(writer);
         }
 
         private boolean hasSegment(SegmentNodeState node) {

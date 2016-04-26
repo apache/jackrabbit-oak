@@ -548,7 +548,7 @@ public class CompactionAndCleanupIT {
             assertEquals(uncompacted, compacted);
             assertTrue(uncompacted instanceof SegmentNodeState);
             assertTrue(compacted instanceof SegmentNodeState);
-            assertEquals(((SegmentNodeState)uncompacted).getId(), ((SegmentNodeState)compacted).getId());
+            assertEquals(((SegmentNodeState)uncompacted).getStableId(), ((SegmentNodeState)compacted).getStableId());
 
             NodeState checkpoint = nodeStore.retrieve(cpId);
             assertTrue(checkpoint instanceof SegmentNodeState);
