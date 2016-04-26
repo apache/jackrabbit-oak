@@ -608,8 +608,20 @@ public class SegmentWriter {
             boolean threw = true;
             try {
                 RecordId id = SegmentStream.getRecordIdIfAvailable(stream, store);
-                if (id == null || isOldGen(id)) {
+                if (id == null) {
+                    // This is either not a segment stream or a one from another store:
+                    // fully serialise the stream.
                     id = internalWriteStream(stream);
+                } else if (isOldGen(id)) {
+                    // This is a segment stream from this store but from an old generation:
+                    // try to link to the blocks if there are any.
+                    SegmentStream segmentStream = (SegmentStream) stream;
+                    List<RecordId> blockIds = segmentStream.getBlockIds();
+                    if (blockIds == null) {
+                        return internalWriteStream(stream);
+                    } else {
+                        return writeValueRecord(segmentStream.getLength(), writeList(blockIds));
+                    }
                 }
                 threw = false;
                 return id;
@@ -619,14 +631,6 @@ public class SegmentWriter {
         }
 
         private RecordId internalWriteStream(InputStream stream) throws IOException {
-            if (stream instanceof SegmentStream) {
-                SegmentStream segmentStream = (SegmentStream) stream;
-                List<RecordId> blockIds = segmentStream.getBlockIds();
-                if (blockIds != null) {
-                    return writeValueRecord(segmentStream.getLength(), writeList(blockIds));
-                }
-            }
-
             // Special case for short binaries (up to about 16kB):
             // store them directly as small- or medium-sized value records
             byte[] data = new byte[Segment.MEDIUM_LIMIT];

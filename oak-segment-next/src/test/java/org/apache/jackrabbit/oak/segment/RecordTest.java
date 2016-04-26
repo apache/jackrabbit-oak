@@ -24,6 +24,7 @@ import static java.util.Collections.singletonList;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -47,16 +48,11 @@ import java.util.Random;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.segment.BlockRecord;
-import org.apache.jackrabbit.oak.segment.ListRecord;
-import org.apache.jackrabbit.oak.segment.MapEntry;
-import org.apache.jackrabbit.oak.segment.MapRecord;
-import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -377,6 +373,31 @@ public class RecordTest {
             } catch (IllegalStateException e) {
                 fail("OAK-1374");
             }
+        }
+    }
+
+    @Test
+    public void testBinaryPropertyFromExternalSegmentStore() throws IOException, CommitFailedException {
+        byte[] data = new byte[Segment.MEDIUM_LIMIT + 1];
+        random.nextBytes(data);
+
+        SegmentNodeStore extStore = SegmentNodeStore.builder(new MemoryStore()).build();
+        NodeBuilder extRootBuilder = extStore.getRoot().builder();
+        Blob extBlob = extRootBuilder.createBlob(new ByteArrayInputStream(data));
+        extRootBuilder.setProperty("binary", extBlob, BINARY);
+        extStore.merge(extRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        PropertyState extPropertyState = extStore.getRoot().getProperty("binary");
+
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty(extPropertyState);
+        NodeState state = writer.writeNode(builder.getNodeState());
+
+        try {
+            InputStream is = state.getProperty("binary").getValue(BINARY).getNewStream();
+            is.read();
+            is.close();
+        } catch (SegmentNotFoundException e) {
+            fail("OAK-4307 SegmentWriter saves references to external blobs");
         }
     }
 
