@@ -131,17 +131,33 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         return externalGroups.values().iterator();
     }
 
-    private static class TestIdentity implements ExternalIdentity {
+    public static class TestIdentity implements ExternalIdentity {
 
         private final String userId;
+        private final String principalName;
         private final ExternalIdentityRef id;
 
         private final Set<ExternalIdentityRef> groups = new HashSet<ExternalIdentityRef>();
         private final Map<String, Object> props = new HashMap<String, Object>();
 
-        private TestIdentity(String userId) {
+        public TestIdentity() {
+            this("externalId", "principalName");
+        }
+
+        public TestIdentity(@Nonnull String userId) {
+            this(userId, userId);
+        }
+
+        public TestIdentity(@Nonnull String userId, @Nonnull String principalName) {
             this.userId = userId;
+            this.principalName = principalName;
             id = new ExternalIdentityRef(userId, "test");
+        }
+
+        public TestIdentity(@Nonnull ExternalIdentity base) {
+            userId = base.getId();
+            principalName = base.getPrincipalName();
+            id = base.getExternalId();
         }
 
         @Nonnull
@@ -153,7 +169,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @Nonnull
         @Override
         public String getPrincipalName() {
-            return userId;
+            return principalName;
         }
 
         @Nonnull
@@ -214,6 +230,38 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
             return null;
+        }
+    }
+
+    public static final class ForeignExternalUser extends TestIdentityProvider.TestIdentity implements ExternalUser {
+
+        public ForeignExternalUser() {
+            super();
+        }
+
+        @Nonnull
+        @Override
+        public ExternalIdentityRef getExternalId() {
+            return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
+        }
+    }
+
+    public static final class ForeignExternalGroup extends TestIdentityProvider.TestIdentity implements ExternalGroup {
+
+        public ForeignExternalGroup() {
+            super();
+        }
+
+        @Nonnull
+        @Override
+        public ExternalIdentityRef getExternalId() {
+            return new ExternalIdentityRef(getId(), "AnotherExternalIDP");
+        }
+
+        @Nonnull
+        @Override
+        public Iterable<ExternalIdentityRef> getDeclaredMembers() {
+            return ImmutableList.of();
         }
     }
 }
