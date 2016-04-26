@@ -139,8 +139,8 @@ final class RecordWriters {
             childNameId, propNamesId, version);
     }
 
-    public static RecordWriter newNodeStateWriter(RecordId nodeId, List<RecordId> ids) {
-        return new NodeStateWriter(nodeId, ids);
+    public static RecordWriter newNodeStateWriter(RecordId stableId, List<RecordId> ids) {
+        return new NodeStateWriter(stableId, ids);
     }
 
     /**
@@ -490,19 +490,19 @@ final class RecordWriters {
      * @see RecordType#NODE
      */
     private static class NodeStateWriter extends RecordWriter {
-        private final RecordId nodeId;
+        private final RecordId stableId;
 
-        private NodeStateWriter(RecordId nodeId, List<RecordId> ids) {
+        private NodeStateWriter(RecordId stableId, List<RecordId> ids) {
             super(NODE, RECORD_ID_BYTES, ids);
-            this.nodeId = nodeId;
+            this.stableId = stableId;
         }
 
         @Override
         protected RecordId writeRecordContent(RecordId id, SegmentBufferWriter writer) {
-            if (nodeId == null) {
+            if (stableId == null) {
                 writer.writeRecordId(id);
             } else {
-                writer.writeRecordId(nodeId);
+                writer.writeRecordId(stableId);
             }
 
             for (RecordId recordId : ids) {

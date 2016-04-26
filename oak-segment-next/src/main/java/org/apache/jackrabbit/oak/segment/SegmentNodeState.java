@@ -90,7 +90,14 @@ public class SegmentNodeState extends Record implements NodeState {
         return segment.readMap(segment.readRecordId(getOffset(0, 2)));
     }
 
-    String getId() {
+    /**
+     * Returns the stable id of this node. In contrast to the node's record id
+     * (which is technically the node's address) the stable id doesn't change
+     * after an online gc cycle. It might though change after an offline gc cycle.
+     *
+     * @return  stable id
+     */
+    String getStableId() {
         RecordId id = getSegment().readRecordId(getOffset());
         if (id.equals(getRecordId())) {
             return id.toString10();
@@ -589,7 +596,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         if (a instanceof SegmentNodeState && b instanceof SegmentNodeState
-            && ((SegmentNodeState) a).getId().equals(((SegmentNodeState) b).getId())) {
+            && ((SegmentNodeState) a).getStableId().equals(((SegmentNodeState) b).getStableId())) {
                 return true;
         }
 
@@ -598,7 +605,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public int hashCode() {
-        return getId().hashCode();
+        return getStableId().hashCode();
     }
 
     @Override
