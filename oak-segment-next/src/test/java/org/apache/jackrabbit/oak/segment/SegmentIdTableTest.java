@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -31,10 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.Assert;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentIdTable;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -68,11 +67,11 @@ public class SegmentIdTableTest {
         try {
             s = f.get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
         }
-        Assert.assertNotNull(s);
-        Assert.assertEquals(2, s.getMostSignificantBits());
-        Assert.assertEquals(1, s.getLeastSignificantBits());
+        assertNotNull(s);
+        assertEquals(2, s.getMostSignificantBits());
+        assertEquals(1, s.getLeastSignificantBits());
     }
     
     @Test
@@ -85,16 +84,16 @@ public class SegmentIdTableTest {
         for (int i = 0; i < 16 * 1024; i++) {
             refs.add(tbl.getSegmentId(r.nextLong(), r.nextLong()));
         }
-        Assert.assertEquals(16 * 1024, tbl.getEntryCount());
-        Assert.assertEquals(16 * 2048, tbl.getMapSize());
-        Assert.assertEquals(5, tbl.getMapRebuildCount());
+        assertEquals(16 * 1024, tbl.getEntryCount());
+        assertEquals(16 * 2048, tbl.getMapSize());
+        assertEquals(5, tbl.getMapRebuildCount());
         
         r = new Random(1);
         for (int i = 0; i < 16 * 1024; i++) {
             refs.add(tbl.getSegmentId(r.nextLong(), r.nextLong()));
-            Assert.assertEquals(16 * 1024, tbl.getEntryCount());
-            Assert.assertEquals(16 * 2048, tbl.getMapSize());
-            Assert.assertEquals(5, tbl.getMapRebuildCount());
+            assertEquals(16 * 1024, tbl.getEntryCount());
+            assertEquals(16 * 2048, tbl.getMapSize());
+            assertEquals(5, tbl.getMapRebuildCount());
         }
     }
     
@@ -108,8 +107,8 @@ public class SegmentIdTableTest {
         for (int i = 0; i < originalCount; i++) {
             refs.add(tbl.getSegmentId(i, i % 2));
         }
-        Assert.assertEquals(originalCount, tbl.getEntryCount());
-        Assert.assertEquals(0, tbl.getMapRebuildCount());
+        assertEquals(originalCount, tbl.getEntryCount());
+        assertEquals(0, tbl.getMapRebuildCount());
         
         tbl.clearSegmentIdTables(new CompactionStrategy(false, false, 
                 CleanupType.CLEAN_NONE, originalCount, (byte) 0) {
@@ -120,7 +119,7 @@ public class SegmentIdTableTest {
             
         });
         
-        Assert.assertEquals(4, tbl.getEntryCount());
+        assertEquals(4, tbl.getEntryCount());
 
         for (SegmentId id : refs) {
             if (id.getMostSignificantBits() >= 4) {
@@ -132,7 +131,7 @@ public class SegmentIdTableTest {
                     Collections.sort(list);
                     fail("duplicate entry " + list.toString());
                 }
-                Assert.assertTrue(id == id2);
+                assertTrue(id == id2);
             }
         }
     }
@@ -148,17 +147,17 @@ public class SegmentIdTableTest {
             // modulo 128 to ensure we have conflicts
             refs.add(tbl.getSegmentId(i, i % 128));
         }
-        Assert.assertEquals(originalCount, tbl.getEntryCount());
-        Assert.assertEquals(1, tbl.getMapRebuildCount());
+        assertEquals(originalCount, tbl.getEntryCount());
+        assertEquals(1, tbl.getMapRebuildCount());
         
         List<SegmentId> refs2 = new ArrayList<SegmentId>();
         tbl.collectReferencedIds(refs2);
-        Assert.assertEquals(refs.size(), refs2.size());
+        assertEquals(refs.size(), refs2.size());
 
-        Assert.assertEquals(originalCount, tbl.getEntryCount());
+        assertEquals(originalCount, tbl.getEntryCount());
         // we don't expect that there was a refresh, 
         // because there were just hash collisions
-        Assert.assertEquals(1, tbl.getMapRebuildCount());
+        assertEquals(1, tbl.getMapRebuildCount());
     }
     
     @Test
@@ -172,8 +171,8 @@ public class SegmentIdTableTest {
             // modulo 128 to ensure we have conflicts
             refs.add(tbl.getSegmentId(i, i % 128));
         }
-        Assert.assertEquals(originalCount, tbl.getEntryCount());
-        Assert.assertEquals(1, tbl.getMapRebuildCount());
+        assertEquals(originalCount, tbl.getEntryCount());
+        assertEquals(1, tbl.getMapRebuildCount());
 
         for (int i = 0; i < refs.size() / 2; i++) {
             // we need to remove the first entries,
@@ -187,10 +186,10 @@ public class SegmentIdTableTest {
             
             for (SegmentId id : refs) {
                 SegmentId id2 = tbl.getSegmentId(id.getMostSignificantBits(), id.getLeastSignificantBits());
-                Assert.assertTrue(id2 == id);
+                assertTrue(id2 == id);
             }
             // because we found each entry, we expect the refresh count is the same
-            Assert.assertEquals(1, tbl.getMapRebuildCount());
+            assertEquals(1, tbl.getMapRebuildCount());
 
             // even thought this does not increase the entry count a lot,
             // it is supposed to detect that entries were removed,
@@ -205,6 +204,6 @@ public class SegmentIdTableTest {
                 fail("No entries were garbage collected after 10 times System.gc()");
             }
         }
-        Assert.assertEquals(2, tbl.getMapRebuildCount());
+        assertEquals(2, tbl.getMapRebuildCount());
     }
 }
