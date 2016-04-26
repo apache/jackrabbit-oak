@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNextNodeStoreContainer;
 
 public class CopyReferencesTest extends AbstractOak2OakTest {
 
@@ -32,8 +32,8 @@ public class CopyReferencesTest extends AbstractOak2OakTest {
 
     public CopyReferencesTest() {
         sourceBlob = new FileDataStoreContainer();
-        source = new SegmentNodeStoreContainer(sourceBlob);
-        destination = new SegmentNodeStoreContainer(sourceBlob);
+        source = new SegmentNextNodeStoreContainer(sourceBlob);
+        destination = new SegmentNextNodeStoreContainer(sourceBlob);
     }
 
     @Override

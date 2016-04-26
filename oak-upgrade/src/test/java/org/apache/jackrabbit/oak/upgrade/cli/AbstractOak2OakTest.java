@@ -29,13 +29,14 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNextNodeStoreContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -49,7 +50,7 @@ public abstract class AbstractOak2OakTest {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractOak2OakTest.class);
 
-    protected static SegmentNodeStoreContainer testContent;
+    protected static SegmentNextNodeStoreContainer testContent;
 
     private NodeStore destination;
 
@@ -69,7 +70,7 @@ public abstract class AbstractOak2OakTest {
         if (!tempDir.isDirectory()) {
             Util.unzip(AbstractOak2OakTest.class.getResourceAsStream("/segmentstore.zip"), tempDir);
         }
-        testContent = new SegmentNodeStoreContainer(tempDir);
+        testContent = new SegmentNextNodeStoreContainer(tempDir);
     }
 
     @Before
@@ -92,11 +93,14 @@ public abstract class AbstractOak2OakTest {
 
     @After
     public void clean() throws IOException {
-        session.logout();
-        repository.shutdown();
-        getDestinationContainer().close();
-        getDestinationContainer().clean();
-        getSourceContainer().clean();
+        try {
+            session.logout();
+            repository.shutdown();
+        } finally {
+            IOUtils.closeQuietly(getDestinationContainer());
+            getDestinationContainer().clean();
+            getSourceContainer().clean();
+        }
     }
 
     private void initContent(NodeStore target) throws IOException, RepositoryException {
