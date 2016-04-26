@@ -22,14 +22,14 @@ package org.apache.jackrabbit.oak.segment.compaction;
 /**
  * This class holds configuration options for segment store revision gc.
  */
-public class CompactionStrategy {
+public class SegmentGCOptions {
 
     /**
      * Default options: {@link #PAUSE_DEFAULT}, {@link #MEMORY_THRESHOLD_DEFAULT},
      * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT},
      * {@link #FORCE_AFTER_FAIL_DEFAULT}, {@link #LOCK_WAIT_TIME_DEFAULT}.
      */
-    public static final CompactionStrategy DEFAULT = new CompactionStrategy();
+    public static final SegmentGCOptions DEFAULT = new SegmentGCOptions();
 
     /**
      * Default value for {@link #isPaused()}
@@ -73,8 +73,8 @@ public class CompactionStrategy {
 
     private int lockWaitTime = LOCK_WAIT_TIME_DEFAULT;
 
-    public CompactionStrategy(boolean paused, int memoryThreshold, int gainThreshold,
-                              int retryCount, boolean forceAfterFail, int lockWaitTime) {
+    public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
+                            int retryCount, boolean forceAfterFail, int lockWaitTime) {
         this.paused = paused;
         this.memoryThreshold = memoryThreshold;
         this.gainThreshold = gainThreshold;
@@ -83,7 +83,7 @@ public class CompactionStrategy {
         this.lockWaitTime = lockWaitTime;
     }
 
-    public CompactionStrategy() {
+    public SegmentGCOptions() {
         this(PAUSE_DEFAULT, MEMORY_THRESHOLD_DEFAULT, GAIN_THRESHOLD_DEFAULT,
                 RETRY_COUNT_DEFAULT, FORCE_AFTER_FAIL_DEFAULT, LOCK_WAIT_TIME_DEFAULT);
     }
@@ -100,7 +100,7 @@ public class CompactionStrategy {
      * @param paused
      * @return this instance
      */
-    public CompactionStrategy setPaused(boolean paused) {
+    public SegmentGCOptions setPaused(boolean paused) {
         this.paused = paused;
         return this;
     }
@@ -117,7 +117,7 @@ public class CompactionStrategy {
      * @param memoryThreshold
      * @return this instance
      */
-    public CompactionStrategy setMemoryThreshold(int memoryThreshold) {
+    public SegmentGCOptions setMemoryThreshold(int memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
         return this;
     }
@@ -135,7 +135,7 @@ public class CompactionStrategy {
      * @param gainThreshold
      * @return this instance
      */
-    public CompactionStrategy setGainThreshold(int gainThreshold) {
+    public SegmentGCOptions setGainThreshold(int gainThreshold) {
         this.gainThreshold = gainThreshold;
         return this;
     }
@@ -155,7 +155,7 @@ public class CompactionStrategy {
      * @param retryCount
      * @return this instance
      */
-    public CompactionStrategy setRetryCount(int retryCount) {
+    public SegmentGCOptions setRetryCount(int retryCount) {
         this.retryCount = retryCount;
         return this;
     }
@@ -177,7 +177,7 @@ public class CompactionStrategy {
      * @param forceAfterFail
      * @return this instance
      */
-    public CompactionStrategy setForceAfterFail(boolean forceAfterFail) {
+    public SegmentGCOptions setForceAfterFail(boolean forceAfterFail) {
         this.forceAfterFail = forceAfterFail;
         return this;
     }
@@ -197,7 +197,7 @@ public class CompactionStrategy {
      * @return
      * @return this instance
      */
-    public CompactionStrategy setLockWaitTime(int lockWaitTime) {
+    public SegmentGCOptions setLockWaitTime(int lockWaitTime) {
         this.lockWaitTime = lockWaitTime;
         return this;
     }
