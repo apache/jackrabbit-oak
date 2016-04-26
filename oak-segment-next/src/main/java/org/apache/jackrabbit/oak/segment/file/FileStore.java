@@ -350,6 +350,12 @@ public class FileStore implements SegmentStore {
             return this;
         }
 
+        /**
+         * {@link SegmentVersion} the segment version of the store
+         * @param version
+         * @return this instance
+         */
+        @Nonnull
         public Builder withSegmentVersion(SegmentVersion version) {
             this.version = checkNotNull(version);
             return this;
