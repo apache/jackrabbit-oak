@@ -1335,6 +1335,11 @@ public class FileStore implements SegmentStore {
         }
     }
 
+    /**
+     * Switch to a new tar writer.
+     * This method may only be called when holding the write lock of {@link #fileStoreLock}
+     * @throws IOException
+     */
     private void newWriter() throws IOException {
         if (writer.isDirty()) {
             writer.close();
