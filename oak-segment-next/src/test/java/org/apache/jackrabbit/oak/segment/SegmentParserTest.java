@@ -162,6 +162,7 @@ public class SegmentParserTest {
         assertEquals(0, info.nodeCount);
         assertEquals(0, info.propertyCount);
         assertEquals(3, info.size);
+        assertEquals(info.nodeId.toString10(), info.stableId);
     }
 
     @Test
@@ -177,6 +178,7 @@ public class SegmentParserTest {
         assertEquals(1, info.nodeCount);
         assertEquals(0, info.propertyCount);
         assertEquals(6, info.size);
+        assertEquals(info.nodeId.toString10(), info.stableId);
     }
 
     @Test
@@ -197,6 +199,7 @@ public class SegmentParserTest {
         assertEquals(2, info.nodeCount);
         assertEquals(1, info.propertyCount);
         assertEquals(9, info.size);
+        assertEquals(info.nodeId.toString10(), info.stableId);
     }
 
     @Test
