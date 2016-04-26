@@ -558,7 +558,7 @@ public class FileStore implements SegmentStore {
                     humanReadableByteCount(needed), needed,
                     humanReadableByteCount(delta), delta);
             if (cleanup) {
-                cleanupNeeded.set(true);
+                cleanupNeeded.set(!compactionStrategy.isPaused());
             }
             return false;
         }
@@ -622,7 +622,7 @@ public class FileStore implements SegmentStore {
             }
         }
         if (cleanup) {
-            cleanupNeeded.set(true);
+            cleanupNeeded.set(!compactionStrategy.isPaused());
         }
         return compacted;
     }
