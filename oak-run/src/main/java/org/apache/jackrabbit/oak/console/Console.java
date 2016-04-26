@@ -57,7 +57,7 @@ public class Console {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec quiet = parser.accepts("quiet", "be less chatty");
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
-        OptionSpec readOnly = parser.accepts("read-only", "connect to repository in read-only mode");
+        OptionSpec readWrite = parser.accepts("read-write", "connect to repository in read-write mode");
         OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
@@ -93,6 +93,8 @@ public class Console {
             }
         }
 
+        boolean readOnly = !options.has(readWrite);
+
         NodeStoreFixture fixture;
         if (nonOptions.get(0).startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(nonOptions.get(0));
@@ -102,13 +104,11 @@ public class Console {
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
 
-            DocumentMK.Builder builder = new DocumentMK.Builder();
-            if (blobStore != null) {
-                builder.setBlobStore(blobStore);
-            }
-            builder.setMongoDB(mongo.getDB()).
+            DocumentMK.Builder builder = new DocumentMK.Builder()
+                    .setBlobStore(blobStore)
+                    .setMongoDB(mongo.getDB()).
                     setClusterId(clusterId.value(options));
-            if (options.has(readOnly)) {
+            if (readOnly) {
                 builder.setReadOnlyMode();
             }
             DocumentNodeStore store = builder.getNodeStore();
@@ -116,12 +116,13 @@ public class Console {
         } else if (nonOptions.get(0).startsWith("jdbc")) {
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(nonOptions.get(0), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options));
-            DocumentMK.Builder builder = new DocumentMK.Builder();
-            if (blobStore != null) {
-                builder.setBlobStore(blobStore);
-            }
-            builder.setRDBConnection(ds).
+            DocumentMK.Builder builder = new DocumentMK.Builder()
+                    .setBlobStore(blobStore)
+                    .setRDBConnection(ds).
                     setClusterId(clusterId.value(options));
+            if (readOnly) {
+                builder.setReadOnlyMode();
+            }
             DocumentNodeStore store = builder.getNodeStore();
             fixture = new MongoFixture(store);
         } else {
@@ -130,7 +131,7 @@ public class Console {
                 fsBuilder.withBlobStore(blobStore);
             }
             FileStore store;
-            if (options.has(readOnly)) {
+            if (readOnly) {
                 store = fsBuilder.buildReadOnly();
             } else {
                 store = fsBuilder.build();
@@ -144,6 +145,10 @@ public class Console {
 
         if(options.has(quiet)){
             io.setVerbosity(IO.Verbosity.QUIET);
+        }
+
+        if (readOnly) {
+            io.out.println("Repository connected in read-only mode. Use '--read-write' for write operations");
         }
 
         GroovyConsole console =
