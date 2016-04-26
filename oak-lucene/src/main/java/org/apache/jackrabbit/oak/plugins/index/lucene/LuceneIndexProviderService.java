@@ -35,7 +35,6 @@ import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -56,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -70,6 +70,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyMap;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
@@ -221,6 +222,7 @@ public class LuceneIndexProviderService {
                 new LuceneIndexMBeanImpl(indexProvider.getTracker()),
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
+        registerGCMonitor(whiteboard, indexProvider.getTracker());
     }
 
     @Deactivate
@@ -467,6 +469,16 @@ public class LuceneIndexProviderService {
         }
     }
 
+    private void registerGCMonitor(Whiteboard whiteboard,
+            final IndexTracker tracker) {
+        GCMonitor gcMonitor = new GCMonitor.Empty() {
+            @Override
+            public void compacted() {
+                tracker.refresh();
+            }
+        };
+        oakRegs.add(whiteboard.register(GCMonitor.class, gcMonitor, emptyMap()));
+    }
 
     protected void bindNodeAggregator(NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
