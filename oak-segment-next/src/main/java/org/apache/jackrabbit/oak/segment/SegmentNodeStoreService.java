@@ -236,6 +236,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private WhiteboardExecutor executor;
     private boolean customBlobStore;
 
+    private Registration discoveryLiteDescriptorRegistration;
+
     /**
      * Blob modified before this time duration would be considered for Blob GC
      */
@@ -475,6 +477,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                         ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
         whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
 
+        // Register "discovery lite" descriptors
+        discoveryLiteDescriptorRegistration = whiteboard.register(
+                Descriptors.class,
+                new SegmentDiscoveryLiteDescriptors(segmentNodeStore),
+                Collections.emptyMap()
+        );
+
         // If a shared data store register the repo id in the data store
         String repoId = "";
         if (SharedDataStoreUtils.isShared(blobStore)) {
@@ -510,6 +519,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private void unregisterNodeStore() {
+        if (discoveryLiteDescriptorRegistration != null) {
+            discoveryLiteDescriptorRegistration.unregister();
+            discoveryLiteDescriptorRegistration = null;
+        }
         if (segmentCacheMBean != null) {
             segmentCacheMBean.unregister();
             segmentCacheMBean = null;
@@ -518,11 +531,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             stringCacheMBean.unregister();
             stringCacheMBean = null;
         }
-        if(providerRegistration != null){
+        if (providerRegistration != null) {
             providerRegistration.unregister();
             providerRegistration = null;
         }
-        if(storeRegistration != null){
+        if (storeRegistration != null) {
             storeRegistration.unregister();
             storeRegistration = null;
         }
