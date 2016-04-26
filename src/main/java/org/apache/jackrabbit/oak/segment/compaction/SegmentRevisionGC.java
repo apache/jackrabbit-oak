@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.segment.compaction;
 
 /**
- * This MBean exposes the settings from {@link CompactionStrategy}.
+ * This MBean exposes the settings from {@link SegmentGCOptions}.
  */
-public interface CompactionStrategyMBean {
-    String TYPE = "CompactionStrategy";
+public interface SegmentRevisionGC {
+    String TYPE = "SegmentRevisionGarbageCollection";
 
     /**
      * @return  {@code true} iff revision gc is paused.
