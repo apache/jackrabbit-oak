@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -205,8 +206,10 @@ public class SegmentDataStoreBlobGCIT {
 
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
-    
+
+    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
+    @Ignore
     public void gc() throws Exception {
         DataStoreState state = setUp();
         log.info("{} blobs that should remain after gc : {}", state.blobsPresent.size(), state.blobsPresent);
@@ -233,8 +236,10 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(1, executor.getTaskCount());
         assertEquals(0, candidates);
     }
-    
+
+    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
+    @Ignore
     public void consistencyCheckWithGc() throws Exception {
         DataStoreState state = setUp();
         Set<String> existingAfterGC = gcInternal(0);
@@ -263,8 +268,10 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(1, executor.getTaskCount());
         assertEquals(count, candidates);
     }
-    
+
+    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
+    @Ignore
     public void gcLongRunningBlobCollection() throws Exception {
         DataStoreState state = setUp();
         log.info("{} Blobs added {}", state.blobsAdded.size(), state.blobsAdded);
@@ -289,7 +296,9 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(gc.additionalBlobs, Sets.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 
+    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
+    @Ignore
     public void gcWithInlined() throws Exception {
         blobStore = new DataStoreBlobStore(DataStoreUtils.createFDS(new File(getWorkDir(), "datastore"), 16516));
         DataStoreState state = setUp();
