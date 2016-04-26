@@ -238,6 +238,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private Registration discoveryLiteDescriptorRegistration;
 
+    private Registration clusterIdDescriptorRegistration;
+
     /**
      * Blob modified before this time duration would be considered for Blob GC
      */
@@ -475,7 +477,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
                 new SimpleValueFactory().createValue(
                         ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
-        whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
+        clusterIdDescriptorRegistration = whiteboard.register(
+                Descriptors.class,
+                clusterIdDesc,
+                Collections.emptyMap()
+        );
 
         // Register "discovery lite" descriptors
         discoveryLiteDescriptorRegistration = whiteboard.register(
@@ -522,6 +528,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if (discoveryLiteDescriptorRegistration != null) {
             discoveryLiteDescriptorRegistration.unregister();
             discoveryLiteDescriptorRegistration = null;
+        }
+        if (clusterIdDescriptorRegistration != null) {
+            clusterIdDescriptorRegistration.unregister();
+            clusterIdDescriptorRegistration = null;
         }
         if (segmentCacheMBean != null) {
             segmentCacheMBean.unregister();
