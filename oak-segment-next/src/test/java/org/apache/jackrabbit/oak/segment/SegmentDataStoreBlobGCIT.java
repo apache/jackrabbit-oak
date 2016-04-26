@@ -59,7 +59,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -99,10 +98,6 @@ public class SegmentDataStoreBlobGCIT {
                     .withBlobStore(blobStore).withMaxFileSize(256)
                     .withCacheSize(64).withMemoryMapping(false);
             store = builder.build();
-            CompactionStrategy compactionStrategy =
-                new CompactionStrategy(false, true,
-                    CompactionStrategy.CleanupType.CLEAN_OLD, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT);
-            store.setCompactionStrategy(compactionStrategy);
             nodeStore = SegmentNodeStore.builder(store).build();
         }
         return nodeStore;

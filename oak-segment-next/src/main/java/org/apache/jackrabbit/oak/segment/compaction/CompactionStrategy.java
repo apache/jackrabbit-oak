@@ -19,65 +19,31 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.System.currentTimeMillis;
-
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-// FIXME OAK-4276: Refactor / rework compaction strategies
-// Refactor this into a proper AST. Identify and remove "legacy" parts
+/**
+ * This class holds configuration options for segment store revision gc.
+ */
 public class CompactionStrategy {
-    private static final Logger LOG = LoggerFactory.getLogger(CompactionStrategy.class);
 
-    public enum CleanupType {
+    /**
+     * Default options: {@link #PAUSE_DEFAULT}, {@link #MEMORY_THRESHOLD_DEFAULT},
+     * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT},
+     * {@link #FORCE_AFTER_FAIL_DEFAULT}, {@link #LOCK_WAIT_TIME_DEFAULT}.
+     */
+    public static final CompactionStrategy DEFAULT = new CompactionStrategy();
 
-        /**
-         * {@code CLEAN_ALL} <em>must</em> be used in conjunction with {@code cloneBinaries}
-         * otherwise segments can go away ({@code SegmentNotFoundException})
-         * <p>
-         * Pros: best compaction results
-         * <p>
-         * Cons: larger repo size <em>during</em> compaction (2x). High chances that a currently
-         * running diff (e.g. observation) fails with {@code SegmentNotFoundException}.
-         */
-        CLEAN_ALL,
+    /**
+     * Default value for {@link #isPaused()}
+     */
+    public static final boolean PAUSE_DEFAULT = false;
 
-        CLEAN_NONE,
-
-        /**
-         * {@code CLEAN_OLD} with {@code cloneBinaries}
-         * <p>
-         * Pros: better compaction results
-         * <p>
-         * Cons: larger repo size {@code during} compaction (2x). {@code SegmentNotFoundException}
-         * with insufficiently large values for {@code olderThan}.
-         * <p>
-         * {@code CLEAN_OLD} without {@code cloneBinaries}
-         * <p>
-         * Pros: weakest compaction results, smaller size during compaction (1x + size of
-         * data-segments).
-         * <p>
-         * Cons: {@code SegmentNotFoundException} with insufficiently large values for
-         * {@code olderThan}.
-         */
-        CLEAN_OLD
-    }
-
-    public static final boolean PAUSE_DEFAULT = true;
-
-    public static final boolean CLONE_BINARIES_DEFAULT = false;
-
-    public static final CleanupType CLEANUP_DEFAULT = CleanupType.CLEAN_OLD;
-
-    public static final long TIMESTAMP_DEFAULT = 1000 * 60 * 60 * 10;  // 10h
-
+    /**
+     * Default value for {@link #getMemoryThreshold()}
+     */
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
+    /**
+     * Default value for {@link #getGainThreshold()}
+     */
     public static final byte GAIN_THRESHOLD_DEFAULT = 10;
 
     /**
@@ -91,129 +57,107 @@ public class CompactionStrategy {
     public static final boolean FORCE_AFTER_FAIL_DEFAULT = false;
 
     /**
-     * No compaction at all
+     * Default value for {@link #getLockWaitTime()}
      */
-    public static final CompactionStrategy NO_COMPACTION = new CompactionStrategy(
-            true, false, CleanupType.CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT);
+    public static final int LOCK_WAIT_TIME_DEFAULT = 60000;
 
-    private boolean paused;
+    private boolean paused = PAUSE_DEFAULT;
 
-    private boolean cloneBinaries;
+    private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
 
-    @Nonnull
-    private CleanupType cleanupType;
-
-    /**
-     * anything that has a lifetime bigger than this will be removed. a value of
-     * 0 (or very small) acts like a CLEANUP.NONE, a value of -1 (or negative)
-     * acts like a CLEANUP.ALL
-     * 
-     */
-    private long olderThan;
-
-    private byte memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
+    private int gainThreshold = GAIN_THRESHOLD_DEFAULT;
 
     private int retryCount = RETRY_COUNT_DEFAULT;
 
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
 
-    // FIXME OAK-4276: Refactor / rework compaction strategies
-    // Make the lock wait time configurable
-    private int lockWaitTime = 60;
+    private int lockWaitTime = LOCK_WAIT_TIME_DEFAULT;
 
-    private long compactionStart = currentTimeMillis();
+    public CompactionStrategy(boolean paused, int memoryThreshold, int gainThreshold,
+                              int retryCount, boolean forceAfterFail, int lockWaitTime) {
+        this.paused = paused;
+        this.memoryThreshold = memoryThreshold;
+        this.gainThreshold = gainThreshold;
+        this.retryCount = retryCount;
+        this.forceAfterFail = forceAfterFail;
+        this.lockWaitTime = lockWaitTime;
+    }
+
+    public CompactionStrategy() {
+        this(PAUSE_DEFAULT, MEMORY_THRESHOLD_DEFAULT, GAIN_THRESHOLD_DEFAULT,
+                RETRY_COUNT_DEFAULT, FORCE_AFTER_FAIL_DEFAULT, LOCK_WAIT_TIME_DEFAULT);
+    }
 
     /**
-     * Compaction gain estimate threshold beyond which compaction should run
+     * @return  {@code true} iff revision gc is paused.
      */
-    private byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
-
-    public CompactionStrategy(boolean paused,
-            boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
-        checkArgument(olderThan >= 0);
-        this.paused = paused;
-        this.cloneBinaries = cloneBinaries;
-        this.cleanupType = checkNotNull(cleanupType);
-        this.olderThan = olderThan;
-        this.memoryThreshold = memoryThreshold;
-    }
-
-    public boolean canRemove(SegmentId id) {
-        switch (cleanupType) {
-            case CLEAN_ALL:
-                return true;
-            case CLEAN_NONE:
-                return false;
-            case CLEAN_OLD:
-                long age = compactionStart - id.getCreationTime();
-                if (age > olderThan) {
-                    LOG.info("TarMK released segment {} for gc. Age={}", id, age);
-                    return true;
-                } else {
-                    return false;
-                }
-        }
-        return false;
-    }
-
-    public boolean cloneBinaries() {
-        return cloneBinaries;
-    }
-
     public boolean isPaused() {
         return paused;
     }
 
-    public void setPaused(boolean paused) {
+    /**
+     * Set revision gc to paused.
+     * @param paused
+     * @return this instance
+     */
+    public CompactionStrategy setPaused(boolean paused) {
         this.paused = paused;
+        return this;
     }
 
-    public void setCloneBinaries(boolean cloneBinaries) {
-        this.cloneBinaries = cloneBinaries;
-    }
-
-    public void setCleanupType(@Nonnull CleanupType cleanupType) {
-        this.cleanupType = checkNotNull(cleanupType);
-    }
-
-    public void setOlderThan(long olderThan) {
-        checkArgument(olderThan >= 0);
-        this.olderThan = olderThan;
-    }
-
-    String getCleanupType() {
-        return cleanupType.toString();
-    }
-
-    long getOlderThan() {
-        return olderThan;
-    }
-
-
-    @Override
-    public String toString() {
-        return "CompactionStrategy{" +
-                "paused=" + paused +
-                ", cloneBinaries=" + cloneBinaries +
-                ", cleanupType=" + cleanupType +
-                ", olderThan=" + olderThan +
-                ", memoryThreshold=" + memoryThreshold +
-                ", retryCount=" + retryCount +
-                ", forceAfterFail=" + forceAfterFail +
-                ", compactionStart=" + compactionStart +
-                '}';
-    }
-
-    public void setCompactionStart(long ms) {
-        this.compactionStart = ms;
-    }
-
-    public byte getMemoryThreshold() {
+    /**
+     * @return  the memory threshold below which revision gc will not run.
+     */
+    public int getMemoryThreshold() {
         return memoryThreshold;
     }
 
-    public void setMemoryThreshold(byte memoryThreshold) {
+    /**
+     * Set the memory threshold below which revision gc will not run.
+     * @param memoryThreshold
+     * @return this instance
+     */
+    public CompactionStrategy setMemoryThreshold(int memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
+        return this;
+    }
+
+    /**
+     * Get the gain estimate threshold beyond which revision gc should run
+     * @return gainThreshold
+     */
+    public int getGainThreshold() {
+        return gainThreshold;
+    }
+
+    /**
+     * Set the revision gain estimate threshold beyond which revision gc should run
+     * @param gainThreshold
+     * @return this instance
+     */
+    public CompactionStrategy setGainThreshold(int gainThreshold) {
+        this.gainThreshold = gainThreshold;
+        return this;
+    }
+
+    /**
+     * Get the number of tries to compact concurrent commits on top of already
+     * compacted commits
+     * @return  retry count
+     */
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    /**
+     * Set the number of tries to compact concurrent commits on top of already
+     * compacted commits
+     * @param retryCount
+     * @return this instance
+     */
+    public CompactionStrategy setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+        return this;
     }
 
     /**
@@ -231,53 +175,42 @@ public class CompactionStrategy {
      * compacted commits after the maximum number of retries has been reached.
      * Force committing tries to exclusively write lock the node store.
      * @param forceAfterFail
+     * @return this instance
      */
-    public void setForceAfterFail(boolean forceAfterFail) {
+    public CompactionStrategy setForceAfterFail(boolean forceAfterFail) {
         this.forceAfterFail = forceAfterFail;
+        return this;
     }
 
-    public void setLockWaitTime(int lockWaitTime) {
-        this.lockWaitTime = lockWaitTime;
-    }
-
+    /**
+     * Get the time to wait for the lock when force compacting.
+     * See {@link #setForceAfterFail(boolean)}
+     * @return lock wait time in seconds.
+     */
     public int getLockWaitTime() {
         return lockWaitTime;
     }
 
     /**
-     * Get the number of tries to compact concurrent commits on top of already
-     * compacted commits
-     * @return  retry count
+     * Set the time to wait for the lock when force compacting.
+     * @param lockWaitTime  lock wait time in seconds
+     * @return
+     * @return this instance
      */
-    public int getRetryCount() {
-        return retryCount;
+    public CompactionStrategy setLockWaitTime(int lockWaitTime) {
+        this.lockWaitTime = lockWaitTime;
+        return this;
     }
 
-    /**
-     * Set the number of tries to compact concurrent commits on top of already
-     * compacted commits
-     * @param retryCount
-     */
-    public void setRetryCount(int retryCount) {
-        this.retryCount = retryCount;
-    }
-
-    /**
-     * Get the compaction gain estimate threshold beyond which compaction should
-     * run
-     * @return gainThreshold
-     */
-    public byte getGainThreshold() {
-        return gainThreshold;
-    }
-
-    /**
-     * Set the compaction gain estimate threshold beyond which compaction should
-     * run
-     * @param gainThreshold
-     */
-    public void setGainThreshold(byte gainThreshold) {
-        this.gainThreshold = gainThreshold;
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" +
+                "paused=" + paused +
+                ", memoryThreshold=" + memoryThreshold +
+                ", gainThreshold=" + gainThreshold +
+                ", retryCount=" + retryCount +
+                ", forceAfterFail=" + forceAfterFail +
+                ", lockWaitTime=" + lockWaitTime + '}';
     }
 
     /**

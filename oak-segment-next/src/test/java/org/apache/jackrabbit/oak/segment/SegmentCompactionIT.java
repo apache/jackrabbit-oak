@@ -33,7 +33,6 @@ import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 import static org.slf4j.helpers.MessageFormatter.format;
@@ -136,7 +135,6 @@ public class SegmentCompactionIT {
 
     private FileStore fileStore;
     private SegmentNodeStore nodeStore;
-    private CompactionStrategy compactionStrategy;
     private Registration mBeanRegistration;
 
     private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
@@ -228,30 +226,20 @@ public class SegmentCompactionIT {
             }
         }, 1, 1, SECONDS);
 
+        CompactionStrategy gcOptions = CompactionStrategy.DEFAULT.setLockWaitTime(lockWaitTime);
         fileStore = FileStore.builder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
+                .withCompactionStrategy(gcOptions)
                 .build();
-        SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
-                .builder(fileStore);
-        nodeStoreBuilder.withCompactionStrategy(false, false,
-                CLEAN_OLD.toString(), CompactionStrategy.TIMESTAMP_DEFAULT,
-                CompactionStrategy.MEMORY_THRESHOLD_DEFAULT, lockWaitTime,
-                CompactionStrategy.RETRY_COUNT_DEFAULT,
-                CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT,
-                CompactionStrategy.GAIN_THRESHOLD_DEFAULT);
-        nodeStore = nodeStoreBuilder.build();
-
-        compactionStrategy = nodeStoreBuilder
-                .getCompactionStrategy();
-        fileStore.setCompactionStrategy(compactionStrategy);
+        nodeStore = SegmentNodeStore.builder(fileStore).build();
 
         CacheStats segmentCacheStats = fileStore.getTracker().getSegmentCacheStats();
         CacheStats stringCacheStats = fileStore.getTracker().getStringCacheStats();
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
-        registrations.add(registerMBean(new DefaultCompactionStrategyMBean(compactionStrategy),
+        registrations.add(registerMBean(new DefaultCompactionStrategyMBean(gcOptions),
                 new ObjectName("IT:TYPE=Compaction Strategy")));
         registrations.add(registerMBean(fileStoreGCMonitor,
                 new ObjectName("IT:TYPE=GC Monitor")));

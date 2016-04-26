@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.CIHelper.travis;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
@@ -35,8 +34,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -67,9 +64,6 @@ public class HeavyWriteIT {
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
         final FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
-        CompactionStrategy custom = new CompactionStrategy(false, false,
-                CLEAN_OLD, 30000, (byte) 0);
-        store.setCompactionStrategy(custom);
 
         int writes = 100;
         final AtomicBoolean run = new AtomicBoolean(true);

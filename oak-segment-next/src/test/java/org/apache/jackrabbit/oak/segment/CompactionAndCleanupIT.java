@@ -27,9 +27,6 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_M
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.builder;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType.CLEAN_ALL;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
-import static org.apache.jackrabbit.oak.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -47,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -102,11 +98,6 @@ public class CompactionAndCleanupIT {
                 .withMaxFileSize(1)
                 .build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-        CompactionStrategy custom = new CompactionStrategy(false, false,
-                CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0);
-        // Use in memory compaction map as gains asserted later on
-        // do not take additional space of the compaction map into consideration
-        fileStore.setCompactionStrategy(custom);
 
         // 1a. Create a bunch of data
         NodeBuilder extra = nodeStore.getRoot().builder();
@@ -172,10 +163,6 @@ public class CompactionAndCleanupIT {
             fileStore.cleanup();
             assertSize("post cleanup", fileStore.size(), 0, blobSize + 2 * dataSize);
 
-            // refresh the ts ref, to simulate a long wait time
-            custom.setOlderThan(0);
-            TimeUnit.MILLISECONDS.sleep(5);
-
             boolean needsCompaction = true;
             for (int i = 0; i < 3 && needsCompaction; i++) {
                 needsCompaction = fileStore.maybeCompact(false);
@@ -221,12 +208,13 @@ public class CompactionAndCleanupIT {
      */
     @Test
     public void testMixedSegments() throws Exception {
-        FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(2).withMemoryMapping(true).build();
+        FileStore store = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(2)
+                .withMemoryMapping(true)
+                .withCompactionStrategy(CompactionStrategy.DEFAULT.setForceAfterFail(true))
+                .build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
         final AtomicBoolean compactionSuccess = new AtomicBoolean(true);
-        CompactionStrategy strategy = new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5);
-        strategy.setForceAfterFail(true);
-        store.setCompactionStrategy(strategy);
 
         NodeBuilder root = nodeStore.getRoot().builder();
         createNodes(root.setChildNode("test"), 10, 3);
@@ -348,7 +336,6 @@ public class CompactionAndCleanupIT {
             File repoDir = new File(getFileStoreFolder(), ref);
             FileStore fileStore = FileStore.builder(repoDir).withMaxFileSize(2).build();
             final SegmentNodeStore nodeStore = builder(fileStore).build();
-            fileStore.setCompactionStrategy(new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5));
             try {
                 // add some content
                 NodeBuilder preGCBuilder = nodeStore.getRoot().builder();
@@ -506,9 +493,6 @@ public class CompactionAndCleanupIT {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-            CompactionStrategy strategy = new CompactionStrategy(false, false, CLEAN_ALL, 0, (byte) 0);
-            // CLEAN_ALL and persisted compaction map results in SNFE in compaction map segments
-            fileStore.setCompactionStrategy(strategy);
 
             // Add a property
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -547,8 +531,6 @@ public class CompactionAndCleanupIT {
     @Test
     public void checkpointDeduplicationTest() throws IOException, CommitFailedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
-        CompactionStrategy strategy = new CompactionStrategy(false, false, CLEAN_NONE, 0, (byte) 0);
-        fileStore.setCompactionStrategy(strategy);
         try {
             SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
             NodeBuilder builder = nodeStore.getRoot().builder();
