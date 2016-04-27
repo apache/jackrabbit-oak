@@ -61,7 +61,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class ExternalBlobIT {
 
-    private SegmentStore store;
+    private FileStore store;
     private SegmentNodeStore nodeStore;
     private FileBlob fileBlob;
 
@@ -123,7 +123,7 @@ public class ExternalBlobIT {
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         final List<String> refrences = Lists.newArrayList();
-        store.getTracker().collectBlobReferences(new ReferenceCollector() {
+        store.collectBlobReferences(new ReferenceCollector() {
             @Override
             public void addReference(String reference, String nodeId) {
                 assertNotNull(reference);

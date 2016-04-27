@@ -67,7 +67,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -177,7 +176,12 @@ public class SegmentDataStoreBlobGCIT {
 
         // Sleep a little to make eligible for cleanup
         TimeUnit.MILLISECONDS.sleep(5);
-        store.maybeCompact(false);
+
+        // FIXME OAK-4282: Make the number of retained gc generation configurable
+        // Need to compact twice because of the generation cleanup threshold
+        // (currently hard coded to 2);
+        store.compact();
+        store.compact();
         store.cleanup();
 
         return state;
@@ -207,9 +211,7 @@ public class SegmentDataStoreBlobGCIT {
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
-    @Ignore
     public void gc() throws Exception {
         DataStoreState state = setUp();
         log.info("{} blobs that should remain after gc : {}", state.blobsPresent.size(), state.blobsPresent);
@@ -237,9 +239,7 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(0, candidates);
     }
 
-    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
-    @Ignore
     public void consistencyCheckWithGc() throws Exception {
         DataStoreState state = setUp();
         Set<String> existingAfterGC = gcInternal(0);
@@ -269,9 +269,7 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(count, candidates);
     }
 
-    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
-    @Ignore
     public void gcLongRunningBlobCollection() throws Exception {
         DataStoreState state = setUp();
         log.info("{} Blobs added {}", state.blobsAdded.size(), state.blobsAdded);
@@ -286,7 +284,7 @@ public class SegmentDataStoreBlobGCIT {
                 REPOSITORY.getNameFromId(repoId));
         }
         TestGarbageCollector gc = new TestGarbageCollector(
-            new SegmentBlobReferenceRetriever(store.getTracker()),
+            new SegmentBlobReferenceRetriever(store),
             (GarbageCollectableBlobStore) store.getBlobStore(), executor, folder.newFolder().getAbsolutePath(), 5, 5000, repoId);
         gc.collectGarbage(false);
         Set<String> existingAfterGC = iterate();
@@ -296,9 +294,7 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(gc.additionalBlobs, Sets.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 
-    // FIXME OAK-4312: Fix test failures in SegmentDataStoreBlobGCIT
     @Test
-    @Ignore
     public void gcWithInlined() throws Exception {
         blobStore = new DataStoreBlobStore(DataStoreUtils.createFDS(new File(getWorkDir(), "datastore"), 16516));
         DataStoreState state = setUp();
@@ -341,7 +337,7 @@ public class SegmentDataStoreBlobGCIT {
                 REPOSITORY.getNameFromId(repoId));
         }
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
-            new SegmentBlobReferenceRetriever(store.getTracker()),
+            new SegmentBlobReferenceRetriever(store),
             (GarbageCollectableBlobStore) store.getBlobStore(), executor, folder.newFolder().getAbsolutePath(), 2048, blobGcMaxAgeInSecs,
             repoId);
         return gc;

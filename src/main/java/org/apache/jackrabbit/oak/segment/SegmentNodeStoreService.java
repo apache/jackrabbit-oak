@@ -504,7 +504,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new MarkSweepGarbageCollector(
-                    new SegmentBlobReferenceRetriever(store.getTracker()),
+                    new SegmentBlobReferenceRetriever(store),
                     (GarbageCollectableBlobStore) store.getBlobStore(),
                     executor,
                     TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),

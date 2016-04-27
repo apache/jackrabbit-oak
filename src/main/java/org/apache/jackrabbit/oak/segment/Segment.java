@@ -425,7 +425,7 @@ public class Segment {
         }
     }
 
-    void collectBlobReferences(ReferenceCollector collector) {
+    public void collectBlobReferences(ReferenceCollector collector) {
         int refcount = getRefCount();
         int rootcount =
                 data.getShort(data.position() + ROOT_COUNT_OFFSET) & 0xffff;
