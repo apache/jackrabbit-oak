@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.jcr.nodetype;
+package org.apache.jackrabbit.oak.upgrade;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.StringReader;
+import com.google.common.collect.Iterators;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
+import org.apache.jackrabbit.oak.upgrade.cli.Util;
+import org.junit.Test;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -30,43 +36,33 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
+import java.io.File;
+import java.io.InputStream;
+import java.io.StringReader;
 
-import com.google.common.collect.Iterators;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.junit.Test;
-
-import net.lingala.zip4j.core.ZipFile;
-
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.builder;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.builder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class UpgradeTest {
+public class UpgradeOldSegmentTest {
 
     @Test
     public void upgradeFrom10() throws Exception {
-        File testFolder = new File(new File("target"), UpgradeTest.class.getSimpleName());
-        File repoHome = new File(testFolder, "test-repo-1.0");
-        repoHome.delete();
-        File tmpZip = File.createTempFile("test-repo", null);
-        InputStream in = NodeTypeTest.class.getResourceAsStream("test-repo-1.0.zip");
-        FileOutputStream out = new FileOutputStream(tmpZip);
-        IOUtils.copy(in, out);
-        in.close();
-        out.close();
-        ZipFile repoZip = new ZipFile(tmpZip);
-        repoZip.extractAll(testFolder.getPath());
-        tmpZip.delete();
+        File testFolder = new File(new File("target"), UpgradeOldSegmentTest.class.getSimpleName());
+        FileUtils.deleteDirectory(testFolder);
+        File oldRepo = new File(testFolder, "test-repo-1.0");
+        File newRepo = new File(testFolder, "test-repo-new");
+        oldRepo.mkdirs();
+        newRepo.mkdirs();
+        try (InputStream in = UpgradeOldSegmentTest.class.getResourceAsStream("/test-repo-1.0.zip")) {
+            Util.unzip(in, oldRepo);
+        }
 
-        SegmentStore store = FileStore.builder(repoHome).build();
+        OakUpgrade.main("segment-old:" + oldRepo.getPath(), newRepo.getPath());
+
+        SegmentStore store = FileStore.builder(new File(newRepo, "segmentstore")).build();
         Repository repo = new Jcr(builder(store).build()).createRepository();
         Session s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
@@ -119,5 +115,7 @@ public class UpgradeTest {
             ((JackrabbitRepository) repo).shutdown();
         }
         store.close();
+
+        FileUtils.deleteDirectory(testFolder);
     }
 }
