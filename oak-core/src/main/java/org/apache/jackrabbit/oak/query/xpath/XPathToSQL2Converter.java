@@ -249,7 +249,6 @@ public class XPathToSQL2Converter {
                 if (!readIf(")")) {
                     return convertToUnion(query, statement, startParseIndex - 1);
                 }
-                read(")");
             } else if (currentTokenType == IDENTIFIER) {
                 // path restriction
                 String name = readPathSegment();
