@@ -62,6 +62,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
@@ -607,10 +608,10 @@ public class FileStore implements SegmentStore {
         boolean compacted = false;
 
         int gainThreshold = gcOptions.getGainThreshold();
-        boolean runCompaction = true;
+        boolean sufficientEstimatedGain = true;
         if (gainThreshold <= 0) {
-            gcMonitor.info("TarMK GC #{}: estimation skipped because gain threshold value ({} <= 0)", GC_COUNT,
-                gainThreshold);
+            gcMonitor.info("TarMK GC #{}: estimation skipped because gain threshold value ({} <= 0)",
+                    GC_COUNT, gainThreshold);
         } else if (gcOptions.isPaused()) {
             gcMonitor.info("TarMK GC #{}: estimation skipped because compaction is paused", GC_COUNT);
         } else {
@@ -623,8 +624,8 @@ public class FileStore implements SegmentStore {
             }
 
             long gain = estimate.estimateCompactionGain();
-            runCompaction = gain >= gainThreshold;
-            if (runCompaction) {
+            sufficientEstimatedGain = gain >= gainThreshold;
+            if (sufficientEstimatedGain) {
                 gcMonitor.info(
                     "TarMK GC #{}: estimation completed in {} ({} ms). " +
                     "Gain is {}% or {}/{} ({}/{} bytes), so running compaction",
@@ -648,16 +649,15 @@ public class FileStore implements SegmentStore {
             }
         }
 
-        if (runCompaction) {
+        if (sufficientEstimatedGain) {
             if (!gcOptions.isPaused()) {
-                compact();
+                if (compact()) {
+                    cleanupNeeded.set(cleanup);
+                }
                 compacted = true;
             } else {
                 gcMonitor.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
             }
-        }
-        if (cleanup) {
-            cleanupNeeded.set(!gcOptions.isPaused());
         }
         return compacted;
     }
@@ -867,6 +867,17 @@ public class FileStore implements SegmentStore {
      * skipping the reclaimed segments.
      */
     public List<File> cleanup() throws IOException {
+        return cleanup(new Predicate<Integer>() {
+            // FIXME OAK-4282: Make the number of retained gc generation configurable
+            final int retainGeneration = getGcGen() - 1;
+            @Override
+            public boolean apply(Integer generation) {
+                return generation < retainGeneration;
+            }
+        });
+    }
+
+    private List<File> cleanup(Predicate<Integer> reclaimGeneration) throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
         Set<UUID> bulkRefs = newHashSet();
@@ -896,11 +907,9 @@ public class FileStore implements SegmentStore {
             fileStoreLock.writeLock().unlock();
         }
 
-        // FIXME OAK-4282: Make the number of retained gc generation configurable
-        int generation = getGcGen() - 1;
         Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
-            reader.mark(bulkRefs, reclaim, generation);
+            reader.mark(bulkRefs, reclaim, reclaimGeneration);
             // FIXME OAK-4165: Too verbose logging during revision gc
             log.info("Size of bulk references/reclaim set {}/{}", bulkRefs.size(), reclaim.size());
             if (shutdown) {
@@ -1053,8 +1062,9 @@ public class FileStore implements SegmentStore {
      * Copy every referenced record in data (non-bulk) segments. Bulk segments
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
+     * @return {@code true} if compaction succeeded, {@code false} otherwise.
      */
-    public void compact() throws IOException {
+    public boolean compact() throws IOException {
         gcMonitor.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
         Stopwatch watch = Stopwatch.createStarted();
 
@@ -1065,7 +1075,7 @@ public class FileStore implements SegmentStore {
         // FIXME OAK-4280: Compaction cannot be cancelled
         // FIXME OAK-4279: Rework offline compaction
         // This way of compacting has not progress logging and cannot be cancelled
-        int gcGeneration = tracker.getGcGen() + 1;
+        final int gcGeneration = tracker.getGcGen() + 1;
         SegmentWriter writer = new SegmentWriter(this, tracker.getSegmentVersion(),
             new SegmentBufferWriter(this, tracker.getSegmentVersion(), "c", gcGeneration),
             new RecordCache<String>() {
@@ -1120,20 +1130,29 @@ public class FileStore implements SegmentStore {
                     gcMonitor.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
                     if (!forceCompact(writer)) {
                         gcMonitor.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                            "Most likely compaction didn't get exclusive access to the store.", GC_COUNT);
+                            "Most likely compaction didn't get exclusive access to the store. Cleaning up.",
+                            GC_COUNT);
+                        cleanup(new Predicate<Integer>() {
+                            @Override
+                            public boolean apply(Integer generation) {
+                                return generation == gcGeneration;
+                            }
+                        });
+                        return false;
                     }
                 }
-                // FIXME OAK-4284: Garbage left behind when compaction does not succeed
-                // Giving up leaves garbage that will only be cleaned up 2 generations later!
             }
 
             gcMonitor.info("TarMK GC #{}: compaction completed in {} ({} ms), after {} cycles",
                     GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
+            return true;
         } catch (InterruptedException e) {
             gcMonitor.error("TarMK GC #" + GC_COUNT + ": compaction interrupted", e);
             currentThread().interrupt();
+            return false;
         } catch (Exception e) {
             gcMonitor.error("TarMK GC #" + GC_COUNT + ": compaction encountered an error", e);
+            return false;
         }
     }
 
@@ -1547,7 +1566,7 @@ public class FileStore implements SegmentStore {
         }
 
         @Override
-        public void compact() {
+        public boolean compact() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
