@@ -733,9 +733,16 @@ class TarReader implements Closeable {
         }
     }
 
-    void collectBlobReferences(SegmentTracker tracker, ReferenceCollector collector, int generation) {
+    /**
+     * Collect the references of those blobs that are reachable from any segment with a
+     * generation at or above {@code minGeneration}.
+     * @param tracker
+     * @param collector
+     * @param minGeneration
+     */
+    void collectBlobReferences(SegmentTracker tracker, ReferenceCollector collector, int minGeneration) {
         for (TarEntry entry : getEntries()) {
-            if (entry.generation() >= generation) {
+            if (entry.generation() >= minGeneration) {
                 // FIXME OAK-4201: Add an index of binary references in a tar file
                 // Fetch the blob references from the tar index instead reading them from the segment
                 SegmentId id = tracker.getSegmentId(entry.msb(), entry.lsb());

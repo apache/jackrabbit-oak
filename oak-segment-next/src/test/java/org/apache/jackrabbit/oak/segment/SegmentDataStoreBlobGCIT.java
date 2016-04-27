@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -83,6 +84,7 @@ public class SegmentDataStoreBlobGCIT {
     FileStore store;
     DataStoreBlobStore blobStore;
     Date startDate;
+    SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -95,8 +97,11 @@ public class SegmentDataStoreBlobGCIT {
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
             FileStore.Builder builder = FileStore.builder(getWorkDir())
-                    .withBlobStore(blobStore).withMaxFileSize(256)
-                    .withCacheSize(64).withMemoryMapping(false);
+                    .withBlobStore(blobStore)
+                    .withMaxFileSize(256)
+                    .withCacheSize(64)
+                    .withMemoryMapping(false)
+                    .withGCOptions(gcOptions);
             store = builder.build();
             nodeStore = SegmentNodeStore.builder(store).build();
         }
@@ -177,11 +182,11 @@ public class SegmentDataStoreBlobGCIT {
         // Sleep a little to make eligible for cleanup
         TimeUnit.MILLISECONDS.sleep(5);
 
-        // FIXME OAK-4282: Make the number of retained gc generation configurable
-        // Need to compact twice because of the generation cleanup threshold
-        // (currently hard coded to 2);
-        store.compact();
-        store.compact();
+        // Ensure cleanup is efficient by surpassing the number of
+        // retained generations
+        for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
+            store.compact();
+        }
         store.cleanup();
 
         return state;

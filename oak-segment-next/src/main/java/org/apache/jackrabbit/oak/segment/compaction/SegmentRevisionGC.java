@@ -103,4 +103,21 @@ public interface SegmentRevisionGC {
      */
     void setLockWaitTime(int lockWaitTime);
 
+    /**
+     * Number of segment generations to retain.
+     * @see #setRetainedGenerations(int)
+     * @return  number of gc generations.
+     */
+    int getRetainedGenerations();
+
+    /**
+     * Set the number of segment generations to retain: each compaction run creates
+     * a new segment generation. {@code retainGenerations} determines how many of
+     * those generations are retained during cleanup.
+     *
+     * @param retainedGenerations  number of generations to retain. Must be {@code >= 2}.
+     * @throws IllegalArgumentException if {@code retainGenerations < 2}
+     */
+    void setRetainedGenerations(int retainedGenerations);
+
 }
