@@ -477,30 +477,6 @@ class TarWriter implements Closeable {
         return header;
     }
 
-    // FIXME OAK-4276: Refactor / rework compaction strategies
-    // This method is not used anymore. Remove unless we decide
-    // to offer an alternative cleanup strategy based on reachability, in which
-    // case it will still be needed
-    /**
-     * Add all segment ids that are reachable from {@code referencedIds} via
-     * this writer's segment graph and subsequently remove those segment ids
-     * from {@code referencedIds} that are in this {@code TarWriter}. The
-     * latter can't be cleaned up anyway because they are not be present in
-     * any of the readers.
-     *
-     * @param referencedIds
-     */
-    synchronized void collectReferences(Set<UUID> referencedIds) {
-        for (UUID uuid : reverse(newArrayList(index.keySet()))) {
-            if (referencedIds.remove(uuid)) {
-                List<UUID> refs = graph.get(uuid);
-                if (refs != null) {
-                    referencedIds.addAll(refs);
-                }
-            }
-        }
-    }
-
     //------------------------------------------------------------< Object >--
 
     @Override
