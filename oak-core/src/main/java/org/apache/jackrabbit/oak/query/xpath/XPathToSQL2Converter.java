@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.query.xpath;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.xpath.Statement.UnionStatement;
 import org.apache.jackrabbit.util.ISO9075;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,12 @@ public class XPathToSQL2Converter {
      * @throws ParseException if parsing fails
      */
     public String convert(String query) throws ParseException {
+        Statement statement = convertToStatement(query);
+        statement = statement.optimize();
+        return statement.toString();
+    }
+    
+    private Statement convertToStatement(String query) throws ParseException {
         
         query = query.trim();
         
@@ -165,6 +172,7 @@ public class XPathToSQL2Converter {
                     currentSelector.isChild = true;
                 }
             }
+            int startParseIndex = parseIndex;
             if (shortcut) {
                 // "*" and so on are not allowed now
             } else if (readIf("*")) {
@@ -238,6 +246,9 @@ public class XPathToSQL2Converter {
                         statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
+                if (!readIf(")")) {
+                    return convertToUnion(query, statement, startParseIndex - 1);
+                }
                 read(")");
             } else if (currentTokenType == IDENTIFIER) {
                 // path restriction
@@ -311,11 +322,7 @@ public class XPathToSQL2Converter {
             where = Expression.and(where, s.condition);
         }
         statement.setWhere(where);
-        
-        statement = statement.optimize();
-        
-        return statement.toString();
-
+        return statement;
     }
     
     private void appendNodeName(String name) {
@@ -1020,6 +1027,57 @@ public class XPathToSQL2Converter {
             query += "; expected: " + expected;
         }
         return new ParseException("Query:\n" + query, index);
+    }
+    
+    private Statement convertToUnion(String query, Statement statement,
+            int startParseIndex) throws ParseException {
+        int start = query.indexOf("(", startParseIndex);
+        String begin = query.substring(0, start);
+        XPathToSQL2Converter converter = new XPathToSQL2Converter();
+        String partList = query.substring(start);
+        converter.initialize(partList);
+        converter.read();
+        int lastParseIndex = converter.parseIndex;
+        int lastOrIndex = lastParseIndex;
+        converter.read("(");
+        int level = 0;
+        ArrayList<String> parts = new ArrayList<String>();
+        while (true) {
+            int parseIndex = converter.parseIndex;
+            if (converter.readIf("(")) {
+                level++;
+            } else if (converter.readIf(")") && level-- <= 0) {
+                break;
+            } else if (converter.readIf("|") && level == 0) {
+                String or = partList.substring(lastOrIndex, lastParseIndex);
+                parts.add(or);
+                lastOrIndex = parseIndex;
+            } else if (currentTokenType == END) {
+                throw getSyntaxError("the query may not be empty");
+            } else {
+                converter.read();
+            }
+            lastParseIndex = parseIndex;
+        }
+        String or = partList.substring(lastOrIndex, lastParseIndex);
+        parts.add(or);        
+        String end = partList.substring(lastParseIndex + 1);
+        Statement result = null;
+        for(String p : parts) {
+            String q = begin + p + end;
+            converter = new XPathToSQL2Converter();
+            Statement stat = converter.convertToStatement(q);
+            if (result == null) {
+                result = stat;
+            } else {
+                UnionStatement union = new UnionStatement(result, stat);
+                union.orderList = stat.orderList;
+                result = union;
+            }
+            // can not use clear, because it is shared
+            stat.orderList = new ArrayList<Order>();
+        }
+        return result;
     }
 
 }
