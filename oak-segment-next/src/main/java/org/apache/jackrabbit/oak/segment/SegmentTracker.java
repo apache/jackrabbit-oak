@@ -19,13 +19,10 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
 
-import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,7 +35,6 @@ import com.google.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -271,42 +267,6 @@ public class SegmentTracker {
             table.collectReferencedIds(ids);
         }
         return ids;
-    }
-
-    /**
-     * Finds all external blob references that are currently accessible
-     * in this repository and adds them to the given collector. Useful
-     * for collecting garbage in an external data store.
-     * <p>
-     * Note that this method only collects blob references that are already
-     * stored in the repository (at the time when this method is called), so
-     * the garbage collector will need some other mechanism for tracking
-     * in-memory references and references stored while this method is
-     * running.
-     */
-    public void collectBlobReferences(ReferenceCollector collector) {
-        try {
-            Set<SegmentId> processed = newHashSet();
-            Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
-            writer.flush(); // force the current segment to have root record info
-            while (!queue.isEmpty()) {
-                SegmentId id = queue.remove();
-                if (id.isDataSegmentId() && processed.add(id)) {
-                    Segment segment = id.getSegment();
-
-                    segment.collectBlobReferences(collector);
-
-                    for (SegmentId refid : segment.getReferencedIds()) {
-                        if (refid.isDataSegmentId() && !processed.contains(refid)) {
-                            queue.add(refid);
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            log.error("Error while flushing pending segments", e);
-            throw new IllegalStateException("Unexpected IOException", e);
-        }
     }
 
     /**
