@@ -23,6 +23,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
@@ -30,7 +32,9 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
  * A native function condition.
  */
 public class NativeFunctionImpl extends ConstraintImpl {
-    
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     public static final String NATIVE_PREFIX = "native*";
     
     private final String selectorName;
@@ -63,7 +67,8 @@ public class NativeFunctionImpl extends ConstraintImpl {
         // and because we don't know how to process native
         // conditions
         if (!(selector.getIndex() instanceof NativeQueryIndex)) {
-            throw new IllegalArgumentException("No full-text index was found that can process the condition " + toString());
+            log.warn("No full-text index was found that can process the condition " + toString());
+            return false;
         }
         // we assume the index only returns the requested entries
         return true;
