@@ -91,4 +91,14 @@ public class SegmentRevisionGCMBean
     public void setLockWaitTime(int lockWaitTime) {
         gcOptions.setLockWaitTime(lockWaitTime);
     }
+
+    @Override
+    public int getRetainedGenerations() {
+        return gcOptions.getRetainedGenerations();
+    }
+
+    @Override
+    public void setRetainedGenerations(int retainedGenerations) {
+        gcOptions.setRetainedGenerations(retainedGenerations);
+    }
 }

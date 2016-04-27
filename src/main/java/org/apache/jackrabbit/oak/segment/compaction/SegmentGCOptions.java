@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * This class holds configuration options for segment store revision gc.
  */
@@ -61,6 +63,11 @@ public class SegmentGCOptions {
      */
     public static final int LOCK_WAIT_TIME_DEFAULT = 60000;
 
+    /**
+     * Default value for {@link #getRetainedGenerations()}
+     */
+    public static final int RETAINED_GENERATIONS_DEFAULT = 2;
+
     private boolean paused = PAUSE_DEFAULT;
 
     private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
@@ -72,6 +79,8 @@ public class SegmentGCOptions {
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
 
     private int lockWaitTime = LOCK_WAIT_TIME_DEFAULT;
+
+    private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
 
     public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
                             int retryCount, boolean forceAfterFail, int lockWaitTime) {
@@ -202,6 +211,31 @@ public class SegmentGCOptions {
         return this;
     }
 
+    /**
+     * Number of segment generations to retain.
+     * @see #setRetainedGenerations(int)
+     * @return  number of gc generations.
+     */
+    public int getRetainedGenerations() {
+        return retainedGenerations;
+    }
+
+    /**
+     * Set the number of segment generations to retain: each compaction run creates
+     * a new segment generation. {@code retainGenerations} determines how many of
+     * those generations are retained during cleanup.
+     *
+     * @param retainedGenerations  number of generations to retain. Must be {@code >= 2}.
+     * @return this instance
+     * @throws IllegalArgumentException if {@code retainGenerations < 2}
+     */
+    public SegmentGCOptions setRetainedGenerations(int retainedGenerations) {
+        checkArgument(retainedGenerations > 1,
+                "RetainedGenerations must not be below 2. Got %s", retainedGenerations);
+        this.retainedGenerations = retainedGenerations;
+        return this;
+    }
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + "{" +
@@ -210,7 +244,8 @@ public class SegmentGCOptions {
                 ", gainThreshold=" + gainThreshold +
                 ", retryCount=" + retryCount +
                 ", forceAfterFail=" + forceAfterFail +
-                ", lockWaitTime=" + lockWaitTime + '}';
+                ", lockWaitTime=" + lockWaitTime +
+                ", retainedGenerations=" + retainedGenerations + '}';
     }
 
     /**

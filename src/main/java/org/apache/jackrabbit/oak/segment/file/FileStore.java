@@ -868,11 +868,10 @@ public class FileStore implements SegmentStore {
      */
     public List<File> cleanup() throws IOException {
         return cleanup(new Predicate<Integer>() {
-            // FIXME OAK-4282: Make the number of retained gc generation configurable
-            final int retainGeneration = getGcGen() - 1;
+            final int reclaimGeneration = getGcGen() - gcOptions.getRetainedGenerations();
             @Override
             public boolean apply(Integer generation) {
-                return generation < retainGeneration;
+                return generation <= reclaimGeneration;
             }
         });
     }
@@ -994,10 +993,9 @@ public class FileStore implements SegmentStore {
             fileStoreLock.writeLock().unlock();
         }
 
-        // FIXME OAK-4282: Make the number of retained gc generation configurable
-        int generation = getGcGen() - 1;
+        int minGeneration = getGcGen() - gcOptions.getRetainedGenerations() + 1;
         for (TarReader tarReader : tarReaders) {
-            tarReader.collectBlobReferences(tracker, collector, generation);
+            tarReader.collectBlobReferences(tracker, collector, minGeneration);
         }
     }
 

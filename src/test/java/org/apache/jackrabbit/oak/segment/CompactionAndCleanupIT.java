@@ -333,8 +333,12 @@ public class CompactionAndCleanupIT {
     @Test
     public void preCompactionReferences() throws IOException, CommitFailedException, InterruptedException {
         for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
+            SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
             File repoDir = new File(getFileStoreFolder(), ref);
-            FileStore fileStore = FileStore.builder(repoDir).withMaxFileSize(2).build();
+            FileStore fileStore = FileStore.builder(repoDir)
+                    .withMaxFileSize(2)
+                    .withGCOptions(gcOptions)
+                    .build();
             final SegmentNodeStore nodeStore = builder(fileStore).build();
             try {
                 // add some content
@@ -363,11 +367,11 @@ public class CompactionAndCleanupIT {
                     nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 }
 
-                // FIXME OAK-4282: Make the number of retained gc generation configurable
-                // Need to compact twice because of the generation cleanup threshold
-                // (currently hard coded to 2);
-                fileStore.compact();
-                fileStore.compact();
+                // Ensure cleanup is efficient by surpassing the number of
+                // retained generations
+                for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
+                    fileStore.compact();
+                }
 
                 // case 2: merge above changes after compact
                 if ("merge-after-compact".equals(ref)) {
