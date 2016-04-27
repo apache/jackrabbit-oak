@@ -53,6 +53,7 @@ import java.util.zip.CRC32;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
@@ -743,14 +744,27 @@ class TarReader implements Closeable {
         }
     }
 
-    void mark(Set<UUID> bulkRefs, Set<UUID> reclaim, int generation) throws IOException {
+    /**
+     * Collect reclaimable segments.
+     * A data segment is reclaimable iff its generation is in the {@code reclaimGeneration}
+     * predicate.
+     * A bulk segment is reclaimable if it is in {@code bulkRefs} or if it is transitively
+     * reachable through a non reclaimable data segment.
+     *
+     * @param bulkRefs  bulk segment gc roots
+     * @param reclaim   reclaimable segments
+     * @param reclaimGeneration  reclaim generation predicate for data segments
+     * @throws IOException
+     */
+    void mark(Set<UUID> bulkRefs, Set<UUID> reclaim, Predicate<Integer> reclaimGeneration)
+    throws IOException {
         Map<UUID, List<UUID>> graph = getGraph(true);
         TarEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
             if ((!isDataSegmentId(entry.lsb()) && !bulkRefs.remove(id)) ||
-                (isDataSegmentId(entry.lsb()) && entry.generation() < generation)) {
+                (isDataSegmentId(entry.lsb()) && reclaimGeneration.apply(entry.generation()))) {
                 // non referenced bulk segment or old data segment
                 reclaim.add(id);
             } else {
