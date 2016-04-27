@@ -54,7 +54,10 @@ import java.util.zip.CRC32;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -725,6 +728,17 @@ class TarReader implements Closeable {
                 if (isDataSegmentId(entry.lsb())) {
                     referencedIds.addAll(getReferences(entry, id, graph));
                 }
+            }
+        }
+    }
+
+    void collectBlobReferences(SegmentTracker tracker, ReferenceCollector collector, int generation) {
+        for (TarEntry entry : getEntries()) {
+            if (entry.generation() >= generation) {
+                // FIXME OAK-4201: Add an index of binary references in a tar file
+                // Fetch the blob references from the tar index instead reading them from the segment
+                SegmentId id = tracker.getSegmentId(entry.msb(), entry.lsb());
+                id.getSegment().collectBlobReferences(collector);
             }
         }
     }

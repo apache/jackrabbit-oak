@@ -19,8 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 
 /**
  * Implementation of {@link BlobReferenceRetriever} to retrieve blob references from the
@@ -28,15 +31,20 @@ import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
  */
 public class SegmentBlobReferenceRetriever implements BlobReferenceRetriever {
 
-    private final SegmentTracker tracker;
+    private final FileStore store;
 
-    public SegmentBlobReferenceRetriever(SegmentTracker tracker) {
-        this.tracker = tracker;
+    public SegmentBlobReferenceRetriever(FileStore store) {
+        this.store = store;
     }
 
     @Override
     public void collectReferences(final ReferenceCollector collector) {
-        tracker.collectBlobReferences(collector);
+        try {
+            store.collectBlobReferences(collector);
+        } catch (IOException e) {
+            // FIXME OAK-4314: BlobReferenceRetriever#collectReferences should allow exceptions
+            throw new IllegalStateException(e);
+        }
     }
 }
 

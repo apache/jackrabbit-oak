@@ -67,6 +67,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.RecordCache.DeduplicationCache;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -960,6 +961,36 @@ public class FileStore implements SegmentStore {
                 humanReadableByteCount(finalSize), finalSize,
                 humanReadableByteCount(initialSize - finalSize), initialSize - finalSize);
         return toRemove;
+    }
+
+    /**
+     * Finds all external blob references that are currently accessible
+     * in this repository and adds them to the given collector. Useful
+     * for collecting garbage in an external data store.
+     * <p>
+     * Note that this method only collects blob references that are already
+     * stored in the repository (at the time when this method is called), so
+     * the garbage collector will need some other mechanism for tracking
+     * in-memory references and references stored while this method is
+     * running.
+     * @param collector  reference collector called back for each blob reference found
+     */
+    public void collectBlobReferences(ReferenceCollector collector) throws IOException {
+        tracker.getWriter().flush();
+        List<TarReader> tarReaders = newArrayList();
+        fileStoreLock.writeLock().lock();
+        try {
+            newWriter();
+            tarReaders.addAll(this.readers);
+        } finally {
+            fileStoreLock.writeLock().unlock();
+        }
+
+        // FIXME OAK-4282: Make the number of retained gc generation configurable
+        int generation = getGcGen() - 1;
+        for (TarReader tarReader : tarReaders) {
+            tarReader.collectBlobReferences(tracker, collector, generation);
+        }
     }
 
     /**
