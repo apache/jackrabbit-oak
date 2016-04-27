@@ -105,32 +105,38 @@ public class Jcr {
     private Repository repository;
     
     private Clusterable clusterable;
-    
-    public Jcr(Oak oak) {
+
+    public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
 
-        with(new InitialContent());
+        if (initialize) {
+            with(new InitialContent());
 
-        with(new EditorHook(new VersionEditorProvider()));
+            with(new EditorHook(new VersionEditorProvider()));
 
-        with(new SecurityProviderImpl());
+            with(new SecurityProviderImpl());
 
-        with(new ItemSaveValidatorProvider());
-        with(new NameValidatorProvider());
-        with(new NamespaceEditorProvider());
-        with(new TypeEditorProvider());
-        with(new ConflictValidatorProvider());
-        
-        with(new ReferenceEditorProvider());
-        with(new ReferenceIndexProvider());
+            with(new ItemSaveValidatorProvider());
+            with(new NameValidatorProvider());
+            with(new NamespaceEditorProvider());
+            with(new TypeEditorProvider());
+            with(new ConflictValidatorProvider());
 
-        with(new PropertyIndexEditorProvider());
-        with(new NodeCounterEditorProvider());
+            with(new ReferenceEditorProvider());
+            with(new ReferenceIndexProvider());
 
-        with(new PropertyIndexProvider());
-        with(new NodeTypeIndexProvider());
+            with(new PropertyIndexEditorProvider());
+            with(new NodeCounterEditorProvider());
 
-        with(new OrderedPropertyIndexEditorProvider());
+            with(new PropertyIndexProvider());
+            with(new NodeTypeIndexProvider());
+
+            with(new OrderedPropertyIndexEditorProvider());
+        }
+    }
+
+    public Jcr(Oak oak) {
+        this(oak, true);
     }
 
     public Jcr() {
