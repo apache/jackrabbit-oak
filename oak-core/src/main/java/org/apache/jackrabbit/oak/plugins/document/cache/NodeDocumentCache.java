@@ -353,16 +353,23 @@ public class NodeDocumentCache implements Closeable {
      * Registers a new CacheChangesTracker that records all puts and
      * invalidations related to children of the given parent.
      *
-     * @param parentId children of this parent will be tracked
+     * @param fromKey only keys larger than this key will be tracked
+     * @param toKey only keys smaller than this key will be tracked
      * @return new tracker
      */
-    public CacheChangesTracker registerTracker(final String parentId) {
+    public CacheChangesTracker registerTracker(final String fromKey, final String toKey) {
+        final int bloomFilterSize;
+        if (toKey.equals(NodeDocument.MAX_ID_VALUE)) {
+            bloomFilterSize = CacheChangesTracker.ENTRIES_OPEN;
+        } else {
+            bloomFilterSize = CacheChangesTracker.ENTRIES_SCOPED;
+        }
         return new CacheChangesTracker(new Predicate<String>() {
             @Override
             public boolean apply(@Nullable String input) {
-                return input != null && parentId.equals(Utils.getParentId(input));
+                return input != null && fromKey.compareTo(input) < 0 && toKey.compareTo(input) > 0;
             }
-        }, changeTrackers);
+        }, changeTrackers, bloomFilterSize);
     }
 
    /**

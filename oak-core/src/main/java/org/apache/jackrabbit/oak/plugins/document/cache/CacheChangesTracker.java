@@ -25,16 +25,20 @@ import java.util.List;
 
 public class CacheChangesTracker {
 
+    static final int ENTRIES_SCOPED = 1000;
+
+    static final int ENTRIES_OPEN = 10000;
+
     private final List<CacheChangesTracker> changeTrackers;
 
     private final Predicate<String> keyFilter;
 
     private final LazyBloomFilter lazyBloomFilter;
 
-    CacheChangesTracker(Predicate<String> keyFilter, List<CacheChangesTracker> changeTrackers) {
+    CacheChangesTracker(Predicate<String> keyFilter, List<CacheChangesTracker> changeTrackers, int bloomFilterSize) {
         this.changeTrackers = changeTrackers;
         this.keyFilter = keyFilter;
-        this.lazyBloomFilter = new LazyBloomFilter();
+        this.lazyBloomFilter = new LazyBloomFilter(bloomFilterSize);
         changeTrackers.add(this);
     }
 
@@ -62,9 +66,13 @@ public class CacheChangesTracker {
 
         private static final double FPP = 0.01d;
 
-        private static final int ENTRIES = 1000;
+        private final int entries;
 
         private volatile BloomFilter<String> filter;
+
+        public LazyBloomFilter(int entries) {
+            this.entries = entries;
+        }
 
         public synchronized void put(String entry) {
             getFilter().put(entry);
@@ -89,7 +97,7 @@ public class CacheChangesTracker {
                     public void funnel(String from, PrimitiveSink into) {
                         into.putUnencodedChars(from);
                     }
-                }, ENTRIES, FPP);
+                }, entries, FPP);
             }
             return filter;
         }
