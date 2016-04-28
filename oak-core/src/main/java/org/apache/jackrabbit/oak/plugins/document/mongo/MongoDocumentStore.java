@@ -907,29 +907,30 @@ public class MongoDocumentStore implements DocumentStore {
         Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
-        Lock lock = null;
+        CacheChangesTracker tracker = null;
         if (collection == Collection.NODES) {
-            lock = nodeLocks.acquire(bulkOperations.keySet());
+            tracker = nodesCache.registerTracker(bulkOperations.keySet());
         }
 
         try {
             BulkUpdateResult bulkResult = sendBulkUpdate(collection, bulkOperations.values(), oldDocs);
 
             if (collection == Collection.NODES) {
+                List<NodeDocument> docsToCache = new ArrayList<NodeDocument>();
                 for (UpdateOp op : filterKeys(bulkOperations, in(bulkResult.upserts)).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
-                    nodesCache.put(doc);
+                    docsToCache.add(doc);
                 }
 
                 for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
                     if (oldDoc != null) {
                         NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
-                        nodesCache.put(newDoc);
-                        oldDoc.seal();
+                        docsToCache.add(newDoc);
                     }
                 }
+                nodesCache.putNonConflictingDocs(tracker, docsToCache);
             }
             oldDocs.keySet().removeAll(bulkResult.failedUpdates);
 
@@ -945,8 +946,8 @@ public class MongoDocumentStore implements DocumentStore {
             }
             return result;
         } finally {
-            if (lock != null) {
-                lock.unlock();
+            if (tracker != null) {
+                tracker.close();
             }
         }
     }
