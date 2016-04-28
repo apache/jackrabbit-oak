@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,6 +39,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -58,7 +61,7 @@ public class CacheChangesTrackerTest {
             public boolean apply(@Nullable String input) {
                 return !"ignored".equals(input);
             }
-        }, list);
+        }, list, 100);
 
         assertFalse(tracker.mightBeenAffected("xyz"));
         assertFalse(tracker.mightBeenAffected("abc"));
@@ -80,7 +83,7 @@ public class CacheChangesTrackerTest {
     @Test
     public void testRegisterChildrenTracker() {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker("1:/parent");
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit("/parent"), getKeyUpperLimit("/parent"));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
         assertFalse(tracker.mightBeenAffected("2:/parent/abc"));
@@ -103,7 +106,7 @@ public class CacheChangesTrackerTest {
     @Test
     public void testGetLoaderAffectsTracker() throws ExecutionException {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker("1:/parent");
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit("/parent"), getKeyUpperLimit("/parent"));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
 

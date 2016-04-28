@@ -562,7 +562,7 @@ public class MongoDocumentStore implements DocumentStore {
         int resultSize = 0;
         CacheChangesTracker cacheChangesTracker = null;
         if (parentId != null && collection == Collection.NODES) {
-            cacheChangesTracker = nodesCache.registerTracker(parentId);
+            cacheChangesTracker = nodesCache.registerTracker(fromKey, toKey);
         }
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
