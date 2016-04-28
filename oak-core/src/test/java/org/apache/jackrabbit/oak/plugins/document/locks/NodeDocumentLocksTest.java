@@ -19,30 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document.locks;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
 public class NodeDocumentLocksTest {
 
-    @Parameters(name = "{1}")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] { { new StripedNodeDocumentLocks(), "StripedNodeDocumentLocks" },
-                { new TreeNodeDocumentLocks(), "TreeNodeDocumentLocks" } });
-    }
-
-    private final NodeDocumentLocks locks;
-
-    public NodeDocumentLocksTest(NodeDocumentLocks locks, String name) {
-        this.locks = locks;
-    }
+    private final NodeDocumentLocks locks = new StripedNodeDocumentLocks();
 
     @Test
     public void testBulkAcquireNonConflicting() throws InterruptedException {
