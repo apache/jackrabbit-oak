@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.locks;
 
-import static com.google.common.base.Predicates.equalTo;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Iterables.filter;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -46,17 +39,4 @@ public class StripedNodeDocumentLocks implements NodeDocumentLocks {
         return lock;
     }
 
-    @Override
-    public Lock acquire(Collection<String> keys) {
-        List<Lock> lockList = new ArrayList<Lock>();
-        if (keys.contains(ROOT)) {
-            lockList.add(rootLock);
-        }
-        for (Lock l : locks.bulkGet(filter(keys, not(equalTo(ROOT))))) {
-            lockList.add(l);
-        }
-        Lock lock = new BulkLock(lockList);
-        lock.lock();
-        return lock;
-    }
 }

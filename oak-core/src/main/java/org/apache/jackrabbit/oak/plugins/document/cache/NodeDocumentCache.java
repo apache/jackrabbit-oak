@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -372,7 +373,23 @@ public class NodeDocumentCache implements Closeable {
         }, changeTrackers, bloomFilterSize);
     }
 
-   /**
+    /**
+     * Registers a new CacheChangesTracker that records all puts and
+     * invalidations related to the given documents
+     *
+     * @param keys these documents will be tracked
+     * @return new tracker
+     */
+    public CacheChangesTracker registerTracker(final Set<String> keys) {
+        return new CacheChangesTracker(new Predicate<String>() {
+            @Override
+            public boolean apply(@Nullable String input) {
+                return input != null && keys.contains(input);
+            }
+        }, changeTrackers, CacheChangesTracker.ENTRIES_SCOPED);
+    }
+
+    /**
      * Updates the cache with all the documents that:
      *
      * (1) currently have their older versions in the cache or
@@ -391,7 +408,7 @@ public class NodeDocumentCache implements Closeable {
      * @param docs
      *            to put into cache
      */
-    public void putNonConflictingDocs(CacheChangesTracker tracker, List<NodeDocument> docs) {
+    public void putNonConflictingDocs(CacheChangesTracker tracker, Iterable<NodeDocument> docs) {
         for (NodeDocument d : docs) {
             if (d == null || d == NodeDocument.NULL) {
                 continue;
