@@ -241,6 +241,12 @@ public class Cursors {
             NodeState parent = null;
             NodeState node = rootState;
             
+            if (filter.containsNativeConstraint()) {
+                // OAK-4313: if no other index was found,
+                // then, for native queries, we won't match anything
+                return;
+            }
+
             if (filter.isAlwaysFalse()) {
                 // nothing can match this filter, leave nodes empty
                 return;
