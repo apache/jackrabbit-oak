@@ -178,6 +178,15 @@ public class MongoDocumentStore implements DocumentStore {
     private int bulkSize =
             Integer.getInteger("oak.mongo.bulkSize", 30);
 
+    /**
+     * How many times should be the bulk update request retries in case of
+     * a conflict.
+     * <p>
+     * Default is 0 (no retries).
+     */
+    private int bulkRetries =
+            Integer.getInteger("oak.mongo.bulkRetries", 0);
+
     private String lastReadWriteMode;
 
     private final Map<String, String> metadata;
@@ -852,7 +861,7 @@ public class MongoDocumentStore implements DocumentStore {
                 oldDocs.putAll((Map<String, T>) getCachedNodes(operationsToCover.keySet()));
             }
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i <= bulkRetries; i++) {
                 if (operationsToCover.size() <= 2) {
                     // bulkUpdate() method invokes Mongo twice, so sending 2 updates
                     // in bulk mode wouldn't result in any performance gain
