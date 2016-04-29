@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.cache;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -370,6 +371,11 @@ public class NodeDocumentCache implements Closeable {
             public boolean apply(@Nullable String input) {
                 return input != null && fromKey.compareTo(input) < 0 && toKey.compareTo(input) > 0;
             }
+
+            @Override
+            public String toString() {
+                return String.format("key range: <%s, %s>", fromKey, toKey);
+            }
         }, changeTrackers, bloomFilterSize);
     }
 
@@ -385,6 +391,24 @@ public class NodeDocumentCache implements Closeable {
             @Override
             public boolean apply(@Nullable String input) {
                 return input != null && keys.contains(input);
+            }
+
+            @Override
+            public String toString() {
+                StringBuilder builder = new StringBuilder("key set [");
+                Iterator it = keys.iterator();
+                int i = 0;
+                while (it.hasNext() && i++ < 3) {
+                    builder.append(it.next());
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                if (it.hasNext()) {
+                    builder.append("...");
+                }
+                builder.append("]").append(" (").append(keys.size()).append(" elements)");
+                return builder.toString();
             }
         }, changeTrackers, CacheChangesTracker.ENTRIES_SCOPED);
     }

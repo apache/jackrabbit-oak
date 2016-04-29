@@ -20,10 +20,14 @@ import com.google.common.base.Predicate;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class CacheChangesTracker {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CacheChangesTracker.class);
 
     static final int ENTRIES_SCOPED = 1000;
 
@@ -60,6 +64,14 @@ public class CacheChangesTracker {
 
     public void close() {
         changeTrackers.remove(this);
+
+        if (LOG.isDebugEnabled()) {
+            if (lazyBloomFilter.filter == null) {
+                LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
+            } else {
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, lazyBloomFilter.filter.expectedFpp());
+            }
+        }
     }
 
     public static class LazyBloomFilter {
