@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
@@ -396,7 +395,7 @@ public class NodeDocumentCache implements Closeable {
             @Override
             public String toString() {
                 StringBuilder builder = new StringBuilder("key set [");
-                Iterator it = keys.iterator();
+                Iterator<String> it = keys.iterator();
                 int i = 0;
                 while (it.hasNext() && i++ < 3) {
                     builder.append(it.next());
