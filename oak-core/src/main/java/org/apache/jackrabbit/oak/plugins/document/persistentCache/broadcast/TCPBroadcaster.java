@@ -286,7 +286,7 @@ public class TCPBroadcaster implements Broadcaster {
             }
             // the key is the combination of listener and id,
             // because the same ip address / port combination
-            // could be there multiple time for some time
+            // could be there multiple times for some time
             // (in case there is a old, orphan entry for the same machine)
             String clientKey = listener + " " + id;
             Client c = clients.get(clientKey);
