@@ -277,6 +277,7 @@ structure
       - type (string) = 'undefined'
       - propertyIndex (boolean) = false
       - nullCheckEnabled (boolean) = false
+      - excludeFromAggregation (boolean) = false
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -360,6 +361,10 @@ nullCheckEnabled
   extra storage cost.
 
   Refer to [IS NULL support][OAK-2517] for more details
+  
+excludeFromAggregation
+: Since 1.0.27, 1.2.11
+: if set to true the property would be excluded from aggregation [OAK-3981][OAK-3981]
 
 <a name="property-names"></a>**Property Names**
 
@@ -486,6 +491,12 @@ includes the content of the jcr:content node:
         + nt:file
           + include0
             - path = "jcr:content"
+
+By default all properties whose type matches `includePropertyTypes` and are 
+part of child nodes as per the aggregation pattern are included for indexing.
+For excluding certain properties define a property definition with relative
+path and set `excludeFromAggregation` to `true`. Such properties would then be
+excluded from fulltext index
 
 For a given nodeType multiple includes can be defined. Below is the aggregate
 definition structure for any specific include rule
@@ -1584,6 +1595,7 @@ such fields
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
 [OAK-3994]: https://issues.apache.org/jira/browse/OAK-3394
+[OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
