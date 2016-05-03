@@ -26,8 +26,6 @@ import javax.jcr.Value;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
@@ -100,7 +98,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testCreateContext() throws Exception {
-        SyncContext ctx = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
+        SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
         assertTrue(ctx instanceof DefaultSyncContext);
     }
 
