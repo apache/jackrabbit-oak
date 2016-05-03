@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 
@@ -73,5 +73,29 @@ public class SQL2ParserTest {
         String token = "and b.[type] in('t1', 't2', 't3')";
         assertTrue(q.contains(token));
     }
+    
+    @Test
+    public void convertXPath() throws ParseException {
+        String query = "/jcr:root/content//element(*, nt:base)[" +
+                "jcr:contains(., 'to') and jcr:contains(., 'write') " +
+                "and jcr:contains(., 'to') and jcr:contains(., '.') " +
+                "and jcr:contains(., 'Free') and jcr:contains(., 'some') " +
+                "and jcr:contains(., 'space') and jcr:contains(., 'on') " +
+                "and jcr:contains(., 'this') and jcr:contains(., 'drive,') " +
+                "and jcr:contains(., 'or') and jcr:contains(., 'save') " +
+                "and jcr:contains(., 'the') and jcr:contains(., 'document') " +
+                "and jcr:contains(., 'on') and jcr:contains(., 'another') " +
+                "and jcr:contains(., 'disk.') and jcr:contains(., 'Try') " +
+                "and jcr:contains(., 'one') and jcr:contains(., 'or') " +
+                "and jcr:contains(., 'more') and jcr:contains(., 'of') " +
+                "and jcr:contains(., 'the') and @following = 'Close' " +
+                "and jcr:contains(., 'any') and jcr:contains(., 'unneeded') " +
+                "and jcr:contains(., 'documents,') and jcr:contains(., 'programs,') " +
+                "and jcr:contains(., 'and') and jcr:contains(., 'windows.') " +
+                "and jcr:contains(., 'Save') and jcr:contains(., 'the') " +
+                "] ";
+ 
+        new XPathToSQL2Converter().convert(query);
+    }    
     
 }

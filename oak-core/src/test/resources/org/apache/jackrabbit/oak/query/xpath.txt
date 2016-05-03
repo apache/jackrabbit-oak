@@ -64,26 +64,26 @@ select [jcr:path], [jcr:score], *
 xpath2sql /jcr:root/content//*[((@i = '1' or @i = '2') or (@s = 'x')) and (@t = 'a' or @t = 'b')]
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] in('a', 'b')
+  where [t] in('a', 'b')
+  and isdescendantnode(a, '/content')
   and [i] in('1', '2')
   union select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] in('a', 'b')
+  where [t] in('a', 'b')
+  and isdescendantnode(a, '/content')
   and [s] = 'x'
   /* xpath ... */
 
 xpath2sql /jcr:root/content//*[((@i = '1' or @i = '2') or (@s = 'x')) and (@t = 'a')]
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] = 'a'
+  where [t] = 'a'
+  and isdescendantnode(a, '/content')
   and [i] in('1', '2')
   union select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] = 'a'
+  where [t] = 'a'
+  and isdescendantnode(a, '/content')
   and [s] = 'x'
   /* xpath ... */
 
@@ -102,13 +102,13 @@ select [jcr:path], [jcr:score], *
 xpath2sql /jcr:root/content//*[((@i = '1' or @i = '2') or (@s = 'x')) and (@t = 'a' or @t = 'b')] order by @a
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] in('a', 'b')
+  where [t] in('a', 'b')
+  and isdescendantnode(a, '/content')
   and [i] in('1', '2')
   union select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] in('a', 'b')
+  where [t] in('a', 'b')
+  and isdescendantnode(a, '/content')
   and [s] = 'x'
   order by [a]
   /* xpath ... */
@@ -116,13 +116,13 @@ select [jcr:path], [jcr:score], *
 xpath2sql /jcr:root/content//*[((@i = '1' or @i = '2') or (@s = 'x')) and (@t = 'a')] order by @a
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] = 'a'
+  where [t] = 'a'
+  and isdescendantnode(a, '/content')
   and [i] in('1', '2')
   union select [jcr:path], [jcr:score], *
   from [nt:base] as a
-  where isdescendantnode(a, '/content')
-  and [t] = 'a'
+  where [t] = 'a'
+  and isdescendantnode(a, '/content')
   and [s] = 'x'
   order by [a]
   /* xpath ... */
@@ -684,29 +684,29 @@ select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
   from [nt:base] as a
   inner join [nt:base] as b
   on ischildnode(b, a)
-  where a.[a] = 1
-  and name(b) = 'sub'
+  where name(b) = 'sub'
+  and a.[a] = 1
   and b.[c] = 1
   union select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
   from [nt:base] as a
   inner join [nt:base] as b
   on ischildnode(b, a)
-  where a.[a] = 1
-  and name(b) = 'sub'
+  where name(b) = 'sub'
+  and a.[a] = 1
   and b.[d] = 1
   union select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
   from [nt:base] as a
   inner join [nt:base] as b
   on ischildnode(b, a)
-  where a.[b] = 1
-  and name(b) = 'sub'
+  where name(b) = 'sub'
+  and a.[b] = 1
   and b.[c] = 1
   union select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
   from [nt:base] as a
   inner join [nt:base] as b
   on ischildnode(b, a)
-  where a.[b] = 1
-  and name(b) = 'sub'
+  where name(b) = 'sub'
+  and a.[b] = 1
   and b.[d] = 1
   /* xpath ... */
 
@@ -1088,52 +1088,52 @@ xpath2sql /jcr:root/content/campaigns//element(*, PageContent)
   order by @onTime
 select [jcr:path], [jcr:score], *
   from [PageContent] as a
-  where [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
-  and [offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)
-  and isdescendantnode(a, '/content/campaigns')
+  where isdescendantnode(a, '/content/campaigns')
   and [sling:resourceType] in('teaser', 'newsletter')
-  union select [jcr:path], [jcr:score], *
-  from [PageContent] as a
-  where [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
+  and [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
   and [offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)
-  and isdescendantnode(a, '/content/campaigns')
-  and [teaserPageType] in('newsletter', 'tweet')
   union select [jcr:path], [jcr:score], *
   from [PageContent] as a
-  where [onTime] is null
+  where isdescendantnode(a, '/content/campaigns')
+  and [sling:resourceType] in('teaser', 'newsletter')
+  and [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
+  and [offTime] is null
+  union select [jcr:path], [jcr:score], *
+  from [PageContent] as a
+  where isdescendantnode(a, '/content/campaigns')
+  and [sling:resourceType] in('teaser', 'newsletter')
+  and [onTime] is null
   and [offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)
-  and isdescendantnode(a, '/content/campaigns')
-  and [sling:resourceType] in('teaser', 'newsletter')
   union select [jcr:path], [jcr:score], *
   from [PageContent] as a
-  where [onTime] is null
+  where isdescendantnode(a, '/content/campaigns')
+  and [sling:resourceType] in('teaser', 'newsletter')
+  and [onTime] is null
+  and [offTime] is null
+  union select [jcr:path], [jcr:score], *
+  from [PageContent] as a
+  where isdescendantnode(a, '/content/campaigns')
+  and [teaserPageType] in('newsletter', 'tweet')
+  and [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
   and [offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)
-  and isdescendantnode(a, '/content/campaigns')
+  union select [jcr:path], [jcr:score], *
+  from [PageContent] as a
+  where isdescendantnode(a, '/content/campaigns')
   and [teaserPageType] in('newsletter', 'tweet')
+  and [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
+  and [offTime] is null
   union select [jcr:path], [jcr:score], *
   from [PageContent] as a
-  where [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
-  and [offTime] is null
-  and isdescendantnode(a, '/content/campaigns')
-  and [sling:resourceType] in('teaser', 'newsletter')
-  union select [jcr:path], [jcr:score], *
-  from [PageContent] as a
-  where [onTime] < cast('2012-04-01T00:00:00.000+02:00' as date)
-  and [offTime] is null
-  and isdescendantnode(a, '/content/campaigns')
+  where isdescendantnode(a, '/content/campaigns')
   and [teaserPageType] in('newsletter', 'tweet')
+  and [onTime] is null
+  and [offTime] >= cast('2012-02-26T00:00:00.000+01:00' as date)
   union select [jcr:path], [jcr:score], *
   from [PageContent] as a
-  where [onTime] is null
-  and [offTime] is null
-  and isdescendantnode(a, '/content/campaigns')
-  and [sling:resourceType] in('teaser', 'newsletter')
-  union select [jcr:path], [jcr:score], *
-  from [PageContent] as a
-  where [onTime] is null
-  and [offTime] is null
-  and isdescendantnode(a, '/content/campaigns')
+  where isdescendantnode(a, '/content/campaigns')
   and [teaserPageType] in('newsletter', 'tweet')
+  and [onTime] is null
+  and [offTime] is null
   order by [onTime]
   /* xpath ... */
 
