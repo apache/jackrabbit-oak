@@ -24,8 +24,14 @@ Technical task
 
 Bug
 
+    [OAK-4099] - Lucene index appear to be corrupted with compaction
+    enabled
     [OAK-4148] - RAT plugin complains about derby files
     [OAK-4166] - Simple versionable nodes are invalid after migration
+    [OAK-4275] - Backport OAK-4065 (Counter index can get out of sync)
+    to 1.2 and 1.4
+    [OAK-4313] - QueryImpl should avoid traversal with queries
+    containing native constraints
 
 Documentation
 
@@ -35,10 +41,14 @@ Documentation
 Improvement
 
     [OAK-4136] - release profile in maven
+    [OAK-4165] - Too verbose logging during revision gc
     [OAK-4175] - Allow to skip the repository initialization in
     oak-upgrade
     [OAK-4242] - Counter index should be rebuilt after successful
     migration
+    [OAK-4306] - Disable cleanup when compaction is paused
+    [OAK-4317] - Similar and Native queries should return no results
+    if no index can handle them
 
 Task
 
