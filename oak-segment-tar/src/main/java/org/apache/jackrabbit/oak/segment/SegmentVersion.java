@@ -31,7 +31,7 @@ import com.google.common.primitives.UnsignedBytes;
  * <ul>
  * <li>10 = all Oak versions previous to 11</li>
  * <li>11 = all Oak versions starting from 1.0.12, 1.1.7 and 1.2</li>
- * <li>12 = all oak-segment-next versions</li>
+ * <li>12 = all oak-segment-tar versions</li>
  * </ul>
  */
 public enum SegmentVersion {
