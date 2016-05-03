@@ -584,7 +584,7 @@ public class FileStore implements SegmentStore {
                     humanReadableByteCount(needed), needed,
                     humanReadableByteCount(delta), delta);
             if (cleanup) {
-                cleanupNeeded.set(true);
+                cleanupNeeded.set(!compactionStrategy.isPaused());
             }
             return false;
         }
@@ -648,7 +648,7 @@ public class FileStore implements SegmentStore {
             }
         }
         if (cleanup) {
-            cleanupNeeded.set(true);
+            cleanupNeeded.set(!compactionStrategy.isPaused());
         }
         return compacted;
     }
@@ -964,7 +964,8 @@ public class FileStore implements SegmentStore {
                 }
             }
             if (!fRefs.isEmpty()) {
-                gcMonitor.info("TarMK GC #{}: cleanup found forward references to {}", gcCount, fRefs);
+                gcMonitor.info("TarMK GC #{}: cleanup found {} forward references", gcCount, fRefs.size());
+                log.debug("TarMK GC #{}: cleanup found forward references to {}", gcCount, fRefs);
             }
             // ... as long as new forward references are found.
         } while (referencedIds.addAll(fRefs));

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter;
 
+import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -29,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.NodeCounterRoot;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,6 +44,8 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
 
     public static final String RESOLUTION = "resolution";
 
+    public static final String SEED = "seed";
+
     @Override
     @CheckForNull
     public Editor getIndexEditor(@Nonnull String type,
@@ -49,15 +54,28 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         if (!TYPE.equals(type)) {
             return null;
         }
-        NodeCounterRoot rootData = new NodeCounterRoot();
-        rootData.callback = callback;
-        rootData.definition = definition;
-        rootData.root = root;
+        int resolution; 
         PropertyState s = definition.getProperty(RESOLUTION);
-        if (s != null) {
-            rootData.resolution = s.getValue(Type.LONG).intValue();
+        if (s == null) {
+            resolution = NodeCounterEditor.DEFAULT_RESOLUTION; 
+        } else {
+            resolution = s.getValue(Type.LONG).intValue();
         }
-        return new NodeCounterEditor(rootData, null, "/");
+        long seed;
+        s = definition.getProperty(SEED);
+        if (s != null) {
+            seed = s.getValue(Type.LONG).intValue();
+        } else {
+            seed = 0;
+            if (NodeCounter.COUNT_HASH) {
+                // create a random number (that way we can also check if this feature is enabled)
+                seed = UUID.randomUUID().getMostSignificantBits();
+                definition.setProperty(SEED, seed);
+            }
+        }
+        NodeCounterRoot rootData = new NodeCounterRoot(
+                resolution, seed, definition, root, callback);
+        return new NodeCounterEditor(rootData, null, "/", null);
     }
 
 }

@@ -26,12 +26,16 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Support for "similar(...)
  */
 public class SimilarImpl extends ConstraintImpl {
-    
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     public static final String NATIVE_LUCENE_LANGUAGE = "lucene";
     
     public static final String MORE_LIKE_THIS_PREFIX = "mlt?mlt.fl=:path&mlt.mindf=0&stream.body=";
@@ -67,7 +71,8 @@ public class SimilarImpl extends ConstraintImpl {
         // and because we don't know how to process native
         // conditions
         if (!(selector.getIndex() instanceof FulltextQueryIndex)) {
-            throw new IllegalArgumentException("No full-text index was found that can process the condition " + toString());
+            log.warn("No full-text index was found that can process the condition " + toString());
+            return false;
         }
         // verify the path is readable
         PropertyValue p = pathExpression.currentValue();
