@@ -218,23 +218,11 @@ public class NodeDocumentCache implements Closeable {
         Lock lock = locks.acquire(id);
         try {
             NodeDocument cachedDoc = getIfPresent(id);
-            if (cachedDoc == null || cachedDoc == NodeDocument.NULL) {
+            if (isNewer(cachedDoc, doc)) {
                 newerDoc = doc;
                 putInternal(doc);
             } else {
-                Long cachedModCount = cachedDoc.getModCount();
-                Long modCount = doc.getModCount();
-
-                if (cachedModCount == null || modCount == null) {
-                    throw new IllegalStateException("Missing " + Document.MOD_COUNT);
-                }
-
-                if (modCount > cachedModCount) {
-                    newerDoc = doc;
-                    putInternal(doc);
-                } else {
-                    newerDoc = cachedDoc;
-                }
+                newerDoc = cachedDoc;
             }
         } finally {
             lock.unlock();
@@ -439,13 +427,14 @@ public class NodeDocumentCache implements Closeable {
             String id = d.getId();
             Lock lock = locks.acquire(id);
             try {
+                NodeDocument cachedDoc = getIfPresent(id);
                 // if an old document is present in the cache, we can simply update it
-                if (getIfPresent(id) != null) {
-                    putIfNewer(d);
+                if (cachedDoc != null && isNewer(cachedDoc, d)) {
+                    putInternal(d);
                 // if the document hasn't been invalidated or added during the tracker lifetime,
                 // we can put it as well
-                } else if (!tracker.mightBeenAffected(id)) {
-                    putIfNewer(d);
+                } else if (cachedDoc == null && !tracker.mightBeenAffected(id)) {
+                    putInternal(d);
                 }
             } finally {
                 lock.unlock();
@@ -469,5 +458,29 @@ public class NodeDocumentCache implements Closeable {
         for (CacheChangesTracker tracker : changeTrackers) {
             tracker.putDocument(doc.getId());
         }
+    }
+
+    /**
+     * Check if the doc is more recent than the cachedDoc. If the cachedDoc
+     * is {@code null} or {@code NodeDocument.NULL}, the doc will be considered
+     * as more recent as well.
+     *
+     * @param cachedDoc the document already present in cache
+     * @param doc the tested document
+     * @return {@code true} iff the cacheDoc is null or older than the doc
+     */
+    private boolean isNewer(@Nullable NodeDocument cachedDoc, @Nonnull NodeDocument doc) {
+        if (cachedDoc == null || cachedDoc == NodeDocument.NULL) {
+            return true;
+        }
+
+        Long cachedModCount = cachedDoc.getModCount();
+        Long modCount = doc.getModCount();
+
+        if (cachedModCount == null || modCount == null) {
+            throw new IllegalStateException("Missing " + Document.MOD_COUNT);
+        }
+
+        return modCount > cachedModCount;
     }
 }
