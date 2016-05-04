@@ -340,9 +340,9 @@ ordered
   Refer to [Lucene based Sorting][OAK-2196] for more details
 
 type
-: JCR Property type. Can be one of `Date`, `Boolean`, `Double` or `Long`. Mostly
+: JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String` or `Long`. Mostly
   inferred from the indexed value. However in some cases where same property
-  type is not used consistently across various nodes then it would recommened
+  type is not used consistently across various nodes then it would recommended
    to specify the type explicitly.
    
 propertyIndex
