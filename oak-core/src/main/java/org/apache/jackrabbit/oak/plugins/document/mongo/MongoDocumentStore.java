@@ -1002,7 +1002,7 @@ public class MongoDocumentStore implements DocumentStore {
             T oldDoc = oldDocs.get(id);
             DBObject update;
             if (oldDoc == null) {
-                query.not().exists(Document.MOD_COUNT);
+                query.and(Document.MOD_COUNT).exists(false);
                 update = createUpdate(updateOp, true);
             } else {
                 query.and(Document.MOD_COUNT).is(oldDoc.getModCount());
