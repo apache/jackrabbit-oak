@@ -835,6 +835,17 @@ public class IndexDefinitionTest {
 
     }
 
+    @Test
+    public void costPerEntryForOlderVersion() throws Exception{
+        builder.setProperty(LuceneIndexConstants.COMPAT_MODE, 2);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        assertEquals(1.0, defn.getCostPerEntry(), 0.0);
+
+        builder.setProperty(LuceneIndexConstants.COMPAT_MODE, 1);
+        defn = new IndexDefinition(root, builder.getNodeState());
+        assertEquals(1.5, defn.getCostPerEntry(), 0.0);
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){

@@ -270,7 +270,7 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         this.maxFieldLength = getOptionalValue(defn, LuceneIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
-        this.costPerEntry = getOptionalValue(defn, LuceneIndexConstants.COST_PER_ENTRY, 1.0);
+        this.costPerEntry = getOptionalValue(defn, LuceneIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
         this.costPerExecution = getOptionalValue(defn, LuceneIndexConstants.COST_PER_EXECUTION, 1.0);
         this.indexesAllTypes = areAllTypesIndexed();
         this.analyzers = collectAnalyzers(defn);
@@ -1510,6 +1510,12 @@ class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean getActiveDeleteEnabled() {
         return activeDelete >= 0;
+    }
+
+    private static double getDefaultCostPerEntry(IndexFormatVersion version) {
+        //For older format cost per entry would be higher as it does a runtime
+        //aggregation
+        return version == IndexFormatVersion.V1 ?  1.5 : 1.0;
     }
 
 }
