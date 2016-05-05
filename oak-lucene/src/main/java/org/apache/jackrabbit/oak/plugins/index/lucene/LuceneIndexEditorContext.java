@@ -432,6 +432,7 @@ public class LuceneIndexEditorContext {
         ClassLoader current = Thread.currentThread().getContextClassLoader();
         try {
             if (definition.hasCustomTikaConfig()) {
+                log.debug("[{}] Using custom tika config", definition.getIndexName());
                 Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
                 InputStream is = definition.getTikaConfig();
                 try {
