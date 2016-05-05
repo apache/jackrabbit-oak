@@ -32,6 +32,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -336,7 +337,7 @@ public class OakDirectoryTest {
     @Test
     public void dirNameInExceptionMessage() throws Exception{
         String indexPath = "/foo/bar";
-        builder.setProperty(LuceneIndexConstants.INDEX_PATH, indexPath);
+        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         Directory dir = createDir(builder, false);
 
         try {
@@ -382,7 +383,7 @@ public class OakDirectoryTest {
         int blobSize = minFileSize + 1000;
 
         builder = nodeStore.getRoot().builder();
-        builder.setProperty(LuceneIndexConstants.INDEX_PATH, indexPath);
+        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         builder.setProperty(LuceneIndexConstants.BLOB_SIZE, blobSize);
         Directory dir = createDir(builder, false);
 

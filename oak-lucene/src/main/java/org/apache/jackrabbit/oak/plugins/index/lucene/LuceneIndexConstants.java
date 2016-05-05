@@ -294,7 +294,10 @@ public interface LuceneIndexConstants {
      * definition is defined is not known to IndexEditor. To make use of CopyOnWrite
      * feature its required to know the indexPath to optimize the lookup and read of
      * existing index files
+     *
+     * @deprecated With OAK-4152 no need to explicitly define indexPath property
      */
+    @Deprecated
     String INDEX_PATH = "indexPath";
 
     /**

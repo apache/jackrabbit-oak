@@ -2004,33 +2004,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(propabQuery, asList("/test/a"));
     }
 
-    //OAK-4024
-    @Test
-    public void reindexWithCOWWithIndexPath() throws Exception {
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(LuceneIndexConstants.INDEX_PATH, "/oak:index/test1");
-        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
-        Tree prop1 = props.addChild(TestUtil.unique("prop"));
-        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
-        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
-        root.commit();
-
-        //force CoR
-        executeQuery("SELECT * FROM [mix:title]", SQL2);
-
-        assertNotNull(corDir);
-        String localPathBeforeReindex = corDir;
-
-        //CoW with re-indexing
-        idx.setProperty("reindex", true);
-        root.commit();
-
-        assertNotNull(cowDir);
-        String localPathAfterReindex = cowDir;
-
-        assertNotEquals("CoW should write to different dir on reindexing", localPathBeforeReindex, localPathAfterReindex);
-    }
-
     @Test
     public void reindexWithCOWWithoutIndexPath() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
