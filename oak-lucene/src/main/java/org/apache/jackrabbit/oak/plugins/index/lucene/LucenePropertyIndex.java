@@ -1588,7 +1588,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
-    private static class PathStoredFieldVisitor extends StoredFieldVisitor {
+    static class PathStoredFieldVisitor extends StoredFieldVisitor {
 
         private String path;
         private boolean pathVisited;
