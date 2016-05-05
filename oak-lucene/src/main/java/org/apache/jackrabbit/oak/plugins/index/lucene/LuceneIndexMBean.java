@@ -23,9 +23,29 @@ import java.io.IOException;
 
 import javax.management.openmbean.TabularData;
 
+import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.commons.jmx.Name;
+
 public interface LuceneIndexMBean {
     String TYPE = "LuceneIndex";
 
     TabularData getIndexStats() throws IOException;
+
+    @Description("Determines the set of index paths upto given maxLevel. This can be used to determine the value for" +
+            "[includedPaths]. For this to work you should have [evaluatePathRestrictions] set to true in your index " +
+            "definition")
+    String[] getIndexedPaths(
+            @Description("Index path for which stats are to be determined")
+            @Name("indexPath")
+            String indexPath,
+            @Name("maxLevel")
+            @Description("Maximum depth to examine. E.g. 5. Stats calculation would " +
+                    "break out after this limit")
+            int maxLevel,
+            @Description("Maximum number of unique paths to examine. E.g. 100. Stats " +
+                    "calculation would break out after this limit")
+            @Name("maxPathCount")
+            int maxPathCount
+            ) throws IOException;
 
 }
