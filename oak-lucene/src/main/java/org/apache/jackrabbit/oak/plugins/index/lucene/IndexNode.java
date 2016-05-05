@@ -45,7 +45,7 @@ class IndexNode {
     static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState, @Nullable IndexCopier cloner)
             throws IOException {
         Directory directory = null;
-        IndexDefinition definition = new IndexDefinition(root, defnNodeState, indexPath);
+        IndexDefinition definition = new IndexDefinition(root, defnNodeState);
         NodeState data = defnNodeState.getChildNode(INDEX_DATA_CHILD_NAME);
         if (data.exists()) {
             directory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), definition, true);

@@ -881,6 +881,22 @@ public class LuceneIndexTest {
         }
     }
 
+    @Test
+    public void indexNameIsIndexPath() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), null);
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"));
+        assertEquals("/oak:index/lucene", defn.getIndexName());
+        assertEquals("/oak:index/lucene", defn.getIndexPathFromConfig());
+    }
+
 
     @After
     public void cleanUp(){

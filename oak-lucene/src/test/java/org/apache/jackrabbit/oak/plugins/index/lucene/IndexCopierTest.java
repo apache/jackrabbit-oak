@@ -52,6 +52,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
@@ -60,6 +61,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -89,6 +91,11 @@ public class IndexCopierTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private NodeBuilder builder = root.builder();
+
+    @Before
+    public void setUp(){
+        builder.setProperty(IndexConstants.INDEX_PATH, "/oak:index/test");
+    }
 
     @Test
     public void basicTest() throws Exception{
@@ -563,7 +570,7 @@ public class IndexCopierTest {
 
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
-        builder.setProperty(LuceneIndexConstants.INDEX_PATH, "foo");
+        builder.setProperty(IndexConstants.INDEX_PATH, "foo");
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         Directory dir = copier.wrapForWrite(defn, remote, false);
 
@@ -937,7 +944,7 @@ public class IndexCopierTest {
 
         Directory baseDir = new CloseSafeDir();
         String indexPath = "/foo";
-        builder.setProperty(LuceneIndexConstants.INDEX_PATH, indexPath);
+        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier copier = new RAMIndexCopier(baseDir, executor, getWorkDir(), true);
 

@@ -68,6 +68,7 @@ import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
@@ -78,6 +79,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
@@ -216,23 +218,23 @@ class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean spellcheckEnabled;
 
+    private final String indexPath;
+
+    public IndexDefinition(NodeState root, NodeBuilder defn) {
+        this(root, defn.getBaseState(), defn);
+    }
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
 
-    public IndexDefinition(NodeState root, NodeBuilder defn) {
-        this(root, defn.getBaseState(), defn, null);
-    }
-
-    public IndexDefinition(NodeState root, NodeState defn, @Nullable String indexPath) {
-        this(root, defn, null, indexPath);
-    }
-
-    public IndexDefinition(NodeState root, NodeState defn, @Nullable NodeBuilder defnb, @Nullable String indexPath) {
+    public IndexDefinition(NodeState root, NodeState defn, @Nullable NodeBuilder defnb) {
         this.root = root;
         this.version = determineIndexFormatVersion(defn, defnb);
         this.definition = defn;
-        this.indexName = determineIndexName(defn, indexPath);
+        this.indexPath = determineIndexPath(defn, defnb);
+        this.indexName = indexPath;
+
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
         this.activeDelete = getOptionalValue(defn, ACTIVE_DELETE, DEFAULT_ACTIVE_DELETE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
@@ -658,9 +660,8 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         return spellcheckEnabled;
     }
 
-    @CheckForNull
     public String getIndexPathFromConfig() {
-        return definition.getString(LuceneIndexConstants.INDEX_PATH);
+        return checkNotNull(indexPath, "Index path property [%s] not found", IndexConstants.INDEX_PATH);
     }
 
     private boolean evaluateSuggestAnalyzed(NodeState defn, boolean defaultValue) {
@@ -1147,7 +1148,7 @@ class IndexDefinition implements Aggregate.AggregateMapper {
             indexDefn.removeProperty(ORDERED_PROP_NAMES);
             indexDefn.removeProperty(FULL_TEXT_ENABLED);
             indexDefn.child(PROP_NODE).remove();
-            log.info("Updated index definition for {}", determineIndexName(defn, null));
+            log.info("Updated index definition for {}", indexDefn.getString(INDEX_PATH));
         }
         return indexDefn;
     }
@@ -1303,22 +1304,12 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         return codec;
     }
 
-    private static String determineIndexName(NodeState defn, String indexPath) {
-        if (indexPath == null){
-            indexPath = defn.getString(LuceneIndexConstants.INDEX_PATH);
+    private static String determineIndexPath(NodeState defn, @Nullable  NodeBuilder defnb) {
+        String indexPath = defn.getString(IndexConstants.INDEX_PATH);
+        if (indexPath == null && defnb != null){
+            indexPath = defnb.getString(IndexConstants.INDEX_PATH);
         }
-        String indexName = defn.getString(PROP_NAME);
-        if (indexName ==  null){
-            if (indexPath != null) {
-                return indexPath;
-            }
-            return "<No 'name' property defined>";
-        }
-
-        if (indexPath != null){
-            return indexName + "(" + indexPath + ")";
-        }
-        return indexName;
+        return indexPath;
     }
 
     private static Set<String> getMultiProperty(NodeState definition, String propName){
