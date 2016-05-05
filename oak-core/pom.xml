@@ -350,5 +350,11 @@
       <version>7.0.64</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <scope>test</scope>
+      <version>1.3.0</version>
+    </dependency>
   </dependencies>
 </project>
