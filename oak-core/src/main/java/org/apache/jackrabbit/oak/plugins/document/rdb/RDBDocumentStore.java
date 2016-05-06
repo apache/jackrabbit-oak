@@ -1921,7 +1921,7 @@ public class RDBDocumentStore implements DocumentStore {
     // keeping track of CLUSTER_NODES updates
     private Map<String, Long> cnUpdates = new ConcurrentHashMap<String, Long>();
 
-    private void maintainUpdateStats(Collection collection, String key) {
+    private <T extends Document> void maintainUpdateStats(Collection<T> collection, String key) {
         if (collection == Collection.CLUSTER_NODES) {
             synchronized (this) {
                 Long old = cnUpdates.get(key);
