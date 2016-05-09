@@ -490,11 +490,12 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    @Ignore
-    // FIXME OAK-4286: Rework failing tests in CompactionAndCleanupIT
-    // Fix failing test propertyRetention
     public void propertyRetention() throws IOException, CommitFailedException {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
+        SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
+        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(1)
+                .withGCOptions(gcOptions)
+                .build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
 
@@ -506,6 +507,7 @@ public class CompactionAndCleanupIT {
             // Segment id of the current segment
             NodeState test = nodeStore.getRoot().getChildNode("test");
             SegmentId id = ((SegmentNodeState) test).getRecordId().getSegmentId();
+            fileStore.flush();
             assertTrue(fileStore.containsSegment(id));
 
             // Add enough content to fill up the current tar file
@@ -520,7 +522,11 @@ public class CompactionAndCleanupIT {
 
             // GC should remove the segment
             fileStore.flush();
-            fileStore.compact();
+            // Ensure cleanup is efficient by surpassing the number of
+            // retained generations
+            for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
+                fileStore.compact();
+            }
             fileStore.cleanup();
 
             try {
