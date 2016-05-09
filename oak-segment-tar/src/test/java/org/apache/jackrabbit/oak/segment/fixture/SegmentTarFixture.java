@@ -27,15 +27,15 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-public class SegmentNextFixture extends NodeStoreFixture {
+public class SegmentTarFixture extends NodeStoreFixture {
 
     private final SegmentStore store;
 
-    public SegmentNextFixture() {
+    public SegmentTarFixture() {
         this(null);
     }
 
-    public SegmentNextFixture(SegmentStore store) {
+    public SegmentTarFixture(SegmentStore store) {
         this.store = store;
     }
 
@@ -54,6 +54,6 @@ public class SegmentNextFixture extends NodeStoreFixture {
 
     @Override
     public String toString() {
-        return "SegmentNext";
+        return "SegmentTar";
     }
 }

@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNextNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 
 public class FbsToFbsTest extends AbstractOak2OakTest {
 
@@ -35,8 +35,8 @@ public class FbsToFbsTest extends AbstractOak2OakTest {
     public FbsToFbsTest() {
         sourceBlob = new FileBlobStoreContainer();
         destinationBlob = new FileBlobStoreContainer();
-        source = new SegmentNextNodeStoreContainer(sourceBlob);
-        destination = new SegmentNextNodeStoreContainer(destinationBlob);
+        source = new SegmentTarNodeStoreContainer(sourceBlob);
+        destination = new SegmentTarNodeStoreContainer(destinationBlob);
     }
 
     @Override

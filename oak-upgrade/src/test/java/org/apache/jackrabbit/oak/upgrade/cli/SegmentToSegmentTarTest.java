@@ -17,18 +17,18 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNextNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 
-public class SegmentToSegmentNextTest extends AbstractOak2OakTest {
+public class SegmentToSegmentTarTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
 
     private final NodeStoreContainer destination;
 
-    public SegmentToSegmentNextTest() {
+    public SegmentToSegmentTarTest() {
         source = new SegmentNodeStoreContainer();
-        destination = new SegmentNextNodeStoreContainer();
+        destination = new SegmentTarNodeStoreContainer();
     }
 
     @Override

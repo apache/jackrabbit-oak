@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentNextFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentTarFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.MigrationDirection;
 
@@ -106,7 +106,7 @@ enum StoreType {
             return new StoreFactory(new SegmentFactory(path, arguments.getOptions().isMmap()));
         }
     },
-    SEGMENT_NEXT {
+    SEGMENT_TAR {
         @Override
         public boolean matches(String argument) {
             return true;
@@ -114,7 +114,7 @@ enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new SegmentNextFactory(paths[0], arguments.getOptions().isMmap()));
+            return new StoreFactory(new SegmentTarFactory(paths[0], arguments.getOptions().isMmap()));
         }
     };
 

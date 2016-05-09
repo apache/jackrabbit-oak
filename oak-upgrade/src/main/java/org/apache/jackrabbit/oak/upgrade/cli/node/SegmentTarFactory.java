@@ -16,23 +16,23 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-
-public class SegmentNextFactory implements NodeStoreFactory {
+public class SegmentTarFactory implements NodeStoreFactory {
 
     private final File dir;
 
     private final boolean mmap;
 
-    public SegmentNextFactory(String directory, boolean mmap) {
+    public SegmentTarFactory(String directory, boolean mmap) {
         this.dir = new File(directory);
         this.mmap = mmap;
         if (!dir.isDirectory()) {
@@ -67,6 +67,6 @@ public class SegmentNextFactory implements NodeStoreFactory {
 
     @Override
     public String toString() {
-        return String.format("SegmentNextNodeStore[%s]", dir);
+        return String.format("SegmentTarNodeStore[%s]", dir);
     }
 }
