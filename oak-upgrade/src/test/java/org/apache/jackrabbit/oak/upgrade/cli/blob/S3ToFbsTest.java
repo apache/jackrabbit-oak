@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.S3DataStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNextNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.junit.Assume;
 
 public class S3ToFbsTest extends AbstractOak2OakTest {
@@ -42,8 +42,8 @@ public class S3ToFbsTest extends AbstractOak2OakTest {
         Assume.assumeTrue(S3_PROPERTIES != null);
         sourceBlob = new S3DataStoreContainer(S3_PROPERTIES);
         destinationBlob = new FileBlobStoreContainer();
-        source = new SegmentNextNodeStoreContainer(sourceBlob);
-        destination = new SegmentNextNodeStoreContainer(destinationBlob);
+        source = new SegmentTarNodeStoreContainer(sourceBlob);
+        destination = new SegmentTarNodeStoreContainer(destinationBlob);
     }
 
     @Override

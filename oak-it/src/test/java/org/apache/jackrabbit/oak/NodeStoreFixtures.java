@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
-import org.apache.jackrabbit.oak.segment.fixture.SegmentNextFixture;
+import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 
 public class NodeStoreFixtures {
 
@@ -37,7 +37,7 @@ public class NodeStoreFixtures {
 
     public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
-    public static final NodeStoreFixture SEGMENT_NEXT = new SegmentNextFixture();
+    public static final NodeStoreFixture SEGMENT_TAR = new SegmentTarFixture();
 
     public static final NodeStoreFixture DOCUMENT_NS = new DocumentMongoFixture();
 
@@ -62,8 +62,8 @@ public class NodeStoreFixtures {
         if (fixtures.contains(FixturesHelper.Fixture.DOCUMENT_MEM)) {
             configuredFixtures.add(DOCUMENT_MEM);
         }
-        if (fixtures.contains(FixturesHelper.Fixture.SEGMENT_NEXT)) {
-            configuredFixtures.add(SEGMENT_NEXT);
+        if (fixtures.contains(FixturesHelper.Fixture.SEGMENT_TAR)) {
+            configuredFixtures.add(SEGMENT_TAR);
         }
 
         Collection<Object[]> result = new ArrayList<Object[]>();

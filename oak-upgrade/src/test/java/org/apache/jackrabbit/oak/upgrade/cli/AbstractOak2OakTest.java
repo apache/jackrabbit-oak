@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNextNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -50,7 +50,7 @@ public abstract class AbstractOak2OakTest {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractOak2OakTest.class);
 
-    protected static SegmentNextNodeStoreContainer testContent;
+    protected static SegmentTarNodeStoreContainer testContent;
 
     private NodeStore destination;
 
@@ -70,7 +70,7 @@ public abstract class AbstractOak2OakTest {
         if (!tempDir.isDirectory()) {
             Util.unzip(AbstractOak2OakTest.class.getResourceAsStream("/segmentstore.zip"), tempDir);
         }
-        testContent = new SegmentNextNodeStoreContainer(tempDir);
+        testContent = new SegmentTarNodeStoreContainer(tempDir);
     }
 
     @Before
