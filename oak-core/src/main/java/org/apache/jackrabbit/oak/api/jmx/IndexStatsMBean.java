@@ -74,9 +74,9 @@ public interface IndexStatsMBean {
      */
     void pause();
 
-    @Description("Aborts any running indexing cycle. It only effects current " +
-            "running cycle")
-    String abort();
+    @Description("Aborts any running indexing cycle and pauses the indexer. Invoke 'resume' once you are read to " +
+            "resume indexing again")
+    String abortAndPause();
 
     /**
      * Resumes the indexing process. All changes from the previous indexed state

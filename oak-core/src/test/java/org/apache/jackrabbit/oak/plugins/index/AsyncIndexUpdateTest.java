@@ -1253,7 +1253,7 @@ public class AsyncIndexUpdateTest {
         while(!asyncLock.hasQueuedThreads());
 
         assertEquals(IndexStatsMBean.STATUS_RUNNING, async.getIndexStats().getStatus());
-        assertEquals("Abort request placed",async.getIndexStats().abort());
+        assertThat(async.getIndexStats().abortAndPause(), containsString("Abort request placed"));
 
         asyncLock.release();
 
@@ -1265,6 +1265,12 @@ public class AsyncIndexUpdateTest {
         });
 
         //Post abort indexing should be fine
+        runOneCycle(async);
+        assertTrue(async.getIndexStats().isPaused());
+
+        //Now resume indexing
+        async.getIndexStats().resume();
+
         runOneCycle(async);
         assertEquals(IndexStatsMBean.STATUS_DONE, async.getIndexStats().getStatus());
         assertFalse(async.isClosed());
