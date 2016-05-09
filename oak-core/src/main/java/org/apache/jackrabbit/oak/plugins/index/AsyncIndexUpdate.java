@@ -296,6 +296,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         @Override
         public void indexUpdate() throws CommitFailedException {
             if (forcedStop.get()){
+                forcedStop.set(false);
                 throw INTERRUPTED;
             }
 
@@ -364,6 +365,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private void runWhenPermitted() {
         if (indexStats.isPaused()) {
+            log.debug("[{}] Ignoring the run as indexing is paused", name);
             return;
         }
         log.debug("[{}] Running background index task", name);
@@ -701,6 +703,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         public void failed(Exception e) {
             if (e == INTERRUPTED){
+                status = STATUS_INTERRUPTED;
                 log.info("[{}] The index update interrupted", name);
                 log.debug("[{}] The index update interrupted", name, e);
                 return;
@@ -770,9 +773,26 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
+        public String abortAndPause() {
+            //First pause to avoid any race
+            pause();
+            //Set the forcedStop flag anyway. In resume this would be cleared
+            forcedStopFlag.set(true);
+            String msg = "";
+            //Abort if any indexing run is in progress
+            if (runPermit.availablePermits() == 0){
+                msg = "Abort request placed for current run. ";
+            }
+            return msg + "Indexing is paused now. Invoke 'resume' to resume indexing";
+        }
+
+        @Override
         public void resume() {
             log.debug("[{}] Resuming the async indexer", name);
             this.isPaused = false;
+
+            //Clear the forcedStop flag as fail safe
+            forcedStopFlag.set(false);
         }
 
         @Override
