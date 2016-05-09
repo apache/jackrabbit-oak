@@ -105,9 +105,6 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     @Test
     public void batchFailingInsertResult() throws SQLException {
 
-        // https://issues.apache.org/jira/browse/OAK-3937 and https://issues.apache.org/jira/browse/OAK-3977
-        assumeTrue(super.dsf != DocumentStoreFixture.RDB_PG);
-
         String table = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).getName();
 
         Connection con = super.rdbDataSource.getConnection();
