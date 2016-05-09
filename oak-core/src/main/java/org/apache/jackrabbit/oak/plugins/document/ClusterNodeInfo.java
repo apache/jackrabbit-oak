@@ -387,6 +387,9 @@ public class ClusterNodeInfo {
      */
     public boolean renewLease() {
         long now = getCurrentTime();
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("renewLease - leaseEndTime: " + leaseEndTime + ", leaseTime: " + leaseTime);
+        }
         if (now + leaseTime / 2 < leaseEndTime) {
             return false;
         }
@@ -394,7 +397,15 @@ public class ClusterNodeInfo {
         leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Renewing lease for cluster id " + id + " with UpdateOp " + update);
+        }
         ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Lease renewal for cluster id " + id + " resulted in: " + doc);
+        }
+
         String mode = (String) doc.get(READ_WRITE_MODE_KEY);
         if (mode != null && !mode.equals(readWriteMode)) {
             readWriteMode = mode;
