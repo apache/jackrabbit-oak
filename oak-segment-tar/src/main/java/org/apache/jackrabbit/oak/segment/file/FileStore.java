@@ -1368,7 +1368,7 @@ public class FileStore implements SegmentStore {
     public void writeSegment(SegmentId id, byte[] data, int offset, int length) throws IOException {
         fileStoreLock.writeLock().lock();
         try {
-            int generation = Segment.getGcGen(wrap(data, offset, length));
+            int generation = Segment.getGcGen(wrap(data, offset, length), id.asUUID());
             long size = writer.writeEntry(
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits(),

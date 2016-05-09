@@ -57,7 +57,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -152,7 +151,6 @@ public class RecordTest {
     }
 
     @Test
-    @Ignore("OAK-4353")  // FIXME OAK-4353: IndexOutOfBoundsException in FileStore.writeStream
     public void testStreamRecord() throws IOException {
         checkRandomStreamRecord(0);
         checkRandomStreamRecord(1);
