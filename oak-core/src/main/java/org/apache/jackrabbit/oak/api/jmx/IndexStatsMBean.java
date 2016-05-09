@@ -19,6 +19,10 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
 
+import aQute.bnd.annotation.ProviderType;
+import org.apache.jackrabbit.oak.commons.jmx.Description;
+
+@ProviderType
 public interface IndexStatsMBean {
 
     String TYPE = "IndexStats";
@@ -28,6 +32,8 @@ public interface IndexStatsMBean {
     String STATUS_RUNNING = "running";
 
     String STATUS_DONE = "done";
+
+    String STATUS_INTERRUPTED = "interrupted";
 
     /**
      * @return The time the indexing job stared at, or {@code ""} if it is
@@ -66,6 +72,10 @@ public interface IndexStatsMBean {
      * 
      */
     void pause();
+
+    @Description("Aborts any running indexing cycle and pauses the indexer. Invoke 'resume' once you are read to " +
+            "resume indexing again")
+    String abortAndPause();
 
     /**
      * Resumes the indexing process. All changes from the previous indexed state
