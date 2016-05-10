@@ -26,7 +26,7 @@ public interface ExternalGroup extends ExternalIdentity {
     /**
      * Returns an iterable of the declared (direct) members of this external group.
      * @return the declared member
-     * @throws ExternalIdentityException if an error occurrs
+     * @throws ExternalIdentityException if an error occurs
      */
     @Nonnull
     Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException;
