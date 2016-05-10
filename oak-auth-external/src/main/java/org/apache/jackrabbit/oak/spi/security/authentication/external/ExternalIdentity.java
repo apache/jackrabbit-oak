@@ -63,7 +63,7 @@ public interface ExternalIdentity {
     /**
      * Returns an iterable of the declared groups of this external identity.
      * @return the declared groups
-     * @throws ExternalIdentityException if an error occurrs
+     * @throws ExternalIdentityException if an error occurs
      */
     @Nonnull
     Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException;

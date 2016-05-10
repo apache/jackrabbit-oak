@@ -77,7 +77,7 @@ public interface SyncContext {
      *
      * @param id the id of the authorizable
      * @return the result of the operation
-     * @throws SyncException if an error occurrs
+     * @throws SyncException if an error occurs
      */
     @Nonnull
     SyncResult sync(@Nonnull String id) throws SyncException;
