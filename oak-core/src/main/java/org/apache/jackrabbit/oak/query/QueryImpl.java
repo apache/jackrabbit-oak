@@ -21,7 +21,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -152,6 +157,8 @@ public class QueryImpl implements Query {
     private long size = -1;
     private boolean prepared;
     private ExecutionContext context;
+
+    private boolean isSortedByIndex;
 
     private final NamePathMapper namePathMapper;
     
@@ -475,23 +482,62 @@ public class QueryImpl implements Query {
             logDebug("query execute " + statement);
             logDebug("query plan " + getPlan());
         }
-        RowIterator rowIt = new RowIterator(context.getBaseState());
+        final RowIterator rowIt = new RowIterator(context.getBaseState());
         Comparator<ResultRowImpl> orderBy;
-        boolean sortUsingIndex = false;
+        if (isSortedByIndex) {
+            orderBy = null;
+        } else {
+            orderBy = ResultRowImpl.getComparator(orderings);
+        }
+        Iterator<ResultRowImpl> it =
+                FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy, settings);
+        if (measure) {
+            // return the measuring iterator delegating the readCounts to the rowIterator
+            it = new MeasuringIterator(this, it) {
+                @Override
+                protected void setColumns(ColumnImpl[] col) {
+                    columns = col;
+                }
+
+                @Override
+                protected long getReadCount() {
+                    return rowIt.getReadCount();
+                }
+
+                @Override
+                protected Map<String, Long> getSelectorScanCount() {
+                    Map<String, Long> selectorReadCounts = Maps.newHashMap();
+                    for (SelectorImpl selector : selectors) {
+                        selectorReadCounts.put(selector.getSelectorName(), selector.getScanCount());
+                    }
+                    return  selectorReadCounts;
+                }
+            };
+        }
+        return it;
+    }
+
+    @Override
+    public boolean isSortedByIndex() {
+        return isSortedByIndex;
+    }
+
+    private boolean canSortByIndex() {
+        boolean canSortByIndex = false;
         // TODO add issue about order by optimization for multiple selectors
         if (orderings != null && selectors.size() == 1) {
             IndexPlan plan = selectors.get(0).getExecutionPlan().getIndexPlan();
             if (plan != null) {
                 List<OrderEntry> list = plan.getSortOrder();
                 if (list != null && list.size() == orderings.length) {
-                    sortUsingIndex = true;
+                    canSortByIndex = true;
                     for (int i = 0; i < list.size(); i++) {
                         OrderEntry e = list.get(i);
                         OrderingImpl o = orderings[i];
                         DynamicOperandImpl op = o.getOperand();
                         if (!(op instanceof PropertyValueImpl)) {
                             // ordered by a function: currently not supported
-                            sortUsingIndex = false;
+                            canSortByIndex = false;
                             break;
                         }
                         // we only have one selector, so no need to check that
@@ -499,58 +545,21 @@ public class QueryImpl implements Query {
                         String pn = ((PropertyValueImpl) op).getPropertyName();
                         if (!pn.equals(e.getPropertyName())) {
                             // ordered by another property
-                            sortUsingIndex = false;
+                            canSortByIndex = false;
                             break;
                         }
                         if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
                             // ordered ascending versus descending
-                            sortUsingIndex = false;
+                            canSortByIndex = false;
                             break;
                         }
                     }
                 }
             }
         }
-        if (sortUsingIndex) {
-            orderBy = null;
-        } else {
-            orderBy = ResultRowImpl.getComparator(orderings);
-        }
-        Iterator<ResultRowImpl> it = 
-                FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy, settings);
-        if (measure) {
-            // run the query
-            while (it.hasNext()) {
-                it.next();
-            }
-            columns = new ColumnImpl[] {
-                    new ColumnImpl("measure", "selector", "selector"),
-                    new ColumnImpl("measure", "scanCount", "scanCount")
-            };
-            ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
-            ResultRowImpl r = new ResultRowImpl(this,
-                    Tree.EMPTY_ARRAY,
-                    new PropertyValue[] {
-                            PropertyValues.newString("query"),
-                            PropertyValues.newLong(rowIt.getReadCount())
-                        },
-                    null, null);
-            list.add(r);
-            for (SelectorImpl selector : selectors) {
-                r = new ResultRowImpl(this,
-                        Tree.EMPTY_ARRAY,
-                        new PropertyValue[] {
-                                PropertyValues.newString(selector.getSelectorName()),
-                                PropertyValues.newLong(selector.getScanCount()),
-                            },
-                        null, null);
-                list.add(r);
-            }
-            it = list.iterator();
-        }
-        return it;
+        return canSortByIndex;
     }
-    
+
     @Override
     public String getPlan() {
         return source.getPlan(context.getBaseState());
@@ -573,6 +582,7 @@ public class QueryImpl implements Query {
         if (sources.size() <= 1) {
             // simple case (no join)
             estimatedCost = source.prepare().getEstimatedCost();
+            isSortedByIndex = canSortByIndex();
             return;
         }
 
@@ -606,7 +616,7 @@ public class QueryImpl implements Query {
         }
         estimatedCost = result.prepare().getEstimatedCost();
         source = result;
-                
+        isSortedByIndex = canSortByIndex();
     }
     
     private static SourceImpl buildJoin(SourceImpl result, SourceImpl last, List<JoinConditionImpl> conditions) {
@@ -639,6 +649,98 @@ public class QueryImpl implements Query {
      */
     Filter createFilter(boolean preparing) {
         return source.createFilter(preparing);
+    }
+
+
+    /**
+     * Abstract decorating iterator for measure queries. The iterator delegates to the underlying actual
+     * query iterator to lazily execute and return counts.
+     */
+    abstract static class MeasuringIterator extends AbstractIterator<ResultRowImpl> {
+        private Iterator<ResultRowImpl> delegate;
+        private Query query;
+        private List<ResultRowImpl> results;
+        private boolean init;
+
+        MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
+            this.query = query;
+            this.delegate = delegate;
+            results = Lists.newArrayList();
+        }
+
+        @Override
+        protected ResultRowImpl computeNext() {
+            if (!init) {
+                getRows();
+            }
+
+            if (!results.isEmpty()) {
+                return results.remove(0);
+            } else {
+                return endOfData();
+            }
+        }
+
+        void getRows() {
+            // run the query
+            while (delegate.hasNext()) {
+                delegate.next();
+            }
+
+            ColumnImpl[] columns = new ColumnImpl[] {
+                new ColumnImpl("measure", "selector", "selector"),
+                new ColumnImpl("measure", "scanCount", "scanCount")
+            };
+            setColumns(columns);
+
+            ResultRowImpl r = new ResultRowImpl(query,
+                Tree.EMPTY_ARRAY,
+                new PropertyValue[] {
+                    PropertyValues.newString("query"),
+                    PropertyValues.newLong(getReadCount())
+                },
+                null, null);
+            results.add(r);
+
+            Map<String, Long> selectorScanCount = getSelectorScanCount();
+            for (String selector : selectorScanCount.keySet()) {
+                r = new ResultRowImpl(query,
+                    Tree.EMPTY_ARRAY,
+                    new PropertyValue[] {
+                        PropertyValues.newString(selector),
+                        PropertyValues.newLong(selectorScanCount.get(selector)),
+                    },
+                    null, null);
+                results.add(r);
+            }
+            init = true;
+        }
+
+        /**
+         * Set the measure specific columns in the query object
+         * @param columns the measure specific columns
+         */
+        protected abstract void setColumns(ColumnImpl[] columns);
+
+        /**
+         * Retrieve the selector scan count
+         * @return map of selector to scan count
+         */
+        protected abstract Map<String, Long> getSelectorScanCount();
+
+        /**
+         * Retrieve the query read count
+         * @return count
+         */
+        protected abstract long getReadCount();
+
+        /**
+         * Retrieves the actual query iterator
+         * @return the delegate
+         */
+        protected Iterator<ResultRowImpl> getDelegate() {
+            return delegate;
+        }
     }
 
     /**
