@@ -133,9 +133,9 @@ public class FileStore implements SegmentStore {
 
     private int writeNumber;
 
-    private File writeFile;
+    private volatile File writeFile;
 
-    private TarWriter writer;
+    private volatile TarWriter writer;
 
     private final RandomAccessFile journalFile;
 
