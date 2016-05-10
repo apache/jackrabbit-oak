@@ -48,7 +48,7 @@ public class SegmentSizeTest {
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        expectSize(112, builder);
+        expectSize(96, builder);
         expectAmortizedSize(12, builder);
 
         builder = EMPTY_NODE.builder();
@@ -137,7 +137,7 @@ public class SegmentSizeTest {
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        expectSize(384, builder);
+        expectSize(368, builder);
         expectAmortizedSize(96, builder);
 
         NodeBuilder deny0 = builder.child("deny0");
