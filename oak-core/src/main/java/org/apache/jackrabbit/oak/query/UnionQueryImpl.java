@@ -19,6 +19,10 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
@@ -26,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.query.QueryImpl.MeasuringIterator;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,6 +139,9 @@ public class UnionQueryImpl implements Query {
 
     @Override
     public ColumnImpl[] getColumns() {
+        if (columns != null) {
+            return columns;
+        }
         return left.getColumns();
     }
 
@@ -264,14 +272,66 @@ public class UnionQueryImpl implements Query {
                 LOG.debug("query union plan {}", getPlan());
             }
         }
-        Iterator<ResultRowImpl> it = Iterators.concat(left.getRows(), right.getRows());
-        if (measure) {
-            // both queries measure themselves
-            return it;
-        }
         boolean distinct = !unionAll;
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
-        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, orderBy, settings);
+
+        Iterator<ResultRowImpl> it;
+        final Iterator<ResultRowImpl> leftRows = left.getRows();
+        final Iterator<ResultRowImpl> rightRows = right.getRows();
+        Iterator<ResultRowImpl> leftIter = leftRows;
+        Iterator<ResultRowImpl> rightIter = rightRows;
+
+        // if measure retrieve the backing delegate iterator instead
+        if (measure) {
+            leftIter = ((MeasuringIterator) leftRows).getDelegate();
+            rightIter = ((MeasuringIterator) rightRows).getDelegate();
+        }
+        // Since sorted by index use a merge iterator
+        if (isSortedByIndex()) {
+            it = FilterIterators
+                .newCombinedFilter(Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy), distinct,
+                    limit, offset, null, settings);
+        } else {
+            it = FilterIterators
+            .newCombinedFilter(Iterators.concat(leftIter, rightIter), distinct, limit, offset, orderBy, settings);
+        }
+
+        if (measure) {
+            // return the measuring iterator for the union
+            it = new MeasuringIterator(this, it) {
+                MeasuringIterator left = (MeasuringIterator) leftRows;
+                MeasuringIterator right = (MeasuringIterator) rightRows;
+
+                @Override
+                protected void setColumns(ColumnImpl[] cols) {
+                    columns = cols;
+                    left.setColumns(cols);
+                    right.setColumns(cols);
+                }
+
+                @Override
+                protected Map<String, Long> getSelectorScanCount() {
+                    // Merge the 2 maps from the left and right queries to get the selector counts
+                    Map<String, Long> leftSelectorScan = left.getSelectorScanCount();
+                    Map<String, Long> rightSelectorScan = right.getSelectorScanCount();
+                    Map<String, Long> unionScan = Maps.newHashMap(leftSelectorScan);
+                    for (String key : rightSelectorScan.keySet()) {
+                        if (unionScan.containsKey(key)) {
+                            unionScan.put(key, rightSelectorScan.get(key) + unionScan.get(key));
+                        } else {
+                            unionScan.put(key, rightSelectorScan.get(key));
+                        }
+                    }
+                    return unionScan;
+                }
+
+                @Override
+                protected long getReadCount() {
+                    return left.getReadCount() + right.getReadCount();
+                }
+            };
+        }
+
         return it;     
     }
 
@@ -279,5 +339,9 @@ public class UnionQueryImpl implements Query {
     public void setInternal(boolean isInternal) {
         this.isInternal = isInternal;
     }
-    
+
+    @Override
+    public boolean isSortedByIndex() {
+        return left.isSortedByIndex() && right.isSortedByIndex();
+    }
 }

@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
  */
 public class Statement {
 
-    private boolean explain;
-    private boolean measure;
+    boolean explain;
+    boolean measure;
     
     /**
      * The selector to get the columns from (the selector used in the select
@@ -52,9 +52,6 @@ public class Statement {
     
     public Statement optimize() {
         ignoreOrderByScoreDesc();
-        if (explain || measure) {
-            return this;
-        }
         if (where == null) {
             return this;
         }
@@ -80,6 +77,9 @@ public class Statement {
         }
         union.orderList = orderList;
         union.xpathQuery = xpathQuery;
+        union.measure = measure;
+        union.explain = explain;
+
         return union;
     }
     
@@ -249,6 +249,12 @@ public class Statement {
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
+            // explain | measure ...
+            if (this.explain) {
+                buff.append("explain ");
+            } else if (measure) {
+                buff.append("measure ");
+            }
             buff.append(s1).append(" union ").append(s2);
             // order by ...
             if (orderList != null && !orderList.isEmpty()) {

@@ -71,6 +71,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -1695,6 +1696,92 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String queryString = "/jcr:root//element(*, nt:base)[jcr:contains(jcr:content, 'foo' )]";
 
         assertQuery(queryString, "xpath", asList("/test/b"));
+    }
+
+    @Test
+    public void unionSortResultCount() throws Exception {
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb", "propc"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("propc"), STRINGS));
+        useV2(idx);
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+
+        List<Integer> nodes = Lists.newArrayList();
+        Random r = new Random();
+        int seed = -2;
+        for (int i = 0; i < 1000; i++) {
+            Tree a = test.addChild("a" + i);
+            a.setProperty("propa", "fooa");
+            seed += 2;
+            int num = r.nextInt(100);
+            a.setProperty("propc", num);
+            nodes.add(num);
+        }
+
+        seed = -1;
+        for (int i = 0; i < 1000; i++) {
+            Tree a = test.addChild("b" + i);
+            a.setProperty("propb", "foob");
+            seed += 2;
+            int num = 100 + r.nextInt(100);
+            a.setProperty("propc",  num);
+            nodes.add(num);
+        }
+        root.commit();
+
+        // scan count scans the whole result set
+        String query =
+            "measure /jcr:root//element(*, nt:base)[(@propa = 'fooa' or @propb = 'foob')] order by @propc";
+        assertThat(measureWithLimit(query, XPATH, 100), CoreMatchers.containsString("scanCount: 101"));
+    }
+
+
+    @Test
+    public void unionSortQueries() throws Exception {
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb", "propc", "propd"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("propd"), STRINGS));
+        useV2(idx);
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+
+        int seed = -3;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("a" + i);
+            a.setProperty("propa", "a" + i);
+            seed += 3;
+            a.setProperty("propd", seed);
+        }
+
+        seed = -2;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("b" + i);
+            a.setProperty("propb", "b" + i);
+            seed += 3;
+            a.setProperty("propd", seed);
+        }
+        seed = -1;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("c" + i);
+            a.setProperty("propc", "c" + i);
+            seed += 3;
+            a.setProperty("propd", seed);
+        }
+        root.commit();
+
+        assertQuery(
+            "/jcr:root//element(*, nt:base)[(@propa = 'a4' or @propb = 'b3')] order by @propd",
+            XPATH,
+            asList("/test/b3", "/test/a4"));
+        assertQuery(
+            "/jcr:root//element(*, nt:base)[(@propa = 'a3' or @propb = 'b0' or @propc = 'c2')] order by @propd",
+            XPATH,
+            asList("/test/b0", "/test/c2", "/test/a3"));
     }
 
     @Test

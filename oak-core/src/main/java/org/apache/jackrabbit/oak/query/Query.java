@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query;
 import java.util.Iterator;
 import java.util.List;
 
+import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
  * initialize the bind variable map. If the query is re-executed, a new instance
  * is created.
  */
+@ProviderType
 public interface Query {
 
     void setExecutionContext(ExecutionContext context);
@@ -109,4 +111,11 @@ public interface Query {
     boolean isMeasureOrExplainEnabled();
 
     void setInternal(boolean internal);
+
+    /**
+     * Returns whether the results will be sorted by index. The query must already be prepared.
+     *
+     * @return if sorted by index
+     */
+    boolean isSortedByIndex();
 }
