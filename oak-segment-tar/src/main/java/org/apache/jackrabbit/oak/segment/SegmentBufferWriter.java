@@ -169,13 +169,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         roots.clear();
         blobrefs.clear();
 
-        // FIXME OAK-4289: Remove the gc generation from the segment meta data
-        // Don't write the GC generation into the segment info
-        // as it is now available from the segment header. Update the tooling
-        // accordingly (SegmentGraph).
-        String metaInfo = "{\"wid\":\"" + wid + '"' +
+        String metaInfo =
+            "{\"wid\":\"" + wid + '"' +
             ",\"sno\":" + tracker.getNextSegmentNo() +
-            ",\"gc\":" + generation +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
             segment = new Segment(tracker, buffer, metaInfo);
