@@ -86,18 +86,28 @@ public class SegmentGraphTest {
             segments.add(getSegmentId(p2));
             filteredSegments.add(getSegmentId(p2));
 
+            SegmentPropertyState p3 = w3.writeProperty(createProperty("p3", "v3"));
+            segments.add(getSegmentId(p3));
+            filteredSegments.add(getSegmentId(p3));
+
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setProperty(p1);
             builder.setProperty(p2);
+            builder.setProperty(p3);
 
-            SegmentNodeState n1 = w3.writeNode(builder.getNodeState());
-            segments.add(getSegmentId(n1));
-            filteredSegments.add(getSegmentId(n1));
-            addReference(references, getSegmentId(n1), getSegmentId(p1));
+            SegmentNodeState n3 = w3.writeNode(builder.getNodeState());
+            segments.add(getSegmentId(n3));
+            filteredSegments.add(getSegmentId(n3));
+            addReference(references, getSegmentId(n3), getSegmentId(p1));
+            addReference(references, getSegmentId(n3), getSegmentId(p2));
+            addReference(filteredReferences, getSegmentId(n3), getSegmentId(p2));
+
+            // Cyclic reference
+            SegmentNodeState n1 = w1.writeNode(builder.getNodeState());
             addReference(references, getSegmentId(n1), getSegmentId(p2));
-            addReference(filteredReferences, getSegmentId(n1), getSegmentId(p2));
+            addReference(references, getSegmentId(n1), getSegmentId(p3));
 
-            store.setHead(root, n1);
+            store.setHead(root, n3);
 
             w1.flush();
             w2.flush();
