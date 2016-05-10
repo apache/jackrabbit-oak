@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
@@ -557,6 +558,10 @@ public class Commit {
     private String formatConflictRevision(Revision r) {
         if (nodeStore.getHeadRevision().isRevisionNewer(r)) {
             return r + " (not yet visible)";
+        } else if (baseRevision != null
+                && !baseRevision.isRevisionNewer(r)
+                && !equal(baseRevision.getRevision(r.getClusterId()), r)) {
+            return r + " (older than base " + baseRevision + ")";
         } else {
             return r.toString();
         }
