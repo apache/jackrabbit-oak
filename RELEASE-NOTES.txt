@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.2
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.1 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.2 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,47 +15,163 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.1
+Changes in Oak 1.5.2
 ---------------------
 
 Technical task
 
-    [OAK-4156] - RDBConnectionHandler: add logging when getting the
-    connection takes long
+    [OAK-3840] - Clean up the FileStore constructor
+    [OAK-4184] - DocumentNodeStore and DocumentMK.Builder should allow
+    read-only mode
+    [OAK-4190] - DocumentMK: refactor RDB-specific code
+    [OAK-4193] - RDBBlobStore: logging for garbage collection has
+    parameters reversed
+    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA
+    records when there was subsequent blobstore activity
+    [OAK-4203] - ExternalSortTest doesn't cleanup temp files
+    [OAK-4204] - GarbageCollectorFileState.copy() leaks
+    FileOutputStream
+    [OAK-4205] - SegmentGraphTest doesn't correctly delete the
+    temporary directory on cleanup
+    [OAK-4206] - JournalReaderTest creates multiple temporary files
+    and doesn't delete them
+    [OAK-4207] - TarWriterTest creates a temporary TAR file that is
+    never deleted
+    [OAK-4208] - Unit and integration tests in oak-segments don't
+    clean up after test data
+    [OAK-4209] - FileStoreStatsTest doesn't close the temporary
+    FileStore instances
+    [OAK-4210] - JournalEntryTest doesn't close a JournalReader at the
+    end of the test
+    [OAK-4213] - IndexCopierTest#basicTestWithFS leaves temp files
+    [OAK-4214] - Many tests of LucenePropertyIndexTest leave temp
+    files undleted
+    [OAK-4217] - UpgradeTest does not clean up temp file
+    [OAK-4225] - AbstractOak2OakTest never calls
+    getSoureContainer().clean()
+    [OAK-4227] - OakDirectoryTest#dirNameInException_Writes leaves
+    temp files
+    [OAK-4228] - Some tests in LuceneIndexTest leave out CoR/CoW-ed
+    directories
+    [OAK-4232] - Bump segment version to 12
+    [OAK-4236] - SegmentNodeStoreConfigTest#testDeadlock in oak-pojosr
+    leaves out tmp file
+    [OAK-4237] - NodeStoreBinaryResourceProviderTest#csvGenerator
+    leaks temporary folder
+    [OAK-4241] - JdbcNodeStoreContainer does not correctly clean up H2
+    temp files
+    [OAK-4250] - DocumentStore: add test coverage for find() with
+    ultra-long keys
+    [OAK-4257] - Findbug issues in security modules
 
 Bug
 
-    [OAK-4135] - Test failure:
-    org.apache.jackrabbit.j2ee.TomcatIT.testTomcat
+    [OAK-3488] - LastRevRecovery for self async?
+    [OAK-4107] - NPE in
+    MongoDocumentStore.determineServerTimeDifferenceMillis
     [OAK-4148] - RAT plugin complains about derby files
-    [OAK-4155] - oaj.oak.spi.security.authentication.credentials not
-    exported
+    [OAK-4166] - Simple versionable nodes are invalid after migration
+    [OAK-4195] - Use clock when waiting in ClusterNodeInfo
+    [OAK-4211] - FileAccess.Mapped leaks file channels
+    [OAK-4219] - ExternalLoginModuleTestBase doesn't remove synced
+    User/Group accounts
+    [OAK-4224] - DefaultSyncContext.sync(ExternalIdentity) should
+    verify IDP
+    [OAK-4231] - DefaultSyncContext creates Value of type String for
+    Binary|Inputstream Object
+    [OAK-4251] - Guard against NPE in
+    DefaultSyncConfig.Authorizable.setAutoMembership
+    [OAK-4258] - Don't release oak-segment-next when the reactor
+    project is released
+    [OAK-4267] - SyncedIdentity for foreign authorizable always has
+    isGroup set to false
+    [OAK-4269] - Firebug warning: possible null-pointer dereference in
+    S3Backend
+    [OAK-4296] - Oak-run console's lucene command is broken
+    [OAK-4300] - Cost per entry for Lucene index of type v1 should be
+    higher than that of v2
+    [OAK-4302] - DefaultSyncContextTest contains duplicate test
+    [OAK-4307] - SegmentWriter saves references to external blobs
+    [OAK-4310] - Avoid instanceof checks in
+    SegmentDiscoveryLiteService
+    [OAK-4311] - SegmentNodeStoreService should unregister the
+    registered cluster ID descriptors
+    [OAK-4313] - QueryImpl should avoid traversal with queries
+    containing native constraints
+    [OAK-4316] - The Jcr builder should accept a fully initialized Oak
+    instance
+    [OAK-4325] - Autocreation of properties fails if user id is null
+    [OAK-4345] - Bulk update constructs malformed query
 
 Improvement
 
-    [OAK-2392] - [DocumentMK] Garbage Collect older revisions of
-    binary properties in main document
-    [OAK-4095] - Include timestamp in journal log entries
-    [OAK-4108] - Reduce logging from JournalGarbageCollector
-    [OAK-4130] - Simplify IdentifierManager.getReferences
-    [OAK-4136] - release profile in maven
-    [OAK-4152] - Expose the index path to IndexEditor
-    [OAK-4159] - Expose an option in Oak class to enable failing of
-    commit upon missing index editor provider
-    [OAK-4160] - Expose type property for ReferenceEditorProvider
-    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
-    [OAK-4164] - Expose path stats for Lucene index
-
-New Feature
-
-    [OAK-4144] - Expose PropertyIndex stats
+    [OAK-3348] - Cross gc sessions might introduce references to
+    pre-compacted segments
+    [OAK-4112] - Replace the query exclusive lock with a cache tracker
+    [OAK-4168] - Replace the massive lock acquire with cache tracker
+    in bulk createOrUpdate()
+    [OAK-4169] - Make the bulk createOrUpdate retry count configurable
+    in Mongo
+    [OAK-4173] - Add log message when a custom tika config files is
+    used by an index
+    [OAK-4175] - Allow to skip the repository initialization in
+    oak-upgrade
+    [OAK-4182] - oak-run->console should have a read-only mode to
+    connect to document stores (mongo, rdb, etc)
+    [OAK-4185] - Add DOCUMENT_MEM to FixturesHelper
+    [OAK-4198] - oak-run console should have command to export
+    relevant documents (same as oak-mongo.js' printMongoExportCommand)
+    [OAK-4220] - ExternalLoginModuleFactoryTest should extend from
+    ExternalLoginModuleTestBase
+    [OAK-4221] - Move duplicate constants to
+    ExternalLoginModuleTestBase
+    [OAK-4222] - Cleanup ExternalLoginModuleTest
+    [OAK-4223] - Minor improvements to ExternalIdentityRefTest
+    [OAK-4230] - Remove unused JsopWriter in Commit
+    [OAK-4242] - Counter index should be rebuilt after successful
+    migration
+    [OAK-4249] - Extract abstract test-base without OSGi registrations
+    [OAK-4261] - Add PropInfo.asPropertyState
+    [OAK-4262] - Provide a way to abort an async indexing run
+    [OAK-4266] - NodeDocumentCache#get method should be synchronized
+    [OAK-4297] - Oak-run console should allow to setup FDS of
+    repository
+    [OAK-4298] - oak-run->console should have a read-only mode to
+    connect to segment store
+    [OAK-4299] - oak-run console should connect to repository in
+    read-only mode by default
+    [OAK-4306] - Disable cleanup when compaction is paused
+    [OAK-4317] - Similar and Native queries should return no results
+    if no index can handle them
+    [OAK-4321] - Improve conflict exception message to show if
+    conflict is unexpected
+    [OAK-4347] - Use the indexPath from hidden property instead of
+    taking this as input as part of index config
 
 Task
 
-    [OAK-4076] - Benchmark to measure affect of number of indexes on
-    uuid lookup performance
-    [OAK-4132] - JaasConfigSpiTest fails intermittently with missing
-    LoginModule exception
+    [OAK-4192] - continously testing JR SNAPSHOT on oak trunk
+    [OAK-4245] - Decide on a final name for oak-segment-next
+    [OAK-4259] - Implement fixtures for running again oak-segment
+    and/or oak-segment-next
+    [OAK-4273] - Disable testConcurrentWithConflict on Derby
+    [OAK-4303] - Use the oak-segment-next in the oak-upgrade tests
+    [OAK-4308] - Align the UpgradeTest#upgradeFrom10 to
+    oak-segment-next
+    [OAK-4355] - [oak-blob-cloud] Update to latest version of
+    aws-sdk-java
+
+Test
+
+    [OAK-4181] - Ignore GetInfoTest.testPropertyChanged() and
+    testPropertyRemoved()
+    [OAK-4186] - DocumentMemoryFixture does not dispose node store
+    [OAK-4187] - Add DOCUMENT_MEM to NodeStoreFixtures
+    [OAK-4188] - RepositoryStub on MemoryDocumentStore
+    [OAK-4191] - Speed up LargeLdapProviderTest
+    [OAK-4216] - Improve testing of DefaultSyncHandler
+    [OAK-4226] - Improve testing of DefaultSyncContext
+    [OAK-4248] - More tests for the exposed 'basic' package
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
