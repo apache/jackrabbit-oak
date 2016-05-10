@@ -139,7 +139,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
             return;
         }
 
-        Set<String> updated = new HashSet<>();
+        Set<String> updated = new HashSet<String>();
         if (!node.hasProperty(JCR_VERSIONHISTORY)) {
             node.setProperty(JCR_VERSIONHISTORY, versionHistory.getString(JCR_UUID), REFERENCE);
             updated.add(JCR_VERSIONHISTORY);
@@ -155,7 +155,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
         if (!node.hasProperty(JCR_PREDECESSORS)) {
             baseVersion = baseVersion == null ? getLastVersion(versionHistory) : baseVersion;
 
-            List<String> predecessors = new ArrayList<>();
+            List<String> predecessors = new ArrayList<String>();
             if (node.getBoolean(JCR_ISCHECKEDOUT)) {
                 predecessors.add(baseVersion);
             }
