@@ -717,8 +717,6 @@ class TarReader implements Closeable {
      *
      * @throws IOException
      */
-    // FIXME OAK-4288: TarReader.calculateForwardReferences only used by oak-run graph tool
-    // Can we move this somewhere else?
     void calculateForwardReferences(Set<UUID> referencedIds) throws IOException {
         Map<UUID, List<UUID>> graph = getGraph(false);
         TarEntry[] entries = getEntries();
