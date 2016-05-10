@@ -604,7 +604,7 @@ public class RDBDocumentStoreJDBC {
                     rows.add(row);
                 }
             } catch (SQLException ex) {
-                LOG.error("attempting to read " + keys, ex);
+                LOG.debug("attempting to read " + keys, ex);
                 // DB2 throws an SQLException for invalid keys; handle this more
                 // gracefully
                 if ("22001".equals(ex.getSQLState())) {
@@ -664,7 +664,7 @@ public class RDBDocumentStoreJDBC {
                 return null;
             }
         } catch (SQLException ex) {
-            LOG.error("attempting to read " + id + " (id length is " + id.length() + ")", ex);
+            LOG.debug("attempting to read " + id + " (id length is " + id.length() + ")", ex);
             // DB2 throws an SQLException for invalid keys; handle this more
             // gracefully
             if ("22001".equals(ex.getSQLState())) {
