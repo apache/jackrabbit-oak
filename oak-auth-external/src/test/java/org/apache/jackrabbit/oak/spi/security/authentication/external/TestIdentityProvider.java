@@ -208,9 +208,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         }
     }
 
-    private static class TestUser extends TestIdentity implements ExternalUser {
+    public static class TestUser extends TestIdentity implements ExternalUser {
 
-        private TestUser(String userId, @Nonnull String idpName) {
+        public TestUser(String userId, @Nonnull String idpName) {
             super(userId, userId, idpName);
         }
 
@@ -220,9 +220,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     }
 
-    private static class TestGroup extends TestIdentity implements ExternalGroup {
+    public static class TestGroup extends TestIdentity implements ExternalGroup {
 
-        private TestGroup(@Nonnull String userId, @Nonnull String idpName) {
+        public TestGroup(@Nonnull String userId, @Nonnull String idpName) {
             super(userId, userId, idpName);
         }
 

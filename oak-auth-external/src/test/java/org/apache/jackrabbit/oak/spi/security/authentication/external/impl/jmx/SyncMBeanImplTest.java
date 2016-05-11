@@ -16,14 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -73,6 +81,7 @@ public class SyncMBeanImplTest {
 
     private Session session;
     private UserManager userManager;
+    private Set<String> ids;
 
     @BeforeClass
     public static void beforeClass() {
@@ -122,23 +131,45 @@ public class SyncMBeanImplTest {
         } else {
             userManager = ((JackrabbitSession) session).getUserManager();
         }
+        ids = Sets.newHashSet(getAllAuthorizableIds(userManager));
     }
 
     @After
     public void after() throws Exception {
         try {
             session.refresh(false);
-            Iterator<ExternalIdentity> extIdentities = Iterators.concat(idp.listGroups(), idp.listUsers());
-            while (extIdentities.hasNext()) {
-                Authorizable a = userManager.getAuthorizable(extIdentities.next().getId());
-                if (a != null) {
-                    a.remove();
+            Iterator<String> iter = getAllAuthorizableIds(userManager);
+            while (iter.hasNext()) {
+                String id = iter.next();
+                if (!ids.remove(id)) {
+                    Authorizable a = userManager.getAuthorizable(id);
+                    if (a != null) {
+                        a.remove();
+                    }
                 }
             }
             session.save();
         } finally {
             session.logout();
         }
+    }
+
+    private static Iterator<String> getAllAuthorizableIds(@Nonnull UserManager userManager) throws Exception {
+        Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
+        return Iterators.filter(Iterators.transform(iter, new Function<Authorizable, String>() {
+            @Nullable
+            @Override
+            public String apply(Authorizable input) {
+                try {
+                    if (input != null) {
+                        return input.getID();
+                    }
+                } catch (RepositoryException e) {
+                    // failed to retrieve ID
+                }
+                return null;
+            }
+        }), Predicates.notNull());
     }
 
     private static void assertResultMessages(@Nonnull String[] resultMessages, int expectedSize, @Nonnull String... expectedOperations) {
@@ -150,9 +181,25 @@ public class SyncMBeanImplTest {
         }
     }
 
+    private static void assertSync(@Nonnull ExternalIdentity ei, @Nonnull UserManager userManager) throws Exception {
+        Authorizable authorizable;
+        if (ei instanceof ExternalUser) {
+            authorizable = userManager.getAuthorizable(ei.getId(), User.class);
+        } else {
+            authorizable = userManager.getAuthorizable(ei.getId(), Group.class);
+        }
+        assertNotNull(ei.getId(), authorizable);
+        assertEquals(ei.getId(), authorizable.getID());
+        assertEquals(ei.getExternalId(), ExternalIdentityRef.fromString(authorizable.getProperty(DefaultSyncContext.REP_EXTERNAL_ID)[0].getString()));
+    }
+
     private SyncResult sync(@Nonnull ExternalIdentityProvider idp, @Nonnull String id, boolean isGroup) throws Exception {
+        return sync((isGroup) ? idp.getGroup(id) : idp.getUser(id), idp);
+    }
+
+    private SyncResult sync(@Nonnull ExternalIdentity externalIdentity, @Nonnull ExternalIdentityProvider idp) throws Exception {
         SyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, session.getValueFactory());
-        SyncResult res = ctx.sync((isGroup) ? idp.getGroup(id) : idp.getUser(id));
+        SyncResult res = ctx.sync(externalIdentity);
         session.save();
         return res;
     }
@@ -247,18 +294,24 @@ public class SyncMBeanImplTest {
 
     @Test
     public void testSyncUsersPurge() throws Exception {
-        User u = userManager.createUser("thirdUser", null);
-        u.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, session.getValueFactory().createValue(new ExternalIdentityRef(u.getID(), idp.getName()).getString()));
-        session.save();
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("gr", idp.getName()), idp);
 
-        String[] ids = new String[]{u.getID()};
-        String[] result = syncMBean.syncUsers(ids, false);
-        assertResultMessages(result, ids.length, "mis");
-        assertNotNull(userManager.getAuthorizable(u.getID()));
+        Authorizable[] authorizables = new Authorizable[] {
+                userManager.getAuthorizable("thirdUser"),
+                userManager.getAuthorizable("gr")
+        };
 
-        result = syncMBean.syncUsers(ids, true);
-        assertResultMessages(result, ids.length, "del");
-        assertNull(userManager.getAuthorizable(u.getID()));
+        for (Authorizable a : authorizables) {
+            String[] ids = new String[]{a.getID()};
+            String[] result = syncMBean.syncUsers(ids, false);
+            assertResultMessages(result, ids.length, "mis");
+            assertNotNull(userManager.getAuthorizable(a.getID()));
+
+            result = syncMBean.syncUsers(ids, true);
+            assertResultMessages(result, ids.length, "del");
+            assertNull(userManager.getAuthorizable(a.getID()));
+        }
     }
 
     @Test
@@ -433,9 +486,115 @@ public class SyncMBeanImplTest {
         assertResultMessages(result, 1, "for");
     }
 
+    /**
+     * test users have never been synced before => result must be empty
+     */
     @Test
-    public void testSyncAllUsers() {
-        // TODO
+    public void testSyncAllUsersBefore() throws Exception {
+        String[] result = syncMBean.syncAllUsers(false);
+        assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testSyncAllUsers() throws Exception {
+        // first sync external users into the repo
+        syncMBean.syncAllExternalUsers();
+
+        // verify effect of syncAllUsers
+        String[] result = syncMBean.syncAllUsers(false);
+
+        Map<String, String> expected = new HashMap();
+        Iterator<ExternalUser> it = idp.listUsers();
+        while (it.hasNext()) {
+            ExternalUser eu = it.next();
+            expected.put(eu.getId(), "upd");
+            for (ExternalIdentityRef ref : eu.getDeclaredGroups()) {
+                expected.put(ref.getId(), "upd");
+            }
+        }
+
+        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        for (String id : expected.keySet()) {
+            ExternalIdentity ei = idp.getUser(id);
+            if (ei == null) {
+                ei = idp.getGroup(id);
+            }
+            assertSync(ei, userManager);
+        }
+    }
+
+    @Test
+    public void testSyncAllGroups() throws Exception {
+        // first sync external users into the repo
+        Map<String, String> expected = new HashMap();
+        Iterator<ExternalGroup> grIt = idp.listGroups();
+        while (grIt.hasNext()) {
+            ExternalGroup eg = grIt.next();
+            sync(idp, eg.getId(), true);
+            expected.put(eg.getId(), "upd");
+        }
+
+        // verify effect of syncAllUsers (which in this case are groups)
+        String[] result = syncMBean.syncAllUsers(false);
+        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        for (String id : expected.keySet()) {
+            ExternalIdentity ei = idp.getGroup(id);
+            assertSync(ei, userManager);
+        }
+    }
+
+    @Test
+    public void testSyncAllUsersPurgeFalse() throws Exception {
+        // first sync external user|group into the repo that does't exist on the IDP (anymore)
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        // syncAll with purge = false
+        String[] result = syncMBean.syncAllUsers(false);
+        assertResultMessages(result, 2, "mis", "mis");
+
+        assertNotNull(userManager.getAuthorizable("thirdUser"));
+        assertNotNull(userManager.getAuthorizable("g"));
+    }
+
+    @Test
+    public void testSyncAllUsersPurgeTrue() throws Exception {
+        // first sync external user|group into the repo that does't exist on the IDP (anymore)
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        // syncAll with purge = true
+        String[] result = syncMBean.syncAllUsers(true);
+        assertResultMessages(result, 2, "del", "del");
+
+        assertNull(userManager.getAuthorizable("thirdUser"));
+        assertNull(userManager.getAuthorizable("g"));
+    }
+
+    @Test
+    public void testSyncAllUsersForeign() throws Exception {
+        // first sync external users + groups from 2 different IDPs into the repo
+        // but set membership-nesting to 0
+        syncConfig.user().setMembershipNestingDepth(0);
+        sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+        sync(idp, "a", true);
+        sync(foreignIDP, TestIdentityProvider.ID_SECOND_USER, false);
+        sync(foreignIDP, "aa", true);
+
+        // verify effect of syncAllUsers : foreign user/group must be ignored by the sync.
+        String[] result = syncMBean.syncAllUsers(false);
+        String[] expectedResults = new String[] {"upd", "upd"};
+        assertResultMessages(result, expectedResults.length, expectedResults);
+
+        ExternalIdentity[] expectedIds = new ExternalIdentity[] {
+                idp.getUser(TestIdentityProvider.ID_TEST_USER),
+                foreignIDP.getUser(TestIdentityProvider.ID_SECOND_USER),
+                idp.getGroup("a"),
+                foreignIDP.getGroup("aa")
+        };
+        for (ExternalIdentity externalIdentity : expectedIds) {
+            assertSync(externalIdentity, userManager);
+        }
     }
 
     @Test
