@@ -26,6 +26,8 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CommitTest {
 
@@ -74,5 +76,35 @@ public class CommitTest {
         b = ns.getRoot().builder();
         b.child("foo");
         ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    // OAK-4321
+    @Test
+    public void mergeExceptionMessage() throws Exception {
+        // prepare node store
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        NodeBuilder b = ns.getRoot().builder();
+        b.child("foo");
+        ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        b = ns.getRoot().builder();
+        b.child("bar");
+        ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // this commit should fail
+        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        try {
+            c.addNode(new DocumentNodeState(ns, "/foo", c.getRevision()));
+            try {
+                c.apply();
+                ns.done(c, false, null);
+                fail("commit must fail");
+            } catch (DocumentStoreException e) {
+                // expected
+                assertTrue("Unexpected exception message: " + e.getMessage(),
+                        e.getMessage().contains("older than base"));
+            }
+        } finally {
+            ns.canceled(c);
+        }
     }
 }
