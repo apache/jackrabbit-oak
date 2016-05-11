@@ -1528,6 +1528,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     String sub = pathRow.getPath();
                     if (isVirtualRow()) {
                         return sub;
+                    } else if (!"".equals(pathPrefix) && PathUtils.denotesRoot(sub)) {
+                        return pathPrefix;
                     } else if (PathUtils.isAbsolute(sub)) {
                         return pathPrefix + sub;
                     } else {

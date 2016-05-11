@@ -926,6 +926,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test/test2') and propa = 'a'",
                 asList("/test/test2/test3/a"));
     }
+
+    @Test
+    public void indexDefinitionBelowRoot3() throws Exception {
+        Tree parent = root.getTree("/").addChild("test");
+        Tree idx = createIndex(parent, "test1", of("propa"));
+        idx.addChild(PROP_NODE).addChild("propa");
+        root.commit();
+
+        parent.setProperty("propa", "a");
+        parent.addChild("test1").setProperty("propa", "a");
+        root.commit();
+
+        //asert that (1) result gets returned correctly, (2) parent isn't there, and (3) child is returned
+        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test1"));
+    }
+
     @Test
     public void sortQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
