@@ -30,6 +30,7 @@ import javax.jcr.SimpleCredentials;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -202,6 +204,21 @@ public class SyncMBeanImplTest {
         SyncResult res = ctx.sync(externalIdentity);
         session.save();
         return res;
+    }
+
+    private Map<String, String> getExpectedUserResult(String expectedOp, boolean includeGroups) throws ExternalIdentityException {
+        Map<String, String> expected = new HashMap<>();
+        Iterator<ExternalUser> it = idp.listUsers();
+        while (it.hasNext()) {
+            ExternalUser eu = it.next();
+            expected.put(eu.getId(), expectedOp);
+            if (includeGroups) {
+                for (ExternalIdentityRef ref : eu.getDeclaredGroups()) {
+                    expected.put(ref.getId(), expectedOp);
+                }
+            }
+        }
+        return expected;
     }
 
 
@@ -370,6 +387,20 @@ public class SyncMBeanImplTest {
         assertNotNull(userManager.getAuthorizable("a"));
     }
 
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4360">OAK-4360</a>
+     */
+    @Ignore("OAK-4360")
+    @Test
+    public void testSyncUserException() throws Exception {
+        User u = userManager.createUser(TestIdentityProvider.ID_EXCEPTION, null);
+        u.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, session.getValueFactory().createValue(new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()));
+        session.save();
+
+        String[] result = syncMBean.syncUsers(new String[]{TestIdentityProvider.ID_EXCEPTION}, false);
+        assertResultMessages(result, 1, "ERR");
+    }
+
     @Test
     public void testInitialSyncExternalUsers() throws Exception {
         ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
@@ -486,6 +517,12 @@ public class SyncMBeanImplTest {
         assertResultMessages(result, 1, "for");
     }
 
+    @Test
+    public void testSyncExternalUserException() throws Exception {
+        String[] result = syncMBean.syncExternalUsers(new String[] {TestIdentityProvider.ID_EXCEPTION});
+        assertResultMessages(result, 1, "ERR");
+    }
+
     /**
      * test users have never been synced before => result must be empty
      */
@@ -503,16 +540,7 @@ public class SyncMBeanImplTest {
         // verify effect of syncAllUsers
         String[] result = syncMBean.syncAllUsers(false);
 
-        Map<String, String> expected = new HashMap();
-        Iterator<ExternalUser> it = idp.listUsers();
-        while (it.hasNext()) {
-            ExternalUser eu = it.next();
-            expected.put(eu.getId(), "upd");
-            for (ExternalIdentityRef ref : eu.getDeclaredGroups()) {
-                expected.put(ref.getId(), "upd");
-            }
-        }
-
+        Map<String, String> expected = getExpectedUserResult("upd", true);
         assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
         for (String id : expected.keySet()) {
             ExternalIdentity ei = idp.getUser(id);
@@ -598,17 +626,126 @@ public class SyncMBeanImplTest {
     }
 
     @Test
-    public void testSyncAllExternalUsers() {
-        // TODO
+    public void testSyncAllUsersException() throws Exception {
+        User u = userManager.createUser(TestIdentityProvider.ID_EXCEPTION, null);
+        u.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, session.getValueFactory().createValue(new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()));
+        session.save();
+
+        String[] result = syncMBean.syncAllUsers(false);
+        assertResultMessages(result, 1, "ERR");
+
+        result = syncMBean.syncAllUsers(true);
+        assertResultMessages(result, 1, "ERR");
     }
 
     @Test
-    public void testListOrphanedUsers() {
-        // TODO
+    public void testInitialSyncAllExternalUsers() throws Exception {
+        String[] result = syncMBean.syncAllExternalUsers();
+
+        Map<String, String> expected = getExpectedUserResult("add", false);
+        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        for (String id : expected.keySet()) {
+            ExternalIdentity ei = idp.getUser(id);
+            if (ei == null) {
+                ei = idp.getGroup(id);
+            }
+            assertSync(ei, userManager);
+        }
     }
 
     @Test
-    public void testPurgeOrphanedUsers() {
-        // TODO
+    public void testSyncAllExternalUsersAgain() throws Exception {
+        syncMBean.syncAllExternalUsers();
+
+        // sync again
+        String[] result = syncMBean.syncAllExternalUsers();
+
+        // verify result
+        Map<String, String> expected = getExpectedUserResult("upd", false);
+        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        for (String id : expected.keySet()) {
+            ExternalIdentity ei = idp.getUser(id);
+            if (ei == null) {
+                ei = idp.getGroup(id);
+            }
+            assertSync(ei, userManager);
+        }
+    }
+
+    @Test
+    public void testListOrphanedUsers() throws Exception {
+        syncMBean.syncAllExternalUsers();
+
+        String[] result = syncMBean.listOrphanedUsers();
+        assertEquals(0, result.length);
+
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        result = syncMBean.listOrphanedUsers();
+        assertEquals(2, result.length);
+        assertEquals(ImmutableSet.of("thirdUser", "g"), ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testListOrphanedUsersForeign() throws Exception {
+        sync(foreignIDP, "a", true);
+        sync(foreignIDP, TestIdentityProvider.ID_TEST_USER, false);
+
+        String[] result = syncMBean.listOrphanedUsers();
+        assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testListOrphanedUsersException () throws Exception {
+        User u = userManager.createUser(TestIdentityProvider.ID_EXCEPTION, null);
+        u.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, session.getValueFactory().createValue(new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()));
+        session.save();
+
+        String[] result = syncMBean.listOrphanedUsers();
+        // TODO: verify if this really the intended result!
+        assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testPurgeOrphanedUsersNoPurge() {
+        syncMBean.syncAllExternalUsers();
+
+        String[] result = syncMBean.purgeOrphanedUsers();
+        assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testPurgeOrphanedUsers() throws Exception {
+        syncMBean.syncAllExternalUsers();
+
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        String[] result = syncMBean.purgeOrphanedUsers();
+        assertResultMessages(result, 2, "del", "del");
+
+        assertNull(userManager.getAuthorizable("thirdUser"));
+        assertNull(userManager.getAuthorizable("g"));
+    }
+
+    @Test
+    public void testPurgeOrphanedUsersForeign() throws Exception {
+        sync(foreignIDP, "a", true);
+        sync(foreignIDP, TestIdentityProvider.ID_TEST_USER, false);
+
+        String[] result = syncMBean.purgeOrphanedUsers();
+        assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testPurgeOrphanedUsersException() throws Exception {
+        User u = userManager.createUser(TestIdentityProvider.ID_EXCEPTION, null);
+        u.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, session.getValueFactory().createValue(new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()));
+        session.save();
+
+        String[] result = syncMBean.purgeOrphanedUsers();
+        // TODO: verify if this really the intended result!
+        assertEquals(0, result.length);
     }
 }
