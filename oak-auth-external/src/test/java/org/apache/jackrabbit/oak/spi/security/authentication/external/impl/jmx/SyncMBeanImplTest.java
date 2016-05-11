@@ -390,7 +390,6 @@ public class SyncMBeanImplTest {
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4360">OAK-4360</a>
      */
-    @Ignore("OAK-4360")
     @Test
     public void testSyncUserException() throws Exception {
         User u = userManager.createUser(TestIdentityProvider.ID_EXCEPTION, null);

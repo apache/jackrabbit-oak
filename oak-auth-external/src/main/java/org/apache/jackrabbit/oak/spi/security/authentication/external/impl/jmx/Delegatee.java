@@ -130,6 +130,7 @@ final class Delegatee {
                 append(list, syncUser(userId));
             } catch (SyncException e) {
                 log.warn(ERROR_SYNC_USER, userId, e);
+                append(list, new DefaultSyncedIdentity(userId, null, false, -1), e);
             }
         }
         return list.toArray(new String[list.size()]);
