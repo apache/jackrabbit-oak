@@ -81,6 +81,10 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     @Override
     public ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) throws ExternalIdentityException {
+        if (ID_EXCEPTION.equals(ref.getId())) {
+            throw new ExternalIdentityException(ID_EXCEPTION);
+        }
+
         ExternalIdentity id = externalUsers.get(ref.getId().toLowerCase());
         if (id != null) {
             return id;
