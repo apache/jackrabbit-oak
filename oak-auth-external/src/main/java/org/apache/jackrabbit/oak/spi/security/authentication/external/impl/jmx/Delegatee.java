@@ -335,9 +335,10 @@ final class Delegatee {
     }
 
     private static void append(@Nonnull List<String> list, @Nonnull ExternalIdentityRef idRef, @Nonnull Exception e) {
+        String uid = JsonUtil.getJsonString(idRef.getId());
         String eid = JsonUtil.getJsonString(idRef.getString());
         String msg = JsonUtil.getJsonString(e.toString());
-        String jsonStr = String.format("{op:\"ERR\",uid:\"\",eid:%s,msg:%s}", eid, msg);
+        String jsonStr = String.format("{op:\"ERR\",uid:%s,eid:%s,msg:%s}", uid, eid, msg);
         list.add(jsonStr);
     }
 

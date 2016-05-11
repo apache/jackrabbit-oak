@@ -31,6 +31,7 @@ import javax.jcr.ValueFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -180,12 +181,21 @@ public class SyncMBeanImplTest {
         }), Predicates.notNull());
     }
 
-    private static void assertResultMessages(@Nonnull String[] resultMessages, int expectedSize, @Nonnull String... expectedOperations) {
-        assertEquals(expectedSize, resultMessages.length);
+    private static void assertResultMessages(@Nonnull String[] resultMessages, String uid, @Nonnull String expectedOperation) {
+        assertResultMessages(resultMessages, ImmutableMap.of(uid, expectedOperation));
+    }
+
+    private static void assertResultMessages(@Nonnull String[] resultMessages, @Nonnull Map<String, String> expected) {
+        assertEquals(expected.size(), resultMessages.length);
         for (int i = 0; i < resultMessages.length; i++) {
             String rm = resultMessages[i];
             String op = rm.substring(rm.indexOf(":") + 2, rm.indexOf("\","));
-            assertEquals(expectedOperations[i], op);
+
+            int index = rm.indexOf("uid:\"") + 5;
+            String uid = rm.substring(index, rm.indexOf("\",", index));
+
+            assertTrue(expected.containsKey(uid));
+            assertEquals(expected.get(uid), op);
         }
     }
 
@@ -278,10 +288,10 @@ public class SyncMBeanImplTest {
         String[] userIds = new String[] {TestIdentityProvider.ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
 
         String[] result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, userIds.length, "nsa", "nsa");
+        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
 
         result = syncMBean.syncUsers(userIds, true);
-        assertResultMessages(result, userIds.length, "nsa", "nsa");
+        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "nsa", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
@@ -290,10 +300,10 @@ public class SyncMBeanImplTest {
 
         String[] userIds = new String[]{TestIdentityProvider.ID_TEST_USER, TestIdentityProvider.ID_SECOND_USER};
         String[] result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, userIds.length, "upd", "nsa");
+        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
 
         result = syncMBean.syncUsers(userIds, true);
-        assertResultMessages(result, userIds.length, "upd", "nsa");
+        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
@@ -304,19 +314,19 @@ public class SyncMBeanImplTest {
         syncConfig.user().setExpirationTime(Long.MAX_VALUE);
 
         String[]result = syncMBean.syncUsers(userIds, false);
-        assertResultMessages(result, userIds.length, "upd", "nsa");
+        assertResultMessages(result, ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", TestIdentityProvider.ID_SECOND_USER, "nsa"));
     }
 
     @Test
     public void testSyncGroups() throws Exception {
         sync(idp, "a", true);
 
-        String[] ids = new String[]{"a"};
+        Map<String, String> expected = ImmutableMap.of("a", "upd");
         syncConfig.group().setExpirationTime(Long.MAX_VALUE);
 
         // force group sync is true by default => exp time is ignored
-        String[] result = syncMBean.syncUsers(ids, false);
-        assertResultMessages(result, ids.length, "upd");
+        String[] result = syncMBean.syncUsers(expected.keySet().toArray(new String[expected.size()]), false);
+        assertResultMessages(result, expected);
     }
 
     @Test
@@ -332,11 +342,11 @@ public class SyncMBeanImplTest {
         for (Authorizable a : authorizables) {
             String[] ids = new String[]{a.getID()};
             String[] result = syncMBean.syncUsers(ids, false);
-            assertResultMessages(result, ids.length, "mis");
+            assertResultMessages(result, a.getID(), "mis");
             assertNotNull(userManager.getAuthorizable(a.getID()));
 
             result = syncMBean.syncUsers(ids, true);
-            assertResultMessages(result, ids.length, "del");
+            assertResultMessages(result, a.getID(), "del");
             assertNull(userManager.getAuthorizable(a.getID()));
         }
     }
@@ -344,19 +354,19 @@ public class SyncMBeanImplTest {
     @Test
     public void testSyncUsersNonExisting() {
         String[] result = syncMBean.syncUsers(new String[] {"nonExisting"}, false);
-        assertResultMessages(result, 1, "nsa");
+        assertResultMessages(result, "nonExisting", "nsa");
     }
 
     @Test
     public void testSyncUsersLocal() {
         String[] result = syncMBean.syncUsers(new String[] {UserConstants.DEFAULT_ANONYMOUS_ID}, false);
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, UserConstants.DEFAULT_ANONYMOUS_ID, "for");
     }
 
     @Test
     public void testSyncUsersLocalPurge() throws Exception {
         String[] result = syncMBean.syncUsers(new String[] {UserConstants.DEFAULT_ANONYMOUS_ID}, true);
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, UserConstants.DEFAULT_ANONYMOUS_ID, "for");
 
         assertNotNull(userManager.getAuthorizable(UserConstants.DEFAULT_ANONYMOUS_ID));
     }
@@ -370,12 +380,12 @@ public class SyncMBeanImplTest {
 
         // syncUsers with testIDP must detect the foreign status
         String[] result = syncMBean.syncUsers(new String[]{TestIdentityProvider.ID_TEST_USER}, false);
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
         assertNotNull(userManager.getAuthorizable(TestIdentityProvider.ID_TEST_USER));
 
         // same expected with 'purge' set to true
         result = syncMBean.syncUsers(new String[] {TestIdentityProvider.ID_TEST_USER}, true);
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
         assertNotNull(userManager.getAuthorizable(TestIdentityProvider.ID_TEST_USER));
     }
 
@@ -388,12 +398,12 @@ public class SyncMBeanImplTest {
 
         // syncUsers with testIDP must detect the foreign status
         String[] result = syncMBean.syncUsers(new String[]{"a"}, false);
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, "a", "for");
         assertNotNull(userManager.getAuthorizable("a"));
 
         // same expected with 'purge' set to true
         result = syncMBean.syncUsers(new String[] {"a"}, true);
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, "a", "for");
         assertNotNull(userManager.getAuthorizable("a"));
     }
 
@@ -407,7 +417,7 @@ public class SyncMBeanImplTest {
         session.save();
 
         String[] result = syncMBean.syncUsers(new String[]{TestIdentityProvider.ID_EXCEPTION}, false);
-        assertResultMessages(result, 1, "ERR");
+        assertResultMessages(result, TestIdentityProvider.ID_EXCEPTION, "ERR");
     }
 
     @Test
@@ -415,7 +425,7 @@ public class SyncMBeanImplTest {
         sync(idp, TestIdentityProvider.ID_TEST_USER, false);
 
         String[] result = createThrowingSyncMBean(false).syncUsers(new String[]{TestIdentityProvider.ID_TEST_USER}, false);
-        assertResultMessages(result, 1, "ERR");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "ERR");
     }
 
     @Test
@@ -424,7 +434,7 @@ public class SyncMBeanImplTest {
         String[] externalId = new String[] {externalUser.getExternalId().getString()};
 
         String[] result = syncMBean.syncExternalUsers(externalId);
-        assertResultMessages(result, 1, "add");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "add");
 
         User testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
         assertNotNull(testUser);
@@ -442,7 +452,7 @@ public class SyncMBeanImplTest {
         String[] externalId = new String[] {externalUser.getExternalId().getString()};
 
         String[] result = syncMBean.syncExternalUsers(externalId);
-        assertResultMessages(result, 1, "add");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "add");
 
         User testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
         assertNotNull(testUser);
@@ -488,7 +498,7 @@ public class SyncMBeanImplTest {
         String[] externalId = new String[] {externalGroup.getExternalId().getString()};
 
         String[] result = syncMBean.syncExternalUsers(externalId);
-        assertResultMessages(result, 1, "add");
+        assertResultMessages(result, "a", "add");
 
         Group aGroup = userManager.getAuthorizable(externalGroup.getId(), Group.class);
         assertNotNull(aGroup);
@@ -504,7 +514,7 @@ public class SyncMBeanImplTest {
         ExternalIdentityRef ref = new ExternalIdentityRef("nonExisting", idp.getName());
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
-        assertResultMessages(result, 1, "nsi");
+        assertResultMessages(result, "", "nsi");
     }
 
     /**
@@ -515,7 +525,7 @@ public class SyncMBeanImplTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(UserConstants.DEFAULT_ANONYMOUS_ID, null);
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, UserConstants.DEFAULT_ANONYMOUS_ID, "for");
     }
 
     /**
@@ -526,24 +536,24 @@ public class SyncMBeanImplTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, "anotherIDP");
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
 
         result = syncMBean.syncExternalUsers(new String[] {ref.getString()});
-        assertResultMessages(result, 1, "for");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "for");
     }
 
     @Test
     public void testSyncExternalUserException() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName());
         String[] result = syncMBean.syncExternalUsers(new String[] {ref.getString()});
-        assertResultMessages(result, 1, "ERR");
+        assertResultMessages(result, TestIdentityProvider.ID_EXCEPTION, "ERR");
     }
 
     @Test
     public void testSyncExternalUserThrowingHandler() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, idp.getName());
         String[] result = createThrowingSyncMBean(false).syncExternalUsers(new String[]{ref.getString()});
-        assertResultMessages(result, 1, "ERR");
+        assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "ERR");
     }
 
     /**
@@ -564,7 +574,7 @@ public class SyncMBeanImplTest {
         String[] result = syncMBean.syncAllUsers(false);
 
         Map<String, String> expected = getExpectedUserResult("upd", true);
-        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        assertResultMessages(result, expected);
         for (String id : expected.keySet()) {
             ExternalIdentity ei = idp.getUser(id);
             if (ei == null) {
@@ -587,7 +597,8 @@ public class SyncMBeanImplTest {
 
         // verify effect of syncAllUsers (which in this case are groups)
         String[] result = syncMBean.syncAllUsers(false);
-        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        assertResultMessages(result, expected);
+
         for (String id : expected.keySet()) {
             ExternalIdentity ei = idp.getGroup(id);
             assertSync(ei, userManager);
@@ -602,7 +613,7 @@ public class SyncMBeanImplTest {
 
         // syncAll with purge = false
         String[] result = syncMBean.syncAllUsers(false);
-        assertResultMessages(result, 2, "mis", "mis");
+        assertResultMessages(result, ImmutableMap.of("thirdUser", "mis", "g", "mis"));
 
         assertNotNull(userManager.getAuthorizable("thirdUser"));
         assertNotNull(userManager.getAuthorizable("g"));
@@ -616,7 +627,7 @@ public class SyncMBeanImplTest {
 
         // syncAll with purge = true
         String[] result = syncMBean.syncAllUsers(true);
-        assertResultMessages(result, 2, "del", "del");
+        assertResultMessages(result, ImmutableMap.of("thirdUser", "del", "g", "del"));
 
         assertNull(userManager.getAuthorizable("thirdUser"));
         assertNull(userManager.getAuthorizable("g"));
@@ -634,8 +645,8 @@ public class SyncMBeanImplTest {
 
         // verify effect of syncAllUsers : foreign user/group must be ignored by the sync.
         String[] result = syncMBean.syncAllUsers(false);
-        String[] expectedResults = new String[] {"upd", "upd"};
-        assertResultMessages(result, expectedResults.length, expectedResults);
+        Map<String, String> expectedResults = ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", "a", "upd");
+        assertResultMessages(result, expectedResults);
 
         ExternalIdentity[] expectedIds = new ExternalIdentity[] {
                 idp.getUser(TestIdentityProvider.ID_TEST_USER),
@@ -655,10 +666,10 @@ public class SyncMBeanImplTest {
         session.save();
 
         String[] result = syncMBean.syncAllUsers(false);
-        assertResultMessages(result, 1, "ERR");
+        assertResultMessages(result, TestIdentityProvider.ID_EXCEPTION, "ERR");
 
         result = syncMBean.syncAllUsers(true);
-        assertResultMessages(result, 1, "ERR");
+        assertResultMessages(result, TestIdentityProvider.ID_EXCEPTION, "ERR");
     }
 
     @Test(expected = IllegalStateException.class)
@@ -673,7 +684,7 @@ public class SyncMBeanImplTest {
         Map<String, String> expected = getExpectedUserResult("ERR", true);
         String[] result = createThrowingSyncMBean(true).syncAllUsers(false);
 
-        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        assertResultMessages(result, expected);
     }
 
     @Test
@@ -681,7 +692,8 @@ public class SyncMBeanImplTest {
         String[] result = syncMBean.syncAllExternalUsers();
 
         Map<String, String> expected = getExpectedUserResult("add", false);
-        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        assertResultMessages(result, expected);
+
         for (String id : expected.keySet()) {
             ExternalIdentity ei = idp.getUser(id);
             if (ei == null) {
@@ -700,7 +712,8 @@ public class SyncMBeanImplTest {
 
         // verify result
         Map<String, String> expected = getExpectedUserResult("upd", false);
-        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        assertResultMessages(result, expected);
+
         for (String id : expected.keySet()) {
             ExternalIdentity ei = idp.getUser(id);
             if (ei == null) {
@@ -715,7 +728,7 @@ public class SyncMBeanImplTest {
         String[] result = createThrowingSyncMBean(false).syncAllExternalUsers();
 
         Map<String, String> expected = getExpectedUserResult("ERR", false);
-        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+        assertResultMessages(result, expected);
     }
 
     @Test
@@ -781,7 +794,7 @@ public class SyncMBeanImplTest {
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
         String[] result = syncMBean.purgeOrphanedUsers();
-        assertResultMessages(result, 2, "del", "del");
+        assertResultMessages(result, ImmutableMap.of("thirdUser", "del", "g", "del"));
 
         assertNull(userManager.getAuthorizable("thirdUser"));
         assertNull(userManager.getAuthorizable("g"));
@@ -826,7 +839,7 @@ public class SyncMBeanImplTest {
         sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
 
         String[] result = createThrowingSyncMBean(true).purgeOrphanedUsers();
-        assertResultMessages(result, 2, "ERR", "ERR");
+        assertResultMessages(result, ImmutableMap.of("thirdUser", "ERR", "g", "ERR"));
         assertNotNull(userManager.getAuthorizable("thirdUser"));
         assertNotNull(userManager.getAuthorizable("g"));
     }
