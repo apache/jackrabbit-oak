@@ -368,9 +368,11 @@ public abstract class OakFixture {
                     blobStore = blobStoreFixtures[i].setUp();
                 }
 
-                stores[i] = FileStore.builder(new File(base, unique))
-                        .withBlobStore(blobStore)
-                        .withRoot(EmptyNodeState.EMPTY_NODE)
+                FileStore.Builder builder = FileStore.builder(new File(base, unique));
+                if (blobStore != null) {
+                    builder.withBlobStore(blobStore);
+                }
+                stores[i] = builder.withRoot(EmptyNodeState.EMPTY_NODE)
                         .withMaxFileSize(maxFileSizeMB)
                         .withCacheSize(cacheSizeMB)
                         .withMemoryMapping(memoryMapping)
