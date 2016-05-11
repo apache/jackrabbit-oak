@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
@@ -182,6 +184,55 @@ public class CompactionAndCleanupIT {
         return nodeStore.createBlob(new ByteArrayInputStream(data));
     }
 
+    @Test
+    public void testCancelCompaction()
+    throws Throwable {
+        final FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withGCOptions(DEFAULT.setRetainedGenerations(2))
+                .withMaxFileSize(1)
+                .build();
+        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        addNodes(builder, 10);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fileStore.flush();
+
+        FutureTask<Boolean> async = runAsync(new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws IOException {
+                boolean cancelled = false;
+                for (int k = 0; !cancelled && k < 1000; k++) {
+                    cancelled = !fileStore.compact();
+                }
+                return cancelled;
+            }
+        });
+
+        // Give the compaction thread a head start
+        sleepUninterruptibly(1, SECONDS);
+
+        fileStore.close();
+        try {
+            assertTrue(async.get());
+        } catch (ExecutionException e) {
+            if (!(e.getCause() instanceof IllegalStateException)) {
+                // Throw cause unless this is an ISE thrown by the
+                // store being already closed, which is kinda expected
+                throw e.getCause();
+            }
+        }
+    }
+
+    private static void addNodes(NodeBuilder builder, int depth) {
+        if (depth > 0) {
+            NodeBuilder child1 = builder.setChildNode("1");
+            addNodes(child1, depth - 1);
+            NodeBuilder child2 = builder.setChildNode("2");
+            addNodes(child2, depth - 1);
+        }
+    }
+
     /**
      * Regression test for OAK-2192 testing for mixed segments. This test does not
      * cover OAK-3348. I.e. it does not assert the segment graph is free of cross
@@ -306,6 +357,12 @@ public class CompactionAndCleanupIT {
         FutureTask<T> task = new FutureTask<T>(callable);
         new Thread(task).start();
         return task.get();
+    }
+
+    private static <T> FutureTask<T> runAsync(Callable<T> callable) {
+        FutureTask<T> task = new FutureTask<T>(callable);
+        new Thread(task).start();
+        return task;
     }
 
     /**

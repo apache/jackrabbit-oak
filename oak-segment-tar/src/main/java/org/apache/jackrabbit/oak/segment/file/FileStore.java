@@ -581,7 +581,7 @@ public class FileStore implements SegmentStore {
         return headId.getSegment().getGcGen();
     }
 
-    public boolean maybeCompact(boolean cleanup) throws IOException {
+    public void maybeCompact(boolean cleanup) throws IOException {
         gcMonitor.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
 
         Runtime runtime = Runtime.getRuntime();
@@ -601,11 +601,9 @@ public class FileStore implements SegmentStore {
             if (cleanup) {
                 cleanupNeeded.set(!gcOptions.isPaused());
             }
-            return false;
         }
 
         Stopwatch watch = Stopwatch.createStarted();
-        boolean compacted = false;
 
         int gainThreshold = gcOptions.getGainThreshold();
         boolean sufficientEstimatedGain = true;
@@ -620,7 +618,6 @@ public class FileStore implements SegmentStore {
             CompactionGainEstimate estimate = estimateCompactionGain(shutdown);
             if (shutdown.get()) {
                 gcMonitor.info("TarMK GC #{}: estimation interrupted. Skipping compaction.", GC_COUNT);
-                return false;
             }
 
             long gain = estimate.estimateCompactionGain();
@@ -654,12 +651,10 @@ public class FileStore implements SegmentStore {
                 if (compact()) {
                     cleanupNeeded.set(cleanup);
                 }
-                compacted = true;
             } else {
                 gcMonitor.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
             }
         }
-        return compacted;
     }
 
     static Map<Integer, Map<Character, File>> collectFiles(File directory) {
@@ -1070,9 +1065,8 @@ public class FileStore implements SegmentStore {
         // Make the capacity and initial depth of the deduplication cache configurable
         final DeduplicationCache<String> nodeCache = new DeduplicationCache<String>(1000000, 20);
 
-        // FIXME OAK-4280: Compaction cannot be cancelled
         // FIXME OAK-4279: Rework offline compaction
-        // This way of compacting has not progress logging and cannot be cancelled
+        // This way of compacting has no progress logging
         final int gcGeneration = tracker.getGcGen() + 1;
         SegmentWriter writer = new SegmentWriter(this, tracker.getSegmentVersion(),
             new SegmentBufferWriter(this, tracker.getSegmentVersion(), "c", gcGeneration),
@@ -1092,7 +1086,13 @@ public class FileStore implements SegmentStore {
                     GC_COUNT, existing);
         }
 
-        SegmentNodeState after = compact(writer, before);
+        Supplier<Boolean> cancel = newCancelCompactionCondition();
+        SegmentNodeState after = compact(writer, before, cancel);
+        if (after == null) {
+            gcMonitor.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+            return false;
+        }
+
         gcMonitor.info("TarMK GC #{}: compacted {} to {}",
                 GC_COUNT, before.getRecordId(), after.getRecordId());
 
@@ -1107,7 +1107,12 @@ public class FileStore implements SegmentStore {
                 gcMonitor.info("TarMK GC #{}: compaction detected concurrent commits while compacting. " +
                     "Compacting these commits. Cycle {}", GC_COUNT, cycles);
                 SegmentNodeState head = getHead();
-                after = compact(writer, head);
+                after = compact(writer, head, cancel);
+                if (after == null) {
+                    gcMonitor.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+                    return false;
+                }
+
                 gcMonitor.info("TarMK GC #{}: compacted {} against {} to {}",
                         GC_COUNT, head.getRecordId(), before.getRecordId(), after.getRecordId());
                 before = head;
@@ -1126,9 +1131,10 @@ public class FileStore implements SegmentStore {
                         GC_COUNT, cycles - 1);
                 if (gcOptions.getForceAfterFail()) {
                     gcMonitor.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
-                    if (!forceCompact(writer)) {
+                    if (!forceCompact(writer, cancel)) {
                         gcMonitor.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                            "Most likely compaction didn't get exclusive access to the store. Cleaning up.",
+                            "Most likely compaction didn't get exclusive access to the store or was " +
+                            "prematurely cancelled. Cleaning up.",
                             GC_COUNT);
                         cleanup(new Predicate<Integer>() {
                             @Override
@@ -1154,17 +1160,28 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    private static SegmentNodeState compact(SegmentWriter writer, NodeState node) throws IOException {
-        SegmentNodeState compacted = writer.writeNode(node);
-        writer.flush();
+    private static SegmentNodeState compact(SegmentWriter writer, NodeState node,
+                                            Supplier<Boolean> cancel)
+    throws IOException {
+        SegmentNodeState compacted = writer.writeNode(node, cancel);
+        if (compacted != null) {
+            writer.flush();
+        }
         return compacted;
     }
 
-    private boolean forceCompact(SegmentWriter writer) throws InterruptedException, IOException {
+    private boolean forceCompact(SegmentWriter writer, Supplier<Boolean> cancel)
+    throws InterruptedException, IOException {
         if (rwLock.writeLock().tryLock(gcOptions.getLockWaitTime(), TimeUnit.SECONDS)) {
             try {
                 SegmentNodeState head = getHead();
-                return setHead(head, compact(writer, head));
+                SegmentNodeState after = compact(writer, head, cancel);
+                if (after == null) {
+                    gcMonitor.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+                    return false;
+                } else {
+                    return setHead(head, after);
+                }
             } finally {
                 rwLock.writeLock().unlock();
             }
@@ -1569,7 +1586,7 @@ public class FileStore implements SegmentStore {
         }
 
         @Override
-        public boolean maybeCompact(boolean cleanup) {
+        public void maybeCompact(boolean cleanup) {
             throw new UnsupportedOperationException("Read Only Store");
         }
     }

@@ -52,8 +52,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -261,6 +265,13 @@ public class SegmentWriter {
         return new SegmentPropertyState(id, state.getName(), state.getType());
     }
 
+    /**
+     * Write a node state
+     * @param state node state to write
+     * @return segment node state equal to {@code state}
+     * @throws IOException
+     */
+    @Nonnull
     public SegmentNodeState writeNode(final NodeState state) throws IOException {
         return new SegmentNodeState(
             writeOperationHandler.execute(new SegmentWriteOperation() {
@@ -272,13 +283,55 @@ public class SegmentWriter {
     }
 
     /**
+     * Write a node state, unless cancelled
+     * @param state   node state to write
+     * @param cancel  supplier to signal cancellation of this write operation
+     * @return segment node state equal to {@code state} or {@code null} if cancelled.
+     * @throws IOException
+     */
+    @CheckForNull
+    public SegmentNodeState writeNode(final NodeState state, Supplier<Boolean> cancel)
+    throws IOException {
+        try {
+            return new SegmentNodeState(writeOperationHandler.execute(new SegmentWriteOperation(cancel) {
+                @Override
+                public RecordId execute(SegmentBufferWriter writer) throws IOException {
+                    return with(writer).writeNode(state, 0);
+                }
+            }));
+        } catch (SegmentWriteOperation.CancelledWriteException e) {
+            return null;
+        }
+    }
+
+    /**
      * This {@code WriteOperation} implementation is used internally to provide
      * context to a recursive chain of calls without having pass the context
      * as a separate argument (a poor mans monad). As such it is entirely
      * <em>not thread safe</em>.
      */
     private abstract class SegmentWriteOperation implements WriteOperation {
+
+        /**
+         * This exception is used internally to signal cancellation of a (recursive)
+         * write node operation.
+         */
+        private class CancelledWriteException extends IOException {
+            public CancelledWriteException() {
+                super("Cancelled write operation");
+            }
+        }
+
+        private final Supplier<Boolean> cancel;
         private SegmentBufferWriter writer;
+
+        protected SegmentWriteOperation(Supplier<Boolean> cancel) {
+            this.cancel = cancel;
+        }
+
+        protected SegmentWriteOperation() {
+            this(Suppliers.ofInstance(false));
+        }
 
         @Override
         public abstract RecordId execute(SegmentBufferWriter writer) throws IOException;
@@ -783,6 +836,10 @@ public class SegmentWriter {
         }
 
         private RecordId writeNode(NodeState state, int depth) throws IOException {
+            if (cancel.get()) {
+                // Poor man's Either Monad
+                throw new CancelledWriteException();
+            }
             if (state instanceof SegmentNodeState) {
                 SegmentNodeState sns = ((SegmentNodeState) state);
                 if (hasSegment(sns)) {
