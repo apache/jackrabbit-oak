@@ -129,7 +129,7 @@ final class Delegatee {
                 .setForceGroupSync(forceGroupSync)
                 .setForceUserSync(true);
         List<String> list = new ArrayList<String>();
-        for (String userId: userIds) {
+        for (String userId : userIds) {
             try {
                 append(list, syncUser(userId));
             } catch (SyncException e) {
