@@ -1994,6 +1994,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.setProperty("tag", "stockphotography:business/business_abstract");
         Tree test2 = root.getTree("/").addChild("test2");
         test2.setProperty("tag", "foo!");
+        root.getTree("/").addChild("test3").setProperty("tag", "a=b");
+        root.getTree("/").addChild("test4").setProperty("tag", "c=d=e");
         root.commit();
 
         String propabQuery = "select * from [nt:base] where CONTAINS(tag, " +
@@ -2002,6 +2004,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String query2 = "select * from [nt:base] where CONTAINS(tag, 'foo!')";
         assertPlanAndQuery(query2, "lucene:test1(/oak:index/test1)", asList("/test2"));
+
+        String query3 = "select * from [nt:base] where CONTAINS(tag, 'a=b')";
+        assertPlanAndQuery(query3, "lucene:test1(/oak:index/test1)", asList("/test3"));
+
+        String query4 = "select * from [nt:base] where CONTAINS(tag, 'c=d=e')";
+        assertPlanAndQuery(query4, "lucene:test1(/oak:index/test1)", asList("/test4"));
 
     }
 
