@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -821,7 +820,6 @@ public class SyncMBeanImplTest {
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4362">OAK-4362</a>
      */
-    @Ignore("OAK-4362")
     @Test
     public void testPurgeOrphanedUsersThrowingHandler2() throws Exception {
         sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
