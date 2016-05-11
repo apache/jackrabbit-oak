@@ -173,24 +173,28 @@ final class Delegatee {
         context.setForceGroupSync(forceGroupSync).setForceUserSync(true);
         for (String externalId : externalIds) {
             ExternalIdentityRef ref = ExternalIdentityRef.fromString(externalId);
-            try {
-                ExternalIdentity id = idp.getIdentity(ref);
-                SyncResult r;
-                if (id != null) {
-                    r = syncUser(id);
-                } else {
-                    r = new DefaultSyncResultImpl(
-                            new DefaultSyncedIdentity("", ref, false, -1),
-                            SyncResult.Status.NO_SUCH_IDENTITY
-                    );
+            if (!idp.getName().equals(ref.getProviderName())) {
+                append(list, new DefaultSyncResultImpl(new DefaultSyncedIdentity(ref.getId(), ref, false, -1), SyncResult.Status.FOREIGN));
+            } else {
+                try {
+                    ExternalIdentity id = idp.getIdentity(ref);
+                    SyncResult r;
+                    if (id != null) {
+                        r = syncUser(id);
+                    } else {
+                        r = new DefaultSyncResultImpl(
+                                new DefaultSyncedIdentity("", ref, false, -1),
+                                SyncResult.Status.NO_SUCH_IDENTITY
+                        );
+                    }
+                    append(list, r);
+                } catch (ExternalIdentityException e) {
+                    log.warn("error while fetching the external identity {}", externalId, e);
+                    append(list, ref, e);
+                } catch (SyncException e) {
+                    log.error(ERROR_SYNC_USER, ref, e);
+                    append(list, ref, e);
                 }
-                append(list, r);
-            } catch (ExternalIdentityException e) {
-                log.warn("error while fetching the external identity {}", externalId, e);
-                append(list, ref, e);
-            } catch (SyncException e) {
-                log.error(ERROR_SYNC_USER, ref, e);
-                append(list, ref, e);
             }
         }
         return list.toArray(new String[list.size()]);

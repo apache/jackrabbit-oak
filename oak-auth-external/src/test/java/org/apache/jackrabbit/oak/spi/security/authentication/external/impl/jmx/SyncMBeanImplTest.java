@@ -492,7 +492,6 @@ public class SyncMBeanImplTest {
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4346">OAK-4346</a>
      */
-    @Ignore("OAK-4346")
     @Test
     public void testSyncExternalLocal() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(UserConstants.DEFAULT_ANONYMOUS_ID, null);
@@ -504,7 +503,6 @@ public class SyncMBeanImplTest {
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4346">OAK-4346</a>
      */
-    @Ignore("OAK-4346")
     @Test
     public void testSyncExternalForeign() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, "anotherIDP");
@@ -518,7 +516,7 @@ public class SyncMBeanImplTest {
 
     @Test
     public void testSyncExternalUserException() throws Exception {
-        String[] result = syncMBean.syncExternalUsers(new String[] {TestIdentityProvider.ID_EXCEPTION});
+        String[] result = syncMBean.syncExternalUsers(new String[] {new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()});
         assertResultMessages(result, 1, "ERR");
     }
 
