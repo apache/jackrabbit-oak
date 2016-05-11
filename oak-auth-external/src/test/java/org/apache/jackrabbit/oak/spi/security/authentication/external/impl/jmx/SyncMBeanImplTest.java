@@ -27,6 +27,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.ValueFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -47,9 +48,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
@@ -109,6 +112,10 @@ public class SyncMBeanImplTest {
             public SyncHandler getSyncHandler(@Nonnull String name) {
                 if (SYNC_NAME.equals(name)) {
                     return new DefaultSyncHandler(syncConfig);
+                } else if (ThrowingSyncHandler.NAME.equals(name)) {
+                    return new ThrowingSyncHandler(false);
+                } else if (ThrowingSyncHandler.NAME_ALLOWS_IDENTITY_LISTING.equals(name)) {
+                    return new ThrowingSyncHandler(true);
                 } else {
                     return null;
                 }
@@ -221,6 +228,10 @@ public class SyncMBeanImplTest {
         return expected;
     }
 
+    private SyncMBeanImpl createThrowingSyncMBean(boolean allowListIdentities) {
+        String name = (allowListIdentities) ? ThrowingSyncHandler.NAME_ALLOWS_IDENTITY_LISTING : ThrowingSyncHandler.NAME;
+        return new SyncMBeanImpl(REPOSITORY, syncMgr, name, idpMgr, idp.getName());
+    }
 
     @Test
     public void testGetSyncHandlerName() {
@@ -401,6 +412,14 @@ public class SyncMBeanImplTest {
     }
 
     @Test
+    public void testSyncUserThrowingHandler() throws Exception {
+        sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+
+        String[] result = createThrowingSyncMBean(false).syncUsers(new String[]{TestIdentityProvider.ID_TEST_USER}, false);
+        assertResultMessages(result, 1, "ERR");
+    }
+
+    @Test
     public void testInitialSyncExternalUsers() throws Exception {
         ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
         String[] externalId = new String[] {externalUser.getExternalId().getString()};
@@ -516,7 +535,15 @@ public class SyncMBeanImplTest {
 
     @Test
     public void testSyncExternalUserException() throws Exception {
-        String[] result = syncMBean.syncExternalUsers(new String[] {new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName()).getString()});
+        ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName());
+        String[] result = syncMBean.syncExternalUsers(new String[] {ref.getString()});
+        assertResultMessages(result, 1, "ERR");
+    }
+
+    @Test
+    public void testSyncExternalUserThrowingHandler() throws Exception {
+        ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, idp.getName());
+        String[] result = createThrowingSyncMBean(false).syncExternalUsers(new String[]{ref.getString()});
         assertResultMessages(result, 1, "ERR");
     }
 
@@ -635,6 +662,21 @@ public class SyncMBeanImplTest {
         assertResultMessages(result, 1, "ERR");
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testSyncAllUsersThrowingHandler() throws Exception {
+        String[] result = createThrowingSyncMBean(false).syncAllUsers(false);
+    }
+
+    @Test
+    public void testSyncAllUsersThrowingHandler2() throws Exception {
+        syncMBean.syncAllExternalUsers();
+
+        Map<String, String> expected = getExpectedUserResult("ERR", true);
+        String[] result = createThrowingSyncMBean(true).syncAllUsers(false);
+
+        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+    }
+
     @Test
     public void testInitialSyncAllExternalUsers() throws Exception {
         String[] result = syncMBean.syncAllExternalUsers();
@@ -670,6 +712,14 @@ public class SyncMBeanImplTest {
     }
 
     @Test
+    public void testSyncAllExternalUsersThrowingHandler() throws Exception {
+        String[] result = createThrowingSyncMBean(false).syncAllExternalUsers();
+
+        Map<String, String> expected = getExpectedUserResult("ERR", false);
+        assertResultMessages(result, expected.size(), expected.values().toArray(new String[expected.size()]));
+    }
+
+    @Test
     public void testListOrphanedUsers() throws Exception {
         syncMBean.syncAllExternalUsers();
 
@@ -700,8 +750,20 @@ public class SyncMBeanImplTest {
         session.save();
 
         String[] result = syncMBean.listOrphanedUsers();
-        // TODO: verify if this really the intended result!
         assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testListOrphanedUsersThrowingHandler() throws Exception {
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        String[] result = createThrowingSyncMBean(false).listOrphanedUsers();
+        assertEquals(0, result.length);
+
+        result = createThrowingSyncMBean(true).listOrphanedUsers();
+        assertEquals(2, result.length);
+        assertEquals(ImmutableSet.of("thirdUser", "g"), ImmutableSet.copyOf(result));
     }
 
     @Test
@@ -742,7 +804,93 @@ public class SyncMBeanImplTest {
         session.save();
 
         String[] result = syncMBean.purgeOrphanedUsers();
-        // TODO: verify if this really the intended result!
         assertEquals(0, result.length);
+    }
+
+    @Test
+    public void testPurgeOrphanedUsersThrowingHandler() throws Exception {
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        String[] result = createThrowingSyncMBean(false).purgeOrphanedUsers();
+        assertEquals(0, result.length);
+        assertNotNull(userManager.getAuthorizable("thirdUser"));
+        assertNotNull(userManager.getAuthorizable("g"));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4362">OAK-4362</a>
+     */
+    @Ignore("OAK-4362")
+    @Test
+    public void testPurgeOrphanedUsersThrowingHandler2() throws Exception {
+        sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+        sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+
+        String[] result = createThrowingSyncMBean(true).purgeOrphanedUsers();
+        assertResultMessages(result, 2, "ERR", "ERR");
+        assertNotNull(userManager.getAuthorizable("thirdUser"));
+        assertNotNull(userManager.getAuthorizable("g"));
+    }
+
+    /**
+     * SyncHandler implementation that throws Exceptions.
+     */
+    private final class ThrowingSyncHandler extends DefaultSyncHandler {
+
+        private static final String NAME = "throwing";
+        private static final String NAME_ALLOWS_IDENTITY_LISTING = "throwingExceptListIdentities";
+
+        boolean allowsListIdentities = false;
+
+        private ThrowingSyncHandler(boolean allowsListIdentities) {
+            super(syncConfig);
+            this.allowsListIdentities = allowsListIdentities;
+        };
+
+        @Nonnull
+        @Override
+        public String getName() {
+            return allowsListIdentities ? NAME_ALLOWS_IDENTITY_LISTING : NAME;
+        }
+
+        @Nonnull
+        @Override
+        public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull ValueFactory valueFactory) throws SyncException {
+            return new DefaultSyncContext(syncConfig, idp, userManager, valueFactory) {
+                @Nonnull
+                @Override
+                public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
+                    throw new SyncException("sync " + identity);
+                }
+
+                @Nonnull
+                @Override
+                public SyncResult sync(@Nonnull String id) throws SyncException {
+                    throw new SyncException("sync " + id);
+                }
+            };
+        }
+
+        @CheckForNull
+        @Override
+        public SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id) throws RepositoryException {
+            throw new RepositoryException("findIdentity");
+        }
+
+        @Override
+        public boolean requiresSync(@Nonnull SyncedIdentity identity) {
+            return false;
+        }
+
+        @Nonnull
+        @Override
+        public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
+            if (!allowsListIdentities) {
+                throw new RepositoryException("listIdentities");
+            } else {
+                return super.listIdentities(userManager);
+            }
+        }
     }
 }
