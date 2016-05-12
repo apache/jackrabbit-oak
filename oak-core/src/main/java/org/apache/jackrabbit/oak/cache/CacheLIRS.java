@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
@@ -74,9 +75,9 @@ import org.slf4j.LoggerFactory;
  */
 public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
+    static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
+    static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
     private static final AtomicInteger NEXT_CACHE_ID = new AtomicInteger();
-    private static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
 
     /**
      * Listener for items that are evicted from the cache. The listener
@@ -104,7 +105,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         void evicted(@Nonnull K key, @Nullable V value, @Nonnull RemovalCause cause);
     }
     
-    private final int cacheId = NEXT_CACHE_ID.getAndIncrement();
+    final int cacheId = NEXT_CACHE_ID.getAndIncrement();
 
     /**
      * The maximum memory this cache should use.
@@ -138,8 +139,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * value to be loaded need to wait on the synchronization object. The
      * loading thread will notify all waiting threads once loading is done.
      */
-    final ConcurrentHashMap<K, Object> loadingInProgress =
-            new ConcurrentHashMap<K, Object>();
+    final ConcurrentHashMap<K, AtomicBoolean> loadingInProgress =
+            new ConcurrentHashMap<K, AtomicBoolean>();
 
     /**
      * Create a new cache with the given number of entries, and the default
@@ -952,14 +953,14 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     // to prevent a deadlock, we also load the value ourselves
                     return load(key, hash, valueLoader);
                 }
-                ConcurrentHashMap<K, Object> loading = cache.loadingInProgress;
+                ConcurrentHashMap<K, AtomicBoolean> loading = cache.loadingInProgress;
                 // the object we have to wait for in case another thread loads
                 // this value
-                Object alreadyLoading;
+                AtomicBoolean alreadyLoading;
                 // synchronized on this object, even before we put it in the
                 // cache, so that all other threads that get this object can
                 // synchronized and wait for it
-                Object loadNow = new Object();
+                AtomicBoolean loadNow = new AtomicBoolean();
                 // we synchronize a bit early here, but that's fine (we don't
                 // optimize for the case where loading is extremely quick)
                 synchronized (loadNow) {
@@ -971,16 +972,20 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                             return load(key, hash, valueLoader);
                         } finally {
                             loading.remove(key);
-                            // notify other threads
-                            loadNow.notifyAll();
+                            if (loadNow.get()) {
+                                // notify other threads, but only if
+                                // they wait for this to be loaded
+                                loadNow.notifyAll();
+                            }
                             CURRENTLY_LOADING.remove();
                         }
                     }
                 }
                 // another thread is (or was) already loading
                 synchronized (alreadyLoading) {
+                    alreadyLoading.set(true);
                     // loading might have been finished, so check again
-                    Object alreadyLoading2 = loading.get(key);
+                    AtomicBoolean alreadyLoading2 = loading.get(key);
                     if (alreadyLoading2 != alreadyLoading) {
                         // loading has completed before we could synchronize,
                         // so we repeat
