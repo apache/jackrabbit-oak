@@ -14,9 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.1.0")
-@Export
-package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+
+public interface ExternalIdentityConstants {
+
+    String REP_EXTERNAL_ID = DefaultSyncContext.REP_EXTERNAL_ID;
+
+    String REP_LAST_SYNCED = DefaultSyncContext.REP_LAST_SYNCED;
+
+    String REP_EXTERNAL_PRINCIPAL_NAMES = "rep:externalPrincipalNames";
+
+    Set<String> RESERVED_PROPERTY_NAMES = ImmutableSet.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
+
+}

@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.PrincipalSyncContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +104,11 @@ public class DefaultSyncHandler implements SyncHandler {
     @Override
     public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager,
                                      @Nonnull ValueFactory valueFactory) throws SyncException {
-        return new DefaultSyncContext(config, idp, userManager, valueFactory);
+        if (config.user().getDynamicMembership()) {
+            return new PrincipalSyncContext(config, idp, userManager, valueFactory);
+        } else {
+            return new DefaultSyncContext(config, idp, userManager, valueFactory);
+        }
     }
 
     /**

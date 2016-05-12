@@ -152,6 +152,32 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_MEMBERSHIP_NESTING_DEPTH = "user.membershipNestingDepth";
 
     /**
+     * @see DefaultSyncConfig.User#getDynamicMembership()
+     */
+    public static final boolean PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT = false;
+
+    /**
+     * Configuration option to enable dynamic group membership. If enabled the
+     * implementation will no longer synchronized group accounts into the repository
+     * but instead will enable a dedicated principal management: This results in
+     * external users having their complete principal set as defined external IDP
+     * synchronized to the repository asserting proper population of the
+     * {@link javax.security.auth.Subject} upon login. Please note that the external
+     * groups are reflected through the built-in principal management and thus can
+     * be retrieved for authorization purposes. However, the information is no
+     * longer reflected through the Jackrabbit user management API.
+     *
+     * @see DefaultSyncConfig.User#getDynamicMembership()
+     */
+    @Property(
+            label = "User Dynamic Membership",
+            description = "If enabled membership of external identities (user) is no longer fully reflected " +
+                    "within the repositories user management.",
+            boolValue = PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT
+    )
+    public static final String PARAM_USER_DYNAMIC_MEMBERSHIP = "user.dynamicMembership";
+
+    /**
      * @see DefaultSyncConfig.Group#getExpirationTime()
      */
     public static final String PARAM_GROUP_EXPIRATION_TIME_DEFAULT = "1d";
@@ -229,6 +255,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
         cfg.user()
                 .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
+                .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
                 .setAutoMembership(params.getConfigValue(PARAM_USER_AUTO_MEMBERSHIP, PARAM_USER_AUTO_MEMBERSHIP_DEFAULT))

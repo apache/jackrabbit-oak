@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -31,6 +35,10 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -50,6 +58,9 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
 
     private Set<String> ids;
 
+    private ContentSession systemSession;
+    private Root systemRoot;
+
     @Before
     public void before() throws Exception {
         super.before();
@@ -66,6 +77,10 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         try {
             destroyIDP();
             idp = null;
+
+            if (systemSession != null) {
+                systemSession.close();
+            }
 
             // discard any pending changes
             root.refresh();
@@ -106,6 +121,13 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         }), Predicates.notNull());
     }
 
+    @Override
+    protected SecurityProvider getSecurityProvider() {
+        if (securityProvider == null) {
+            securityProvider = new TestSecurityProvider(getSecurityConfigParameters());
+        }
+        return securityProvider;
+    }
 
     protected ExternalIdentityProvider createIDP() {
         return new TestIdentityProvider();
@@ -126,5 +148,18 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         syncConfig.user().setPropertyMapping(mapping);
         syncConfig.user().setMembershipNestingDepth(1);
         return syncConfig;
+    }
+
+    protected Root getSystemRoot() throws Exception {
+        if (systemRoot == null) {
+            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                @Override
+                public ContentSession run() throws LoginException, NoSuchWorkspaceException {
+                    return getContentRepository().login(null, null);
+                }
+            });
+            systemRoot = systemSession.getLatestRoot();
+        }
+        return systemRoot;
     }
 }

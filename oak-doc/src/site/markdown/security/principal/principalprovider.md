@@ -63,7 +63,29 @@ Custom `PrincipalProvider` implementations may be used to combine principals fro
 different source i.e. detaching principal management from the user management,
 where principals are backed by an existing user/group account.
 
+### [ExternalGroupPrincipalProvider]
+
+Implementation of the `PrincipalProvider` interface that exposes _external_ principals 
+of type `java.security.acl.Group`. _External_ refers to the fact that these
+principals are defined and managed by an external identity provider in contrast to
+the default implementation that represents principals native to the repository.
+This implies that the principals known and exposed by this provider implementation
+does not expect principals to be backed by an authorizable group. As such they
+can only be retrieved using Jackrabbit Principal Management API but not with 
+User Management calls.
+
+For performance reasons the `ExternalGroupPrincipalProvider` doesn't lookup 
+principals on the IDP but relies on a persisted cache inside the repository where
+the names of these external principals are synchronized to based on a configurable
+expiration time.
+
+See section [User and Group Synchronization : The Default Implementation](../authentication/defaultusersync.html)
+for additional details.
+
+Since Oak 1.5.3
+
 <!-- references -->
 [PrincipalProviderImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/principal/PrincipalProviderImpl.html
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
 [UserPrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/user/UserPrincipalProvider.html
+[ExternalGroupPrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalGroupPrincipalProvider.html

@@ -380,7 +380,7 @@ public class DefaultSyncContext implements SyncContext {
                 principal,
                 PathUtils.concatRelativePaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
         );
-        user.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalUser.getExternalId().getString()));
+        setExternalId(user, externalUser);
         return user;
     }
 
@@ -400,8 +400,13 @@ public class DefaultSyncContext implements SyncContext {
                 principal,
                 PathUtils.concatRelativePaths(config.group().getPathPrefix(), externalGroup.getIntermediatePath())
         );
-        group.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalGroup.getExternalId().getString()));
+        setExternalId(group, externalGroup);
         return group;
+    }
+
+    private void setExternalId(@Nonnull Authorizable authorizable, @Nonnull ExternalIdentity externalIdentity) throws RepositoryException {
+        log.debug("Fallback: setting rep:externalId without adding the corresponding mixin type");
+        authorizable.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalIdentity.getExternalId().getString()));
     }
 
     @Nonnull
@@ -728,7 +733,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return {@code true} if {@link ExternalIdentityRef#getProviderName()} refers
      * to the IDP associated with this context instance.
      */
-    private boolean isSameIDP(@Nonnull ExternalIdentityRef ref) {
+    protected boolean isSameIDP(@Nonnull ExternalIdentityRef ref) {
         return idp.getName().equals(ref.getProviderName());
     }
 }
