@@ -478,12 +478,16 @@ public class SyncMBeanImplTest {
             assertTrue(lastSynced == groupLastSynced);
         }
 
+        while (System.currentTimeMillis() <= lastSynced) {
+            // wait for system time to move
+        }
+
         // default value for forceGroup sync is defined to be 'true' => verify result
         syncMBean.syncExternalUsers(externalId);
         testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
         long lastSynced2 = testUser.getProperty(DefaultSyncContext.REP_LAST_SYNCED)[0].getLong();
 
-        assertTrue(lastSynced < lastSynced2);
+        assertTrue("lastSynced: " + lastSynced + ", lastSynced2: " + lastSynced2, lastSynced < lastSynced2);
         for (ExternalIdentityRef groupRef : externalUser.getDeclaredGroups()) {
             Group gr = userManager.getAuthorizable(groupRef.getId(), Group.class);
             long groupLastSynced = gr.getProperty(DefaultSyncContext.REP_LAST_SYNCED)[0].getLong();
