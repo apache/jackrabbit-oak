@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.util.EnumSet;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
