@@ -29,11 +29,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -48,8 +45,15 @@ import static org.junit.Assert.fail;
 
 public class PasswordValidationActionTest extends AbstractSecurityTest {
 
-    private PasswordValidationAction pwAction = new PasswordValidationAction();
-    private TestAction testAction = new TestAction();
+    private final PasswordValidationAction pwAction = new PasswordValidationAction();
+    private final TestAction testAction = new TestAction();
+    private final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
+        @Nonnull
+        @Override
+        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+            return ImmutableList.of(pwAction, testAction);
+        }
+    };
 
     private User user;
     private User testUser;
@@ -77,11 +81,11 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     }
 
     @Override
-    protected SecurityProvider getSecurityProvider() {
-        if (securityProvider == null) {
-            securityProvider = new TestSecurityProvider();
-        }
-        return securityProvider;
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        ConfigurationParameters userParams = ConfigurationParameters.of(
+                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider
+        );
+        return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }
 
     @Test
@@ -174,43 +178,6 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         @Override
         public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             onPasswordChangeCalled++;
-        }
-    }
-
-    private class TestSecurityProvider extends SecurityProviderImpl {
-
-        private final AuthorizableActionProvider actionProvider;
-
-        private TestSecurityProvider() {
-            actionProvider = new AuthorizableActionProvider() {
-                @Nonnull
-                @Override
-                public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
-                    return ImmutableList.of(pwAction, testAction);
-                }
-            };
-        }
-
-        @Nonnull
-        public <T> T getConfiguration(@Nonnull Class<T> configClass) {
-            if (UserConfiguration.class == configClass) {
-                return (T) new UserConfigurationImpl(this) {
-                    @Nonnull
-                    @Override
-                    public ConfigurationParameters getParameters() {
-                        return ConfigurationParameters.of(super.getParameters(),
-                                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider));
-                    }
-
-                    @Nullable
-                    @Override
-                    public PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
-                        return null;
-                    }
-                };
-            } else {
-                return super.getConfiguration(configClass);
-            }
         }
     }
 }

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.After;
 import org.junit.Before;
@@ -63,6 +64,17 @@ public class ConfigurationParametersTest {
         ConfigurationParameters cp = null;
         ConfigurationParameters params = ConfigurationParameters.of(new ConfigurationParameters[] {cp});
         assertSame(ConfigurationParameters.EMPTY, params);
+    }
+
+    @Test
+    public void testCreationFromMap() {
+        Map<String, String> m = ImmutableMap.of("a", "b");
+        ConfigurationParameters cp = ConfigurationParameters.of(m);
+        assertEquals(m.size(), cp.size());
+
+        // verify shortcut if the passed map is already an instanceof ConfigurationParameters
+        ConfigurationParameters cp2 = ConfigurationParameters.of(cp);
+        assertSame(cp, cp2);
     }
 
     @Test

@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -67,16 +67,28 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
 
     private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
 
+    private static final Map<String, Class<? extends AuthorizableAction>> SUPPORTED_ACTIONS = ImmutableMap.<String, Class<? extends AuthorizableAction>>of(
+            AccessControlAction.class.getName(), AccessControlAction.class,
+            PasswordValidationAction.class.getName(), PasswordValidationAction.class,
+            PasswordChangeAction.class.getName(), PasswordChangeAction.class,
+            ClearMembershipAction.class.getName(), ClearMembershipAction.class
+    );
+
+    private static final String[] DEFAULT_ACTIONS = new String[] {AccessControlAction.class.getName()};
+
     static final String ENABLED_ACTIONS = "enabledActions";
 
-    private String[] enabledActions = new String[] {AccessControlAction.class.getName()};
+    private String[] enabledActions = DEFAULT_ACTIONS;
 
     private ConfigurationParameters config = ConfigurationParameters.EMPTY;
 
+    @SuppressWarnings("UnusedDeclaration")
     public DefaultAuthorizableActionProvider() {}
 
     public DefaultAuthorizableActionProvider(ConfigurationParameters config) {
-        this.config = config;
+        if (config != null) {
+            activate(config);
+        }
     }
 
     //-----------------------------------------< AuthorizableActionProvider >---
@@ -86,18 +98,15 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
         List<AuthorizableAction> actions = Lists.newArrayList();
         for (String className : enabledActions) {
             try {
-                Object o = Class.forName(className).newInstance();
-                if (o instanceof AuthorizableAction) {
-                    actions.add((AuthorizableAction) o);
+                Class<? extends AuthorizableAction> cl = SUPPORTED_ACTIONS.get(className);
+                if (cl != null) {
+                    AuthorizableAction action = cl.newInstance();
+                    action.init(securityProvider, config);
+                    actions.add(action);
                 }
             } catch (Exception e) {
                 log.debug("Unable to create authorizable action", e);
             }
-        }
-
-        // merge configurations that may contain action configuration information
-        for (AuthorizableAction action : actions) {
-            action.init(securityProvider, config);
         }
         return actions;
     }
@@ -107,6 +116,6 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     @Activate
     private void activate(Map<String, Object> properties) {
         config = ConfigurationParameters.of(properties);
-        enabledActions = PropertiesUtil.toStringArray(properties.get(ENABLED_ACTIONS), new String[0]);
+        enabledActions = config.getConfigValue(ENABLED_ACTIONS, DEFAULT_ACTIONS);
     }
 }
