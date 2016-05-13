@@ -198,12 +198,12 @@ public class PropInfo {
     }
 
     public PropertyState asPropertyState(@Nonnull PropertyDefinition propertyDefinition) throws RepositoryException {
-        List<Value> values = getValues(getTargetType(propertyDefinition));
+        List<Value> vs = getValues(getTargetType(propertyDefinition));
         PropertyState propertyState;
-        if (values.size() == 1 && !propertyDefinition.isMultiple()) {
-            propertyState = PropertyStates.createProperty(name, values.get(0));
+        if (vs.size() == 1 && !propertyDefinition.isMultiple()) {
+            propertyState = PropertyStates.createProperty(name, vs.get(0));
         } else {
-            propertyState = PropertyStates.createProperty(name, values);
+            propertyState = PropertyStates.createProperty(name, vs);
         }
         return propertyState;
     }
