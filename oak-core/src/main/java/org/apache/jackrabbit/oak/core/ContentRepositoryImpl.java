@@ -71,8 +71,6 @@ import static javax.jcr.Repository.WRITE_SUPPORTED;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
