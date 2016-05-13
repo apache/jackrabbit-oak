@@ -32,6 +32,9 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
@@ -381,7 +384,12 @@ public class BenchmarkRunner {
                 wikipedia.value(options),
                 flatStructure.value(options),
                 report.value(options), withStorage.value(options)),
-            new ReplicaCrashResilienceTest()
+            new ReplicaCrashResilienceTest(),
+
+            // benchmarks for oak-auth-external
+            new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false),
+            new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false),
+            new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false, batchSize.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
