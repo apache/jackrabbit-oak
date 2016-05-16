@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.14
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.15
 
 Introduction
 ------------
@@ -7,64 +7,63 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.14 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.15 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.14
+Changes in Oak 1.2.15
 --------------------
 
 Sub-task
 
-    [OAK-3230] - Query engine should support virtual index rows
-    [OAK-3994] - Simple query on suggestion/spellcheck with unambiguous index def and one descendant clause should work
+    [OAK-2943] - Support measure for union queries
+    [OAK-2944] - Support merge iterator for union order by queries
 
 
 Technical task
 
-    [OAK-4156] - RDBConnectionHandler: add logging when getting the connection takes long
-    [OAK-4193] - RDBBlobStore: logging for garbage collection has parameters reversed
-    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA records when there was subsequent blobstore activity
+    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
+    [OAK-4204] - GarbageCollectorFileState.copy() leaks FileOutputStream
+    [OAK-4250] - DocumentStore: add test coverage for find() with ultra-long keys
 
 
 Bug
 
-    [OAK-3149] - SuggestHelper should manage a suggestor per index definition
-    [OAK-3156] - Lucene suggestions index definition can't be restricted to a specific type of node
-    [OAK-3235] - Deadlock when closing a concurrently used FileStore
-    [OAK-3493] - Deadlock when closing a concurrently used FileStore 2.0
-    [OAK-3692] - java.lang.NoClassDefFoundError: org/apache/lucene/index/sorter/Sorter$DocComparator
-    [OAK-3838] - IndexPlanner incorrectly lets all full text indices to participate for suggest/spellcheck queries
-    [OAK-4009] - Search done via Lucene index might return duplicate results
-    [OAK-4024] - CoW uses incorrect directory on re-indexing when indexPath property is used
-    [OAK-4059] - Tests in oak-lucene do not shut down repository
-    [OAK-4068] - Align default value of suggestUpdateFrequencyMinutes to match documented 10 minutes
-    [OAK-4126] - Suggestion and spellcheck queries throw exception if result contain lucene query character
+    [OAK-3879] - Lucene index / compatVersion 2: search for 'abc!' does not work
+    [OAK-4099] - Lucene index appear to be corrupted with compaction enabled
+    [OAK-4275] - Backport OAK-4065 (Counter index can get out of sync) to 1.2 and 1.4
+    [OAK-4313] - QueryImpl should avoid traversal with queries containing native constraints
+    [OAK-4324] - Backport OAK-3991 (Incorrect resultset from XPATH, multiple ORs and Lucene full-text) to 1.2
+    [OAK-4359] - Lucene index / compatVersion 2: search for 'a=b=c' does not work
 
 
 Improvement
 
-    [OAK-2477] - Move suggester specific config to own configuration node
-    [OAK-2754] - Use non unique PathCursor in LucenePropertyIndex
-    [OAK-3407] - Configuration to pass suggestion fields through analyzer
-    [OAK-3509] - Lucene suggestion results should have 1 row per suggestion with appropriate column names
-    [OAK-3825] - Including Resource name to suggestions
-    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
+    [OAK-2618] - Improve performance of queries with ORDER BY and multiple OR filters
+    [OAK-4035] - AsyncIndexUpdate should not log exception when its forcibly stopped
+    [OAK-4164] - Expose path stats for Lucene index
+    [OAK-4262] - Provide a way to abort an async indexing run
+    [OAK-4306] - Disable cleanup when compaction is paused
+    [OAK-4317] - Similar and Native queries should return no results if no index can handle them
+    [OAK-4321] - Improve conflict exception message to show if conflict is unexpected
 
+
+New Feature
+
+    [OAK-4144] - Expose PropertyIndex stats
 
 Task
 
-    [OAK-4070] - Refactor LuceneIndexEditorContext to allow for switchable clock for testing
-    [OAK-4149] - Backport OAK-3235 and OAK-3493 to the 1.2 branch
-    [OAK-4158] - OAK 1.2: update Jackrabbit dependency to 2.10.2
-    [OAK-4167] - Collect and backport lucene based suggestion improvements done in 1.4 into 1.2 branch
+    [OAK-4100] - ClusterNodeInfo lease renewal: add logging
+    [OAK-4354] - OAK 1.2: update Jackrabbit dependency to 2.10.3
+    [OAK-4355] - [oak-blob-cloud] Update to latest version of aws-sdk-java
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.13 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.14 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
