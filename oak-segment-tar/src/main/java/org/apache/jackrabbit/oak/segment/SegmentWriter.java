@@ -844,11 +844,15 @@ public class SegmentWriter {
                 SegmentNodeState sns = ((SegmentNodeState) state);
                 if (hasSegment(sns)) {
                     if (isOldGen(sns.getRecordId())) {
+                        // This is a segment node state from an old generation. Check whether
+                        // an equivalent one of the current generation is in the cache
                         RecordId cachedId = nodeCache.generation(generation()).get(sns.getStableId());
                         if (cachedId != null) {
                             return cachedId;
                         }
                     } else {
+                        // This segment node state is already in this store,
+                        // no need to write it again,
                         return sns.getRecordId();
                     }
                 }
@@ -856,6 +860,9 @@ public class SegmentWriter {
 
             RecordId recordId = writeNodeUncached(state, depth);
             if (state instanceof SegmentNodeState) {
+                // This node state has been rewritten because it is from an older
+                // generation (e.g. due to compaction). Put it into the cache for
+                // deduplication of hard links to it (e.g. checkpoints).
                 SegmentNodeState sns = (SegmentNodeState) state;
                 nodeCache.generation(generation()).put(sns.getStableId(), recordId, depth);
             }
