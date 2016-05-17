@@ -259,10 +259,8 @@ public class IdentifierManager {
                                 }
                             } else {
                                 Type<?> type = (weak) ? Type.WEAKREFERENCE : Type.REFERENCE;
-                                if (pState.getType() == type) {
-                                    if (uuid.equals(pState.getValue(Type.STRING))) {
-                                        return PathUtils.concat(rowPath, pState.getName());
-                                    }
+                                if (pState.getType() == type && uuid.equals(pState.getValue(Type.STRING))) {
+                                    return PathUtils.concat(rowPath, pState.getName());
                                 }
                             }
                             return null;
@@ -303,7 +301,7 @@ public class IdentifierManager {
      *         specified {@code tree} and matching the constraints.
      */
     @Nonnull
-    public Iterable<String> getReferences(@Nonnull Tree tree, final @Nonnull String propertyName,
+    public Iterable<String> getReferences(@Nonnull Tree tree, @Nonnull final String propertyName,
                                           @Nonnull String ntName, boolean weak) {
         if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut

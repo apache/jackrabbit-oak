@@ -122,7 +122,7 @@ final class CompositeTreePermission implements TreePermission {
     //-----------------------------------------------------< TreePermission >---
     @Nonnull
     @Override
-    public TreePermission getChildPermission(final @Nonnull String childName, final @Nonnull NodeState childState) {
+    public TreePermission getChildPermission(@Nonnull final String childName, @Nonnull final NodeState childState) {
         return create(new LazyTree() {
             @Override
             ImmutableTree get() {

@@ -123,7 +123,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      * @return the privilege bits
      */
     @Nonnull
-    public PrivilegeBits getBits(@Nonnull Privilege[] privileges, final @Nonnull NameMapper nameMapper) {
+    public PrivilegeBits getBits(@Nonnull Privilege[] privileges, @Nonnull final NameMapper nameMapper) {
         return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), new Function<Privilege, String>() {
 
             @Override
