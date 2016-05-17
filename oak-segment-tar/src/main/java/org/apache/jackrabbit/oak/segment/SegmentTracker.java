@@ -108,11 +108,8 @@ public class SegmentTracker {
      */
     private final AtomicInteger segmentCounter = new AtomicInteger();
 
-    private final SegmentVersion segmentVersion;
-
     public SegmentTracker(SegmentStore store, int cacheSizeMB, SegmentVersion version) {
         checkArgument(SegmentVersion.isValid(version));
-        this.segmentVersion = version;
 
         for (int i = 0; i < tables.length; i++) {
             tables[i] = new SegmentIdTable(this);
@@ -182,10 +179,6 @@ public class SegmentTracker {
 
     public SegmentStore getStore() {
         return store;
-    }
-
-    public SegmentVersion getSegmentVersion() {
-        return segmentVersion;
     }
 
     /**

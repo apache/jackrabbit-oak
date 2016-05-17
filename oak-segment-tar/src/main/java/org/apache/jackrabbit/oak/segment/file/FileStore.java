@@ -1068,8 +1068,8 @@ public class FileStore implements SegmentStore {
         // FIXME OAK-4279: Rework offline compaction
         // This way of compacting has no progress logging
         final int gcGeneration = tracker.getGcGen() + 1;
-        SegmentWriter writer = new SegmentWriter(this, tracker.getSegmentVersion(),
-            new SegmentBufferWriter(this, tracker.getSegmentVersion(), "c", gcGeneration),
+        SegmentWriter writer = new SegmentWriter(this, version,
+            new SegmentBufferWriter(this, version, "c", gcGeneration),
             new RecordCache<String>() {
                 @Override
                 protected Cache<String> getCache(int generation) {
