@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
-import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterators.partition;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -226,8 +225,9 @@ public class VersionGarbageCollector {
                 String id = doc.getId() + "/" + doc.getModified();
                 addDocument(id);
                 // Collect id of all previous docs also
-                for (NodeDocument prevDoc : copyOf(doc.getAllPreviousDocs())) {
-                    addPreviousDocument(prevDoc.getId());
+                Iterator<NodeDocument> it = doc.getAllPreviousDocs();
+                while (it.hasNext()) {
+                    addPreviousDocument(it.next().getId());
                 }
             }
         }
@@ -279,8 +279,9 @@ public class VersionGarbageCollector {
         }
 
         private void concurrentModification(NodeDocument doc) {
-            for (NodeDocument prevDoc : copyOf(doc.getAllPreviousDocs())) {
-                exclude.add(prevDoc.getId());
+            Iterator<NodeDocument> it = doc.getAllPreviousDocs();
+            while (it.hasNext()) {
+                exclude.add(it.next().getId());
             }
         }
 
