@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -71,8 +70,6 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     private ValueFactory valueFactory;
     private DefaultSyncContext syncCtx;
 
-    private List<String> authorizableIds = new ArrayList<String>();
-
     @Before
     public void before() throws Exception {
         super.before();
@@ -86,13 +83,6 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         try {
             syncCtx.close();
             root.refresh();
-            for (String id : authorizableIds) {
-                Authorizable a = userManager.getAuthorizable(id);
-                if (a != null) {
-                    a.remove();
-                }
-            }
-            root.commit();
         } finally {
             super.after();
         }
@@ -104,9 +94,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     }
 
     private Group createTestGroup() throws Exception {
-        Group gr = userManager.createGroup("group" + UUID.randomUUID());
-        authorizableIds.add(gr.getID());
-        return gr;
+        return userManager.createGroup("group" + UUID.randomUUID());
     }
 
     /**
@@ -380,8 +368,6 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         // mark a regular repo user as external user from the test IDP
         User u = userManager.createUser("test" + UUID.randomUUID(), null);
         String userId = u.getID();
-        authorizableIds.add(userId);
-
         setExternalID(u, idp.getName());
 
         // test sync with 'keepmissing' = true
@@ -484,7 +470,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testSyncByForeignId2() throws Exception {
-        User u = getTestUser();
+        User u = userManager.getAuthorizable(getTestUser().getID(), User.class);
         setExternalID(u, "differentIDP");
 
         SyncResult result = syncCtx.sync(u.getID());
@@ -1138,7 +1124,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testIsSameIDPNull() throws Exception {
-        assertFalse(syncCtx.isSameIDP(null));
+        assertFalse(syncCtx.isSameIDP((Authorizable) null));
     }
 
     @Test
@@ -1184,6 +1170,16 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         setExternalID(gr, "some_other_idp");
 
         assertFalse(syncCtx.isSameIDP(gr));
+    }
+
+    @Test
+    public void testIsSameIDPExternalIdentityRef() throws Exception {
+        assertFalse(syncCtx.isSameIDP(new TestIdentityProvider.ForeignExternalUser().getExternalId()));
+        assertFalse(syncCtx.isSameIDP(new TestIdentityProvider.ForeignExternalGroup().getExternalId()));
+
+        assertTrue(syncCtx.isSameIDP(new TestIdentityProvider.TestIdentity().getExternalId()));
+        assertTrue(syncCtx.isSameIDP(idp.listGroups().next().getExternalId()));
+        assertTrue(syncCtx.isSameIDP(idp.listUsers().next().getExternalId()));
     }
 
     private final class ExternalUserWithDeclaredGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {

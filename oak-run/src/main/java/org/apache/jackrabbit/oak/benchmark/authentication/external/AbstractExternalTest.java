@@ -55,8 +55,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Base benchmark test for external authentication.
@@ -88,9 +93,12 @@ abstract class AbstractExternalTest extends AbstractTest {
 
     protected AbstractExternalTest(int numberofUsers, int numberofGroups, long expTime, boolean dynamicMembership) {
         idp = new TestIdentityProvider(numberofUsers, numberofGroups);
-        syncConfig.user().setMembershipNestingDepth(1).setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
-        syncConfig.group().setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
-        // TODO OAK-4101 : syncConfig.user().setDynamicMembership(dynamicMembership);
+        syncConfig.user()
+                .setMembershipNestingDepth(1)
+                .setDynamicMembership(dynamicMembership)
+                .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
+        syncConfig.group()
+                .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
     }
 
     protected abstract Configuration createConfiguration();
@@ -158,15 +166,14 @@ abstract class AbstractExternalTest extends AbstractTest {
     private final class TestSecurityProvider extends SecurityProviderImpl {
         public TestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
             super(configuration);
-            //  TODO: enable once OAK-4104 is commited
-            //            PrincipalConfiguration principalConfiguration = getConfiguration(PrincipalConfiguration.class);
-            //            if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
-            //                throw new IllegalStateException();
-            //            } else {
-            //                PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
-            //                bindPrincipalConfiguration((new ExternalPrincipalConfiguration(this)));
-            //                bindPrincipalConfiguration(defConfig);
-            //            }
+            PrincipalConfiguration principalConfiguration = getConfiguration(PrincipalConfiguration.class);
+            if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
+                throw new IllegalStateException();
+            } else {
+                PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
+                bindPrincipalConfiguration((new ExternalPrincipalConfiguration(this)));
+                bindPrincipalConfiguration(defConfig);
+            }
         }
     }
 

@@ -33,6 +33,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     public static final String ID_TEST_USER = "testUser";
     public static final String ID_SECOND_USER = "secondUser";
+    public static final String ID_WILDCARD_USER = "wildcardUser";
 
     public static final String ID_EXCEPTION = "throw!";
 
@@ -46,6 +47,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         addGroup(new TestGroup("b", getName()).withGroups("a"));
         addGroup(new TestGroup("c", getName()));
         addGroup(new TestGroup("secondGroup", getName()));
+        addGroup(new TestGroup("_gr_u_", getName()));
+        addGroup(new TestGroup("g%r%", getName()));
 
         addUser(new TestUser(ID_TEST_USER, getName())
                 .withProperty("name", "Test User")
@@ -63,6 +66,9 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
                 .withProperty("charArr", new char[]{'t', 'o', 'b'})
                 .withProperty("byteArr", new byte[0])
                 .withGroups("secondGroup"));
+
+        addUser(new TestUser(ID_WILDCARD_USER, getName())
+                .withGroups("_gr_u_", "g%r%"));
     }
 
     private void addUser(TestIdentity user) {

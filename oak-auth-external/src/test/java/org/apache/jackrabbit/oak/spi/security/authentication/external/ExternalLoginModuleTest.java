@@ -22,8 +22,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -163,7 +162,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         UserManager userManager = getUserManager(root);
         ExternalUser externalUser = idp.getUser(USER_ID);
         Authorizable user = userManager.createUser(externalUser.getId(), null);
-        user.setProperty("rep:externalId", new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(externalUser.getExternalId().getString()));
+        user.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, getValueFactory().createValue(externalUser.getExternalId().getString()));
         root.commit();
 
         ContentSession cs = null;
