@@ -45,7 +45,6 @@ public class RecordCache<T> {
     private static final Logger LOG = LoggerFactory.getLogger(RecordCache.class);
     // FIXME OAK-4277: Finalise de-duplication caches
     // make this configurable
-    private static final int RETENTION_THRESHOLD = 1;
 
     private final ConcurrentMap<Integer, Supplier<Cache<T>>> generations = newConcurrentMap();
 
