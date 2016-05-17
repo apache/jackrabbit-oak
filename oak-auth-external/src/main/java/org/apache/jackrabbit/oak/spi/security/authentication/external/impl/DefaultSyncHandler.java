@@ -103,7 +103,11 @@ public class DefaultSyncHandler implements SyncHandler {
     @Override
     public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager,
                                      @Nonnull ValueFactory valueFactory) throws SyncException {
-        return new DefaultSyncContext(config, idp, userManager, valueFactory);
+        if (config.user().getDynamicMembership()) {
+            return new DynamicSyncContext(config, idp, userManager, valueFactory);
+        } else {
+            return new DefaultSyncContext(config, idp, userManager, valueFactory);
+        }
     }
 
     /**
