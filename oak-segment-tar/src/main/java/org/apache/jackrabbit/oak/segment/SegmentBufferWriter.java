@@ -125,7 +125,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     }
 
     public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid) {
-        this(store, version, wid, store.getTracker().getGcGen());
+        this(store, version, wid, store.getTracker().getGcGeneration());
     }
 
     @Override
@@ -222,12 +222,12 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
     }
 
-    // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGen
+    // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGeneration
     // Disable/remove this in production
-    private void checkGCGen(SegmentId id) {
+    private void checkGCGeneration(SegmentId id) {
         try {
             if (isDataSegmentId(id.getLeastSignificantBits())) {
-                if (id.getSegment().getGcGen() < generation) {
+                if (id.getSegment().getGcGeneration() < generation) {
                     LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
                         info(this.segment), info(id.getSegment()), new Exception());
                 }
@@ -247,7 +247,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     }
 
     private int getSegmentRef(SegmentId segmentId) {
-        checkGCGen(segmentId);
+        checkGCGeneration(segmentId);
 
         int refCount = segment.getRefCount();
         if (refCount > SEGMENT_REFERENCE_LIMIT) {
