@@ -616,6 +616,11 @@ public class SegmentWriter {
             return writeValueRecord(data.length, writeList(blockIds));
         }
 
+        /**
+         * @param   blob
+         * @return  {@code true} iff {@code blob} is a {@code SegmentBlob}
+         *          and this store's tracker has its segment.
+         */
         private boolean hasSegment(Blob blob) {
             return (blob instanceof SegmentBlob)
                     && (getTracker().isTracking(((Record) blob).getRecordId().getSegmentId()));
@@ -972,10 +977,19 @@ public class SegmentWriter {
             return newNodeStateWriter(stableId, ids).write(writer);
         }
 
+        /**
+         * @param   node
+         * @return  {@code true} iff this store's tracker has the segment of {@code node}.
+         */
         private boolean hasSegment(SegmentNodeState node) {
             return getTracker().isTracking(node.getRecordId().getSegmentId());
         }
 
+        /**
+         * @param property
+         * @return  {@code true} iff {@code property} is a {@code SegmentPropertyState}
+         *          and this store's tracker has its segment.
+         */
         private boolean hasSegment(PropertyState property) {
             return (property instanceof SegmentPropertyState)
                 && (getTracker().isTracking(((Record) property).getRecordId().getSegmentId()));
