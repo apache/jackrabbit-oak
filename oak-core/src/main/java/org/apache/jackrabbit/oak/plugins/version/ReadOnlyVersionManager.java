@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -323,5 +325,19 @@ public abstract class ReadOnlyVersionManager {
     protected boolean isVersionable(@Nonnull Tree tree) {
         return getNodeTypeManager().isNodeType(
                 checkNotNull(tree), VersionConstants.MIX_VERSIONABLE);
+    }
+
+    /**
+     * Returns {@code true} if the given {@code versionableCandidate} is of type
+     * {@code mix:versionable}; {@code false} otherwise.
+     *
+     * @param versionableCandidate node state to check.
+     * @return whether the {@code versionableCandidate} is versionable.
+     */
+    boolean isVersionable(NodeState versionableCandidate) {
+        // this is not 100% correct, because t.getPath() will
+        // not return the correct path for node after, but is
+        // sufficient to check if it is versionable
+        return isVersionable(TreeFactory.createReadOnlyTree(versionableCandidate));
     }
 }

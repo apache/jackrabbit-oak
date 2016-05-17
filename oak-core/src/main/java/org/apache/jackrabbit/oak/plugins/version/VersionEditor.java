@@ -187,10 +187,7 @@ class VersionEditor implements Editor {
      */
     private boolean isVersionable() {
         if (isVersionable == null) {
-            // this is not 100% correct, because t.getPath() will
-            // not return the correct path for node after, but is
-            // sufficient to check if it is versionable
-            isVersionable = vMgr.isVersionable(TreeFactory.createReadOnlyTree(after));
+            isVersionable = vMgr.isVersionable(after);
         }
         return isVersionable;
     }
