@@ -570,7 +570,7 @@ public class FileStore implements SegmentStore {
     // FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
     // We cannot determine the current GC generation before the FileStore is fully
     // initialised so just return 0 for now.
-    public int getGcGen() {
+    public int getGcGeneration() {
         if (head == null) {
             return 0;  // not fully initialised
         }
@@ -578,7 +578,7 @@ public class FileStore implements SegmentStore {
         if (headId == null) {
             return 0;  // not fully initialised
         }
-        return headId.getSegment().getGcGen();
+        return headId.getSegment().getGcGeneration();
     }
 
     public void maybeCompact(boolean cleanup) throws IOException {
@@ -863,7 +863,7 @@ public class FileStore implements SegmentStore {
      */
     public List<File> cleanup() throws IOException {
         return cleanup(new Predicate<Integer>() {
-            final int reclaimGeneration = getGcGen() - gcOptions.getRetainedGenerations();
+            final int reclaimGeneration = getGcGeneration() - gcOptions.getRetainedGenerations();
             @Override
             public boolean apply(Integer generation) {
                 return generation <= reclaimGeneration;
@@ -988,7 +988,7 @@ public class FileStore implements SegmentStore {
             fileStoreLock.writeLock().unlock();
         }
 
-        int minGeneration = getGcGen() - gcOptions.getRetainedGenerations() + 1;
+        int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
         for (TarReader tarReader : tarReaders) {
             tarReader.collectBlobReferences(tracker, collector, minGeneration);
         }
@@ -1067,7 +1067,7 @@ public class FileStore implements SegmentStore {
 
         // FIXME OAK-4279: Rework offline compaction
         // This way of compacting has no progress logging
-        final int gcGeneration = tracker.getGcGen() + 1;
+        final int gcGeneration = tracker.getGcGeneration() + 1;
         SegmentWriter writer = new SegmentWriter(this, version,
             new SegmentBufferWriter(this, version, "c", gcGeneration),
             new RecordCache<String>() {
@@ -1387,7 +1387,7 @@ public class FileStore implements SegmentStore {
     public void writeSegment(SegmentId id, byte[] data, int offset, int length) throws IOException {
         fileStoreLock.writeLock().lock();
         try {
-            int generation = Segment.getGcGen(wrap(data, offset, length), id.asUUID());
+            int generation = Segment.getGcGeneration(wrap(data, offset, length), id.asUUID());
             long size = writer.writeEntry(
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits(),

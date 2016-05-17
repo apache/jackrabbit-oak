@@ -324,7 +324,7 @@ public class Segment {
      * @param segmentId    the id of the segment
      * @return  the gc generation of this segment or 0 if this is bulk segment.
      */
-    public static int getGcGen(ByteBuffer data, UUID segmentId) {
+    public static int getGcGeneration(ByteBuffer data, UUID segmentId) {
         return isDataSegmentId(segmentId.getLeastSignificantBits())
             ? data.getInt(GC_GEN_OFFSET)
             : 0;
@@ -335,8 +335,8 @@ public class Segment {
      * generations (i.e. stay at 0).
      * @return  the gc generation of this segment or 0 if this is bulk segment.
      */
-    public int getGcGen() {
-        return getGcGen(data, id.asUUID());
+    public int getGcGeneration() {
+        return getGcGeneration(data, id.asUUID());
     }
 
     public RecordType getRootType(int index) {
@@ -686,7 +686,7 @@ public class Segment {
         writer.format("Segment %s (%d bytes)%n", id, length);
         String segmentInfo = getSegmentInfo();
         if (segmentInfo != null) {
-            writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGen());
+            writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGeneration());
         }
         if (id.isDataSegmentId()) {
             writer.println("--------------------------------------------------------------------------");
