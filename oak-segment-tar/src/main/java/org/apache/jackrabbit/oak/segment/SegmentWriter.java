@@ -182,6 +182,7 @@ public class SegmentWriter {
         writeOperationHandler.flush();
     }
 
+    @Nonnull
     MapRecord writeMap(final MapRecord base, final Map<String, RecordId> changes) throws IOException {
         return new MapRecord(
             writeOperationHandler.execute(new SegmentWriteOperation() {
@@ -192,6 +193,7 @@ public class SegmentWriter {
             }));
     }
 
+    @Nonnull
     public RecordId writeList(final List<RecordId> list) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
@@ -201,6 +203,7 @@ public class SegmentWriter {
         });
     }
 
+    @Nonnull
     public RecordId writeString(final String string) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
@@ -210,6 +213,7 @@ public class SegmentWriter {
         });
     }
 
+    @Nonnull
     SegmentBlob writeBlob(final Blob blob) throws IOException {
         return new SegmentBlob(
             writeOperationHandler.execute(new SegmentWriteOperation() {
@@ -228,6 +232,7 @@ public class SegmentWriter {
      * @param length number of bytes to write
      * @return block record identifier
      */
+    @Nonnull
     RecordId writeBlock(final byte[] bytes, final int offset, final int length) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
@@ -245,6 +250,7 @@ public class SegmentWriter {
      * @return blob for the passed {@code stream}
      * @throws IOException if the input stream could not be read or the output could not be written
      */
+    @Nonnull
     public SegmentBlob writeStream(final InputStream stream) throws IOException {
         return new SegmentBlob(
             writeOperationHandler.execute(new SegmentWriteOperation() {
@@ -255,6 +261,7 @@ public class SegmentWriter {
             }));
     }
 
+    @Nonnull
     SegmentPropertyState writeProperty(final PropertyState state) throws IOException {
         RecordId id = writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
@@ -299,7 +306,7 @@ public class SegmentWriter {
                     return with(writer).writeNode(state, 0);
                 }
             }));
-        } catch (SegmentWriteOperation.CancelledWriteException e) {
+        } catch (SegmentWriteOperation.CancelledWriteException ignore) {
             return null;
         }
     }
