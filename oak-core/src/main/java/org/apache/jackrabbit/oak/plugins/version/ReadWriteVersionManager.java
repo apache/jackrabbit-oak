@@ -42,9 +42,12 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 
@@ -78,12 +81,14 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     private final NodeBuilder versionStorageNode;
     private final NodeBuilder workspaceRoot;
+    private final TypePredicate isVersion;
     private ReadOnlyNodeTypeManager ntMgr;
 
     public ReadWriteVersionManager(NodeBuilder versionStorageNode,
                             NodeBuilder workspaceRoot) {
         this.versionStorageNode = checkNotNull(versionStorageNode);
         this.workspaceRoot = checkNotNull(workspaceRoot);
+        this.isVersion = new TypePredicate(workspaceRoot.getNodeState(), NT_VERSION);
     }
 
     @Nonnull
@@ -303,6 +308,18 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                     "Version label " + label + " does not exist on this version history");
         }
         labels.removeProperty(label);
+    }
+
+    /**
+     * Removes the version history if it's empty.
+     *
+     * @param versionable the versionable node.
+     */
+    void removeEmptyHistory(@Nonnull NodeState versionable) {
+        NodeBuilder history = getVersionHistory(versionable);
+        if (isEmptyHistory(history.getNodeState())) {
+            history.remove();
+        }
     }
 
     // TODO: more methods that modify versions
@@ -560,4 +577,55 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
         return null;
     }
+
+    /**
+     * Gets the version history for the given
+     * {@code versionable} node.
+     *
+     * @param versionable the versionable node.
+     * @return the version history node.
+     * @throws IllegalArgumentException if the given node does not have a
+     *                                  {@code jcr:uuid} property.
+     */
+    @Nonnull
+    private NodeBuilder getVersionHistory(@Nonnull NodeState versionable) {
+        checkNotNull(versionable);
+        String vUUID = uuidFromNode(versionable);
+        String relPath = getVersionHistoryPath(vUUID);
+        NodeBuilder node = versionStorageNode;
+        for (Iterator<String> it = PathUtils.elements(relPath).iterator(); it.hasNext(); ) {
+            String name = it.next();
+            node = node.getChildNode(name);
+            if (!node.exists()) {
+                throw new IllegalArgumentException("No version history for this node");
+            }
+        }
+        return node;
+    }
+
+    /**
+     * Checks whether the passed node history hasn't been modified since its
+     * creation. It means that: (1) there's just one version, called jcr:rootVersion
+     * and (2) there are no custom labels.
+     *
+     * @param versionHistory to test
+     * @return {@code true} if the version history hasn't been changed yet
+     */
+    private boolean isEmptyHistory(NodeState versionHistory) {
+        for (ChildNodeEntry entry : versionHistory.getChildNodeEntries()) {
+            String name = entry.getName();
+            NodeState node = entry.getNodeState();
+            if (!JCR_ROOTVERSION.equals(name) && isVersion.apply(node)) {
+                return false; // a checked-in version
+            }
+        }
+        NodeState labels = versionHistory.getChildNode(JCR_VERSIONLABELS);
+        for (PropertyState prop : labels.getProperties()) {
+            if (prop.getType() == Type.REFERENCE) {
+                return false; // custom label
+            }
+        }
+        return true;
+    }
+
 }

@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -32,6 +34,7 @@ import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -165,5 +168,51 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
         Tree t = versionManager.getVersionable(baseVersion, workspaceName);
         assertNotNull(t);
         assertFalse(t.exists());
+    }
+
+    @Test
+    public void testRemoveEmptyHistoryAfterRemovingVersionable() throws RepositoryException, CommitFailedException {
+        NodeUtil node = new NodeUtil(root.getTree("/"));
+        NodeUtil testVersionable = node.addChild("testVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        root.commit();
+
+        String historyPath = versionManager.getVersionHistory(testVersionable.getTree()).getPath();
+        assertTrue(root.getTree(historyPath).exists());
+
+        testVersionable.getTree().remove();
+        root.commit();
+
+        assertFalse(root.getTree(historyPath).exists());
+    }
+
+    @Test
+    public void testPreserveNonEmptyHistoryAfterRemovingVersionable() throws RepositoryException, CommitFailedException {
+        String historyPath = versionManager.getVersionHistory(versionable).getPath();
+        assertTrue(root.getTree(historyPath).exists());
+
+        versionable.remove();
+        root.commit();
+
+        assertTrue(root.getTree(historyPath).exists());
+    }
+
+    @Test
+    public void testPreserveHistoryAfterMovingVersionable() throws RepositoryException, CommitFailedException {
+        NodeUtil node = new NodeUtil(root.getTree("/"));
+        NodeUtil testVersionable = node.addChild("testVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        root.commit();
+
+        Tree history = versionManager.getVersionHistory(testVersionable.getTree());
+        assertTrue(history.exists());
+        String historyUuid = history.getProperty(JCR_UUID).getValue(Type.STRING);
+
+        assertTrue(root.move("/testVersionable", "/testVersionable2"));
+        root.commit();
+
+        history = versionManager.getVersionHistory(root.getTree("/testVersionable2"));
+        assertTrue(history.exists());
+        assertEquals(historyUuid, history.getProperty(JCR_UUID).getValue(Type.STRING));
     }
 }
