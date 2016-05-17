@@ -133,7 +133,7 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
     }
 
     //--------------------------------------------------------------------------
-    private final static class Status {
+    private static final class Status {
 
         private static final Status FALSE = new Status(false, false, false);
 
