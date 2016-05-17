@@ -1081,6 +1081,8 @@ public class FileStore implements SegmentStore {
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
         if (existing > 1) {
+            // FIXME OAK-4371: Overly zealous warning about checkpoints on compaction
+            // Make the number of checkpoints configurable above which the warning should be issued?
             gcMonitor.warn(
                     "TarMK GC #{}: compaction found {} checkpoints, you might need to run checkpoint cleanup",
                     GC_COUNT, existing);
