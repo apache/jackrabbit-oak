@@ -632,7 +632,7 @@ public class SegmentWriter {
         private RecordId writeBlob(Blob blob) throws IOException {
             if (hasSegment(blob)) {
                 SegmentBlob segmentBlob = (SegmentBlob) blob;
-                if (!isOldGen(segmentBlob.getRecordId())) {
+                if (!isOldGeneration(segmentBlob.getRecordId())) {
                     return segmentBlob.getRecordId();
                 }
             }
@@ -681,7 +681,7 @@ public class SegmentWriter {
                     // This is either not a segment stream or a one from another store:
                     // fully serialise the stream.
                     id = internalWriteStream(stream);
-                } else if (isOldGen(id)) {
+                } else if (isOldGeneration(id)) {
                     // This is a segment stream from this store but from an old generation:
                     // try to link to the blocks if there are any.
                     SegmentStream segmentStream = (SegmentStream) stream;
@@ -860,7 +860,7 @@ public class SegmentWriter {
                 if (hasSegment(sns)) {
                     // This is a segment node state from an old generation. Check whether
                     // an equivalent one of the current generation is in the cache
-                    if (isOldGen(sns.getRecordId())) {
+                    if (isOldGeneration(sns.getRecordId())) {
                         RecordId cachedId = nodeCache.get(sns.getStableId());
                         if (cachedId != null) {
                             return cachedId;
@@ -894,7 +894,7 @@ public class SegmentWriter {
                 if (base instanceof SegmentNodeState) {
                     SegmentNodeState sns = ((SegmentNodeState) base);
                     if (hasSegment(sns)) {
-                        if (!isOldGen(sns.getRecordId())) {
+                        if (!isOldGeneration(sns.getRecordId())) {
                             before = sns;
                             beforeTemplate = before.getTemplate();
                         }
@@ -940,7 +940,7 @@ public class SegmentWriter {
 
                 if (hasSegment(property)) {
                     RecordId pid = ((Record) property).getRecordId();
-                    if (isOldGen(pid)) {
+                    if (isOldGeneration(pid)) {
                         pIds.add(writeProperty(property));
                     } else {
                         pIds.add(pid);
@@ -998,8 +998,8 @@ public class SegmentWriter {
                 && (getTracker().isTracking(((Record) property).getRecordId().getSegmentId()));
         }
 
-        private boolean isOldGen(RecordId id) {
-            int thatGen = id.getSegment().getGcGen();
+        private boolean isOldGeneration(RecordId id) {
+            int thatGen = id.getSegment().getGcGeneration();
             int thisGen = writer.getGeneration();
             return thatGen < thisGen;
         }

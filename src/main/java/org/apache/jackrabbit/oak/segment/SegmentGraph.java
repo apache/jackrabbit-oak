@@ -535,7 +535,7 @@ public final class SegmentGraph {
                 }
                 Segment segment = getSegmentId().getSegment();
                 infoMap.put("size", valueOf(segment.size()));
-                infoMap.put("gc", valueOf(segment.getGcGen()));
+                infoMap.put("gc", valueOf(segment.getGcGeneration()));
                 return infoMap;
             } catch (SegmentNotFoundException e) {
                 return singletonMap("error", getStackTraceAsString(e));
