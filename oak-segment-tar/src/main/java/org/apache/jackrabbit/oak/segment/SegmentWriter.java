@@ -56,6 +56,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closeables;
@@ -63,7 +64,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
-import org.apache.jackrabbit.oak.segment.RecordCache.Cache;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -86,47 +86,7 @@ public class SegmentWriter {
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
-    private static final int STRING_RECORDS_CACHE_SIZE = Integer.getInteger(
-            "oak.segment.writer.stringsCacheSize", 15000);
-
-    /**
-     * Cache of recently stored string records, used to avoid storing duplicates
-     * of frequently occurring data.
-     */
-    private final RecordCache<String> stringCache =
-        STRING_RECORDS_CACHE_SIZE <= 0
-            ? RecordCache.<String>disabled()
-            : new RecordCache<String>() {
-                @Override
-                protected Cache<String> getCache(int generation) {
-                    return new LRUCache<String>(STRING_RECORDS_CACHE_SIZE);
-                }
-        };
-
-    private static final int TPL_RECORDS_CACHE_SIZE = Integer.getInteger(
-            "oak.segment.writer.templatesCacheSize", 3000);
-
-    /**
-     * Cache of recently stored template records, used to avoid storing
-     * duplicates of frequently occurring data.
-     */
-    private final RecordCache<Template> templateCache =
-        TPL_RECORDS_CACHE_SIZE <= 0
-            ? RecordCache.<Template>disabled()
-            : new RecordCache<Template>() {
-            @Override
-            protected Cache<Template> getCache(int generation) {
-                return new LRUCache<Template>(TPL_RECORDS_CACHE_SIZE);
-            }
-        };
-
-    private final RecordCache<String> nodeCache;
-
-    // FIXME OAK-4277: Finalise de-duplication caches
-    // Do we need a deduplication cache also for binaries?
-    // Probably/preferably not as long binaries are already de-duplicated
-    // by rewriting its list of block ids and because we should recommend
-    // using a data store for big binaries.
+    private final WriterCacheManager cacheManager;
 
     private final SegmentStore store;
 
@@ -144,38 +104,19 @@ public class SegmentWriter {
      * @param store      store to write to
      * @param version    segment version to write
      * @param writeOperationHandler  handler for write operations.
-     * @param nodeCache  de-duplication cache for nodes
      */
-    public SegmentWriter(SegmentStore store, SegmentVersion version, WriteOperationHandler writeOperationHandler,
-            RecordCache<String> nodeCache) {
+    public SegmentWriter(SegmentStore store, SegmentVersion version,
+                         WriteOperationHandler writeOperationHandler) {
         this.store = store;
         this.version = version;
         this.writeOperationHandler = writeOperationHandler;
-        this.nodeCache = nodeCache;
-    }
-
-    /**
-     * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
-     * pointed out in the class comment.
-     *
-     * @param store      store to write to
-     * @param version    segment version to write
-     * @param writeOperationHandler  handler for write operations.
-     */
-    public SegmentWriter(SegmentStore store, SegmentVersion version, WriteOperationHandler writeOperationHandler) {
-        this(store, version, writeOperationHandler, new RecordCache<String>());
+        this.cacheManager = new WriterCacheManager();
     }
 
     // FIXME OAK-4277: Finalise de-duplication caches
-    // There should be a cleaner way for adding the cached nodes from the compactor
-    public void addCachedNodes(int generation, Cache<String> cache) {
-        nodeCache.put(cache, generation);
-
-        // FIXME OAK-4277: Finalise de-duplication caches
-        // Find a better way to evict the cache from within the cache itself
-        stringCache.clearUpTo(generation - 1);
-        templateCache.clearUpTo(generation - 1);
-        nodeCache.clearUpTo(generation - 1);
+    // There should be a cleaner way to control the deduplication caches across gc generations
+    public void evictCaches(Predicate<Integer> evict) {
+        cacheManager.evictCaches(evict);
     }
 
     public void flush() throws IOException {
@@ -290,14 +231,18 @@ public class SegmentWriter {
     }
 
     /**
-     * Write a node state, unless cancelled
+     * Write a node state, unless cancelled using a dedicated write operation handler
      * @param state   node state to write
+     * @param writeOperationHandler  the write operation handler through which all write calls
+     *                               induced by by this call are routed.
      * @param cancel  supplier to signal cancellation of this write operation
      * @return segment node state equal to {@code state} or {@code null} if cancelled.
      * @throws IOException
      */
     @CheckForNull
-    public SegmentNodeState writeNode(final NodeState state, Supplier<Boolean> cancel)
+    public SegmentNodeState writeNode(final NodeState state,
+                                      WriteOperationHandler writeOperationHandler,
+                                      Supplier<Boolean> cancel)
     throws IOException {
         try {
             return new SegmentNodeState(writeOperationHandler.execute(new SegmentWriteOperation(cancel) {
@@ -331,9 +276,9 @@ public class SegmentWriter {
 
         private final Supplier<Boolean> cancel;
         private SegmentBufferWriter writer;
-        private Cache<String> stringCache;
-        private Cache<Template> templateCache;
-        private Cache<String> nodeCache;
+        private RecordCache<String> stringCache;
+        private RecordCache<Template> templateCache;
+        private NodeCache nodeCache;
 
         protected SegmentWriteOperation(Supplier<Boolean> cancel) {
             this.cancel = cancel;
@@ -350,9 +295,9 @@ public class SegmentWriter {
             checkState(this.writer == null);
             this.writer = writer;
             int generation = writer.getGeneration();
-            this.stringCache = SegmentWriter.this.stringCache.generation(generation);
-            this.templateCache = SegmentWriter.this.templateCache.generation(generation);
-            this.nodeCache = SegmentWriter.this.nodeCache.generation(generation);
+            this.stringCache = cacheManager.getStringCache(generation);
+            this.templateCache = cacheManager.getTemplateCache(generation);
+            this.nodeCache = cacheManager.getNodeCache(generation);
             return this;
         }
 
