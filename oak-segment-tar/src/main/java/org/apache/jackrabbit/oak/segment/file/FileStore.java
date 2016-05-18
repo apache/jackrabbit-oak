@@ -69,8 +69,6 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.segment.RecordCache;
-import org.apache.jackrabbit.oak.segment.RecordCache.DeduplicationCache;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
@@ -82,7 +80,6 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -1061,22 +1058,6 @@ public class FileStore implements SegmentStore {
         gcMonitor.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
         Stopwatch watch = Stopwatch.createStarted();
 
-        // FIXME OAK-4277: Finalise de-duplication caches
-        // Make the capacity and initial depth of the deduplication cache configurable
-        final DeduplicationCache<String> nodeCache = new DeduplicationCache<String>(1000000, 20);
-
-        // FIXME OAK-4279: Rework offline compaction
-        // This way of compacting has no progress logging
-        final int gcGeneration = tracker.getGcGeneration() + 1;
-        SegmentWriter writer = new SegmentWriter(this, version,
-            new SegmentBufferWriter(this, version, "c", gcGeneration),
-            new RecordCache<String>() {
-                @Override
-                protected Cache<String> getCache(int generation) {
-                    return nodeCache;
-                }
-            });
-
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
@@ -1088,8 +1069,11 @@ public class FileStore implements SegmentStore {
                     GC_COUNT, existing);
         }
 
+        final int newGeneration = tracker.getGcGeneration() + 1;
+        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
+                this, version, "c", newGeneration);
         Supplier<Boolean> cancel = newCancelCompactionCondition();
-        SegmentNodeState after = compact(writer, before, cancel);
+        SegmentNodeState after = compact(bufferWriter, before, cancel);
         if (after == null) {
             gcMonitor.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
             return false;
@@ -1101,15 +1085,14 @@ public class FileStore implements SegmentStore {
         try {
             int cycles = 0;
             boolean success = false;
-            while (cycles++ < gcOptions.getRetryCount()
-                && !(success = setHead(before, after))) {
+            while (cycles++ < gcOptions.getRetryCount() && !(success = setHead(before, after))) {
                 // Some other concurrent changes have been made.
                 // Rebase (and compact) those changes on top of the
                 // compacted state before retrying to set the head.
                 gcMonitor.info("TarMK GC #{}: compaction detected concurrent commits while compacting. " +
                     "Compacting these commits. Cycle {}", GC_COUNT, cycles);
                 SegmentNodeState head = getHead();
-                after = compact(writer, head, cancel);
+                after = compact(bufferWriter, head, cancel);
                 if (after == null) {
                     gcMonitor.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
                     return false;
@@ -1119,21 +1102,13 @@ public class FileStore implements SegmentStore {
                         GC_COUNT, head.getRecordId(), before.getRecordId(), after.getRecordId());
                 before = head;
             }
-            if (success) {
-                tracker.getWriter().addCachedNodes(gcGeneration, nodeCache);
-                // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
-                // ith clean brutal we need to remove those ids that have been cleaned
-                // i.e. those whose segment was from an old generation
-                tracker.clearSegmentIdTables(Predicates.<SegmentId>alwaysFalse());
-                // FIXME OAK-4283: Align GCMonitor API with implementation
-                // Refactor GCMonitor: there is no more compaction map stats
-                gcMonitor.compacted(new long[]{}, new long[]{}, new long[]{});
-            } else {
+            if (!success) {
                 gcMonitor.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
                         GC_COUNT, cycles - 1);
                 if (gcOptions.getForceAfterFail()) {
                     gcMonitor.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
-                    if (!forceCompact(writer, cancel)) {
+                    success = forceCompact(bufferWriter, cancel);
+                    if (!success) {
                         gcMonitor.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
                             "Most likely compaction didn't get exclusive access to the store or was " +
                             "prematurely cancelled. Cleaning up.",
@@ -1141,17 +1116,44 @@ public class FileStore implements SegmentStore {
                         cleanup(new Predicate<Integer>() {
                             @Override
                             public boolean apply(Integer generation) {
-                                return generation == gcGeneration;
+                                return generation == newGeneration;
                             }
                         });
-                        return false;
                     }
                 }
             }
 
-            gcMonitor.info("TarMK GC #{}: compaction completed in {} ({} ms), after {} cycles",
-                    GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
-            return true;
+            if (success) {
+                tracker.getWriter().evictCaches(new Predicate<Integer>() {
+                    @Override
+                    public boolean apply(Integer generation) {
+                        return generation < newGeneration;
+                    }
+                });
+
+                // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
+                // ith clean brutal we need to remove those ids that have been cleaned
+                // i.e. those whose segment was from an old generation
+                tracker.clearSegmentIdTables(Predicates.<SegmentId>alwaysFalse());
+
+                // FIXME OAK-4283: Align GCMonitor API with implementation
+                // Refactor GCMonitor: there is no more compaction map stats
+                gcMonitor.compacted(new long[]{}, new long[]{}, new long[]{});
+
+                gcMonitor.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
+                return true;
+            } else {
+                tracker.getWriter().evictCaches(new Predicate<Integer>() {
+                    @Override
+                    public boolean apply(Integer generation) {
+                        return generation == newGeneration;
+                    }
+                });
+                gcMonitor.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
+                return false;
+            }
         } catch (InterruptedException e) {
             gcMonitor.error("TarMK GC #" + GC_COUNT + ": compaction interrupted", e);
             currentThread().interrupt();
@@ -1162,22 +1164,22 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    private static SegmentNodeState compact(SegmentWriter writer, NodeState node,
-                                            Supplier<Boolean> cancel)
+    private SegmentNodeState compact(SegmentBufferWriter bufferWriter, NodeState node,
+                                     Supplier<Boolean> cancel)
     throws IOException {
-        SegmentNodeState compacted = writer.writeNode(node, cancel);
+        SegmentNodeState compacted = tracker.getWriter().writeNode(node, bufferWriter, cancel);
         if (compacted != null) {
-            writer.flush();
+            bufferWriter.flush();
         }
         return compacted;
     }
 
-    private boolean forceCompact(SegmentWriter writer, Supplier<Boolean> cancel)
+    private boolean forceCompact(SegmentBufferWriter bufferWriter, Supplier<Boolean> cancel)
     throws InterruptedException, IOException {
         if (rwLock.writeLock().tryLock(gcOptions.getLockWaitTime(), TimeUnit.SECONDS)) {
             try {
                 SegmentNodeState head = getHead();
-                SegmentNodeState after = compact(writer, head, cancel);
+                SegmentNodeState after = compact(bufferWriter, head, cancel);
                 if (after == null) {
                     gcMonitor.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
                     return false;
