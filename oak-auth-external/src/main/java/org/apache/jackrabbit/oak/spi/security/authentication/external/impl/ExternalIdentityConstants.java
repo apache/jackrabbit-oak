@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 
 /**
@@ -51,9 +50,10 @@ public interface ExternalIdentityConstants {
     /**
      * Name of the property storing the principal names of the external groups
      * a given external identity (user) is member. Not that the set depends on
-     * the configured nesting {@link DefaultSyncConfig.User#getMembershipNestingDepth() depth}.
+     * the configured nesting
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.User#getMembershipNestingDepth() depth}.
      * The existence of this property is optional and will only be created if
-     * {@link DefaultSyncConfig.User#getDynamicMembership()} is turned on.
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.User#getDynamicMembership()} is turned on.
      *
      * This property is of type {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.
      * Please note, that for security reasons is system maintained and protected

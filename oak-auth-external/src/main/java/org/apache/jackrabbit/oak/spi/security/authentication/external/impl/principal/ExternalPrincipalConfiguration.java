@@ -154,7 +154,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
      * Implementation of the {@code PrincipalProvider} interface that never
      * returns any principals.
      */
-    private final static class EmptyPrincipalProvider implements PrincipalProvider {
+    private static final class EmptyPrincipalProvider implements PrincipalProvider {
 
         private static final PrincipalProvider INSTANCE = new EmptyPrincipalProvider();
 
