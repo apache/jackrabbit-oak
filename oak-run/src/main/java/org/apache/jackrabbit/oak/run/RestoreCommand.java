@@ -19,13 +19,43 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
 
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 
 class RestoreCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        FileStoreRestore.restore(new File(args[1]), new File(args[0]));
+        OptionParser parser = new OptionParser();
+
+        OptionSpec<File> folders = parser
+                .nonOptions("target and source folders")
+                .ofType(File.class);
+
+        OptionSpec<Boolean> segmentTar = parser
+                .accepts("segment-tar", "use new segment store implementation")
+                .withOptionalArg()
+                .ofType(Boolean.class)
+                .defaultsTo(false);
+
+        OptionSet options = parser.parse(args);
+
+        if (folders.values(options).size() < 2) {
+            parser.printHelpOn(System.err);
+            System.exit(1);
+        }
+
+        File target = folders.values(options).get(0);
+        File source = folders.values(options).get(1);
+
+        if (segmentTar.value(options) == Boolean.TRUE) {
+            SegmentTarUtils.restore(source, target);
+        } else {
+            SegmentUtils.restore(source, target);
+        }
+
     }
 
 }

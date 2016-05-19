@@ -26,6 +26,7 @@ import java.io.IOException;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -58,6 +59,10 @@ class SegmentTarUtils {
         } finally {
             closer.close();
         }
+    }
+
+    static void restore(File source, File target) throws IOException {
+        FileStoreRestore.restore(source, target);
     }
 
     private static FileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException {
