@@ -29,28 +29,18 @@ class RestoreCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-
-        OptionSpec<File> folders = parser
-                .nonOptions("target and source folders")
-                .ofType(File.class);
-
-        OptionSpec<Boolean> segmentTar = parser
-                .accepts("segment-tar", "use new segment store implementation")
-                .withOptionalArg()
-                .ofType(Boolean.class)
-                .defaultsTo(false);
-
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use new segment store implementation");
         OptionSet options = parser.parse(args);
 
-        if (folders.values(options).size() < 2) {
-            parser.printHelpOn(System.err);
+        if (options.nonOptionArguments().size() < 2) {
+            System.err.println("This command requires a target and a source folder");
             System.exit(1);
         }
 
-        File target = folders.values(options).get(0);
-        File source = folders.values(options).get(1);
+        File target = new File(options.nonOptionArguments().get(0).toString());
+        File source = new File(options.nonOptionArguments().get(1).toString());
 
-        if (segmentTar.value(options) == Boolean.TRUE) {
+        if (options.has(segmentTar)) {
             SegmentTarUtils.restore(source, target);
         } else {
             SegmentUtils.restore(source, target);
