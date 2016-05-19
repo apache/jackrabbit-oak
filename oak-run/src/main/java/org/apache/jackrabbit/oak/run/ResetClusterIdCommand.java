@@ -47,7 +47,7 @@ import com.mongodb.MongoURI;
  * Target use case for this tool is to avoid duplicate 
  * clusterIds after a repository was cloned.
  */
-public class ResetClusterIdCommand implements Command {
+class ResetClusterIdCommand implements Command {
 
     private static void deleteClusterId(NodeStore store) {
         NodeBuilder builder = store.getRoot().builder();
