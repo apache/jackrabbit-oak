@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.console;
 
-import java.io.Closeable;
+import static java.util.Arrays.asList;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -26,11 +27,9 @@ import javax.sql.DataSource;
 
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -43,8 +42,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.codehaus.groovy.tools.shell.IO;
-
-import static java.util.Arrays.asList;
 
 /**
  * A command line console.
@@ -59,6 +56,7 @@ public class Console {
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
         OptionSpec readWrite = parser.accepts("read-write", "connect to repository in read-write mode");
         OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use the new segment store implementation");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
         // RDB specific options
@@ -125,6 +123,8 @@ public class Console {
             }
             DocumentNodeStore store = builder.getNodeStore();
             fixture = new MongoFixture(store);
+        } else if (options.has(segmentTar)) {
+            fixture = SegmentTarFixture.create(new File(nonOptions.get(0)), readOnly, blobStore);
         } else {
             FileStore.Builder fsBuilder = FileStore.builder(new File(nonOptions.get(0))).withMaxFileSize(256);
             if (blobStore != null) {
@@ -164,10 +164,6 @@ public class Console {
         }
 
         System.exit(code);
-    }
-
-    private static interface NodeStoreFixture extends Closeable{
-        NodeStore getStore();
     }
 
     private static class MongoFixture implements NodeStoreFixture {
