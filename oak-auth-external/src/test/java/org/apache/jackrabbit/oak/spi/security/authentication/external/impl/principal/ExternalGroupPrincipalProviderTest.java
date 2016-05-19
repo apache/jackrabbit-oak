@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdenti
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DynamicSyncContext;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -345,6 +346,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         assertSame(Iterators.emptyIterator(), iter);
     }
 
+    @Ignore("OAK-4382")
     @Test
     public void testFindPrincipalsByHintTypeGroup() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
