@@ -52,6 +52,10 @@ public abstract class OakFixture {
     public static final String OAK_TAR = "Oak-Tar";
     public static final String OAK_TAR_FDS = "Oak-Tar-FDS";
 
+    public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
+
+    public static final String OAK_SEGMENT_TAR_FDS = "Oak-Segment-Tar-FDS";
+
 
     private final String name;
     protected final String unique;
@@ -324,6 +328,10 @@ public abstract class OakFixture {
         return new SegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore);
     }
 
+    public static OakFixture getSegmentTar(final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final boolean useBlobStore) {
+        return new SegmentTarFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore);
+    }
+
     public static class SegmentFixture extends OakFixture {
         private FileStore[] stores;
         private BlobStoreFixture[] blobStoreFixtures = new BlobStoreFixture[0];
@@ -401,9 +409,9 @@ public abstract class OakFixture {
             return stores;
         }
     }
-    
-    private static Oak newOak(NodeStore nodeStore) {
-    	return new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
+
+    static Oak newOak(NodeStore nodeStore) {
+        return new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
     }    
 
 }
