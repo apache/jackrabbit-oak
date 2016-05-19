@@ -24,6 +24,22 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-4376
+
+xpath2sql //element(*, oak:QueryIndexDefinition)/*
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
+  from [oak:QueryIndexDefinition] as a
+  inner join [nt:base] as b
+  on ischildnode(b, a)
+  /* xpath ... */
+
+xpath2sql //element(*, oak:QueryIndexDefinition)//*
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
+  from [oak:QueryIndexDefinition] as a
+  inner join [nt:base] as b
+  on isdescendantnode(b, a)
+  /* xpath ... */
+
 # nested conditions are converted to union
 
 xpath2sql /jcr:root/test//element(*, nt:unstructured)[

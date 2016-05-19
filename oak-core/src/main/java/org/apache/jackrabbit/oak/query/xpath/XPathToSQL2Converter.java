@@ -162,6 +162,10 @@ public class XPathToSQL2Converter {
             } else if (readIf("/")) {
                 // "//" was read
                 pathPattern += "%";
+                if (currentSelector.isDescendant) {
+                    // the query started with "//", and now "//" was read
+                    nextSelector(true);
+                }
                 currentSelector.isDescendant = true;
             } else {
                 // the token "/" was read
@@ -169,6 +173,10 @@ public class XPathToSQL2Converter {
                 if (startOfQuery) {
                     currentSelector.path = "/";
                 } else {
+                    if (currentSelector.isDescendant) {
+                        // the query started with "//", and now "/" was read
+                        nextSelector(true);
+                    }
                     currentSelector.isChild = true;
                 }
             }
