@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
+
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -96,6 +97,13 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return new OakRepositoryFixture(OakFixture.getTar(OakFixture.OAK_TAR_FDS,base, maxFileSizeMB, cacheSizeMB, memoryMapping, true));
     }
 
+    public static RepositoryFixture getSegmentTar(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
+        return new OakRepositoryFixture(OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
+    }
+
+    public static RepositoryFixture getSegmentTarWithBlobStore(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
+        return new OakRepositoryFixture(OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR_FDS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, true));
+    }
 
     private final OakFixture oakFixture;
     private Repository[] cluster;
