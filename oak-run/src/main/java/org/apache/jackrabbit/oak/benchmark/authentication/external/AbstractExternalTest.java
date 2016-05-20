@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
@@ -63,6 +64,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -84,6 +87,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 abstract class AbstractExternalTest extends AbstractTest {
 
     private static final String PATH_PREFIX = "pathPrefix";
+
+    private final Random random = new Random();
+    private final ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
+
     final DefaultSyncConfig syncConfig = new DefaultSyncConfig();
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
 
@@ -91,8 +98,6 @@ abstract class AbstractExternalTest extends AbstractTest {
 
     SyncManagerImpl syncManager;
     ExternalIdentityProviderManager idpManager;
-
-    private final Random random = new Random();
 
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
                                    long expTime, boolean dynamicMembership,
@@ -173,6 +178,20 @@ abstract class AbstractExternalTest extends AbstractTest {
                     whiteboard.register(ExternalIdentityProvider.class, idp, Collections.emptyMap());
                     whiteboard.register(SyncHandler.class, syncHandler, Collections.emptyMap());
 
+                    // assert proper init of the 'externalPrincipalConfiguration' if dynamic membership is enabled
+                    if (syncConfig.user().getDynamicMembership()) {
+                        OsgiContext context = new OsgiContext();
+
+                        // register the ExternalPrincipal configuration in order to have it's
+                        // activate method invoked.
+                        context.registerInjectActivateService(externalPrincipalConfiguration);
+
+                        // now register the sync-handler with the dynamic membership config
+                        // in order to enable dynamic membership with the external principal configuration
+                        Map props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
+                        context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
+                    }
+
                     SecurityProvider sp = new TestSecurityProvider(ConfigurationParameters.EMPTY);
                     return new Jcr(oak).with(sp);
                 }
@@ -190,7 +209,7 @@ abstract class AbstractExternalTest extends AbstractTest {
                 throw new IllegalStateException();
             } else {
                 PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
-                bindPrincipalConfiguration((new ExternalPrincipalConfiguration(this)));
+                bindPrincipalConfiguration(externalPrincipalConfiguration);
                 bindPrincipalConfiguration(defConfig);
             }
         }
