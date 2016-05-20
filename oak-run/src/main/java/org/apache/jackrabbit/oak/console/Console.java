@@ -56,7 +56,7 @@ public class Console {
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
         OptionSpec readWrite = parser.accepts("read-write", "connect to repository in read-write mode");
         OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use the new segment store implementation");
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
         // RDB specific options

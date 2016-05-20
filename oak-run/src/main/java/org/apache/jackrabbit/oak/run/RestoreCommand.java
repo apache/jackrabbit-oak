@@ -29,7 +29,7 @@ class RestoreCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use new segment store implementation");
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().size() < 2) {
