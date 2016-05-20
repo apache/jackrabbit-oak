@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.junit.After;
 import org.junit.Before;
 
@@ -53,8 +54,8 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     protected static final String TEST_CONSTANT_PROPERTY_VALUE = "constant-value";
 
     protected ExternalIdentityProvider idp;
-
     protected DefaultSyncConfig syncConfig;
+    protected ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
 
     private Set<String> ids;
 
@@ -124,7 +125,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new TestSecurityProvider(getSecurityConfigParameters());
+            securityProvider = new TestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
         }
         return securityProvider;
     }

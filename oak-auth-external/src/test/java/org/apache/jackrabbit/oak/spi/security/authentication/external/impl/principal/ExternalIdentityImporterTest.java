@@ -67,7 +67,7 @@ public class ExternalIdentityImporterTest {
 
     @Before
     public void before() throws Exception {
-        securityProvider = new TestSecurityProvider(getConfigurationParameters());
+        securityProvider = new TestSecurityProvider(getConfigurationParameters(), new ExternalPrincipalConfiguration());
         Jcr jcr = new Jcr();
         jcr.with(securityProvider);
         repo = jcr.createRepository();

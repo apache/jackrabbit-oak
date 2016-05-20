@@ -16,16 +16,29 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.security.Principal;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -36,11 +49,23 @@ import static org.junit.Assert.assertTrue;
 
 public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModuleTest {
 
+    @Rule
+    public final OsgiContext context = new OsgiContext();
+
     @Override
     public void before() throws Exception {
         super.before();
 
         syncConfig.user().setDynamicMembership(true);
+
+        // register the ExternalPrincipal configuration in order to have it's
+        // activate method invoked.
+        context.registerInjectActivateService(externalPrincipalConfiguration);
+
+        // now register the sync-handler with the dynamic membership config
+        // in order to enable dynamic membership with the external principal configuration
+        Map props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
+        context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
     }
 
     private void assertExternalPrincipalNames(@Nonnull UserManager userMgr, @Nonnull String id) throws Exception {
@@ -66,6 +91,43 @@ public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModul
             ExternalIdentity groupIdentity = idp.getIdentity(ref);
             expected.add(groupIdentity.getPrincipalName());
             calcExpectedPrincipalNames(groupIdentity, depth-1, expected);
+        }
+    }
+
+    @Test
+    public void testLoginPopulatesPrincipals() throws Exception {
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, new char[0]));
+
+            Set<String> expectedExternal = new HashSet<String>();
+            calcExpectedPrincipalNames(idp.getUser(USER_ID), syncConfig.user().getMembershipNestingDepth(), expectedExternal);
+
+            Set<Principal> principals = new HashSet<Principal>(cs.getAuthInfo().getPrincipals());
+
+            root.refresh();
+            PrincipalManager principalManager = getPrincipalManager(root);
+            for (String pName : expectedExternal) {
+                Principal p = principalManager.getPrincipal(pName);
+                assertNotNull(p);
+                assertTrue(principals.remove(p));
+            }
+
+            UserManager uMgr = getUserManager(root);
+            User u = uMgr.getAuthorizable(USER_ID, User.class);
+            assertTrue(principals.remove(u.getPrincipal()));
+
+            Iterator<Group> it = u.memberOf();
+            assertFalse(it.hasNext());
+
+            assertTrue(principals.remove(EveryonePrincipal.getInstance()));
+            assertTrue(principals.isEmpty());
+
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
         }
     }
 
@@ -184,5 +246,4 @@ public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModul
             options.clear();
         }
     }
-
 }
