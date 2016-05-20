@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
+import java.util.List;
+import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -34,8 +36,9 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
  */
 public class ExternalLoginTest extends AbstractExternalTest {
 
-    public ExternalLoginTest(int numberofUsers, int numberofGroups, long expTime, boolean dynamicMembership) {
-        super(numberofUsers, numberofGroups, expTime, dynamicMembership);
+    public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime,
+                             boolean dynamicMembership, @Nonnull List<String> autoMembership) {
+        super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
     }
 
     @Override
