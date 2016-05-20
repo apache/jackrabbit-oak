@@ -27,7 +27,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TestSecurityProvider extends SecurityProviderImpl {
-    public TestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
+
+    public TestSecurityProvider(@Nonnull ConfigurationParameters configuration, @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
         super(configuration);
 
         PrincipalConfiguration principalConfiguration = getConfiguration(PrincipalConfiguration.class);
@@ -35,7 +36,7 @@ public class TestSecurityProvider extends SecurityProviderImpl {
             throw new IllegalStateException();
         } else {
             PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
-            bindPrincipalConfiguration((new ExternalPrincipalConfiguration(this)));
+            bindPrincipalConfiguration(externalPrincipalConfiguration);
             bindPrincipalConfiguration(defConfig);
         }
     }
