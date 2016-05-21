@@ -1651,8 +1651,8 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if (!success && shouldRetry) {
                 data = ser.asString(document);
-                success = db.update(connection, tmd, document.getId(), modified, hasBinary, deletedOnce, modcount, cmodcount,
-                        oldmodcount, data);
+                success = db.update(connection, tmd, document.getId(), modified, modifiedIsConditional, hasBinary, deletedOnce,
+                        modcount, cmodcount, oldmodcount, data);
                 connection.commit();
             }
             return success;
