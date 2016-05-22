@@ -433,6 +433,30 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testModifiedMaxUpdateQuery2() {
+        // test for https://issues.apache.org/jira/browse/OAK-4388
+        String id = this.getClass().getName() + ".testModifiedMaxUpdate2";
+        // create a test node
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set("_modified", 1000L);
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        removeMe.add(id);
+
+        for (int i = 0; i < 25; i++) {
+            // update with smaller _modified
+            UpdateOp up2 = new UpdateOp(id, true);
+            up2.set("_id", id);
+            up2.max("_modified", 100L);
+            super.ds.findAndUpdate(Collection.NODES, up2);
+            super.ds.invalidateCache();
+            NodeDocument doc = super.ds.find(Collection.NODES, id, 0);
+            assertEquals("modified should not have been set back (test iteration " + i + ")", 1000, (long)doc.getModified());
+        }
+    }
+
+    @Test
     public void testModifyModified() {
         // https://issues.apache.org/jira/browse/OAK-2940
         String id = this.getClass().getName() + ".testModifyModified";
