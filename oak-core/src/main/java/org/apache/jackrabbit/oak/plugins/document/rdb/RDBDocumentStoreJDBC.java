@@ -509,17 +509,24 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public boolean update(Connection connection, RDBTableMetaData tmd, String id, Long modified, Boolean hasBinary,
-            Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
-        String t = "update " + tmd.getName()
-                + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?";
+    public boolean update(Connection connection, RDBTableMetaData tmd, String id, Long modified, boolean setModifiedConditionally,
+            Boolean hasBinary, Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data)
+            throws SQLException {
+
+        StringBuilder t = new StringBuilder();
+        t.append("update " + tmd.getName() + " set ");
+        t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
+        t.append("HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?");
         if (oldmodcount != null) {
-            t += " and MODCOUNT = ?";
+            t.append(" and MODCOUNT = ?");
         }
-        PreparedStatement stmt = connection.prepareStatement(t);
+        PreparedStatement stmt = connection.prepareStatement(t.toString());
         try {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
+            if (setModifiedConditionally) {
+                stmt.setObject(si++, modified, Types.BIGINT);
+            }
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
