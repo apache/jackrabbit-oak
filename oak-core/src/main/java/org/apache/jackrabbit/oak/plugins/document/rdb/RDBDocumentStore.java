@@ -1619,6 +1619,9 @@ public class RDBDocumentStore implements DocumentStore {
             Arrays.asList(new Key[] { new Key(NodeDocument.HAS_BINARY_FLAG, null), new Key(NodeDocument.DELETED_ONCE, null) }));
 
     private static boolean isAppendableUpdate(UpdateOp update, boolean batched) {
+        if (NOAPPEND) {
+            return false;
+        }
         if (batched) {
             // Detect update operations not supported when doing batch updates
             for (Key key : update.getChanges().keySet()) {
@@ -1705,6 +1708,9 @@ public class RDBDocumentStore implements DocumentStore {
     // Whether to use GZIP compression
     private static final boolean NOGZIP = Boolean
             .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
+    // Whether to use append operations (string concatenation) in the DATA column
+    private static final boolean NOAPPEND = Boolean
+            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND");
     // Number of documents to insert at once for batch create
     private static final int CHUNKSIZE = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
