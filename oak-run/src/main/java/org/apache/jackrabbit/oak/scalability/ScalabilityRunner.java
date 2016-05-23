@@ -145,6 +145,10 @@ public class ScalabilityRunner {
                     base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getTarWithBlobStore(
                     base.value(options), 256, cacheSize, mmap.value(options)),
+                OakRepositoryFixture.getSegmentTar(
+                        base.value(options), 256, cacheSize, mmap.value(options)),
+                OakRepositoryFixture.getSegmentTarWithBlobStore(
+                        base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                     dropDBAfterTest.value(options), cacheSize * MB),
