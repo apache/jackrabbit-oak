@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.run;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openReadOnlyFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
@@ -31,7 +32,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -40,6 +43,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +52,8 @@ import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.explorer.NodeStoreTree;
@@ -62,7 +68,9 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -134,6 +142,75 @@ class SegmentUtils {
 
     static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException {
         checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
+    }
+
+    static void compact(File directory, boolean force) throws IOException {
+        FileStore store = openFileStore(directory.getAbsolutePath(), force);
+        try {
+            boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
+            System.out.println("Compacting " + directory);
+            System.out.println("    before " + Arrays.toString(directory.list()));
+            long sizeBefore = FileUtils.sizeOfDirectory(directory);
+            System.out.println("    size "
+                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
+                    + " bytes)");
+
+            System.out.println("    -> compacting");
+
+            CompactionStrategy compactionStrategy = new CompactionStrategy(
+                    false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
+                    CompactionStrategy.CleanupType.CLEAN_ALL, 0,
+                    CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+
+                @Override
+                public boolean compacted(Callable<Boolean> setHead)
+                        throws Exception {
+                    // oak-run is doing compaction single-threaded
+                    // hence no guarding needed - go straight ahead
+                    // and call setHead
+                    return setHead.call();
+                }
+            };
+            compactionStrategy.setOfflineCompaction(true);
+            compactionStrategy.setPersistCompactionMap(persistCM);
+            store.setCompactionStrategy(compactionStrategy);
+            store.compact();
+        } finally {
+            store.close();
+        }
+
+        System.out.println("    -> cleaning up");
+        store = openFileStore(directory.getAbsolutePath(), false);
+        try {
+            for (File file : store.cleanup()) {
+                if (!file.exists() || file.delete()) {
+                    System.out.println("    -> removed old file " + file.getName());
+                } else {
+                    System.out.println("    -> failed to remove old file " + file.getName());
+                }
+            }
+
+            String head;
+            File journal = new File(directory, "journal.log");
+            JournalReader journalReader = new JournalReader(journal);
+            try {
+                head = journalReader.iterator().next() + " root " + System.currentTimeMillis() + "\n";
+            } finally {
+                journalReader.close();
+            }
+
+            RandomAccessFile journalFile = new RandomAccessFile(journal, "rw");
+            try {
+                System.out.println("    -> writing new " + journal.getName() + ": " + head);
+                journalFile.setLength(0);
+                journalFile.writeBytes(head);
+                journalFile.getChannel().force(false);
+            } finally {
+                journalFile.close();
+            }
+        } finally {
+            store.close();
+        }
     }
 
     private static void debugFileStore(FileStore store) {

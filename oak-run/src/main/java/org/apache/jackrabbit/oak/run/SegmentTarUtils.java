@@ -21,6 +21,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
 import static com.google.common.escape.Escapers.builder;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.checkFileStoreVersionOrFail;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
@@ -34,7 +35,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -53,11 +56,13 @@ import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -72,6 +77,7 @@ import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -151,6 +157,56 @@ class SegmentTarUtils {
 
     static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException {
         checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
+    }
+
+    static void compact(File directory, boolean force) throws IOException {
+        FileStore store = openFileStore(directory.getAbsolutePath(), force);
+        try {
+            boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
+            System.out.println("Compacting " + directory);
+            System.out.println("    before " + Arrays.toString(directory.list()));
+            long sizeBefore = FileUtils.sizeOfDirectory(directory);
+            System.out.println("    size "
+                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
+                    + " bytes)");
+            System.out.println("    -> compacting");
+            store.compact();
+        } finally {
+            store.close();
+        }
+
+        System.out.println("    -> cleaning up");
+        store = openFileStore(directory.getAbsolutePath(), false);
+        try {
+            for (File file : store.cleanup()) {
+                if (!file.exists() || file.delete()) {
+                    System.out.println("    -> removed old file " + file.getName());
+                } else {
+                    System.out.println("    -> failed to remove old file " + file.getName());
+                }
+            }
+
+            String head;
+            File journal = new File(directory, "journal.log");
+            JournalReader journalReader = new JournalReader(journal);
+            try {
+                head = journalReader.iterator().next() + " root " + System.currentTimeMillis() + "\n";
+            } finally {
+                journalReader.close();
+            }
+
+            RandomAccessFile journalFile = new RandomAccessFile(journal, "rw");
+            try {
+                System.out.println("    -> writing new " + journal.getName() + ": " + head);
+                journalFile.setLength(0);
+                journalFile.writeBytes(head);
+                journalFile.getChannel().force(false);
+            } finally {
+                journalFile.close();
+            }
+        } finally {
+            store.close();
+        }
     }
 
     private static void debugFileStore(FileStore store) {
@@ -415,6 +471,12 @@ class SegmentTarUtils {
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .buildReadOnly();
+    }
+
+    private static FileStore openFileStore(String directory, boolean force) throws IOException {
+        return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
+                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).build();
     }
 
     private static Closeable asCloseable(final FileStore fs) {
