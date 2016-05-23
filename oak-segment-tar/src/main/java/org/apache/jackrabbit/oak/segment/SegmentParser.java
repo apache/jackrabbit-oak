@@ -428,12 +428,12 @@ public class SegmentParser {
         RecordId templateId = segment.readRecordId(offset);
         onTemplate(nodeId, templateId);
 
-        Template template = store.getReader().readTemplate(store, templateId);
+        Template template = store.getReader().readTemplate(templateId);
 
         // Recurses into child nodes in this segment
         if (template.getChildName() == MANY_CHILD_NODES) {
             RecordId childMapId = segment.readRecordId(offset + RECORD_ID_BYTES);
-            MapRecord childMap = store.getReader().readMap(store, childMapId);
+            MapRecord childMap = store.getReader().readMap(childMapId);
             onMap(nodeId, childMapId, childMap);
             for (ChildNodeEntry childNodeEntry : childMap.getEntries()) {
                 NodeState child = childNodeEntry.getNodeState();
