@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -180,7 +181,7 @@ abstract class AbstractExternalTest extends AbstractTest {
 
                     // assert proper init of the 'externalPrincipalConfiguration' if dynamic membership is enabled
                     if (syncConfig.user().getDynamicMembership()) {
-                        OsgiContext context = new OsgiContext();
+                        OsgiContextImpl context = new OsgiContextImpl();
 
                         // register the ExternalPrincipal configuration in order to have it's
                         // activate method invoked.
