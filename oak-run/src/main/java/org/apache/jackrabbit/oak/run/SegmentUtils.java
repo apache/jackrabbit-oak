@@ -18,6 +18,10 @@
 package org.apache.jackrabbit.oak.run;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
+import static com.google.common.escape.Escapers.builder;
+import static javax.jcr.PropertyType.BINARY;
+import static javax.jcr.PropertyType.STRING;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
@@ -25,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openRead
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper.getTemplateId;
 import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -53,6 +58,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -64,18 +72,23 @@ import org.apache.jackrabbit.oak.plugins.segment.PCMAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class SegmentUtils {
+
+    private final static int MAX_CHAR_DISPLAY = Integer.getInteger("max.char.display", 60);
 
     private SegmentUtils() {
         // Prevent instantiation
@@ -315,7 +328,7 @@ class SegmentUtils {
             if (hasrefs) {
                 System.out.println("SegmentNodeState references to " + f);
                 List<String> paths = new ArrayList<String>();
-                NodeStoreTree.filterNodeStates(uuids, paths, store.getHead(),
+                filterNodeStates(uuids, paths, store.getHead(),
                         "/");
                 for (String p : paths) {
                     System.out.println("  " + p);
@@ -389,6 +402,76 @@ class SegmentUtils {
                     System.out.println(JsopBuilder.prettyPrint(JsopDiff
                             .diffToJsop(node1, node2)));
                 }
+            }
+        }
+    }
+
+    private static String displayString(String value) {
+        if (MAX_CHAR_DISPLAY > 0 && value.length() > MAX_CHAR_DISPLAY) {
+            value = value.substring(0, MAX_CHAR_DISPLAY) + "... ("
+                    + value.length() + " chars)";
+        }
+        String escaped = builder().setSafeRange(' ', '~')
+                .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
+                .escape(value);
+        return '"' + escaped + '"';
+    }
+
+    private static void filterNodeStates(Set<UUID> uuids, List<String> paths, SegmentNodeState state, String path) {
+        Set<String> localPaths = newTreeSet();
+        for (PropertyState ps : state.getProperties()) {
+            if (ps instanceof SegmentPropertyState) {
+                SegmentPropertyState sps = (SegmentPropertyState) ps;
+                RecordId recordId = sps.getRecordId();
+                UUID id = recordId.getSegmentId().asUUID();
+                if (uuids.contains(id)) {
+                    if (ps.getType().tag() == STRING) {
+                        String val = "";
+                        if (ps.count() > 0) {
+                            // only shows the first value, do we need more?
+                            val = displayString(ps.getValue(Type.STRING, 0));
+                        }
+                        localPaths.add(path + ps.getName() + " = " + val
+                                + " [SegmentPropertyState<" + ps.getType()
+                                + ">@" + recordId + "]");
+                    } else {
+                        localPaths.add(path + ps + " [SegmentPropertyState<"
+                                + ps.getType() + ">@" + recordId + "]");
+                    }
+
+                }
+                if (ps.getType().tag() == BINARY) {
+                    // look for extra segment references
+                    for (int i = 0; i < ps.count(); i++) {
+                        Blob b = ps.getValue(Type.BINARY, i);
+                        for (SegmentId sbid : SegmentBlob.getBulkSegmentIds(b)) {
+                            UUID bid = sbid.asUUID();
+                            if (!bid.equals(id) && uuids.contains(bid)) {
+                                localPaths.add(path + ps
+                                        + " [SegmentPropertyState<"
+                                        + ps.getType() + ">@" + recordId + "]");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        RecordId stateId = state.getRecordId();
+        if (uuids.contains(stateId.getSegmentId().asUUID())) {
+            localPaths.add(path + " [SegmentNodeState@" + stateId + "]");
+        }
+
+        RecordId templateId = getTemplateId(state);
+        if (uuids.contains(templateId.getSegmentId().asUUID())) {
+            localPaths.add(path + "[Template@" + templateId + "]");
+        }
+        paths.addAll(localPaths);
+        for (ChildNodeEntry ce : state.getChildNodeEntries()) {
+            NodeState c = ce.getNodeState();
+            if (c instanceof SegmentNodeState) {
+                filterNodeStates(uuids, paths, (SegmentNodeState) c,
+                        path + ce.getName() + "/");
             }
         }
     }
