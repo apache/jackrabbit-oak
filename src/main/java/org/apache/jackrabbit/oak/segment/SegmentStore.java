@@ -31,10 +31,13 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
  */
 public interface SegmentStore {
 
+    @Nonnull
     SegmentTracker getTracker();
 
+    @Nonnull
     SegmentWriter getWriter();
 
+    @Nonnull
     SegmentReader getReader();
 
     /**
