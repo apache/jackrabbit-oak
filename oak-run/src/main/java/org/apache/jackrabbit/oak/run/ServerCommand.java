@@ -123,6 +123,12 @@ class ServerCommand implements Command {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
             oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
+        } else if (fix.equals(OakFixture.OAK_SEGMENT_TAR)) {
+            File baseFile = base.value(options);
+            if (baseFile == null) {
+                throw new IllegalArgumentException("Required argument base missing.");
+            }
+            oakFixture = OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
         } else if (fix.equals(OakFixture.OAK_RDB)) {
             oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize);
