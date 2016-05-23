@@ -123,8 +123,7 @@ public class SegmentTracker {
                         segmentId.setSegment(null);
                     }
                 }
-            })
-            .build();
+            }).build();
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {

@@ -125,7 +125,7 @@ public class Segment {
 
     static final int BLOBREF_COUNT_OFFSET = 8;
 
-    public static final int GC_GEN_OFFSET = 10;
+    public static final int GC_GENERATION_OFFSET = 10;
 
     private final SegmentTracker tracker;
 
@@ -300,7 +300,7 @@ public class Segment {
      */
     public static int getGcGeneration(ByteBuffer data, UUID segmentId) {
         return isDataSegmentId(segmentId.getLeastSignificantBits())
-            ? data.getInt(GC_GEN_OFFSET)
+            ? data.getInt(GC_GENERATION_OFFSET)
             : 0;
     }
 

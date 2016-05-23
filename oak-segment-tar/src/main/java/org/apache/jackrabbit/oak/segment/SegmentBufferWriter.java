@@ -29,7 +29,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
-import static org.apache.jackrabbit.oak.segment.Segment.GC_GEN_OFFSET;
+import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.SEGMENT_REFERENCE_LIMIT;
@@ -158,10 +158,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[4] = 0; // reserved
         buffer[5] = 0; // refcount
 
-        buffer[GC_GEN_OFFSET] = (byte) (generation >> 24);
-        buffer[GC_GEN_OFFSET + 1] = (byte) (generation >> 16);
-        buffer[GC_GEN_OFFSET + 2] = (byte) (generation >> 8);
-        buffer[GC_GEN_OFFSET + 3] = (byte) generation;
+        buffer[GC_GENERATION_OFFSET] = (byte) (generation >> 24);
+        buffer[GC_GENERATION_OFFSET + 1] = (byte) (generation >> 16);
+        buffer[GC_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
+        buffer[GC_GENERATION_OFFSET + 3] = (byte) generation;
         length = 0;
         position = buffer.length;
         roots.clear();
