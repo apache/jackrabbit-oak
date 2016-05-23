@@ -176,20 +176,20 @@ public class Segment {
     private static final boolean DISABLE_TEMPLATE_CACHE = getBoolean("oak.segment.disableTemplateCache");
 
     /**
-     * Decode a 4 byte aligned segment offset.
+     * Unpacks a 4 byte aligned segment offset.
      * @param offset  4 byte aligned segment offset
-     * @return decoded segment offset
+     * @return unpacked segment offset
      */
-    public static int decode(short offset) {
+    public static int unpack(short offset) {
         return (offset & 0xffff) << RECORD_ALIGN_BITS;
     }
 
     /**
-     * Encode a segment offset into a 4 byte aligned address packed into a {@code short}.
+     * Packs a segment offset into a 4 byte aligned address packed into a {@code short}.
      * @param offset  segment offset
      * @return  encoded segment offset packed into a {@code short}
      */
-    public static short encode(int offset) {
+    public static short pack(int offset) {
         return (short) (offset >> RECORD_ALIGN_BITS);
     }
 
