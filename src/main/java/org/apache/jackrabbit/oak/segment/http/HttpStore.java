@@ -59,7 +59,7 @@ public class HttpStore implements SegmentStore {
             new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
 
     @Nonnull
-    private final SegmentReader segmentReader = new SegmentReaderImpl();
+    private final SegmentReader segmentReader = new SegmentReaderImpl(this);
 
     private final URL base;
 

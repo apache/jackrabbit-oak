@@ -28,10 +28,10 @@ public interface SegmentReader {
     String readString(@Nonnull RecordId id);
 
     @Nonnull
-    MapRecord readMap(@Nonnull SegmentStore store, @Nonnull RecordId id);
+    MapRecord readMap(@Nonnull RecordId id);
 
     @Nonnull
-    Template readTemplate(@Nonnull SegmentStore store, @Nonnull RecordId id);
+    Template readTemplate(@Nonnull RecordId id);
 
     // FIXME OAK-4373 remove from this interface
     @Nonnull

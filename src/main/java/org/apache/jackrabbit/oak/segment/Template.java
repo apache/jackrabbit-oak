@@ -206,7 +206,7 @@ public class Template {
         Segment segment = recordId.getSegment();
         int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
-        return store.getReader().readMap(store, childNodesId);
+        return store.getReader().readMap(childNodesId);
     }
 
     public NodeState getChildNode(String name, RecordId recordId) {
