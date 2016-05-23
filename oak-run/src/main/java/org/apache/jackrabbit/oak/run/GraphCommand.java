@@ -17,10 +17,6 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openReadOnlyFileStore;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Calendar;
@@ -29,7 +25,6 @@ import java.util.Date;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
 class GraphCommand implements Command {
 
@@ -50,6 +45,7 @@ class GraphCommand implements Command {
                 "pattern", "Regular exception specifying which nodes to include (optional). " +
                         "Ignore when --gc is specified.")
                 .withRequiredArg().ofType(String.class);
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
 
         OptionSet options = parser.parse(args);
 
@@ -59,8 +55,6 @@ class GraphCommand implements Command {
             parser.printHelpOn(System.err);
             System.exit(-1);
         }
-        System.out.println("Opening file store at " + directory);
-        FileStore.ReadOnlyStore fileStore = openReadOnlyFileStore(directory);
 
         String regExp = regExpArg.value(options);
 
@@ -84,12 +78,14 @@ class GraphCommand implements Command {
 
         System.out.println("Setting epoch to " + epoch);
         System.out.println("Writing graph to " + outFile.getAbsolutePath());
-
         FileOutputStream out = new FileOutputStream(outFile);
-        if (options.has(gcGraphArg)) {
-            writeGCGraph(fileStore, out);
+
+        boolean gcGraph = options.has(gcGraphArg);
+
+        if (options.has(segmentTar)) {
+            SegmentTarUtils.graph(directory, gcGraph, epoch, regExp, out);
         } else {
-            writeSegmentGraph(fileStore, out, epoch, regExp);
+            SegmentUtils.graph(directory, gcGraph, epoch, regExp, out);
         }
     }
 
