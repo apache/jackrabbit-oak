@@ -18,11 +18,7 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.readRevisions;
-
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -31,16 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.JFrame;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.apache.commons.io.IOUtils;
@@ -53,32 +40,8 @@ import org.apache.commons.io.IOUtils;
  */
 public class Explorer {
 
-    private static String skip = "skip-size-check";
-
-    public static void main(String[] args) throws IOException {
-        new Explorer(args);
-    }
-
-    public Explorer(String[] args) throws IOException {
-        if (args.length == 0) {
-            System.err.println("usage: explore <path> [skip-size-check]");
-            System.exit(1);
-        }
-
-        final File path = new File(args[0]);
-        final boolean skipSizeCheck = args.length == 2
-                && skip.equalsIgnoreCase(args[1]);
-
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                initLF();
-                try {
-                    createAndShowGUI(path, skipSizeCheck);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+    private static boolean getSkipSizeChecks(String... args) {
+        return args.length >= 2 && args[1].equalsIgnoreCase("skip-size-check");
     }
 
     private static void initLF() {
@@ -95,15 +58,42 @@ public class Explorer {
         }
     }
 
-    private void createAndShowGUI(final File path, boolean skipSizeCheck)
-            throws IOException {
+    public static void main(String[] args) throws IOException {
+        new Explorer(args);
+    }
 
+    private final FileStoreWrapper store;
+
+    private Explorer(String[] args) throws IOException {
+        if (args.length == 0) {
+            System.err.println("usage: explore <path> [skip-size-check]");
+            System.exit(1);
+        }
+
+        final File path = new File(args[0]);
+        final boolean skipSizeCheck = getSkipSizeChecks(args);
+
+        this.store = new FileStoreWrapper(path);
+
+        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                initLF();
+                try {
+                    createAndShowGUI(path, skipSizeCheck);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+    private void createAndShowGUI(final File path, boolean skipSizeCheck) throws IOException {
         JTextArea log = new JTextArea(5, 20);
         log.setMargin(new Insets(5, 5, 5, 5));
         log.setLineWrap(true);
         log.setEditable(false);
 
-        final NodeStoreTree treePanel = new NodeStoreTree(path, log, skipSizeCheck);
+        final NodeStoreTree treePanel = new NodeStoreTree(store, log, skipSizeCheck);
 
         final JFrame frame = new JFrame("Explore " + path + " @head");
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
@@ -148,7 +138,7 @@ public class Explorer {
         menuCompaction.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                List<String> revs = readRevisions(path);
+                List<String> revs = store.readRevisions();
                 String s = (String) JOptionPane.showInputDialog(frame,
                         "Revert to a specified revision", "Time Machine",
                         JOptionPane.PLAIN_MESSAGE, null, revs.toArray(),
@@ -177,7 +167,6 @@ public class Explorer {
                         tarFiles.get(0));
                 if (s != null) {
                     treePanel.printTarInfo(s);
-                    return;
                 }
             }
         });
@@ -187,12 +176,11 @@ public class Explorer {
         menuSCR.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                String s = (String) JOptionPane.showInputDialog(frame,
+                String s = JOptionPane.showInputDialog(frame,
                         "Segment References\nUsage: <segmentId>",
                         "Segment References", JOptionPane.PLAIN_MESSAGE);
                 if (s != null) {
                     treePanel.printSegmentReferences(s);
-                    return;
                 }
             }
         });
@@ -202,12 +190,11 @@ public class Explorer {
         menuDiff.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                String s = (String) JOptionPane.showInputDialog(frame,
+                String s = JOptionPane.showInputDialog(frame,
                         "SegmentNodeState diff\nUsage: <recordId> <recordId> [<path>]",
                         "SegmentNodeState diff", JOptionPane.PLAIN_MESSAGE);
                 if (s != null) {
                     treePanel.printDiff(s);
-                    return;
                 }
             }
         });
