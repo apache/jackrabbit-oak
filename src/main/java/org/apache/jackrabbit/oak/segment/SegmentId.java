@@ -66,7 +66,7 @@ public class SegmentId implements Comparable<SegmentId> {
 
     private final long lsb;
 
-    private long creationTime;
+    private final long creationTime;
 
     /**
      * A reference to the segment object, if it is available in memory. It is
@@ -168,9 +168,9 @@ public class SegmentId implements Comparable<SegmentId> {
 
     @Override
     public int compareTo(SegmentId that) {
-        int d = Long.valueOf(this.msb).compareTo(Long.valueOf(that.msb));
+        int d = Long.valueOf(this.msb).compareTo(that.msb);
         if (d == 0) {
-            d = Long.valueOf(this.lsb).compareTo(Long.valueOf(that.lsb));
+            d = Long.valueOf(this.lsb).compareTo(that.lsb);
         }
         return d;
     }
