@@ -24,6 +24,7 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.TestCaseBase;
@@ -46,6 +47,8 @@ public class TestS3Ds extends TestCaseBase {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3Ds.class);
 
+    private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
+
     private Date startTime = null;
 
     protected Properties props;
@@ -53,12 +56,13 @@ public class TestS3Ds extends TestCaseBase {
     protected String config;
 
     public TestS3Ds() throws IOException {
-        System.setProperty(
-            TestCaseBase.CONFIG,
-            "./src/test/resources/aws.properties");
         config = System.getProperty(CONFIG);
-        props = Utils.readConfig(System.getProperty(CONFIG));
+        if (Strings.isNullOrEmpty(config)) {
+            config = DEFAULT_CONFIG_PATH;
+        }
+        props = Utils.readConfig(config);
     }
+
 
     @Override
     protected void setUp() throws Exception {
