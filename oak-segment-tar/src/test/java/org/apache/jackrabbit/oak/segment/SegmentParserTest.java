@@ -53,13 +53,11 @@ import org.apache.jackrabbit.oak.segment.SegmentParser.ListInfo;
 import org.apache.jackrabbit.oak.segment.SegmentParser.MapInfo;
 import org.apache.jackrabbit.oak.segment.SegmentParser.NodeInfo;
 import org.apache.jackrabbit.oak.segment.SegmentParser.ValueInfo;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class SegmentParserTest {
     private SegmentStore store;
@@ -137,12 +135,9 @@ public class SegmentParserTest {
         }
     }
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
     @Before
     public void setup() throws IOException {
-        store = FileStore.builder(folder.getRoot()).build();
+        store = new MemoryStore();
         writer = new SegmentWriter(store, new SegmentBufferWriter(store, LATEST_VERSION, ""));
     }
 
