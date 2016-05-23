@@ -144,16 +144,6 @@ public class Segment {
      */
     private final SegmentId[] refids;
 
-    /**
-     * String records read from segment. Used to avoid duplicate
-     * copies and repeated parsing of the same strings.
-     *
-     * @deprecated  Superseded by {@link #stringCache} unless
-     * {@link SegmentTracker#DISABLE_STRING_CACHE} is {@code true}.
-     */
-    @Deprecated
-    private final ConcurrentMap<Integer, String> strings;
-
     private final Function<Integer, String> loadString = new Function<Integer, String>() {
         @Nullable
         @Override
@@ -163,7 +153,7 @@ public class Segment {
     };
 
     /**
-     * Cache for string records or {@code null} if {@link #strings} is used for caching
+     * Cache for string records
      */
     private final StringCache stringCache;
 
@@ -213,13 +203,8 @@ public class Segment {
         Preconditions.checkArgument(isValid(version));
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
-        if (tracker.getStringCache() == null) {
-            strings = newConcurrentMap();
-            stringCache = null;
-        } else {
-            strings = null;
-            stringCache = tracker.getStringCache();
-        }
+
+        stringCache = tracker.getStringCache();
         if (DISABLE_TEMPLATE_CACHE) {
             templates = null;
         } else {
@@ -264,13 +249,7 @@ public class Segment {
         this.tracker = checkNotNull(tracker);
         this.id = tracker.newDataSegmentId();
         this.info = info;
-        if (tracker.getStringCache() == null) {
-            strings = newConcurrentMap();
-            stringCache = null;
-        } else {
-            strings = null;
-            stringCache = tracker.getStringCache();
-        }
+        stringCache = tracker.getStringCache();
         if (DISABLE_TEMPLATE_CACHE) {
             templates = null;
         } else {
@@ -520,18 +499,9 @@ public class Segment {
     }
 
     private String readString(int offset) {
-        if (stringCache != null) {
-            long msb = id.getMostSignificantBits();
-            long lsb = id.getLeastSignificantBits();
-            return stringCache.getString(msb, lsb, offset, loadString);
-        } else {
-            String string = strings.get(offset);
-            if (string == null) {
-                string = loadString(offset);
-                strings.putIfAbsent(offset, string); // only keep the first copy
-            }
-            return string;
-        }
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        return stringCache.getString(msb, lsb, offset, loadString);
     }
 
     private String loadString(int offset) {

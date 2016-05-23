@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.lang.Boolean.getBoolean;
+import static java.lang.Long.getLong;
 
 import java.security.SecureRandom;
 import java.util.Set;
@@ -50,12 +50,6 @@ public class SegmentTracker {
     /** Logger instance */
     private static final Logger log =
             LoggerFactory.getLogger(SegmentTracker.class);
-
-    /**
-     * Disable the {@link #stringCache} if {@code true} and fall back to
-     * the previous {@link Segment#strings} caching mechanism.
-     */
-    private static final boolean DISABLE_STRING_CACHE = getBoolean("oak.segment.disableStringCache");
 
     static final String STRING_CACHE_SIZE = "oak.segment.stringCache";
 
@@ -118,14 +112,7 @@ public class SegmentTracker {
         this.store = store;
         this.writer = new SegmentWriter(store, version,
                             new SegmentBufferWriterPool(store, version, "sys"));
-        StringCache c;
-        if (DISABLE_STRING_CACHE) {
-            c = null;
-        } else {
-            long cache = Long.getLong(STRING_CACHE_SIZE, (long) cacheSizeMB);
-            c = new StringCache(cache * MB);
-        }
-        stringCache = c;
+        stringCache = new StringCache(getLong(STRING_CACHE_SIZE, (long) cacheSizeMB) * MB);
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
             .module("SegmentTracker")
             .maximumWeight((long) cacheSizeMB * MB)
@@ -168,9 +155,7 @@ public class SegmentTracker {
 
     @CheckForNull
     public CacheStats getStringCacheStats() {
-        return stringCache == null
-            ? null
-            : stringCache.getStats();
+        return stringCache.getStats();
     }
 
     public SegmentWriter getWriter() {
@@ -186,9 +171,7 @@ public class SegmentTracker {
      */
     public synchronized void clearCache() {
         segmentCache.invalidateAll();
-        if (stringCache != null) {
-            stringCache.clear();
-        }
+        stringCache.clear();
     }
 
     /**
