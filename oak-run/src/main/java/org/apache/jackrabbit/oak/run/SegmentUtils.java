@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openRead
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
+import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -129,6 +130,10 @@ class SegmentUtils {
         for (RevisionHistory.HistoryElement historyElement : history) {
             System.out.println(historyElement.toString(depth));
         }
+    }
+
+    static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException {
+        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 
     private static void debugFileStore(FileStore store) {

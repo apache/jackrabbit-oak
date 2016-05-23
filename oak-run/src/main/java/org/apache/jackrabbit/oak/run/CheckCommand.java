@@ -18,13 +18,13 @@
 package org.apache.jackrabbit.oak.run;
 
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
-import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 
 import java.io.File;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 class CheckCommand implements Command {
 
@@ -44,6 +44,7 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
                 "bin", "read the n first bytes from binary properties. -1 for all bytes.")
                 .withOptionalArg().ofType(Long.class).defaultsTo(0L);
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
 
         OptionSet options = parser.parse(args);
 
@@ -58,7 +59,12 @@ class CheckCommand implements Command {
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
         long binLen = bin.value(options);
-        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
+
+        if (options.has(segmentTar)) {
+            SegmentTarUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
+        } else {
+            SegmentUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
+        }
     }
 
 }
