@@ -24,14 +24,18 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
+import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeGCGraph;
+import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper.getTemplateId;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +70,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -122,6 +127,16 @@ class SegmentTarUtils {
             }
         } finally {
             store.close();
+        }
+    }
+
+    static void graph(File path, boolean gcGraph, Date epoch, String regex, OutputStream out) throws Exception {
+        System.out.println("Opening file store at " + path);
+        ReadOnlyStore fileStore = openReadOnlyFileStore(path);
+        if (gcGraph) {
+            writeGCGraph(fileStore, out);
+        } else {
+            writeSegmentGraph(fileStore, out, epoch, regex);
         }
     }
 
@@ -382,7 +397,7 @@ class SegmentTarUtils {
                 .buildReadOnly();
     }
 
-    private static FileStore openReadOnlyFileStore(File path) throws IOException {
+    private static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException {
         return FileStore.builder(isValidFileStoreOrFail(path))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
