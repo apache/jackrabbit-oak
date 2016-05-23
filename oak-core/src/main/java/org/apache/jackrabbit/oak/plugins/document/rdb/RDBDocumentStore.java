@@ -1550,9 +1550,6 @@ public class RDBDocumentStore implements DocumentStore {
         String data = null;
         try {
             connection = this.ch.getRWConnection();
-            Operation modOperation = update.getChanges().get(MODIFIEDKEY);
-            long modified = getModifiedFromOperation(modOperation);
-            boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
             Number flagB = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
             Boolean hasBinary = flagB != null && flagB.intValue() == NodeDocument.HAS_BINARY_VAL;
             Boolean flagD = (Boolean) document.get(NodeDocument.DELETED_ONCE);
@@ -1567,6 +1564,9 @@ public class RDBDocumentStore implements DocumentStore {
                 String appendData = ser.asString(update);
                 if (appendData.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
                     try {
+                        Operation modOperation = update.getChanges().get(MODIFIEDKEY);
+                        long modified = getModifiedFromOperation(modOperation);
+                        boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
                         success = db.appendingUpdate(connection, tmd, document.getId(), modified, modifiedIsConditional, hasBinary,
                                 deletedOnce, modcount, cmodcount, oldmodcount, appendData);
                         // if we get here, a retry is not going to help (the SQL
@@ -1584,8 +1584,10 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if (!success && shouldRetry) {
                 data = ser.asString(document);
-                success = db.update(connection, tmd, document.getId(), modified, modifiedIsConditional, hasBinary, deletedOnce,
-                        modcount, cmodcount, oldmodcount, data);
+                Object m = document.get(MODIFIED);
+                long modified = (m instanceof Long) ? ((Long)m).longValue() : 0;
+                success = db.update(connection, tmd, document.getId(), modified, hasBinary, deletedOnce, modcount, cmodcount,
+                        oldmodcount, data);
                 connection.commit();
             }
             return success;
