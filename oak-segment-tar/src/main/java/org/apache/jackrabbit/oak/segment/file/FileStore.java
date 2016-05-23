@@ -126,10 +126,13 @@ public class FileStore implements SegmentStore {
     static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
+    @Nonnull
     private final SegmentTracker tracker;
 
+    @Nonnull
     private final SegmentWriter segmentWriter;
 
+    @Nonnull
     private final SegmentReader segmentReader;
 
     private final File directory;
@@ -544,6 +547,8 @@ public class FileStore implements SegmentStore {
             persistedHead = new AtomicReference<>(null);
         }
 
+        // FIXME OAK-3468 Replace BackgroundThread with Scheduler
+        // Externalise these background operations
         if (!readOnly) {
             flushThread = BackgroundThread.run(
                     "TarMK flush thread [" + directory + "]", 5000, // 5s interval
@@ -596,6 +601,7 @@ public class FileStore implements SegmentStore {
         log.debug("TarMK readers {}", this.readers);
     }
 
+    @Nonnull
     private static RecordId writeNode(NodeState root, SegmentWriter writer,
                                       SegmentBufferWriter bufferWriter)
     throws IOException {
@@ -1252,16 +1258,19 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Nonnull
     public SegmentTracker getTracker() {
         return tracker;
     }
 
     @Override
+    @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
 
     @Override
+    @Nonnull
     public SegmentReader getReader() {
         return segmentReader;
     }
@@ -1367,6 +1376,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Nonnull
     public Segment readSegment(final SegmentId id) {
         try {
             return segmentCache.geSegment(id, new Callable<Segment>() {

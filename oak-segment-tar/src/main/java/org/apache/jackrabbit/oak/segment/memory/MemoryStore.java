@@ -48,11 +48,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class MemoryStore implements SegmentStore {
 
+    @Nonnull
     private final SegmentTracker tracker = new SegmentTracker(this);
 
+    @Nonnull
     private final SegmentWriter segmentWriter = new SegmentWriter(this,
             new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
 
+    @Nonnull
     private final SegmentReader segmentReader = new SegmentReaderImpl(16);
 
     private SegmentNodeState head;
@@ -73,16 +76,19 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
+    @Nonnull
     public SegmentTracker getTracker() {
         return tracker;
     }
 
     @Override
+    @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
 
     @Override
+    @Nonnull
     public SegmentReader getReader() {
         return segmentReader;
     }

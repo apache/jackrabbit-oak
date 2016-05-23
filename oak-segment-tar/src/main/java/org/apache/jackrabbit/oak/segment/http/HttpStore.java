@@ -32,6 +32,7 @@ import java.net.URLConnection;
 import java.nio.ByteBuffer;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -50,11 +51,14 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public class HttpStore implements SegmentStore {
 
+    @Nonnull
     private final SegmentTracker tracker = new SegmentTracker(this);
 
+    @Nonnull
     private final SegmentWriter segmentWriter = new SegmentWriter(this,
             new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
 
+    @Nonnull
     private final SegmentReader segmentReader = new SegmentReaderImpl();
 
     private final URL base;
@@ -69,16 +73,19 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    @Nonnull
     public SegmentTracker getTracker() {
         return tracker;
     }
 
     @Override
+    @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
 
     @Override
+    @Nonnull
     public SegmentReader getReader() {
         return segmentReader;
     }
