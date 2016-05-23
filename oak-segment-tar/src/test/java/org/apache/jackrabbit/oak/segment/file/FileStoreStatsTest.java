@@ -19,53 +19,40 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
 import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreStats;
-import org.apache.jackrabbit.oak.segment.file.TarWriter;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
 
 public class FileStoreStatsTest {
     @Rule
     public final TemporaryFolder segmentFolder = new TemporaryFolder();
 
-    private FileStore fileStore;
-    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
-
-    @Before
-    public void createFileStore() throws Exception {
-        BlobStore blobStore = mock(BlobStore.class);
-        fileStore = FileStore.builder(segmentFolder.newFolder())
-                .withBlobStore(blobStore)
-                .withStatisticsProvider(statsProvider).build();
-    }
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @After
     public void shutDown(){
-        fileStore.close();
         new ExecutorCloser(executor).close();
     }
 
     @Test
     public void initCall() throws Exception{
-        FileStoreStats stats = new FileStoreStats(statsProvider, fileStore, 1000);
+        FileStore store = mock(FileStore.class);
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
+
+        FileStoreStats stats = new FileStoreStats(statsProvider, store, 1000);
         assertEquals(1000, stats.getApproximateSize());
 
         stats.written(500);
@@ -79,18 +66,28 @@ public class FileStoreStatsTest {
 
     @Test
     public void tarWriterIntegration() throws Exception{
-        FileStoreStats stats = new FileStoreStats(statsProvider, fileStore, 0);
-        UUID id = UUID.randomUUID();
-        long msb = id.getMostSignificantBits();
-        long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
-        byte[] data = "Hello, World!".getBytes(UTF_8);
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
+        FileStore store = FileStore.builder(segmentFolder.newFolder())
+                .withStatisticsProvider(statsProvider)
+                .build();
+        try {
+            FileStoreStats stats = new FileStoreStats(statsProvider, store, 0);
+            long initialSize = stats.getApproximateSize();
 
-        File file = segmentFolder.newFile();
-        TarWriter writer = new TarWriter(file, stats);
-        writer.writeEntry(msb, lsb, data, 0, data.length, 0);
-        writer.close();
+            UUID id = UUID.randomUUID();
+            long msb = id.getMostSignificantBits();
+            long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
+            byte[] data = "Hello, World!".getBytes(UTF_8);
 
-        assertEquals(stats.getApproximateSize(), file.length());
+            File file = segmentFolder.newFile();
+            try (TarWriter writer = new TarWriter(file, stats)) {
+                writer.writeEntry(msb, lsb, data, 0, data.length, 0);
+            }
+
+            assertEquals(stats.getApproximateSize() - initialSize, file.length());
+        } finally {
+            store.close();
+        }
     }
 
 }
