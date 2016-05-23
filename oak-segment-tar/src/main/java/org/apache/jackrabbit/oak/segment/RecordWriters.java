@@ -133,10 +133,9 @@ final class RecordWriters {
 
     public static RecordWriter newTemplateWriter(Collection<RecordId> ids,
             RecordId[] propertyNames, byte[] propertyTypes, int head, RecordId primaryId,
-            List<RecordId> mixinIds, RecordId childNameId, RecordId propNamesId,
-            SegmentVersion version) {
+            List<RecordId> mixinIds, RecordId childNameId, RecordId propNamesId) {
         return new TemplateWriter(ids, propertyNames, propertyTypes, head, primaryId, mixinIds,
-            childNameId, propNamesId, version);
+            childNameId, propNamesId);
     }
 
     public static RecordWriter newNodeStateWriter(RecordId stableId, List<RecordId> ids) {
@@ -444,11 +443,10 @@ final class RecordWriters {
         private final List<RecordId> mixinIds;
         private final RecordId childNameId;
         private final RecordId propNamesId;
-        private final SegmentVersion version;
 
         private TemplateWriter(Collection<RecordId> ids, RecordId[] propertyNames,
                 byte[] propertyTypes, int head, RecordId primaryId, List<RecordId> mixinIds,
-                RecordId childNameId, RecordId propNamesId, SegmentVersion version) {
+                RecordId childNameId, RecordId propNamesId) {
             super(TEMPLATE, 4 + propertyTypes.length, ids);
             this.propertyNames = propertyNames;
             this.propertyTypes = propertyTypes;
@@ -457,7 +455,6 @@ final class RecordWriters {
             this.mixinIds = mixinIds;
             this.childNameId = childNameId;
             this.propNamesId = propNamesId;
-            this.version = version;
         }
 
         @Override

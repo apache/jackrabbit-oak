@@ -27,6 +27,7 @@ import static com.google.common.collect.Maps.newConcurrentMap;
 import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
 import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
 
@@ -47,7 +48,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -195,12 +195,7 @@ public class Segment {
         return (address + boundary - 1) & ~(boundary - 1);
     }
 
-    public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
-        this(tracker, id, data, SegmentVersion.LATEST_VERSION);
-    }
-
-    public Segment(SegmentTracker tracker, final SegmentId id, final ByteBuffer data, SegmentVersion version) {
-        Preconditions.checkArgument(isValid(version));
+    public Segment(SegmentTracker tracker, final SegmentId id, final ByteBuffer data) {
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
 
@@ -229,7 +224,7 @@ public class Segment {
             this.version = SegmentVersion.fromByte(segmentVersion);
         } else {
             this.refids = null;
-            this.version = version;
+            this.version = LATEST_VERSION;
         }
     }
 

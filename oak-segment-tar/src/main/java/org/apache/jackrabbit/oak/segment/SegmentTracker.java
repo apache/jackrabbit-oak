@@ -110,8 +110,7 @@ public class SegmentTracker {
         }
 
         this.store = store;
-        this.writer = new SegmentWriter(store, version,
-                            new SegmentBufferWriterPool(store, version, "sys"));
+        this.writer = new SegmentWriter(store, new SegmentBufferWriterPool(store, version, "sys"));
         stringCache = new StringCache(getLong(STRING_CACHE_SIZE, (long) cacheSizeMB) * MB);
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
             .module("SegmentTracker")
