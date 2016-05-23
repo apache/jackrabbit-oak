@@ -62,15 +62,6 @@ class Record {
     }
 
     /**
-     * Returns the tracker of the segment that contains this record.
-     *
-     * @return segment tracker
-     */
-    protected SegmentTracker getTracker() {
-        return segmentId.getTracker();
-    }
-
-    /**
      * Returns the segment that contains this record.
      *
      * @return segment that contains this record

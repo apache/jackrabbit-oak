@@ -291,7 +291,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        return store.getTracker().getWriter().writeStream(stream);
+        return store.getWriter().writeStream(stream);
     }
 
     @Override

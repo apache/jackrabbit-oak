@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.http;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,22 +33,29 @@ import java.nio.ByteBuffer;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.apache.jackrabbit.oak.segment.SegmentReaderImpl;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
-
-import com.google.common.io.ByteStreams;
-
+import org.apache.jackrabbit.oak.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public class HttpStore implements SegmentStore {
 
     private final SegmentTracker tracker = new SegmentTracker(this);
+
+    private final SegmentWriter segmentWriter = new SegmentWriter(this,
+            new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
+
+    private final SegmentReader segmentReader = new SegmentReaderImpl();
 
     private final URL base;
 
@@ -63,6 +71,16 @@ public class HttpStore implements SegmentStore {
     @Override
     public SegmentTracker getTracker() {
         return tracker;
+    }
+
+    @Override
+    public SegmentWriter getWriter() {
+        return segmentWriter;
+    }
+
+    @Override
+    public SegmentReader getReader() {
+        return segmentReader;
     }
 
     /**
@@ -89,8 +107,7 @@ public class HttpStore implements SegmentStore {
             try {
                 BufferedReader reader = new BufferedReader(
                         new InputStreamReader(stream, UTF_8));
-                return new SegmentNodeState(
-                        RecordId.fromString(tracker, reader.readLine()));
+                return new SegmentNodeState(this, RecordId.fromString(tracker, reader.readLine()));
             } finally {
                 stream.close();
             }
@@ -111,7 +128,7 @@ public class HttpStore implements SegmentStore {
 
     @Override
     public boolean containsSegment(SegmentId id) {
-        return id.getTracker() == tracker || readSegment(id) != null;
+        return id.sameStore(this) || readSegment(id) != null;
     }
 
     @Override
@@ -121,7 +138,7 @@ public class HttpStore implements SegmentStore {
             InputStream stream = connection.getInputStream();
             try {
                 byte[] data = ByteStreams.toByteArray(stream);
-                return new Segment(tracker, id, ByteBuffer.wrap(data));
+                return new Segment(this, id, ByteBuffer.wrap(data));
             } finally {
                 stream.close();
             }

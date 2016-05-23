@@ -166,7 +166,7 @@ public final class SegmentGraph {
                 ? Predicates.<UUID>alwaysTrue()
                 : createRegExpFilter(pattern, fileStore.getTracker());
             Graph<UUID> segmentGraph = parseSegmentGraph(fileStore, filter);
-            Graph<UUID> headGraph = parseHeadGraph(root.getRecordId());
+            Graph<UUID> headGraph = parseHeadGraph(fileStore, root.getRecordId());
 
             writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, size INT, head BOOLEAN\n");
             for (UUID segment : segmentGraph.vertices()) {
@@ -349,17 +349,18 @@ public final class SegmentGraph {
     }
 
     /**
-     * Parser the head graph. The head graph is the sub graph of the segment
+     * Parser the head graph of a {@code store}. The head graph is the sub graph of the segment
      * graph containing the {@code root}.
+     * @param store
      * @param root
      * @return  the head graph of {@code root}.
      */
     @Nonnull
-    public static Graph<UUID> parseHeadGraph(@Nonnull RecordId root) {
+    public static Graph<UUID> parseHeadGraph(@Nonnull SegmentStore store, @Nonnull RecordId root) {
         final Graph<UUID> graph = new Graph<UUID>();
 
         try {
-            new SegmentParser() {
+            new SegmentParser(store) {
                 private void addEdge(RecordId from, RecordId to) {
                     graph.addVertex(from.asUUID());
                     graph.addVertex(to.asUUID());

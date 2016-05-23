@@ -45,8 +45,8 @@ public class SegmentIdTableTest {
      */
     @Test
     public void endlessSearchLoop() throws IOException {
-        SegmentTracker tracker = new MemoryStore().getTracker();
-        final SegmentIdTable tbl = new SegmentIdTable(tracker);
+        MemoryStore store = new MemoryStore();
+        final SegmentIdTable tbl = new SegmentIdTable(store);
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         for (int i = 0; i < 1024; i++) {
@@ -75,8 +75,8 @@ public class SegmentIdTableTest {
     
     @Test
     public void randomized() throws IOException {
-        SegmentTracker tracker = new MemoryStore().getTracker();
-        final SegmentIdTable tbl = new SegmentIdTable(tracker);
+        MemoryStore store = new MemoryStore();
+        final SegmentIdTable tbl = new SegmentIdTable(store);
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         Random r = new Random(1);
@@ -98,8 +98,8 @@ public class SegmentIdTableTest {
     
     @Test
     public void clearTable() throws IOException {
-        SegmentTracker tracker = new MemoryStore().getTracker();
-        final SegmentIdTable tbl = new SegmentIdTable(tracker);
+        MemoryStore store = new MemoryStore();
+        final SegmentIdTable tbl = new SegmentIdTable(store);
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         int originalCount = 8;
@@ -135,8 +135,8 @@ public class SegmentIdTableTest {
     
     @Test
     public void justHashCollisions() throws IOException {
-        SegmentTracker tracker = new MemoryStore().getTracker();
-        final SegmentIdTable tbl = new SegmentIdTable(tracker);
+        MemoryStore store = new MemoryStore();
+        final SegmentIdTable tbl = new SegmentIdTable(store);
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         int originalCount = 1024;
@@ -159,8 +159,8 @@ public class SegmentIdTableTest {
     
     @Test
     public void gc() throws IOException {
-        SegmentTracker tracker = new MemoryStore().getTracker();
-        final SegmentIdTable tbl = new SegmentIdTable(tracker);
+        MemoryStore store = new MemoryStore();
+        final SegmentIdTable tbl = new SegmentIdTable(store);
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         int originalCount = 1024;

@@ -84,13 +84,13 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-class SegmentTarUtils {
+final class SegmentTarUtils {
 
     private static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 
     private static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
 
-    private final static int MAX_CHAR_DISPLAY = Integer.getInteger("max.char.display", 60);
+    private static final int MAX_CHAR_DISPLAY = Integer.getInteger("max.char.display", 60);
 
     private SegmentTarUtils() {
         // Prevent instantiation
@@ -217,7 +217,7 @@ class SegmentTarUtils {
         long bulkSize = 0;
 
         ((Logger) getLogger(SegmentTracker.class)).setLevel(Level.OFF);
-        RecordUsageAnalyser analyser = new RecordUsageAnalyser();
+        RecordUsageAnalyser analyser = new RecordUsageAnalyser(store);
 
         for (SegmentId id : store.getSegmentIds()) {
             if (id.isDataSegmentId()) {
@@ -433,7 +433,7 @@ class SegmentTarUtils {
                 }
 
                 if (id2 == null) {
-                    NodeState node = new SegmentNodeState(id1);
+                    NodeState node = new SegmentNodeState(store, id1);
                     System.out.println("/ (" + id1 + ") -> " + node);
                     for (String name : PathUtils.elements(path)) {
                         node = node.getChildNode(name);
@@ -445,8 +445,8 @@ class SegmentTarUtils {
                                 + node);
                     }
                 } else {
-                    NodeState node1 = new SegmentNodeState(id1);
-                    NodeState node2 = new SegmentNodeState(id2);
+                    NodeState node1 = new SegmentNodeState(store, id1);
+                    NodeState node2 = new SegmentNodeState(store, id2);
                     for (String name : PathUtils.elements(path)) {
                         node1 = node1.getChildNode(name);
                         node2 = node2.getChildNode(name);

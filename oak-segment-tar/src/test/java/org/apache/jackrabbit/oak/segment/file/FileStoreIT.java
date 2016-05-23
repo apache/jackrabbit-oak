@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -174,7 +173,7 @@ public class FileStoreIT {
     public void segmentOverflow() throws IOException {
         for (int n = 1; n < 255; n++) {  // 255 = ListRecord.LEVEL_SIZE
             FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
-            SegmentWriter writer = store.getTracker().getWriter();
+            SegmentWriter writer = store.getWriter();
             // writer.length == 32  (from the root node)
 
             // adding 15 strings with 16516 bytes each

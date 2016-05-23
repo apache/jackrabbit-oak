@@ -36,6 +36,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.SegmentReaderImpl.DEFAULT_STRING_CACHE_MB;
 
 import java.io.Closeable;
 import java.io.File;
@@ -51,6 +52,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -66,20 +69,27 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
+import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.apache.jackrabbit.oak.segment.SegmentReaderImpl;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -117,6 +127,10 @@ public class FileStore implements SegmentStore {
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
     private final SegmentTracker tracker;
+
+    private final SegmentWriter segmentWriter;
+
+    private final SegmentReader segmentReader;
 
     private final File directory;
 
@@ -214,6 +228,9 @@ public class FileStore implements SegmentStore {
     private final ReadWriteLock fileStoreLock = new ReentrantReadWriteLock();
 
     private final FileStoreStats stats;
+
+    @Nonnull
+    private final SegmentCache segmentCache;
 
     /**
      * Create a new instance of a {@link Builder} for a file store.
@@ -413,13 +430,31 @@ public class FileStore implements SegmentStore {
         // the initial node state. Notably before this instance is fully initialised!
         // Once consequence of this is that we cannot reliably determine the current
         // GC generation while writing the initial head state. See further below.
+
+        this.tracker = new SegmentTracker(this);
+
+        // FIXME OAK-4373 refactor cache size configurations
         if (builder.cacheSize < 0) {
-            this.tracker = new SegmentTracker(this, 0, version);
+            this.segmentCache = new SegmentCache(0);
         } else if (builder.cacheSize > 0) {
-            this.tracker = new SegmentTracker(this, builder.cacheSize, version);
+            this.segmentCache = new SegmentCache(builder.cacheSize);
         } else {
-            this.tracker = new SegmentTracker(this, version);
+            this.segmentCache = new SegmentCache(DEFAULT_STRING_CACHE_MB);
         }
+        if (builder.cacheSize < 0) {
+            this.segmentReader = new SegmentReaderImpl(0);
+        } else if (builder.cacheSize > 0) {
+            this.segmentReader = new SegmentReaderImpl(builder.cacheSize);
+        } else {
+            this.segmentReader = new SegmentReaderImpl();
+        }
+        this.segmentWriter = new SegmentWriter(this,
+                new SegmentBufferWriterPool(this, version, "sys", new Supplier<Integer>() {
+                    @Override
+                    public Integer get() {
+                        return getGcGeneration();
+                    }
+                }));
         this.blobStore = builder.blobStore;
         this.directory = builder.directory;
         this.maxFileSize = builder.maxFileSize * MB;
@@ -467,8 +502,7 @@ public class FileStore implements SegmentStore {
         }
 
         RecordId id = null;
-        JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME));
-        try {
+        try (JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME))) {
             Iterator<String> heads = journalReader.iterator();
             while (id == null && heads.hasNext()) {
                 String head = heads.next();
@@ -486,8 +520,6 @@ public class FileStore implements SegmentStore {
                     log.warn("Skipping invalid record id {}", head);
                 }
             }
-        } finally {
-            journalReader.close();
         }
 
         journalFile.seek(journalFile.length());
@@ -502,14 +534,14 @@ public class FileStore implements SegmentStore {
         }
 
         if (id != null) {
-            head = new AtomicReference<RecordId>(id);
-            persistedHead = new AtomicReference<RecordId>(id);
+            head = new AtomicReference<>(id);
+            persistedHead = new AtomicReference<>(id);
         } else {
             NodeBuilder nodeBuilder = EMPTY_NODE.builder();
             nodeBuilder.setChildNode("root", builder.root);
-            head = new AtomicReference<RecordId>(tracker.getWriter().writeNode(
-                    nodeBuilder.getNodeState()).getRecordId());
-            persistedHead = new AtomicReference<RecordId>(null);
+            head = new AtomicReference<>(writeNode(
+                builder.root, segmentWriter, new SegmentBufferWriter(this, version, "init", 0)));
+            persistedHead = new AtomicReference<>(null);
         }
 
         if (!readOnly) {
@@ -564,18 +596,23 @@ public class FileStore implements SegmentStore {
         log.debug("TarMK readers {}", this.readers);
     }
 
-    // FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
-    // We cannot determine the current GC generation before the FileStore is fully
-    // initialised so just return 0 for now.
-    public int getGcGeneration() {
-        if (head == null) {
-            return 0;  // not fully initialised
-        }
-        RecordId headId = head.get();
-        if (headId == null) {
-            return 0;  // not fully initialised
-        }
-        return headId.getSegment().getGcGeneration();
+    private static RecordId writeNode(NodeState root, SegmentWriter writer,
+                                      SegmentBufferWriter bufferWriter)
+    throws IOException {
+        NodeBuilder nodeBuilder = EMPTY_NODE.builder();
+        nodeBuilder.setChildNode("root", root);
+        SegmentNodeState node = writer.writeNode(nodeBuilder.getNodeState(), bufferWriter, Suppliers.ofInstance(false));
+        assert node != null;
+        return node.getRecordId();
+    }
+
+    private int getGcGeneration() {
+        return head.get().getSegment().getGcGeneration();
+    }
+
+    @Nonnull
+    public CacheStats getSegmentCacheStats() {
+        return segmentCache.getCacheStats();
     }
 
     public void maybeCompact(boolean cleanup) throws IOException {
@@ -804,7 +841,7 @@ public class FileStore implements SegmentStore {
             RecordId after = head.get();
 
             if (cleanup || !after.equals(before)) {
-                tracker.getWriter().flush();
+                segmentWriter.flush();
 
                 // FIXME OAK-4291: FileStore.flush prone to races leading to corruption
                 // There is a small windows that could lead to a corrupted store:
@@ -880,7 +917,7 @@ public class FileStore implements SegmentStore {
                     GC_COUNT, humanReadableByteCount(initialSize), initialSize);
 
             newWriter();
-            tracker.clearCache();
+            segmentCache.clear();
 
             // Suggest to the JVM that now would be a good time
             // to clear stale weak references in the SegmentTracker
@@ -975,7 +1012,7 @@ public class FileStore implements SegmentStore {
      * @param collector  reference collector called back for each blob reference found
      */
     public void collectBlobReferences(ReferenceCollector collector) throws IOException {
-        tracker.getWriter().flush();
+        segmentWriter.flush();
         List<TarReader> tarReaders = newArrayList();
         fileStoreLock.writeLock().lock();
         try {
@@ -1069,7 +1106,7 @@ public class FileStore implements SegmentStore {
                     GC_COUNT, existing);
         }
 
-        final int newGeneration = tracker.getGcGeneration() + 1;
+        final int newGeneration = getGcGeneration() + 1;
         SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                 this, version, "c", newGeneration);
         Supplier<Boolean> cancel = newCancelCompactionCondition();
@@ -1124,7 +1161,7 @@ public class FileStore implements SegmentStore {
             }
 
             if (success) {
-                tracker.getWriter().evictCaches(new Predicate<Integer>() {
+                segmentWriter.evictCaches(new Predicate<Integer>() {
                     @Override
                     public boolean apply(Integer generation) {
                         return generation < newGeneration;
@@ -1144,7 +1181,7 @@ public class FileStore implements SegmentStore {
                         GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
                 return true;
             } else {
-                tracker.getWriter().evictCaches(new Predicate<Integer>() {
+                segmentWriter.evictCaches(new Predicate<Integer>() {
                     @Override
                     public boolean apply(Integer generation) {
                         return generation == newGeneration;
@@ -1167,11 +1204,7 @@ public class FileStore implements SegmentStore {
     private SegmentNodeState compact(SegmentBufferWriter bufferWriter, NodeState node,
                                      Supplier<Boolean> cancel)
     throws IOException {
-        SegmentNodeState compacted = tracker.getWriter().writeNode(node, bufferWriter, cancel);
-        if (compacted != null) {
-            bufferWriter.flush();
-        }
-        return compacted;
+        return segmentWriter.writeNode(node, bufferWriter, cancel);
     }
 
     private boolean forceCompact(SegmentBufferWriter bufferWriter, Supplier<Boolean> cancel)
@@ -1224,8 +1257,18 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    public SegmentWriter getWriter() {
+        return segmentWriter;
+    }
+
+    @Override
+    public SegmentReader getReader() {
+        return segmentReader;
+    }
+
+    @Override
     public SegmentNodeState getHead() {
-        return new SegmentNodeState(head.get());
+        return new SegmentNodeState(this, head.get());
     }
 
     // FIXME OAK-4015: Expedite commits from the compactor
@@ -1324,82 +1367,106 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
-    public Segment readSegment(SegmentId id) {
-        long msb = id.getMostSignificantBits();
-        long lsb = id.getLeastSignificantBits();
+    public Segment readSegment(final SegmentId id) {
+        try {
+            return segmentCache.geSegment(id, new Callable<Segment>() {
+                @Override
+                public Segment call() throws Exception {
+                    long msb = id.getMostSignificantBits();
+                    long lsb = id.getLeastSignificantBits();
 
-        for (TarReader reader : readers) {
-            try {
-                if (reader.isClosed()) {
-                    // Cleanup might already have closed the file.
-                    // The segment should be available from another file.
-                    log.debug("Skipping closed tar file {}", reader);
-                    continue;
-                }
+                    for (TarReader reader : readers) {
+                        try {
+                            if (reader.isClosed()) {
+                                // Cleanup might already have closed the file.
+                                // The segment should be available from another file.
+                                log.debug("Skipping closed tar file {}", reader);
+                                continue;
+                            }
 
-                ByteBuffer buffer = reader.readEntry(msb, lsb);
-                if (buffer != null) {
-                    return new Segment(tracker, id, buffer);
-                }
-            } catch (IOException e) {
-                log.warn("Failed to read from tar file {}", reader, e);
-            }
-        }
-
-        if (writer != null) {
-            fileStoreLock.readLock().lock();
-            try {
-                try {
-                    ByteBuffer buffer = writer.readEntry(msb, lsb);
-                    if (buffer != null) {
-                        return new Segment(tracker, id, buffer);
+                            ByteBuffer buffer = reader.readEntry(msb, lsb);
+                            if (buffer != null) {
+                                return new Segment(FileStore.this, id, buffer);
+                            }
+                        } catch (IOException e) {
+                            log.warn("Failed to read from tar file {}", reader, e);
+                        }
                     }
-                } catch (IOException e) {
-                    log.warn("Failed to read from tar file {}", writer, e);
+
+                    if (writer != null) {
+                        fileStoreLock.readLock().lock();
+                        try {
+                            try {
+                                ByteBuffer buffer = writer.readEntry(msb, lsb);
+                                if (buffer != null) {
+                                    return new Segment(FileStore.this, id, buffer);
+                                }
+                            } catch (IOException e) {
+                                log.warn("Failed to read from tar file {}", writer, e);
+                            }
+                        } finally {
+                            fileStoreLock.readLock().unlock();
+                        }
+                    }
+
+                    // the writer might have switched to a new file,
+                    // so we need to re-check the readers
+                    for (TarReader reader : readers) {
+                        try {
+                            if (reader.isClosed()) {
+                                // Cleanup might already have closed the file.
+                                // The segment should be available from another file.
+                                log.info("Skipping closed tar file {}", reader);
+                                continue;
+                            }
+
+                            ByteBuffer buffer = reader.readEntry(msb, lsb);
+                            if (buffer != null) {
+                                return new Segment(FileStore.this, id, buffer);
+                            }
+                        } catch (IOException e) {
+                            log.warn("Failed to read from tar file {}", reader, e);
+                        }
+                    }
+
+                    throw new SegmentNotFoundException(id);
                 }
-            } finally {
-                fileStoreLock.readLock().unlock();
-            }
+            });
+        } catch (ExecutionException e) {
+            throw e.getCause() instanceof SegmentNotFoundException
+                ? (SegmentNotFoundException) e.getCause()
+                : new SegmentNotFoundException(id, e);
         }
-
-        // the writer might have switched to a new file,
-        // so we need to re-check the readers
-        for (TarReader reader : readers) {
-            try {
-                if (reader.isClosed()) {
-                    // Cleanup might already have closed the file.
-                    // The segment should be available from another file.
-                    log.info("Skipping closed tar file {}", reader);
-                    continue;
-                }
-
-                ByteBuffer buffer = reader.readEntry(msb, lsb);
-                if (buffer != null) {
-                    return new Segment(tracker, id, buffer);
-                }
-            } catch (IOException e) {
-                log.warn("Failed to read from tar file {}", reader, e);
-            }
-        }
-
-        throw new SegmentNotFoundException(id);
     }
 
     @Override
-    public void writeSegment(SegmentId id, byte[] data, int offset, int length) throws IOException {
+    public void writeSegment(SegmentId id, byte[] buffer, int offset, int length) throws IOException {
         fileStoreLock.writeLock().lock();
         try {
-            int generation = Segment.getGcGeneration(wrap(data, offset, length), id.asUUID());
+            int generation = Segment.getGcGeneration(wrap(buffer, offset, length), id.asUUID());
             long size = writer.writeEntry(
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits(),
-                    data, offset, length, generation);
+                    buffer, offset, length, generation);
             if (size >= maxFileSize) {
                 newWriter();
             }
             approximateSize.addAndGet(TarWriter.BLOCK_SIZE + length + TarWriter.getPaddingSize(length));
         } finally {
             fileStoreLock.writeLock().unlock();
+        }
+
+        // Keep this data segment in memory as it's likely to be accessed soon
+        if (id.isDataSegmentId()) {
+            ByteBuffer data;
+            if (offset > 4096) {
+                data = ByteBuffer.allocate(length);
+                data.put(buffer, offset, length);
+                data.rewind();
+            } else {
+                data = ByteBuffer.wrap(buffer, offset, length);
+            }
+            segmentCache.putSegment(new Segment(this, id, data));
         }
     }
 

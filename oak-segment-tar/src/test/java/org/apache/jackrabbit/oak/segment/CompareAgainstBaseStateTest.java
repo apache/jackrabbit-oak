@@ -44,7 +44,7 @@ public class CompareAgainstBaseStateTest {
     private NodeBuilder builder;
 
     public CompareAgainstBaseStateTest() throws IOException {
-        builder = new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
+        builder = new MemoryStore().getWriter().writeNode(EMPTY_NODE).builder();
     }
 
     @Before

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -45,6 +47,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private static final int UPDATE_LIMIT =
             Integer.getInteger("update.limit", 10000);
 
+    @Nonnull
     private final SegmentWriter writer;
 
     /**
@@ -61,20 +64,15 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
      */
     private long updateCount;
 
-    SegmentNodeBuilder(SegmentNodeState base) {
-        this(base, base.getTracker().getWriter());
-    }
-
-    SegmentNodeBuilder(SegmentNodeState base, SegmentWriter writer) {
+    SegmentNodeBuilder(@Nonnull SegmentNodeState base, @Nonnull SegmentWriter writer) {
         super(base);
-        this.writer = writer;
+        this.writer = checkNotNull(writer);
         this.updateCount = 0;
     }
 
-    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name,
-            SegmentWriter writer) {
+    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name, @Nonnull SegmentWriter writer) {
         super(parent, name);
-        this.writer = writer;
+        this.writer = checkNotNull(writer);
         this.updateCount = -1;
     }
 
@@ -129,8 +127,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        SegmentNodeState sns = getNodeState();
-        return sns.getTracker().getWriter().writeStream(stream);
+        return writer.writeStream(stream);
     }
 
 }

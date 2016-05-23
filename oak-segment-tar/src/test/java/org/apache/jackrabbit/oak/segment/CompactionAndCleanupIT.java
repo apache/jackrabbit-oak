@@ -253,7 +253,7 @@ public class CompactionAndCleanupIT {
         nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         final Set<UUID> beforeSegments = new HashSet<UUID>();
-        collectSegments(store.getHead(), beforeSegments);
+        collectSegments(store, beforeSegments);
 
         final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
         final List<String> failedCommits = newArrayList();
@@ -292,7 +292,7 @@ public class CompactionAndCleanupIT {
         assertTrue("Failed commits: " + failedCommits, failedCommits.isEmpty());
 
         Set<UUID> afterSegments = new HashSet<UUID>();
-        collectSegments(store.getHead(), afterSegments);
+        collectSegments(store, afterSegments);
         try {
             for (UUID u : beforeSegments) {
                 assertFalse("Mixed segments found: " + u, afterSegments.contains(u));
@@ -313,7 +313,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
-        final SegmentWriter writer = fileStore.getTracker().getWriter();
+        final SegmentWriter writer = fileStore.getWriter();
         final SegmentNodeState oldHead = fileStore.getHead();
 
         final SegmentNodeState child = run(new Callable<SegmentNodeState>() {
@@ -435,8 +435,8 @@ public class CompactionAndCleanupIT {
         }
     }
 
-    private static void collectSegments(SegmentNodeState s, final Set<UUID> segmentIds) {
-        new SegmentParser() {
+    private static void collectSegments(SegmentStore store, final Set<UUID> segmentIds) {
+        new SegmentParser(store) {
             @Override
             protected void onNode(RecordId parentId, RecordId nodeId) {
                 super.onNode(parentId, nodeId);
@@ -508,7 +508,7 @@ public class CompactionAndCleanupIT {
                 super.onListBucket(parentId, listId, index, count, capacity);
                 segmentIds.add(listId.asUUID());
             }
-        }.parseNode(s.getRecordId());
+        }.parseNode(store.getHead().getRecordId());
     }
 
     private static void createNodes(NodeBuilder builder, int count, int depth) {
@@ -569,7 +569,7 @@ public class CompactionAndCleanupIT {
 
             try {
                 fileStore.readSegment(id);
-                fail("Segment " + id + "should be gc'ed");
+                fail("Segment " + id + " should be gc'ed");
             } catch (SegmentNotFoundException ignore) {}
         } finally {
             fileStore.close();
