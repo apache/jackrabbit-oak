@@ -445,11 +445,11 @@ public class FileStore implements SegmentStore {
             this.segmentCache = new SegmentCache(DEFAULT_STRING_CACHE_MB);
         }
         if (builder.cacheSize < 0) {
-            this.segmentReader = new SegmentReaderImpl(0);
+            this.segmentReader = new SegmentReaderImpl(this, 0);
         } else if (builder.cacheSize > 0) {
-            this.segmentReader = new SegmentReaderImpl(builder.cacheSize);
+            this.segmentReader = new SegmentReaderImpl(this, builder.cacheSize);
         } else {
-            this.segmentReader = new SegmentReaderImpl();
+            this.segmentReader = new SegmentReaderImpl(this);
         }
         this.segmentWriter = new SegmentWriter(this,
                 new SegmentBufferWriterPool(this, version, "sys", new Supplier<Integer>() {

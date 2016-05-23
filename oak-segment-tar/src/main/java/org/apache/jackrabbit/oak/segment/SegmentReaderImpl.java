@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Long.getLong;
 
 import javax.annotation.Nonnull;
@@ -36,17 +37,22 @@ public class SegmentReaderImpl implements SegmentReader {
 
     public static final String STRING_CACHE_MB = "oak.segment.stringCacheMB";
 
+    @Nonnull
+    private final SegmentStore store;
+
     /**
      * Cache for string records
      */
+    @Nonnull
     private final StringCache stringCache;
 
-    public SegmentReaderImpl(long stringCacheMB) {
+    public SegmentReaderImpl(@Nonnull SegmentStore store, long stringCacheMB) {
+        this.store = checkNotNull(store);
         stringCache = new StringCache(getLong(STRING_CACHE_MB, stringCacheMB) * 1024 * 1024);
     }
 
-    public SegmentReaderImpl() {
-        this(DEFAULT_STRING_CACHE_MB);
+    public SegmentReaderImpl(@Nonnull SegmentStore store) {
+        this(store, DEFAULT_STRING_CACHE_MB);
     }
 
     @Nonnull
@@ -66,13 +72,13 @@ public class SegmentReaderImpl implements SegmentReader {
 
     @Nonnull
     @Override
-    public MapRecord readMap(@Nonnull SegmentStore store, @Nonnull RecordId id) {
+    public MapRecord readMap(@Nonnull RecordId id) {
         return new MapRecord(store, id);
     }
 
     @Nonnull
     @Override
-    public Template readTemplate(@Nonnull SegmentStore store, @Nonnull RecordId id) {
+    public Template readTemplate(@Nonnull RecordId id) {
         int offset = id.getOffset();
         if (id.getSegment().templates == null) {
             return id.getSegment().readTemplate(offset);

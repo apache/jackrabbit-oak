@@ -56,7 +56,7 @@ public class MemoryStore implements SegmentStore {
             new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
 
     @Nonnull
-    private final SegmentReader segmentReader = new SegmentReaderImpl(16);
+    private final SegmentReader segmentReader = new SegmentReaderImpl(this, 16);
 
     private SegmentNodeState head;
 

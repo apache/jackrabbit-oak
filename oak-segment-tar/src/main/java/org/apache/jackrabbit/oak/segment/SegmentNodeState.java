@@ -82,14 +82,14 @@ public class SegmentNodeState extends Record implements NodeState {
         if (template == null) {
             // no problem if updated concurrently,
             // as each concurrent thread will just get the same value
-            template = store.getReader().readTemplate(store, getTemplateId());
+            template = store.getReader().readTemplate(getTemplateId());
         }
         return template;
     }
 
     MapRecord getChildNodeMap() {
         Segment segment = getSegment();
-        return store.getReader().readMap(store, segment.readRecordId(getOffset(0, 2)));
+        return store.getReader().readMap(segment.readRecordId(getOffset(0, 2)));
     }
 
     /**
