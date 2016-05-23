@@ -32,9 +32,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Tracker of references to segment identifiers and segment instances
- * that are currently kept in memory.
- * <p>
- * It is also responsible to cache segment objects in memory.
+ * that are currently kept in memory and factory for creating {@link SegmentId}
+ * instances.
  */
 public class SegmentTracker {
     private static final Logger log = LoggerFactory.getLogger(SegmentTracker.class);
@@ -101,9 +100,10 @@ public class SegmentTracker {
     }
 
     /**
-     * 
-     * @param msb
-     * @param lsb
+     * Get an existing {@code SegmentId} with the given {@code msb} and {@code lsb}
+     * or create a new one if no such id exists with this tracker.
+     * @param msb  most significant bits of the segment id
+     * @param lsb  least  significant bits of the segment id
      * @return the segment id
      */
     public SegmentId getSegmentId(long msb, long lsb) {
@@ -111,10 +111,18 @@ public class SegmentTracker {
         return tables[index].getSegmentId(msb, lsb);
     }
 
+    /**
+     * Create and track a new segment id for data segments.
+     * @return the segment id
+     */
     SegmentId newDataSegmentId() {
         return newSegmentId(DATA);
     }
 
+    /**
+     * Create and track a new segment id for bulk segments.
+     * @return the segment id
+     */
     SegmentId newBulkSegmentId() {
         return newSegmentId(BULK);
     }
