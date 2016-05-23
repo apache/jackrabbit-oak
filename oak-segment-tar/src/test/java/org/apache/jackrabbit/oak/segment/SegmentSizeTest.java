@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -28,22 +29,41 @@ import java.util.Collections;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 
 /**
  * Test case for ensuring that segment size remains within bounds.
  */
 public class SegmentSizeTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private SegmentStore store;
+
+    @Before
+    public void setup() throws IOException {
+        store = FileStore.builder(folder.getRoot()).build();
+    }
+
+    @After
+    public void tearDown() {
+        store.close();
+    }
 
     @Test
     public void testNodeSize() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
-        expectSize(96, builder);
+        expectSize(80, builder);
         expectAmortizedSize(8, builder);
 
         builder = EMPTY_NODE.builder();
@@ -59,13 +79,13 @@ public class SegmentSizeTest {
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
-        expectSize(128, builder);
+        expectSize(112, builder);
         expectAmortizedSize(20, builder);
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        expectSize(160, builder);
+        expectSize(144, builder);
         expectAmortizedSize(52, builder);
     }
 
@@ -73,7 +93,7 @@ public class SegmentSizeTest {
     public void testDuplicateStrings() throws IOException {
         String string = "More than just a few bytes of example content.";
 
-        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
+        SegmentWriter writer = new MemoryStore().getWriter();
         SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
 
         builder.setProperty(PropertyStates.createProperty(
@@ -97,7 +117,7 @@ public class SegmentSizeTest {
     public void testDuplicateDates() throws IOException {
         String now = ISO8601.format(Calendar.getInstance());
 
-        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
+        SegmentWriter writer = new MemoryStore().getWriter();
         SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
 
         builder.setProperty(PropertyStates.createProperty(
@@ -129,7 +149,7 @@ public class SegmentSizeTest {
         deny.setProperty("rep:principalName", "everyone");
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        expectSize(240, builder);
+        expectSize(224, builder);
         expectAmortizedSize(40, builder);
 
         NodeBuilder allow = builder.child("allow");
@@ -146,7 +166,7 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        expectSize(480, builder);
+        expectSize(464, builder);
         expectAmortizedSize(136, builder);
 
         NodeBuilder allow0 = builder.child("allow0");
@@ -161,7 +181,7 @@ public class SegmentSizeTest {
     @Test
     public void testFlatNodeUpdate() throws IOException {
         SegmentStore store = new MemoryStore();
-        SegmentWriter writer = store.getTracker().getWriter();
+        SegmentWriter writer = store.getWriter();
 
         NodeBuilder builder = EMPTY_NODE.builder();
         for (int i = 0; i < 1000; i++) {
@@ -183,8 +203,9 @@ public class SegmentSizeTest {
         assertEquals(560, segment.size());
     }
 
-    private static void expectSize(int expectedSize, NodeBuilder builder) throws IOException {
-        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
+    private void expectSize(int expectedSize, NodeBuilder builder) throws IOException {
+        SegmentWriter writer = new SegmentWriter(store,
+                new SegmentBufferWriter(store, LATEST_VERSION, "test", 0));
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = id.getSegment();
@@ -192,8 +213,9 @@ public class SegmentSizeTest {
             expectedSize, segment.size());
     }
 
-    private static void expectAmortizedSize(int expectedSize, NodeBuilder builder) throws IOException {
-        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
+    private void expectAmortizedSize(int expectedSize, NodeBuilder builder) throws IOException {
+        SegmentWriter writer = new SegmentWriter(store,
+                new SegmentBufferWriter(store, LATEST_VERSION, "test", 0));
         NodeState state = builder.getNodeState();
         RecordId id1 = writer.writeNode(state).getRecordId();
         RecordId id2 = writer.writeNode(state).getRecordId();

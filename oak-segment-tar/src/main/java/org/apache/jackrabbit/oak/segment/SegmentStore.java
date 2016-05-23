@@ -33,6 +33,10 @@ public interface SegmentStore {
 
     SegmentTracker getTracker();
 
+    SegmentWriter getWriter();
+
+    SegmentReader getReader();
+
     /**
      * Returns the head state.
      *

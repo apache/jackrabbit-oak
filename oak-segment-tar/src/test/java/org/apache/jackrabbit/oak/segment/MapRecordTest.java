@@ -48,7 +48,7 @@ public class MapRecordTest {
     private NodeBuilder builder;
 
     public MapRecordTest() throws IOException {
-        builder = new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
+        builder = new MemoryStore().getWriter().writeNode(EMPTY_NODE).builder();
     }
 
     @Test

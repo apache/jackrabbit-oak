@@ -25,6 +25,8 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import java.util.Formatter;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 /**
  * This utility breaks down space usage per record type.
  * It accounts for value sharing. That is, an instance
@@ -55,6 +57,10 @@ public class RecordUsageAnalyser extends SegmentParser {
     private long longStringCount;
     private long templateCount;
     private long nodeCount;
+
+    public RecordUsageAnalyser(@Nonnull SegmentStore store) {
+        super(store);
+    }
 
     /**
      * @return number of bytes in {@link RecordType#LEAF leaf} and {@link RecordType#BRANCH branch}

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static java.util.Collections.nCopies;
@@ -27,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import org.slf4j.Logger;
@@ -60,8 +63,9 @@ public class SegmentIdTable {
     private final ArrayList<WeakReference<SegmentId>> references =
             newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
 
-    private final SegmentTracker tracker;
-    
+    @Nonnull
+    private final SegmentStore store;
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
 
     
@@ -75,8 +79,8 @@ public class SegmentIdTable {
      */
     private int entryCount;
 
-    SegmentIdTable(SegmentTracker tracker) {
-        this.tracker = tracker;
+    SegmentIdTable(@Nonnull SegmentStore store) {
+        this.store = checkNotNull(store);
     }
 
     /**
@@ -106,7 +110,7 @@ public class SegmentIdTable {
             reference = references.get(index);
         }
 
-        SegmentId id = new SegmentId(tracker, msb, lsb);
+        SegmentId id = new SegmentId(store, msb, lsb);
         references.set(index, new WeakReference<SegmentId>(id));
         entryCount++;
         if (entryCount > references.size() * 0.75) {

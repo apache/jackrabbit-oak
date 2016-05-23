@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.singletonList;
@@ -33,6 +34,8 @@ import static org.apache.jackrabbit.oak.segment.Template.MANY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.segment.Template.ZERO_CHILD_NODES;
 
 import java.util.List;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -254,6 +257,13 @@ public class SegmentParser {
         }
     }
 
+    @Nonnull
+    private final SegmentStore store;
+
+    public SegmentParser(@Nonnull SegmentStore store) {
+        this.store = checkNotNull(store);
+    }
+
     /**
      * Callback called by {@link #parseNode(RecordId)} upon encountering
      * a child node.
@@ -413,22 +423,22 @@ public class SegmentParser {
 
         Segment segment = nodeId.getSegment();
         int offset = nodeId.getOffset();
-        String stableId = new SegmentNodeState(nodeId).getStableId();
+        String stableId = new SegmentNodeState(store, nodeId).getStableId();
         offset += RECORD_ID_BYTES;
         RecordId templateId = segment.readRecordId(offset);
         onTemplate(nodeId, templateId);
 
-        Template template = segment.readTemplate(templateId);
+        Template template = store.getReader().readTemplate(store, templateId);
 
         // Recurses into child nodes in this segment
         if (template.getChildName() == MANY_CHILD_NODES) {
             RecordId childMapId = segment.readRecordId(offset + RECORD_ID_BYTES);
-            MapRecord childMap = segment.readMap(childMapId);
+            MapRecord childMap = store.getReader().readMap(store, childMapId);
             onMap(nodeId, childMapId, childMap);
             for (ChildNodeEntry childNodeEntry : childMap.getEntries()) {
                 NodeState child = childNodeEntry.getNodeState();
                 if (child instanceof SegmentNodeState) {
-                    RecordId childId = ((SegmentNodeState) child).getRecordId();
+                    RecordId childId = ((Record) child).getRecordId();
                     onNode(nodeId, childId);
                     nodeCount++;
                 }
@@ -548,7 +558,7 @@ public class SegmentParser {
 
         RecordId baseId = mapId.getSegment()
                 .readRecordId(mapId.getOffset() + 8 + 2 * RECORD_ID_BYTES);
-        onMap(mapId, baseId, new MapRecord(baseId));
+        onMap(mapId, baseId, new MapRecord(store, baseId));
 
         return new MapInfo(mapId, size);
     }

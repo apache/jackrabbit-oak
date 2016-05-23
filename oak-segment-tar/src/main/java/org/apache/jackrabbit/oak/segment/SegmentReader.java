@@ -17,36 +17,23 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment;
 
-import java.io.File;
-import java.io.IOException;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 
-public class FileStoreTest {
+public interface SegmentReader {
+    @Nonnull
+    String readString(@Nonnull RecordId id);
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    @Nonnull
+    MapRecord readMap(@Nonnull SegmentStore store, @Nonnull RecordId id);
 
-    private File getFileStoreFolder() {
-        return folder.getRoot();
-    }
+    @Nonnull
+    Template readTemplate(@Nonnull SegmentStore store, @Nonnull RecordId id);
 
-    @Test
-    public void containsSegment() throws IOException {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
-        try {
-            SegmentId id = new SegmentId(fileStore, 0, 0);
-            if (fileStore.containsSegment(id)) {
-                fileStore.readSegment(id);
-            }
-        } finally {
-            fileStore.close();
-        }
-    }
-
+    // FIXME OAK-4373 remove from this interface
+    @Nonnull
+    CacheStats getStringCacheStats();
 }

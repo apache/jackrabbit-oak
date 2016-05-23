@@ -88,8 +88,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private final String wid;
 
-    private final SegmentTracker tracker;
-
     private final int generation;
 
     /**
@@ -119,13 +117,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 ? "w-" + identityHashCode(this)
                 : wid);
 
-        this.tracker = store.getTracker();
         this.generation = generation;
         newSegment();
-    }
-
-    public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid) {
-        this(store, version, wid, store.getTracker().getGcGeneration());
     }
 
     @Override
@@ -169,10 +162,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
-            ",\"sno\":" + tracker.getSegmentCount() +
+            ",\"sno\":" + store.getTracker().getSegmentCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
-            segment = new Segment(tracker, buffer, metaInfo);
+            segment = new Segment(store, buffer, metaInfo);
             byte[] data = metaInfo.getBytes(UTF_8);
             RecordWriters.newValueWriter(data.length, data).write(this);
         } catch (IOException e) {
@@ -328,25 +321,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             }
 
             SegmentId segmentId = segment.getSegmentId();
-            int segmentOffset = buffer.length - length;
-
             LOG.debug("Writing data segment {} ({} bytes)", segmentId, length);
-            store.writeSegment(segmentId, buffer, segmentOffset, length);
-
-            // Keep this segment in memory as it's likely to be accessed soon
-            ByteBuffer data;
-            if (segmentOffset > 4096) {
-                data = ByteBuffer.allocate(length);
-                data.put(buffer, segmentOffset, length);
-                data.rewind();
-            } else {
-                data = ByteBuffer.wrap(buffer, segmentOffset, length);
-            }
-
-            // It is important to put the segment into the cache only *after* it has been
-            // written to the store since as soon as it is in the cache it becomes eligible
-            // for eviction, which might lead to SNFEs when it is not yet in the store at that point.
-            tracker.setSegment(segmentId, new Segment(tracker, segmentId, data));
+            store.writeSegment(segmentId, buffer, buffer.length - length, length);
             newSegment();
         }
     }

@@ -74,10 +74,10 @@ import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -234,8 +234,8 @@ public class SegmentCompactionIT {
                 .build();
         nodeStore = SegmentNodeStore.builder(fileStore).build();
 
-        CacheStats segmentCacheStats = fileStore.getTracker().getSegmentCacheStats();
-        CacheStats stringCacheStats = fileStore.getTracker().getStringCacheStats();
+        CacheStats segmentCacheStats = fileStore.getSegmentCacheStats();
+        CacheStats stringCacheStats = fileStore.getReader().getStringCacheStats();
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
@@ -243,8 +243,7 @@ public class SegmentCompactionIT {
                 new ObjectName("IT:TYPE=Segment Revision GC")));
         registrations.add(registerMBean(fileStoreGCMonitor,
                 new ObjectName("IT:TYPE=GC Monitor")));
-        registrations.add(registerMBean(segmentCacheStats,
-                new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
+        registrations.add(registerMBean(segmentCacheStats, new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
         if (stringCacheStats != null) {
             registrations.add(registerMBean(stringCacheStats,
                     new ObjectName("IT:TYPE=" + stringCacheStats.getName())));

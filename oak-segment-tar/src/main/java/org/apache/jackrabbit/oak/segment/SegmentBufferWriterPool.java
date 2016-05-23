@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
@@ -30,25 +31,51 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
  * which it passes to its {@link #execute(WriteOperation) execute} method.
  */
-class SegmentBufferWriterPool implements WriteOperationHandler {
+public class SegmentBufferWriterPool implements WriteOperationHandler {
     private final Map<Object, SegmentBufferWriter> writers = newHashMap();
     private final Set<SegmentBufferWriter> borrowed = newHashSet();
     private final Set<SegmentBufferWriter> disposed = newHashSet();
+
+    @Nonnull
     private final SegmentStore store;
+
+    @Nonnull
+    private final Supplier<Integer> gcGeneration;
+
+    @Nonnull
     private final SegmentVersion version;
+
+    @Nonnull
     private final String wid;
 
     private short writerId = -1;
 
-    SegmentBufferWriterPool(SegmentStore store, SegmentVersion version, String wid) {
-        this.store = store;
-        this.version = version;
-        this.wid = wid;
+    public SegmentBufferWriterPool(
+            @Nonnull SegmentStore store,
+            @Nonnull SegmentVersion version,
+            @Nonnull String wid,
+            @Nonnull Supplier<Integer> gcGeneration) {
+        this.store = checkNotNull(store);
+        this.version = checkNotNull(version);
+        this.wid = checkNotNull(wid);
+        this.gcGeneration = checkNotNull(gcGeneration);
     }
+
+    public SegmentBufferWriterPool(
+            @Nonnull SegmentStore store,
+            @Nonnull SegmentVersion version,
+            @Nonnull  String wid) {
+            this(store, version, wid, Suppliers.ofInstance(0));
+        }
 
     @Override
     public RecordId execute(WriteOperation writeOperation) throws IOException {
@@ -80,10 +107,10 @@ class SegmentBufferWriterPool implements WriteOperationHandler {
     private synchronized SegmentBufferWriter borrowWriter(Object key) {
         SegmentBufferWriter writer = writers.remove(key);
         if (writer == null) {
-            writer = new SegmentBufferWriter(store, version, getWriterId(wid));
-        } else if (writer.getGeneration() != store.getTracker().getGcGeneration()) {
+            writer = new SegmentBufferWriter(store, version, getWriterId(wid), gcGeneration.get());
+        } else if (writer.getGeneration() != gcGeneration.get()) {
             disposed.add(writer);
-            writer = new SegmentBufferWriter(store, version, getWriterId(wid));
+            writer = new SegmentBufferWriter(store, version, getWriterId(wid), gcGeneration.get());
         }
         borrowed.add(writer);
         return writer;
