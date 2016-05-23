@@ -41,7 +41,7 @@ import com.google.common.collect.ComparisonChain;
  * A map. The top level record is either a record of type "BRANCH" or "LEAF"
  * (depending on the data).
  */
-class MapRecord extends Record {
+public class MapRecord extends Record {
 
     /**
      * Magic constant from a random number generator, used to generate

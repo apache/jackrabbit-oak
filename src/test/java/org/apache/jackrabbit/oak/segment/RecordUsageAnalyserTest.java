@@ -54,8 +54,7 @@ public class RecordUsageAnalyserTest {
         store = mock(SegmentStore.class);
         SegmentTracker tracker = new SegmentTracker(store);
         when(store.getTracker()).thenReturn(tracker);
-        writer = new SegmentWriter(store, LATEST_VERSION,
-            new SegmentBufferWriter(store, LATEST_VERSION, ""));
+        writer = new SegmentWriter(store, new SegmentBufferWriter(store, LATEST_VERSION, ""));
         analyser = new RecordUsageAnalyser();
     }
 

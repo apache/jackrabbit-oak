@@ -90,11 +90,6 @@ public class SegmentWriter {
 
     private final SegmentStore store;
 
-    /**
-     * Version of the segment storage format.
-     */
-    private final SegmentVersion version;
-
     private final WriteOperationHandler writeOperationHandler;
 
     /**
@@ -102,13 +97,10 @@ public class SegmentWriter {
      * pointed out in the class comment.
      *
      * @param store      store to write to
-     * @param version    segment version to write
      * @param writeOperationHandler  handler for write operations.
      */
-    public SegmentWriter(SegmentStore store, SegmentVersion version,
-                         WriteOperationHandler writeOperationHandler) {
+    public SegmentWriter(SegmentStore store, WriteOperationHandler writeOperationHandler) {
         this.store = store;
-        this.version = version;
         this.writeOperationHandler = writeOperationHandler;
         this.cacheManager = new WriterCacheManager();
     }
@@ -124,7 +116,7 @@ public class SegmentWriter {
     }
 
     @Nonnull
-    MapRecord writeMap(final MapRecord base, final Map<String, RecordId> changes) throws IOException {
+    public MapRecord writeMap(final MapRecord base, final Map<String, RecordId> changes) throws IOException {
         return new MapRecord(
             writeOperationHandler.execute(new SegmentWriteOperation() {
                 @Override
@@ -155,7 +147,7 @@ public class SegmentWriter {
     }
 
     @Nonnull
-    SegmentBlob writeBlob(final Blob blob) throws IOException {
+    public SegmentBlob writeBlob(final Blob blob) throws IOException {
         return new SegmentBlob(
             writeOperationHandler.execute(new SegmentWriteOperation() {
                 @Override
@@ -174,7 +166,7 @@ public class SegmentWriter {
      * @return block record identifier
      */
     @Nonnull
-    RecordId writeBlock(final byte[] bytes, final int offset, final int length) throws IOException {
+    public RecordId writeBlock(final byte[] bytes, final int offset, final int length) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
             public RecordId execute(SegmentBufferWriter writer) throws IOException {
@@ -203,7 +195,7 @@ public class SegmentWriter {
     }
 
     @Nonnull
-    SegmentPropertyState writeProperty(final PropertyState state) throws IOException {
+    public SegmentPropertyState writeProperty(final PropertyState state) throws IOException {
         RecordId id = writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
             public RecordId execute(SegmentBufferWriter writer) throws IOException {
@@ -790,7 +782,7 @@ public class SegmentWriter {
 
             RecordId tid = RecordWriters.newTemplateWriter(ids, propertyNames,
                 propertyTypes, head, primaryId, mixinIds, childNameId,
-                propNamesId, version).write(writer);
+                propNamesId).write(writer);
             templateCache.put(template, tid);
             return tid;
         }
@@ -882,6 +874,7 @@ public class SegmentWriter {
             for (PropertyTemplate pt : template.getPropertyTemplates()) {
                 String name = pt.getName();
                 PropertyState property = state.getProperty(name);
+                assert property != null;
 
                 if (hasSegment(property)) {
                     RecordId pid = ((Record) property).getRecordId();

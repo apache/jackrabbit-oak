@@ -70,13 +70,13 @@ public class SegmentGraphTest {
             SegmentNodeState root = store.getHead();
             segments.add(getSegmentId(root));
 
-            SegmentWriter w1 = new SegmentWriter(store, LATEST_VERSION,
+            SegmentWriter w1 = new SegmentWriter(store,
                     new SegmentBufferWriter(store, LATEST_VERSION, "writer1"));
 
-            SegmentWriter w2 = new SegmentWriter(store, LATEST_VERSION,
+            SegmentWriter w2 = new SegmentWriter(store,
                     new SegmentBufferWriter(store, LATEST_VERSION, "writer2"));
 
-            SegmentWriter w3 = new SegmentWriter(store, LATEST_VERSION,
+            SegmentWriter w3 = new SegmentWriter(store,
                     new SegmentBufferWriter(store, LATEST_VERSION, "writer3", 0));
 
             SegmentPropertyState p1 = w1.writeProperty(createProperty("p1", "v1"));

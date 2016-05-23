@@ -143,8 +143,7 @@ public class SegmentParserTest {
     @Before
     public void setup() throws IOException {
         store = FileStore.builder(folder.getRoot()).build();
-        writer = new SegmentWriter(store, LATEST_VERSION,
-            new SegmentBufferWriter(store, LATEST_VERSION, ""));
+        writer = new SegmentWriter(store, new SegmentBufferWriter(store, LATEST_VERSION, ""));
     }
 
     @After
