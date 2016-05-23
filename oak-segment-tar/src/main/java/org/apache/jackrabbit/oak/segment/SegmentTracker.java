@@ -52,6 +52,7 @@ public class SegmentTracker {
     /**
      * The random number source for generating new segment identifiers.
      */
+    @Nonnull
     private final SecureRandom random = new SecureRandom();
 
     /**
@@ -63,11 +64,13 @@ public class SegmentTracker {
      * (when there are no matching identifiers) or a list of weak references
      * to the matching identifiers.
      */
+    @Nonnull
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
 
     /**
      * Number of segment tracked since this tracker was instantiated
      */
+    @Nonnull
     private final AtomicInteger segmentCounter = new AtomicInteger();
 
     public SegmentTracker(@Nonnull SegmentStore store) {
