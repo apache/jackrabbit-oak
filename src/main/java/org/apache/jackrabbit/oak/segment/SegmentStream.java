@@ -44,7 +44,7 @@ public class SegmentStream extends InputStream {
         if (stream instanceof SegmentStream) {
             SegmentStream sstream = (SegmentStream) stream;
             RecordId id = sstream.recordId;
-            if (sstream.position == 0 && store.getTracker().isTracking(id.getSegmentId())) {
+            if (sstream.position == 0 && id.getSegmentId().sameStore(store)) {
                 return id;
             }
         }

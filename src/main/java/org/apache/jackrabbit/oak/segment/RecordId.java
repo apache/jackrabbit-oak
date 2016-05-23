@@ -89,6 +89,7 @@ public final class RecordId implements Comparable<RecordId> {
         return segmentId.asUUID();
     }
 
+    @Nonnull
     public Segment getSegment() {
         return segmentId.getSegment();
     }

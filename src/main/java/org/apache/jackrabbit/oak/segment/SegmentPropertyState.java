@@ -61,18 +61,26 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
  * of type "LIST" (for arrays).
  */
 public class SegmentPropertyState extends Record implements PropertyState {
+    @Nonnull
+    private final SegmentStore store;
 
+    @Nonnull
     private final String name;
+
+    @Nonnull
     private final Type<?> type;
 
-    SegmentPropertyState(RecordId id, String name, Type<?> type) {
+    SegmentPropertyState(@Nonnull SegmentStore store, @Nonnull RecordId id,
+                         @Nonnull String name, @Nonnull Type<?> type) {
         super(id);
+        this.store = checkNotNull(store);
         this.name = checkNotNull(name);
         this.type = checkNotNull(type);
     }
 
-    SegmentPropertyState(RecordId id, PropertyTemplate template) {
-        this(id, template.getName(), template.getType());
+    SegmentPropertyState(@Nonnull SegmentStore store, @Nonnull RecordId id,
+                         @Nonnull PropertyTemplate template) {
+        this(store, id, template.getName(), template.getType());
     }
 
     private ListRecord getValueList(Segment segment) {
@@ -98,7 +106,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         ListRecord values = getValueList(segment);
         for (int i = 0; i < values.size(); i++) {
             RecordId valueId = values.getEntry(i);
-            String value = Segment.readString(valueId);
+            String value = store.getReader().readString(valueId);
             map.put(value, valueId);
         }
 
@@ -110,6 +118,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         return name;
     }
 
+    @Nonnull
     @Override
     public Type<?> getType() {
         return type;
@@ -138,13 +147,12 @@ public class SegmentPropertyState extends Record implements PropertyState {
             if (values.size() == 0) {
                 return (T) emptyList();
             } else if (values.size() == 1) {
-                return (T) singletonList(getValue(
-                        segment, values.getEntry(0), type.getBaseType()));
+                return (T) singletonList(getValue(values.getEntry(0), type.getBaseType()));
             } else {
                 Type<?> base = type.getBaseType();
                 List<Object> list = newArrayListWithCapacity(values.size());
                 for (RecordId id : values.getEntries()) {
-                    list.add(getValue(segment, id, base));
+                    list.add(getValue(id, base));
                 }
                 return (T) list;
             }
@@ -152,9 +160,9 @@ public class SegmentPropertyState extends Record implements PropertyState {
             RecordId id = getRecordId();
             if (type.isArray()) {
                 return (T) singletonList(
-                        getValue(segment, id, type.getBaseType()));
+                        getValue(id, type.getBaseType()));
             } else {
-                return getValue(segment, id, type);
+                return getValue(id, type);
             }
         }
     }
@@ -172,16 +180,16 @@ public class SegmentPropertyState extends Record implements PropertyState {
         Segment segment = getSegment();
         ListRecord values = getValueList(segment);
         checkElementIndex(index, values.size());
-        return getValue(segment, values.getEntry(index), type);
+        return getValue(values.getEntry(index), type);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T getValue(Segment segment, RecordId id, Type<T> type) {
+    private <T> T getValue(RecordId id, Type<T> type) {
         if (type == BINARY) {
-            return (T) new SegmentBlob(id); // load binaries lazily
+            return (T) new SegmentBlob(store, id); // load binaries lazily
         }
 
-        String value = Segment.readString(id);
+        String value = store.getReader().readString(id);
         if (type == STRING || type == URI || type == DATE
                 || type == NAME || type == PATH
                 || type == REFERENCE || type == WEAKREFERENCE) {
@@ -214,7 +222,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         RecordId entry = values.getEntry(index);
 
         if (getType().equals(BINARY) || getType().equals(BINARIES)) {
-            return new SegmentBlob(entry).length();
+            return new SegmentBlob(store, entry).length();
         }
 
         return getSegment().readLength(entry);

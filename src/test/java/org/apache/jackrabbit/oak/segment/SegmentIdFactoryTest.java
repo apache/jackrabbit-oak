@@ -29,42 +29,43 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class SegmentIdFactoryTest {
-
-    private final SegmentTracker factory;
+    private final SegmentStore store;
+    private final SegmentTracker tracker;
 
     public SegmentIdFactoryTest() throws IOException {
-        factory = new MemoryStore().getTracker();
+        store = new MemoryStore();
+        tracker = store.getTracker();
     }
 
     @Test
     public void segmentIdType() {
-        assertTrue(factory.newDataSegmentId().isDataSegmentId());
-        assertTrue(factory.newBulkSegmentId().isBulkSegmentId());
+        assertTrue(tracker.newDataSegmentId().isDataSegmentId());
+        assertTrue(tracker.newBulkSegmentId().isBulkSegmentId());
 
-        assertFalse(factory.newDataSegmentId().isBulkSegmentId());
-        assertFalse(factory.newBulkSegmentId().isDataSegmentId());
+        assertFalse(tracker.newDataSegmentId().isBulkSegmentId());
+        assertFalse(tracker.newBulkSegmentId().isDataSegmentId());
     }
 
     @Test
     public void internedSegmentIds() {
-        assertTrue(factory.getSegmentId(0, 0) == factory.getSegmentId(0, 0));
-        assertTrue(factory.getSegmentId(1, 2) == factory.getSegmentId(1, 2));
-        assertTrue(factory.getSegmentId(1, 2) != factory.getSegmentId(3, 4));
+        assertTrue(tracker.getSegmentId(0, 0) == tracker.getSegmentId(0, 0));
+        assertTrue(tracker.getSegmentId(1, 2) == tracker.getSegmentId(1, 2));
+        assertTrue(tracker.getSegmentId(1, 2) != tracker.getSegmentId(3, 4));
     }
 
     @Test
     public void referencedSegmentIds() throws InterruptedException {
-        SegmentId a = factory.newDataSegmentId();
-        SegmentId b = factory.newBulkSegmentId();
-        SegmentId c = factory.newDataSegmentId();
+        SegmentId a = tracker.newDataSegmentId();
+        SegmentId b = tracker.newBulkSegmentId();
+        SegmentId c = tracker.newDataSegmentId();
 
-        Set<SegmentId> ids = factory.getReferencedSegmentIds();
+        Set<SegmentId> ids = tracker.getReferencedSegmentIds();
         assertTrue(ids.contains(a));
         assertTrue(ids.contains(b));
         assertTrue(ids.contains(c));
 
         // the returned set is a snapshot in time, not continuously updated
-        assertFalse(ids.contains(factory.newBulkSegmentId()));
+        assertFalse(ids.contains(tracker.newBulkSegmentId()));
     }
 
     /**
@@ -74,8 +75,8 @@ public class SegmentIdFactoryTest {
      */
     // @Test
     public void garbageCollection() {
-        SegmentId a = factory.newDataSegmentId();
-        SegmentId b = factory.newBulkSegmentId();
+        SegmentId a = tracker.newDataSegmentId();
+        SegmentId b = tracker.newBulkSegmentId();
 
         // generate lots of garbage copies of an UUID to get the
         // garbage collector to reclaim also the original instance
@@ -86,7 +87,7 @@ public class SegmentIdFactoryTest {
         System.gc();
 
         // now the original UUID should no longer be present
-        Set<SegmentId> ids = factory.getReferencedSegmentIds();
+        Set<SegmentId> ids = tracker.getReferencedSegmentIds();
         assertFalse(ids.contains(a));
         assertTrue(ids.contains(b));
     }
@@ -101,9 +102,9 @@ public class SegmentIdFactoryTest {
         byte[] buffer = new byte[segment.size()];
         segment.readBytes(Segment.MAX_SEGMENT_SIZE - segment.size(), buffer, 0, segment.size());
 
-        SegmentId id = factory.newDataSegmentId();
+        SegmentId id = tracker.newDataSegmentId();
         ByteBuffer data = ByteBuffer.wrap(buffer);
-        Segment s = new Segment(factory, id, data);
+        Segment s = new Segment(store, id, data);
         s.getRefId(1);
     }
 
@@ -112,9 +113,9 @@ public class SegmentIdFactoryTest {
      */
     @Test(expected = IllegalStateException.class)
     public void bulkAIOOBE() {
-        SegmentId id = factory.newBulkSegmentId();
+        SegmentId id = tracker.newBulkSegmentId();
         ByteBuffer data = ByteBuffer.allocate(4);
-        Segment s = new Segment(factory, id, data);
+        Segment s = new Segment(store, id, data);
         s.getRefId(1);
     }
 

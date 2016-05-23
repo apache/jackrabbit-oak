@@ -24,11 +24,12 @@ import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
+import javax.annotation.Nullable;
 
 import com.google.common.collect.ComparisonChain;
+import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 
 /**
  * Representation of a single key-value entry in a map.
@@ -36,13 +37,21 @@ import com.google.common.collect.ComparisonChain;
 class MapEntry extends AbstractChildNodeEntry
         implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
 
+    @Nonnull
+    private final SegmentStore store;
+
+    @Nonnull
     private final String name;
 
+    @Nonnull
     private final RecordId key;
 
+    @CheckForNull
     private final RecordId value;
 
-    MapEntry(String name, RecordId key, RecordId value) {
+    MapEntry(@Nonnull SegmentStore store, @Nonnull String name,
+             @Nonnull RecordId key, @Nullable RecordId value) {
+        this.store = checkNotNull(store);
         this.name = checkNotNull(name);
         this.key = checkNotNull(key);
         this.value = value;
@@ -62,16 +71,18 @@ class MapEntry extends AbstractChildNodeEntry
     @Override @Nonnull
     public SegmentNodeState getNodeState() {
         checkState(value != null);
-        return new SegmentNodeState(value);
+        return new SegmentNodeState(store, value);
     }
 
     //---------------------------------------------------------< Map.Entry >--
 
+    @Nonnull
     @Override
     public RecordId getKey() {
         return key;
     }
 
+    @CheckForNull
     @Override
     public RecordId getValue() {
         return value;

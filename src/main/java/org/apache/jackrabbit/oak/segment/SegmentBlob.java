@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
@@ -41,6 +42,9 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
  */
 public class SegmentBlob extends Record implements Blob {
 
+    @Nonnull
+    private final SegmentStore store;
+
     public static Iterable<SegmentId> getBulkSegmentIds(Blob blob) {
         if (blob instanceof SegmentBlob) {
             return ((SegmentBlob) blob).getBulkSegmentIds();
@@ -49,8 +53,9 @@ public class SegmentBlob extends Record implements Blob {
         }
     }
 
-    SegmentBlob(RecordId id) {
+    SegmentBlob(@Nonnull SegmentStore store, @Nonnull RecordId id) {
         super(id);
+        this.store = checkNotNull(store);
     }
 
     private InputStream getInlineStream(
@@ -84,7 +89,7 @@ public class SegmentBlob extends Record implements Blob {
             return getNewStream(readShortBlobId(segment, offset, head));
         } else if ((head & 0xf8) == 0xf0) {
             // 1111 0xxx: external value, long blob ID
-            return getNewStream(readLongBlobId(segment, offset));
+            return getNewStream(readLongBlobId(store, segment, offset));
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));
@@ -110,7 +115,7 @@ public class SegmentBlob extends Record implements Blob {
             return getLength(readShortBlobId(segment, offset, head));
         } else if ((head & 0xf8) == 0xf0) {
             // 1111 0xxx: external value, long blob ID
-            return getLength(readLongBlobId(segment, offset));
+            return getLength(readLongBlobId(store, segment, offset));
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));
@@ -122,8 +127,7 @@ public class SegmentBlob extends Record implements Blob {
     public String getReference() {
         String blobId = getBlobId();
         if (blobId != null) {
-            BlobStore blobStore = getSegment().getSegmentId().getTracker().
-                    getStore().getBlobStore();
+            BlobStore blobStore = store.getBlobStore();
             if (blobStore != null) {
                 return blobStore.getReference(blobId);
             } else {
@@ -152,16 +156,20 @@ public class SegmentBlob extends Record implements Blob {
         return (head & 0xf0) == 0xe0 || (head & 0xf8) == 0xf0;
     }
 
+    @CheckForNull
     public String getBlobId() {
-        Segment segment = getSegment();
-        int offset = getOffset();
+        return readBlobId(store, getSegment(), getOffset());
+    }
+
+    @CheckForNull
+    static String readBlobId(@Nonnull SegmentStore store, @Nonnull Segment segment, int offset) {
         byte head = segment.readByte(offset);
         if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value, small blob ID
             return readShortBlobId(segment, offset, head);
         } else if ((head & 0xf8) == 0xf0) {
             // 1111 0xxx: external value, long blob ID
-            return readLongBlobId(segment, offset);
+            return readLongBlobId(store, segment, offset);
         } else {
             return null;
         }
@@ -204,9 +212,9 @@ public class SegmentBlob extends Record implements Blob {
         return new String(bytes, UTF_8);
     }
 
-    private static String readLongBlobId(Segment segment, int offset) {
+    private static String readLongBlobId(SegmentStore store, Segment segment, int offset) {
         RecordId blobIdRecordId = segment.readRecordId(offset + 1);
-        return Segment.readString(blobIdRecordId);
+        return store.getReader().readString(blobIdRecordId);
     }
 
     private List<RecordId> getBulkRecordIds() {
@@ -239,7 +247,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     private Blob getBlob(String blobId) {
-        return getSegment().getSegmentId().getTracker().getStore().readBlob(blobId);
+        return store.readBlob(blobId);
     }
 
     private InputStream getNewStream(String blobId) {

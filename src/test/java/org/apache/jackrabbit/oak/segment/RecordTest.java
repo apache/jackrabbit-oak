@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
-import static org.apache.jackrabbit.oak.segment.Segment.readString;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,7 +80,12 @@ public class RecordTest {
     @Before
     public void setup() throws IOException {
         store = FileStore.builder(folder.getRoot()).build();
-        writer = store.getTracker().getWriter();
+        writer = store.getWriter();
+    }
+
+    @After
+    public void tearDown() {
+        store.close();
     }
 
     @Test
@@ -204,10 +209,10 @@ public class RecordTest {
 
         Segment segment = large.getSegmentId().getSegment();
 
-        assertEquals("", readString(empty));
-        assertEquals(" ", readString(space));
-        assertEquals("Hello, World!", readString(hello));
-        assertEquals(builder.toString(), readString(large));
+        assertEquals("", store.getReader().readString(empty));
+        assertEquals(" ", store.getReader().readString(space));
+        assertEquals("Hello, World!", store.getReader().readString(hello));
+        assertEquals(builder.toString(), store.getReader().readString(large));
     }
 
     @Test
@@ -429,7 +434,7 @@ public class RecordTest {
     @Test
     public void testCancel() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
-        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store, LATEST_VERSION, "test");
+        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store, LATEST_VERSION, "test", 0);
         NodeState state = writer.writeNode(builder.getNodeState(), bufferWriter, Suppliers.ofInstance(true));
         assertNull(state);
     }

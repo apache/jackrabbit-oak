@@ -31,8 +31,6 @@ import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Random;
@@ -40,22 +38,20 @@ import java.util.Random;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
 public class RecordUsageAnalyserTest {
-    private SegmentStore store;
     private SegmentWriter writer;
-    private RecordUsageAnalyser analyser = new RecordUsageAnalyser();
+    private RecordUsageAnalyser analyser;
 
     @Before
-    public void setup() {
-        store = mock(SegmentStore.class);
-        SegmentTracker tracker = new SegmentTracker(store);
-        when(store.getTracker()).thenReturn(tracker);
-        writer = new SegmentWriter(store, new SegmentBufferWriter(store, LATEST_VERSION, ""));
-        analyser = new RecordUsageAnalyser();
+    public void setup() throws IOException {
+        SegmentStore store = new MemoryStore();
+        writer = new SegmentWriter(store, new SegmentBufferWriter(store, LATEST_VERSION, "", 0));
+        analyser = new RecordUsageAnalyser(store);
     }
 
     @Test
@@ -263,7 +259,6 @@ public class RecordUsageAnalyserTest {
         builder = node.builder();
         builder.child("child1").setProperty("p", "q");
 
-        when(store.containsSegment(node.getRecordId().getSegmentId())).thenReturn(true);
         node = (SegmentNodeState) builder.getNodeState();
 
         analyser.analyseNode(node.getRecordId());

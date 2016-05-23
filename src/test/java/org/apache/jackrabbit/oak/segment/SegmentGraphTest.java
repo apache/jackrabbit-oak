@@ -71,10 +71,10 @@ public class SegmentGraphTest {
             segments.add(getSegmentId(root));
 
             SegmentWriter w1 = new SegmentWriter(store,
-                    new SegmentBufferWriter(store, LATEST_VERSION, "writer1"));
+                    new SegmentBufferWriter(store, LATEST_VERSION, "writer1", 0));
 
             SegmentWriter w2 = new SegmentWriter(store,
-                    new SegmentBufferWriter(store, LATEST_VERSION, "writer2"));
+                    new SegmentBufferWriter(store, LATEST_VERSION, "writer2", 0));
 
             SegmentWriter w3 = new SegmentWriter(store,
                     new SegmentBufferWriter(store, LATEST_VERSION, "writer3", 0));
