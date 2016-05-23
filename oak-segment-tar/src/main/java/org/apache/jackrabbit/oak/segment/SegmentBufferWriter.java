@@ -169,7 +169,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
-            ",\"sno\":" + tracker.getNextSegmentNo() +
+            ",\"sno\":" + tracker.getSegmentCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
             segment = new Segment(tracker, buffer, metaInfo);
