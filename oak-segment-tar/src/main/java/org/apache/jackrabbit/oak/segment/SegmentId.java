@@ -92,15 +92,21 @@ public class SegmentId implements Comparable<SegmentId> {
         return lsb;
     }
 
+    /**
+     * Get the segment identified by this instance. The segment is memoised in this instance's
+     * {@link #segment} field.
+     * @return  the segment identified by this instance.
+     * @see #loaded(Segment)
+     * @see #unloaded()
+     */
+    @Nonnull
     public Segment getSegment() {
-        Segment segment = this.segment;
         if (segment == null) {
             synchronized (this) {
-                segment = this.segment;
                 if (segment == null) {
                     try {
                         log.debug("Loading segment {}", this);
-                        segment = store.readSegment(this);
+                        this.segment = store.readSegment(this);
                     } catch (SegmentNotFoundException snfe) {
                         long delta = System.currentTimeMillis() - creationTime;
                         log.error("Segment not found: {}. Creation date delta is {} ms.",
@@ -113,14 +119,32 @@ public class SegmentId implements Comparable<SegmentId> {
         return segment;
     }
 
+    /**
+     * This method should only be called from lower level caches to notify this instance that the
+     * passed {@code segment} has been loaded and should be memoised.
+     * @param segment  segment with this id. If the id doesn't match the behaviour is undefined.
+     * @see #getSegment()
+     * @see #unloaded()
+     */
     void loaded(@Nonnull Segment segment) {
         this.segment = segment;
     }
 
+    /**
+     * This method should only be called from lower level caches to notify this instance that the
+     * passed {@code segment} has been unloaded and should no longer be memoised.
+     * @see #getSegment()
+     * @see #loaded(Segment)
+     */
     void unloaded() {
         this.segment = null;
     }
 
+    /**
+     * Determine whether this instance belongs to the passed {@code store}
+     * @param store
+     * @return  {@code true} iff this instance belongs to {@code store}
+     */
     public boolean sameStore(@Nonnull SegmentStore store) {
         return this.store == store;
     }
