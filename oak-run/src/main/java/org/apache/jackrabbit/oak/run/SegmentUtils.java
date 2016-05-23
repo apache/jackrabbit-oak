@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -120,6 +121,13 @@ class SegmentUtils {
             writeGCGraph(fileStore, out);
         } else {
             writeSegmentGraph(fileStore, out, epoch, regex);
+        }
+    }
+
+    static void history(File directory, File journal, String path, int depth) throws IOException {
+        Iterable<RevisionHistory.HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
+        for (RevisionHistory.HistoryElement historyElement : history) {
+            System.out.println(historyElement.toString(depth));
         }
     }
 
