@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.binarySearch;
-import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ALIGN_BITS;
+import static org.apache.jackrabbit.oak.segment.Segment.pack;
 
 import java.util.Map;
 
@@ -47,7 +47,7 @@ public class RecordIdSet {
             offsets = new ShortSet();
             seenIds.put(segmentId, offsets);
         }
-        return offsets.add(crop(id.getOffset()));
+        return offsets.add(pack(id.getOffset()));
     }
 
     /**
@@ -58,11 +58,7 @@ public class RecordIdSet {
     public boolean contains(RecordId id) {
         String segmentId = id.getSegmentId().toString();
         ShortSet offsets = seenIds.get(segmentId);
-        return offsets != null && offsets.contains(crop(id.getOffset()));
-    }
-
-    private static short crop(int value) {
-        return (short) (value >> RECORD_ALIGN_BITS);
+        return offsets != null && offsets.contains(pack(id.getOffset()));
     }
 
     static class ShortSet {

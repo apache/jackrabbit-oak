@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ALIGN_BITS;
-import static org.apache.jackrabbit.oak.segment.Segment.encode;
+import static org.apache.jackrabbit.oak.segment.Segment.pack;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -106,7 +106,7 @@ public final class RecordId implements Comparable<RecordId> {
         byte[] buffer = new byte[18];
         writeLong(buffer, 0, segmentId.getMostSignificantBits());
         writeLong(buffer, 8, segmentId.getLeastSignificantBits());
-        writeShort(buffer, 16, encode(offset));
+        writeShort(buffer, 16, pack(offset));
         return buffer;
     }
 

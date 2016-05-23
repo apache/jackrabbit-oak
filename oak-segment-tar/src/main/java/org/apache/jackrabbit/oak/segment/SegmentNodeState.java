@@ -33,8 +33,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.segment.Segment.decode;
 import static org.apache.jackrabbit.oak.segment.Segment.readString;
+import static org.apache.jackrabbit.oak.segment.Segment.unpack;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 import java.util.Collections;
@@ -106,7 +106,7 @@ public class SegmentNodeState extends Record implements NodeState {
             int pos = id.getOffset();
             long msb = segment.readLong(pos);
             long lsb = segment.readLong(pos + 8);
-            int offset = decode(segment.readShort(pos + 16));
+            int offset = unpack(segment.readShort(pos + 16));
             return new UUID(msb, lsb) + ":" + offset;
         }
     }
