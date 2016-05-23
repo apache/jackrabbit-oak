@@ -24,7 +24,6 @@ import java.io.File;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
 
 class HistoryCommand implements Command {
 
@@ -42,6 +41,7 @@ class HistoryCommand implements Command {
         OptionSpec<Integer> depthArg = parser.accepts(
                 "depth", "Depth up to which to dump node states").withRequiredArg().ofType(Integer.class)
                 .defaultsTo(0);
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSet options = parser.parse(args);
 
         File directory = directoryArg.value(options);
@@ -56,9 +56,10 @@ class HistoryCommand implements Command {
         String journalName = journalArg.value(options);
         File journal = new File(isValidFileStoreOrFail(directory), journalName);
 
-        Iterable<RevisionHistory.HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
-        for (RevisionHistory.HistoryElement historyElement : history) {
-            System.out.println(historyElement.toString(depth));
+        if (options.has(segmentTar)) {
+            SegmentTarUtils.history(directory, journal, path, depth);
+        } else {
+            SegmentUtils.history(directory, journal, path, depth);
         }
     }
 
