@@ -113,7 +113,6 @@ import org.slf4j.LoggerFactory;
  * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
  */
 public class SegmentCompactionIT {
-    private static final boolean PERSIST_COMPACTION_MAP = !getBoolean("in-memory-compaction-map");
 
     /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
     private static final boolean ENABLED =
