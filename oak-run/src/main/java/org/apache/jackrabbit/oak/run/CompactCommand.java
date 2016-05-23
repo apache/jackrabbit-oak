@@ -17,12 +17,8 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
-
 import java.io.File;
-import java.io.RandomAccessFile;
 import java.util.Arrays;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
@@ -31,9 +27,6 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 
 class CompactCommand implements Command {
 
@@ -44,6 +37,7 @@ class CompactCommand implements Command {
                 "Path to segment store (required)").ofType(String.class);
         OptionSpec<Void> forceFlag = parser.accepts(
                 "force", "Force compaction and ignore non matching segment version");
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSet options = parser.parse(args);
 
         String path = directoryArg.value(options);
@@ -52,73 +46,18 @@ class CompactCommand implements Command {
             parser.printHelpOn(System.err);
             System.exit(-1);
         }
-        Stopwatch watch = Stopwatch.createStarted();
-        FileStore store = openFileStore(path, options.has(forceFlag));
+
         File directory = new File(path);
-        try {
-            boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
-            System.out.println("Compacting " + directory);
-            System.out.println("    before " + Arrays.toString(directory.list()));
-            long sizeBefore = FileUtils.sizeOfDirectory(directory);
-            System.out.println("    size "
-                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
-                    + " bytes)");
+        boolean force = options.has(forceFlag);
 
-            System.out.println("    -> compacting");
+        Stopwatch watch = Stopwatch.createStarted();
 
-            CompactionStrategy compactionStrategy = new CompactionStrategy(
-                    false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
-                    CompactionStrategy.CleanupType.CLEAN_ALL, 0,
-                    CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-                @Override
-                public boolean compacted(Callable<Boolean> setHead)
-                        throws Exception {
-                    // oak-run is doing compaction single-threaded
-                    // hence no guarding needed - go straight ahead
-                    // and call setHead
-                    return setHead.call();
-                }
-            };
-            compactionStrategy.setOfflineCompaction(true);
-            compactionStrategy.setPersistCompactionMap(persistCM);
-            store.setCompactionStrategy(compactionStrategy);
-            store.compact();
-        } finally {
-            store.close();
+        if (options.has(segmentTar)) {
+            SegmentTarUtils.compact(directory, force);
+        } else {
+            SegmentUtils.compact(directory, force);
         }
 
-        System.out.println("    -> cleaning up");
-        store = openFileStore(path, false);
-        try {
-            for (File file : store.cleanup()) {
-                if (!file.exists() || file.delete()) {
-                    System.out.println("    -> removed old file " + file.getName());
-                } else {
-                    System.out.println("    -> failed to remove old file " + file.getName());
-                }
-            }
-
-            String head;
-            File journal = new File(directory, "journal.log");
-            JournalReader journalReader = new JournalReader(journal);
-            try {
-                head = journalReader.iterator().next() + " root " + System.currentTimeMillis()+"\n";
-            } finally {
-                journalReader.close();
-            }
-
-            RandomAccessFile journalFile = new RandomAccessFile(journal, "rw");
-            try {
-                System.out.println("    -> writing new " + journal.getName() + ": " + head);
-                journalFile.setLength(0);
-                journalFile.writeBytes(head);
-                journalFile.getChannel().force(false);
-            } finally {
-                journalFile.close();
-            }
-        } finally {
-            store.close();
-        }
         watch.stop();
         System.out.println("    after  "
                 + Arrays.toString(directory.list()));
