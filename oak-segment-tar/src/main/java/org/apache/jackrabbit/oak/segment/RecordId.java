@@ -28,6 +28,8 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 /**
  * The record id. This includes the segment id and the offset within the
  * segment.
@@ -102,7 +104,12 @@ public final class RecordId implements Comparable<RecordId> {
         buffer[pos + 1] = (byte) value;
     }
 
-    byte[] toArray() {
+    /**
+     * Serialise this record id into an array of bytes: {@code (msb, lsb, offset >> 2)}
+     * @return  this record id as byte array
+     */
+    @Nonnull
+    byte[] getBytes() {
         byte[] buffer = new byte[18];
         writeLong(buffer, 0, segmentId.getMostSignificantBits());
         writeLong(buffer, 8, segmentId.getLeastSignificantBits());
