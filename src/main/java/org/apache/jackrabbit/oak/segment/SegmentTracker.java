@@ -104,7 +104,7 @@ public class SegmentTracker {
     private final CacheLIRS<SegmentId, Segment> segmentCache;
 
     /**
-     * Number of segments
+     * Number of segment tracked since this tracker was instantiated
      */
     private final AtomicInteger segmentCounter = new AtomicInteger();
 
@@ -150,11 +150,11 @@ public class SegmentTracker {
     }
 
     /**
-     * Increment and get the number of segments
-     * @return
+     * Number of segment tracked since this tracker was instantiated
+     * @return count
      */
-    int getNextSegmentNo() {
-        return segmentCounter.incrementAndGet();
+    int getSegmentCount() {
+        return segmentCounter.get();
     }
 
     public boolean isTracking(SegmentId segmentId) {
@@ -282,6 +282,7 @@ public class SegmentTracker {
     }
 
     private SegmentId newSegmentId(long type) {
+        segmentCounter.incrementAndGet();
         long msb = (random.nextLong() & MSB_MASK) | VERSION;
         long lsb = (random.nextLong() & LSB_MASK) | type;
         return getSegmentId(msb, lsb);
