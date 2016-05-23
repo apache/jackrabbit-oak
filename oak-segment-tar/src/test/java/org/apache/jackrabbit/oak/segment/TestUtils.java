@@ -28,10 +28,6 @@ import java.util.Random;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
-
 // FIXME SegmentTestUtils duplicates this
 public final class TestUtils {
     private TestUtils() {}
