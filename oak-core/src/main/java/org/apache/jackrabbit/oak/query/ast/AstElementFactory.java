@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,8 +146,8 @@ public class AstElementFactory {
         return new SameNodeJoinConditionImpl(selector1Name, selector2Name, selector2Path);
     }
 
-    public SelectorImpl selector(NodeState type, String selectorName) {
-        return new SelectorImpl(type, selectorName);
+    public SelectorImpl selector(NodeTypeInfo nodeTypeInfo, String selectorName) {
+        return new SelectorImpl(nodeTypeInfo, selectorName);
     }
 
     public UpperCaseImpl upperCase(DynamicOperandImpl operand) {
