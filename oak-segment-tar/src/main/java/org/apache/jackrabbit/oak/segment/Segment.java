@@ -124,21 +124,26 @@ public class Segment {
 
     public static final int GC_GENERATION_OFFSET = 10;
 
+    @Nonnull
     private final SegmentStore store;
 
+    @Nonnull
     private final SegmentId id;
 
+    @Nonnull
     private final ByteBuffer data;
 
     /**
      * Version of the segment storage format.
      */
+    @Nonnull
     private final SegmentVersion version;
 
     /**
      * Referenced segment identifiers. Entries are initialized lazily in
      * {@link #getRefId(int)}. Set to {@code null} for bulk segments.
      */
+    @CheckForNull
     private final SegmentId[] refids;
 
     /**
@@ -146,6 +151,7 @@ public class Segment {
      * copies and repeated parsing of the same templates.
      * FIXME OAK-4373 move the template cache to the segment reader along side with the string cache
      */
+    @CheckForNull
     final ConcurrentMap<Integer, Template> templates;
 
     private static final boolean DISABLE_TEMPLATE_CACHE = getBoolean("oak.segment.disableTemplateCache");
@@ -243,7 +249,7 @@ public class Segment {
         id.loaded(this);
     }
 
-    SegmentVersion getSegmentVersion() {
+    public SegmentVersion getSegmentVersion() {
         return version;
     }
 
@@ -435,7 +441,7 @@ public class Segment {
     }
 
     @Nonnull
-    public String readString(int offset) {
+    String readString(int offset) {
         int pos = pos(offset, 1);
         long length = internalReadLength(pos);
         if (length < SMALL_LIMIT) {
@@ -452,14 +458,9 @@ public class Segment {
             return new String(bytes, Charsets.UTF_8);
         } else if (length < Integer.MAX_VALUE) {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            ListRecord list =
-                    new ListRecord(internalReadRecordId(pos + 8), size);
-            SegmentStream stream = new SegmentStream(
-                    new RecordId(id, offset), list, length);
-            try {
+            ListRecord list = new ListRecord(internalReadRecordId(pos + 8), size);
+            try (SegmentStream stream = new SegmentStream(new RecordId(id, offset), list, length)) {
                 return stream.getString();
-            } finally {
-                stream.close();
             }
         } else {
             throw new IllegalStateException("String is too long: " + length);
@@ -541,7 +542,7 @@ public class Segment {
             return length;
         } else if ((length & 0x40) == 0) {
             return ((length & 0x3f) << 8
-                    | data.get(pos++) & 0xff)
+                    | data.get(pos) & 0xff)
                     + SMALL_LIMIT;
         } else {
             return (((long) length & 0x3f) << 56
@@ -551,7 +552,7 @@ public class Segment {
                     | ((long) (data.get(pos++) & 0xff)) << 24
                     | ((long) (data.get(pos++) & 0xff)) << 16
                     | ((long) (data.get(pos++) & 0xff)) << 8
-                    | ((long) (data.get(pos++) & 0xff)))
+                    | ((long) (data.get(pos) & 0xff)))
                     + MEDIUM_LIMIT;
         }
     }
@@ -561,73 +562,71 @@ public class Segment {
     @Override
     public String toString() {
         StringWriter string = new StringWriter();
-        PrintWriter writer = new PrintWriter(string);
+        try (PrintWriter writer = new PrintWriter(string)) {
+            int length = data.remaining();
 
-        int length = data.remaining();
-
-        writer.format("Segment %s (%d bytes)%n", id, length);
-        String segmentInfo = getSegmentInfo();
-        if (segmentInfo != null) {
-            writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGeneration());
-        }
-        if (id.isDataSegmentId()) {
-            writer.println("--------------------------------------------------------------------------");
-            int refcount = getRefCount();
-            for (int refid = 0; refid < refcount; refid++) {
-                writer.format("reference %02x: %s%n", refid, getRefId(refid));
+            writer.format("Segment %s (%d bytes)%n", id, length);
+            String segmentInfo = getSegmentInfo();
+            if (segmentInfo != null) {
+                writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGeneration());
             }
-            int rootcount = data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
-            int pos = data.position() + refcount * 16;
-            for (int rootid = 0; rootid < rootcount; rootid++) {
-                writer.format(
+            if (id.isDataSegmentId()) {
+                writer.println("--------------------------------------------------------------------------");
+                int refcount = getRefCount();
+                for (int refid = 0; refid < refcount; refid++) {
+                    writer.format("reference %02x: %s%n", refid, getRefId(refid));
+                }
+                int rootcount = data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
+                int pos = data.position() + refcount * 16;
+                for (int rootid = 0; rootid < rootcount; rootid++) {
+                    writer.format(
                             "root %d: %s at %04x%n", rootid,
-                        RecordType.values()[data.get(pos + rootid * 3) & 0xff],
+                            RecordType.values()[data.get(pos + rootid * 3) & 0xff],
                             data.getShort(pos + rootid * 3 + 1) & 0xffff);
-            }
-            int blobrefcount = data.getShort(BLOBREF_COUNT_OFFSET) & 0xffff;
-            pos += rootcount * 3;
-            for (int blobrefid = 0; blobrefid < blobrefcount; blobrefid++) {
-                int offset = data.getShort(pos + blobrefid * 2) & 0xffff;
-                writer.format(
-                        "blobref %d: %s at %04x%n", blobrefid,
-                        readBlobId(store, this, offset << RECORD_ALIGN_BITS), offset);
-            }
-        }
-        writer.println("--------------------------------------------------------------------------");
-        int pos = data.limit() - ((length + 15) & ~15);
-        while (pos < data.limit()) {
-            writer.format("%04x: ", (MAX_SEGMENT_SIZE - data.limit() + pos) >> RECORD_ALIGN_BITS);
-            for (int i = 0; i < 16; i++) {
-                if (i > 0 && i % 4 == 0) {
-                    writer.append(' ');
                 }
-                if (pos + i >= data.position()) {
-                    byte b = data.get(pos + i);
-                    writer.format("%02x ", b & 0xff);
-                } else {
-                    writer.append("   ");
+                int blobrefcount = data.getShort(BLOBREF_COUNT_OFFSET) & 0xffff;
+                pos += rootcount * 3;
+                for (int blobrefid = 0; blobrefid < blobrefcount; blobrefid++) {
+                    int offset = data.getShort(pos + blobrefid * 2) & 0xffff;
+                    writer.format(
+                            "blobref %d: %s at %04x%n", blobrefid,
+                            readBlobId(store, this, offset << RECORD_ALIGN_BITS), offset);
                 }
             }
-            writer.append(' ');
-            for (int i = 0; i < 16; i++) {
-                if (pos + i >= data.position()) {
-                    byte b = data.get(pos + i);
-                    if (b >= ' ' && b < 127) {
-                        writer.append((char) b);
-                    } else {
-                        writer.append('.');
+            writer.println("--------------------------------------------------------------------------");
+            int pos = data.limit() - ((length + 15) & ~15);
+            while (pos < data.limit()) {
+                writer.format("%04x: ", (MAX_SEGMENT_SIZE - data.limit() + pos) >> RECORD_ALIGN_BITS);
+                for (int i = 0; i < 16; i++) {
+                    if (i > 0 && i % 4 == 0) {
+                        writer.append(' ');
                     }
-                } else {
-                    writer.append(' ');
+                    if (pos + i >= data.position()) {
+                        byte b = data.get(pos + i);
+                        writer.format("%02x ", b & 0xff);
+                    } else {
+                        writer.append("   ");
+                    }
                 }
+                writer.append(' ');
+                for (int i = 0; i < 16; i++) {
+                    if (pos + i >= data.position()) {
+                        byte b = data.get(pos + i);
+                        if (b >= ' ' && b < 127) {
+                            writer.append((char) b);
+                        } else {
+                            writer.append('.');
+                        }
+                    } else {
+                        writer.append(' ');
+                    }
+                }
+                writer.println();
+                pos += 16;
             }
-            writer.println();
-            pos += 16;
+            writer.println("--------------------------------------------------------------------------");
+            return string.toString();
         }
-        writer.println("--------------------------------------------------------------------------");
-
-        writer.close();
-        return string.toString();
     }
 
 }
