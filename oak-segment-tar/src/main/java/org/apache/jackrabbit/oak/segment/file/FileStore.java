@@ -945,7 +945,8 @@ public class FileStore implements SegmentStore {
         for (TarReader reader : cleaned.keySet()) {
             reader.mark(bulkRefs, reclaim, reclaimGeneration);
             // FIXME OAK-4165: Too verbose logging during revision gc
-            log.info("Size of bulk references/reclaim set {}/{}", bulkRefs.size(), reclaim.size());
+            log.info("{}: size of bulk references/reclaim set {}/{}",
+                    reader, bulkRefs.size(), reclaim.size());
             if (shutdown) {
                 gcMonitor.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
                 break;
