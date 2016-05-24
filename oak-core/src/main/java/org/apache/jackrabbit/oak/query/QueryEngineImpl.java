@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.query;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -37,8 +35,8 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -157,12 +155,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
         NamePathMapper mapper = new NamePathMapperImpl(
                 new LocalNameMapper(context.getRoot(), mappings));
 
-        NodeState types = context.getBaseState()
-                .getChildNode(JCR_SYSTEM)
-                .getChildNode(JCR_NODE_TYPES);
+        NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
         QueryEngineSettings settings = context.getSettings();
 
-        SQL2Parser parser = new SQL2Parser(mapper, types, settings);
+        SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);

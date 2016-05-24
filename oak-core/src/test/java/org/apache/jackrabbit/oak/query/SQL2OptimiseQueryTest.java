@@ -20,12 +20,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.of;
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.CHEAPEST;
+import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ALTERNATIVE;
+import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.CHEAPEST;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ORIGINAL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNotNull;
@@ -49,8 +48,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
@@ -187,7 +186,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
      */
     @Test
     public void optimise() throws ParseException {
-        SQL2Parser parser = new SQL2Parser(getMappings(), getTypes(), qeSettings);
+        SQL2Parser parser = new SQL2Parser(getMappings(), getNodeTypes(), qeSettings);
         String statement;
         Query original, optimised;
 
@@ -232,8 +231,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             new LocalNameMapper(root, QueryEngine.NO_MAPPINGS));
     }
     
-    private NodeState getTypes() {
-        return store.getRoot().getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
+    private static NodeTypeInfoProvider getNodeTypes() {
+        return new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
     }
     
     @Override

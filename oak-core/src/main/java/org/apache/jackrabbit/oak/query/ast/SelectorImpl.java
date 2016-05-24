@@ -20,18 +20,11 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_SINGLE_VALUED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +84,7 @@ public class SelectorImpl extends SourceImpl {
     /**
      * The node type associated with the {@link #nodeTypeName}
      */
-    private final NodeState nodeType;
+    private final NodeTypeInfo nodeTypeInfo;
 
     private final String selectorName;
 
@@ -163,21 +156,20 @@ public class SelectorImpl extends SourceImpl {
     private Tree lastTree;
     private String lastPath;
 
-    public SelectorImpl(NodeState nodeType, String selectorName) {
-        this.nodeType = checkNotNull(nodeType);
+    public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
+        this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
         this.selectorName = checkNotNull(selectorName);
 
-        this.nodeTypeName = nodeType.getName(JCR_NODETYPENAME);
+        this.nodeTypeName = nodeTypeInfo.getNodeTypeName();
         this.matchesAllTypes = NT_BASE.equals(nodeTypeName);
 
         if (!this.matchesAllTypes) {
-            this.supertypes = newHashSet(nodeType.getNames(REP_SUPERTYPES));
+            this.supertypes = nodeTypeInfo.getSuperTypes();
             supertypes.add(nodeTypeName);
 
-            this.primaryTypes = newHashSet(nodeType
-                    .getNames(REP_PRIMARY_SUBTYPES));
-            this.mixinTypes = newHashSet(nodeType.getNames(REP_MIXIN_SUBTYPES));
-            if (nodeType.getBoolean(JCR_ISMIXIN)) {
+            this.primaryTypes = nodeTypeInfo.getPrimarySubTypes();
+            this.mixinTypes = nodeTypeInfo.getMixinSubTypes();
+            if (nodeTypeInfo.isMixin()) {
                 mixinTypes.add(nodeTypeName);
             } else {
                 primaryTypes.add(nodeTypeName);
@@ -229,7 +221,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     public Iterable<String> getWildcardColumns() {
-        return nodeType.getNames(REP_NAMED_SINGLE_VALUED_PROPERTIES);
+        return nodeTypeInfo.getNamesSingleValuesProperties();
     }
 
     @Override
@@ -804,6 +796,6 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public SourceImpl copyOf() {
-        return new SelectorImpl(nodeType, selectorName);
+        return new SelectorImpl(nodeTypeInfo, selectorName);
     }
 }

@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinType;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
@@ -51,7 +53,6 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class SQL2Parser {
     private static final int KEYWORD = 1, IDENTIFIER = 2, PARAMETER = 3, END = 4, VALUE = 5;
     private static final int MINUS = 12, PLUS = 13, OPEN = 14, CLOSE = 15;
 
-    private final NodeState types;
+    private final NodeTypeInfoProvider nodeTypes;
 
     // The query as an array of characters and character types
     private String statement;
@@ -113,11 +114,12 @@ public class SQL2Parser {
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      * 
      * @param namePathMapper the name-path mapper to use
-     * @param types the node with the node type information
+     * @param nodeTypes the nodetypes
+     * @param settings the query engine settings
      */
-    public SQL2Parser(NamePathMapper namePathMapper, NodeState types, QueryEngineSettings settings) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings) {
         this.namePathMapper = namePathMapper;
-        this.types = checkNotNull(types);
+        this.nodeTypes = checkNotNull(nodeTypes);
         this.settings = checkNotNull(settings);
     }
 
@@ -247,8 +249,8 @@ public class SQL2Parser {
                 throw e2;
             }
         }
-        NodeState type = types.getChildNode(nodeTypeName);
-        if (!type.exists()) {
+        NodeTypeInfo nodeTypeInfo = nodeTypes.getNodeTypeInfo(nodeTypeName);
+        if (!nodeTypeInfo.exists()) {
             throw getSyntaxError("unknown node type");
         }
 
@@ -257,7 +259,7 @@ public class SQL2Parser {
             selectorName = readName();
         }
 
-        return factory.selector(type, selectorName);
+        return factory.selector(nodeTypeInfo, selectorName);
     }
 
     private String readName() throws ParseException {

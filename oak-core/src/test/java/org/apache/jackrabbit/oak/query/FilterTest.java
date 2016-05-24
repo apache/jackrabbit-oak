@@ -17,8 +17,6 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -27,9 +25,9 @@ import static org.junit.Assert.assertNotNull;
 import java.text.ParseException;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -37,11 +35,10 @@ import org.junit.Test;
  * Test filter conditions.
  */
 public class FilterTest {
+    
+    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
 
-    private final NodeState types = INITIAL_CONTENT.getChildNode(JCR_SYSTEM)
-            .getChildNode(JCR_NODE_TYPES);
-
-    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, types, new QueryEngineSettings());
+    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
 
     private Filter createFilter(String xpath) throws ParseException {
         String sql = new XPathToSQL2Converter().convert(xpath);

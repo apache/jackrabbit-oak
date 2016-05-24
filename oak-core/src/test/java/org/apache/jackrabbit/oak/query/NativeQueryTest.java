@@ -16,33 +16,31 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
+import java.text.ParseException;
+import java.util.Iterator;
+
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.junit.Test;
 
-import java.text.ParseException;
-import java.util.Iterator;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
 public class NativeQueryTest {
-
-    private final NodeState types = INITIAL_CONTENT.getChildNode(JCR_SYSTEM)
-            .getChildNode(JCR_NODE_TYPES);
 
     private final ImmutableRoot ROOT = new ImmutableRoot(INITIAL_CONTENT);
     private final QueryEngineImpl QUERY_ENGINE = (QueryEngineImpl)ROOT.getQueryEngine();
 
-    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, types, new QueryEngineSettings());
+    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
 
+    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
+
+    
     @Test
     public void dontTraverseForSuggest() throws Exception {
         String sql = "select [rep:suggest()] from [nt:base] where suggest('test')";

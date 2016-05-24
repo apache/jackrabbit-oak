@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import javax.annotation.Nonnull;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,7 +27,10 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrCon
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -45,7 +45,6 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.SolrParams;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -92,7 +91,7 @@ public class SolrQueryIndexTest {
 
     @Test
     public void testNoPlanWithPathRestrictions() throws Exception {
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -109,7 +108,7 @@ public class SolrQueryIndexTest {
         builder.child("oak:index").child("solr").setProperty("pathRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -128,7 +127,7 @@ public class SolrQueryIndexTest {
                 .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -142,7 +141,7 @@ public class SolrQueryIndexTest {
 
     @Test
     public void testNoPlanWithPropertyRestrictions() throws Exception {
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -160,7 +159,7 @@ public class SolrQueryIndexTest {
                 .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -173,7 +172,7 @@ public class SolrQueryIndexTest {
 
     @Test
     public void testNoPlanWithPrimaryTypeRestrictions() throws Exception {
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -190,7 +189,7 @@ public class SolrQueryIndexTest {
         builder.child("oak:index").child("solr").setProperty("primaryTypes", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -209,7 +208,7 @@ public class SolrQueryIndexTest {
                 .setProperty("primaryTypes", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -229,7 +228,7 @@ public class SolrQueryIndexTest {
                 .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -248,7 +247,7 @@ public class SolrQueryIndexTest {
                 .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -267,7 +266,7 @@ public class SolrQueryIndexTest {
                 .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -286,7 +285,7 @@ public class SolrQueryIndexTest {
                 .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
-        SelectorImpl selector = new SelectorImpl(nodeState, "a");
+        SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
@@ -320,7 +319,7 @@ public class SolrQueryIndexTest {
     public void testSize() throws Exception {
         NodeState root = mock(NodeState.class);
         when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
-        SelectorImpl selector = new SelectorImpl(root, "a");
+        SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
         SolrServer solrServer = TestUtils.createSolrServer();
@@ -350,7 +349,7 @@ public class SolrQueryIndexTest {
     public void testNoMoreThanThreeSolrRequests() throws Exception {
         NodeState root = mock(NodeState.class);
         when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
-        SelectorImpl selector = new SelectorImpl(root, "a");
+        SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
         SolrServer solrServer = mock(SolrServer.class);
@@ -383,6 +382,12 @@ public class SolrQueryIndexTest {
         }
         assertEquals(3, response.getCounter());
     }
+    
+    private static SelectorImpl newSelector(NodeState root, String name) {
+        NodeTypeInfoProvider types = new NodeStateNodeTypeInfoProvider(root);
+        NodeTypeInfo type = types.getNodeTypeInfo("nt:base");
+        return new SelectorImpl(type, name);
+    }
 
     private class CountingResponse extends QueryResponse {
 
@@ -407,4 +412,5 @@ public class SolrQueryIndexTest {
             return counter;
         }
     }
+    
 }
