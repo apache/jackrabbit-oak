@@ -558,7 +558,7 @@ public class SegmentParser {
 
         RecordId baseId = mapId.getSegment()
                 .readRecordId(mapId.getOffset() + 8 + 2 * RECORD_ID_BYTES);
-        onMap(mapId, baseId, new MapRecord(store, baseId));
+        onMap(mapId, baseId, store.getReader().readMap(baseId));
 
         return new MapInfo(mapId, size);
     }
