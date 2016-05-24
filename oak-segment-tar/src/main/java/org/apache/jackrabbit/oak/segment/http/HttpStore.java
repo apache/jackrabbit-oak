@@ -134,6 +134,7 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    // FIXME OAK-4396: HttpStore.containsSegment throws SNFE instead of returning false for non existing segments
     public boolean containsSegment(SegmentId id) {
         return id.sameStore(this) || readSegment(id) != null;
     }
