@@ -16,38 +16,33 @@
  */
 package org.apache.jackrabbit.oak.checkpoint;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Lists;
-
-import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.getCheckpoints;
-import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.removeOlderThan;
 
 /**
  * A helper class to manage checkpoints on TarMK and DocumentMK.
  */
 public abstract class Checkpoints {
 
-    public static Checkpoints onTarMK(FileStore store) {
-        return new TarMKCheckpoints(store);
+    public static Checkpoints onSegment(File path, Closer closer) throws IOException {
+        return SegmentCheckpoints.create(path, closer);
+    }
+
+    public static Checkpoints onSegmentTar(File path, Closer closer) throws IOException {
+        return SegmentTarCheckpoints.create(path, closer);
     }
 
     public static Checkpoints onDocumentMK(DocumentNodeStore store) {
-        return new DocumentMKCheckpoints(store);
+        return new DocumentCheckpoints(store);
     }
 
     /**
@@ -81,136 +76,8 @@ public abstract class Checkpoints {
      */
     public abstract int remove(String cp);
 
-    private static final class TarMKCheckpoints extends Checkpoints {
-
-        private final FileStore store;
-
-        public TarMKCheckpoints(FileStore store) {
-            this.store = store;
-        }
-
-        @Override
-        public List<CP> list() {
-            List<CP> list = Lists.newArrayList();
-            NodeState ns = store.getHead().getChildNode("checkpoints");
-            for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
-                NodeState cneNs = cne.getNodeState();
-                list.add(new CP(cne.getName(),
-                        cneNs.getLong("created"), cneNs.getLong("timestamp")));
-            }
-            return list;
-        }
-
-        @Override
-        public long removeAll() {
-            SegmentNodeState head = store.getHead();
-            NodeBuilder builder = head.builder();
-
-            NodeBuilder cps = builder.getChildNode("checkpoints");
-            long cnt = cps.getChildNodeCount(Integer.MAX_VALUE);
-            builder.setChildNode("checkpoints");
-            if (store.setHead(head, asSegmentNodeState(builder))) {
-                return cnt;
-            } else {
-                return -1;
-            }
-        }
-
-        @Override
-        public long removeUnreferenced() {
-            SegmentNodeState head = store.getHead();
-
-            String ref = getReferenceCheckpoint(head.getChildNode("root"));
-
-            NodeBuilder builder = head.builder();
-            NodeBuilder cps = builder.getChildNode("checkpoints");
-            long cnt = 0;
-            for (String c : cps.getChildNodeNames()) {
-                if (c.equals(ref)) {
-                    continue;
-                }
-                cps.getChildNode(c).remove();
-                cnt++;
-            }
-
-            if (store.setHead(head, asSegmentNodeState(builder))) {
-                return cnt;
-            } else {
-                return -1;
-            }
-        }
-
-        @Override
-        public int remove(String cp) {
-            SegmentNodeState head = store.getHead();
-            NodeBuilder builder = head.builder();
-
-            NodeBuilder cpn = builder.getChildNode("checkpoints")
-                    .getChildNode(cp);
-            if (cpn.exists()) {
-                cpn.remove();
-                if (store.setHead(head, asSegmentNodeState(builder))) {
-                    return 1;
-                } else {
-                    return -1;
-                }
-            } else {
-                return 0;
-            }
-        }
-
-        private static SegmentNodeState asSegmentNodeState(NodeBuilder builder) {
-            return (SegmentNodeState) builder.getNodeState();
-        }
-    }
-
-    private static final class DocumentMKCheckpoints extends Checkpoints {
-
-        private final DocumentNodeStore store;
-
-        private DocumentMKCheckpoints(DocumentNodeStore store) {
-            this.store = store;
-        }
-
-        @Override
-        public List<CP> list() {
-            List<CP> list = Lists.newArrayList();
-            for (Map.Entry<Revision, Long> entry : getCheckpoints(store).entrySet()) {
-                list.add(new CP(entry.getKey().toString(),
-                        entry.getKey().getTimestamp(),
-                        entry.getValue()));
-            }
-            return list;
-        }
-
-        @Override
-        public long removeAll() {
-            return CheckpointsHelper.removeAll(store);
-        }
-
-        @Override
-        public long removeUnreferenced() {
-            String ref = getReferenceCheckpoint(store.getRoot());
-            if (ref == null) {
-                return -1;
-            }
-            return removeOlderThan(store, Revision.fromString(ref));
-        }
-
-        @Override
-        public int remove(String cp) {
-            Revision r;
-            try {
-                r = Revision.fromString(cp);
-            } catch (IllegalArgumentException e) {
-                return 0;
-            }
-            return CheckpointsHelper.remove(store, r);
-        }
-    }
-
     @CheckForNull
-    private static String getReferenceCheckpoint(NodeState root) {
+    static String getReferenceCheckpoint(NodeState root) {
         String ref = null;
         PropertyState refPS = root.getChildNode(":async").getProperty("async");
         if (refPS != null) {
@@ -229,11 +96,12 @@ public abstract class Checkpoints {
         public final long created;
         public final long expires;
 
-        private CP(String id, long created, long expires) {
+        CP(String id, long created, long expires) {
             this.id = id;
             this.created = created;
             this.expires = expires;
         }
 
     }
+
 }

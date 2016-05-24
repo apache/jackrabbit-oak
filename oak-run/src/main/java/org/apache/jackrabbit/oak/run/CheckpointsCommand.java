@@ -17,55 +17,61 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
-
+import java.io.File;
 import java.sql.Timestamp;
 
 import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
 class CheckpointsCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        if (args.length == 0) {
-            System.out
-                    .println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>]");
+        OptionParser parser = new OptionParser();
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSet options = parser.parse(args);
+
+        if (options.nonOptionArguments().isEmpty()) {
+            System.out.println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>] [--segment-tar]");
             System.exit(1);
         }
+
         boolean success = false;
         Checkpoints cps;
         Closer closer = Closer.create();
         try {
             String op = "list";
-            if (args.length >= 2) {
-                op = args[1];
+            if (options.nonOptionArguments().size() >= 2) {
+                op = options.nonOptionArguments().get(1).toString();
                 if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op)) {
                     failWith("Unknown command.");
                 }
             }
 
-            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
-                MongoClientURI uri = new MongoClientURI(args[0]);
+            String connection = options.nonOptionArguments().get(0).toString();
+            if (connection.startsWith(MongoURI.MONGODB_PREFIX)) {
+                MongoClientURI uri = new MongoClientURI(connection);
                 MongoClient client = new MongoClient(uri);
                 final DocumentNodeStore store = new DocumentMK.Builder()
                         .setMongoDB(client.getDB(uri.getDatabase()))
                         .getNodeStore();
                 closer.register(Utils.asCloseable(store));
                 cps = Checkpoints.onDocumentMK(store);
+            } else if (options.has(segmentTar)) {
+                cps = Checkpoints.onSegmentTar(new File(connection), closer);
             } else {
-                FileStore store = openFileStore(args[0]);
-                closer.register(Utils.asCloseable(store));
-                cps = Checkpoints.onTarMK(store);
+                cps = Checkpoints.onSegment(new File(connection), closer);
             }
 
-            System.out.println("Checkpoints " + args[0]);
+            System.out.println("Checkpoints " + connection);
             if ("list".equals(op)) {
                 int cnt = 0;
                 for (Checkpoints.CP cp : cps.list()) {
@@ -95,10 +101,10 @@ class CheckpointsCommand implements Command {
                     failWith("Failed to remove unreferenced checkpoints.");
                 }
             } else if ("rm".equals(op)) {
-                if (args.length != 3) {
+                if (options.nonOptionArguments().size() < 3) {
                     failWith("Missing checkpoint id");
                 } else {
-                    String cp = args[2];
+                    String cp = options.nonOptionArguments().get(2).toString();
                     long time = System.currentTimeMillis();
                     int cnt = cps.remove(cp);
                     time = System.currentTimeMillis() - time;

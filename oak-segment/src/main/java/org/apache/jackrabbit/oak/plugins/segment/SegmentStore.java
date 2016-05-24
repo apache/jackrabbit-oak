@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import javax.annotation.CheckForNull;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 /**
  * The backend storage interface used by the segment node store.
  */
-public interface SegmentStore {
+public interface SegmentStore extends Closeable {
 
     SegmentTracker getTracker();
 
