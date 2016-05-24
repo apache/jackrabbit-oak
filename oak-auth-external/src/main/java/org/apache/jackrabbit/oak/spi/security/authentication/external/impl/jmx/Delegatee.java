@@ -121,12 +121,12 @@ final class Delegatee {
     }
 
     /**
-     * @see SynchronizationMBean#syncUsers(String[], boolean, boolean)
+     * @see SynchronizationMBean#syncUsers(String[], boolean)
      */
     @Nonnull
-    String[] syncUsers(@Nonnull String[] userIds, boolean purge, boolean forceGroupSync) {
+    String[] syncUsers(@Nonnull String[] userIds, boolean purge) {
         context.setKeepMissing(!purge)
-                .setForceGroupSync(forceGroupSync)
+                .setForceGroupSync(true)
                 .setForceUserSync(true);
         List<String> list = new ArrayList<String>();
         for (String userId : userIds) {
@@ -141,14 +141,14 @@ final class Delegatee {
     }
 
     /**
-     * @see SynchronizationMBean#syncAllUsers(boolean, boolean)
+     * @see SynchronizationMBean#syncAllUsers(boolean)
      */
     @Nonnull
-    String[] syncAllUsers(boolean purge, boolean forceGroupSync) {
+    String[] syncAllUsers(boolean purge) {
         try {
             List<String> list = new ArrayList<String>();
             context.setKeepMissing(!purge)
-                    .setForceGroupSync(forceGroupSync)
+                    .setForceGroupSync(true)
                     .setForceUserSync(true);
             Iterator<SyncedIdentity> iter = handler.listIdentities(userMgr);
             while (iter.hasNext()) {
@@ -169,12 +169,12 @@ final class Delegatee {
     }
 
     /**
-     * @see SynchronizationMBean#syncExternalUsers(String[], boolean)
+     * @see SynchronizationMBean#syncExternalUsers(String[])
      */
     @Nonnull
-    String[] syncExternalUsers(@Nonnull String[] externalIds, boolean forceGroupSync) {
+    String[] syncExternalUsers(@Nonnull String[] externalIds) {
         List<String> list = new ArrayList<String>();
-        context.setForceGroupSync(forceGroupSync).setForceUserSync(true);
+        context.setForceGroupSync(true).setForceUserSync(true);
         for (String externalId : externalIds) {
             ExternalIdentityRef ref = ExternalIdentityRef.fromString(externalId);
             if (!idp.getName().equals(ref.getProviderName())) {
@@ -205,12 +205,12 @@ final class Delegatee {
     }
 
     /**
-     * @see SynchronizationMBean#syncAllExternalUsers(boolean)
+     * @see SynchronizationMBean#syncAllExternalUsers()
      */
     @Nonnull
-    String[] syncAllExternalUsers(boolean forceGroupSync) {
+    String[] syncAllExternalUsers() {
         List<String> list = new ArrayList<String>();
-        context.setForceGroupSync(forceGroupSync).setForceUserSync(true);
+        context.setForceGroupSync(true).setForceUserSync(true);
         try {
             Iterator<ExternalUser> iter = idp.listUsers();
             while (iter.hasNext()) {
