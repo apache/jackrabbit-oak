@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -571,6 +572,70 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         // since the group is not associated with the test-IDP the group-membership
         // must NOT be modified during the sync.
         assertTrue(gr.isDeclaredMember(user));
+    }
+
+    @Test
+    public void testLostMembershipWithExpirationSet() throws Exception {
+        long expTime = 2;
+        syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(expTime).setExpirationTime(expTime);
+
+        Group gr = createTestGroup();
+        setExternalID(gr, idp.getName());
+
+        SyncResult result = syncCtx.sync(idp.listUsers().next());
+        User user = (User) userManager.getAuthorizable(result.getIdentity().getId());
+        gr.addMember(user);
+        root.commit();
+
+        DefaultSyncContext newCtx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+        while (!newCtx.isExpired(user, expTime, "Properties")) {
+            newCtx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+        }
+
+        result = newCtx.sync(user.getID());
+        root.commit();
+        assertSame(SyncResult.Status.UPDATE, result.getStatus());
+
+        gr = (Group) userManager.getAuthorizable(gr.getID());
+        assertFalse(gr.isDeclaredMember(userManager.getAuthorizable(user.getID())));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4397">OAK-4397</a>
+     */
+    @Test
+    public void testMembershipForExistingForeignGroup() throws Exception {
+        syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(-1).setExpirationTime(-1);
+        syncConfig.group().setExpirationTime(-1);
+
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        ExternalIdentityRef groupRef = externalUser.getDeclaredGroups().iterator().next();
+
+        // create the group as if it had been synced by a foreign IDP
+        Group gr = userManager.createGroup(groupRef.getId());
+        setExternalID(gr, "foreignIDP");  // but don't set rep:lastSynced :-)
+        root.commit();
+
+        SyncResult result = syncCtx.sync(externalUser);
+        assertSame(SyncResult.Status.ADD, result.getStatus());
+
+        User user = userManager.getAuthorizable(externalUser.getId(), User.class);
+        assertNotNull(user);
+
+        // synchronizing the user from our IDP must _neither_ change the group
+        // members of the group belonging to a different IDP nor synchronizing
+        // that foreign group with information retrieved from this IDP (e.g.
+        // properties and as such must _not_ set the last-synced property.
+
+        // -> verify group last-synced has not been added
+        assertFalse(gr.hasProperty(DefaultSyncContext.REP_LAST_SYNCED));
+
+        // -> verify group membership has not changed
+        assertFalse(gr.isDeclaredMember(user));
+        Iterator<Group> declared = user.declaredMemberOf();
+        while (declared.hasNext()) {
+            assertFalse(gr.getID().equals(declared.next().getID()));
+        }
     }
 
     @Test
