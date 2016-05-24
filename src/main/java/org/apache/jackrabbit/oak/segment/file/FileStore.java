@@ -996,6 +996,7 @@ public class FileStore implements SegmentStore {
         long finalSize = size();
         approximateSize.set(finalSize);
         stats.reclaimed(initialSize - finalSize);
+        // FIXME OAK-4106: Reclaimed size reported by FileStore.cleanup is off
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                 " and space reclaimed {} ({} bytes).",
