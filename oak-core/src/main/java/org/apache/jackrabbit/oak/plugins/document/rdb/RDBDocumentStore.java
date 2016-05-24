@@ -1118,15 +1118,8 @@ public class RDBDocumentStore implements DocumentStore {
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
 
                 Set<QueryContext> seenQueryContext = Collections.emptySet();
-                Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
 
                 if (collection == Collection.NODES) {
-                    // remember what we already have in the cache
-                    cachedDocs = new HashMap<String, NodeDocument>();
-                    for (String key : chunkedIds) {
-                        cachedDocs.put(key, nodesCache.getIfPresent(key));
-                    }
-
                     // keep concurrently running queries from updating
                     // the cache entry for this key
                     seenQueryContext = new HashSet<QueryContext>();
