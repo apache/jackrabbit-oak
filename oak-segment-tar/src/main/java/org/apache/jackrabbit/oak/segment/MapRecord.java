@@ -98,7 +98,7 @@ public class MapRecord extends Record {
      */
     protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
 
-    protected MapRecord(@Nonnull SegmentStore store, @Nonnull RecordId id) {
+    MapRecord(@Nonnull SegmentStore store, @Nonnull RecordId id) {
         super(id);
         this.store = checkNotNull(store);
     }
