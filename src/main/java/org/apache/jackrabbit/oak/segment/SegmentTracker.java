@@ -27,8 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Tracker of references to segment identifiers and segment instances
@@ -36,8 +34,6 @@ import org.slf4j.LoggerFactory;
  * instances.
  */
 public class SegmentTracker {
-    private static final Logger log = LoggerFactory.getLogger(SegmentTracker.class);
-
     private static final long MSB_MASK = ~(0xfL << 12);
 
     private static final long VERSION = (0x4L << 12);
@@ -106,6 +102,7 @@ public class SegmentTracker {
      * @param lsb  least  significant bits of the segment id
      * @return the segment id
      */
+    @Nonnull
     public SegmentId getSegmentId(long msb, long lsb) {
         int index = ((int) msb) & (tables.length - 1);
         return tables[index].getSegmentId(msb, lsb);
@@ -115,6 +112,7 @@ public class SegmentTracker {
      * Create and track a new segment id for data segments.
      * @return the segment id
      */
+    @Nonnull
     SegmentId newDataSegmentId() {
         return newSegmentId(DATA);
     }
@@ -123,10 +121,12 @@ public class SegmentTracker {
      * Create and track a new segment id for bulk segments.
      * @return the segment id
      */
+    @Nonnull
     SegmentId newBulkSegmentId() {
         return newSegmentId(BULK);
     }
 
+    @Nonnull
     private SegmentId newSegmentId(long type) {
         segmentCounter.incrementAndGet();
         long msb = (random.nextLong() & MSB_MASK) | VERSION;

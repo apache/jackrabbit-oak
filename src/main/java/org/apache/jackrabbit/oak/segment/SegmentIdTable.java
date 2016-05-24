@@ -90,9 +90,9 @@ public class SegmentIdTable {
      * @param lsb
      * @return the segment id
      */
+    @Nonnull
     synchronized SegmentId getSegmentId(long msb, long lsb) {
-        int first = getIndex(lsb);
-        int index = first;
+        int index = getIndex(lsb);
         boolean shouldRefresh = false;
 
         WeakReference<SegmentId> reference = references.get(index);
@@ -199,7 +199,6 @@ public class SegmentIdTable {
     }
 
     synchronized void clearSegmentIdTables(Predicate<SegmentId> canRemove) {
-        int size = references.size();
         boolean dirty = false;
         for (WeakReference<SegmentId> reference : references) {
             if (reference != null) {
