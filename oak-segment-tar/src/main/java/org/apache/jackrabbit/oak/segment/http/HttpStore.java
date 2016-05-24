@@ -139,6 +139,7 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    @Nonnull
     public Segment readSegment(SegmentId id) {
         try {
             URLConnection connection = get(id.toString());

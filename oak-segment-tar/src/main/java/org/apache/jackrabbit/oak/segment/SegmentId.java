@@ -101,12 +101,15 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     @Nonnull
     public Segment getSegment() {
+        Segment segment = this.segment;
         if (segment == null) {
             synchronized (this) {
+                segment = this.segment;
                 if (segment == null) {
                     try {
                         log.debug("Loading segment {}", this);
-                        this.segment = store.readSegment(this);
+                        segment = store.readSegment(this);
+                        this.segment = segment;
                     } catch (SegmentNotFoundException snfe) {
                         long delta = System.currentTimeMillis() - creationTime;
                         log.error("Segment not found: {}. Creation date delta is {} ms.",
