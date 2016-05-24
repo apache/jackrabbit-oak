@@ -30,6 +30,9 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.commons.io.IOUtils;
 
 /**
@@ -39,10 +42,6 @@ import org.apache.commons.io.IOUtils;
  * 
  */
 public class Explorer {
-
-    private static boolean getSkipSizeChecks(String... args) {
-        return args.length >= 2 && args[1].equalsIgnoreCase("skip-size-check");
-    }
 
     private static void initLF() {
         try {
@@ -59,21 +58,34 @@ public class Explorer {
     }
 
     public static void main(String[] args) throws IOException {
-        new Explorer(args);
-    }
+        OptionParser parser = new OptionParser();
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec skipSizeCheck = parser.accepts("skip-size-check", "Don't compute the size of the records");
+        OptionSpec<File> nonOptions = parser.nonOptions().ofType(File.class);
+        OptionSet options = parser.parse(args);
 
-    private final FileStoreWrapper store;
-
-    private Explorer(String[] args) throws IOException {
-        if (args.length == 0) {
-            System.err.println("usage: explore <path> [skip-size-check]");
+        if (options.valuesOf(nonOptions).isEmpty()) {
+            parser.printHelpOn(System.err);
             System.exit(1);
         }
 
-        final File path = new File(args[0]);
-        final boolean skipSizeCheck = getSkipSizeChecks(args);
+        File path = options.valuesOf(nonOptions).get(0);
 
-        this.store = new FileStoreWrapper(path);
+        ExplorerBackend backend;
+
+        if (options.has(segmentTar)) {
+            backend = new SegmentTarExplorerBackend(path);
+        } else {
+            backend = new SegmentExplorerBackend(path);
+        }
+
+        new Explorer(path, backend, options.has(skipSizeCheck));
+    }
+
+    private final ExplorerBackend backend;
+
+    private Explorer(final File path, ExplorerBackend backend, final boolean skipSizeCheck) throws IOException {
+        this.backend = backend;
 
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
@@ -93,7 +105,7 @@ public class Explorer {
         log.setLineWrap(true);
         log.setEditable(false);
 
-        final NodeStoreTree treePanel = new NodeStoreTree(store, log, skipSizeCheck);
+        final NodeStoreTree treePanel = new NodeStoreTree(backend, log, skipSizeCheck);
 
         final JFrame frame = new JFrame("Explore " + path + " @head");
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
@@ -138,7 +150,7 @@ public class Explorer {
         menuCompaction.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                List<String> revs = store.readRevisions();
+                List<String> revs = backend.readRevisions();
                 String s = (String) JOptionPane.showInputDialog(frame,
                         "Revert to a specified revision", "Time Machine",
                         JOptionPane.PLAIN_MESSAGE, null, revs.toArray(),
