@@ -17,10 +17,16 @@
 
 package org.apache.jackrabbit.oak.explorer;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.reverseOrder;
+import static java.util.Collections.sort;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,18 +36,17 @@ import java.util.UUID;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper;
-import org.apache.jackrabbit.oak.plugins.segment.PCMAnalyser;
-import org.apache.jackrabbit.oak.plugins.segment.RecordId;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentBlob;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper;
+import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class FileStoreWrapper {
+class SegmentTarExplorerBackend implements ExplorerBackend {
 
     private final File path;
 
@@ -49,42 +54,110 @@ class FileStoreWrapper {
 
     private Map<String, Set<UUID>> index;
 
-    FileStoreWrapper(File path) throws IOException {
+    SegmentTarExplorerBackend(File path) throws IOException {
         this.path = path;
     }
 
-    void open() throws IOException {
+    @Override
+    public void open() throws IOException {
         store = FileStore.builder(path).buildReadOnly();
         index = store.getTarReaderIndex();
     }
 
-    void close() {
+    @Override
+    public void close() {
         store.close();
         store = null;
         index = null;
     }
 
-    List<String> readRevisions() {
-        return FileStoreHelper.readRevisions(path);
+    @Override
+    public List<String> readRevisions() {
+        File journal = new File(path, "journal.log");
+
+        if (!journal.exists()) {
+            return newArrayList();
+        }
+
+        List<String> revs = newArrayList();
+        JournalReader journalReader = null;
+
+        try {
+            journalReader = new JournalReader(journal);
+
+            try {
+                revs = newArrayList(journalReader.iterator());
+            } finally {
+                journalReader.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (journalReader != null) {
+                    journalReader.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return revs;
     }
 
-    Map<String, Set<UUID>> getTarReaderIndex() {
+    @Override
+    public Map<String, Set<UUID>> getTarReaderIndex() {
         return store.getTarReaderIndex();
     }
 
-    Map<UUID, List<UUID>> getTarGraph(String file) throws IOException {
+    @Override
+    public Map<UUID, List<UUID>> getTarGraph(String file) throws IOException {
         return store.getTarGraph(file);
     }
 
-    List<String> getTarFiles() {
-        return FileStoreHelper.getTarFiles(store);
+    @Override
+    public List<String> getTarFiles() {
+        List<String> files = newArrayList();
+        for (String p : store.getTarReaderIndex().keySet()) {
+            files.add(new File(p).getName());
+        }
+        sort(files, reverseOrder());
+        return files;
     }
 
-    void getGcRoots(UUID uuidIn, Map<UUID, Set<Entry<UUID, String>>> links) throws IOException {
-        FileStoreHelper.getGcRoots(store, uuidIn, links);
+    @Override
+    public void getGcRoots(UUID uuidIn, Map<UUID, Set<Entry<UUID, String>>> links) throws IOException {
+        Deque<UUID> todos = new ArrayDeque<UUID>();
+        todos.add(uuidIn);
+        Set<UUID> visited = newHashSet();
+        while (!todos.isEmpty()) {
+            UUID uuid = todos.remove();
+            if (!visited.add(uuid)) {
+                continue;
+            }
+            for (String f : getTarFiles()) {
+                Map<UUID, List<UUID>> graph = store.getTarGraph(f);
+                for (Entry<UUID, List<UUID>> g : graph.entrySet()) {
+                    if (g.getValue() != null && g.getValue().contains(uuid)) {
+                        UUID uuidP = g.getKey();
+                        if (!todos.contains(uuidP)) {
+                            todos.add(uuidP);
+                            Set<Entry<UUID, String>> deps = links.get(uuid);
+                            if (deps == null) {
+                                deps = newHashSet();
+                                links.put(uuid, deps);
+                            }
+                            deps.add(new SimpleImmutableEntry<UUID, String>(
+                                    uuidP, f));
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    Set<UUID> getReferencedSegmentIds() {
+    @Override
+    public Set<UUID> getReferencedSegmentIds() {
         Set<UUID> ids = newHashSet();
 
         for (SegmentId id : store.getTracker().getReferencedSegmentIds()) {
@@ -94,27 +167,33 @@ class FileStoreWrapper {
         return ids;
     }
 
-    NodeState getHead() {
+    @Override
+    public NodeState getHead() {
         return store.getHead();
     }
 
-    NodeState readNodeState(String recordId) {
-        return new SegmentNodeState(RecordId.fromString(store.getTracker(), recordId));
+    @Override
+    public NodeState readNodeState(String recordId) {
+        return new SegmentNodeState(store, RecordId.fromString(store.getTracker(), recordId));
     }
 
-    void setRevision(String revision) {
+    @Override
+    public void setRevision(String revision) {
         store.setRevision(revision);
     }
 
-    boolean isPersisted(NodeState state) {
+    @Override
+    public boolean isPersisted(NodeState state) {
         return state instanceof SegmentNodeState;
     }
 
-    boolean isPersisted(PropertyState state) {
+    @Override
+    public boolean isPersisted(PropertyState state) {
         return state instanceof SegmentPropertyState;
     }
 
-    String getRecordId(NodeState state) {
+    @Override
+    public String getRecordId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getRecordId((SegmentNodeState) state);
         }
@@ -122,7 +201,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    UUID getSegmentId(NodeState state) {
+    @Override
+    public UUID getSegmentId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getSegmentId((SegmentNodeState) state);
         }
@@ -130,7 +210,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    String getRecordId(PropertyState state) {
+    @Override
+    public String getRecordId(PropertyState state) {
         if (state instanceof SegmentPropertyState) {
             return getRecordId((SegmentPropertyState) state);
         }
@@ -138,7 +219,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    UUID getSegmentId(PropertyState state) {
+    @Override
+    public UUID getSegmentId(PropertyState state) {
         if (state instanceof SegmentPropertyState) {
             return getSegmentId((SegmentPropertyState) state);
         }
@@ -146,7 +228,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    String getTemplateRecordId(NodeState state) {
+    @Override
+    public String getTemplateRecordId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getTemplateRecordId((SegmentNodeState) state);
         }
@@ -154,7 +237,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    UUID getTemplateSegmentId(NodeState state) {
+    @Override
+    public UUID getTemplateSegmentId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getTemplateSegmentId((SegmentNodeState) state);
         }
@@ -162,7 +246,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    String getFile(NodeState state) {
+    @Override
+    public String getFile(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getFile((SegmentNodeState) state);
         }
@@ -170,7 +255,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    String getFile(PropertyState state) {
+    @Override
+    public String getFile(PropertyState state) {
         if (state instanceof SegmentPropertyState) {
             return getFile((SegmentPropertyState) state);
         }
@@ -178,7 +264,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    String getTemplateFile(NodeState state) {
+    @Override
+    public String getTemplateFile(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getTemplateFile((SegmentNodeState) state);
         }
@@ -186,7 +273,8 @@ class FileStoreWrapper {
         return null;
     }
 
-    Map<UUID, String> getBulkSegmentIds(Blob blob) {
+    @Override
+    public Map<UUID, String> getBulkSegmentIds(Blob blob) {
         Map<UUID, String> result = Maps.newHashMap();
 
         for (SegmentId segmentId : SegmentBlob.getBulkSegmentIds(blob)) {
@@ -196,11 +284,13 @@ class FileStoreWrapper {
         return result;
     }
 
-    String getPersistedCompactionMapStats() {
-        return new PCMAnalyser(store).toString();
+    @Override
+    public String getPersistedCompactionMapStats() {
+        return "";
     }
 
-    boolean isExternal(Blob blob) {
+    @Override
+    public boolean isExternal(Blob blob) {
         if (blob instanceof SegmentBlob) {
             return isExternal((SegmentBlob) blob);
         }
