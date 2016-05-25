@@ -18,18 +18,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.junit.BeforeClass;
 
 public class TestBase {
     int port = Integer.valueOf(System.getProperty("standby.server.port", "52800"));
     final static String LOCALHOST = "127.0.0.1";
+
+    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
     File directoryS;
     FileStore storeS;
@@ -46,6 +54,12 @@ public class TestBase {
     */
     protected final boolean noDualStackSupport = SystemUtils.IS_OS_WINDOWS && SystemUtils.IS_JAVA_1_6;
 
+    @BeforeClass
+    public static void assumptions() {
+        assumeTrue(!CIHelper.travis());
+        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_MK));
+    }
+
     public void setUpServerAndClient() throws IOException {
         // server
         directoryS = createTmpTargetDir("FailoverServerTest");
@@ -56,8 +70,16 @@ public class TestBase {
         storeC = setupSecondary(directoryC);
     }
 
+    private static FileStore newFileStore(File directory) throws IOException {
+        return FileStore.newFileStore(directory)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withNoCache()
+            .create();
+    }
+
     protected FileStore setupPrimary(File directory) throws IOException {
-        return new FileStore(directory, 1, false);
+        return newFileStore(directory);
     }
 
     protected FileStore getPrimary() {
@@ -65,7 +87,7 @@ public class TestBase {
     }
 
     protected FileStore setupSecondary(File directory) throws IOException {
-        return new FileStore(directoryC, 1, false);
+        return newFileStore(directoryC);
     }
 
     protected FileStore getSecondary() {
@@ -80,7 +102,7 @@ public class TestBase {
         setUpServerAndClient();
 
         directoryC2 = createTmpTargetDir("FailoverClient2Test");
-        storeC2 = new FileStore(directoryC2, 1, false);
+        storeC2 = newFileStore(directoryC2);
     }
 
     public void closeServerAndClient() {

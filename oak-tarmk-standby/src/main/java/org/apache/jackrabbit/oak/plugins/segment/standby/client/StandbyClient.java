@@ -148,8 +148,8 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             }
             state = STATUS_STARTING;
             executor = new DefaultEventExecutorGroup(4);
-            handler = new StandbyClientHandler(this.store, executor, observer,
-                    running, readTimeoutMs, autoClean);
+            handler = new StandbyClientHandler(this.store, observer, running,
+                    readTimeoutMs, autoClean);
             group = new NioEventLoopGroup();
 
             b = new Bootstrap();
@@ -200,12 +200,16 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
 
     private void shutdownNetty() {
         if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+            group.shutdownGracefully(1, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
         if (executor != null && !executor.isShuttingDown()) {
-            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+            executor.shutdownGracefully(1, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
+        }
+        if (handler != null) {
+            handler.close();
+            handler = null;
         }
     }
 
