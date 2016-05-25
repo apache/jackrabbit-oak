@@ -18,8 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
-import com.google.common.io.ByteStreams;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -38,13 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.util.Random;
-
-import static org.junit.Assert.*;
-
 public class DataStoreTestBase extends TestBase {
 
     protected boolean storesCanBeEqual = false;
@@ -59,7 +62,12 @@ public class DataStoreTestBase extends TestBase {
         fds.setMinRecordLength(4092);
         fds.init(path);
         DataStoreBlobStore blobStore = new DataStoreBlobStore(fds);
-        return new FileStore(blobStore, d, 1, false);
+        return FileStore.newFileStore(d)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withNoCache()
+            .withBlobStore(blobStore)
+            .create();
     }
 
     protected byte[] addTestContent(NodeStore store, String child, int size)
