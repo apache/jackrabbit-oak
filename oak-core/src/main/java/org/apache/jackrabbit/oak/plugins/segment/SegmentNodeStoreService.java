@@ -47,7 +47,9 @@ import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
@@ -211,6 +213,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
     private Registration compactionStrategyRegistration;
+    private Registration stringCacheMBean;
     private Registration fsgcMonitorMBean;
     private WhiteboardExecutor executor;
     private boolean customBlobStore;
@@ -347,6 +350,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     .setCompactionStrategy(compactionStrategy);
         }
 
+        CacheStats stringCacheStats = store.getTracker().getStringCacheStats();
+        if (stringCacheStats != null) {
+            stringCacheMBean = registerMBean(whiteboard, CacheStatsMBean.class,
+                    stringCacheStats,
+                    CacheStats.TYPE, stringCacheStats.getName());
+        }
+
         FileStoreGCMonitor fsgcMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
         fsgcMonitorMBean = new CompositeRegistration(
                 whiteboard.register(GCMonitor.class, fsgcMonitor, emptyMap()),
@@ -449,6 +459,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private void unregisterNodeStore() {
+        if (stringCacheMBean != null) {
+            stringCacheMBean.unregister();
+            stringCacheMBean = null;
+        }
         if(providerRegistration != null){
             providerRegistration.unregister();
             providerRegistration = null;
