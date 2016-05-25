@@ -1101,16 +1101,19 @@ public class RDBDocumentStore implements DocumentStore {
             String appendData = ser.asString(update);
 
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
-                Set<QueryContext> seenQueryContext = new HashSet<QueryContext>();
-                // keep concurrently running queries from updating
-                // the cache entry for this key
-                for (QueryContext qc : qmap.values()) {
-                    qc.addKeys(chunkedIds);
-                    seenQueryContext.add(qc);
-                }
+                Set<QueryContext> seenQueryContext = Collections.emptySet();
+
                 if (collection == Collection.NODES) {
                     for (String id : chunkedIds) {
                         nodesCache.invalidate(id);
+                    }
+
+                    // keep concurrently running queries from updating
+                    // the cache entry for this key
+                    seenQueryContext = new HashSet<QueryContext>();
+                    for (QueryContext qc : qmap.values()) {
+                        qc.addKeys(chunkedIds);
+                        seenQueryContext.add(qc);
                     }
                 }
 
@@ -1128,11 +1131,13 @@ public class RDBDocumentStore implements DocumentStore {
                     this.ch.closeConnection(connection);
                 }
                 if (success) {
-                    // keep concurrently running queries from updating
-                    // the cache entry for this key
-                    for (QueryContext qc : qmap.values()) {
-                        if (!seenQueryContext.contains(qc)) {
-                            qc.addKeys(chunkedIds);
+                    if (collection == Collection.NODES) {
+                        // keep concurrently running queries from updating
+                        // the cache entry for this key
+                        for (QueryContext qc : qmap.values()) {
+                            if (!seenQueryContext.contains(qc)) {
+                                qc.addKeys(chunkedIds);
+                            }
                         }
                         for (String id : chunkedIds) {
                             nodesCache.invalidate(id);
@@ -1235,8 +1240,11 @@ public class RDBDocumentStore implements DocumentStore {
         }
         try {
             long now = System.currentTimeMillis();
-            QueryContext qp = new QueryContext(fromKey, toKey);
-            qmap.put(Thread.currentThread(), qp);
+            QueryContext qp = null;
+            if (collection == Collection.NODES) {
+                qp = new QueryContext(fromKey, toKey);
+                qmap.put(Thread.currentThread(), qp);
+            }
             connection = this.ch.getROConnection();
             String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
             String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
@@ -1250,7 +1258,9 @@ public class RDBDocumentStore implements DocumentStore {
                 T doc = runThroughCache(collection, row, now, qp);
                 result.add(doc);
             }
-            qp.dispose();
+            if (qp != null) {
+                qp.dispose();
+            }
             return result;
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
