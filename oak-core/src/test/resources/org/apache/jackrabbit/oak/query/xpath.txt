@@ -24,6 +24,13 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-4387
+xpath2sql /jcr:root/content/text/element/rep:excerpt/jcr:content//element(*,nt:unstructured)
+select [jcr:path], [jcr:score], *
+  from [nt:unstructured] as a
+  where isdescendantnode(a, '/content/text/element/rep:excerpt/jcr:content')
+  /* xpath ... */
+
 # OAK-4376
 
 xpath2sql //element(*, oak:QueryIndexDefinition)/*
@@ -592,22 +599,22 @@ select [jcr:path], [jcr:score], *
   /* xpath ... */
 
 xpath2sql /
-invalid: Query: (*)/; expected: jcr:root, /, *, text, element, @, rep:excerpt, (, .
+invalid: Query: (*)/; expected: jcr:root, /, *, @, (, .
 
 xpath2sql /[@name='data']
-invalid: Query: /[(*)@name='data']; expected: jcr:root, /, *, text, element, @, rep:excerpt, (, .
+invalid: Query: /[(*)@name='data']; expected: jcr:root, /, *, @, (, .
 
 xpath2sql //[@name='data']
-invalid: Query: //[(*)@name='data']; expected: *, text, element, @, rep:excerpt, (, .
+invalid: Query: //[(*)@name='data']; expected: *, @, (, .
 
 xpath2sql //child/[@id='2.1']
-invalid: Query: //child/[(*)@id='2.1']; expected: jcr:root, /, *, text, element, @, rep:excerpt, (, .
+invalid: Query: //child/[(*)@id='2.1']; expected: jcr:root, /, *, @, (, .
 
 xpath2sql //
-invalid: Query: /(*)/; expected: *, text, element, @, rep:excerpt, (, .
+invalid: Query: /(*)/; expected: *, @, (, .
 
 xpath2sql [@name='data']
-invalid: Query: [(*)@name='data']; expected: /, *, text, element, @, rep:excerpt, (, .
+invalid: Query: [(*)@name='data']; expected: /, *, @, (, .
 
 xpath2sql test
 select [jcr:path], [jcr:score], *
@@ -930,7 +937,7 @@ select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.*
   /* xpath ... */
 
 xpath2sql /jcr:root/testroot/people/jcr:deref(@worksfor, '*')
-invalid: Query: /jcr:root/testroot/people/jcr:deref((*)@worksfor, '*'); expected: <end>
+invalid: Query: /jcr:root/testroot/people/jcr:deref(@(*)worksfor, '*')
 
 xpath2sql //*[@jcr:primaryType='nt:unstructured' and jcr:like(@foo,"%ar'ba%")]
 select [jcr:path], [jcr:score], *
@@ -1494,7 +1501,7 @@ select [jcr:path], [jcr:score], *
   /* xpath ... */
 
 xpath2sql [invalid/query
-invalid: Query: [(*)invalid/query; expected: /, *, text, element, @, rep:excerpt, (, .
+invalid: Query: [(*)invalid/query; expected: /, *, @, (, .
 
 xpath2sql //element(*, my:type)[@my:value = -'x']
 invalid: Query: //element(*, my:type)[@my:value = -'x'(*)]
