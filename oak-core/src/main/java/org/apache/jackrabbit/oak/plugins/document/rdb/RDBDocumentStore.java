@@ -1101,9 +1101,7 @@ public class RDBDocumentStore implements DocumentStore {
             String appendData = ser.asString(update);
 
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
-                // remember what we already have in the cache
                 Set<QueryContext> seenQueryContext = new HashSet<QueryContext>();
-                Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
                 // keep concurrently running queries from updating
                 // the cache entry for this key
                 for (QueryContext qc : qmap.values()) {
@@ -1111,10 +1109,6 @@ public class RDBDocumentStore implements DocumentStore {
                     seenQueryContext.add(qc);
                 }
                 if (collection == Collection.NODES) {
-                    cachedDocs = new HashMap<String, NodeDocument>();
-                    for (String key : chunkedIds) {
-                        cachedDocs.put(key, nodesCache.getIfPresent(key));
-                    }
                     for (String id : chunkedIds) {
                         nodesCache.invalidate(id);
                     }
