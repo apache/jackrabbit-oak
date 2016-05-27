@@ -1420,19 +1420,19 @@ public class RDBDocumentStore implements DocumentStore {
             this.toKey = toKey;
         }
 
-        public void addKey(String key) {
+        synchronized public void addKey(String key) {
             if (fromKey.compareTo(key) < 0 && toKey.compareTo(key) > 0) {
                 getFilter().put(key);
             }
         }
 
-        public void addKeys(List<String> keys) {
+        synchronized public void addKeys(List<String> keys) {
             for (String key: keys) {
                 addKey(key);
             }
         }
 
-        public boolean mayUpdate(String key) {
+        synchronized public boolean mayUpdate(String key) {
             return filter == null ? true : !getFilter().mightContain(key);
         }
 
