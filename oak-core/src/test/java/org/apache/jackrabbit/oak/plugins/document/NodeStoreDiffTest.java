@@ -20,11 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -39,14 +39,18 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentRootBuilder.UPDATE_LIMIT;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 public class NodeStoreDiffTest {
 
@@ -55,7 +59,7 @@ public class NodeStoreDiffTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    private NodeStore ns;
+    private DocumentNodeStore ns;
     private final TestDocumentStore tds = new TestDocumentStore();
 
     @Before
@@ -148,6 +152,40 @@ public class NodeStoreDiffTest {
         assertFalse(tds.paths.contains("/oak:index/prop-b/b1"));
     }
 
+    @Ignore("OAK-4403")
+    @Test
+    public void diffWithPersistedBranch() throws Exception{
+        createNodes("/content/a", "/etc/x", "var", "/etc/y");
+
+        //#1 - Start making some changes
+        NodeBuilder b = ns.getRoot().builder();
+        createNodes(b, "/content/b");
+
+        //#2 - Do lots of change so as to trigger branch creation
+        //BranchState > Unmodified -> InMemory
+        for (int i = 0; i <= UPDATE_LIMIT; i++) {
+            b.child("content").child("a").child("c" + i);
+        }
+
+        //#3 -  In between push some changes to NodeStore
+        NodeBuilder b2 = ns.getRoot().builder();
+        b2.child("etc").child("x").setProperty("foo", 1);
+        b2.child("var").remove();
+        merge(b2);
+        ns.runBackgroundOperations();
+
+        createNodes(b, "/content/e");
+
+        tds.reset();
+
+        merge(b);
+
+        //With the merge the diff logic should not be accessing the
+        //paths which are not part of the current commit like /etc and /var
+        assertThat(tds.paths, not(hasItem("/etc")));
+        assertThat(tds.paths, not(hasItem("/var")));
+    }
+
     private NodeState merge(NodeBuilder nb) throws CommitFailedException {
         NodeState result = ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         prRev(result);
@@ -156,19 +194,15 @@ public class NodeStoreDiffTest {
     }
 
     private void ops(){
-        if(ns instanceof DocumentNodeStore) {
-            DocumentNodeStore dns = ((DocumentNodeStore) ns);
-            dns.runBackgroundOperations();
-            //Background ops are disabled for simple revisions
-            dns.backgroundWrite();
-        }
+        ns.runBackgroundOperations();
+        //Background ops are disabled for simple revisions
+        ns.backgroundWrite();
     }
 
     private NodeState createNodes(String... paths) throws CommitFailedException {
         NodeBuilder nb = ns.getRoot().builder();
         createNodes(nb, paths);
-        NodeState result = merge(nb);
-        return result;
+        return merge(nb);
     }
 
     private static void createNodes(NodeBuilder builder, String... paths) {
@@ -189,7 +223,7 @@ public class NodeStoreDiffTest {
 
 
     private static class TestDocumentStore extends MemoryDocumentStore {
-        final List<String> paths = Lists.newArrayList();
+        final Set<String> paths = Sets.newHashSet();
 
         @Override
         public <T extends Document> T find(Collection<T> collection, String key) {
