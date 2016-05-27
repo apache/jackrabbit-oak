@@ -17,15 +17,19 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.collect.Lists.reverse;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
 import static com.google.common.escape.Escapers.builder;
 import static javax.jcr.PropertyType.BINARY;
 import static javax.jcr.PropertyType.STRING;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openReadOnlyFileStore;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.readRevisions;
+import static org.apache.jackrabbit.oak.plugins.segment.RecordId.fromString;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
@@ -37,12 +41,14 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -75,10 +81,12 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -222,6 +230,122 @@ class SegmentUtils {
             }
         } finally {
             store.close();
+        }
+    }
+
+    static void diff(File store, File out, boolean listOnly, String interval, boolean incremental, String path, boolean ignoreSNFEs) throws IOException {
+        if (listOnly) {
+            listRevs(store, out);
+        } else {
+            diff(store, interval, incremental, out, path, ignoreSNFEs);
+        }
+    }
+
+    private static void listRevs(File store, File out) throws IOException {
+        System.out.println("Store " + store);
+        System.out.println("Writing revisions to " + out);
+        List<String> revs = readRevisions(store);
+        if (revs.isEmpty()) {
+            System.out.println("No revisions found.");
+            return;
+        }
+        PrintWriter pw = new PrintWriter(out);
+        try {
+            for (String r : revs) {
+                pw.println(r);
+            }
+        } finally {
+            pw.close();
+        }
+    }
+
+    private static void diff(File dir, String interval, boolean incremental, File out, String filter, boolean ignoreSNFEs) throws IOException {
+        System.out.println("Store " + dir);
+        System.out.println("Writing diff to " + out);
+        String[] tokens = interval.trim().split("\\.\\.");
+        if (tokens.length != 2) {
+            System.out.println("Error parsing revision interval '" + interval
+                    + "'.");
+            return;
+        }
+        ReadOnlyStore store = FileStore.builder(dir).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+        RecordId idL = null;
+        RecordId idR = null;
+        try {
+            if (tokens[0].equalsIgnoreCase("head")) {
+                idL = store.getHead().getRecordId();
+            } else {
+                idL = fromString(store.getTracker(), tokens[0]);
+            }
+            if (tokens[1].equalsIgnoreCase("head")) {
+                idR = store.getHead().getRecordId();
+            } else {
+                idR = fromString(store.getTracker(), tokens[1]);
+            }
+        } catch (IllegalArgumentException ex) {
+            System.out.println("Error parsing revision interval '" + interval + "': " + ex.getMessage());
+            ex.printStackTrace();
+            return;
+        }
+
+        long start = System.currentTimeMillis();
+        PrintWriter pw = new PrintWriter(out);
+        try {
+            if (incremental) {
+                List<String> revs = readRevisions(dir);
+                System.out.println("Generating diff between " + idL + " and " + idR + " incrementally. Found " + revs.size() + " revisions.");
+
+                int s = revs.indexOf(idL.toString10());
+                int e = revs.indexOf(idR.toString10());
+                if (s == -1 || e == -1) {
+                    System.out.println("Unable to match input revisions with FileStore.");
+                    return;
+                }
+                List<String> revDiffs = revs.subList(Math.min(s, e), Math.max(s, e) + 1);
+                if (s > e) {
+                    // reverse list
+                    revDiffs = reverse(revDiffs);
+                }
+                if (revDiffs.size() < 2) {
+                    System.out.println("Nothing to diff: " + revDiffs);
+                    return;
+                }
+                Iterator<String> revDiffsIt = revDiffs.iterator();
+                RecordId idLt = fromString(store.getTracker(), revDiffsIt.next());
+                while (revDiffsIt.hasNext()) {
+                    RecordId idRt = fromString(store.getTracker(), revDiffsIt.next());
+                    boolean good = diff(store, idLt, idRt, filter, pw);
+                    idLt = idRt;
+                    if (!good && !ignoreSNFEs) {
+                        break;
+                    }
+                }
+            } else {
+                System.out.println("Generating diff between " + idL + " and " + idR);
+                diff(store, idL, idR, filter, pw);
+            }
+        } finally {
+            pw.close();
+        }
+        long dur = System.currentTimeMillis() - start;
+        System.out.println("Finished in " + dur + " ms.");
+    }
+
+    private static boolean diff(ReadOnlyStore store, RecordId idL, RecordId idR, String filter, PrintWriter pw) throws IOException {
+        pw.println("rev " + idL + ".." + idR);
+        try {
+            NodeState before = new SegmentNodeState(idL).getChildNode("root");
+            NodeState after = new SegmentNodeState(idR).getChildNode("root");
+            for (String name : elements(filter)) {
+                before = before.getChildNode(name);
+                after = after.getChildNode(name);
+            }
+            after.compareAgainstBaseState(before, new PrintingDiff(pw, filter));
+            return true;
+        } catch (SegmentNotFoundException ex) {
+            System.out.println(ex.getMessage());
+            pw.println("#SNFE " + ex.getSegmentId());
+            return false;
         }
     }
 

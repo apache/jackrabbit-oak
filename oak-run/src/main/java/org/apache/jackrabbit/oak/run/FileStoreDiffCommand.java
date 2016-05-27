@@ -17,13 +17,59 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.plugins.segment.FileStoreDiff;
+import static java.util.Arrays.asList;
+
+import java.io.File;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 class FileStoreDiffCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        FileStoreDiff.main(args);
+        OptionParser parser = new OptionParser();
+        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        OptionSpec<File> storeO = parser.nonOptions("Path to segment store (required)").ofType(File.class);
+        OptionSpec<File> outO = parser.accepts("output", "Output file").withRequiredArg().ofType(File.class).defaultsTo(defaultOutFile());
+        OptionSpec<?> listOnlyO = parser.accepts("list", "Lists available revisions");
+        OptionSpec<String> intervalO = parser.accepts("diff", "Revision diff interval. Ex '--diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '--diff=R0..HEAD'").withRequiredArg().ofType(String.class);
+        OptionSpec<?> incrementalO = parser.accepts("incremental", "Runs diffs between each subsequent revisions in the provided interval");
+        OptionSpec<String> pathO = parser.accepts("path", "Filter diff by given path").withRequiredArg().ofType(String.class).defaultsTo("/");
+        OptionSpec<?> ignoreSNFEsO = parser.accepts("ignore-snfes", "Ignores SegmentNotFoundExceptions and continues running the diff (experimental)");
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSet options = parser.parse(args);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        File store = storeO.value(options);
+
+        if (store == null) {
+            parser.printHelpOn(System.out);
+            System.exit(1);
+        }
+
+        File out = outO.value(options);
+
+        boolean listOnly = options.has(listOnlyO);
+        String interval = intervalO.value(options);
+        boolean incremental = options.has(incrementalO);
+        String path = pathO.value(options);
+        boolean ignoreSNFEs = options.has(ignoreSNFEsO);
+
+        if (options.has(segmentTar)) {
+            SegmentTarUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
+        } else {
+            SegmentUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
+        }
+    }
+
+    private File defaultOutFile() {
+        return new File("diff_" + System.currentTimeMillis() + ".log");
     }
 
 }
