@@ -34,7 +34,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
 
     public CachingBlobStore(long cacheSize) {
         this.blobCacheSize = cacheSize;
-        cache = CacheLIRS.newBuilder().
+        cache = CacheLIRS.<String, byte[]>newBuilder().
                 maximumWeight(cacheSize).
                 averageWeight(getBlockSize() / 2).
                 weigher(new Weigher<String, byte[]>() {

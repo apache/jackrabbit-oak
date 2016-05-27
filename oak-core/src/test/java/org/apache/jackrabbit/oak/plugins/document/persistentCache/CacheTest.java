@@ -27,14 +27,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Random;
 
+import com.google.common.cache.Cache;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-
-import com.google.common.cache.Cache;
-
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Test;
