@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -33,7 +32,6 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -45,6 +43,7 @@ class Utils {
         OptionSpec<Integer> clusterId = parser
                 .accepts("clusterId", "MongoMK clusterId").withRequiredArg()
                 .ofType(Integer.class).defaultsTo(0);
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
         OptionSpec<String> nonOption = parser
@@ -81,9 +80,11 @@ class Utils {
             return store;
         }
 
-        FileStore fs = openFileStore(src);
-        closer.register(asCloseable(fs));
-        return SegmentNodeStore.builder(fs).build();
+        if (options.has(segmentTar)) {
+            return SegmentTarUtils.bootstrapNodeStore(src, closer);
+        }
+
+        return SegmentUtils.bootstrapNodeStore(src, closer);
     }
 
     static Closeable asCloseable(final FileStore fs) {
