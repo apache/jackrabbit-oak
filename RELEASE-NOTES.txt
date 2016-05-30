@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.30
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.31
 
 Introduction
 ------------
@@ -8,35 +8,43 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.30 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.31 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.30
+Changes in Oak 1.0.31
 ---------------------
 
 Technical task
 
-    [OAK-4156] - RDBConnectionHandler: add logging when getting the connection takes long
-    [OAK-4193] - RDBBlobStore: logging for garbage collection has parameters reversed
-    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA records when there was subsequent blobstore activity
+    [OAK-3657] - RDBDocumentStore: cache update logic introduced for OAK-3566 should only be used for NODES collection
+    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
+    [OAK-4250] - DocumentStore: add test coverage for find() with ultra-long keys
+    [OAK-4388] - RDBDocumentStore: conditional update to _modified property sometimes applied unconditionally
+    [OAK-4389] - RDBDocumentStore: add system property for disabling appending updates
+    [OAK-4398] - RDBDocumentStore: dead code in internalUpdate
+    [OAK-4408] - RDBDocumentStore: synchronize access to BloomFilter
 
 Bug
 
-    [OAK-3235] - Deadlock when closing a concurrently used FileStore
-    [OAK-3493] - Deadlock when closing a concurrently used FileStore 2.0
-    [OAK-4024] - CoW uses incorrect directory on re-indexing when indexPath property is used
+    [OAK-1953] - Oak console on MongoMK fails with NPE
+    [OAK-2655] - Test failure: OrderableNodesTest.testAddNode
 
 Improvement
 
-    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
+    [OAK-4164] - Expose path stats for Lucene index
+    [OAK-4321] - Improve conflict exception message to show if conflict is unexpected
+    [OAK-4372] - VersionGarbageCollector uses more temporary memory than needed
+
+New Feature
+
+    [OAK-4144] - Expose PropertyIndex stats
 
 Task
-
-    [OAK-4150] - Backport OAK-3235 and OAK-3493 to the 1.0 branch
+    [OAK-4100] - ClusterNodeInfo lease renewal: add logging
 
 
 In addition to the above-mentioned changes, this release contains
