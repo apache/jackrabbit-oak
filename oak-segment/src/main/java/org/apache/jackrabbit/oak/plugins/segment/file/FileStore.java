@@ -866,8 +866,7 @@ public class FileStore implements SegmentStore {
         LinkedList<File> toRemove = newLinkedList();
         Set<UUID> cleanedIds = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
-            cleaned.put(reader, reader.cleanup(referencedIds, cleanedIds,
-                    compactionStrategy));
+            cleaned.put(reader, reader.cleanup(referencedIds, cleanedIds));
             if (shutdown) {
                 gcMonitor.info("TarMK GC #{}: cleanup interrupted", gcCount);
                 break;
