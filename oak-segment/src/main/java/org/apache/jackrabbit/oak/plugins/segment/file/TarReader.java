@@ -52,6 +52,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.SegmentGraphVisitor;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -737,19 +738,24 @@ class TarReader implements Closeable {
 
     /**
      * Garbage collects segments in this file. First it collects the set of
-     * segments that are referenced / reachable, then (if more than 25% is
-     * garbage) creates a new generation of the file.
+     * segments that are referenced / reachable, then it creates a new
+     * generation of the file, if more than 25% is garbage. In the case of
+     * offline compaction, a new tar file will be created no matter how much
+     * garbage is detected.
      * <p>
      * The old generation files are not removed (they can't easily be removed,
      * for memory mapped files).
      * 
-     * @param referencedIds the referenced segment ids (input and output).
-     * @param removed a set which will receive the uuids of all segments that
-     *                have been cleaned.
+     * @param referencedIds
+     *            the referenced segment ids (input and output).
+     * @param removed
+     *            a set which will receive the uuids of all segments that have
+     *            been cleaned.
      * @return this (if the file is kept as is), or the new generation file, or
      *         null if the file is fully garbage
      */
-    synchronized TarReader cleanup(Set<UUID> referencedIds, Set<UUID> removed) throws IOException {
+    synchronized TarReader cleanup(Set<UUID> referencedIds, Set<UUID> removed,
+            CompactionStrategy strategy) throws IOException {
         String name = file.getName();
         log.debug("Cleaning up {}", name);
 
@@ -786,11 +792,14 @@ class TarReader implements Closeable {
             removed.addAll(cleaned);
             logCleanedSegments(cleaned);
             return null;
-        } else if (size >= access.length() * 3 / 4 && graph != null) {
+        } else if (size >= access.length() * 3 / 4 && graph != null
+                && !strategy.isOfflineCompaction()) {
             // the space savings are not worth it at less than 25%,
             // unless this tar file lacks a pre-compiled segment graph
             // in which case we'll always generate a new tar file with
             // the graph to speed up future garbage collection runs.
+            // offline compaction will ignore the savings threshold and create a
+            // new tar file on each run.
             log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
                     access.length() - size, access.length(), name);
             return this;
