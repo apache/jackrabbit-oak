@@ -103,6 +103,10 @@ final class SegmentTarUtils {
         // Prevent instantiation
     }
 
+    static NodeStore bootstrapNodeStore(String path, Closer closer) throws IOException {
+        return SegmentNodeStore.builder(bootstrapFileStore(path, closer)).build();
+    }
+
     static void backup(File source, File target) throws IOException {
         Closer closer = Closer.create();
         try {
@@ -222,6 +226,14 @@ final class SegmentTarUtils {
         } else {
             diff(store, interval, incremental, out, path, ignoreSNFEs);
         }
+    }
+
+    private static FileStore bootstrapFileStore(String path, Closer closer) throws IOException {
+        return closer.register(bootstrapFileStore(path));
+    }
+
+    private static FileStore bootstrapFileStore(String path) throws IOException {
+        return FileStore.builder(new File(path)).build();
     }
 
     private static void listRevs(File store, File out) throws IOException {
