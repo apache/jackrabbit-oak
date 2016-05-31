@@ -24,7 +24,6 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static com.google.common.escape.Escapers.builder;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.checkFileStoreVersionOrFail;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.segment.RecordId.fromString;
@@ -32,6 +31,7 @@ import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper.getTemplateId;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -84,6 +84,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
@@ -657,6 +658,31 @@ final class SegmentTarUtils {
             }
 
         };
+    }
+
+    private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException {
+        File directory = new File(path);
+        if (!directory.exists()) {
+            return directory;
+        }
+        FileStore store = openReadOnlyFileStore(directory);
+        try {
+            SegmentVersion segmentVersion = getSegmentVersion(store);
+            if (segmentVersion != LATEST_VERSION) {
+                if (force) {
+                    System.out.printf("Segment version mismatch. Found %s, expected %s. Forcing execution.\n", segmentVersion, LATEST_VERSION);
+                } else {
+                    throw new RuntimeException(String.format("Segment version mismatch. Found %s, expected %s. Aborting.", segmentVersion, LATEST_VERSION));
+                }
+            }
+        } finally {
+            store.close();
+        }
+        return directory;
+    }
+
+    private static SegmentVersion getSegmentVersion(FileStore fileStore) {
+        return fileStore.getHead().getRecordId().getSegment().getSegmentVersion();
     }
 
 }
