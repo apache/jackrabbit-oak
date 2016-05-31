@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.3
 
 Introduction
 ------------
@@ -7,56 +7,57 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.2 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.3 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.2
+Changes in Oak 1.4.3
 ---------------------
 
 Technical task
 
-    [OAK-4204] - GarbageCollectorFileState.copy() leaks
-    FileOutputStream
+    [OAK-3977] - RDBDocumentStore: remove PostgreSQL workaround after upgrading to JDBC driver 9.4.1208
+    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
+    [OAK-4134] - RDBBlobStore: improve error handling and logging
+    [OAK-4156] - RDBConnectionHandler: add logging when getting the connection takes long
+    [OAK-4190] - DocumentMK: refactor RDB-specific code
+    [OAK-4193] - RDBBlobStore: logging for garbage collection has parameters reversed
+    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA records when there was subsequent blobstore activity
+    [OAK-4250] - DocumentStore: add test coverage for find() with ultra-long keys
+    [OAK-4388] - RDBDocumentStore: conditional update to _modified property sometimes applied unconditionally
+    [OAK-4389] - RDBDocumentStore: add system property for disabling appending updates
+    [OAK-4398] - RDBDocumentStore: dead code in internalUpdate
+    [OAK-4408] - RDBDocumentStore: synchronize access to BloomFilter
 
 Bug
 
-    [OAK-4099] - Lucene index appear to be corrupted with compaction
-    enabled
-    [OAK-4148] - RAT plugin complains about derby files
-    [OAK-4166] - Simple versionable nodes are invalid after migration
-    [OAK-4275] - Backport OAK-4065 (Counter index can get out of sync)
-    to 1.2 and 1.4
-    [OAK-4313] - QueryImpl should avoid traversal with queries
-    containing native constraints
-
-Documentation
-
-    [OAK-4151] - Broken link to oak-mongo.js function on Command Line
-    Tools page
+    [OAK-4359] - Lucene index / compatVersion 2: search for 'a=b=c' does not work
 
 Improvement
 
-    [OAK-4136] - release profile in maven
+    [OAK-4029] - RDBDocumentStore: optimize the bulk update method
+    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
+    [OAK-4164] - Expose path stats for Lucene index
     [OAK-4165] - Too verbose logging during revision gc
-    [OAK-4175] - Allow to skip the repository initialization in
-    oak-upgrade
-    [OAK-4242] - Counter index should be rebuilt after successful
-    migration
-    [OAK-4306] - Disable cleanup when compaction is paused
-    [OAK-4317] - Similar and Native queries should return no results
-    if no index can handle them
+    [OAK-4262] - Provide a way to abort an async indexing run
+    [OAK-4321] - Improve conflict exception message to show if conflict is unexpected
+    [OAK-4372] - VersionGarbageCollector uses more temporary memory than needed
+
+New Feature
+
+    [OAK-4144] - Expose PropertyIndex stats
 
 Task
 
-    [OAK-4235] - Backport OAK-4003 to 1.4 branch
-    [OAK-4273] - Disable testConcurrentWithConflict on Derby
+    [OAK-4355] - [oak-blob-cloud] Update to latest version of aws-sdk-java
+    [OAK-4411] - DocumentNodeStore: Improve test coverage for concurrent updates and queries
+
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.x release.
+all changes included up to the Apache Jackrabbit Oak 1.4.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
