@@ -18,6 +18,13 @@ package org.apache.jackrabbit.oak.run;
 
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 
+import com.google.common.io.Closer;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -29,11 +36,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.google.common.io.Closer;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
 
 /**
  * OFFLINE utility to delete the clusterId stored as hidden
@@ -81,25 +83,32 @@ class ResetClusterIdCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        if (args.length != 1) {
-            System.out
-                    .println("usage: resetclusterid {<path>|<mongo-uri>}");
+        OptionParser parser = new OptionParser();
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSet options = parser.parse(args);
+
+        if (options.nonOptionArguments().isEmpty()) {
+            System.out.println("usage: resetclusterid {<path>|<mongo-uri>}");
             System.exit(1);
         }
+
+        String source = options.nonOptionArguments().get(0).toString();
 
         Closer closer = Closer.create();
         try {
             NodeStore store;
             if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
-                MongoClientURI uri = new MongoClientURI(args[0]);
+                MongoClientURI uri = new MongoClientURI(source);
                 MongoClient client = new MongoClient(uri);
                 final DocumentNodeStore dns = new DocumentMK.Builder()
                         .setMongoDB(client.getDB(uri.getDatabase()))
                         .getNodeStore();
                 closer.register(Utils.asCloseable(dns));
                 store = dns;
+            } else if (options.has(segmentTar)) {
+                store = SegmentTarUtils.bootstrapNodeStore(source, closer);
             } else {
-                FileStore fs = openFileStore(args[0]);
+                FileStore fs = openFileStore(source);
                 closer.register(Utils.asCloseable(fs));
                 store = SegmentNodeStore.builder(fs).build();
             }
