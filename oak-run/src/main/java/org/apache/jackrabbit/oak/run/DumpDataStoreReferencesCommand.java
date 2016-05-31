@@ -35,6 +35,9 @@ import com.google.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -50,34 +53,43 @@ class DumpDataStoreReferencesCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        if (args.length == 0) {
-            System.out
-                    .println("usage: dumpdatastorerefs {<path>|<mongo-uri>} <dump_path>]");
+        OptionParser parser = new OptionParser();
+        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSet options = parser.parse(args);
+
+        if (options.nonOptionArguments().isEmpty()) {
+            System.out.println("usage: dumpdatastorerefs {<path>|<mongo-uri>} <dump_path>]");
             System.exit(1);
         }
 
         Closer closer = Closer.create();
         try {
-            BlobReferenceRetriever marker = null;
+            BlobReferenceRetriever marker;
             BlobStore blobStore = null;
 
-            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
-                MongoClientURI uri = new MongoClientURI(args[0]);
+            String source = options.nonOptionArguments().get(0).toString();
+
+            if (source.startsWith(MongoURI.MONGODB_PREFIX)) {
+                MongoClientURI uri = new MongoClientURI(source);
                 MongoClient client = new MongoClient(uri);
                 final DocumentNodeStore store = new DocumentMK.Builder().setMongoDB(client.getDB(uri.getDatabase())).getNodeStore();
                 blobStore = store.getBlobStore();
                 closer.register(Utils.asCloseable(store));
                 marker = new DocumentBlobReferenceRetriever(store);
+            } else if (options.has(segmentTar)) {
+                marker = SegmentTarUtils.newBlobReferenceRetriever(source, closer);
             } else {
-                FileStore store = openFileStore(args[0]);
+                FileStore store = openFileStore(source);
                 closer.register(Utils.asCloseable(store));
                 marker = new SegmentBlobReferenceRetriever(store.getTracker());
             }
 
             String dumpPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
-            if (args.length == 2) {
-                dumpPath = args[1];
+
+            if (options.nonOptionArguments().size() >= 2) {
+                dumpPath = options.nonOptionArguments().get(1).toString();
             }
+
             File dumpFile = new File(dumpPath, "marked-" + System.currentTimeMillis());
             final BufferedWriter writer = Files.newWriter(dumpFile, Charsets.UTF_8);
             final AtomicInteger count = new AtomicInteger();

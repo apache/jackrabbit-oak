@@ -72,10 +72,12 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
+import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -105,6 +107,10 @@ final class SegmentTarUtils {
 
     static NodeStore bootstrapNodeStore(String path, Closer closer) throws IOException {
         return SegmentNodeStore.builder(bootstrapFileStore(path, closer)).build();
+    }
+
+    static BlobReferenceRetriever newBlobReferenceRetriever(String path, Closer closer) throws IOException {
+        return new SegmentBlobReferenceRetriever(closer.register(openFileStore(path, false)));
     }
 
     static void backup(File source, File target) throws IOException {
