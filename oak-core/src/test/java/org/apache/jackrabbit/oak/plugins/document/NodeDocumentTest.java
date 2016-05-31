@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -551,6 +552,77 @@ public class NodeDocumentTest {
         assertTrue("too many calls for previous documents: " + prevDocCalls,
                 prevDocCalls.size() <= 6);
         ns.dispose();
+    }
+
+    // OAK-4358
+    @Ignore
+    @Test
+    public void tooManyReadsOnGetNewestRevision() throws Exception {
+        final Set<String> prevDocCalls = newHashSet();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (Utils.getPathFromId(key).startsWith("p")) {
+                    prevDocCalls.add(key);
+                }
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 2, 0);
+
+        // create a test node on ns1
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("test");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
+        // modify node on ns2 a couple of time and
+        // split off some changes
+        for (int i = 0; i < 3; i++) {
+            NodeBuilder b2 = ns2.getRoot().builder();
+            b2.child("test").setProperty("ns2", i);
+            merge(ns2, b2);
+        }
+        String testId = Utils.getIdFromPath("/test");
+        NodeDocument test = ns2.getDocumentStore().find(NODES, testId);
+        assertNotNull(test);
+        List<UpdateOp> ops = SplitOperations.forDocument(test, ns2,
+                ns2.getHeadRevision(), Predicates.<String>alwaysFalse(), 2);
+        assertEquals(2, ops.size());
+        for (UpdateOp op : ops) {
+            ns2.getDocumentStore().createOrUpdate(NODES, op);
+        }
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        List<RevisionVector> headRevs = Lists.newArrayList();
+        // perform many changes on ns1 and split
+        for (int i = 0; i < 20; i++) {
+            b1 = ns1.getRoot().builder();
+            b1.child("test").setProperty("ns1", i);
+            merge(ns1, b1);
+            test = ns1.getDocumentStore().find(NODES, testId);
+            for (UpdateOp op : SplitOperations.forDocument(test, ns1,
+                    ns1.getHeadRevision(), Predicates.<String>alwaysFalse(), 3)) {
+                ns1.getDocumentStore().createOrUpdate(NODES, op);
+            }
+            headRevs.add(ns1.getHeadRevision());
+        }
+
+        int numPrevDocs = Iterators.size(test.getPreviousDocLeaves());
+        assertEquals(10, numPrevDocs);
+
+        // getNewestRevision must not read all previous documents
+        prevDocCalls.clear();
+        // simulate a call done by a commit with a
+        // base revision somewhat in the past
+        test.getNewestRevision(ns1, headRevs.get(16), ns1.newRevision(),
+                null, new HashSet<Revision>());
+        // must only read one previous document for ns1 changes
+        assertEquals(1, prevDocCalls.size());
     }
 
     private DocumentNodeStore createTestStore(int numChanges) throws Exception {
