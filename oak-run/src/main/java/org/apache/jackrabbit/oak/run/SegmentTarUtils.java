@@ -35,7 +35,6 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -123,7 +122,7 @@ final class SegmentTarUtils {
             } else {
                 fs = openReadOnlyFileStore(source);
             }
-            closer.register(asCloseable(fs));
+            closer.register(fs);
             NodeStore store = SegmentNodeStore.builder(fs).build();
             FileStoreBackup.backup(store, target);
         } catch (Throwable e) {
@@ -647,17 +646,6 @@ final class SegmentTarUtils {
         return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).build();
-    }
-
-    private static Closeable asCloseable(final FileStore fs) {
-        return new Closeable() {
-
-            @Override
-            public void close() throws IOException {
-                fs.close();
-            }
-
-        };
     }
 
     private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException {
