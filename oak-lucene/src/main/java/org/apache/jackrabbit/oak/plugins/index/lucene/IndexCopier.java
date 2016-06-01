@@ -756,7 +756,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             skippedFromUploadSize.addAndGet(skippedFilesSize);
 
             String msg = "[COW][{}] CopyOnWrite stats : Skipped copying {} files with total size {}";
-            if (reindexMode || skippedFilesSize > 10 * FileUtils.ONE_MB){
+            if ((reindexMode && skippedFilesSize > 0) || skippedFilesSize > 10 * FileUtils.ONE_MB){
                 log.info(msg, indexPathForLogging, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
             } else {
                 log.debug(msg,indexPathForLogging, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
