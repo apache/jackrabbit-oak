@@ -164,7 +164,7 @@ public class ExternalBlobIT {
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
             store = FileStore.builder(getWorkDir()).withBlobStore(blobStore).withMaxFileSize(256).withMemoryMapping(false).build();
-            nodeStore = SegmentNodeStore.builder(store).build();
+            nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         }
         return nodeStore;
     }

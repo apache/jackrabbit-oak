@@ -24,9 +24,8 @@ import java.io.IOException;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -37,7 +36,7 @@ public class InitializerTest {
 
     @Test
     public void testInitializerSegment() throws CommitFailedException, IOException {
-        NodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
 
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);

@@ -44,6 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,16 +79,25 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private final List<RecordId> blobrefs = newArrayList();
 
+    @Nonnull
     private final SegmentStore store;
+
+    @Nonnull
+    private final SegmentTracker tracker;
+
+    @Nonnull
+    private final SegmentReader reader;
 
     /**
      * Version of the segment storage format.
      */
+    @Nonnull
     private final SegmentVersion version;
 
     /**
      * Id of this writer.
      */
+    @Nonnull
     private final String wid;
 
     private final int generation;
@@ -110,9 +122,16 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private int position;
 
-    public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid, int generation) {
-        this.store = store;
-        this.version = version;
+    public SegmentBufferWriter(@Nonnull SegmentStore store,
+                               @Nonnull SegmentTracker tracker,
+                               @Nonnull SegmentReader reader,
+                               @Nonnull SegmentVersion version,
+                               @CheckForNull String wid,
+                               int generation) {
+        this.store = checkNotNull(store);
+        this.tracker = checkNotNull(tracker);
+        this.reader = checkNotNull(reader);
+        this.version = checkNotNull(version);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
@@ -162,10 +181,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
-            ",\"sno\":" + store.getTracker().getSegmentCount() +
+            ",\"sno\":" + tracker.getSegmentCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
-            segment = new Segment(store, buffer, metaInfo);
+            segment = new Segment(tracker, reader, buffer, metaInfo);
             byte[] data = metaInfo.getBytes(UTF_8);
             RecordWriters.newValueWriter(data.length, data).write(this);
         } catch (IOException e) {

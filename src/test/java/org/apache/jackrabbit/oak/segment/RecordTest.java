@@ -71,7 +71,7 @@ public class RecordTest {
 
     private final byte[] bytes = HELLO_WORLD.getBytes(Charsets.UTF_8);
 
-    private SegmentStore store;
+    private FileStore store;
 
     private SegmentWriter writer;
 
@@ -395,7 +395,7 @@ public class RecordTest {
         byte[] data = new byte[Segment.MEDIUM_LIMIT + 1];
         random.nextBytes(data);
 
-        SegmentNodeStore extStore = SegmentNodeStore.builder(new MemoryStore()).build();
+        SegmentNodeStore extStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         NodeBuilder extRootBuilder = extStore.getRoot().builder();
         Blob extBlob = extRootBuilder.createBlob(new ByteArrayInputStream(data));
         extRootBuilder.setProperty("binary", extBlob, BINARY);
@@ -434,7 +434,8 @@ public class RecordTest {
     @Test
     public void testCancel() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
-        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store, LATEST_VERSION, "test", 0);
+        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store, store.getTracker(),
+                store.getReader(), LATEST_VERSION, "test", 0);
         NodeState state = writer.writeNode(builder.getNodeState(), bufferWriter, Suppliers.ofInstance(true));
         assertNull(state);
     }

@@ -30,8 +30,7 @@ import java.util.List;
 import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -49,7 +48,7 @@ public class JournalEntryTest {
         FileStore fileStore = FileStore.builder(tempFolder.getRoot()).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
 
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         long startTime = System.currentTimeMillis();
 

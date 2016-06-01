@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -43,6 +44,8 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -58,15 +61,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  */
 public class SegmentNodeState extends Record implements NodeState {
     @Nonnull
-    private final SegmentStore store;
+    private final SegmentReader reader;
+
+    @Nonnull
+    private final Supplier<SegmentWriter> writer;
 
     private volatile RecordId templateId = null;
 
     private volatile Template template = null;
 
-    public SegmentNodeState(@Nonnull SegmentStore store, @Nonnull RecordId id) {
+    SegmentNodeState(
+            @Nonnull SegmentReader reader,
+            @Nonnull Supplier<SegmentWriter> writer,
+            @Nonnull RecordId id) {
         super(id);
-        this.store = checkNotNull(store);
+        this.reader = checkNotNull(reader);
+        this.writer = checkNotNull(memoize(writer));
+    }
+
+    SegmentNodeState(
+            @Nonnull SegmentReader reader,
+            @Nonnull SegmentWriter writer,
+            @Nonnull RecordId id) {
+        this(reader, Suppliers.ofInstance(writer), id);
     }
 
     RecordId getTemplateId() {
@@ -82,14 +99,14 @@ public class SegmentNodeState extends Record implements NodeState {
         if (template == null) {
             // no problem if updated concurrently,
             // as each concurrent thread will just get the same value
-            template = store.getReader().readTemplate(getTemplateId());
+            template = reader.readTemplate(getTemplateId());
         }
         return template;
     }
 
     MapRecord getChildNodeMap() {
         Segment segment = getSegment();
-        return store.getReader().readMap(segment.readRecordId(getOffset(0, 2)));
+        return reader.readMap(segment.readRecordId(getOffset(0, 2)));
     }
 
     /**
@@ -163,7 +180,7 @@ public class SegmentNodeState extends Record implements NodeState {
         if (propertyTemplate != null) {
             Segment segment = getSegment();
             RecordId id = getRecordId(segment, template, propertyTemplate);
-            return new SegmentPropertyState(store, id, propertyTemplate);
+            return reader.readProperty(id, propertyTemplate);
         } else {
             return null;
         }
@@ -210,7 +227,7 @@ public class SegmentNodeState extends Record implements NodeState {
                     propertyTemplates.length);
             for (int i = 0; i < propertyTemplates.length; i++) {
                 RecordId propertyId = pIds.getEntry(i);
-                list.add(new SegmentPropertyState(store, propertyId, propertyTemplates[i]));
+                list.add(reader.readProperty(propertyId, propertyTemplates[i]));
             }
         }
 
@@ -289,7 +306,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
         Segment segment = getSegment();
         RecordId id = getRecordId(segment, template, propertyTemplate);
-        return store.getReader().readString(id);
+        return reader.readString(id);
     }
 
     /**
@@ -335,13 +352,13 @@ public class SegmentNodeState extends Record implements NodeState {
 
         id = segment.readRecordId(id.getOffset() + 4);
         if (size == 1) {
-            return singletonList(store.getReader().readString(id));
+            return singletonList(reader.readString(id));
         }
 
         List<String> values = newArrayListWithCapacity(size);
         ListRecord list = new ListRecord(id, size);
         for (RecordId value : list.getEntries()) {
-            values.add(store.getReader().readString(value));
+            values.add(reader.readString(value));
         }
         return values;
     }
@@ -382,7 +399,7 @@ public class SegmentNodeState extends Record implements NodeState {
                 && childName.equals(name)) {
             Segment segment = getSegment();
             RecordId childNodeId = segment.readRecordId(getOffset(0, 2));
-            return new SegmentNodeState(store, childNodeId);
+            return reader.readNode(childNodeId);
         }
         checkValidName(name);
         return MISSING_NODE;
@@ -411,13 +428,13 @@ public class SegmentNodeState extends Record implements NodeState {
             Segment segment = getSegment();
             RecordId childNodeId = segment.readRecordId(getOffset(0, 2));
             return Collections.singletonList(new MemoryChildNodeEntry(
-                    childName, new SegmentNodeState(store, childNodeId)));
+                    childName, reader.readNode(childNodeId)));
         }
     }
 
     @Override @Nonnull
     public SegmentNodeBuilder builder() {
-        return new SegmentNodeBuilder(this, store.getWriter());
+        return new SegmentNodeBuilder(this, writer.get());
     }
 
     @Override

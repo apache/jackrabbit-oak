@@ -34,7 +34,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
@@ -49,6 +48,12 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     private final SegmentStore store;
 
     @Nonnull
+    private final SegmentTracker tracker;
+
+    @Nonnull
+    private final SegmentReader reader;
+
+    @Nonnull
     private final Supplier<Integer> gcGeneration;
 
     @Nonnull
@@ -61,21 +66,18 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
 
     public SegmentBufferWriterPool(
             @Nonnull SegmentStore store,
+            @Nonnull SegmentTracker tracker,
+            @Nonnull SegmentReader reader,
             @Nonnull SegmentVersion version,
             @Nonnull String wid,
             @Nonnull Supplier<Integer> gcGeneration) {
         this.store = checkNotNull(store);
+        this.tracker = checkNotNull(tracker);
+        this.reader = checkNotNull(reader);
         this.version = checkNotNull(version);
         this.wid = checkNotNull(wid);
         this.gcGeneration = checkNotNull(gcGeneration);
     }
-
-    public SegmentBufferWriterPool(
-            @Nonnull SegmentStore store,
-            @Nonnull SegmentVersion version,
-            @Nonnull  String wid) {
-            this(store, version, wid, Suppliers.ofInstance(0));
-        }
 
     @Override
     public RecordId execute(WriteOperation writeOperation) throws IOException {
@@ -107,10 +109,10 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     private synchronized SegmentBufferWriter borrowWriter(Object key) {
         SegmentBufferWriter writer = writers.remove(key);
         if (writer == null) {
-            writer = new SegmentBufferWriter(store, version, getWriterId(wid), gcGeneration.get());
+            writer = new SegmentBufferWriter(store, tracker, reader, version, getWriterId(wid), gcGeneration.get());
         } else if (writer.getGeneration() != gcGeneration.get()) {
             disposed.add(writer);
-            writer = new SegmentBufferWriter(store, version, getWriterId(wid), gcGeneration.get());
+            writer = new SegmentBufferWriter(store, tracker, reader, version, getWriterId(wid), gcGeneration.get());
         }
         borrowed.add(writer);
         return writer;

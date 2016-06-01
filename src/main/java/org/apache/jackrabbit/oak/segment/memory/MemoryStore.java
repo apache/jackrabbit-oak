@@ -18,30 +18,28 @@
  */
 package org.apache.jackrabbit.oak.segment.memory;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.segment.SegmentWriters.pooledSegmentWriter;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
-import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
-import org.apache.jackrabbit.oak.segment.SegmentReaderImpl;
+import org.apache.jackrabbit.oak.segment.SegmentReaders;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A store used for in-memory operations.
@@ -52,60 +50,44 @@ public class MemoryStore implements SegmentStore {
     private final SegmentTracker tracker = new SegmentTracker(this);
 
     @Nonnull
-    private final SegmentWriter segmentWriter = new SegmentWriter(this,
-            new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
+    private final MemoryStoreRevisions revisions;
 
     @Nonnull
-    private final SegmentReader segmentReader = new SegmentReaderImpl(this, 16);
+    private final SegmentReader segmentReader;
 
-    private SegmentNodeState head;
+    @Nonnull
+    private final SegmentWriter segmentWriter;
 
     private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
 
-    public MemoryStore(NodeState root) throws IOException {
-        NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setChildNode("root", root);
-
-        this.head = segmentWriter.writeNode(builder.getNodeState());
+    public MemoryStore() throws IOException {
+        this.revisions = new MemoryStoreRevisions();
+        this.segmentReader = SegmentReaders.segmentReader(this, 16);
+        this.segmentWriter = pooledSegmentWriter(this,
+                LATEST_VERSION, "sys", Suppliers.ofInstance(0));
+        revisions.bind(this);
         segmentWriter.flush();
     }
 
-    public MemoryStore() throws IOException {
-        this(EMPTY_NODE);
-    }
-
-    @Override
     @Nonnull
     public SegmentTracker getTracker() {
         return tracker;
     }
 
-    @Override
     @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
 
-    @Override
     @Nonnull
     public SegmentReader getReader() {
         return segmentReader;
     }
 
-    @Override
-    public synchronized SegmentNodeState getHead() {
-        return head;
-    }
-
-    @Override
-    public synchronized boolean setHead(SegmentNodeState base, SegmentNodeState head) {
-        if (this.head.getRecordId().equals(base.getRecordId())) {
-            this.head = head;
-            return true;
-        } else {
-            return false;
-        }
+    @Nonnull
+    public Revisions getRevisions() {
+        return revisions;
     }
 
     @Override
@@ -128,27 +110,20 @@ public class MemoryStore implements SegmentStore {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = new Segment(this, id, buffer);
+        Segment segment = new Segment(tracker, segmentReader, id, buffer);
         if (segments.putIfAbsent(id, segment) != null) {
             throw new IOException("Segment override: " + id);
         }
     }
 
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public Blob readBlob(String reference) {
-        return null;
-    }
-
-    @Override
+    /**
+     * @return  {@code null}
+     */
+    @CheckForNull
     public BlobStore getBlobStore() {
         return null;
     }
 
-    @Override
     public void gc() {
         System.gc();
         segments.keySet().retainAll(tracker.getReferencedSegmentIds());

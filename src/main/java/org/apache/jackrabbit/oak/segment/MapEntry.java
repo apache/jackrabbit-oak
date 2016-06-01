@@ -38,7 +38,7 @@ class MapEntry extends AbstractChildNodeEntry
         implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
 
     @Nonnull
-    private final SegmentStore store;
+    private final SegmentReader reader;
 
     @Nonnull
     private final String name;
@@ -49,9 +49,9 @@ class MapEntry extends AbstractChildNodeEntry
     @CheckForNull
     private final RecordId value;
 
-    MapEntry(@Nonnull SegmentStore store, @Nonnull String name,
+    MapEntry(@Nonnull SegmentReader reader, @Nonnull String name,
              @Nonnull RecordId key, @Nullable RecordId value) {
-        this.store = checkNotNull(store);
+        this.reader = checkNotNull(reader);
         this.name = checkNotNull(name);
         this.key = checkNotNull(key);
         this.value = value;
@@ -71,7 +71,7 @@ class MapEntry extends AbstractChildNodeEntry
     @Override @Nonnull
     public SegmentNodeState getNodeState() {
         checkState(value != null);
-        return new SegmentNodeState(store, value);
+        return reader.readNode(value);
     }
 
     //---------------------------------------------------------< Map.Entry >--

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.backup;
 
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.builder;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -63,7 +63,7 @@ public class FileStoreBackupTest {
     public void testBackup() throws Exception {
         FileStore source = FileStore.builder(src).withMaxFileSize(8).build();
 
-        NodeStore store = builder(source).build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(source).build();
         init(store);
 
         // initial content
@@ -82,7 +82,7 @@ public class FileStoreBackupTest {
     public void testRestore() throws Exception {
         FileStore source = FileStore.builder(src).withMaxFileSize(8).build();
 
-        NodeStore store = builder(source).build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(source).build();
         init(store);
         FileStoreBackup.backup(store, destination);
         addTestContent(store);
@@ -115,7 +115,7 @@ public class FileStoreBackupTest {
     private static void compare(FileStore store, File destination)
             throws IOException {
         FileStore backup = FileStore.builder(destination).withMaxFileSize(8).build();
-        assertEquals(store.getHead(), backup.getHead());
+        assertEquals(store.getRevisions().getHead(), backup.getRevisions().getHead());
         backup.close();
     }
 

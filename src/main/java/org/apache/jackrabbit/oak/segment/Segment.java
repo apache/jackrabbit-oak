@@ -125,7 +125,10 @@ public class Segment {
     public static final int GC_GENERATION_OFFSET = 10;
 
     @Nonnull
-    private final SegmentStore store;
+    private final SegmentTracker tracker;
+
+    @Nonnull
+    private final SegmentReader reader;
 
     @Nonnull
     private final SegmentId id;
@@ -186,10 +189,12 @@ public class Segment {
         return (address + boundary - 1) & ~(boundary - 1);
     }
 
-    public Segment(@Nonnull SegmentStore store,
+    public Segment(@Nonnull SegmentTracker tracker,
+                   @Nonnull SegmentReader reader,
                    @Nonnull final SegmentId id,
                    @Nonnull final ByteBuffer data) {
-        this.store = checkNotNull(store);
+        this.tracker = checkNotNull(tracker);
+        this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
 
         if (DISABLE_TEMPLATE_CACHE) {
@@ -232,9 +237,13 @@ public class Segment {
         }
     }
 
-    Segment(@Nonnull SegmentStore store, @Nonnull byte[] buffer, @Nonnull String info) {
-        this.store = checkNotNull(store);
-        this.id = store.getTracker().newDataSegmentId();
+    Segment(@Nonnull SegmentTracker tracker,
+            @Nonnull SegmentReader reader,
+            @Nonnull byte[] buffer,
+            @Nonnull String info) {
+        this.tracker = checkNotNull(tracker);
+        this.reader = checkNotNull(reader);
+        this.id = tracker.newDataSegmentId();
         this.info = checkNotNull(info);
         if (DISABLE_TEMPLATE_CACHE) {
             templates = null;
@@ -361,7 +370,7 @@ public class Segment {
                     int refpos = data.position() + index * 16;
                     long msb = data.getLong(refpos);
                     long lsb = data.getLong(refpos + 8);
-                    refid = store.getTracker().getSegmentId(msb, lsb);
+                    refid = tracker.getSegmentId(msb, lsb);
                     refids[index] = refid;
                 }
             }
@@ -392,7 +401,7 @@ public class Segment {
 
         for (int i = 0; i < blobrefcount; i++) {
             int offset = (data.getShort(blobrefpos + i * 2) & 0xffff) << RECORD_ALIGN_BITS;
-            collector.addReference(readBlobId(store, this, offset), null);
+            collector.addReference(readBlobId(this, offset), null);
         }
     }
 
@@ -482,7 +491,7 @@ public class Segment {
         if (hasPrimaryType) {
             RecordId primaryId = readRecordId(offset);
             primaryType = PropertyStates.createProperty(
-                    "jcr:primaryType", store.getReader().readString(primaryId), Type.NAME);
+                    "jcr:primaryType", reader.readString(primaryId), Type.NAME);
             offset += RECORD_ID_BYTES;
         }
 
@@ -491,7 +500,7 @@ public class Segment {
             String[] mixins = new String[mixinCount];
             for (int i = 0; i < mixins.length; i++) {
                 RecordId mixinId = readRecordId(offset);
-                mixins[i] =  store.getReader().readString(mixinId);
+                mixins[i] =  reader.readString(mixinId);
                 offset += RECORD_ID_BYTES;
             }
             mixinTypes = PropertyStates.createProperty(
@@ -503,13 +512,13 @@ public class Segment {
             childName = Template.MANY_CHILD_NODES;
         } else if (!zeroChildNodes) {
             RecordId childNameId = readRecordId(offset);
-            childName = store.getReader().readString(childNameId);
+            childName = reader.readString(childNameId);
             offset += RECORD_ID_BYTES;
         }
 
         PropertyTemplate[] properties;
         properties = readProps(propertyCount, offset);
-        return new Template(store, primaryType, mixinTypes, properties, childName);
+        return new Template(reader, primaryType, mixinTypes, properties, childName);
     }
 
     private PropertyTemplate[] readProps(int propertyCount, int offset) {
@@ -521,7 +530,7 @@ public class Segment {
             for (int i = 0; i < propertyCount; i++) {
                 byte type = readByte(offset++);
                 properties[i] = new PropertyTemplate(i,
-                        store.getReader().readString(propertyNames.getEntry(i)), Type.fromTag(
+                        reader.readString(propertyNames.getEntry(i)), Type.fromTag(
                                 Math.abs(type), type < 0));
             }
         }
@@ -590,7 +599,7 @@ public class Segment {
                     int offset = data.getShort(pos + blobrefid * 2) & 0xffff;
                     writer.format(
                             "blobref %d: %s at %04x%n", blobrefid,
-                            readBlobId(store, this, offset << RECORD_ALIGN_BITS), offset);
+                            readBlobId(this, offset << RECORD_ALIGN_BITS), offset);
                 }
             }
             writer.println("--------------------------------------------------------------------------");

@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -69,7 +70,7 @@ public class LargeNumberOfPropertiesTestIT {
     public void corruption() throws Exception {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder root = nodeStore.getRoot().builder();
 

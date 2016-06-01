@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class SegmentIdFactoryTest {
-    private final SegmentStore store;
+    private final MemoryStore store;
     private final SegmentTracker tracker;
 
     public SegmentIdFactoryTest() throws IOException {
@@ -98,13 +98,13 @@ public class SegmentIdFactoryTest {
     @Test(expected = IllegalStateException.class)
     public void dataAIOOBE() throws IOException {
         MemoryStore store = new MemoryStore();
-        Segment segment = store.getHead().getSegment();
+        Segment segment = store.getRevisions().getHead().getSegment();
         byte[] buffer = new byte[segment.size()];
         segment.readBytes(Segment.MAX_SEGMENT_SIZE - segment.size(), buffer, 0, segment.size());
 
         SegmentId id = tracker.newDataSegmentId();
         ByteBuffer data = ByteBuffer.wrap(buffer);
-        Segment s = new Segment(store, id, data);
+        Segment s = new Segment(store.getTracker(), store.getReader(), id, data);
         s.getRefId(1);
     }
 
@@ -115,7 +115,7 @@ public class SegmentIdFactoryTest {
     public void bulkAIOOBE() {
         SegmentId id = tracker.newBulkSegmentId();
         ByteBuffer data = ByteBuffer.allocate(4);
-        Segment s = new Segment(store, id, data);
+        Segment s = new Segment(store.getTracker(), store.getReader(), id, data);
         s.getRefId(1);
     }
 

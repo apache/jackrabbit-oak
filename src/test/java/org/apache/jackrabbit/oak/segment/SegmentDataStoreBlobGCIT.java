@@ -103,7 +103,7 @@ public class SegmentDataStoreBlobGCIT {
                     .withMemoryMapping(false)
                     .withGCOptions(gcOptions);
             store = builder.build();
-            nodeStore = SegmentNodeStore.builder(store).build();
+            nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         }
         return nodeStore;
     }

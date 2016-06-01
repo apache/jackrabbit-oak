@@ -63,7 +63,7 @@ public class HeavyWriteIT {
     @Test
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
         final FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
-        final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
+        final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         int writes = 100;
         final AtomicBoolean run = new AtomicBoolean(true);

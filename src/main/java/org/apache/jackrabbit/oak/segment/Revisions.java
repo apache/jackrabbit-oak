@@ -17,28 +17,29 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.fixture;
+package org.apache.jackrabbit.oak.segment;
 
-import java.io.IOException;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import com.google.common.base.Function;
 
-public class SegmentTarFixture extends NodeStoreFixture {
+public interface Revisions {
+    interface Option {}
 
-    @Override
-    public NodeStore createNodeStore() {
-        try {
-            return SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    /**
+     * Returns the record id of the head state.
+     * @return od of the head state
+     */
+    @Nonnull
+    RecordId getHead();
 
-    @Override
-    public String toString() {
-        return "SegmentTar";
-    }
+    boolean setHead(@Nonnull RecordId base,
+                    @Nonnull RecordId head,
+                    @Nonnull Option... options);
+
+    boolean setHead(@Nonnull Function<RecordId, RecordId> newHead,
+                    @Nonnull Option... options)
+    throws InterruptedException;
 }
+
+
