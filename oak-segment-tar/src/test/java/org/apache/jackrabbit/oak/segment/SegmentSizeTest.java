@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -48,7 +49,7 @@ public class SegmentSizeTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private SegmentStore store;
+    private FileStore store;
 
     @Before
     public void setup() throws IOException {
@@ -180,7 +181,7 @@ public class SegmentSizeTest {
 
     @Test
     public void testFlatNodeUpdate() throws IOException {
-        SegmentStore store = new MemoryStore();
+        MemoryStore store = new MemoryStore();
         SegmentWriter writer = store.getWriter();
 
         NodeBuilder builder = EMPTY_NODE.builder();
@@ -204,8 +205,7 @@ public class SegmentSizeTest {
     }
 
     private void expectSize(int expectedSize, NodeBuilder builder) throws IOException {
-        SegmentWriter writer = new SegmentWriter(store,
-                new SegmentBufferWriter(store, LATEST_VERSION, "test", 0));
+        SegmentWriter writer = segmentWriter(store, LATEST_VERSION, "test", 0);
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = id.getSegment();
@@ -214,8 +214,7 @@ public class SegmentSizeTest {
     }
 
     private void expectAmortizedSize(int expectedSize, NodeBuilder builder) throws IOException {
-        SegmentWriter writer = new SegmentWriter(store,
-                new SegmentBufferWriter(store, LATEST_VERSION, "test", 0));
+        SegmentWriter writer = segmentWriter(store, LATEST_VERSION, "test", 0);
         NodeState state = builder.getNodeState();
         RecordId id1 = writer.writeNode(state).getRecordId();
         RecordId id2 = writer.writeNode(state).getRecordId();

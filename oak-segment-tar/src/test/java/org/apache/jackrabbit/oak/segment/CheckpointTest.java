@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -43,7 +42,7 @@ public class CheckpointTest {
 
     @Test
     public void testCheckpoint() throws CommitFailedException, IOException {
-        SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         addTestNode(store, "test-checkpoint");
         verifyNS(store, true);
         rmTestNode(store, "test-checkpoint");
@@ -55,7 +54,7 @@ public class CheckpointTest {
 
     @Test
     public void testRelease() throws CommitFailedException, IOException {
-        SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         addTestNode(store, "test-checkpoint");
         String cp = verifyNS(store, true);
 
@@ -100,7 +99,7 @@ public class CheckpointTest {
      */
     @Test
     public void testShortWait() throws Exception {
-        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        final SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         store.setCheckpointsLockWaitTime(1);
 
         final Semaphore semaphore = new Semaphore(0);
@@ -149,7 +148,7 @@ public class CheckpointTest {
     @Test
     public void testLongWait() throws Exception {
         final int blockTime = 1;
-        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        final SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         store.setCheckpointsLockWaitTime(blockTime + 1);
 
         final Semaphore semaphore = new Semaphore(0);

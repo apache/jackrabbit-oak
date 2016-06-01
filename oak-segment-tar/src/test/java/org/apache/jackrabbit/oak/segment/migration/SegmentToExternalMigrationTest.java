@@ -23,8 +23,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.blob.migration.AbstractMigratorTest;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
@@ -32,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class SegmentToExternalMigrationTest extends AbstractMigratorTest {
 
-    private SegmentStore segmentStore;
+    private FileStore store;
 
     @Override
     protected NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException {
@@ -41,13 +40,13 @@ public class SegmentToExternalMigrationTest extends AbstractMigratorTest {
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
-        segmentStore = builder.build();
-        return SegmentNodeStore.builder(segmentStore).build();
+        store = builder.build();
+        return SegmentNodeStoreBuilders.builder(store).build();
     }
 
     @Override
     protected void closeNodeStore() {
-        segmentStore.close();
+        store.close();
     }
 
     @Override

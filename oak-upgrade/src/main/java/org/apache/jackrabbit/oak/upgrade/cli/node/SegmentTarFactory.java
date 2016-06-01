@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -49,7 +49,7 @@ public class SegmentTarFactory implements NodeStoreFactory {
         builder.withMaxFileSize(256).withMemoryMapping(mmap);
         FileStore fs = builder.build();
         closer.register(asCloseable(fs));
-        return SegmentNodeStore.builder(fs).build();
+        return SegmentNodeStoreBuilders.builder(fs).build();
     }
 
     public File getRepositoryDir() {

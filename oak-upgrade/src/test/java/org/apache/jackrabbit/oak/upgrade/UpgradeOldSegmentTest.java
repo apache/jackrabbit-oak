@@ -18,16 +18,14 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import com.google.common.collect.Iterators;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
-import org.apache.jackrabbit.oak.upgrade.cli.Util;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.InputStream;
+import java.io.StringReader;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -36,15 +34,17 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
-import java.io.File;
-import java.io.InputStream;
-import java.io.StringReader;
 
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.builder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.google.common.collect.Iterators;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
+import org.apache.jackrabbit.oak.upgrade.cli.Util;
+import org.junit.Test;
 
 public class UpgradeOldSegmentTest {
 
@@ -62,8 +62,8 @@ public class UpgradeOldSegmentTest {
 
         OakUpgrade.main("segment-old:" + oldRepo.getPath(), newRepo.getPath());
 
-        SegmentStore store = FileStore.builder(new File(newRepo, "segmentstore")).build();
-        Repository repo = new Jcr(builder(store).build()).createRepository();
+        FileStore store = FileStore.builder(new File(newRepo, "segmentstore")).build();
+        Repository repo = new Jcr(SegmentNodeStoreBuilders.builder(store).build()).createRepository();
         Session s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         Node myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");

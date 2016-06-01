@@ -62,7 +62,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
  */
 public class SegmentPropertyState extends Record implements PropertyState {
     @Nonnull
-    private final SegmentStore store;
+    private final SegmentReader reader;
 
     @Nonnull
     private final String name;
@@ -70,17 +70,17 @@ public class SegmentPropertyState extends Record implements PropertyState {
     @Nonnull
     private final Type<?> type;
 
-    SegmentPropertyState(@Nonnull SegmentStore store, @Nonnull RecordId id,
+    SegmentPropertyState(@Nonnull SegmentReader reader, @Nonnull RecordId id,
                          @Nonnull String name, @Nonnull Type<?> type) {
         super(id);
-        this.store = checkNotNull(store);
+        this.reader = checkNotNull(reader);
         this.name = checkNotNull(name);
         this.type = checkNotNull(type);
     }
 
-    SegmentPropertyState(@Nonnull SegmentStore store, @Nonnull RecordId id,
+    SegmentPropertyState(@Nonnull SegmentReader reader, @Nonnull RecordId id,
                          @Nonnull PropertyTemplate template) {
-        this(store, id, template.getName(), template.getType());
+        this(reader, id, template.getName(), template.getType());
     }
 
     private ListRecord getValueList(Segment segment) {
@@ -106,7 +106,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         ListRecord values = getValueList(segment);
         for (int i = 0; i < values.size(); i++) {
             RecordId valueId = values.getEntry(i);
-            String value = store.getReader().readString(valueId);
+            String value = reader.readString(valueId);
             map.put(value, valueId);
         }
 
@@ -186,10 +186,10 @@ public class SegmentPropertyState extends Record implements PropertyState {
     @SuppressWarnings("unchecked")
     private <T> T getValue(RecordId id, Type<T> type) {
         if (type == BINARY) {
-            return (T) new SegmentBlob(store, id); // load binaries lazily
+            return (T) reader.readBlob(id); // load binaries lazily
         }
 
-        String value = store.getReader().readString(id);
+        String value = reader.readString(id);
         if (type == STRING || type == URI || type == DATE
                 || type == NAME || type == PATH
                 || type == REFERENCE || type == WEAKREFERENCE) {
@@ -222,7 +222,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         RecordId entry = values.getEntry(index);
 
         if (getType().equals(BINARY) || getType().equals(BINARIES)) {
-            return new SegmentBlob(store, entry).length();
+            return reader.readBlob(entry).length();
         }
 
         return getSegment().readLength(entry);

@@ -28,21 +28,15 @@ import java.util.ArrayList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TemplateTest {
-    private SegmentStore store;
+    private MemoryStore store;
 
     @Before
     public void setup() throws IOException {
         store = new MemoryStore();
-    }
-
-    @After
-    public void tearDown() {
-        store.close();
     }
 
     @Test
@@ -52,8 +46,8 @@ public class TemplateTest {
         PropertyState mixin = createProperty("mixin", "mixin");
         PropertyTemplate[] properties = new PropertyTemplate[0];
 
-        Template t0 = new Template(store, primary, mixin, properties, "");
-        Template t1 = new Template(store, primary, mixin, properties, null);
+        Template t0 = new Template(store.getReader(), primary, mixin, properties, "");
+        Template t1 = new Template(store.getReader(), primary, mixin, properties, null);
 
         assertNotEquals(t0.hashCode(), t1.hashCode());
     }
@@ -67,8 +61,8 @@ public class TemplateTest {
         PropertyTemplate[] properties = new PropertyTemplate[0];
         String childNode = "c";
 
-        Template t0 = new Template(store, primary, null, properties, childNode);
-        Template t1 = new Template(store, primary, mixin, properties, childNode);
+        Template t0 = new Template(store.getReader(), primary, null, properties, childNode);
+        Template t1 = new Template(store.getReader(), primary, mixin, properties, childNode);
 
         assertNotEquals(t0.hashCode(), t1.hashCode());
     }
@@ -86,8 +80,8 @@ public class TemplateTest {
 
         String childNode = "c";
 
-        Template t0 = new Template(store, primary, mixin, pt0, childNode);
-        Template t1 = new Template(store, primary, mixin, pt1, childNode);
+        Template t0 = new Template(store.getReader(), primary, mixin, pt0, childNode);
+        Template t1 = new Template(store.getReader(), primary, mixin, pt1, childNode);
 
         assertEquals(t0, t1);
     }

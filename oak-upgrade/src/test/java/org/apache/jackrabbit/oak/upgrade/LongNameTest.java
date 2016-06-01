@@ -34,10 +34,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -123,17 +123,12 @@ public class LongNameTest {
     @Test
     @Ignore
     public void longNameOnSegmentStoreWorksFine() throws RepositoryException, IOException {
-        SegmentStore memoryStore = new MemoryStore();
-        try {
-            SegmentNodeStore nodeStore = SegmentNodeStore.builder(memoryStore).build();
-            upgrade(nodeStore, false);
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+        upgrade(nodeStore, false);
 
-            NodeState parent = getParent(nodeStore.getRoot());
-            Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
-            Assert.assertTrue(parent.hasChildNode(TOO_LONG_NAME));
-        } finally {
-            memoryStore.close();
-        }
+        NodeState parent = getParent(nodeStore.getRoot());
+        Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
+        Assert.assertTrue(parent.hasChildNode(TOO_LONG_NAME));
     }
 
     private static void upgrade(NodeStore target, boolean skipLongNames) throws RepositoryException, IOException {

@@ -258,10 +258,10 @@ public class SegmentParser {
     }
 
     @Nonnull
-    private final SegmentStore store;
+    private final SegmentReader reader;
 
-    public SegmentParser(@Nonnull SegmentStore store) {
-        this.store = checkNotNull(store);
+    public SegmentParser(@Nonnull SegmentReader reader) {
+        this.reader = checkNotNull(reader);
     }
 
     /**
@@ -423,17 +423,17 @@ public class SegmentParser {
 
         Segment segment = nodeId.getSegment();
         int offset = nodeId.getOffset();
-        String stableId = new SegmentNodeState(store, nodeId).getStableId();
+        String stableId = reader.readNode(nodeId).getStableId();
         offset += RECORD_ID_BYTES;
         RecordId templateId = segment.readRecordId(offset);
         onTemplate(nodeId, templateId);
 
-        Template template = store.getReader().readTemplate(templateId);
+        Template template = reader.readTemplate(templateId);
 
         // Recurses into child nodes in this segment
         if (template.getChildName() == MANY_CHILD_NODES) {
             RecordId childMapId = segment.readRecordId(offset + RECORD_ID_BYTES);
-            MapRecord childMap = store.getReader().readMap(childMapId);
+            MapRecord childMap = reader.readMap(childMapId);
             onMap(nodeId, childMapId, childMap);
             for (ChildNodeEntry childNodeEntry : childMap.getEntries()) {
                 NodeState child = childNodeEntry.getNodeState();
@@ -558,7 +558,7 @@ public class SegmentParser {
 
         RecordId baseId = mapId.getSegment()
                 .readRecordId(mapId.getOffset() + 8 + 2 * RECORD_ID_BYTES);
-        onMap(mapId, baseId, store.getReader().readMap(baseId));
+        onMap(mapId, baseId, reader.readMap(baseId));
 
         return new MapInfo(mapId, size);
     }

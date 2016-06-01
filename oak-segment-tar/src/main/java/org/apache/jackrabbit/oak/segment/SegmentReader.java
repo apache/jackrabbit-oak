@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
-
 public interface SegmentReader {
     @Nonnull
     String readString(@Nonnull RecordId id);
@@ -33,7 +31,18 @@ public interface SegmentReader {
     @Nonnull
     Template readTemplate(@Nonnull RecordId id);
 
-    // FIXME OAK-4373 remove from this interface
     @Nonnull
-    CacheStats getStringCacheStats();
+    SegmentNodeState readNode(@Nonnull RecordId id);
+
+    @Nonnull
+    SegmentNodeState readHeadState();
+
+    @Nonnull
+    SegmentPropertyState readProperty(
+            @Nonnull RecordId id,
+            @Nonnull PropertyTemplate template);
+
+    @Nonnull
+    SegmentBlob readBlob(@Nonnull RecordId id);
+
 }

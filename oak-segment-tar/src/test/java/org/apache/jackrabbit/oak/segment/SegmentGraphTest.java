@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.createRegExpFilter;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.parseSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -67,17 +68,12 @@ public class SegmentGraphTest {
     public void setup() throws IOException {
         FileStore store = FileStore.builder(getStoreFolder()).build();
         try {
-            SegmentNodeState root = store.getHead();
+            SegmentNodeState root = store.getReader().readHeadState();
             segments.add(getSegmentId(root));
 
-            SegmentWriter w1 = new SegmentWriter(store,
-                    new SegmentBufferWriter(store, LATEST_VERSION, "writer1", 0));
-
-            SegmentWriter w2 = new SegmentWriter(store,
-                    new SegmentBufferWriter(store, LATEST_VERSION, "writer2", 0));
-
-            SegmentWriter w3 = new SegmentWriter(store,
-                    new SegmentBufferWriter(store, LATEST_VERSION, "writer3", 0));
+            SegmentWriter w1 = segmentWriter(store, LATEST_VERSION, "writer1", 0);
+            SegmentWriter w2 = segmentWriter(store, LATEST_VERSION, "writer2", 0);
+            SegmentWriter w3 = segmentWriter(store, LATEST_VERSION, "writer3", 0);
 
             SegmentPropertyState p1 = w1.writeProperty(createProperty("p1", "v1"));
             segments.add(getSegmentId(p1));
@@ -107,7 +103,7 @@ public class SegmentGraphTest {
             addReference(references, getSegmentId(n1), getSegmentId(p2));
             addReference(references, getSegmentId(n1), getSegmentId(p3));
 
-            store.setHead(root, n3);
+            store.getRevisions().setHead(root.getRecordId(), n3.getRecordId());
 
             w1.flush();
             w2.flush();

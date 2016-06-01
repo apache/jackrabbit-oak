@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -49,9 +50,9 @@ public class RecordUsageAnalyserTest {
 
     @Before
     public void setup() throws IOException {
-        SegmentStore store = new MemoryStore();
-        writer = new SegmentWriter(store, new SegmentBufferWriter(store, LATEST_VERSION, "", 0));
-        analyser = new RecordUsageAnalyser(store);
+        MemoryStore store = new MemoryStore();
+        writer = segmentWriter(store, LATEST_VERSION, "", 0);
+        analyser = new RecordUsageAnalyser(store.getReader());
     }
 
     @Test

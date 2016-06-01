@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.http;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.segment.SegmentWriters.pooledSegmentWriter;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -34,16 +33,14 @@ import java.nio.ByteBuffer;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Suppliers;
 import com.google.common.io.ByteStreams;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
-import org.apache.jackrabbit.oak.segment.SegmentReaderImpl;
+import org.apache.jackrabbit.oak.segment.SegmentReaders;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
@@ -55,11 +52,14 @@ public class HttpStore implements SegmentStore {
     private final SegmentTracker tracker = new SegmentTracker(this);
 
     @Nonnull
-    private final SegmentWriter segmentWriter = new SegmentWriter(this,
-            new SegmentBufferWriterPool(this, LATEST_VERSION, "sys"));
+    private final HttpStoreRevisions revisions = new HttpStoreRevisions(this);
 
     @Nonnull
-    private final SegmentReader segmentReader = new SegmentReaderImpl(this);
+    private final SegmentReader segmentReader = SegmentReaders.segmentReader(this, DEFAULT_STRING_CACHE_MB);
+
+    @Nonnull
+    private final SegmentWriter segmentWriter = pooledSegmentWriter(this,
+            LATEST_VERSION, "sys", Suppliers.ofInstance(0));
 
     private final URL base;
 
@@ -72,22 +72,24 @@ public class HttpStore implements SegmentStore {
         this.base = base;
     }
 
-    @Override
     @Nonnull
     public SegmentTracker getTracker() {
         return tracker;
     }
 
-    @Override
     @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
 
-    @Override
     @Nonnull
     public SegmentReader getReader() {
         return segmentReader;
+    }
+
+    @Nonnull
+    public Revisions getRevisions() {
+        return revisions;
     }
 
     /**
@@ -95,7 +97,7 @@ public class HttpStore implements SegmentStore {
      * authorization headers if needed.
      * 
      */
-    protected URLConnection get(String fragment) throws MalformedURLException,
+    URLConnection get(String fragment) throws MalformedURLException,
             IOException {
         final URL url;
         if (fragment == null) {
@@ -104,33 +106,6 @@ public class HttpStore implements SegmentStore {
             url = new URL(base, fragment);
         }
         return url.openConnection();
-    }
-
-    @Override
-    public SegmentNodeState getHead() {
-        try {
-            URLConnection connection = get(null);
-            InputStream stream = connection.getInputStream();
-            try {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(stream, UTF_8));
-                return new SegmentNodeState(this, RecordId.fromString(tracker, reader.readLine()));
-            } finally {
-                stream.close();
-            }
-        } catch (IllegalArgumentException e) {
-            throw new IllegalStateException(e);
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
-        // TODO throw new UnsupportedOperationException();
-        return true;
     }
 
     @Override
@@ -147,7 +122,7 @@ public class HttpStore implements SegmentStore {
             InputStream stream = connection.getInputStream();
             try {
                 byte[] data = ByteStreams.toByteArray(stream);
-                return new Segment(this, id, ByteBuffer.wrap(data));
+                return new Segment(tracker, segmentReader, id, ByteBuffer.wrap(data));
             } finally {
                 stream.close();
             }
@@ -176,23 +151,12 @@ public class HttpStore implements SegmentStore {
         }
     }
 
-    @Override
-    public void close() {
-    }
-
-    @Override @CheckForNull
-    public Blob readBlob(String reference) {
-        return null;
-    }
-
-    @Override @CheckForNull
+    /**
+     * @return  {@code null}
+     */
+    @CheckForNull
     public BlobStore getBlobStore() {
         return null;
-    }
-
-    @Override
-    public void gc() {
-        // TODO: distributed gc
     }
 
 }

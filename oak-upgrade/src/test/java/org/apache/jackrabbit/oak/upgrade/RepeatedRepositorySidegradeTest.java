@@ -18,21 +18,23 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.File;
+import java.io.IOException;
+
+import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
-
-import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.io.File;
-import java.io.IOException;
 
 public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTest {
 
@@ -44,7 +46,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
             sourceDir.mkdirs();
 
             FileStore fileStore = FileStore.builder(sourceDir).build();
-            SegmentNodeStore segmentNodeStore = SegmentNodeStore.builder(fileStore).build();
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             Session session = repository.login(CREDENTIALS);
             try {
@@ -61,7 +63,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
             fileStore.flush();
 
             fileStore = FileStore.builder(sourceDir).build();
-            segmentNodeStore = SegmentNodeStore.builder(fileStore).build();
+            segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             session = repository.login(CREDENTIALS);
             try {
@@ -83,7 +85,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
     @Override
     protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
         FileStore fileStore = FileStore.builder(source).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);
             repositoryUpgrade.setSkipInitialization(skipInit);

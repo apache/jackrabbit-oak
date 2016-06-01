@@ -22,23 +22,28 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Long.getLong;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-/*
- * FIXME OAK-4373 implement invalidation through GCMonitor listener
- * FIXME OAK-4373 implement monitoring, management, logging, tests
- */
-public class SegmentReaderImpl implements SegmentReader {
+public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
 
     public static final String STRING_CACHE_MB = "oak.segment.stringCacheMB";
 
     @Nonnull
-    private final SegmentStore store;
+    private final Supplier<SegmentWriter> writer;
+
+    @Nonnull
+    private final Revisions revisions;
+
+    @CheckForNull
+    private final BlobStore blobStore;
 
     /**
      * Cache for string records
@@ -46,13 +51,15 @@ public class SegmentReaderImpl implements SegmentReader {
     @Nonnull
     private final StringCache stringCache;
 
-    public SegmentReaderImpl(@Nonnull SegmentStore store, long stringCacheMB) {
-        this.store = checkNotNull(store);
+    public CachingSegmentReader(
+            @Nonnull Supplier<SegmentWriter> writer,
+            @Nonnull Revisions revisions,
+            @Nullable BlobStore blobStore,
+            long stringCacheMB) {
+        this.writer = checkNotNull(writer);
+        this.revisions = checkNotNull(revisions);
+        this.blobStore = blobStore;
         stringCache = new StringCache(getLong(STRING_CACHE_MB, stringCacheMB) * 1024 * 1024);
-    }
-
-    public SegmentReaderImpl(@Nonnull SegmentStore store) {
-        this(store, DEFAULT_STRING_CACHE_MB);
     }
 
     @Nonnull
@@ -73,7 +80,7 @@ public class SegmentReaderImpl implements SegmentReader {
     @Nonnull
     @Override
     public MapRecord readMap(@Nonnull RecordId id) {
-        return new MapRecord(store, id);
+        return new MapRecord(this, id);
     }
 
     @Nonnull
@@ -93,6 +100,30 @@ public class SegmentReaderImpl implements SegmentReader {
 
     @Nonnull
     @Override
+    public SegmentNodeState readNode(@Nonnull RecordId id) {
+        return new SegmentNodeState(this, writer, id);
+    }
+
+    @Nonnull
+    @Override
+    public SegmentNodeState readHeadState() {
+        return readNode(revisions.getHead());
+    }
+
+    @Nonnull
+    @Override
+    public SegmentPropertyState readProperty(
+            @Nonnull RecordId id, @Nonnull PropertyTemplate template) {
+        return new SegmentPropertyState(this, id, template);
+    }
+
+    @Nonnull
+    @Override
+    public SegmentBlob readBlob(@Nonnull RecordId id) {
+        return new SegmentBlob(blobStore, id);
+    }
+
+    @Nonnull
     public CacheStats getStringCacheStats() {
         return stringCache.getStats();
     }

@@ -21,9 +21,7 @@ import java.io.File;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -59,7 +57,7 @@ class SegmentTarFixture extends OakFixture {
                 .withCacheSize(cacheSizeMB)
                 .withMemoryMapping(memoryMapping)
                 .build();
-        return newOak(SegmentNodeStore.builder(fs).build());
+        return newOak(SegmentNodeStoreBuilders.builder(fs).build());
     }
 
     @Override
@@ -81,19 +79,19 @@ class SegmentTarFixture extends OakFixture {
             if (blobStore != null) {
                 builder.withBlobStore(blobStore);
             }
-            stores[i] = builder.withRoot(EmptyNodeState.EMPTY_NODE)
+            stores[i] = builder
                     .withMaxFileSize(maxFileSizeMB)
                     .withCacheSize(cacheSizeMB)
                     .withMemoryMapping(memoryMapping)
                     .build();
-            cluster[i] = newOak(SegmentNodeStore.builder(stores[i]).build());
+            cluster[i] = newOak(SegmentNodeStoreBuilders.builder(stores[i]).build());
         }
         return cluster;
     }
 
     @Override
     public void tearDownCluster() {
-        for (SegmentStore store : stores) {
+        for (FileStore store : stores) {
             store.close();
         }
         for (BlobStoreFixture blobStore : blobStoreFixtures) {

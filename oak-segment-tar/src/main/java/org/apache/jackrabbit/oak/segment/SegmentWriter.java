@@ -80,9 +80,6 @@ import org.slf4j.LoggerFactory;
  * {@code WriteOperationHandler} passed to the constructor is thread safe.
  */
 public class SegmentWriter {
-// FIXME OAK-4102: Break cyclic dependency of FileStore and SegmentTracker
-// Improve the way how SegmentWriter instances are created. (OAK-4102)
-
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
@@ -94,6 +91,15 @@ public class SegmentWriter {
     private final SegmentStore store;
 
     @Nonnull
+    private final SegmentReader reader;
+
+    @CheckForNull
+    private final BlobStore blobStore;
+
+    @Nonnull
+    private final SegmentTracker tracker;
+
+    @Nonnull
     private final WriteOperationHandler writeOperationHandler;
 
     /**
@@ -101,11 +107,20 @@ public class SegmentWriter {
      * pointed out in the class comment.
      *
      * @param store      store to write to
+     * @param reader     segment reader for the {@code store}
+     * @param blobStore  the blog store or {@code null} for inlined blobs
+     * @param tracker    segment tracker for {@code store}
      * @param writeOperationHandler  handler for write operations.
      */
     public SegmentWriter(@Nonnull SegmentStore store,
+                         @Nonnull SegmentReader reader,
+                         @Nullable BlobStore blobStore,
+                         @Nonnull SegmentTracker tracker,
                          @Nonnull WriteOperationHandler writeOperationHandler) {
         this.store = checkNotNull(store);
+        this.reader = checkNotNull(reader);
+        this.blobStore = blobStore;
+        this.tracker = checkNotNull(tracker);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
         this.cacheManager = new WriterCacheManager();
     }
@@ -138,7 +153,7 @@ public class SegmentWriter {
                 return with(writer).writeMap(base, changes);
             }
         });
-        return new MapRecord(store, mapId);
+        return new MapRecord(reader, mapId);
     }
 
     /**
@@ -187,7 +202,7 @@ public class SegmentWriter {
                 return with(writer).writeBlob(blob);
             }
         });
-        return new SegmentBlob(store, blobId);
+        return new SegmentBlob(blobStore, blobId);
     }
 
     /**
@@ -225,11 +240,11 @@ public class SegmentWriter {
                 return with(writer).writeStream(stream);
             }
         });
-        return new SegmentBlob(store, blobId);
+        return new SegmentBlob(blobStore, blobId);
     }
 
     /**
-     * Write a propery.
+     * Write a property.
      * @param state  the property to write
      * @return       the property state written
      * @throws IOException
@@ -243,7 +258,7 @@ public class SegmentWriter {
                 return with(writer).writeProperty(state);
             }
         });
-        return new SegmentPropertyState(store, id, state.getName(), state.getType());
+        return new SegmentPropertyState(reader, id, state.getName(), state.getType());
     }
 
     /**
@@ -260,7 +275,7 @@ public class SegmentWriter {
                 return with(writer).writeNode(state, 0);
             }
         });
-        return new SegmentNodeState(store, nodeId);
+        return new SegmentNodeState(reader, this, nodeId);
     }
 
     /**
@@ -287,7 +302,7 @@ public class SegmentWriter {
                 }
             });
             writeOperationHandler.flush();
-            return new SegmentNodeState(store, nodeId);
+            return new SegmentNodeState(reader, this, nodeId);
         } catch (SegmentWriteOperation.CancelledWriteException ignore) {
             return null;
         }
@@ -344,11 +359,11 @@ public class SegmentWriter {
             if (base != null && base.isDiff()) {
                 Segment segment = base.getSegment();
                 RecordId key = segment.readRecordId(base.getOffset(8));
-                String name = store.getReader().readString(key);
+                String name = reader.readString(key);
                 if (!changes.containsKey(name)) {
                     changes.put(name, segment.readRecordId(base.getOffset(8, 1)));
                 }
-                base = new MapRecord(store, segment.readRecordId(base.getOffset(8, 2)));
+                base = new MapRecord(reader, segment.readRecordId(base.getOffset(8, 2)));
             }
 
             if (base != null && changes.size() == 1) {
@@ -384,7 +399,7 @@ public class SegmentWriter {
                 }
 
                 if (keyId != null) {
-                    entries.add(new MapEntry(store, key, keyId, entry.getValue()));
+                    entries.add(new MapEntry(reader, key, keyId, entry.getValue()));
                 }
             }
             return writeMapBucket(base, entries, 0);
@@ -497,7 +512,7 @@ public class SegmentWriter {
         }
 
         private MapRecord mapRecordOrNull(RecordId id) {
-            return id == null ? null : new MapRecord(store, id);
+            return id == null ? null : new MapRecord(reader, id);
         }
 
         /**
@@ -585,7 +600,7 @@ public class SegmentWriter {
 
             // write as many full bulk segments as possible
             while (pos + Segment.MAX_SEGMENT_SIZE <= data.length) {
-                SegmentId bulkId = store.getTracker().newBulkSegmentId();
+                SegmentId bulkId = tracker.newBulkSegmentId();
                 store.writeSegment(bulkId, data, pos, Segment.MAX_SEGMENT_SIZE);
                 for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
                     blockIds.add(new RecordId(bulkId, i));
@@ -626,8 +641,8 @@ public class SegmentWriter {
             }
 
             String reference = blob.getReference();
-            if (reference != null && store.getBlobStore() != null) {
-                String blobId = store.getBlobStore().getBlobId(reference);
+            if (reference != null && blobStore != null) {
+                String blobId = blobStore.getBlobId(reference);
                 if (blobId != null) {
                     return writeBlobId(blobId);
                 } else {
@@ -697,7 +712,6 @@ public class SegmentWriter {
                 return writeValueRecord(n, data);
             }
 
-            BlobStore blobStore = store.getBlobStore();
             if (blobStore != null) {
                 String blobId = blobStore.writeBlob(new SequenceInputStream(
                     new ByteArrayInputStream(data, 0, n), stream));
@@ -712,7 +726,7 @@ public class SegmentWriter {
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
-                SegmentId bulkId = store.getTracker().newBulkSegmentId();
+                SegmentId bulkId = tracker.newBulkSegmentId();
                 int len = Segment.align(n, 1 << Segment.RECORD_ALIGN_BITS);
                 LOG.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
                 store.writeSegment(bulkId, data, 0, len);
@@ -893,7 +907,7 @@ public class SegmentWriter {
             }
 
             List<RecordId> ids = newArrayList();
-            Template template = new Template(store, state);
+            Template template = new Template(reader, state);
             if (template.equals(beforeTemplate)) {
                 ids.add(before.getTemplateId());
             } else {

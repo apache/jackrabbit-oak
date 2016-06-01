@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -51,7 +52,7 @@ class SegmentTarFixture implements NodeStoreFixture {
 
     private SegmentTarFixture(FileStore fileStore) {
         this.fileStore = fileStore;
-        this.segmentNodeStore = SegmentNodeStore.builder(fileStore).build();
+        this.segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
     @Override
