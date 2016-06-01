@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper.getTemplateId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
 import static org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -86,6 +87,7 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
@@ -178,9 +180,9 @@ final class SegmentTarUtils {
     }
 
     static void compact(File directory, boolean force) throws IOException {
-        FileStore store = openFileStore(directory.getAbsolutePath(), force);
+        FileStore store = newFileStoreBuilder(directory.getAbsolutePath(),
+                force).withGCOptions(DEFAULT.setOffline()).build();
         try {
-            boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
             System.out.println("Compacting " + directory);
             System.out.println("    before " + Arrays.toString(directory.list()));
             long sizeBefore = FileUtils.sizeOfDirectory(directory);
@@ -194,7 +196,8 @@ final class SegmentTarUtils {
         }
 
         System.out.println("    -> cleaning up");
-        store = openFileStore(directory.getAbsolutePath(), false);
+        store = newFileStoreBuilder(directory.getAbsolutePath(), force)
+                .withGCOptions(DEFAULT.setOffline()).build();
         try {
             for (File file : store.cleanup()) {
                 if (!file.exists() || file.delete()) {
@@ -643,10 +646,16 @@ final class SegmentTarUtils {
                 .buildReadOnly();
     }
 
-    private static FileStore openFileStore(String directory, boolean force) throws IOException {
+    private static Builder newFileStoreBuilder(String directory, boolean force)
+            throws IOException {
         return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
-                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).build();
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED);
+    }
+
+    private static FileStore openFileStore(String directory, boolean force)
+            throws IOException {
+        return newFileStoreBuilder(directory, force).build();
     }
 
     private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException {

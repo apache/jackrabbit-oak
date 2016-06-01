@@ -82,6 +82,8 @@ public class SegmentGCOptions {
 
     private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
 
+    private boolean offline = false;
+
     public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
                             int retryCount, boolean forceAfterFail, int lockWaitTime) {
         this.paused = paused;
@@ -245,7 +247,8 @@ public class SegmentGCOptions {
                 ", retryCount=" + retryCount +
                 ", forceAfterFail=" + forceAfterFail +
                 ", lockWaitTime=" + lockWaitTime +
-                ", retainedGenerations=" + retainedGenerations + '}';
+                ", retainedGenerations=" + retainedGenerations +
+                ", offline=" + offline + "}";
     }
 
     /**
@@ -262,4 +265,18 @@ public class SegmentGCOptions {
         return availableDiskSpace > 0.25 * repositoryDiskSpace;
     }
 
+    public boolean isOffline() {
+        return offline;
+    }
+
+    /**
+     * Enables the offline compaction mode, allowing for certain optimizations,
+     * like reducing the retained generation to 1.
+     * @return this instance
+     */
+    public SegmentGCOptions setOffline() {
+        this.offline = true;
+        this.retainedGenerations = 1;
+        return this;
+    }
 }

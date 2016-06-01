@@ -169,10 +169,97 @@ public class CompactionAndCleanupIT {
         }
     }
 
+    @Test
+    public void offlineCompaction()
+    throws IOException, CommitFailedException {
+        SegmentGCOptions gcOptions = DEFAULT.setOffline();
+        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(1)
+                .withGCOptions(gcOptions)
+                .build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+        try {
+            // 5MB blob
+            int blobSize = 5 * 1024 * 1024;
+
+            // Create ~2MB of data
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+            for (int i = 0; i < 10000; i++) {
+                NodeBuilder c = content.child("c" + i);
+                for (int j = 0; j < 1000; j++) {
+                    c.setProperty("p" + i, "v" + i);
+                }
+            }
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            long size1 = fileStore.size();
+            log.debug("File store size {}", byteCountToDisplaySize(size1));
+
+            // Create a property with 5 MB blob
+            NodeBuilder builder = nodeStore.getRoot().builder();
+            builder.setProperty("blob1", createBlob(nodeStore, blobSize));
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            long size2 = fileStore.size();
+            assertSize("1st blob added", size2, size1 + blobSize, size1 + blobSize + (blobSize / 100));
+
+            // Now remove the property. No gc yet -> size doesn't shrink
+            builder = nodeStore.getRoot().builder();
+            builder.removeProperty("blob1");
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            long size3 = fileStore.size();
+            assertSize("1st blob removed", size3, size2, size2 + 4096);
+
+            // 1st gc cycle -> 1st blob should get collected
+            fileStore.compact();
+            fileStore.cleanup();
+
+            long size4 = fileStore.size();
+            assertSize("1st gc", size4, size3 - blobSize - size1, size3
+                    - blobSize);
+
+            // Add another 5MB binary
+            builder = nodeStore.getRoot().builder();
+            builder.setProperty("blob2", createBlob(nodeStore, blobSize));
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            long size5 = fileStore.size();
+            assertSize("2nd blob added", size5, size4 + blobSize, size4 + blobSize + (blobSize / 100));
+
+            // 2st gc cycle -> 2nd blob should *not* be collected
+            fileStore.compact();
+            fileStore.cleanup();
+
+            long size6 = fileStore.size();
+            assertSize("2nd gc", size6, size5 * 10/11, size5 * 10/9);
+
+            // 3rd gc cycle -> no significant change
+            fileStore.compact();
+            fileStore.cleanup();
+
+            long size7 = fileStore.size();
+            assertSize("3rd gc", size7, size6 * 10/11 , size6 * 10/9);
+
+            // No data loss
+            byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
+                    .getProperty("blob2").getValue(Type.BINARY).getNewStream());
+            assertEquals(blobSize, blob.length);
+        } finally {
+            fileStore.close();
+        }
+    }
+
     private static void assertSize(String info, long size, long lower, long upper) {
         log.debug("File Store {} size {}, expected in interval [{},{}]",
                 info, size, lower, upper);
-        assertTrue("File Store " + log + " size expected in interval " +
+        assertTrue("File Store " + info + " size expected in interval " +
                 "[" + (lower) + "," + (upper) + "] but was: " + (size),
                 size >= lower && size <= (upper));
     }
