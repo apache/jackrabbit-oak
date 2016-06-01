@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -36,6 +37,7 @@ import java.util.Random;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -45,6 +47,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileBlob;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -159,11 +162,13 @@ public class ExternalBlobIT {
         if (store != null) {
             store.close();
         }
+        nodeStore = null;
     }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
-            store = FileStore.builder(getWorkDir()).withBlobStore(blobStore).withMaxFileSize(256).withMemoryMapping(false).build();
+            store = FileStore.builder(getWorkDir()).withBlobStore(blobStore)
+                    .withMaxFileSize(1).build();
             nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         }
         return nodeStore;
@@ -255,5 +260,35 @@ public class ExternalBlobIT {
 
         assertEquals(size, ps.size());
         // assertEquals("{" + size + " bytes}", ps.toString());
+    }
+
+    @Test
+    public void testOfflineCompaction() throws Exception {
+        FileDataStore fds = createFileDataStore();
+        DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
+        nodeStore = getNodeStore(dbs);
+
+        int size = 2 * 1024 * 1024;
+        byte[] data2 = new byte[size];
+        new Random().nextBytes(data2);
+
+        Blob b = nodeStore.createBlob(new ByteArrayInputStream(data2));
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        builder.child("hello").setProperty("world", b);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.flush();
+
+        // blob went to the external store
+        assertTrue(store.size() < 10 * 1024);
+        close();
+
+        SegmentGCOptions gcOptions = DEFAULT.setOffline();
+        store = FileStore.builder(getWorkDir()).withMaxFileSize(1)
+                .withGCOptions(gcOptions).build();
+        assertTrue(store.size() < 10 * 1024);
+
+        store.compact();
+        store.cleanup();
+
     }
 }

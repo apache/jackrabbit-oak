@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
+import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -1133,10 +1134,17 @@ public class FileStore implements SegmentStore, Closeable {
         }
     }
 
-    private SegmentNodeState compact(SegmentBufferWriter bufferWriter, NodeState node,
+    private SegmentNodeState compact(SegmentBufferWriter bufferWriter, NodeState head,
                                      Supplier<Boolean> cancel)
     throws IOException {
-        return segmentWriter.writeNode(node, bufferWriter, cancel);
+        if (gcOptions.isOffline()) {
+            // Capital C to indicate offline compaction
+            SegmentWriter writer = new SegmentWriter(this, segmentReader, blobStore, tracker, bufferWriter);
+            return new Compactor(segmentReader, writer, blobStore, cancel)
+                    .compact(EMPTY_NODE, head, EMPTY_NODE);
+        } else {
+            return segmentWriter.writeNode(head, bufferWriter, cancel);
+        }
     }
 
     private boolean forceCompact(@Nonnull final SegmentBufferWriter bufferWriter,

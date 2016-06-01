@@ -638,6 +638,9 @@ public class SegmentWriter {
                 if (!isOldGeneration(segmentBlob.getRecordId())) {
                     return segmentBlob.getRecordId();
                 }
+                if (segmentBlob.isExternal()) {
+                    return writeBlobId(segmentBlob.getBlobId());
+                }
             }
 
             String reference = blob.getReference();

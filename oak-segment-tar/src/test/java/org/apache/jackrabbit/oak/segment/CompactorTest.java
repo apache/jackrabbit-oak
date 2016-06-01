@@ -18,8 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.io.IOException;
 
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -30,14 +35,51 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Test;
 
 public class CompactorTest {
 
-    private SegmentStore segmentStore;
+    private MemoryStore memoryStore;
 
     @Before
     public void openSegmentStore() throws IOException {
-        segmentStore = new MemoryStore();
+        memoryStore = new MemoryStore();
+    }
+
+    @Test
+    public void testCompactor() throws Exception {
+        NodeStore store = SegmentNodeStoreBuilders.builder(memoryStore).build();
+        init(store);
+
+        SegmentWriter writer = SegmentWriters.segmentWriter(memoryStore, LATEST_VERSION, "c", 1);
+        Compactor compactor = new Compactor(memoryStore.getReader(), writer,
+                memoryStore.getBlobStore(), Suppliers.ofInstance(false));
+        addTestContent(store, 0);
+
+        NodeState initial = store.getRoot();
+        SegmentNodeState after = compactor.compact(initial, store.getRoot(),
+                initial);
+        assertEquals(store.getRoot(), after);
+
+        addTestContent(store, 1);
+        after = compactor.compact(initial, store.getRoot(), initial);
+        assertEquals(store.getRoot(), after);
+    }
+
+    @Test
+    public void testCancel() throws Throwable {
+
+        // Create a Compactor that will cancel itself as soon as possible. The
+        // early cancellation is the reason why the returned SegmentNodeState
+        // doesn't have the child named "b".
+
+        NodeStore store = SegmentNodeStoreBuilders.builder(memoryStore).build();
+        SegmentWriter writer = SegmentWriters.segmentWriter(memoryStore, LATEST_VERSION, "c", 1);
+        Compactor compactor = new Compactor(memoryStore.getReader(), writer, memoryStore.getBlobStore(),
+                Suppliers.ofInstance(true));
+        SegmentNodeState sns = compactor.compact(store.getRoot(),
+                addChild(store.getRoot(), "b"), store.getRoot());
+        assertFalse(sns.hasChildNode("b"));
     }
 
     private NodeState addChild(NodeState current, String name) {
