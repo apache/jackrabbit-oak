@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -30,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
 import org.junit.Before;
 
 public class CompactorTest {
@@ -40,11 +38,6 @@ public class CompactorTest {
     @Before
     public void openSegmentStore() throws IOException {
         segmentStore = new MemoryStore();
-    }
-
-    @After
-    public void closeSegmentStore() {
-        segmentStore.close();
     }
 
     private NodeState addChild(NodeState current, String name) {

@@ -31,6 +31,7 @@ import java.util.concurrent.FutureTask;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -76,7 +77,7 @@ public class SegmentReferenceLimitTestIT {
     public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1)
                 .withNoCache().withMemoryMapping(true).build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder root = nodeStore.getRoot().builder();
         root.setChildNode("test");

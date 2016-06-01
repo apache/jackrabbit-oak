@@ -29,7 +29,7 @@ import java.util.Random;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -53,7 +53,7 @@ public class CompactionEstimatorTest {
         final int blobSize = 2 * MB;
 
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(2).withMemoryMapping(false).build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         // 1. Create some blob properties
         NodeBuilder builder = nodeStore.getRoot().builder();

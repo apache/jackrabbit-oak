@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -49,9 +48,9 @@ public class FileStoreRestore {
         Stopwatch watch = Stopwatch.createStarted();
 
         FileStore store = FileStore.builder(destination).build();
-        SegmentNodeState current = store.getHead();
+        // FIXME OAK-4278: Fix backup and restore
+//        SegmentNodeState current = store.getRevisions().getHead();
         try {
-            // FIXME OAK-4278: Fix backup and restore
             // Use dedicated implementation instead of compactor.
             // This is allows us to decouple and fix problems for online compaction independent
             // of backup / restore.

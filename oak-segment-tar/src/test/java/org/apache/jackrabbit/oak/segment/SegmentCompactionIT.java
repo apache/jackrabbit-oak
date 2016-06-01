@@ -26,7 +26,6 @@ import static com.google.common.collect.Sets.newConcurrentHashSet;
 import static com.google.common.util.concurrent.Futures.addCallback;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
-import static java.lang.Boolean.getBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
@@ -231,10 +230,10 @@ public class SegmentCompactionIT {
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
                 .build();
-        nodeStore = SegmentNodeStore.builder(fileStore).build();
+        nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         CacheStats segmentCacheStats = fileStore.getSegmentCacheStats();
-        CacheStats stringCacheStats = fileStore.getReader().getStringCacheStats();
+        CacheStats stringCacheStats = fileStore.getStringCacheStats();
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));

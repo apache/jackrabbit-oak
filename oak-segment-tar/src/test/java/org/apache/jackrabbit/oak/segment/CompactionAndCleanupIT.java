@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.builder;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -92,7 +91,7 @@ public class CompactionAndCleanupIT {
                 .withGCOptions(DEFAULT.setRetainedGenerations(2))
                 .withMaxFileSize(1)
                 .build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         try {
             // 5MB blob
@@ -191,7 +190,7 @@ public class CompactionAndCleanupIT {
                 .withGCOptions(DEFAULT.setRetainedGenerations(2))
                 .withMaxFileSize(1)
                 .build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         addNodes(builder, 10);
@@ -245,7 +244,7 @@ public class CompactionAndCleanupIT {
                 .withMemoryMapping(true)
                 .withGCOptions(DEFAULT.setForceAfterFail(true))
                 .build();
-        final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
+        final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         final AtomicBoolean compactionSuccess = new AtomicBoolean(true);
 
         NodeBuilder root = nodeStore.getRoot().builder();
@@ -253,7 +252,7 @@ public class CompactionAndCleanupIT {
         nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         final Set<UUID> beforeSegments = new HashSet<UUID>();
-        collectSegments(store, beforeSegments);
+        collectSegments(store.getReader(), store.getRevisions(), beforeSegments);
 
         final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
         final List<String> failedCommits = newArrayList();
@@ -292,7 +291,7 @@ public class CompactionAndCleanupIT {
         assertTrue("Failed commits: " + failedCommits, failedCommits.isEmpty());
 
         Set<UUID> afterSegments = new HashSet<UUID>();
-        collectSegments(store, afterSegments);
+        collectSegments(store.getReader(), store.getRevisions(), afterSegments);
         try {
             for (UUID u : beforeSegments) {
                 assertFalse("Mixed segments found: " + u, afterSegments.contains(u));
@@ -314,7 +313,7 @@ public class CompactionAndCleanupIT {
     public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
         final SegmentWriter writer = fileStore.getWriter();
-        final SegmentNodeState oldHead = fileStore.getHead();
+        final SegmentNodeState oldHead = fileStore.getReader().readHeadState();
 
         final SegmentNodeState child = run(new Callable<SegmentNodeState>() {
             @Override
@@ -333,16 +332,16 @@ public class CompactionAndCleanupIT {
         });
 
         writer.flush();
-        fileStore.setHead(oldHead, newHead);
+        fileStore.getRevisions().setHead(oldHead.getRecordId(), newHead.getRecordId());
         fileStore.close();
 
         fileStore = FileStore.builder(getFileStoreFolder()).build();
 
-        traverse(fileStore.getHead());
+        traverse(fileStore.getReader().readHeadState());
         fileStore.cleanup();
 
         // Traversal after cleanup might result in an SNFE
-        traverse(fileStore.getHead());
+        traverse(fileStore.getReader().readHeadState());
 
         fileStore.close();
     }
@@ -377,7 +376,7 @@ public class CompactionAndCleanupIT {
                     .withMaxFileSize(2)
                     .withGCOptions(gcOptions)
                     .build();
-            final SegmentNodeStore nodeStore = builder(fileStore).build();
+            final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             try {
                 // add some content
                 NodeBuilder preGCBuilder = nodeStore.getRoot().builder();
@@ -435,8 +434,9 @@ public class CompactionAndCleanupIT {
         }
     }
 
-    private static void collectSegments(SegmentStore store, final Set<UUID> segmentIds) {
-        new SegmentParser(store) {
+    private static void collectSegments(SegmentReader reader, Revisions revisions,
+                                        final Set<UUID> segmentIds) {
+        new SegmentParser(reader) {
             @Override
             protected void onNode(RecordId parentId, RecordId nodeId) {
                 super.onNode(parentId, nodeId);
@@ -508,7 +508,7 @@ public class CompactionAndCleanupIT {
                 super.onListBucket(parentId, listId, index, count, capacity);
                 segmentIds.add(listId.asUUID());
             }
-        }.parseNode(store.getHead().getRecordId());
+        }.parseNode(revisions.getHead());
     }
 
     private static void createNodes(NodeBuilder builder, int count, int depth) {
@@ -535,7 +535,7 @@ public class CompactionAndCleanupIT {
                 .withGCOptions(gcOptions)
                 .build();
         try {
-            final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+            final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
             // Add a property
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -580,7 +580,7 @@ public class CompactionAndCleanupIT {
     public void checkpointDeduplicationTest() throws IOException, CommitFailedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
         try {
-            SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             NodeBuilder builder = nodeStore.getRoot().builder();
             builder.setChildNode("a").setChildNode("aa");
             builder.setChildNode("b").setChildNode("bb");

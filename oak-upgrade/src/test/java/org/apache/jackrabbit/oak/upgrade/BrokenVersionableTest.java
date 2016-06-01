@@ -16,25 +16,15 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import javax.jcr.Credentials;
 import javax.jcr.Node;
@@ -45,11 +35,22 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
 
-import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BrokenVersionableTest {
 
@@ -61,7 +62,7 @@ public class BrokenVersionableTest {
 
     @Before
     public synchronized void upgradeRepository() throws Exception {
-        targetNodeStore = SegmentNodeStore.builder(new MemoryStore()).build();
+        targetNodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         targetRepository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
         NodeStore source = createSourceContent();
         RepositorySidegrade sidegrade = new RepositorySidegrade(source, targetNodeStore);
@@ -77,7 +78,7 @@ public class BrokenVersionableTest {
     }
 
     private NodeStore createSourceContent() throws Exception {
-        SegmentNodeStore source = SegmentNodeStore.builder(new MemoryStore()).build();
+        SegmentNodeStore source = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(source)).createRepository();
         Session session = repository.login(CREDENTIALS);
         List<String> versionHistoryPaths = new ArrayList<String>();

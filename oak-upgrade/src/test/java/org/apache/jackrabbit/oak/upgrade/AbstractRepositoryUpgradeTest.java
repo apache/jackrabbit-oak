@@ -40,7 +40,7 @@ import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -73,7 +73,7 @@ public abstract class AbstractRepositoryUpgradeTest {
 
     protected NodeStore createTargetNodeStore() {
         try {
-            return SegmentNodeStore.builder(new MemoryStore()).build();
+            return SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

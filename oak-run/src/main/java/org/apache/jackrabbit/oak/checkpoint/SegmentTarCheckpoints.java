@@ -44,7 +44,7 @@ class SegmentTarCheckpoints extends Checkpoints {
     @Override
     public List<CP> list() {
         List<CP> list = Lists.newArrayList();
-        NodeState ns = store.getHead().getChildNode("checkpoints");
+        NodeState ns = store.getReader().readHeadState().getChildNode("checkpoints");
         for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
             NodeState cneNs = cne.getNodeState();
             list.add(new CP(cne.getName(),
@@ -55,13 +55,13 @@ class SegmentTarCheckpoints extends Checkpoints {
 
     @Override
     public long removeAll() {
-        SegmentNodeState head = store.getHead();
+        SegmentNodeState head = store.getReader().readHeadState();
         NodeBuilder builder = head.builder();
 
         NodeBuilder cps = builder.getChildNode("checkpoints");
         long cnt = cps.getChildNodeCount(Integer.MAX_VALUE);
         builder.setChildNode("checkpoints");
-        if (store.setHead(head, asSegmentNodeState(builder))) {
+        if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
             return cnt;
         } else {
             return -1;
@@ -70,7 +70,7 @@ class SegmentTarCheckpoints extends Checkpoints {
 
     @Override
     public long removeUnreferenced() {
-        SegmentNodeState head = store.getHead();
+        SegmentNodeState head = store.getReader().readHeadState();
 
         String ref = getReferenceCheckpoint(head.getChildNode("root"));
 
@@ -85,7 +85,7 @@ class SegmentTarCheckpoints extends Checkpoints {
             cnt++;
         }
 
-        if (store.setHead(head, asSegmentNodeState(builder))) {
+        if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
             return cnt;
         } else {
             return -1;
@@ -94,14 +94,14 @@ class SegmentTarCheckpoints extends Checkpoints {
 
     @Override
     public int remove(String cp) {
-        SegmentNodeState head = store.getHead();
+        SegmentNodeState head = store.getReader().readHeadState();
         NodeBuilder builder = head.builder();
 
         NodeBuilder cpn = builder.getChildNode("checkpoints")
                 .getChildNode(cp);
         if (cpn.exists()) {
             cpn.remove();
-            if (store.setHead(head, asSegmentNodeState(builder))) {
+            if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
                 return 1;
             } else {
                 return -1;

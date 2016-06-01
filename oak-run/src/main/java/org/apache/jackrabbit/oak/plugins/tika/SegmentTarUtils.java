@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -33,7 +33,7 @@ class SegmentTarUtils {
     }
 
     static NodeStore bootstrap(String path, BlobStore store, Closer closer) throws IOException {
-        return SegmentNodeStore.builder(fileStore(path, store, closer)).build();
+        return SegmentNodeStoreBuilders.builder(fileStore(path, store, closer)).build();
     }
 
     private static FileStore fileStore(String path, BlobStore store, Closer closer) throws IOException {

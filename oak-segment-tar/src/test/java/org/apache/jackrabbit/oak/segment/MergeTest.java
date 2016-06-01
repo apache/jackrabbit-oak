@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -43,7 +42,7 @@ public class MergeTest {
 
     @Test
     public void testSequentialMerge() throws CommitFailedException, IOException {
-        NodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
 
         assertFalse(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
@@ -65,7 +64,7 @@ public class MergeTest {
 
     @Test
     public void testOptimisticMerge() throws CommitFailedException, IOException {
-        NodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
 
         NodeBuilder a = store.getRoot().builder();
         a.setProperty("foo", "abc");
@@ -89,7 +88,7 @@ public class MergeTest {
 
     @Test
     public void testPessimisticMerge() throws Exception {
-        final SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        final SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         final Semaphore semaphore = new Semaphore(0);
         final AtomicBoolean running = new AtomicBoolean(true);
 

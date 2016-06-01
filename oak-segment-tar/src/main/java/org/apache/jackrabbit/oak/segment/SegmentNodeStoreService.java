@@ -371,7 +371,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         // Expose stats about the string cache, if available
 
-        CacheStats stringCacheStats = store.getReader().getStringCacheStats();
+        CacheStats stringCacheStats = store.getStringCacheStats();
         stringCacheMBean = registerMBean(
                 whiteboard,
                 CacheStatsMBean.class,
@@ -459,7 +459,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
-        segmentNodeStore = SegmentNodeStore.builder(store).build();
+        segmentNodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());

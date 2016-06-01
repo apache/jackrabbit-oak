@@ -95,7 +95,7 @@ public class SegmentOverflowExceptionIT {
     public void run() throws IOException, CommitFailedException, InterruptedException {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withGCMonitor(gcMonitor).build();
         try {
-            final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
+            final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             long start = System.currentTimeMillis();
             int snfeCount = 0;
             while (System.currentTimeMillis() - start < TIMEOUT) {

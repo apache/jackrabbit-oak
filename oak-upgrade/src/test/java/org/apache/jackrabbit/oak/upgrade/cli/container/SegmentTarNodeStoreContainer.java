@@ -21,7 +21,7 @@ import java.io.IOException;
 
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -54,7 +54,7 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
             builder.withBlobStore(blob.open());
         }
         fs = builder.build();
-        return SegmentNodeStore.builder(fs).build();
+        return SegmentNodeStoreBuilders.builder(fs).build();
     }
 
     @Override

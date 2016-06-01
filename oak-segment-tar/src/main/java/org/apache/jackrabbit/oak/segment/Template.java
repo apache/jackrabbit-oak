@@ -59,7 +59,7 @@ public class Template {
     static final String MANY_CHILD_NODES = "";
 
     @Nonnull
-    private final SegmentStore store;
+    private final SegmentReader reader;
 
     /**
      * The {@code jcr:primaryType} property, if present as a single-valued
@@ -90,12 +90,12 @@ public class Template {
     @CheckForNull
     private final String childName;
 
-    Template(@Nonnull SegmentStore store,
+    Template(@Nonnull SegmentReader reader,
              @Nullable PropertyState primaryType,
              @Nullable PropertyState mixinTypes,
              @Nullable  PropertyTemplate[] properties,
              @Nullable String childName) {
-        this.store = store;
+        this.reader = checkNotNull(reader);
         this.primaryType = primaryType;
         this.mixinTypes = mixinTypes;
         if (properties != null) {
@@ -107,8 +107,9 @@ public class Template {
         this.childName = childName;
     }
 
-    Template(@Nonnull SegmentStore store, @Nonnull NodeState state) {
-        this.store = store;
+    Template(@Nonnull SegmentReader reader, @Nonnull NodeState state) {
+        this.reader = checkNotNull(reader);
+        checkNotNull(state);
         PropertyState primary = null;
         PropertyState mixins = null;
         List<PropertyTemplate> templates = Lists.newArrayList();
@@ -198,7 +199,7 @@ public class Template {
         RecordId lid = segment.readRecordId(offset);
         ListRecord props = new ListRecord(lid, properties.length);
         RecordId rid = props.getEntry(index);
-        return new SegmentPropertyState(store, rid, properties[index]);
+        return reader.readProperty(rid, properties[index]);
     }
 
     MapRecord getChildNodeMap(RecordId recordId) {
@@ -206,7 +207,7 @@ public class Template {
         Segment segment = recordId.getSegment();
         int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
-        return store.getReader().readMap(childNodesId);
+        return reader.readMap(childNodesId);
     }
 
     public NodeState getChildNode(String name, RecordId recordId) {
@@ -224,7 +225,7 @@ public class Template {
             Segment segment = recordId.getSegment();
             int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
             RecordId childNodeId = segment.readRecordId(offset);
-            return new SegmentNodeState(store, childNodeId);
+            return reader.readNode(childNodeId);
         } else {
             return MISSING_NODE;
         }
@@ -241,7 +242,7 @@ public class Template {
             int offset = recordId.getOffset() + 2 * RECORD_ID_BYTES;
             RecordId childNodeId = segment.readRecordId(offset);
             return Collections.singletonList(new MemoryChildNodeEntry(
-                    childName, new SegmentNodeState(store, childNodeId)));
+                    childName, reader.readNode(childNodeId)));
         }
     }
 

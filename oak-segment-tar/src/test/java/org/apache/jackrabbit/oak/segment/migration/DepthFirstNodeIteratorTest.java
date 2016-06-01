@@ -29,7 +29,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.migration.DepthFirstNodeIterator;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -44,8 +44,8 @@ public class DepthFirstNodeIteratorTest {
 
     @Before
     public void setup() throws CommitFailedException, IOException {
-        store = SegmentNodeStore.builder(new MemoryStore()).build();
-        NodeBuilder rootBuilder = store.getRoot().builder();
+        store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+        NodeBuilder rootBuilder = this.store.getRoot().builder();
         NodeBuilder countries = rootBuilder.child("countries");
         countries.child("uk").child("cities").child("london").child("districts").child("frognal");
         countries.child("germany");

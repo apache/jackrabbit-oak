@@ -58,8 +58,8 @@ public class RecordUsageAnalyser extends SegmentParser {
     private long templateCount;
     private long nodeCount;
 
-    public RecordUsageAnalyser(@Nonnull SegmentStore store) {
-        super(store);
+    public RecordUsageAnalyser(@Nonnull SegmentReader reader) {
+        super(reader);
     }
 
     /**

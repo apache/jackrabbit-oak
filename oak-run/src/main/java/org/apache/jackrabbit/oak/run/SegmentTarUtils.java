@@ -79,9 +79,10 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
+import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -106,7 +107,7 @@ final class SegmentTarUtils {
     }
 
     static NodeStore bootstrapNodeStore(String path, Closer closer) throws IOException {
-        return SegmentNodeStore.builder(bootstrapFileStore(path, closer)).build();
+        return SegmentNodeStoreBuilders.builder(bootstrapFileStore(path, closer)).build();
     }
 
     static BlobReferenceRetriever newBlobReferenceRetriever(String path, Closer closer) throws IOException {
@@ -123,7 +124,7 @@ final class SegmentTarUtils {
                 fs = openReadOnlyFileStore(source);
             }
             closer.register(fs);
-            NodeStore store = SegmentNodeStore.builder(fs).build();
+            NodeStore store = SegmentNodeStoreBuilders.builder(fs).build();
             FileStoreBackup.backup(store, target);
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -302,12 +303,12 @@ final class SegmentTarUtils {
         RecordId idR = null;
         try {
             if (tokens[0].equalsIgnoreCase("head")) {
-                idL = store.getHead().getRecordId();
+                idL = store.getRevisions().getHead();
             } else {
                 idL = fromString(store.getTracker(), tokens[0]);
             }
             if (tokens[1].equalsIgnoreCase("head")) {
-                idR = store.getHead().getRecordId();
+                idR = store.getRevisions().getHead();
             } else {
                 idR = fromString(store.getTracker(), tokens[1]);
             }
@@ -363,8 +364,8 @@ final class SegmentTarUtils {
     private static boolean diff(ReadOnlyStore store, RecordId idL, RecordId idR, String filter, PrintWriter pw) throws IOException {
         pw.println("rev " + idL + ".." + idR);
         try {
-            NodeState before = new SegmentNodeState(store, idL).getChildNode("root");
-            NodeState after = new SegmentNodeState(store, idR).getChildNode("root");
+            NodeState before = store.getReader().readNode(idL).getChildNode("root");
+            NodeState after = store.getReader().readNode(idR).getChildNode("root");
             for (String name : elements(filter)) {
                 before = before.getChildNode(name);
                 after = after.getChildNode(name);
@@ -386,7 +387,7 @@ final class SegmentTarUtils {
         long bulkSize = 0;
 
         ((Logger) getLogger(SegmentTracker.class)).setLevel(Level.OFF);
-        RecordUsageAnalyser analyser = new RecordUsageAnalyser(store);
+        RecordUsageAnalyser analyser = new RecordUsageAnalyser(store.getReader());
 
         for (SegmentId id : store.getSegmentIds()) {
             if (id.isDataSegmentId()) {
@@ -412,7 +413,7 @@ final class SegmentTarUtils {
 
         Set<SegmentId> garbage = newHashSet(idmap.keySet());
         Queue<SegmentId> queue = Queues.newArrayDeque();
-        queue.add(store.getHead().getRecordId().getSegmentId());
+        queue.add(store.getRevisions().getHead().getSegmentId());
         while (!queue.isEmpty()) {
             SegmentId id = queue.remove();
             if (garbage.remove(id)) {
@@ -479,8 +480,7 @@ final class SegmentTarUtils {
             if (hasrefs) {
                 System.out.println("SegmentNodeState references to " + f);
                 List<String> paths = new ArrayList<String>();
-                filterNodeStates(uuids, paths, store.getHead(),
-                        "/");
+                filterNodeStates(uuids, paths, store.getReader().readHeadState(), "/");
                 for (String p : paths) {
                     System.out.println("  " + p);
                 }
@@ -573,6 +573,7 @@ final class SegmentTarUtils {
     }
 
     private static void debugSegment(FileStore store, String[] args) {
+        SegmentReader reader = store.getReader();
         Pattern pattern = Pattern
                 .compile("([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
         for (int i = 1; i < args.length; i++) {
@@ -586,7 +587,7 @@ final class SegmentTarUtils {
                         uuid.getLeastSignificantBits());
                 System.out.println(id.getSegment());
             } else {
-                RecordId id1 = store.getHead().getRecordId();
+                RecordId id1 = store.getRevisions().getHead();
                 RecordId id2 = null;
                 if (matcher.group(2) != null) {
                     id1 = fromString(store.getTracker(),
@@ -602,7 +603,7 @@ final class SegmentTarUtils {
                 }
 
                 if (id2 == null) {
-                    NodeState node = new SegmentNodeState(store, id1);
+                    NodeState node = reader.readNode(id1);
                     System.out.println("/ (" + id1 + ") -> " + node);
                     for (String name : PathUtils.elements(path)) {
                         node = node.getChildNode(name);
@@ -614,8 +615,8 @@ final class SegmentTarUtils {
                                 + node);
                     }
                 } else {
-                    NodeState node1 = new SegmentNodeState(store, id1);
-                    NodeState node2 = new SegmentNodeState(store, id2);
+                    NodeState node1 = reader.readNode(id1);
+                    NodeState node2 = reader.readNode(id2);
                     for (String name : PathUtils.elements(path)) {
                         node1 = node1.getChildNode(name);
                         node2 = node2.getChildNode(name);
@@ -670,7 +671,7 @@ final class SegmentTarUtils {
     }
 
     private static SegmentVersion getSegmentVersion(FileStore fileStore) {
-        return fileStore.getHead().getRecordId().getSegment().getSegmentVersion();
+        return fileStore.getRevisions().getHead().getSegment().getSegmentVersion();
     }
 
 }

@@ -160,13 +160,12 @@ public final class SegmentGraph {
         checkNotNull(epoch);
         PrintWriter writer = new PrintWriter(checkNotNull(out));
         try {
-            SegmentNodeState root = checkNotNull(fileStore).getHead();
-
+            SegmentNodeState root = checkNotNull(fileStore).getReader().readHeadState();
             Predicate<UUID> filter = pattern == null
                 ? Predicates.<UUID>alwaysTrue()
                 : createRegExpFilter(pattern, fileStore.getTracker());
             Graph<UUID> segmentGraph = parseSegmentGraph(fileStore, filter);
-            Graph<UUID> headGraph = parseHeadGraph(fileStore, root.getRecordId());
+            Graph<UUID> headGraph = parseHeadGraph(fileStore.getReader(), root.getRecordId());
 
             writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, size INT, head BOOLEAN\n");
             for (UUID segment : segmentGraph.vertices()) {
@@ -233,7 +232,7 @@ public final class SegmentGraph {
     public static Graph<UUID> parseSegmentGraph(
             @Nonnull ReadOnlyStore fileStore,
             @Nonnull Predicate<UUID> filter) throws IOException {
-        SegmentNodeState root = checkNotNull(fileStore).getHead();
+        SegmentNodeState root = checkNotNull(fileStore).getReader().readHeadState();
         HashSet<UUID> roots = newHashSet(root.getRecordId().asUUID());
         return parseSegmentGraph(fileStore, roots, filter, Functions.<UUID>identity());
     }
@@ -286,7 +285,7 @@ public final class SegmentGraph {
     @Nonnull
     public static Graph<String> parseGCGraph(@Nonnull final ReadOnlyStore fileStore)
             throws IOException {
-        SegmentNodeState root = checkNotNull(fileStore).getHead();
+        SegmentNodeState root = checkNotNull(fileStore).getReader().readHeadState();
         HashSet<UUID> roots = newHashSet(root.getRecordId().asUUID());
         return parseSegmentGraph(fileStore, roots, Predicates.<UUID>alwaysTrue(), new Function<UUID, String>() {
             @Override @Nullable
@@ -349,18 +348,20 @@ public final class SegmentGraph {
     }
 
     /**
-     * Parser the head graph of a {@code store}. The head graph is the sub graph of the segment
+     * Parser the head graph of segment store. The head graph is the sub graph of the segment
      * graph containing the {@code root}.
-     * @param store
+     * @param reader  segment reader for the store to parse
      * @param root
      * @return  the head graph of {@code root}.
      */
     @Nonnull
-    public static Graph<UUID> parseHeadGraph(@Nonnull SegmentStore store, @Nonnull RecordId root) {
+    public static Graph<UUID> parseHeadGraph(
+            @Nonnull SegmentReader reader,
+            @Nonnull RecordId root) {
         final Graph<UUID> graph = new Graph<UUID>();
 
         try {
-            new SegmentParser(store) {
+            new SegmentParser(reader) {
                 private void addEdge(RecordId from, RecordId to) {
                     graph.addVertex(from.asUUID());
                     graph.addVertex(to.asUUID());
