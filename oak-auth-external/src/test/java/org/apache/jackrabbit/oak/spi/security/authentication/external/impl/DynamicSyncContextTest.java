@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -31,6 +32,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -416,6 +418,21 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
 
         assertFalse(gr.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
         assertFalse(r.hasPendingChanges());
+    }
+
+    @Test
+    public void testAutoMembership() throws Exception {
+        Group gr = userManager.createGroup("group" + UUID.randomUUID());
+        r.commit();
+
+        syncConfig.user().setAutoMembership(gr.getID(), "non-existing-group");
+
+        SyncResult result = syncContext.sync(idp.getUser(USER_ID));
+        assertSame(SyncResult.Status.ADD, result.getStatus());
+
+        User u = userManager.getAuthorizable(USER_ID, User.class);
+        assertFalse(gr.isDeclaredMember(u));
+        assertFalse(gr.isMember(u));
     }
 
     private static final class TestUserWithGroupRefs extends TestIdentityProvider.TestIdentity implements ExternalUser {

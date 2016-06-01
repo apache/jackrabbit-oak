@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
@@ -66,7 +67,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -189,8 +189,15 @@ abstract class AbstractExternalTest extends AbstractTest {
 
                         // now register the sync-handler with the dynamic membership config
                         // in order to enable dynamic membership with the external principal configuration
-                        Map props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
+                        Map props = ImmutableMap.of(
+                                DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership(),
+                                DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership());
                         context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
+
+                        Map shMappingProps = ImmutableMap.of(
+                                SyncHandlerMapping.PARAM_IDP_NAME, idp.getName(),
+                                SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfig.getName());
+                        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, shMappingProps);
                     }
 
                     SecurityProvider sp = new TestSecurityProvider(ConfigurationParameters.EMPTY);

@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Hashtable;
-
 import javax.jcr.Repository;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.security.auth.spi.LoginModule;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -43,8 +43,6 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
  * Implements a LoginModuleFactory that creates {@link ExternalLoginModule}s and allows to configure login modules
  * via OSGi config.
@@ -56,7 +54,7 @@ import com.google.common.collect.ImmutableMap;
         configurationFactory = true
 )
 @Service
-public class ExternalLoginModuleFactory implements LoginModuleFactory {
+public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandlerMapping {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModuleFactory.class);
 
@@ -92,14 +90,14 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
             label = "Identity Provider Name",
             description = "Name of the identity provider (for example: 'ldap')."
     )
-    public static final String PARAM_IDP_NAME = ExternalLoginModule.PARAM_IDP_NAME;
+    public static final String PARAM_IDP_NAME = SyncHandlerMapping.PARAM_IDP_NAME;
 
     @Property(
             value = "default",
             label = "Sync Handler Name",
             description = "Name of the sync handler."
     )
-    public static final String PARAM_SYNC_HANDLER_NAME = ExternalLoginModule.PARAM_SYNC_HANDLER_NAME;
+    public static final String PARAM_SYNC_HANDLER_NAME = SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
 
     @Reference
     private SyncManager syncManager;
@@ -120,6 +118,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
      */
     private Registration mbeanRegistration;
 
+    //----------------------------------------------------< SCR integration >---
     /**
      * Activates the LoginModuleFactory service
      * @param context the component context

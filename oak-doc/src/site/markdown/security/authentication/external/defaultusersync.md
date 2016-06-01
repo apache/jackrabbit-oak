@@ -84,81 +84,10 @@ represented by [ExternalIdentityRef].
 As of Oak 1.5.3 the default sync handler comes with an addition configuration 
 option that allows to enable dynamic group membership resolution for external users. 
 Enabling dynamic membership in the [DefaultSyncConfig] will change the way external
-groups are synchronized (see also [OAK-4101]). 
-
-The key benefits of dynamic membership resolution are:
-
-- avoiding duplicate user management effort wrt to membership handling both in the external IDP and the repository
-- ease principal resolution upon repository login
-
-#### SyncContext with Dynamic Membership
-
-With the default `SyncHandler` this configuration option will show the following 
-effects:
-
-- If enabled the handler will use an alternative [SyncContext] to synchronize external groups.
-- Instead of synchronizing groups into the user management, this [DynamicSyncContext]
-  will additionally set the property `rep:externalPrincipalNames` on the synchronized external user
-- `rep:externalPrincipalNames` is a system maintained multivalued property of type 
-  'STRING' storing the names of the `java.security.acl.Group`-principals a given 
-  external user is member of (both declared and inherited according to the configured
-  membership nesting depth)
-- External groups will no longer be synchronised into the repository's user management 
-  but will only be available as `Principal`s (see section _User Management_ below).
-  
-#### Effect of Dynamic Membership on other Security Modules
-  
-##### Principal Management
-
-The dynamic (principal) membership features comes with a dedicated `PrincipalConfiguration` 
-implementation (i.e. [ExternalPrincipalConfiguration]) that is in charge of securing  
-the `rep:externalPrincipalNames` properties (see also section [Validation](#validation) 
-and [Configuration](#configuration) below). 
-
-Additionally the [ExternalPrincipalConfiguration] provides a `PrincipalProvider` 
-implementation which makes external (group) principals available to the repository's 
-authentication and authorization using the `rep:externalPrincipalNames` as a 
-persistent cache to avoid expensive lookup on the IDP.
-This also makes external `Principal`s retrievable and searchable through the 
-Jackrabbit principal management API (see section [Principal Management](../principal.html)
-for a comprehensive description).
-
-Please note the following implementation detail wrt accessibility of group principals:
-A given external principal will be accessible though the principal management API 
-if it can be read from any of the `rep:externalPrincipalNames` properties 
-present using a dedicated query.
-
-##### User Management
-
-As described above the dynamic membership option will effectively disable the
-synchronization of the complete external group account information into the repository's
-user management feature but limit the synchronized information to the principal 
-names and the membership relation between a given `java.security.acl.Group` principal 
-and external user accounts.
-
-The user management API will consequently no longer be knowledgeable of external 
-group identities (exception: groups that have been synchronized before enabling 
-the feature will remain untouched and will be synchronized according to the 
-sync configuration).
-
-While this behavior does not affect default authentication and authorization modules 
-(see below) it will have an impact on applications that rely on full synchronization 
-of external identities. Those application won't be able to benefit from the dynamic 
-membership feature until dynamic groups can be created with the 
-Jackrabbit [User Management API](../user.html) (see [OAK-2687]).
-
-##### Authentication
-
-The authentication setup provided by Oak is not affected by the dynamic membership 
-handling as long as the configured `LoginModule` implementations rely on the 
-`PrincipalProvider` for principal resolution and the [ExternalPrincipalConfiguration]
-is properly registered with the `SecurityProvider` (see section [Configuration](#configuration) below).
-
-##### Authorization
-
-The authorization modules shipped with Oak only depend on `Principal`s (and not on
-user management functionality) and are therefore not affected by the dynamic 
-membership configuration.
+groups are synchronized (see also [OAK-4101]).
+ 
+The details and effects on other security related modules are described in 
+section [Dynamic Membership](dynamic.html). 
 
 <a name="xml_import"/>
 #### XML Import
