@@ -38,6 +38,9 @@ import com.google.common.base.Supplier;
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
  * which it passes to its {@link #execute(WriteOperation) execute} method.
+ * <p>
+ * Instances of this class are thread safe. See also the class comment of
+ * {@link SegmentWriter}.
  */
 public class SegmentBufferWriterPool implements WriteOperationHandler {
     private final Map<Object, SegmentBufferWriter> writers = newHashMap();
