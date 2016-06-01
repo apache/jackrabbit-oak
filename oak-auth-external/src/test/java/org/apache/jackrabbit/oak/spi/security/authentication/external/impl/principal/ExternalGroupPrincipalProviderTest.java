@@ -54,7 +54,7 @@ import static org.junit.Assert.fail;
 
 public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
-    private void syncWithMembership(@Nonnull ExternalUser externalUser, long depth) throws Exception {
+    void syncWithMembership(@Nonnull ExternalUser externalUser, long depth) throws Exception {
         DefaultSyncConfig sc = new DefaultSyncConfig();
         sc.user().setMembershipNestingDepth(depth);
 
@@ -69,7 +69,11 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         root.refresh();
     }
 
-    private Set<Principal> getDeclaredGroupPrincipals(@Nonnull String userId) throws ExternalIdentityException {
+    Set<Principal> getExpectedGroupPrincipals(@Nonnull String userId) throws Exception {
+        return getDeclaredGroupPrincipals(userId);
+    }
+
+    Set<Principal> getDeclaredGroupPrincipals(@Nonnull String userId) throws Exception {
         Set<Principal> principals = ImmutableSet.copyOf(Iterables.transform(idp.getUser(userId).getDeclaredGroups(), new Function<ExternalIdentityRef, Principal>() {
             @Nullable
             @Override
@@ -77,14 +81,22 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
                 try {
                     return new PrincipalImpl(idp.getIdentity(input).getPrincipalName());
                 } catch (ExternalIdentityException e) {
-                    fail(e.getMessage());
-                    return null;
+                    throw new RuntimeException(e);
                 }
-            }
-
-            ;
+            };
         }));
         return principals;
+    }
+
+    void collectExpectedPrincipals(Set<Principal> grPrincipals, @Nonnull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
+        if (depth <= 0) {
+            return;
+        }
+        for (ExternalIdentityRef ref : declaredGroups) {
+            ExternalIdentity ei = idp.getIdentity(ref);
+            grPrincipals.add(new PrincipalImpl(ei.getPrincipalName()));
+            collectExpectedPrincipals(grPrincipals, ei.getDeclaredGroups(), depth - 1);
+        }
     }
 
     @Test
@@ -234,7 +246,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
 
-        Set<Principal> expected = getDeclaredGroupPrincipals(USER_ID);
+        Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
 
         Set<? extends Principal> principals = principalProvider.getGroupMembership(user.getPrincipal());
         assertEquals(expected, principals);
@@ -275,17 +287,6 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         assertEquals(expectedGrPrincipals, principals);
     }
 
-    private void collectExpectedPrincipals(Set<Principal> grPrincipals, @Nonnull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws ExternalIdentityException {
-        if (depth <= 0) {
-            return;
-        }
-        for (ExternalIdentityRef ref : declaredGroups) {
-            ExternalIdentity ei = idp.getIdentity(ref);
-            grPrincipals.add(new PrincipalImpl(ei.getPrincipalName()));
-            collectExpectedPrincipals(grPrincipals, ei.getDeclaredGroups(), depth - 1);
-        }
-    }
-
     @Test
     public void testGetGroupMembershipExternalGroup() throws Exception {
         Authorizable group = getUserManager(root).getAuthorizable("secondGroup");
@@ -314,7 +315,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testGetPrincipalsExternalUser() throws Exception {
         Set<? extends Principal> principals = principalProvider.getPrincipals(USER_ID);
-        assertEquals(getDeclaredGroupPrincipals(USER_ID), principals);
+        assertEquals(getExpectedGroupPrincipals(USER_ID), principals);
     }
 
     @Test

@@ -37,10 +37,20 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     public static final String ID_EXCEPTION = "throw!";
 
+    public static final String DEFAULT_IDP_NAME = "test";
+
     private final Map<String, ExternalGroup> externalGroups = new HashMap<String, ExternalGroup>();
     private final Map<String, ExternalUser> externalUsers = new HashMap<String, ExternalUser>();
 
+    private final String idpName;
+
     public TestIdentityProvider() {
+        this(DEFAULT_IDP_NAME);
+    }
+
+    public TestIdentityProvider(@Nonnull String idpName) {
+        this.idpName = idpName;
+
         addGroup(new TestGroup("aa", getName()));
         addGroup(new TestGroup("aaa", getName()));
         addGroup(new TestGroup("a", getName()).withGroups("aa", "aaa"));
@@ -82,7 +92,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     @Nonnull
     @Override
     public String getName() {
-        return "test";
+        return idpName;
     }
 
     @Override
@@ -151,11 +161,11 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         private final Map<String, Object> props = new HashMap<String, Object>();
 
         public TestIdentity() {
-            this("externalId", "principalName", "test");
+            this("externalId", "principalName", DEFAULT_IDP_NAME);
         }
 
         public TestIdentity(@Nonnull String userId) {
-            this(userId, userId, "test");
+            this(userId, userId, DEFAULT_IDP_NAME);
         }
 
         public TestIdentity(@Nonnull String userId, @Nonnull String principalName, @Nonnull String idpName) {

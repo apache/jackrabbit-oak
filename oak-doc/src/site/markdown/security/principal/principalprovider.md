@@ -79,7 +79,7 @@ principals on the IDP but relies on a persisted cache inside the repository wher
 the names of these external principals are synchronized to based on a configurable
 expiration time.
 
-See section [User and Group Synchronization : The Default Implementation](../authentication/defaultusersync.html)
+See section [User and Group Synchronization : The Default Implementation](../authentication/external/defaultusersync.html)
 for additional details.
 
 Since Oak 1.5.3

@@ -64,7 +64,7 @@ if the user is not yet present in the local system at all), the login module mus
 check the credentials with the external system during the `login()` method.
 
 The details of the default user/group synchronization mechanism are described in section
-[User and Group Synchronization : The Default Implementation](defaultusersync.html)
+[User and Group Synchronization : The Default Implementation](external/defaultusersync.html)
 
 ##### Supported Credentials
 
