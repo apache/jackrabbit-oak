@@ -64,6 +64,9 @@ import org.slf4j.LoggerFactory;
  * </pre>
  * The behaviour of this class is undefined should the pre-allocated buffer be
  * overrun be calling any of the write methods.
+ * <p>
+ * Instances of this class are <em>not thread safe</em>. See also the class comment of
+ * {@link SegmentWriter}.
  */
 public class SegmentBufferWriter implements WriteOperationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);

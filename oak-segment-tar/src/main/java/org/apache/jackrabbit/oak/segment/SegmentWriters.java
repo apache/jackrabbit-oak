@@ -29,6 +29,10 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 public final class SegmentWriters {
     private SegmentWriters() {}
 
+    /**
+     * Create a thread safe {@code SegmentWriter} based on a {@link SegmentBufferWriterPool pool}
+     * of {@link SegmentBufferWriter} instances.
+     */
     @Nonnull
     public static SegmentWriter pooledSegmentWriter(@Nonnull FileStore store,
                                                     @Nonnull SegmentVersion version,
@@ -38,6 +42,10 @@ public final class SegmentWriters {
                 new SegmentBufferWriterPool(store, store.getTracker(), store.getReader(), version, name, generation));
     }
 
+    /**
+     * Create a thread safe {@code SegmentWriter} based on a {@link SegmentBufferWriterPool pool}
+     * of {@link SegmentBufferWriter} instances.
+     */
     @Nonnull
     public static SegmentWriter pooledSegmentWriter(@Nonnull MemoryStore store,
                                                     @Nonnull SegmentVersion version,
@@ -47,6 +55,10 @@ public final class SegmentWriters {
                 new SegmentBufferWriterPool(store, store.getTracker(), store.getReader(), version, name, generation));
     }
 
+    /**
+     * Create a thread safe {@code SegmentWriter} based on a {@link SegmentBufferWriterPool pool}
+     * of {@link SegmentBufferWriter} instances.
+     */
     @Nonnull
     public static SegmentWriter pooledSegmentWriter(@Nonnull HttpStore store,
                                                     @Nonnull SegmentVersion version,
@@ -56,6 +68,10 @@ public final class SegmentWriters {
                 new SegmentBufferWriterPool(store, store.getTracker(), store.getReader(), version, name, generation));
     }
 
+    /**
+     * Create a <em>non</em> thread safe {@code SegmentWriter} based on single
+     * {@link SegmentBufferWriter} instance.
+     */
     @Nonnull
     public static SegmentWriter segmentWriter(@Nonnull FileStore store,
                                               @Nonnull SegmentVersion version,
@@ -65,6 +81,10 @@ public final class SegmentWriters {
                 new SegmentBufferWriter(store, store.getTracker(), store.getReader(), version, name, generation));
     }
 
+    /**
+     * Create a <em>non</em> thread safe {@code SegmentWriter} based on single
+     * {@link SegmentBufferWriter} instance.
+     */
     @Nonnull
     public static SegmentWriter segmentWriter(@Nonnull MemoryStore store,
                                               @Nonnull SegmentVersion version,
@@ -74,6 +94,10 @@ public final class SegmentWriters {
                 new SegmentBufferWriter(store, store.getTracker(), store.getReader(), version, name, generation));
     }
 
+    /**
+     * Create a <em>non</em> thread safe {@code SegmentWriter} based on single
+     * {@link SegmentBufferWriter} instance.
+     */
     @Nonnull
     public static SegmentWriter segmentWriter(@Nonnull HttpStore store,
                                               @Nonnull SegmentVersion version,

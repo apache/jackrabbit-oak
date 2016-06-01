@@ -77,7 +77,7 @@ import org.slf4j.LoggerFactory;
  * A {@code SegmentWriter} converts nodes, properties, values, etc. to records and
  * persists them with the help of a {@link WriteOperationHandler}.
  * All public methods of this class are thread safe if and only if the
- * {@code WriteOperationHandler} passed to the constructor is thread safe.
+ * {@link WriteOperationHandler} passed to the constructor is thread safe.
  */
 public class SegmentWriter {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
