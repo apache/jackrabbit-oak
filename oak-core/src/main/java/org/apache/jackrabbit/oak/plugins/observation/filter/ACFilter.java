@@ -32,11 +32,30 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * {@code EventTypeFilter} filters based on the access rights of the observing session.
  */
-public class ACFilter implements EventFilter {
-    private final TreePermission treePermission;
+public final class ACFilter implements EventFilter {
 
-    private ACFilter(@Nonnull TreePermission treePermission) {
-        this.treePermission = checkNotNull(treePermission);
+    private final NodeState before;
+
+    private final NodeState after;
+
+    private final String name;
+
+    private final ACFilter parentFilter;
+
+    private final PermissionProvider permissionProvider;
+
+    private TreePermission treePermission;
+
+    private ACFilter(@Nonnull NodeState before,
+                     @Nonnull NodeState after,
+                     @Nonnull String name,
+                     @Nonnull PermissionProvider permissionProvider,
+                     @Nonnull ACFilter parentFilter) {
+        this.before = checkNotNull(before);
+        this.after = checkNotNull(after);
+        this.name = checkNotNull(name);
+        this.permissionProvider = checkNotNull(permissionProvider);
+        this.parentFilter = checkNotNull(parentFilter);
     }
 
     /**
@@ -47,52 +66,71 @@ public class ACFilter implements EventFilter {
      * @param after  after state
      * @param permissionProvider  permission provider for access control evaluation
      */
-    public ACFilter(@Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull PermissionProvider permissionProvider) {
-        this(permissionProvider.getTreePermission(
-                TreeFactory.createReadOnlyTree((after.exists() ? after : before)), TreePermission.EMPTY));
+    public ACFilter(@Nonnull NodeState before,
+                    @Nonnull NodeState after,
+                    @Nonnull PermissionProvider permissionProvider) {
+        this.before = checkNotNull(before);
+        this.after = checkNotNull(after);
+        this.name = null;
+        this.permissionProvider = checkNotNull(permissionProvider);
+        this.parentFilter = null;
     }
 
     @Override
     public boolean includeAdd(PropertyState after) {
-        return treePermission.canRead(after);
+        return getTreePermission().canRead(after);
     }
 
     @Override
     public boolean includeChange(PropertyState before, PropertyState after) {
-        return treePermission.canRead(after);
+        return getTreePermission().canRead(after);
     }
 
     @Override
     public boolean includeDelete(PropertyState before) {
-        return treePermission.canRead(before);
+        return getTreePermission().canRead(before);
     }
 
     @Override
     public boolean includeAdd(String name, NodeState after) {
-        return treePermission.getChildPermission(name, after).canRead();
+        return getTreePermission().getChildPermission(name, after).canRead();
     }
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return treePermission.getChildPermission(name, before).canRead();
+        return getTreePermission().getChildPermission(name, before).canRead();
     }
 
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
         // TODO: check access to the source path, it might not be accessible
-        return treePermission.getChildPermission(name, moved).canRead();
+        return getTreePermission().getChildPermission(name, moved).canRead();
     }
 
     @Override
     public boolean includeReorder(String destName, String name, NodeState reordered) {
         // TODO: check access to the dest name, it might not be accessible
-        return treePermission.getChildPermission(name, reordered).canRead();
+        return getTreePermission().getChildPermission(name, reordered).canRead();
     }
 
     @Override
     public EventFilter create(String name, NodeState before, NodeState after) {
-        return new ACFilter(treePermission.getChildPermission(name, after));
+        return new ACFilter(before, after, name, permissionProvider, this);
     }
 
+    //-----------------------------< internal >---------------------------------
+
+    private TreePermission getTreePermission() {
+        TreePermission tp = treePermission;
+        if (tp == null) {
+            if (parentFilter == null) {
+                tp = permissionProvider.getTreePermission(
+                        TreeFactory.createReadOnlyTree((after.exists() ? after : before)), TreePermission.EMPTY);
+            } else {
+                tp = parentFilter.getTreePermission().getChildPermission(name, after);
+            }
+            treePermission = tp;
+        }
+        return tp;
+    }
 }
