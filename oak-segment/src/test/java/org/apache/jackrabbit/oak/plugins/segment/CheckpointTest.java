@@ -182,4 +182,13 @@ public class CheckpointTest {
         String cp0 = store.checkpoint(10);
         assertNotNull(store.retrieve(cp0));
     }
+
+    @Test
+    public void testCheckpointMax() throws CommitFailedException, IOException {
+        SegmentNodeStore store = SegmentNodeStore.builder(new MemoryStore()).build();
+        String cp0 = store.checkpoint(Long.MAX_VALUE);
+        String cp1 = store.checkpoint(Long.MAX_VALUE);
+        assertNotNull(store.retrieve(cp0));
+        assertNotNull(store.retrieve(cp1));
+    }
 }
