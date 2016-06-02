@@ -799,6 +799,7 @@ public class FileStore implements SegmentStore, Closeable {
         });
 
         if (cleanupNeeded.getAndSet(false)) {
+            // FIXME OAK-4138: Decouple revision cleanup from the flush thread
             pendingRemove.addAll(cleanup());
         }
 
