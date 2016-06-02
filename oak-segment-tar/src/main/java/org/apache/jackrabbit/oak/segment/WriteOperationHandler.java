@@ -58,9 +58,6 @@ interface WriteOperationHandler {
 
     /**
      * Flush any pending changes on any {@link SegmentBufferWriter} managed by this instance.
-     * This method <em>does not block</em> to wait for concurrent write operations. However, if
-     * a write operation is currently in progress a call to this method ensures the respective
-     * changes are properly flushed at the end of that call.
      * @throws IOException
      */
     void flush() throws IOException;
