@@ -1143,7 +1143,6 @@ public class FileStore implements SegmentStore, Closeable {
                                      Supplier<Boolean> cancel)
     throws IOException {
         if (gcOptions.isOffline()) {
-            // Capital C to indicate offline compaction
             SegmentWriter writer = new SegmentWriter(this, segmentReader, blobStore, tracker, bufferWriter);
             return new Compactor(segmentReader, writer, blobStore, cancel, gcOptions)
                     .compact(EMPTY_NODE, head, EMPTY_NODE);
