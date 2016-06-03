@@ -315,7 +315,8 @@ public final class PathUtils {
         } else if (isAbsolutePath(subPath)) {
             throw new IllegalArgumentException("Cannot append absolute path " + subPath);
         }
-        StringBuilder buff = new StringBuilder(parentPath);
+        StringBuilder buff = new StringBuilder(parentPath.length() + subPath.length() + 1);
+        buff.append(parentPath);
         if (!denotesRootPath(parentPath)) {
             buff.append('/');
         }
