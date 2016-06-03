@@ -33,14 +33,15 @@ import java.nio.ByteBuffer;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.ByteStreams;
+import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
-import org.apache.jackrabbit.oak.segment.SegmentReaders;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
@@ -55,7 +56,15 @@ public class HttpStore implements SegmentStore {
     private final HttpStoreRevisions revisions = new HttpStoreRevisions(this);
 
     @Nonnull
-    private final SegmentReader segmentReader = SegmentReaders.segmentReader(this, DEFAULT_STRING_CACHE_MB);
+    private final Supplier<SegmentWriter> getWriter = new Supplier<SegmentWriter>() {
+        @Override
+        public SegmentWriter get() {
+            return getWriter();
+        }
+    };
+    @Nonnull
+    private final SegmentReader segmentReader = new CachingSegmentReader(
+            getWriter, revisions, null, DEFAULT_STRING_CACHE_MB);
 
     @Nonnull
     private final SegmentWriter segmentWriter = pooledSegmentWriter(this,
