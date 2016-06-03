@@ -497,6 +497,8 @@ final class RecordWriters {
         @Override
         protected RecordId writeRecordContent(RecordId id, SegmentBufferWriter writer) {
             if (stableId == null) {
+                // Write this node's record id to indicate that the stable id is not
+                // explicitly stored.
                 writer.writeRecordId(id);
             } else {
                 writer.writeRecordId(stableId);
