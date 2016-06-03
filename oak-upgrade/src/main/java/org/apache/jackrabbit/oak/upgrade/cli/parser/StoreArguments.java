@@ -45,6 +45,7 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
 
 public class StoreArguments {
@@ -125,7 +126,7 @@ public class StoreArguments {
     }
 
     public boolean isSkipLongNames() {
-        return dst.getType() != SEGMENT;
+        return dst.getType() != SEGMENT && dst.getType() != SEGMENT_TAR;
     }
 
     public String[] getSrcPaths() {
