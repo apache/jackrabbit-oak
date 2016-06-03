@@ -256,6 +256,219 @@ public class CompactionAndCleanupIT {
         }
     }
 
+    /**
+     * Create a lot of data nodes (no binaries) and a few checkpoints, verify
+     * that compacting checkpoints will not cause the size to explode
+     */
+    @Test
+    public void offlineCompactionCps() throws IOException,
+            CommitFailedException {
+        SegmentGCOptions gcOptions = DEFAULT.setOffline();
+        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(1)
+                .withGCOptions(gcOptions)
+                .build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        try {
+            // Create ~2MB of data
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+            for (int i = 0; i < 10000; i++) {
+                NodeBuilder c = content.child("c" + i);
+                for (int j = 0; j < 1000; j++) {
+                    c.setProperty("p" + i, "v" + i);
+                }
+            }
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+            fileStore.compact();
+            fileStore.cleanup();
+            // Compacts to 548Kb
+            long size0 = fileStore.size();
+
+            int cpNo = 4;
+            Set<String> cps = new HashSet<String>();
+            for (int i = 0; i < cpNo; i++) {
+                cps.add(nodeStore.checkpoint(60000));
+            }
+            assertEquals(cpNo, cps.size());
+            for (String cp : cps) {
+                assertTrue(nodeStore.retrieve(cp) != null);
+            }
+
+            long size1 = fileStore.size();
+            assertSize("with checkpoints added", size1, size0, size0 * 11 / 10);
+            fileStore.compact();
+            fileStore.cleanup();
+            long size2 = fileStore.size();
+            assertSize("with checkpoints compacted", size2, size1 * 9/10, size1 * 11 / 10);
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    /**
+     * Create 2 binary nodes with same content but not same reference. Verify
+     * de-duplication capabilities of compaction.
+     */
+    @Test
+    public void offlineCompactionBinC1() throws IOException,
+            CommitFailedException {
+        SegmentGCOptions gcOptions = DEFAULT.setOffline()
+                .withBinaryDeduplication();
+        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(1).withGCOptions(gcOptions).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
+                .builder(fileStore).build();
+
+        try {
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+
+            int blobSize = 5 * 1024 * 1024;
+            byte[] data = new byte[blobSize];
+            new Random().nextBytes(data);
+
+            NodeBuilder c1 = content.child("c1");
+            Blob b1 = nodeStore.createBlob(new ByteArrayInputStream(data));
+            c1.setProperty("blob1", b1);
+            NodeBuilder c2 = content.child("c2");
+            Blob b2 = nodeStore.createBlob(new ByteArrayInputStream(data));
+            c2.setProperty("blob2", b2);
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            int cpNo = 4;
+            Set<String> cps = new HashSet<String>();
+            for (int i = 0; i < cpNo; i++) {
+                cps.add(nodeStore.checkpoint(60000));
+            }
+            assertEquals(cpNo, cps.size());
+            for (String cp : cps) {
+                assertTrue(nodeStore.retrieve(cp) != null);
+            }
+
+            long size1 = fileStore.size();
+            fileStore.compact();
+            fileStore.cleanup();
+            long size2 = fileStore.size();
+            assertSize("with compacted binaries", size2, 0, size1 - blobSize);
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    /**
+     * Create 2 binary nodes with same content but not same reference. Reduce
+     * the max size if de-duplicated binaries under the binary length. Verify
+     * de-duplication capabilities of compaction.
+     */
+    @Test
+    public void offlineCompactionBinC2() throws IOException,
+            CommitFailedException {
+        int blobSize = 5 * 1024 * 1024;
+
+        SegmentGCOptions gcOptions = DEFAULT.setOffline()
+                .withBinaryDeduplication()
+                .setBinaryDeduplicationMaxSize(blobSize / 2);
+        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(1).withGCOptions(gcOptions).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
+                .builder(fileStore).build();
+
+        try {
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+
+            byte[] data = new byte[blobSize];
+            new Random().nextBytes(data);
+
+            NodeBuilder c1 = content.child("c1");
+            Blob b1 = nodeStore.createBlob(new ByteArrayInputStream(data));
+            c1.setProperty("blob1", b1);
+            NodeBuilder c2 = content.child("c2");
+            Blob b2 = nodeStore.createBlob(new ByteArrayInputStream(data));
+            c2.setProperty("blob2", b2);
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            int cpNo = 4;
+            Set<String> cps = new HashSet<String>();
+            for (int i = 0; i < cpNo; i++) {
+                cps.add(nodeStore.checkpoint(60000));
+            }
+            assertEquals(cpNo, cps.size());
+            for (String cp : cps) {
+                assertTrue(nodeStore.retrieve(cp) != null);
+            }
+
+            long size1 = fileStore.size();
+            fileStore.compact();
+            fileStore.cleanup();
+            long size2 = fileStore.size();
+
+            // not expected to reduce the size too much, as the binaries are
+            // above the threshold
+            assertSize("with compacted binaries", size2, size1 * 9 / 10,
+                    size1 * 11 / 10);
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    /**
+     * Create 2 binary nodes with same content and same reference. Verify
+     * de-duplication capabilities of compaction
+     */
+    @Test
+    public void offlineCompactionBinR1() throws IOException,
+            CommitFailedException {
+        SegmentGCOptions gcOptions = DEFAULT.setOffline();
+        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+                .withMaxFileSize(1).withGCOptions(gcOptions).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
+                .builder(fileStore).build();
+
+        try {
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+
+            int blobSize = 5 * 1024 * 1024;
+            byte[] data = new byte[blobSize];
+            new Random().nextBytes(data);
+            Blob b = nodeStore.createBlob(new ByteArrayInputStream(data));
+
+            NodeBuilder c1 = content.child("c1");
+            c1.setProperty("blob1", b);
+            NodeBuilder c2 = content.child("c2");
+            c2.setProperty("blob2", b);
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            int cpNo = 4;
+            Set<String> cps = new HashSet<String>();
+            for (int i = 0; i < cpNo; i++) {
+                cps.add(nodeStore.checkpoint(60000));
+            }
+            assertEquals(cpNo, cps.size());
+            for (String cp : cps) {
+                assertTrue(nodeStore.retrieve(cp) != null);
+            }
+
+            // 5Mb, de-duplication by the SegmentWriter
+            long size1 = fileStore.size();
+            fileStore.compact();
+            fileStore.cleanup();
+            long size2 = fileStore.size();
+            assertSize("with compacted binaries", size2, 0, size1 * 11 / 10);
+            
+            System.err.println(size2);
+            
+        } finally {
+            fileStore.close();
+        }
+    }
+
     private static void assertSize(String info, long size, long lower, long upper) {
         log.debug("File Store {} size {}, expected in interval [{},{}]",
                 info, size, lower, upper);
