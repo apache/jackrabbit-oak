@@ -89,7 +89,6 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
-import org.apache.jackrabbit.oak.segment.SegmentReaders;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
@@ -133,7 +132,7 @@ public class FileStore implements SegmentStore, Closeable {
     private final SegmentWriter segmentWriter;
 
     @Nonnull
-    private final SegmentReader segmentReader;
+    private final CachingSegmentReader segmentReader;
 
     private final File directory;
 
@@ -438,12 +437,18 @@ public class FileStore implements SegmentStore, Closeable {
         } else {
             this.segmentCache = new SegmentCache(DEFAULT_STRING_CACHE_MB);
         }
+        Supplier<SegmentWriter> getWriter = new Supplier<SegmentWriter>() {
+            @Override
+            public SegmentWriter get() {
+                return getWriter();
+            }
+        };
         if (builder.cacheSize < 0) {
-            this.segmentReader = SegmentReaders.segmentReader(this, 0);
+            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, 0);
         } else if (builder.cacheSize > 0) {
-            this.segmentReader = SegmentReaders.segmentReader(this, builder.cacheSize);
+            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) builder.cacheSize);
         } else {
-            this.segmentReader = SegmentReaders.segmentReader(this, DEFAULT_STRING_CACHE_MB);
+            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) DEFAULT_STRING_CACHE_MB);
         }
         this.segmentWriter = pooledSegmentWriter(this, version, "sys", new Supplier<Integer>() {
                     @Override
@@ -559,10 +564,9 @@ public class FileStore implements SegmentStore, Closeable {
         return segmentCache.getCacheStats();
     }
 
-    // FIXME OAK-4373 move access to the cache stats to the segment reader and avoid casting to implementation
     @Nonnull
     public CacheStats getStringCacheStats() {
-        return ((CachingSegmentReader)segmentReader).getStringCacheStats();
+        return segmentReader.getStringCacheStats();
     }
 
     public void maybeCompact(boolean cleanup) throws IOException {
