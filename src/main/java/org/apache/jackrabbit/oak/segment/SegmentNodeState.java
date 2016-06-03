@@ -117,10 +117,16 @@ public class SegmentNodeState extends Record implements NodeState {
      * @return  stable id
      */
     String getStableId() {
+        // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getOffset());
         if (id.equals(getRecordId())) {
+            // If that id is equal to the record id of this node then the stable
+            // id is the string representation of the record id of this node.
+            // See RecordWriters.NodeStateWriter.writeRecordContent()
             return id.toString10();
         } else {
+            // Otherwise that id points to the serialised (msb, lsb, offset)
+            // stable id.
             Segment segment = id.getSegment();
             int pos = id.getOffset();
             long msb = segment.readLong(pos);
