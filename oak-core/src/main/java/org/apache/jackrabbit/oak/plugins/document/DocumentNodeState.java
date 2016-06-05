@@ -277,6 +277,11 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         }
     }
 
+    @Override
+    public long getPropertyCount() {
+        return properties.size();
+    }
+
     @Nonnull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
