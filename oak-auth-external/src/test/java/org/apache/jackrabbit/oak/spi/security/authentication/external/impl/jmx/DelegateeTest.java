@@ -251,14 +251,14 @@ public class DelegateeTest extends AbstractJmxTest {
 
     @Test(expected = SyncRuntimeException.class)
     public void testSyncAllExternalUsersThrowingIDP() {
-        Delegatee dg = Delegatee.createInstance(REPOSITORY, new DefaultSyncHandler(syncConfig), new TestIdentityProvider("throwing") {
+        Delegatee dg = createDelegatee(new TestIdentityProvider("throwing") {
 
             @Nonnull
             @Override
             public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
                 throw new ExternalIdentityException();
             }
-        }, getBatchSize());
+        });
 
         dg.syncAllExternalUsers();
     }
