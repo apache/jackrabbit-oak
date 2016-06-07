@@ -277,8 +277,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
             if (f.getSelector().equals(selector)) {
                 String p = propertyName;
                 if (relativePath != null) {
-                    p = PathUtils.concat(p, relativePath);
-                }                
+                    p = PathUtils.concat(relativePath, p);
+                }
                 p = normalizePropertyName(p);
                 restrictPropertyOnFilter(p, f);
             }
