@@ -994,9 +994,14 @@ public class SegmentWriter {
         }
 
         private boolean isOldGeneration(RecordId id) {
-            int thatGen = id.getSegment().getGcGeneration();
-            int thisGen = writer.getGeneration();
-            return thatGen < thisGen;
+            try {
+                int thatGen = id.getSegment().getGcGeneration();
+                int thisGen = writer.getGeneration();
+                return thatGen < thisGen;
+            } catch (SegmentNotFoundException snfe) {
+                throw new SegmentNotFoundException(
+                    "Cannot copy record from a generation that has been gc'ed already", snfe);
+            }
         }
 
         private class ChildNodeCollectorDiff extends DefaultNodeStateDiff {
