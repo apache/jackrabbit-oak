@@ -180,7 +180,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             ",\"sno\":" + tracker.getSegmentCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
-            segment = new Segment(tracker, reader, buffer, metaInfo);
+            segment = new Segment(store, reader, buffer, metaInfo);
             byte[] data = metaInfo.getBytes(UTF_8);
             RecordWriters.newValueWriter(data.length, data).write(this);
         } catch (IOException e) {

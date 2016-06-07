@@ -68,9 +68,9 @@ public class SegmentTracker {
     @Nonnull
     private final AtomicInteger segmentCounter = new AtomicInteger();
 
-    public SegmentTracker(@Nonnull SegmentStore store) {
+    public SegmentTracker() {
         for (int i = 0; i < tables.length; i++) {
-            tables[i] = new SegmentIdTable(store);
+            tables[i] = new SegmentIdTable();
         }
     }
 
@@ -96,42 +96,48 @@ public class SegmentTracker {
     }
 
     /**
-     * Get an existing {@code SegmentId} with the given {@code msb} and {@code lsb}
-     * or create a new one if no such id exists with this tracker.
-     * @param msb  most significant bits of the segment id
-     * @param lsb  least  significant bits of the segment id
+     * Get an existing {@code SegmentId} with the given {@code msb} and {@code
+     * lsb} or create a new one if no such id exists with this tracker.
+     *
+     * @param msb   most significant bits of the segment id
+     * @param lsb   least  significant bits of the segment id
+     * @param maker A non-{@code null} instance of {@link SegmentIdFactory}.
      * @return the segment id
      */
     @Nonnull
-    public SegmentId getSegmentId(long msb, long lsb) {
+    public SegmentId getSegmentId(long msb, long lsb, SegmentIdFactory maker) {
         int index = ((int) msb) & (tables.length - 1);
-        return tables[index].getSegmentId(msb, lsb);
+        return tables[index].getSegmentId(msb, lsb, maker);
     }
 
     /**
      * Create and track a new segment id for data segments.
+     *
+     * @param maker A non-{@code null} instance of {@link SegmentIdFactory}.
      * @return the segment id
      */
     @Nonnull
-    SegmentId newDataSegmentId() {
-        return newSegmentId(DATA);
+    public SegmentId newDataSegmentId(SegmentIdFactory maker) {
+        return newSegmentId(DATA, maker);
     }
 
     /**
      * Create and track a new segment id for bulk segments.
+     *
+     * @param maker A non-{@code null} instance of {@link SegmentIdFactory}.
      * @return the segment id
      */
     @Nonnull
-    SegmentId newBulkSegmentId() {
-        return newSegmentId(BULK);
+    public SegmentId newBulkSegmentId(SegmentIdFactory maker) {
+        return newSegmentId(BULK, maker);
     }
 
     @Nonnull
-    private SegmentId newSegmentId(long type) {
+    private SegmentId newSegmentId(long type, SegmentIdFactory maker) {
         segmentCounter.incrementAndGet();
         long msb = (random.nextLong() & MSB_MASK) | VERSION;
         long lsb = (random.nextLong() & LSB_MASK) | type;
-        return getSegmentId(msb, lsb);
+        return getSegmentId(msb, lsb, maker);
     }
 
     // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy

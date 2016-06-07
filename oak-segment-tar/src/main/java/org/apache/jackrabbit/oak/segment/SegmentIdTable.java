@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static java.util.Collections.nCopies;
@@ -63,9 +62,6 @@ public class SegmentIdTable {
     private final ArrayList<WeakReference<SegmentId>> references =
             newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
 
-    @Nonnull
-    private final SegmentStore store;
-
     private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
 
     
@@ -79,19 +75,19 @@ public class SegmentIdTable {
      */
     private int entryCount;
 
-    SegmentIdTable(@Nonnull SegmentStore store) {
-        this.store = checkNotNull(store);
-    }
-
     /**
-     * Get the segment id, and reference it in the weak references map.
-     * 
-     * @param msb
-     * @param lsb
+     * Get the segment id, and reference it in the weak references map. If the
+     * pair of MSB/LSB is not tracked by this table, a new instance of {@link
+     * SegmentId} is created using the provided {@link SegmentIdFactory} and
+     * tracked by this table.
+     *
+     * @param msb   The most significant bits of the {@link SegmentId}.
+     * @param lsb   The least significant bits of the {@link SegmentId}.
+     * @param maker A non-{@code null} instance of {@link SegmentIdFactory}.
      * @return the segment id
      */
     @Nonnull
-    synchronized SegmentId getSegmentId(long msb, long lsb) {
+    synchronized SegmentId getSegmentId(long msb, long lsb, SegmentIdFactory maker) {
         int index = getIndex(lsb);
         boolean shouldRefresh = false;
 
@@ -110,7 +106,7 @@ public class SegmentIdTable {
             reference = references.get(index);
         }
 
-        SegmentId id = new SegmentId(store, msb, lsb);
+        SegmentId id = maker.newSegmentId(msb, lsb);
         references.set(index, new WeakReference<SegmentId>(id));
         entryCount++;
         if (entryCount > references.size() * 0.75) {
