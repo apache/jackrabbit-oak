@@ -19,94 +19,148 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Maps.newConcurrentMap;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration, monitoring and management
 // add unit tests
 // document, nullability
-public class WriterCacheManager {
-    private static final Logger LOG = LoggerFactory.getLogger(WriterCacheManager.class);
+public interface WriterCacheManager {
 
-    private static final int STRING_RECORDS_CACHE_SIZE = Integer.getInteger(
-            "oak.segment.writer.stringsCacheSize", 15000);
+    @Nonnull
+    RecordCache<String> getStringCache(int generation);
 
-    /**
-     * Cache of recently stored string records, used to avoid storing duplicates
-     * of frequently occurring data.
-     */
-    private final Generation<RecordCache<String>> stringCaches =
-            new Generation<>(STRING_RECORDS_CACHE_SIZE <= 0
-                    ? RecordCache.<String>empty()
-                    : RecordCache.<String>factory(STRING_RECORDS_CACHE_SIZE));
+    @Nonnull
+    RecordCache<Template> getTemplateCache(int generation);
 
-    private static final int TPL_RECORDS_CACHE_SIZE = Integer.getInteger(
-            "oak.segment.writer.templatesCacheSize", 3000);
+    @Nonnull
+    NodeCache getNodeCache(int generation);
 
-    /**
-     * Cache of recently stored template records, used to avoid storing
-     * duplicates of frequently occurring data.
-     */
-    private final Generation<RecordCache<Template>> templateCaches =
-            new Generation<>(TPL_RECORDS_CACHE_SIZE <= 0
-                    ? RecordCache.<Template>empty()
-                    : RecordCache.<Template>factory(TPL_RECORDS_CACHE_SIZE));
+    void evictCaches(Predicate<Integer> generations);
 
-    private final Generation<NodeCache> nodeCaches =
-            new Generation<>(NodeCache.factory(1000000, 20));
+    class Empty implements WriterCacheManager {
+        private static final WriterCacheManager EMPTY = new Empty();
+        private final RecordCache<String> stringCache = RecordCache.<String>empty().get();
+        private final RecordCache<Template> templateCache = RecordCache.<Template>empty().get();
+        private final NodeCache nodeCache = NodeCache.empty().get();
 
-    private static class Generation<T> {
-        private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
-        private final Supplier<T> cacheFactory;
+        public static WriterCacheManager create() { return EMPTY; }
 
-        Generation(Supplier<T> cacheFactory) {
-            this.cacheFactory = cacheFactory;
+        private Empty(){}
+
+        @Override
+        public RecordCache<String> getStringCache(int generation) {
+            return stringCache;
         }
 
-        T getGeneration(final int generation) {
-            // Preemptive check to limit the number of wasted (Memoizing)Supplier instances
-            if (!generations.containsKey(generation)) {
-                generations.putIfAbsent(generation, memoize(cacheFactory));
+        @Override
+        public RecordCache<Template> getTemplateCache(int generation) {
+            return templateCache;
+        }
+
+        @Override
+        public NodeCache getNodeCache(int generation) {
+            return nodeCache;
+        }
+
+        @Override
+        public void evictCaches(Predicate<Integer> generations) { }
+    }
+
+    class Default implements WriterCacheManager {
+        /**
+         * Cache of recently stored string records, used to avoid storing duplicates
+         * of frequently occurring data.
+         */
+        private final Generation<RecordCache<String>> stringCaches;
+
+        /**
+         * Cache of recently stored template records, used to avoid storing
+         * duplicates of frequently occurring data.
+         */
+        private final Generation<RecordCache<Template>> templateCaches;
+
+        /**
+         * Cache of recently stored nodes to avoid duplicating linked nodes (i.e. checkpoints)
+         * during compaction.
+         */
+        private final Generation<NodeCache> nodeCaches;
+
+        public static WriterCacheManager create(
+                @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
+                @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
+                @Nonnull Supplier<NodeCache> nodeCacheFactory) {
+            return new Default(stringCacheFactory, templateCacheFactory, nodeCacheFactory);
+        }
+
+        private Default(
+                @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
+                @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
+                @Nonnull Supplier<NodeCache> nodeCacheFactory) {
+            this.stringCaches = new Generation<>(stringCacheFactory);
+            this.templateCaches = new Generation<>(templateCacheFactory);
+            this.nodeCaches = new Generation<>(nodeCacheFactory);
+        }
+
+        private static class Generation<T> {
+            private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
+            private final Supplier<T> cacheFactory;
+
+            Generation(@Nonnull Supplier<T> cacheFactory) {
+                this.cacheFactory = checkNotNull(cacheFactory);
             }
-            return generations.get(generation).get();
-        }
 
-        void evictGenerations(Predicate<Integer> evict) {
-            Iterator<Integer> it = generations.keySet().iterator();
-            while (it.hasNext()) {
-                if (evict.apply(it.next())) {
-                    it.remove();
+            T getGeneration(final int generation) {
+                // Preemptive check to limit the number of wasted (Memoizing)Supplier instances
+                if (!generations.containsKey(generation)) {
+                    generations.putIfAbsent(generation, memoize(cacheFactory));
+                }
+                return generations.get(generation).get();
+            }
+
+            void evictGenerations(@Nonnull Predicate<Integer> evict) {
+                Iterator<Integer> it = generations.keySet().iterator();
+                while (it.hasNext()) {
+                    if (evict.apply(it.next())) {
+                        it.remove();
+                    }
                 }
             }
         }
-    }
 
-    // FIXME OAK-4277 replace with GC monitor (improved with notification of failed and interrupted compaction)
-    public void evictCaches(Predicate<Integer> evict) {
-        stringCaches.evictGenerations(evict);
-        templateCaches.evictGenerations(evict);
-        nodeCaches.evictGenerations(evict);
-    }
+        @Nonnull
+        @Override
+        public RecordCache<String> getStringCache(int generation) {
+            return stringCaches.getGeneration(generation);
+        }
 
-    public RecordCache<String> getStringCache(int generation) {
-        return stringCaches.getGeneration(generation);
-    }
+        @Nonnull
+        @Override
+        public RecordCache<Template> getTemplateCache(int generation) {
+            return templateCaches.getGeneration(generation);
+        }
 
-    public RecordCache<Template> getTemplateCache(int generation) {
-        return templateCaches.getGeneration(generation);
-    }
+        @Nonnull
+        @Override
+        public NodeCache getNodeCache(int generation) {
+            return nodeCaches.getGeneration(generation);
+        }
 
-    public NodeCache getNodeCache(int generation) {
-        return nodeCaches.getGeneration(generation);
+        @Override
+        public void evictCaches(Predicate<Integer> generations) {
+            stringCaches.evictGenerations(generations);
+            templateCaches.evictGenerations(generations);
+            nodeCaches.evictGenerations(generations);
+        }
     }
-
 }

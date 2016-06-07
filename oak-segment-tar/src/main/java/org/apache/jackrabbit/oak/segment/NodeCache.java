@@ -59,7 +59,7 @@ public class NodeCache {
         return new Supplier<NodeCache>() {
             @Override
             public NodeCache get() {
-                return new NodeCache(0, 0) {
+                return new NodeCache() {
                     @Override
                     public synchronized void put(String key, RecordId value, int depth) { }
 
@@ -68,6 +68,12 @@ public class NodeCache {
                 };
             }
         };
+    }
+
+    /* Internal constructor used by empty() only */
+    private NodeCache() {
+        this.capacity = 0;
+        this.nodes = null;
     }
 
     public NodeCache(int capacity, int maxDepth) {

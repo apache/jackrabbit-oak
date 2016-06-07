@@ -92,6 +92,7 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -1151,7 +1152,8 @@ public class FileStore implements SegmentStore, Closeable {
                                      Supplier<Boolean> cancel)
     throws IOException {
         if (gcOptions.isOffline()) {
-            SegmentWriter writer = new SegmentWriter(this, segmentReader, blobStore, tracker, bufferWriter);
+            SegmentWriter writer = new SegmentWriter(this, segmentReader,
+                    blobStore, tracker, WriterCacheManager.Empty.create(), bufferWriter);
             return new Compactor(segmentReader, writer, blobStore, cancel, gcOptions)
                     .compact(EMPTY_NODE, head, EMPTY_NODE);
         } else {
