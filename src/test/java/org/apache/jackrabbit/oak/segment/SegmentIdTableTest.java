@@ -18,23 +18,24 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
@@ -117,33 +118,26 @@ public class SegmentIdTableTest {
         final SegmentIdTable tbl = new SegmentIdTable();
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
-        int originalCount = 8;
-        for (int i = 0; i < originalCount; i++) {
+        for (int i = 0; i < 8; i++) {
             refs.add(tbl.getSegmentId(i, i % 2, maker));
         }
-        assertEquals(originalCount, tbl.getEntryCount());
+
+        Set<UUID> reclaimed = newHashSet();
+        for (SegmentId id : refs) {
+            if (id.getMostSignificantBits() < 4) {
+                reclaimed.add(id.asUUID());
+            }
+        }
+
         assertEquals(0, tbl.getMapRebuildCount());
 
-        tbl.clearSegmentIdTables(new Predicate<SegmentId>() {
-            @Override
-            public boolean apply(SegmentId id) {
-                return id.getMostSignificantBits() < 4;
-            }
-        });
-
-        assertEquals(4, tbl.getEntryCount());
+        tbl.clearSegmentIdTables(reclaimed, "TestGcInfo");
 
         for (SegmentId id : refs) {
-            if (id.getMostSignificantBits() >= 4) {
-                long msb = id.getMostSignificantBits();
-                long lsb = id.getLeastSignificantBits();
-                SegmentId id2 = tbl.getSegmentId(msb, lsb, maker);
-                List<SegmentId> list = tbl.getRawSegmentIdList();
-                if (list.size() != new HashSet<SegmentId>(list).size()) {
-                    Collections.sort(list);
-                    fail("duplicate entry " + list.toString());
-                }
-                assertTrue(id == id2);
+            if (id.getMostSignificantBits() < 4) {
+                assertEquals("TestGcInfo", id.getGcInfo());
+            } else {
+                assertNull(id.getGcInfo());
             }
         }
     }

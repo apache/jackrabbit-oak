@@ -789,7 +789,14 @@ class TarReader implements Closeable {
         }
     }
 
-    TarReader sweep(Set<UUID> reclaim) throws IOException {
+    /**
+     * Remove reclaimable segments and collect actually reclaimed segments.
+     * @param reclaim       segments to reclaim
+     * @param reclaimed     actually reclaimed segments
+     * @return              reader resulting from the reclamation process
+     * @throws IOException
+     */
+    TarReader sweep(@Nonnull Set<UUID> reclaim, @Nonnull Set<UUID> reclaimed) throws IOException {
         String name = file.getName();
         log.debug("Cleaning up {}", name);
 
@@ -856,6 +863,7 @@ class TarReader implements Closeable {
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
             logCleanedSegments(cleaned);
+            reclaimed.addAll(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);

@@ -72,7 +72,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -640,16 +639,26 @@ public class FileStore implements SegmentStore, Closeable {
      * skipping the reclaimed segments.
      */
     public List<File> cleanup() throws IOException {
-        return cleanup(new Predicate<Integer>() {
-            final int reclaimGeneration = getGcGeneration() - gcOptions.getRetainedGenerations();
+        int gcGeneration = getGcGeneration();
+        final int reclaimGeneration = gcGeneration - gcOptions.getRetainedGenerations();
+
+        Predicate<Integer> reclaimPredicate = new Predicate<Integer>() {
             @Override
             public boolean apply(Integer generation) {
                 return generation <= reclaimGeneration;
             }
-        });
+        };
+        return cleanup(reclaimPredicate,
+            "gc-count=" + GC_COUNT +
+            ",gc-status=success" +
+            ",store-generation=" + gcGeneration +
+            ",reclaim-predicate=(generation<=" + reclaimGeneration + ")");
     }
 
-    private List<File> cleanup(Predicate<Integer> reclaimGeneration) throws IOException {
+    private List<File> cleanup(
+            @Nonnull Predicate<Integer> reclaimGeneration,
+            @Nonnull String gcInfo)
+    throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
         Set<UUID> bulkRefs = newHashSet();
@@ -690,8 +699,9 @@ public class FileStore implements SegmentStore, Closeable {
                 break;
             }
         }
+        Set<UUID> reclaimed = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
-            cleaned.put(reader, reader.sweep(reclaim));
+            cleaned.put(reader, reader.sweep(reclaim, reclaimed));
             if (shutdown) {
                 gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
                 break;
@@ -721,6 +731,7 @@ public class FileStore implements SegmentStore, Closeable {
         } finally {
             fileStoreLock.writeLock().unlock();
         }
+        tracker.clearSegmentIdTables(reclaimed, gcInfo);
 
         // Close old readers *after* setting readers to the new readers to avoid accessing
         // a closed reader from readSegment()
@@ -902,23 +913,24 @@ public class FileStore implements SegmentStore, Closeable {
             }
 
             if (success) {
-                // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
-                // ith clean brutal we need to remove those ids that have been cleaned
-                // i.e. those whose segment was from an old generation
-                tracker.clearSegmentIdTables(Predicates.<SegmentId>alwaysFalse());
-
                 gcListener.compacted(SUCCESS, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
                         GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
                 return true;
             } else {
                 gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
-                cleanup(new Predicate<Integer>() {
+
+                Predicate<Integer> cleanupPredicate = new Predicate<Integer>() {
                     @Override
                     public boolean apply(Integer generation) {
                         return generation == newGeneration;
                     }
-                });
+                };
+                cleanup(cleanupPredicate,
+                    "gc-count=" + GC_COUNT +
+                    ",gc-status=failed" +
+                    ",store-generation=" + (newGeneration - 1) +
+                    ",reclaim-predicate=(generation==" + newGeneration + ")");
 
                 gcListener.compacted(FAILURE, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
