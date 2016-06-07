@@ -30,6 +30,7 @@ import static java.lang.String.format;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -91,8 +92,10 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -247,7 +250,8 @@ public class FileStore implements SegmentStore, Closeable {
 
         private boolean memoryMapping;
 
-        private final LoggingGCMonitor gcMonitor = new LoggingGCMonitor();
+        private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor(
+                singleton(new LoggingGCMonitor(log)));
 
         private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
 
@@ -332,7 +336,7 @@ public class FileStore implements SegmentStore, Closeable {
          */
         @Nonnull
         public Builder withGCMonitor(@Nonnull GCMonitor gcMonitor) {
-            this.gcMonitor.delegatee = checkNotNull(gcMonitor);
+            this.gcMonitor.registerGCMonitor(checkNotNull(gcMonitor));
             return this;
         }
 
@@ -1605,40 +1609,4 @@ public class FileStore implements SegmentStore, Closeable {
         }
     }
 
-    private static class LoggingGCMonitor implements GCMonitor {
-        public GCMonitor delegatee = GCMonitor.EMPTY;
-
-        @Override
-        public void info(String message, Object... arguments) {
-            log.info(message, arguments);
-            delegatee.info(message, arguments);
-        }
-
-        @Override
-        public void warn(String message, Object... arguments) {
-            log.warn(message, arguments);
-            delegatee.warn(message, arguments);
-        }
-
-        @Override
-        public void error(String message, Exception exception) {
-            delegatee.error(message, exception);
-        }
-
-        @Override
-        public void skipped(String reason, Object... arguments) {
-            log.info(reason, arguments);
-            delegatee.skipped(reason, arguments);
-        }
-
-        @Override
-        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
-            delegatee.compacted(segmentCounts, recordCounts, compactionMapWeights);
-        }
-
-        @Override
-        public void cleaned(long reclaimedSize, long currentSize) {
-            delegatee.cleaned(reclaimedSize, currentSize);
-        }
-    }
 }
