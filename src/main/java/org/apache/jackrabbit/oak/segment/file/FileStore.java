@@ -85,6 +85,7 @@ import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -216,8 +217,18 @@ public class FileStore implements SegmentStore, Closeable {
     @Nonnull
     private final SegmentCache segmentCache;
 
+    private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
+
+        @Override
+        @Nonnull
+        public SegmentId newSegmentId(long msb, long lsb) {
+            return new SegmentId(FileStore.this, msb, lsb);
+        }
+
+    };
+
     FileStore(FileStoreBuilder builder, boolean readOnly) throws IOException {
-        this.tracker = new SegmentTracker(this);
+        this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
 
@@ -759,7 +770,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
         for (TarReader tarReader : tarReaders) {
-            tarReader.collectBlobReferences(tracker, collector, minGeneration);
+            tarReader.collectBlobReferences(this, collector, minGeneration);
         }
     }
 
@@ -926,8 +937,7 @@ public class FileStore implements SegmentStore, Closeable {
                                      Supplier<Boolean> cancel)
     throws IOException {
         if (gcOptions.isOffline()) {
-            SegmentWriter writer = new SegmentWriter(this, segmentReader,
-                    blobStore, tracker, Empty.INSTANCE, bufferWriter);
+            SegmentWriter writer = new SegmentWriter(this, segmentReader, blobStore, Empty.INSTANCE, bufferWriter);
             return new Compactor(segmentReader, writer, blobStore, cancel, gcOptions)
                     .compact(EMPTY_NODE, head, EMPTY_NODE);
         } else {
@@ -967,16 +977,16 @@ public class FileStore implements SegmentStore, Closeable {
             List<SegmentId> ids = newArrayList();
             if (tarWriter != null) {
                 for (UUID uuid : tarWriter.getUUIDs()) {
-                    ids.add(tracker.getSegmentId(
-                            uuid.getMostSignificantBits(),
-                            uuid.getLeastSignificantBits()));
+                    long msb = uuid.getMostSignificantBits();
+                    long lsb = uuid.getLeastSignificantBits();
+                    ids.add(newSegmentId(msb, lsb));
                 }
             }
             for (TarReader reader : readers) {
                 for (UUID uuid : reader.getUUIDs()) {
-                    ids.add(tracker.getSegmentId(
-                            uuid.getMostSignificantBits(),
-                            uuid.getLeastSignificantBits()));
+                    long msb = uuid.getMostSignificantBits();
+                    long lsb = uuid.getLeastSignificantBits();
+                    ids.add(newSegmentId(msb, lsb));
                 }
             }
             return ids;
@@ -1105,7 +1115,7 @@ public class FileStore implements SegmentStore, Closeable {
 
                             ByteBuffer buffer = reader.readEntry(msb, lsb);
                             if (buffer != null) {
-                                return new Segment(tracker, segmentReader, id, buffer);
+                                return new Segment(FileStore.this, segmentReader, id, buffer);
                             }
                         } catch (IOException e) {
                             log.warn("Failed to read from tar file {}", reader, e);
@@ -1118,7 +1128,7 @@ public class FileStore implements SegmentStore, Closeable {
                             try {
                                 ByteBuffer buffer = tarWriter.readEntry(msb, lsb);
                                 if (buffer != null) {
-                                    return new Segment(tracker, segmentReader, id, buffer);
+                                    return new Segment(FileStore.this, segmentReader, id, buffer);
                                 }
                             } catch (IOException e) {
                                 log.warn("Failed to read from tar file {}", tarWriter, e);
@@ -1141,7 +1151,7 @@ public class FileStore implements SegmentStore, Closeable {
 
                             ByteBuffer buffer = reader.readEntry(msb, lsb);
                             if (buffer != null) {
-                                return new Segment(tracker, segmentReader, id, buffer);
+                                return new Segment(FileStore.this, segmentReader, id, buffer);
                             }
                         } catch (IOException e) {
                             log.warn("Failed to read from tar file {}", reader, e);
@@ -1185,8 +1195,26 @@ public class FileStore implements SegmentStore, Closeable {
             } else {
                 data = ByteBuffer.wrap(buffer, offset, length);
             }
-            segmentCache.putSegment(new Segment(tracker, segmentReader, id, data));
+            segmentCache.putSegment(new Segment(this, segmentReader, id, data));
         }
+    }
+
+    @Override
+    @Nonnull
+    public SegmentId newSegmentId(long msb, long lsb) {
+        return tracker.getSegmentId(msb, lsb, segmentIdFactory);
+    }
+
+    @Override
+    @Nonnull
+    public SegmentId newBulkSegmentId() {
+        return tracker.newBulkSegmentId(segmentIdFactory);
+    }
+
+    @Override
+    @Nonnull
+    public SegmentId newDataSegmentId() {
+        return tracker.newDataSegmentId(segmentIdFactory);
     }
 
     /**
@@ -1255,7 +1283,7 @@ public class FileStore implements SegmentStore, Closeable {
     private void setRevision(String rootRevision) {
         fileStoreLock.writeLock().lock();
         try {
-            revisions.setHeadId(RecordId.fromString(tracker, rootRevision));
+            revisions.setHeadId(RecordId.fromString(this, rootRevision));
         } finally {
             fileStoreLock.writeLock().unlock();
         }

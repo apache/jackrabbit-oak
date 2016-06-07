@@ -39,25 +39,25 @@ public class SegmentIdFactoryTest {
 
     @Test
     public void segmentIdType() {
-        assertTrue(tracker.newDataSegmentId().isDataSegmentId());
-        assertTrue(tracker.newBulkSegmentId().isBulkSegmentId());
+        assertTrue(store.newDataSegmentId().isDataSegmentId());
+        assertTrue(store.newBulkSegmentId().isBulkSegmentId());
 
-        assertFalse(tracker.newDataSegmentId().isBulkSegmentId());
-        assertFalse(tracker.newBulkSegmentId().isDataSegmentId());
+        assertFalse(store.newDataSegmentId().isBulkSegmentId());
+        assertFalse(store.newBulkSegmentId().isDataSegmentId());
     }
 
     @Test
     public void internedSegmentIds() {
-        assertTrue(tracker.getSegmentId(0, 0) == tracker.getSegmentId(0, 0));
-        assertTrue(tracker.getSegmentId(1, 2) == tracker.getSegmentId(1, 2));
-        assertTrue(tracker.getSegmentId(1, 2) != tracker.getSegmentId(3, 4));
+        assertTrue(store.newSegmentId(0, 0) == store.newSegmentId(0, 0));
+        assertTrue(store.newSegmentId(1, 2) == store.newSegmentId(1, 2));
+        assertTrue(store.newSegmentId(1, 2) != store.newSegmentId(3, 4));
     }
 
     @Test
     public void referencedSegmentIds() throws InterruptedException {
-        SegmentId a = tracker.newDataSegmentId();
-        SegmentId b = tracker.newBulkSegmentId();
-        SegmentId c = tracker.newDataSegmentId();
+        SegmentId a = store.newDataSegmentId();
+        SegmentId b = store.newBulkSegmentId();
+        SegmentId c = store.newDataSegmentId();
 
         Set<SegmentId> ids = tracker.getReferencedSegmentIds();
         assertTrue(ids.contains(a));
@@ -65,7 +65,7 @@ public class SegmentIdFactoryTest {
         assertTrue(ids.contains(c));
 
         // the returned set is a snapshot in time, not continuously updated
-        assertFalse(ids.contains(tracker.newBulkSegmentId()));
+        assertFalse(ids.contains(store.newBulkSegmentId()));
     }
 
     /**
@@ -75,8 +75,8 @@ public class SegmentIdFactoryTest {
      */
     // @Test
     public void garbageCollection() {
-        SegmentId a = tracker.newDataSegmentId();
-        SegmentId b = tracker.newBulkSegmentId();
+        SegmentId a = store.newDataSegmentId();
+        SegmentId b = store.newBulkSegmentId();
 
         // generate lots of garbage copies of an UUID to get the
         // garbage collector to reclaim also the original instance
@@ -102,9 +102,9 @@ public class SegmentIdFactoryTest {
         byte[] buffer = new byte[segment.size()];
         segment.readBytes(Segment.MAX_SEGMENT_SIZE - segment.size(), buffer, 0, segment.size());
 
-        SegmentId id = tracker.newDataSegmentId();
+        SegmentId id = store.newDataSegmentId();
         ByteBuffer data = ByteBuffer.wrap(buffer);
-        Segment s = new Segment(store.getTracker(), store.getReader(), id, data);
+        Segment s = new Segment(store, store.getReader(), id, data);
         s.getRefId(1);
     }
 
@@ -113,9 +113,9 @@ public class SegmentIdFactoryTest {
      */
     @Test(expected = IllegalStateException.class)
     public void bulkAIOOBE() {
-        SegmentId id = tracker.newBulkSegmentId();
+        SegmentId id = store.newBulkSegmentId();
         ByteBuffer data = ByteBuffer.allocate(4);
-        Segment s = new Segment(store.getTracker(), store.getReader(), id, data);
+        Segment s = new Segment(store, store.getReader(), id, data);
         s.getRefId(1);
     }
 

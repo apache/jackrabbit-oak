@@ -131,7 +131,7 @@ public class TarRevisions implements Revisions, Closeable {
                 while (persistedId == null && entries.hasNext()) {
                     String entry = entries.next();
                     try {
-                        RecordId id = RecordId.fromString(tracker, entry);
+                        RecordId id = RecordId.fromString(store, entry);
                         if (store.containsSegment(id.getSegmentId())) {
                             persistedId = id;
                         } else {
