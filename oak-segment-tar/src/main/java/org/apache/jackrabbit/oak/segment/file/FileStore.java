@@ -91,7 +91,6 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -190,11 +189,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final List<File> pendingRemove = newLinkedList();
 
     /**
-     * Version of the segment storage format.
-     */
-    private final SegmentVersion version;
-
-    /**
      * {@code GcListener} listening to this instance's gc progress
      */
     private final GCListener gcListener;
@@ -223,7 +217,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final SegmentCache segmentCache;
 
     FileStore(FileStoreBuilder builder, boolean readOnly) throws IOException {
-        this.version = builder.getVersion();
         this.tracker = new SegmentTracker(this);
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
@@ -257,7 +250,6 @@ public class FileStore implements SegmentStore, Closeable {
             }
         };
         this.segmentWriter = segmentWriterBuilder("sys")
-                .with(version)
                 .withGeneration(getGeneration)
                 .withWriterPool()
                 .with(builder.getCacheManager())
@@ -851,7 +843,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         final int newGeneration = getGcGeneration() + 1;
         SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
-                this, tracker, segmentReader, version, "c", newGeneration);
+                this, tracker, segmentReader, "c", newGeneration);
         Supplier<Boolean> cancel = newCancelCompactionCondition();
         SegmentNodeState after = compact(bufferWriter, before, cancel);
         if (after == null) {
@@ -1376,10 +1368,6 @@ public class FileStore implements SegmentStore, Closeable {
         public void maybeCompact(boolean cleanup) {
             throw new UnsupportedOperationException("Read Only Store");
         }
-    }
-
-    public SegmentVersion getVersion() {
-        return version;
     }
 
     private static void closeAndLogOnFail(Closeable closeable) {

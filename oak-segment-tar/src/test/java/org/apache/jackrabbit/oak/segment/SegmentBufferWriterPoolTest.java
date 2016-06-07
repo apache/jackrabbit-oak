@@ -25,7 +25,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -52,7 +51,7 @@ public class SegmentBufferWriterPoolTest {
     private final RecordId rootId = store.getRevisions().getHead();
 
     private final SegmentBufferWriterPool pool = new SegmentBufferWriterPool(
-        store, store.getTracker(), store.getReader(), LATEST_VERSION, "", Suppliers.ofInstance(0));
+        store, store.getTracker(), store.getReader(), "", Suppliers.ofInstance(0));
 
     private final ExecutorService[] executors = new ExecutorService[] {
         newSingleThreadExecutor(), newSingleThreadExecutor(), newSingleThreadExecutor()};
