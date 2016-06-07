@@ -23,6 +23,7 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -86,7 +87,7 @@ public class SegmentDataStoreBlobGCIT {
     FileStore store;
     DataStoreBlobStore blobStore;
     Date startDate;
-    SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
+    SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

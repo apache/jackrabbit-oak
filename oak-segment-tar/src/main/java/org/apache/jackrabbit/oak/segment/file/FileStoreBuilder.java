@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,7 +75,7 @@ public class FileStoreBuilder {
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
 
     @Nonnull
-    private SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
+    private SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Nonnull
     private GCListener gcListener;

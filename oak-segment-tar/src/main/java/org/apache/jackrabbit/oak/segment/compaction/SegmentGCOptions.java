@@ -27,13 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class SegmentGCOptions {
 
     /**
-     * Default options: {@link #PAUSE_DEFAULT}, {@link #MEMORY_THRESHOLD_DEFAULT},
-     * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT},
-     * {@link #FORCE_AFTER_FAIL_DEFAULT}, {@link #LOCK_WAIT_TIME_DEFAULT}.
-     */
-    public static final SegmentGCOptions DEFAULT = new SegmentGCOptions();
-
-    /**
      * Default value for {@link #isPaused()}
      */
     public static final boolean PAUSE_DEFAULT = false;
@@ -104,6 +97,15 @@ public class SegmentGCOptions {
     public SegmentGCOptions() {
         this(PAUSE_DEFAULT, MEMORY_THRESHOLD_DEFAULT, GAIN_THRESHOLD_DEFAULT,
                 RETRY_COUNT_DEFAULT, FORCE_AFTER_FAIL_DEFAULT, LOCK_WAIT_TIME_DEFAULT);
+    }
+
+    /**
+     * Default options: {@link #PAUSE_DEFAULT}, {@link #MEMORY_THRESHOLD_DEFAULT},
+     * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT},
+     * {@link #FORCE_AFTER_FAIL_DEFAULT}, {@link #LOCK_WAIT_TIME_DEFAULT}.
+     */
+    public static SegmentGCOptions defaultGCOptions() {
+        return new SegmentGCOptions();
     }
 
     /**
