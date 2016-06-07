@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.Closeable;
@@ -23,10 +24,14 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class SegmentTarFactory implements NodeStoreFactory {
@@ -45,14 +50,33 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
-        FileStoreBuilder builder = fileStoreBuilder(new File(dir, "segmentstore"));
+        final FileStoreBuilder builder = fileStoreBuilder(new File(dir, "segmentstore"));
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
         builder.withMaxFileSize(256).withMemoryMapping(mmap);
-        FileStore fs = builder.build();
+        final FileStore fs = builder.build();
         closer.register(asCloseable(fs));
-        return SegmentNodeStoreBuilders.builder(fs).build();
+
+        return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new TarNodeStore.SuperRootProvider() {
+            @Override
+            public void setSuperRoot(NodeBuilder builder) {
+                checkArgument(builder instanceof SegmentNodeBuilder);
+                SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
+                SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
+
+                if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
+                    throw new IllegalArgumentException("The new head is out of date");
+                }
+
+                fs.getRevisions().setHead(lastRoot.getRecordId(), segmentBuilder.getNodeState().getRecordId());
+            }
+
+            @Override
+            public NodeState getSuperRoot() {
+                return fs.getReader().readHeadState();
+            }
+        });
     }
 
     public File getRepositoryDir() {
