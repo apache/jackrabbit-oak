@@ -622,6 +622,16 @@ public class NodeDocumentTest {
         // must only read one previous document for ns1 changes
         assertEquals(1, prevDocCalls.size());
     }
+    
+    @Test(expected = UnsupportedOperationException.class)
+    public void sealedNodeDocumentFromJSON() throws Exception{
+        DocumentNodeStore ns = createTestStore(1);
+        NodeDocument root = getRootDocument(ns.getDocumentStore());
+        String json = root.asString();
+        NodeDocument doc2 = NodeDocument.fromString(ns.getDocumentStore(), json);
+        doc2.put("foo", "bar");
+        ns.dispose();
+    }
 
     private DocumentNodeStore createTestStore(int numChanges) throws Exception {
         return createTestStore(new MemoryDocumentStore(), 0, numChanges);
