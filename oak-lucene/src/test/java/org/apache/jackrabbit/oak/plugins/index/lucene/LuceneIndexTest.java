@@ -118,6 +118,7 @@ import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Function;
@@ -899,6 +900,29 @@ public class LuceneIndexTest {
         assertEquals("/oak:index/lucene", defn.getIndexPathFromConfig());
     }
 
+
+    @Ignore("OAK-4431")
+    @Test
+    public void luceneWithCopyOnReadDir_Compat() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2"), null);
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        builder = indexed.builder();
+        builder.getChildNode("oak:index").getChildNode("lucene").removeProperty(IndexConstants.INDEX_PATH);
+        indexed = builder.getNodeState();
+
+        File indexRootDir = new File(getIndexDir());
+        tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo", "bar");
+    }
 
     @After
     public void cleanUp(){
