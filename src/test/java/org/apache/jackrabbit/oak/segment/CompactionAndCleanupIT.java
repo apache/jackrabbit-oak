@@ -462,9 +462,6 @@ public class CompactionAndCleanupIT {
             fileStore.cleanup();
             long size2 = fileStore.size();
             assertSize("with compacted binaries", size2, 0, size1 * 11 / 10);
-            
-            System.err.println(size2);
-            
         } finally {
             fileStore.close();
         }
