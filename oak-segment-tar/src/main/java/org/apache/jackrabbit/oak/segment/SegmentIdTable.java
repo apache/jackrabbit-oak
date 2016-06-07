@@ -27,10 +27,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,25 +195,14 @@ public class SegmentIdTable {
         return ((int) lsb) & (references.size() - 1);
     }
 
-    synchronized void clearSegmentIdTables(Predicate<SegmentId> canRemove) {
-        boolean dirty = false;
+    synchronized void clearSegmentIdTables(@Nonnull Set<UUID> reclaimed, @Nonnull String gcInfo) {
         for (WeakReference<SegmentId> reference : references) {
             if (reference != null) {
                 SegmentId id = reference.get();
-                if (id != null) {
-                    if (canRemove.apply(id)) {
-                        // we clear the reference here, but we must not
-                        // remove the reference from the list, because
-                        // that could cause duplicate references
-                        // (there is a unit test for this case)
-                        reference.clear();
-                        dirty = true;
-                    }
+                if (id != null && reclaimed.contains(id.asUUID())) {
+                    id.reclaimed(gcInfo);
                 }
             }
-        }
-        if (dirty) {
-            refresh();
         }
     }
     
