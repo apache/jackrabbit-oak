@@ -27,7 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertFalse;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 
 public class FailoverMultipleClientsTestIT extends TestBase {
@@ -50,8 +50,8 @@ public class FailoverMultipleClientsTestIT extends TestBase {
         SegmentTestUtils.addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl1 = new StandbyClient("127.0.0.1", port, storeC);
-        StandbyClient cl2 = new StandbyClient("127.0.0.1", port, storeC2);
+        StandbyClient cl1 = newStandbyClient(storeC);
+        StandbyClient cl2 = newStandbyClient(storeC2);
 
         try {
             assertFalse("first client has invalid initial store!", storeS.getHead().equals(storeC.getHead()));
@@ -66,6 +66,7 @@ public class FailoverMultipleClientsTestIT extends TestBase {
 
             cl1.stop();
             SegmentTestUtils.addTestContent(store, "test");
+            storeS.flush();
             cl1.run();
             cl2.run();
 

@@ -96,10 +96,10 @@ public class NetworkErrorProxy {
             f.channel().close();
         }
         if (bossGroup != null && !bossGroup.isShuttingDown()) {
-            bossGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS).syncUninterruptibly();
+            bossGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).syncUninterruptibly();
         }
         if (workerGroup != null && !workerGroup.isShuttingDown()) {
-            workerGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS).syncUninterruptibly();
+            workerGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).syncUninterruptibly();
         }
     }
 }

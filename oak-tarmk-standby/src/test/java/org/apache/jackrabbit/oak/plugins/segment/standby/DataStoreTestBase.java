@@ -93,11 +93,12 @@ public class DataStoreTestBase extends TestBase {
         FileStore secondary = getSecondary();
 
         NodeStore store = new SegmentNodeStore(primary);
-        final StandbyServer server = new StandbyServer(getPort(), primary);
+        final StandbyServer server = new StandbyServer(port, primary);
         server.start();
         byte[] data = addTestContent(store, "server", blobSize);
+        primary.flush();
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+        StandbyClient cl = newStandbyClient(secondary);
         cl.run();
 
         try {
@@ -157,7 +158,6 @@ public class DataStoreTestBase extends TestBase {
     }
 
     private void useProxy(int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
-        int proxyPort = Integer.valueOf(System.getProperty("standby.proxy.port", "51913"));
         final int mb = 1 * 1024 * 1024;
         int blobSize = 5 * mb;
         FileStore primary = getPrimary();
@@ -169,11 +169,12 @@ public class DataStoreTestBase extends TestBase {
         p.run();
 
         NodeStore store = new SegmentNodeStore(primary);
-        final StandbyServer server = new StandbyServer(getPort(), primary);
+        final StandbyServer server = new StandbyServer(port, primary);
         server.start();
         byte[] data = addTestContent(store, "server", blobSize);
+        primary.flush();
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", proxyPort, secondary);
+        StandbyClient cl = newStandbyClient(secondary, proxyPort);
         cl.run();
 
         try {
@@ -185,6 +186,7 @@ public class DataStoreTestBase extends TestBase {
                 if (intermediateChange) {
                     blobSize = 2 * mb;
                     data = addTestContent(store, "server", blobSize);
+                    primary.flush();
                 }
                 cl.run();
             }

@@ -49,12 +49,14 @@ public class RecoverTestIT extends TestBase {
 
         NodeStore store = new SegmentNodeStore(storeS);
         DebugSegmentStore s = new DebugSegmentStore(storeS);
+        addTestContent(store, "server");
+        storeS.flush();
+
         final StandbyServer server = new StandbyServer(port, s);
         s.createReadErrors = true;
         server.start();
-        addTestContent(store, "server");
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC);
+        StandbyClient cl = newStandbyClient(storeC);
         cl.run();
 
         try {
@@ -81,7 +83,7 @@ public class RecoverTestIT extends TestBase {
         addTestContent(store, "server");
         storeS.flush();
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC);
+        StandbyClient cl = newStandbyClient(storeC);
         try {
             assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
             cl.run();
