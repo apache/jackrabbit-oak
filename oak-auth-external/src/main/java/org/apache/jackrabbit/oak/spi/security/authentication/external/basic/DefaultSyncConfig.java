@@ -142,14 +142,14 @@ public class DefaultSyncConfig {
          * paths. the intermediate nodes will be created accordingly.
          *
          * Example:
-         * <xmp>
+         * <pre>{@code
          *     {
          *         "rep:fullname": "cn",
          *         "country", "c",
          *         "profile/email": "mail",
          *         "profile/givenName": "cn"
          *     }
-         * </xmp>
+         * }</pre>
          *
          * The implicit properties like userid, groupname, password must not be mapped.
          *

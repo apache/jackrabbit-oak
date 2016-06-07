@@ -47,7 +47,7 @@ public class StopwatchLogger implements Closeable {
     /**
      * Create a class with the provided class.
      * 
-     * @param claz
+     * @param clazz
      */
     public StopwatchLogger(@Nonnull final String clazz) {
         this(null, checkNotNull(clazz));

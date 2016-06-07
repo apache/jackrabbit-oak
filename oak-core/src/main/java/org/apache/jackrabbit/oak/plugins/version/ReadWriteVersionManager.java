@@ -452,8 +452,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      *      does not exist, that name is used.
      * <li> otherwise a ".0" is added to the name until a non conflicting name
      *      is found.
-     * <ul>
-     * </p>
+     * </ul>
+     * <p>
      * Example Graph:
      * <pre>
      * jcr:rootVersion

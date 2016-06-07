@@ -181,7 +181,7 @@ public class MissingLastRevSeeker {
 
     /**
      * Check if _lastRev recovery needed for this cluster node
-     * state is Active && currentTime past the leaseEnd time
+     * state is Active and currentTime past the leaseEnd time
      */
     public boolean isRecoveryNeeded(@Nonnull ClusterNodeInfoDocument nodeInfo) {
         return nodeInfo.isActive() && clock.getTime() > nodeInfo.getLeaseEndTime();

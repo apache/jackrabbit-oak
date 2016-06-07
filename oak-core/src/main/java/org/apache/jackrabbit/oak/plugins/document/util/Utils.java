@@ -264,7 +264,6 @@ public class Utils {
      *     <li>If id is for root path</li>
      *     <li>If id is for an invalid path</li>
      * </ul>
-     *</p>
      * @param id id for which parent id needs to be determined
      * @return parent id. null if parent id cannot be determined
      */

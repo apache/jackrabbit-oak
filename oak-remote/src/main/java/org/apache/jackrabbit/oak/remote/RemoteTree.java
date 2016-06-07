@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * This interface is a recursive data structure representing a view on a
  * repository tree.
- * <p/>
+ * <p>
  * The purpose of the remote tree is not to represent exactly the content as
  * stored in the repository, but to provide a view on that content fulfilling
  * the filtering options provided by the client when the tree was accessed.
@@ -43,7 +43,7 @@ public interface RemoteTree {
      * this remote tree is represented by the instance of {@code RemoteTree}
      * this method is invoked on. The children of this remote tree are
      * themselves remote trees.
-     * <p/>
+     * <p>
      * The remote tree may be truncated at some point (e.g. to avoid very deep
      * remote trees to be returned), and this is the reason why the values of
      * this {@code Map} can be {@code null}. When a {@code null} value is met,
@@ -58,7 +58,7 @@ public interface RemoteTree {
     /**
      * Return a flag to indicate that this remote tree actually has more
      * children than the one returned by {@link #getChildren()}.
-     * <p/>
+     * <p>
      * This flag is important when the repository tree is read using very strict
      * filtering options regarding the maximum number of children to return. If
      * this method returns {@code true}, a consumer of this interface must
@@ -66,7 +66,7 @@ public interface RemoteTree {
      * this tree. They could be retrieved by varying the relevant filtering
      * options and performing another read for this subtree.
      *
-     * @return {@true} if this remote tree is not exposing the full set of
+     * @return {@code true} if this remote tree is not exposing the full set of
      * children as stored in the repository, {@code false} otherwise.
      */
     boolean hasMoreChildren();

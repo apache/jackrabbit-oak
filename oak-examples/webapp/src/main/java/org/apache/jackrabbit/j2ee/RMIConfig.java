@@ -30,7 +30,7 @@ import javax.servlet.ServletException;
  * The RMI config hold information about RMI connection details.
  *
  * It supports the following properties and init parameters:
- * <xmp>
+ * <pre>
  * +-------------------+--------------------+
  * | Property Name     | Init-Param Name    |
  * +-------------------+--------------------+
@@ -40,7 +40,7 @@ import javax.servlet.ServletException;
  * | rmi.name          | {repository name}  |
  * | rmi.url           | rmi-url            |
  * +-------------------+--------------------+
- * </xmp>
+ * </pre>
  */
 public class RMIConfig extends AbstractConfig {
 

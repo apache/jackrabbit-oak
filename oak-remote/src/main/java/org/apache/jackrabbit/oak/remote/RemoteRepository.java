@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * The remote interface exposed by a repository.
- * <p/>
+ * <p>
  * Most methods require authentication to be used. As such, a client of this
  * interface is required to create an instance of {@code RemoteCredentials} and
  * use this instance to login into the repository and obtain a {@code

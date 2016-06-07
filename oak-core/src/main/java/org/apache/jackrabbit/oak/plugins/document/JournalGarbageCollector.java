@@ -30,7 +30,7 @@ import com.google.common.base.Stopwatch;
 /**
  * The JournalGarbageCollector can clean up JournalEntries that are older than a
  * particular age.
- * <p/>
+ * <p>
  * It would typically be invoked in conjunction with the VersionGarbageCollector
  * but must not be confused with that one - 'journal' refers to the separate
  * collection that contains changed paths per background writes used for

@@ -30,8 +30,6 @@ public interface BlobReferenceRetriever {
      * Collect references.
      * 
      * @param collector the collector to collect all references
-     * @return the references
-     * @throws Exception the exception
      */
     void collectReferences(ReferenceCollector collector);
 }

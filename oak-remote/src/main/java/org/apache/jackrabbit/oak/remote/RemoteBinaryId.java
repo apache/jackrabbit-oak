@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.remote;
 
 /**
  * Represents the identifier of a binary object.
- * <p/>
+ * <p>
  * Binary objects stored in the repository are immutable. The same binary ID is
  * guaranteed to return the same binary object over time.
  */

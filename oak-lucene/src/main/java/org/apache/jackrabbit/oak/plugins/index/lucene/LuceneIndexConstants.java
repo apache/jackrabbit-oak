@@ -228,12 +228,14 @@ public interface LuceneIndexConstants {
      * The maximum number of terms that will be indexed for a single field in a
      * document.  This limits the amount of memory required for indexing, so that
      * collections with very large files will not crash the indexing process by
-     * running out of memory.<p/>
+     * running out of memory.
+     * <p>
      * Note that this effectively truncates large documents, excluding from the
      * index terms that occur further in the document.  If you know your source
      * documents are large, be sure to set this value high enough to accommodate
      * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit
-     * is your memory, but you should anticipate an OutOfMemoryError.<p/>
+     * is your memory, but you should anticipate an OutOfMemoryError.
+     * <p>
      * By default, no more than 10,000 terms will be indexed for a field.
      */
     String MAX_FIELD_LENGTH = "maxFieldLength";

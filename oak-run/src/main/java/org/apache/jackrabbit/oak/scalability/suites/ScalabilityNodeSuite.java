@@ -106,7 +106,6 @@ import org.slf4j.LoggerFactory;
  *     <code>customType</code> - Controls if nodes created in the load have a custom node type. Defaults to false.
  * </li>
  * </ul>
- * </p>
  *
  */
 public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {

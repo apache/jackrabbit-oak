@@ -76,7 +76,6 @@ import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
  *     <code>maxAssets</code> - Controls the max child nodes created under a node. Defaults to 500.
  * </li>
  * </ul>
- * </p>
  */
 public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
     private static final int FILE_SIZE = Integer.getInteger("fileSize", 1);

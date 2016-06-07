@@ -119,7 +119,7 @@ import com.google.common.collect.Sets;
  * derived from an Oak path, and the value is a serialization of a
  * {@link Document} (or a part of one). Additional fields are used for queries,
  * debugging, and concurrency control:
- * <table style="text-align: left;">
+ * <table style="text-align: left;" summary="">
  * <thead>
  * <tr>
  * <th>Column</th>

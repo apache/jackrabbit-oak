@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
@@ -115,26 +116,23 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  *
  * <p>
  * To define a lucene index on a subtree you have to add an
- * <code>oak:index<code> node.
+ * <code>oak:index</code> node.
  *
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
  * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
  * <li>must have the <code>async</code> property set to <b><code>async</code></b></li>
- * </b></li>
  * </ul>
- * </p>
  * <p>
  * Optionally you can add
  * <ul>
- * <li>what subset of property types to be included in the index via the <code>includePropertyTypes<code> property</li>
- * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames<code> property</li>
- * <li>the <code>reindex<code> flag which when set to <code>true<code>, triggers a full content re-index.</li>
+ * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property</li>
+ * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
+ * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
  * </ul>
- * </p>
- * <pre>
- * <code>
+ * <p>
+ * <pre>{@code
  * {
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("lucene")
@@ -143,8 +141,7 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  *         .setProperty("async", "async")
  *         .setProperty("reindex", "true");
  * }
- * </code>
- * </pre>
+ * }</pre>
  *
  * @see QueryIndex
  *

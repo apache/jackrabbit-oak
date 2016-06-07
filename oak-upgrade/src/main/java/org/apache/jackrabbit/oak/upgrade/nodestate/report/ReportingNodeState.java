@@ -44,7 +44,9 @@ import javax.annotation.Nullable;
  * reported. Therefore if exactly counting unique accesses is a
  * requirement, the reporter needs to take care of de-duplication.
  *
- * @see Reporter, PeriodicReporter, LoggingReporter
+ * @see Reporter
+ * @see PeriodicReporter
+ * @see LoggingReporter
  */
 public class ReportingNodeState extends AbstractDecoratedNodeState {
 

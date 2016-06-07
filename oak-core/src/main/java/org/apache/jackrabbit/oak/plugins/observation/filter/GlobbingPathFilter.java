@@ -52,9 +52,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *    * matches every path containing a single element
  *    ** matches every path
  *    a/b/c matches a/b/c only
- *    a/*&#47c matches a/x/c for every element x
- *    **&#47y/z match every path ending in y/z
- *    r/s/t&#47** matches r/s/t and all its descendants
+ *    a/*&#47;c matches a/x/c for every element x
+ *    **&#47;y/z match every path ending in y/z
+ *    r/s/t&#47;** matches r/s/t and all its descendants
  * </pre>
  */
 public class GlobbingPathFilter implements EventFilter {

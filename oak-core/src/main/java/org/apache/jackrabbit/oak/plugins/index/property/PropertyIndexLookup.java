@@ -48,15 +48,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This class can be used directly on a subtree where there is an index defined
  * by supplying a {@link NodeState} root.
  * 
- * <pre>
- * <code>
+ * <pre>{@code
  * {
  *     NodeState state = ... // get a node state
  *     PropertyIndexLookup lookup = new PropertyIndexLookup(state);
  *     Set<String> hits = lookup.find("foo", PropertyValues.newString("xyz"));
  * }
- * </code>
- * </pre>
+ * }</pre>
  */
 public class PropertyIndexLookup {
 

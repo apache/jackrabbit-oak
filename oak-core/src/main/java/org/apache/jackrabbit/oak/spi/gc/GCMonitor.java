@@ -64,7 +64,6 @@ public interface GCMonitor {
      * @param segmentCounts    number of segments in the individual generations of the map
      * @param recordCounts     number of records in the individual generations of the map
      * @param compactionMapWeights   weights of the individual generations of the map
-     * @see org.apache.jackrabbit.oak.plugins.segment.PartialCompactionMap
      */
     void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights);
 

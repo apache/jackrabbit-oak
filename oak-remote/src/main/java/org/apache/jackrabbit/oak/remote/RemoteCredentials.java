@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.remote;
  * This interface is a marker interface to be used to represent both an
  * authentication strategy and the information to enable that authentication
  * strategy.
- * <p/>
+ * <p>
  * In example, a {@code RemoteCredentials} object created to represent an
  * authentication strategy based on user name and password, may encapsulate the
  * user name and password to enable this authentication strategy when a session
  * to the repository is created.
- * <p/>
+ * <p>
  * To create instances of this interface, take a look at the methods defined in
  * {@link RemoteRepository}.
  */

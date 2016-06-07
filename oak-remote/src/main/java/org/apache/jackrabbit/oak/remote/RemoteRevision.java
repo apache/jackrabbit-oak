@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.remote;
 
 /**
  * A repository revision represents an immutable state of the repository.
- * <p/>
+ * <p>
  * Having a revision allows you to perform repeatable reads, because it is
  * assured that the state referenced by the revision is immutable.
- * <p/>
+ * <p>
  * The revision also allows the system to reference a known state of the
  * repository when changes are committed. Since a revision references an
  * immutable state, committing some changes will create a new state of the

@@ -22,7 +22,7 @@ import javax.servlet.ServletException;
  * Utility class that links {@link ServletException} with support for
  * the exception chaining mechanism in {@link Throwable}.
  *
- * @see https://issues.apache.org/jira/browse/JCR-1598
+ * @see <a href="https://issues.apache.org/jira/browse/JCR-1598">JCR-1598</a>
  */
 public class ServletExceptionWithCause extends ServletException {
 

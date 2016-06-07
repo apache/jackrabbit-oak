@@ -73,7 +73,6 @@ import com.google.common.collect.Maps;
  *     Defaults to 10,5,2,1.
  * </li>
  * </ul>
- * </p>
  *
  */
 public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {

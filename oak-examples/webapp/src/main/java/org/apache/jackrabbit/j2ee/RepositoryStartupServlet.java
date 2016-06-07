@@ -465,7 +465,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * Subclasses may override this method of providing own implementations of
      * a {@link Repository}.
      *
-     * @param is input source of the repository config
+     * @param configJson input source of the repository config
      * @param homedir the repository home directory
      * @return a new jcr repository.
      * @throws RepositoryException if an error during creation occurs.

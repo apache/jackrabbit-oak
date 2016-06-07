@@ -65,13 +65,13 @@ public class SegmentParser {
      * Type of blobs (and strings)
      */
     public enum BlobType {
-        /** Small: < {@link Segment#SMALL_LIMIT}. */
+        /** Small: &lt; {@link Segment#SMALL_LIMIT}. */
         SMALL,
 
-        /** Medium: < {@link Segment#MEDIUM_LIMIT} */
+        /** Medium: &lt; {@link Segment#MEDIUM_LIMIT} */
         MEDIUM,
 
-        /** Long: >=  {@link Segment#MEDIUM_LIMIT} */
+        /** Long: &gt;=  {@link Segment#MEDIUM_LIMIT} */
         LONG,
 
         /** External blob (i.e. in {@link BlobStore}. */
