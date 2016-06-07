@@ -57,7 +57,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closeables;
@@ -125,12 +124,6 @@ public class SegmentWriter {
         this.tracker = checkNotNull(tracker);
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
-    }
-
-    // FIXME OAK-4277: Finalise de-duplication caches
-    // There should be a cleaner way to control the deduplication caches across gc generations
-    public void evictCaches(Predicate<Integer> evict) {
-        cacheManager.evictCaches(evict);
     }
 
     public void flush() throws IOException {

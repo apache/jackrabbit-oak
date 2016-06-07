@@ -22,53 +22,86 @@ package org.apache.jackrabbit.oak.segment;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Supplier;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration, monitoring and management
 // add unit tests
 // document, nullability
-public class RecordCache<T> {
-    private final Map<T, RecordId> records;
+public abstract class RecordCache<T> {
 
-    public static final <T> Supplier<RecordCache<T>> factory(final int size) {
-        return new Supplier<RecordCache<T>>() {
-            @Override
-            public RecordCache<T> get() {
-                return new RecordCache<>(size);
-            }
-        };
+    public abstract void put(T key, RecordId value);
+
+    @CheckForNull
+    public abstract RecordId get(T key);
+
+    @Nonnull
+    public static <T> RecordCache<T> newRecordCache(int size) {
+        if (size <= 0) {
+            return new Empty<>();
+        } else {
+            return new Default<>(size);
+        }
     }
 
-    public static final <T> Supplier<RecordCache<T>> empty() {
-        return new Supplier<RecordCache<T>>() {
-            @Override
-            public RecordCache<T> get() {
-                return new RecordCache<T>(0) {
-                    @Override
-                    public synchronized void put(T key, RecordId value) { }
-
-                    @Override
-                    public synchronized RecordId get(T key) { return null; }
-                };
-            }
-        };
+    @Nonnull
+    public static <T> Supplier<RecordCache<T>> factory(int size) {
+        if (size <= 0) {
+            return Empty.supplier();
+        } else {
+            return Default.supplier(size);
+        }
     }
 
-    public RecordCache(final int size) {
-        records = new LinkedHashMap<T, RecordId>(size * 4 / 3, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<T, RecordId> eldest) {
-                return size() >= size;
-            }
-        };
+    private static class Empty<T> extends RecordCache<T> {
+        static final <T> Supplier<RecordCache<T>> supplier() {
+            return  new Supplier<RecordCache<T>>() {
+                @Override
+                public RecordCache<T> get() {
+                    return new Empty<>();
+                }
+            };
+        }
+
+        @Override
+        public synchronized void put(T key, RecordId value) { }
+
+        @Override
+        public synchronized RecordId get(T key) { return null; }
     }
 
-    public synchronized void put(T key, RecordId value) {
-        records.put(key, value);
-    }
+    private static class Default<T> extends RecordCache<T> {
+        private final Map<T, RecordId> records;
 
-    public synchronized RecordId get(T key) {
-        return records.get(key);
+        static final <T> Supplier<RecordCache<T>> supplier(final int size) {
+            return new Supplier<RecordCache<T>>() {
+                @Override
+                public RecordCache<T> get() {
+                    return new Default<>(size);
+                }
+            };
+        }
+
+        Default(final int size) {
+            records = new LinkedHashMap<T, RecordId>(size * 4 / 3, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<T, RecordId> eldest) {
+                    return size() >= size;
+                }
+            };
+        }
+
+        @Override
+        public synchronized void put(T key, RecordId value) {
+            records.put(key, value);
+        }
+
+        @Override
+        public synchronized RecordId get(T key) {
+            return records.get(key);
+        }
     }
 }
