@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static java.lang.Integer.getInteger;
+import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
@@ -35,28 +37,30 @@ import com.google.common.base.Supplier;
 // implement configuration, monitoring and management
 // add unit tests
 // document, nullability
-public interface WriterCacheManager {
+public abstract class WriterCacheManager {
+    private static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
+            "oak.tar.stringsCacheSize", 15000);
+
+    private static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
+            "oak.tar.templatesCacheSize", 3000);
 
     @Nonnull
-    RecordCache<String> getStringCache(int generation);
+    public abstract RecordCache<String> getStringCache(int generation);
 
     @Nonnull
-    RecordCache<Template> getTemplateCache(int generation);
+    public abstract RecordCache<Template> getTemplateCache(int generation);
 
     @Nonnull
-    NodeCache getNodeCache(int generation);
+    public abstract NodeCache getNodeCache(int generation);
 
-    void evictCaches(Predicate<Integer> generations);
+    public static class Empty extends WriterCacheManager {
+        public static final WriterCacheManager INSTANCE = new Empty();
 
-    class Empty implements WriterCacheManager {
-        private static final WriterCacheManager EMPTY = new Empty();
-        private final RecordCache<String> stringCache = RecordCache.<String>empty().get();
-        private final RecordCache<Template> templateCache = RecordCache.<Template>empty().get();
-        private final NodeCache nodeCache = NodeCache.empty().get();
+        private final RecordCache<String> stringCache = newRecordCache(0);
+        private final RecordCache<Template> templateCache = newRecordCache(0);
+        private final NodeCache nodeCache = NodeCache.newNodeCache(0, 0);
 
-        public static WriterCacheManager create() { return EMPTY; }
-
-        private Empty(){}
+        private Empty() {}
 
         @Override
         public RecordCache<String> getStringCache(int generation) {
@@ -72,12 +76,9 @@ public interface WriterCacheManager {
         public NodeCache getNodeCache(int generation) {
             return nodeCache;
         }
-
-        @Override
-        public void evictCaches(Predicate<Integer> generations) { }
     }
 
-    class Default implements WriterCacheManager {
+    public static class Default extends WriterCacheManager {
         /**
          * Cache of recently stored string records, used to avoid storing duplicates
          * of frequently occurring data.
@@ -96,20 +97,19 @@ public interface WriterCacheManager {
          */
         private final Generation<NodeCache> nodeCaches;
 
-        public static WriterCacheManager create(
-                @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
-                @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
-                @Nonnull Supplier<NodeCache> nodeCacheFactory) {
-            return new Default(stringCacheFactory, templateCacheFactory, nodeCacheFactory);
-        }
-
-        private Default(
+        public Default(
                 @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
                 @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
                 @Nonnull Supplier<NodeCache> nodeCacheFactory) {
             this.stringCaches = new Generation<>(stringCacheFactory);
             this.templateCaches = new Generation<>(templateCacheFactory);
             this.nodeCaches = new Generation<>(nodeCacheFactory);
+        }
+
+        public Default() {
+            this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
+                 RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
+                 NodeCache.factory(1000000, 20));
         }
 
         private static class Generation<T> {
@@ -156,8 +156,7 @@ public interface WriterCacheManager {
             return nodeCaches.getGeneration(generation);
         }
 
-        @Override
-        public void evictCaches(Predicate<Integer> generations) {
+        protected void evictCaches(Predicate<Integer> generations) {
             stringCaches.evictGenerations(generations);
             templateCaches.evictGenerations(generations);
             nodeCaches.evictGenerations(generations);

@@ -31,11 +31,13 @@ import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
@@ -77,6 +79,66 @@ public class FileStoreBuilder {
 
     @Nonnull
     private SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
+
+    @Nonnull
+    private GCListener gcListener;
+
+    @Nonnull
+    private final WriterCacheManager cacheManager = new WriterCacheManager.Default() {{
+        gcListener = new GCListener() {
+            @Override
+            public void info(String message, Object... arguments) {
+                gcMonitor.info(message, arguments);
+            }
+
+            @Override
+            public void warn(String message, Object... arguments) {
+                gcMonitor.warn(message, arguments);
+            }
+
+            @Override
+            public void error(String message, Exception exception) {
+                gcMonitor.error(message, exception);
+            }
+
+            @Override
+            public void skipped(String reason, Object... arguments) {
+                gcMonitor.skipped(reason, arguments);
+            }
+
+            @Override
+            public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
+                gcMonitor.compacted(segmentCounts, recordCounts, compactionMapWeights);
+            }
+
+            @Override
+            public void cleaned(long reclaimedSize, long currentSize) {
+                gcMonitor.cleaned(reclaimedSize, currentSize);
+            }
+
+            @Override
+            public void compacted(@Nonnull Status status, final int newGeneration) {
+                switch (status) {
+                    case SUCCESS:
+                        evictCaches(new Predicate<Integer>() {
+                            @Override
+                            public boolean apply(Integer generation) {
+                                return generation < newGeneration;
+                            }
+                        });
+                        break;
+                    case FAILURE:
+                        evictCaches(new Predicate<Integer>() {
+                            @Override
+                            public boolean apply(Integer generation) {
+                                return generation == newGeneration;
+                            }
+                        });
+                        break;
+                }
+            }
+        };
+    }};
 
     @CheckForNull
     private TarRevisions revisions;
@@ -277,8 +339,8 @@ public class FileStoreBuilder {
     }
 
     @Nonnull
-    DelegatingGCMonitor getGcMonitor() {
-        return gcMonitor;
+    GCListener getGcListener() {
+        return gcListener;
     }
 
     @Nonnull
@@ -300,5 +362,10 @@ public class FileStoreBuilder {
     TarRevisions getRevisions() {
         checkState(revisions != null, "File store not yet built");
         return revisions;
+    }
+
+    @Nonnull
+    WriterCacheManager getCacheManager() {
+        return cacheManager;
     }
 }
