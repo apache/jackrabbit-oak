@@ -17,19 +17,22 @@
 
 package org.apache.jackrabbit.oak.console;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class SegmentTarFixture implements NodeStoreFixture {
 
     static NodeStoreFixture create(File path, boolean readOnly, BlobStore blobStore) throws IOException {
-        FileStore.Builder builder = FileStore.builder(path).withMaxFileSize(256);
+        FileStoreBuilder builder = fileStoreBuilder(path).withMaxFileSize(256);
 
         if (blobStore != null) {
             builder.withBlobStore(blobStore);

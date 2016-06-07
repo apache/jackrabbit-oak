@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -45,7 +47,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
             sourceDir.mkdirs();
 
-            FileStore fileStore = FileStore.builder(sourceDir).build();
+            FileStore fileStore = fileStoreBuilder(sourceDir).build();
             SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             Session session = repository.login(CREDENTIALS);
@@ -62,7 +64,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
             doUpgradeRepository(sourceDir, target, false);
             fileStore.flush();
 
-            fileStore = FileStore.builder(sourceDir).build();
+            fileStore = fileStoreBuilder(sourceDir).build();
             segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
             session = repository.login(CREDENTIALS);
@@ -84,7 +86,7 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
     @Override
     protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
-        FileStore fileStore = FileStore.builder(source).build();
+        FileStore fileStore = fileStoreBuilder(source).build();
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);

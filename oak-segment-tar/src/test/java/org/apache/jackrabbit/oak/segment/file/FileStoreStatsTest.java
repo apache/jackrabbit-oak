@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -67,7 +68,7 @@ public class FileStoreStatsTest {
     @Test
     public void tarWriterIntegration() throws Exception{
         StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
-        FileStore store = FileStore.builder(segmentFolder.newFolder())
+        FileStore store = fileStoreBuilder(segmentFolder.newFolder())
                 .withStatisticsProvider(statsProvider)
                 .build();
         try {

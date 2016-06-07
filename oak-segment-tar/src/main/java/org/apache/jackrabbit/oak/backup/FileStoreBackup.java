@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.backup;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +28,7 @@ import java.io.IOException;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.Builder;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -46,7 +47,7 @@ public class FileStoreBackup {
         checkArgument(store instanceof SegmentNodeStore);
         Stopwatch watch = Stopwatch.createStarted();
         NodeState current = ((SegmentNodeStore) store).getSuperRoot();
-        Builder builder = FileStore.builder(destination)
+        FileStoreBuilder builder = fileStoreBuilder(destination)
                 .withDefaultMemoryMapping();
         if (USE_FAKE_BLOBSTORE) {
             builder.withBlobStore(new BasicReadOnlyBlobStore());

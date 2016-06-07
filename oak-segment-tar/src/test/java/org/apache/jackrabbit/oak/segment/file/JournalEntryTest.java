@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -45,7 +46,7 @@ public class JournalEntryTest {
 
     @Test
     public void timestampInJournalEntry() throws Exception{
-        FileStore fileStore = FileStore.builder(tempFolder.getRoot()).withMaxFileSize(5)
+        FileStore fileStore = fileStoreBuilder(tempFolder.getRoot()).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();

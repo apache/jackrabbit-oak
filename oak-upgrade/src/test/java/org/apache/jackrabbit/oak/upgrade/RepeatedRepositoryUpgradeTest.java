@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -67,7 +69,7 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
         final File dir = new File(getTestDirectory(), "segments");
         dir.mkdirs();
         try {
-            fileStore = FileStore.builder(dir).withMaxFileSize(128).build();
+            fileStore = fileStoreBuilder(dir).withMaxFileSize(128).build();
             upgradeComplete = false;
         } catch (IOException e) {
             throw new RuntimeException(e);
