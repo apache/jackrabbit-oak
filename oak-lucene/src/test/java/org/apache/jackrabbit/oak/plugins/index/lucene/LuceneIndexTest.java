@@ -901,7 +901,6 @@ public class LuceneIndexTest {
     }
 
 
-    @Ignore("OAK-4431")
     @Test
     public void luceneWithCopyOnReadDir_Compat() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
