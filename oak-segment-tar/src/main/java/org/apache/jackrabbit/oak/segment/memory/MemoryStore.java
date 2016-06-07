@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.memory;
 
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.pooledSegmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -29,7 +28,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -71,8 +69,7 @@ public class MemoryStore implements SegmentStore {
             }
         };
         this.segmentReader = new CachingSegmentReader(getWriter, revisions, null, 16);
-        this.segmentWriter = pooledSegmentWriter(this,
-                LATEST_VERSION, "sys", Suppliers.ofInstance(0));
+        this.segmentWriter = segmentWriterBuilder("sys").withWriterPool().build(this);
         revisions.bind(this);
         segmentWriter.flush();
     }

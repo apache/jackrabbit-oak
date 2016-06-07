@@ -19,8 +19,7 @@
 package org.apache.jackrabbit.oak.segment.http;
 
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.pooledSegmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,7 +33,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -67,8 +65,8 @@ public class HttpStore implements SegmentStore {
             getWriter, revisions, null, DEFAULT_STRING_CACHE_MB);
 
     @Nonnull
-    private final SegmentWriter segmentWriter = pooledSegmentWriter(this,
-            LATEST_VERSION, "sys", Suppliers.ofInstance(0));
+    private final SegmentWriter segmentWriter = segmentWriterBuilder("sys")
+            .withWriterPool().build(this);
 
     private final URL base;
 
