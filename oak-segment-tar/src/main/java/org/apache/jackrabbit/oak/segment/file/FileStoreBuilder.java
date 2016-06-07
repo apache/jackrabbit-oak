@@ -116,6 +116,12 @@ public class FileStoreBuilder {
             public void compacted(@Nonnull Status status, final int newGeneration) {
                 switch (status) {
                     case SUCCESS:
+                        // FIXME OAK-4283: Align GCMonitor API with implementation
+                        // This call is still needed to ensure upstream consumers
+                        // of GCMonitor callback get properly notified. See
+                        // RepositoryImpl.RefreshOnGC and
+                        // LuceneIndexProviderService.registerGCMonitor().
+                        gcMonitor.compacted(new long[0], new long[0], new long[0]);
                         evictCaches(new Predicate<Integer>() {
                             @Override
                             public boolean apply(Integer generation) {
