@@ -110,19 +110,21 @@ public class SegmentWriter {
      * @param reader     segment reader for the {@code store}
      * @param blobStore  the blog store or {@code null} for inlined blobs
      * @param tracker    segment tracker for {@code store}
+     * @param cacheManager  cache manager instance for the de-duplication caches used by this writer
      * @param writeOperationHandler  handler for write operations.
      */
     public SegmentWriter(@Nonnull SegmentStore store,
                          @Nonnull SegmentReader reader,
                          @Nullable BlobStore blobStore,
                          @Nonnull SegmentTracker tracker,
+                         @Nonnull WriterCacheManager cacheManager,
                          @Nonnull WriteOperationHandler writeOperationHandler) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
         this.blobStore = blobStore;
         this.tracker = checkNotNull(tracker);
+        this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
-        this.cacheManager = new WriterCacheManager();
     }
 
     // FIXME OAK-4277: Finalise de-duplication caches

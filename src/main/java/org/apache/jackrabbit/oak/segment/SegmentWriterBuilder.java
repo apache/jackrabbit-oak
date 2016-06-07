@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import javax.annotation.Nonnull;
@@ -37,6 +38,11 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
  * was specified (default).
  */
 public final class SegmentWriterBuilder {
+    private static final int STRING_RECORDS_CACHE_SIZE = getInteger(
+            "oak.segment.writer.stringsCacheSize", 15000);
+
+    private static final int TPL_RECORDS_CACHE_SIZE = getInteger(
+            "oak.segment.writer.templatesCacheSize", 3000);
 
     @Nonnull
     private final String name;
@@ -48,6 +54,18 @@ public final class SegmentWriterBuilder {
     private Supplier<Integer> generation = Suppliers.ofInstance(0);
 
     private boolean pooled = false;
+
+    @Nonnull
+    private WriterCacheManager cacheManager = WriterCacheManager.Default.create(
+        STRING_RECORDS_CACHE_SIZE <= 0
+            ? RecordCache.<String>empty()
+            : RecordCache.<String>factory(STRING_RECORDS_CACHE_SIZE),
+        TPL_RECORDS_CACHE_SIZE <= 0
+            ? RecordCache.<Template>empty()
+            : RecordCache.<Template>factory(TPL_RECORDS_CACHE_SIZE),
+        // FIXME OAK-4277: Finalise de-duplication caches: make sizes and depth configurable
+        NodeCache.factory(1000000, 20));
+
 
     private SegmentWriterBuilder(@Nonnull String name) { this.name = checkNotNull(name); }
 
@@ -105,23 +123,34 @@ public final class SegmentWriterBuilder {
         return this;
     }
 
+    @Nonnull
+    public SegmentWriterBuilder with(WriterCacheManager cacheManager) {
+        this.cacheManager = checkNotNull(cacheManager);
+        return this;
+    }
+
+    @Nonnull
+    public SegmentWriterBuilder withoutCache() {
+        this.cacheManager = WriterCacheManager.Empty.create();
+        return this;
+    }
 
     @Nonnull
     public SegmentWriter build(@Nonnull FileStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), store.getTracker(), createWriter(store, pooled));
+                store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
     }
 
     @Nonnull
     public SegmentWriter build(@Nonnull MemoryStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), store.getTracker(), createWriter(store, pooled));
+                store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
     }
 
     @Nonnull
     public SegmentWriter build(@Nonnull HttpStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), store.getTracker(), createWriter(store, pooled));
+                store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
     }
 
     @Nonnull
