@@ -32,7 +32,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper.getTemplateId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -182,7 +182,7 @@ final class SegmentTarUtils {
 
     static void compact(File directory, boolean force) throws IOException {
         FileStore store = newFileStoreBuilder(directory.getAbsolutePath(),
-                force).withGCOptions(DEFAULT.setOffline()).build();
+                force).withGCOptions(defaultGCOptions().setOffline()).build();
         try {
             System.out.println("Compacting " + directory);
             System.out.println("    before " + Arrays.toString(directory.list()));
@@ -198,7 +198,7 @@ final class SegmentTarUtils {
 
         System.out.println("    -> cleaning up");
         store = newFileStoreBuilder(directory.getAbsolutePath(), force)
-                .withGCOptions(DEFAULT.setOffline()).build();
+                .withGCOptions(defaultGCOptions().setOffline()).build();
         try {
             for (File file : store.cleanup()) {
                 if (!file.exists() || file.delete()) {

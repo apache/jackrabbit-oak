@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -282,7 +282,7 @@ public class ExternalBlobIT {
         assertTrue(store.size() < 10 * 1024);
         close();
 
-        SegmentGCOptions gcOptions = DEFAULT.setOffline();
+        SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         store = fileStoreBuilder(getWorkDir()).withMaxFileSize(1)
                 .withGCOptions(gcOptions).build();
         assertTrue(store.size() < 10 * 1024);

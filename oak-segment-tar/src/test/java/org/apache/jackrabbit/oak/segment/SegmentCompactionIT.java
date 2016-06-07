@@ -32,6 +32,7 @@ import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
@@ -225,7 +226,7 @@ public class SegmentCompactionIT {
             }
         }, 1, 1, SECONDS);
 
-        SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT.setLockWaitTime(lockWaitTime);
+        SegmentGCOptions gcOptions = defaultGCOptions().setLockWaitTime(lockWaitTime);
         fileStore = fileStoreBuilder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
