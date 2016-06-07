@@ -52,6 +52,25 @@ public class FilterTest {
     }
     
     @Test
+    @Ignore
+    public void oak4170() throws ParseException {
+        String sql2 = "select * from [nt:unstructured] where CONTAINS([jcr:content/metadata/comment], 'december')";
+        Filter f = createFilterSQL(sql2);
+        String plan = f.toString();
+        // with the "property is not null" restriction, it would be:
+        // assertEquals("Filter(query=select * from [nt:unstructured] " + 
+        //         "where CONTAINS([jcr:content/metadata/comment], 'december') " + 
+        //         "fullText=jcr:content/metadata/comment:\"december\", " + 
+        //         "path=*, property=[jcr:content/metadata/comment=[is not null]])", plan);
+        assertEquals("Filter(query=select * from [nt:unstructured] " + 
+                "where CONTAINS([jcr:content/metadata/comment], 'december') " + 
+                "fullText=jcr:content/metadata/comment:\"december\", " + 
+                "path=*)", plan);
+        assertEquals(f.getPropertyRestrictions().toString(), 0, f.getPropertyRestrictions().size());
+        f.getPropertyRestriction("jcr:content/metadata/comment");
+    }
+    
+    @Test
     public void localName() throws Exception {
         Filter f = createFilterSQL("select * from [nt:base] where localname() = 'resource'");
         assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
