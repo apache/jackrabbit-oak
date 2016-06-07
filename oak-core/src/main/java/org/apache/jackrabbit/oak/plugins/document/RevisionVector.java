@@ -27,11 +27,9 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
@@ -56,6 +54,9 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     private final static RevisionVector EMPTY = new RevisionVector();
 
     private final Revision[] revisions;
+
+    //lazily initialized
+    private int hash;
 
     private RevisionVector(@Nonnull Revision[] revisions,
                            boolean checkUniqueClusterIds,
@@ -320,12 +321,16 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return a string representation of this revision vector.
      */
     public String asString() {
-        StringBuilder sb = new StringBuilder();
-        String comma = "";
-        for (Revision r : revisions) {
-            sb.append(comma);
-            comma = ",";
-            r.toStringBuilder(sb);
+        int len = revisions.length;
+        if (len == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(len * Revision.REV_STRING_APPROX_SIZE + len - 1);
+        for (int i = 0; i < len; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            revisions[i].toStringBuilder(sb);
         }
         return sb.toString();
     }
@@ -339,9 +344,10 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @throws IllegalArgumentException if the string is malformed
      */
     public static RevisionVector fromString(String s) {
-        List<Revision> revisions = Lists.newArrayListWithCapacity(3);
-        for (String str : s.split(",")) {
-            revisions.add(Revision.fromString(str));
+        String[] list = s.split(",");
+        Revision[] revisions = new Revision[list.length];
+        for (int i = 0; i < list.length; i++) {
+            revisions[i] = Revision.fromString(list[i]);
         }
         return new RevisionVector(revisions);
     }
@@ -446,17 +452,24 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof RevisionVector) {
-            RevisionVector other = (RevisionVector) obj;
-            return Arrays.equals(revisions, other.revisions);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
         }
-        return false;
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        RevisionVector other = (RevisionVector) o;
+        return Arrays.equals(revisions, other.revisions);
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(revisions);
+        if (hash == 0){
+            hash = Arrays.hashCode(revisions);
+        }
+        return hash;
     }
 
     //-------------------------< internal >-------------------------------------

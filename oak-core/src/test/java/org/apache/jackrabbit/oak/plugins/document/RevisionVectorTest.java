@@ -321,12 +321,20 @@ public class RevisionVectorTest {
         assertNotEquals(rv1, rv2);
         rv2 = rv2.update(r12);
         assertEquals(rv1, rv2);
+
+        //Check basic cases which are short circuited
+        assertEquals(rv1, rv1);
+        assertNotEquals(rv1, null);
+        assertNotEquals(rv1, new Object());
     }
 
     @Test
     public void hashCodeTest() {
         RevisionVector rv1 = new RevisionVector();
         RevisionVector rv2 = new RevisionVector();
+        assertEquals(rv1.hashCode(), rv2.hashCode());
+
+        //Check again once lazily initialized hash is initialized
         assertEquals(rv1.hashCode(), rv2.hashCode());
         Revision r11 = new Revision(1, 0, 1);
         rv1 = rv1.update(r11);
@@ -381,5 +389,17 @@ public class RevisionVectorTest {
         Revision r12 = new Revision(1, 0, 2);
         rv = rv.update(r12);
         assertEquals(new RevisionVector(br11, r12), rv.asBranchRevision(1));
+    }
+
+    @Test
+    public void fromString() throws Exception{
+        RevisionVector rv = new RevisionVector(
+                new Revision(1, 0, 1),
+                new Revision(2, 0, 2)
+        );
+
+        String rvstr = rv.asString();
+        RevisionVector rvFromStr = RevisionVector.fromString(rvstr);
+        assertEquals(rv, rvFromStr);
     }
 }

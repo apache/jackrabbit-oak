@@ -27,6 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class Revision implements CacheValue {
 
+    //Extra 2 for those cases where counter or clusterId is 2 digit
+    final static int REV_STRING_APPROX_SIZE = Revision.newRevision(0).toString().length() + 2;
+
     static final int SHALLOW_MEMORY_USAGE = 32;
 
     private static volatile long lastTimestamp;
