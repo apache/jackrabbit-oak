@@ -52,7 +52,7 @@ public class HttpStoreRevisions implements Revisions {
                 InputStream stream = connection.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8))
             ) {
-                return RecordId.fromString(store.getTracker(), reader.readLine());
+                return RecordId.fromString(store, reader.readLine());
             }
         } catch (IllegalArgumentException | MalformedURLException e) {
             throw new IllegalStateException(e);

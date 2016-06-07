@@ -25,6 +25,18 @@ import java.util.Random;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
 public class SegmentIdTableBenchmark {
+
+    private static SegmentIdFactory newSegmentIdMaker(final SegmentStore store) {
+        return new SegmentIdFactory() {
+
+            @Override
+            public SegmentId newSegmentId(long msb, long lsb) {
+                return new SegmentId(store, msb, lsb);
+            }
+
+        };
+    }
+
     public static void main(String... args) throws IOException {
         test();
         test();
@@ -47,10 +59,11 @@ public class SegmentIdTableBenchmark {
         
         time = System.currentTimeMillis();
         MemoryStore store = new MemoryStore();
-        final SegmentIdTable tbl = new SegmentIdTable(store);
+        SegmentIdFactory maker = newSegmentIdMaker(store);
+        final SegmentIdTable tbl = new SegmentIdTable();
         for (int i = 0; i < repeat; i++) {
             for (int j = 0; j < count; j++) {
-                tbl.getSegmentId(j, array[j]);
+                tbl.getSegmentId(j, array[j], maker);
             }
         }
         time = System.currentTimeMillis() - time;

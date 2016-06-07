@@ -144,7 +144,7 @@ public final class SegmentWriterBuilder {
     @Nonnull
     public SegmentWriter build(@Nonnull FileStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
+                store.getBlobStore(), cacheManager, createWriter(store, pooled));
     }
 
     /**
@@ -153,7 +153,7 @@ public final class SegmentWriterBuilder {
     @Nonnull
     public SegmentWriter build(@Nonnull MemoryStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
+                store.getBlobStore(), cacheManager, createWriter(store, pooled));
     }
 
     /**
@@ -162,7 +162,7 @@ public final class SegmentWriterBuilder {
     @Nonnull
     public SegmentWriter build(@Nonnull HttpStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
+                store.getBlobStore(), cacheManager, createWriter(store, pooled));
     }
 
     @Nonnull

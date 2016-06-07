@@ -175,7 +175,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public NodeState readNodeState(String recordId) {
-        return store.getReader().readNode(RecordId.fromString(store.getTracker(), recordId));
+        return store.getReader().readNode(RecordId.fromString(store, recordId));
     }
 
     @Override

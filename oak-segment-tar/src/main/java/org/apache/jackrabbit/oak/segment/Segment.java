@@ -125,7 +125,7 @@ public class Segment {
     public static final int GC_GENERATION_OFFSET = 10;
 
     @Nonnull
-    private final SegmentTracker tracker;
+    private final SegmentStore store;
 
     @Nonnull
     private final SegmentReader reader;
@@ -189,11 +189,11 @@ public class Segment {
         return (address + boundary - 1) & ~(boundary - 1);
     }
 
-    public Segment(@Nonnull SegmentTracker tracker,
+    public Segment(@Nonnull SegmentStore store,
                    @Nonnull SegmentReader reader,
                    @Nonnull final SegmentId id,
                    @Nonnull final ByteBuffer data) {
-        this.tracker = checkNotNull(tracker);
+        this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
 
@@ -237,13 +237,13 @@ public class Segment {
         }
     }
 
-    Segment(@Nonnull SegmentTracker tracker,
+    Segment(@Nonnull SegmentStore store,
             @Nonnull SegmentReader reader,
             @Nonnull byte[] buffer,
             @Nonnull String info) {
-        this.tracker = checkNotNull(tracker);
+        this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
-        this.id = tracker.newDataSegmentId();
+        this.id = store.newDataSegmentId();
         this.info = checkNotNull(info);
         if (DISABLE_TEMPLATE_CACHE) {
             templates = null;
@@ -370,7 +370,7 @@ public class Segment {
                     int refpos = data.position() + index * 16;
                     long msb = data.getLong(refpos);
                     long lsb = data.getLong(refpos + 8);
-                    refid = tracker.getSegmentId(msb, lsb);
+                    refid = store.newSegmentId(msb, lsb);
                     refids[index] = refid;
                 }
             }

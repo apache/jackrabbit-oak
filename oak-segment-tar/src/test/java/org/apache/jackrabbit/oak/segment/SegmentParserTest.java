@@ -400,7 +400,7 @@ public class SegmentParserTest {
 
     @Test
     public void emptyList() {
-        RecordId listId = newRecordId(store.getTracker(), new Random());
+        RecordId listId = newRecordId(store, new Random());
         ListInfo listInfo = new TestParser(store.getReader(), "emptyList").parseList(null, listId, 0);
         assertEquals(listId, listInfo.listId);
         assertEquals(0, listInfo.count);

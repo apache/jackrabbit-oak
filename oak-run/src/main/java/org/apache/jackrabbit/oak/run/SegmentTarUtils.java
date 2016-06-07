@@ -309,12 +309,12 @@ final class SegmentTarUtils {
             if (tokens[0].equalsIgnoreCase("head")) {
                 idL = store.getRevisions().getHead();
             } else {
-                idL = fromString(store.getTracker(), tokens[0]);
+                idL = fromString(store, tokens[0]);
             }
             if (tokens[1].equalsIgnoreCase("head")) {
                 idR = store.getRevisions().getHead();
             } else {
-                idR = fromString(store.getTracker(), tokens[1]);
+                idR = fromString(store, tokens[1]);
             }
         } catch (IllegalArgumentException ex) {
             System.out.println("Error parsing revision interval '" + interval + "': " + ex.getMessage());
@@ -345,9 +345,9 @@ final class SegmentTarUtils {
                     return;
                 }
                 Iterator<String> revDiffsIt = revDiffs.iterator();
-                RecordId idLt = fromString(store.getTracker(), revDiffsIt.next());
+                RecordId idLt = fromString(store, revDiffsIt.next());
                 while (revDiffsIt.hasNext()) {
-                    RecordId idRt = fromString(store.getTracker(), revDiffsIt.next());
+                    RecordId idRt = fromString(store, revDiffsIt.next());
                     boolean good = diff(store, idLt, idRt, filter, pw);
                     idLt = idRt;
                     if (!good && !ignoreSNFEs) {
@@ -586,7 +586,7 @@ final class SegmentTarUtils {
                 System.err.println("Unknown argument: " + args[i]);
             } else if (matcher.group(1) != null) {
                 UUID uuid = UUID.fromString(matcher.group(1));
-                SegmentId id = store.getTracker().getSegmentId(
+                SegmentId id = store.newSegmentId(
                         uuid.getMostSignificantBits(),
                         uuid.getLeastSignificantBits());
                 System.out.println(id.getSegment());
@@ -594,10 +594,10 @@ final class SegmentTarUtils {
                 RecordId id1 = store.getRevisions().getHead();
                 RecordId id2 = null;
                 if (matcher.group(2) != null) {
-                    id1 = fromString(store.getTracker(),
+                    id1 = fromString(store,
                             matcher.group(3));
                     if (matcher.group(4) != null) {
-                        id2 = fromString(store.getTracker(),
+                        id2 = fromString(store,
                                 matcher.group(5));
                     }
                 }

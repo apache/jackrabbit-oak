@@ -40,17 +40,32 @@ import org.junit.Test;
 
 public class SegmentIdTableTest {
 
+    private static SegmentIdFactory newSegmentIdMaker(final SegmentStore store) {
+        return new SegmentIdFactory() {
+
+            @Override
+            public SegmentId newSegmentId(long msb, long lsb) {
+                return new SegmentId(store, msb, lsb);
+            }
+
+        };
+    }
+
+    private static SegmentIdFactory newSegmentIdMaker() throws IOException {
+        return newSegmentIdMaker(new MemoryStore());
+    }
+
     /**
      * OAK-2752
      */
     @Test
     public void endlessSearchLoop() throws IOException {
-        MemoryStore store = new MemoryStore();
-        final SegmentIdTable tbl = new SegmentIdTable(store);
+        final SegmentIdFactory maker = newSegmentIdMaker();
+        final SegmentIdTable tbl = new SegmentIdTable();
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         for (int i = 0; i < 1024; i++) {
-            refs.add(tbl.getSegmentId(i, i % 64));
+            refs.add(tbl.getSegmentId(i, i % 64, maker));
         }
 
         Callable<SegmentId> c = new Callable<SegmentId>() {
@@ -58,7 +73,7 @@ public class SegmentIdTableTest {
             @Override
             public SegmentId call() throws Exception {
                 // (2,1) doesn't exist
-                return tbl.getSegmentId(2, 1);
+                return tbl.getSegmentId(2, 1, maker);
             }
         };
         Future<SegmentId> f = Executors.newSingleThreadExecutor().submit(c);
@@ -75,13 +90,13 @@ public class SegmentIdTableTest {
     
     @Test
     public void randomized() throws IOException {
-        MemoryStore store = new MemoryStore();
-        final SegmentIdTable tbl = new SegmentIdTable(store);
+        SegmentIdFactory maker = newSegmentIdMaker();
+        final SegmentIdTable tbl = new SegmentIdTable();
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         Random r = new Random(1);
         for (int i = 0; i < 16 * 1024; i++) {
-            refs.add(tbl.getSegmentId(r.nextLong(), r.nextLong()));
+            refs.add(tbl.getSegmentId(r.nextLong(), r.nextLong(), maker));
         }
         assertEquals(16 * 1024, tbl.getEntryCount());
         assertEquals(16 * 2048, tbl.getMapSize());
@@ -89,7 +104,7 @@ public class SegmentIdTableTest {
         
         r = new Random(1);
         for (int i = 0; i < 16 * 1024; i++) {
-            refs.add(tbl.getSegmentId(r.nextLong(), r.nextLong()));
+            refs.add(tbl.getSegmentId(r.nextLong(), r.nextLong(), maker));
             assertEquals(16 * 1024, tbl.getEntryCount());
             assertEquals(16 * 2048, tbl.getMapSize());
             assertEquals(5, tbl.getMapRebuildCount());
@@ -98,13 +113,13 @@ public class SegmentIdTableTest {
     
     @Test
     public void clearTable() throws IOException {
-        MemoryStore store = new MemoryStore();
-        final SegmentIdTable tbl = new SegmentIdTable(store);
+        SegmentIdFactory maker = newSegmentIdMaker();
+        final SegmentIdTable tbl = new SegmentIdTable();
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         int originalCount = 8;
         for (int i = 0; i < originalCount; i++) {
-            refs.add(tbl.getSegmentId(i, i % 2));
+            refs.add(tbl.getSegmentId(i, i % 2, maker));
         }
         assertEquals(originalCount, tbl.getEntryCount());
         assertEquals(0, tbl.getMapRebuildCount());
@@ -120,9 +135,9 @@ public class SegmentIdTableTest {
 
         for (SegmentId id : refs) {
             if (id.getMostSignificantBits() >= 4) {
-                SegmentId id2 = tbl.getSegmentId(
-                        id.getMostSignificantBits(),
-                        id.getLeastSignificantBits());
+                long msb = id.getMostSignificantBits();
+                long lsb = id.getLeastSignificantBits();
+                SegmentId id2 = tbl.getSegmentId(msb, lsb, maker);
                 List<SegmentId> list = tbl.getRawSegmentIdList();
                 if (list.size() != new HashSet<SegmentId>(list).size()) {
                     Collections.sort(list);
@@ -135,14 +150,14 @@ public class SegmentIdTableTest {
     
     @Test
     public void justHashCollisions() throws IOException {
-        MemoryStore store = new MemoryStore();
-        final SegmentIdTable tbl = new SegmentIdTable(store);
+        SegmentIdFactory maker = newSegmentIdMaker();
+        final SegmentIdTable tbl = new SegmentIdTable();
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         int originalCount = 1024;
         for (int i = 0; i < originalCount; i++) {
             // modulo 128 to ensure we have conflicts
-            refs.add(tbl.getSegmentId(i, i % 128));
+            refs.add(tbl.getSegmentId(i, i % 128, maker));
         }
         assertEquals(originalCount, tbl.getEntryCount());
         assertEquals(1, tbl.getMapRebuildCount());
@@ -159,14 +174,14 @@ public class SegmentIdTableTest {
     
     @Test
     public void gc() throws IOException {
-        MemoryStore store = new MemoryStore();
-        final SegmentIdTable tbl = new SegmentIdTable(store);
+        SegmentIdFactory maker = newSegmentIdMaker();
+        final SegmentIdTable tbl = new SegmentIdTable();
 
         List<SegmentId> refs = new ArrayList<SegmentId>();
         int originalCount = 1024;
         for (int i = 0; i < originalCount; i++) {
             // modulo 128 to ensure we have conflicts
-            refs.add(tbl.getSegmentId(i, i % 128));
+            refs.add(tbl.getSegmentId(i, i % 128, maker));
         }
         assertEquals(originalCount, tbl.getEntryCount());
         assertEquals(1, tbl.getMapRebuildCount());
@@ -182,7 +197,9 @@ public class SegmentIdTableTest {
             System.gc();
             
             for (SegmentId id : refs) {
-                SegmentId id2 = tbl.getSegmentId(id.getMostSignificantBits(), id.getLeastSignificantBits());
+                long msb = id.getMostSignificantBits();
+                long lsb = id.getLeastSignificantBits();
+                SegmentId id2 = tbl.getSegmentId(msb, lsb, maker);
                 assertTrue(id2 == id);
             }
             // because we found each entry, we expect the refresh count is the same
@@ -192,7 +209,7 @@ public class SegmentIdTableTest {
             // it is supposed to detect that entries were removed,
             // and force a refresh, which would get rid of the unreferenced ids
             for (int i = 0; i < 10; i++) {
-                tbl.getSegmentId(i, i);
+                tbl.getSegmentId(i, i, maker);
             }
 
             if (tbl.getEntryCount() < originalCount) {
