@@ -33,7 +33,6 @@ public interface SegmentRevisionGC {
     /**
      * Set revision gc to paused.
      * @param paused
-     * @return this instance
      */
     void setPausedCompaction(boolean paused);
 

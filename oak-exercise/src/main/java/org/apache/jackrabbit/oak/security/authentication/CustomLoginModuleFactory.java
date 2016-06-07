@@ -26,13 +26,13 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements a LoginModuleFactory that creates {
- * @link org.apache.jackrabbit.oak.security.authentication.CustomLoginModule}s
+ * Implements a LoginModuleFactory that creates {@link CustomLoginModule}s
  * and allows to configure login modules via OSGi config.
  */
 @Component(
@@ -79,7 +79,7 @@ public class CustomLoginModuleFactory implements LoginModuleFactory {
 
     /**
      * Activates the LoginModuleFactory service
-     * @param context the component context
+     * @param componentContext the component context
      */
     @SuppressWarnings("UnusedDeclaration")
     @Activate

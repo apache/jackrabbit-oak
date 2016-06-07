@@ -27,7 +27,7 @@ import javax.servlet.ServletConfig;
  * parameters like repository config and home.
  *
  * It supports the following properties and init parameters:
- * <xmp>
+ * <pre>
  * +-------------------+-------------------+
  * | Property Name     | Init-Param Name   |
  * +-------------------+-------------------+
@@ -35,7 +35,7 @@ import javax.servlet.ServletConfig;
  * | repository.config | repository-config |
  * | repository.name   | repository-name   |
  * +-------------------+-------------------+
- * </xmp>
+ * </pre>
  */
 public class BootstrapConfig extends AbstractConfig {
 

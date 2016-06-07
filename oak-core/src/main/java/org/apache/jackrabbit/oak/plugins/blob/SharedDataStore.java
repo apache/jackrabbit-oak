@@ -38,7 +38,6 @@ public interface SharedDataStore {
      * 
      * @param stream the stream
      * @param name the name of the root record
-     * @return the data record
      * @throws DataStoreException the data store exception
      */
     void addMetadataRecord(InputStream stream, String name)

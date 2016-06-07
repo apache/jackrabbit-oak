@@ -540,9 +540,9 @@ public class LdapProviderConfig {
          * Returns the LDAP filter that is used when searching this type of identity. The filter is based on the
          * configuration and has the following format:
          *
-         * <pre>
+         * <pre>{@code
          *     (&(${idAttr}=${id})(objectclass=${objectclass})${extraFilter})
-         * </pre>
+         * }</pre>
          *
          * Note that the objectclass part is repeated according to the specified objectclasses in {@link #getObjectClasses()}.
          *
@@ -967,9 +967,9 @@ public class LdapProviderConfig {
      * Returns the LDAP filter that is used when searching for groups where an identity is member of.
      * The filter is based on the configuration and has the following format:
      *
-     * <pre>
+     * <pre>{@code
      *     (&(${memberAttribute}=${dn})(objectclass=${objectclass})${extraFilter})
-     * </pre>
+     * }</pre>
      *
      * Note that the objectclass part is repeated according to the specified objectclasses in
      * {@link Identity#getObjectClasses()} of the group configuration.

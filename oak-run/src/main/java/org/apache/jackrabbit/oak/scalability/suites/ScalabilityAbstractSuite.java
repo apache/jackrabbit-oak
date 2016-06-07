@@ -84,7 +84,6 @@ import org.slf4j.LoggerFactory;
  *     Defaults to 1,2,5.
  * </li>
  * </ul>
- * </p>
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {
     public static final String CTX_SEARCH_PATHS_PROP = "searchPaths";

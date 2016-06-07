@@ -24,12 +24,12 @@ import java.util.Map;
 /**
  * Collection of operations available on a remote repository once the user
  * correctly logged in.
- * <p/>
+ * <p>
  * Operations working on pure content, like reading a tree or committing
  * changes, requires a revision. A revision represents a snapshot of the
  * repository in a specified point in time. This concept enables repeatable
  * reads and consistent writes.
- * <p/>
+ * <p>
  * When binary data is involved, this interface exposes methods to read and
  * write arbitrary binary data from and to the repository. A binary data is
  * considered an immutable collection of bytes that can be referenced by an
@@ -39,7 +39,7 @@ public interface RemoteSession {
 
     /**
      * Read the latest revision in the repository.
-     * <p/>
+     * <p>
      * This operation is always meant to succeed, because the repository will
      * always have an initial revision to return to the caller.
      *
@@ -49,7 +49,7 @@ public interface RemoteSession {
 
     /**
      * Read a revision given a string representation of the revision itself.
-     * <p/>
+     * <p>
      * This operation may fail for a number of reasons. In example, the string
      * passed to this method is not a valid revision, or this string represents
      * a revision that was valid in the past but it is no more valid.
@@ -164,7 +164,7 @@ public interface RemoteSession {
 
     /**
      * Read a binary ID given a string representation of the binary ID itself.
-     * <p/>
+     * <p>
      * This operations may fail for a number of reasons. In example, the string
      * doesn't represent a valid binary ID, or the string represents a binary ID
      * that was valid in the past but is no more valid.
@@ -177,7 +177,7 @@ public interface RemoteSession {
 
     /**
      * Read a binary object from the repository according to the given filters.
-     * <p/>
+     * <p>
      * In the case of a binary object, filters are really simple. At most, it is
      * possible to read just a portion of the binary object instead of reading
      * it in its entirety.

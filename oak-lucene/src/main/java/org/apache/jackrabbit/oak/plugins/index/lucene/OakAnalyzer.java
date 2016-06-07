@@ -34,7 +34,7 @@ public class OakAnalyzer extends Analyzer {
      * 
      * @param matchVersion
      *            Lucene version to match See
-     *            {@link <a href="#version">above</a>}
+     *            {@link #matchVersion above}
      */
     public OakAnalyzer(Version matchVersion) {
         this.matchVersion = matchVersion;

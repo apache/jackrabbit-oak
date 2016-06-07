@@ -327,7 +327,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
         return numCandidates;
     }
-    
+
     /**
      * Sweep phase of gc candidate deletion.
      * <p>
@@ -336,6 +336,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      *
      * <ul>
      *     <li>Shared</li>
+     *     <li>
      *     <ul>
      *      <li> Merge all marked references (from the mark phase run independently) available in the data store meta
      *          store (from all configured independent repositories).
@@ -344,8 +345,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      *      <li> Deletes only blobs created after
      *          (earliest time stamp of the marked references - #maxLastModifiedInterval) from the above set.
      *     </ul>
+     *     </li>
      *
      *     <li>Default</li>
+     *     <li>
      *     <ul>
      *      <li> Mark phase already run.
      *      <li> Retrieve all blob ids available.
@@ -353,6 +356,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      *      <li> Deletes only blobs created after
      *          (time stamp of the marked references - #maxLastModifiedInterval).
      *     </ul>
+     *     </li>
      * </ul>
      *
      * @return the number of blobs deleted

@@ -334,7 +334,6 @@ public class EffectiveNodeType {
      * must exactly match the type of the target property.
      * @return the applicable definition for the target property.
      * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
      */
     public PropertyDefinition getPropertyDefinition(
             String propertyName, boolean isMultiple,

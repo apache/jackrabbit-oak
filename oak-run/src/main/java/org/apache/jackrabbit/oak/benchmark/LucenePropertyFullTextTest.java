@@ -75,7 +75,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  * <p>
  * Suggested dump: 
- * {@linkplain https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2}
+ * <a href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
  * </p>
  * <p>
  * Usage example:

@@ -27,14 +27,14 @@ import javax.servlet.ServletException;
  * The JNDI config hold information about JNDI connection details.
  *
  * It supports the following properties and init parameters:
- * <xmp>
+ * <pre>
  * +-------------------+--------------------+
  * | Property Name     | Init-Param Name    |
  * +-------------------+--------------------+
  * | jndi.enable       | {provider spec.}   |
  * | java.naming.*     | java.naming.*      |
  * +-------------------+--------------------+
- * </xmp>
+ * </pre>
  */
 public class JNDIConfig extends AbstractConfig {
 

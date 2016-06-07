@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.remote;
 
 /**
  * An operation to modify content inside the repository.
- * <p/>
+ * <p>
  * This is just a marker interface. Factory methods for {@code RemoteOperation}
  * instances are found in {@link RemoteSession}. The interface doesn't currently
  * expose any method, as its instances are supposed to be consumed by the same

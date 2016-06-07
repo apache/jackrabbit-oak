@@ -54,7 +54,6 @@ import java.util.UUID;
  *     Defaults to 100.
  * </li>
  * </ul>
- * </p>
  *
  */
 public class ConcurrentReader extends ScalabilityBenchmark {

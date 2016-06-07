@@ -24,13 +24,13 @@ import aQute.bnd.annotation.ProviderType;
  * Provides utilities to manage synchronized external identities.
  * The operations return a single or array of messages of the operations performed. for simplicity the messages are
  * JSON serialized strings:
- * <xmp>
+ * <pre>{@code
  * {
  *     "op": "upd",
  *     "uid": "bob",
  *     "eid": "cn=bob,o=apache"
  * }
- * </xmp>
+ * }</pre>
  *
  * With the following operations:
  * <ul>

@@ -109,8 +109,8 @@ public class RepositorySidegrade {
      * not referenced by the existing nodes). By default all orphaned version
      * histories are copied. One may disable it completely by setting
      * {@code null} here or limit it to a selected date range:
-     * {@code <minDate, now()>}. <br/>
-     * <br/>
+     * {@code <minDate, now()>}. <br>
+     * <br>
      * Please notice, that this option is overriden by the
      * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
      * older than set in {@link #setCopyVersions(Calendar)} and if you set
