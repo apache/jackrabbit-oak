@@ -22,10 +22,12 @@ package org.apache.jackrabbit.oak.spi.gc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newConcurrentHashSet;
 
+import java.util.Collection;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 
 /**
@@ -33,7 +35,23 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
  * to registered monitors.
  */
 public class DelegatingGCMonitor implements GCMonitor {
-    private final Set<GCMonitor> gcMonitors = newConcurrentHashSet();
+    private final Set<GCMonitor> gcMonitors;
+
+    /**
+     * New instance with an initial set of delegates (which cannot be unregistered).
+     * @param gcMonitors
+     */
+    public DelegatingGCMonitor(@Nonnull Collection<? extends GCMonitor> gcMonitors) {
+        this.gcMonitors = newConcurrentHashSet();
+        this.gcMonitors.addAll(gcMonitors);
+    }
+
+    /**
+     * New instance without any delegate.
+     */
+    public DelegatingGCMonitor() {
+        this(Sets.<GCMonitor>newConcurrentHashSet());
+    }
 
     /**
      * Register a {@link GCMonitor}.
