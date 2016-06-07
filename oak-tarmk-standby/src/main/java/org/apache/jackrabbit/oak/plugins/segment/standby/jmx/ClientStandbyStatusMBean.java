@@ -27,6 +27,12 @@ public interface ClientStandbyStatusMBean extends StandbyStatusMBean {
     @Description("number of seconds since last successful request")
     int getSecondsSinceLastSuccess();
 
+    @Description("Local timestamp of the moment when the last sync cycle was started")
+    long getSyncStartTimestamp();
+
+    @Description("Local timestamp of the moment when the last sync cycle ended")
+    long getSyncEndTimestamp();
+
     // expose the informations as operations, too
 
     @Description("number of consecutive failed requests")

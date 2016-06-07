@@ -81,6 +81,9 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
+    private long syncStartTimestamp;
+    private long syncEndTimestamp;
+
     public StandbyClient(String host, int port, SegmentStore store) throws SSLException {
         this(host, port, store, false, 10000);
     }
@@ -95,6 +98,8 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             throws SSLException {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
+        this.syncStartTimestamp = -1;
+        this.syncEndTimestamp = -1;
         this.failedRequests = 0;
         this.host = host;
         this.port = port;
@@ -181,6 +186,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         }
 
         try {
+            syncStartTimestamp = System.currentTimeMillis();
             // Start the client.
             ChannelFuture f = b.connect(host, port).sync();
             // Wait until the connection is closed.
@@ -195,6 +201,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
                 this.active = false;
                 shutdownNetty();
             }
+            syncEndTimestamp = System.currentTimeMillis();
         }
     }
 
@@ -265,4 +272,15 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     public void cleanup() {
         store.cleanup();
     }
+
+    @Override
+    public long getSyncStartTimestamp() {
+        return syncStartTimestamp;
+    }
+
+    @Override
+    public long getSyncEndTimestamp() {
+        return syncEndTimestamp;
+    }
+
 }
