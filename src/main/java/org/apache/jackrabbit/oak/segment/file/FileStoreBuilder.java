@@ -254,6 +254,11 @@ public class FileStoreBuilder {
         return this;
     }
 
+    /**
+     * {@link SegmentGCOptions} the garbage collection options of the store
+     * @param gcOptions
+     * @return this instance
+     */
     @Nonnull
     public FileStoreBuilder withGCOptions(SegmentGCOptions gcOptions) {
         this.gcOptions = checkNotNull(gcOptions);
@@ -266,12 +271,12 @@ public class FileStoreBuilder {
      * this method, a file store with the following default settings is returned:
      * <ul>
      * <li>blob store: inline</li>
-     * <li>root: empty node</li>
      * <li>max file size: 256MB</li>
      * <li>cache size: 256MB</li>
      * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
      * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
-     * <li>statsProvider: StatisticsProvider.NOOP</li>
+     * <li>statsProvider: {@link StatisticsProvider#NOOP}</li>
+     * <li>GC options: {@link SegmentGCOptions#DEFAULT}</li>
      * </ul>
      *
      * @return a new file store instance
@@ -286,6 +291,23 @@ public class FileStoreBuilder {
         return store;
     }
 
+    /**
+     * Create a new {@link ReadOnlyStore} instance with the settings specified in this
+     * builder. If none of the {@code with} methods have been called before calling
+     * this method, a file store with the following default settings is returned:
+     * <ul>
+     * <li>blob store: inline</li>
+     * <li>max file size: 256MB</li>
+     * <li>cache size: 256MB</li>
+     * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
+     * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
+     * <li>statsProvider: {@link StatisticsProvider#NOOP}</li>
+     * <li>GC options: {@link SegmentGCOptions#DEFAULT}</li>
+     * </ul>
+     *
+     * @return a new file store instance
+     * @throws IOException
+     */
     @Nonnull
     public ReadOnlyStore buildReadOnly() throws IOException {
         checkState(directory.exists() && directory.isDirectory());
