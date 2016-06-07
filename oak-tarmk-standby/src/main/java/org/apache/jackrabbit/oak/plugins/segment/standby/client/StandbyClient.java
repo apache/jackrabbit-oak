@@ -44,8 +44,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.CharsetUtil;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import io.netty.util.concurrent.EventExecutorGroup;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.jmx.ClientStandbyStatusMBean;
@@ -70,7 +68,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     private final CommunicationObserver observer;
     private StandbyClientHandler handler;
     private EventLoopGroup group;
-    private EventExecutorGroup executor;
     private SslContext sslContext;
     private boolean active = false;
     private int failedRequests;
@@ -142,7 +139,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
                 return;
             }
             state = STATUS_STARTING;
-            executor = new DefaultEventExecutorGroup(4);
             handler = new StandbyClientHandler(this.store, observer, running,
                     readTimeoutMs, autoClean);
             group = new NioEventLoopGroup();
@@ -167,7 +163,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
                     p.addLast(new StringEncoder(CharsetUtil.UTF_8));
                     p.addLast(new SnappyFramedDecoder(true));
                     p.addLast(new RecordIdDecoder(store));
-                    p.addLast(executor, handler);
+                    p.addLast(handler);
                 }
             });
             state = STATUS_RUNNING;
@@ -200,13 +196,9 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             handler.close();
             handler = null;
         }
-        if (executor != null && !executor.isShuttingDown()) {
-            executor.shutdownGracefully(0, 1, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
-        }
         if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(0, 1, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
+            group.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
+            group = null;
         }
     }
 
