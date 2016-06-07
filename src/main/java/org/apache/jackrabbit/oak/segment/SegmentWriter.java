@@ -999,6 +999,10 @@ public class SegmentWriter {
                 int thisGen = writer.getGeneration();
                 return thatGen < thisGen;
             } catch (SegmentNotFoundException snfe) {
+                // This SNFE means a defer compacted node state is too far
+                // in the past. It has been gc'ed already and cannot be
+                // compacted.
+                // Consider increasing SegmentGCOptions.getRetainedGenerations()
                 throw new SegmentNotFoundException(
                     "Cannot copy record from a generation that has been gc'ed already", snfe);
             }
