@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -436,7 +435,7 @@ public class RecordTest {
     public void testCancel() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store, store.getTracker(),
-                store.getReader(), LATEST_VERSION, "test", 0);
+                store.getReader(), "test", 0);
         NodeState state = writer.writeNode(builder.getNodeState(), bufferWriter, Suppliers.ofInstance(true));
         assertNull(state);
     }

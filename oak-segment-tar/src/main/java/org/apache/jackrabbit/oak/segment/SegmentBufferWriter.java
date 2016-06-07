@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.SEGMENT_REFERENCE_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.align;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -92,12 +93,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private final SegmentReader reader;
 
     /**
-     * Version of the segment storage format.
-     */
-    @Nonnull
-    private final SegmentVersion version;
-
-    /**
      * Id of this writer.
      */
     @Nonnull
@@ -128,13 +123,11 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public SegmentBufferWriter(@Nonnull SegmentStore store,
                                @Nonnull SegmentTracker tracker,
                                @Nonnull SegmentReader reader,
-                               @Nonnull SegmentVersion version,
                                @CheckForNull String wid,
                                int generation) {
         this.store = checkNotNull(store);
         this.tracker = checkNotNull(tracker);
         this.reader = checkNotNull(reader);
-        this.version = checkNotNull(version);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
@@ -169,7 +162,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[0] = '0';
         buffer[1] = 'a';
         buffer[2] = 'K';
-        buffer[3] = SegmentVersion.asByte(version);
+        buffer[3] = SegmentVersion.asByte(LATEST_VERSION);
         buffer[4] = 0; // reserved
         buffer[5] = 0; // refcount
 

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import javax.annotation.Nonnull;
 
@@ -55,9 +54,6 @@ public final class SegmentWriterBuilder {
     private final String name;
 
     @Nonnull
-    private SegmentVersion version = LATEST_VERSION;
-
-    @Nonnull
     private Supplier<Integer> generation = Suppliers.ofInstance(0);
 
     private boolean pooled = false;
@@ -74,12 +70,6 @@ public final class SegmentWriterBuilder {
     @Nonnull
     public static SegmentWriterBuilder segmentWriterBuilder(@Nonnull String name) {
         return new SegmentWriterBuilder(name);
-    }
-
-    @Nonnull
-    public SegmentWriterBuilder with(@Nonnull SegmentVersion version) {
-        this.version = checkNotNull(version);
-        return this;
     }
 
     /**
@@ -179,10 +169,10 @@ public final class SegmentWriterBuilder {
     private WriteOperationHandler createWriter(@Nonnull FileStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(store,
-                    store.getTracker(), store.getReader(), version, name, generation);
+                    store.getTracker(), store.getReader(), name, generation);
         } else {
             return new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), version, name, generation.get());
+                    store.getTracker(), store.getReader(), name, generation.get());
         }
     }
 
@@ -190,10 +180,10 @@ public final class SegmentWriterBuilder {
     private WriteOperationHandler createWriter(@Nonnull MemoryStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(store,
-                    store.getTracker(), store.getReader(), version, name, generation);
+                    store.getTracker(), store.getReader(), name, generation);
         } else {
             return new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), version, name, generation.get());
+                    store.getTracker(), store.getReader(), name, generation.get());
         }
     }
 
@@ -201,10 +191,10 @@ public final class SegmentWriterBuilder {
     private WriteOperationHandler createWriter(@Nonnull HttpStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(store,
-                    store.getTracker(), store.getReader(), version, name, generation);
+                    store.getTracker(), store.getReader(), name, generation);
         } else {
             return new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), version, name, generation.get());
+                    store.getTracker(), store.getReader(), name, generation.get());
         }
     }
 
