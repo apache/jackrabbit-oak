@@ -19,17 +19,16 @@
 package org.apache.jackrabbit.oak.plugins.segment.standby.client;
 
 import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.newGetHeadReq;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.ReplyDecoder;
@@ -51,7 +50,6 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
     private final boolean autoClean;
 
     private EventExecutorGroup loaderExecutor;
-    private ChannelHandlerContext ctx;
 
     public StandbyClientHandler(final StandbyStore store,
             CommunicationObserver observer, AtomicBoolean running,
@@ -65,7 +63,6 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        this.ctx = ctx;
         log.debug("sending head request");
         ctx.writeAndFlush(newGetHeadReq(this.observer.getID()));
         log.debug("did send head request");
@@ -74,7 +71,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RecordId msg)
             throws Exception {
-        setHead(msg);
+        setHead(ctx, msg);
     };
 
     @Override
@@ -82,7 +79,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
         ctx.flush();
     }
 
-    synchronized void setHead(RecordId head) {
+    synchronized void setHead(ChannelHandlerContext ctx, RecordId head) {
 
         if (store.getHead().getRecordId().equals(head)) {
             // all sync'ed up
@@ -115,14 +112,6 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
 
     @Override
     public synchronized void close() {
-        if (ctx != null) {
-            for (ChannelHandler h : ctx.pipeline().toMap().values()) {
-                ctx.pipeline().remove(h);
-            }
-
-            ctx.close();
-            ctx = null;
-        }
         if (loaderExecutor != null && !loaderExecutor.isShuttingDown()) {
             loaderExecutor.shutdownGracefully(0, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
