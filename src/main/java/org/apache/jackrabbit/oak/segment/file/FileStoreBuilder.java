@@ -35,7 +35,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
@@ -73,9 +72,6 @@ public class FileStoreBuilder {
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
-
-    @Nonnull
-    private SegmentVersion version = SegmentVersion.LATEST_VERSION;
 
     @Nonnull
     private SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
@@ -244,17 +240,6 @@ public class FileStoreBuilder {
     }
 
     /**
-     * {@link SegmentVersion} the segment version of the store
-     * @param version
-     * @return this instance
-     */
-    @Nonnull
-    public FileStoreBuilder withSegmentVersion(SegmentVersion version) {
-        this.version = checkNotNull(version);
-        return this;
-    }
-
-    /**
      * {@link SegmentGCOptions} the garbage collection options of the store
      * @param gcOptions
      * @return this instance
@@ -368,11 +353,6 @@ public class FileStoreBuilder {
     @Nonnull
     StatisticsProvider getStatsProvider() {
         return statsProvider;
-    }
-
-    @Nonnull
-    SegmentVersion getVersion() {
-        return version;
     }
 
     @Nonnull
