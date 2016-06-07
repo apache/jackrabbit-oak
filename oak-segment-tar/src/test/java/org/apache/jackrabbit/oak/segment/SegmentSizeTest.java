@@ -20,8 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -205,7 +204,7 @@ public class SegmentSizeTest {
     }
 
     private void expectSize(int expectedSize, NodeBuilder builder) throws IOException {
-        SegmentWriter writer = segmentWriter(store, LATEST_VERSION, "test", 0);
+        SegmentWriter writer = segmentWriterBuilder("test").build(store);
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = id.getSegment();
@@ -214,7 +213,7 @@ public class SegmentSizeTest {
     }
 
     private void expectAmortizedSize(int expectedSize, NodeBuilder builder) throws IOException {
-        SegmentWriter writer = segmentWriter(store, LATEST_VERSION, "test", 0);
+        SegmentWriter writer = segmentWriterBuilder("test").build(store);
         NodeState state = builder.getNodeState();
         RecordId id1 = writer.writeNode(state).getRecordId();
         RecordId id2 = writer.writeNode(state).getRecordId();

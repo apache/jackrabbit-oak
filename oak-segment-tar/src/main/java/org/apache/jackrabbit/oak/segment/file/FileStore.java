@@ -38,9 +38,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.pooledSegmentWriter;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
 import java.io.Closeable;
@@ -78,12 +76,12 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
+import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
-import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -407,7 +405,7 @@ public class FileStore implements SegmentStore, Closeable {
                 @Override
                 public RecordId get() {
                     try {
-                        SegmentWriter writer = segmentWriter(store, LATEST_VERSION, "init", 0);
+                        SegmentWriter writer = segmentWriterBuilder("init").build(store);
                         NodeBuilder builder = EMPTY_NODE.builder();
                         builder.setChildNode("root", EMPTY_NODE);
                         SegmentNodeState node = writer.writeNode(builder.getNodeState());
@@ -450,12 +448,18 @@ public class FileStore implements SegmentStore, Closeable {
         } else {
             this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) DEFAULT_STRING_CACHE_MB);
         }
-        this.segmentWriter = pooledSegmentWriter(this, version, "sys", new Supplier<Integer>() {
-                    @Override
-                    public Integer get() {
-                        return getGcGeneration();
-                    }
-                });
+
+        Supplier<Integer> getGeneration = new Supplier<Integer>() {
+            @Override
+            public Integer get() {
+                return getGcGeneration();
+            }
+        };
+        this.segmentWriter = segmentWriterBuilder("sys")
+                .with(version)
+                .withGeneration(getGeneration)
+                .withWriterPool()
+                .build(this);
         this.directory = builder.directory;
         this.maxFileSize = builder.maxFileSize * MB;
         this.memoryMapping = builder.memoryMapping;

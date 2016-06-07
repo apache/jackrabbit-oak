@@ -29,8 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -51,7 +50,7 @@ public class RecordUsageAnalyserTest {
     @Before
     public void setup() throws IOException {
         MemoryStore store = new MemoryStore();
-        writer = segmentWriter(store, LATEST_VERSION, "", 0);
+        writer = segmentWriterBuilder("").build(store);
         analyser = new RecordUsageAnalyser(store.getReader());
     }
 
