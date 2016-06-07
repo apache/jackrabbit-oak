@@ -22,11 +22,10 @@ import static com.google.common.collect.Sets.newHashSet;
 
 import java.security.SecureRandom;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
-
-import com.google.common.base.Predicate;
 
 /**
  * Tracker of references to segment identifiers and segment instances
@@ -140,14 +139,9 @@ public class SegmentTracker {
         return getSegmentId(msb, lsb, maker);
     }
 
-    // FIXME OAK-4285: Align cleanup of segment id tables with the new cleanup strategy
-    // ith clean brutal we need to remove those ids that have been cleaned
-    // i.e. those whose segment was from an old generation
-    // Instead of removing, mark affected ids as gc'ed so the SNFE caused by
-    // any subsequent access can report a precise cause
-    public synchronized void clearSegmentIdTables(Predicate<SegmentId> canRemove) {
+    public synchronized void clearSegmentIdTables(@Nonnull Set<UUID> reclaimed, @Nonnull String gcInfo) {
         for (SegmentIdTable table : tables) {
-            table.clearSegmentIdTables(canRemove);
+            table.clearSegmentIdTables(reclaimed, gcInfo);
         }
     }
 

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.UUID;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
@@ -52,6 +53,17 @@ public class SegmentId implements Comparable<SegmentId> {
     private final long lsb;
 
     private final long creationTime;
+
+    /**
+     * The gc generation of this segment or -1 if unknown.
+     */
+    private int gcGeneration = -1;
+
+    /**
+     * The gc info of this segment if it has been reclaimed or {@code null} otherwise.
+     */
+    @CheckForNull
+    private String gcInfo;
 
     /**
      * A reference to the segment object, if it is available in memory. It is
@@ -109,17 +121,46 @@ public class SegmentId implements Comparable<SegmentId> {
                     try {
                         log.debug("Loading segment {}", this);
                         segment = store.readSegment(this);
+                        gcGeneration = segment.getGcGeneration();
                         this.segment = segment;
                     } catch (SegmentNotFoundException snfe) {
-                        long delta = System.currentTimeMillis() - creationTime;
-                        log.error("Segment not found: {}. Creation date delta is {} ms.",
-                                this, delta, snfe);
+                        log.error("Segment not found: {}. {}", this, gcInfo(), snfe);
                         throw snfe;
                     }
                 }
             }
         }
         return segment;
+    }
+
+    @Nonnull
+    private String gcInfo() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SegmentId age=").append(System.currentTimeMillis() - creationTime).append("ms");
+        if (gcInfo != null) {
+            sb.append(",").append(gcInfo);
+        }
+        if (gcGeneration >= 0) {
+            sb.append(",").append("segment-generation").append(gcGeneration);
+        }
+        return sb.toString();
+    }
+
+    /* For testing only */
+    @CheckForNull
+    String getGcInfo() {
+        return gcInfo;
+    }
+
+    /**
+     * Notify this id about the reclamation of its segment (e.g. by
+     * the garbage collector).
+     * @param gcInfo  details about the reclamation. This information
+     *                is logged along with the {@code SegmentNotFoundException}
+     *                when attempting to resolve the segment of this id.
+     */
+    public void reclaimed(@Nonnull String gcInfo) {
+        this.gcInfo = gcInfo;
     }
 
     /**
