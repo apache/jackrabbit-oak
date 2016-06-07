@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -117,8 +118,7 @@ public class Compactor {
         }
     }
 
-    private final RecordCache<RecordId> cache = RecordCache.<RecordId> factory(
-            cacheSize).get();
+    private final RecordCache<RecordId> cache = newRecordCache(cacheSize);
 
     public Compactor(SegmentReader reader, SegmentWriter writer,
             BlobStore blobStore, Supplier<Boolean> cancel, SegmentGCOptions gc) {
