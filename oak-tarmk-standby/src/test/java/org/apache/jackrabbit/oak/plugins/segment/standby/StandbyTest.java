@@ -67,12 +67,12 @@ public class StandbyTest extends TestBase {
         FileStore secondary = getSecondary();
 
         NodeStore store = new SegmentNodeStore(primary);
-        final StandbyServer server = new StandbyServer(getPort(), primary);
+        final StandbyServer server = new StandbyServer(port, primary);
         server.start();
         byte[] data = addTestContent(store, "server", blobSize, 150);
         primary.flush();
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+        StandbyClient cl = newStandbyClient(secondary);
         cl.run();
 
         try {
@@ -119,19 +119,4 @@ public class StandbyTest extends TestBase {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return data;
     }
-
-    public static void main(String[] args) throws Exception {
-        File d = createTmpTargetDir("StandbyLiveTest");
-        d.delete();
-        d.mkdir();
-        FileStore s = new FileStore(d, 256, false);
-        StandbyClient cl = new StandbyClient("127.0.0.1", 8023, s);
-        try {
-            cl.run();
-        } finally {
-            s.close();
-            cl.close();
-        }
-    }
-
 }

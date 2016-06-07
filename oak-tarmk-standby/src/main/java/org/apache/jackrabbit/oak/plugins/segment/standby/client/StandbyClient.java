@@ -84,15 +84,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     private long syncStartTimestamp;
     private long syncEndTimestamp;
 
-    public StandbyClient(String host, int port, SegmentStore store) throws SSLException {
-        this(host, port, store, false, 10000);
-    }
-
-    public StandbyClient(String host, int port, SegmentStore store,
-            boolean secure, int readTimeoutMs) throws SSLException {
-        this(host, port, store, secure, readTimeoutMs, false);
-    }
-
     public StandbyClient(String host, int port, SegmentStore store,
             boolean secure, int readTimeoutMs, boolean autoClean)
             throws SSLException {
@@ -172,7 +163,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
                     if (sslContext != null) {
                         p.addLast(sslContext.newHandler(ch.alloc()));
                     }
-                    // WriteTimeoutHandler & ReadTimeoutHandler
                     p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
                             readTimeoutMs, TimeUnit.MILLISECONDS));
                     p.addLast(new StringEncoder(CharsetUtil.UTF_8));
@@ -208,11 +198,11 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
 
     private void shutdownNetty() {
         if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(1, 1, TimeUnit.SECONDS)
+            group.shutdownGracefully(0, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
         if (executor != null && !executor.isShuttingDown()) {
-            executor.shutdownGracefully(1, 1, TimeUnit.SECONDS)
+            executor.shutdownGracefully(0, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
         if (handler != null) {

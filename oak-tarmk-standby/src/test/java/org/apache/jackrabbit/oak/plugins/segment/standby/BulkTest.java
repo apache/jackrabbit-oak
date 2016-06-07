@@ -113,7 +113,7 @@ public class BulkTest extends TestBase {
         server.start();
 
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Bar");
-        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC, useSSL, 5000);
+        StandbyClient cl = newStandbyClient(storeC, port, useSSL);
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
