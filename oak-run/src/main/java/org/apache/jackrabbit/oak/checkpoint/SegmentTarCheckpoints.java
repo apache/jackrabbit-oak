@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.checkpoint;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -32,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class SegmentTarCheckpoints extends Checkpoints {
 
     static Checkpoints create(File path, Closer closer) throws IOException {
-        return new SegmentTarCheckpoints(closer.register(FileStore.builder(path).build()));
+        return new SegmentTarCheckpoints(closer.register(fileStoreBuilder(path).build()));
     }
 
     private final FileStore store;

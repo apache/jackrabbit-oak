@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.json.JsonSerializer.DEFAULT_FILTER_EXPRESSION;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class RevisionHistory {
      * @throws IOException
      */
     public RevisionHistory(@Nonnull File directory) throws IOException {
-        this.store = FileStore.builder(checkNotNull(directory)).buildReadOnly();
+        this.store = fileStoreBuilder(checkNotNull(directory)).buildReadOnly();
     }
 
     private static NodeState getNode(SegmentNodeState root, String path) {

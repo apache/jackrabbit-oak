@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -52,7 +53,7 @@ public class SegmentSizeTest {
 
     @Before
     public void setup() throws IOException {
-        store = FileStore.builder(folder.getRoot()).build();
+        store = fileStoreBuilder(folder.getRoot()).build();
     }
 
     @After

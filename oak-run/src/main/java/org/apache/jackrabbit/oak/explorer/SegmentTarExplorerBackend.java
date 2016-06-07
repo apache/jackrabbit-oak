@@ -21,6 +21,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
 import static java.util.Collections.sort;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +61,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public void open() throws IOException {
-        store = FileStore.builder(path).buildReadOnly();
+        store = fileStoreBuilder(path).buildReadOnly();
         index = store.getTarReaderIndex();
     }
 

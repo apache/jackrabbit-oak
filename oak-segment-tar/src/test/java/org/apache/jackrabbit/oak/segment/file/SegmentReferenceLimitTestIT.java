@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -75,7 +76,7 @@ public class SegmentReferenceLimitTestIT {
 
     @Test
     public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1)
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
                 .withNoCache().withMemoryMapping(true).build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import java.io.IOException;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -42,7 +45,7 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
-        FileStore.Builder builder = FileStore.builder(new File(dir, "segmentstore"));
+        FileStoreBuilder builder = fileStoreBuilder(new File(dir, "segmentstore"));
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }

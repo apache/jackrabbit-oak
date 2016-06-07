@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.createRegExpFilter;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.parseSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -65,7 +66,7 @@ public class SegmentGraphTest {
 
     @Before
     public void setup() throws IOException {
-        FileStore store = FileStore.builder(getStoreFolder()).build();
+        FileStore store = fileStoreBuilder(getStoreFolder()).build();
         try {
             SegmentNodeState root = store.getReader().readHeadState();
             segments.add(getSegmentId(root));
@@ -127,7 +128,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraph() throws IOException {
-        ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
+        ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store, Predicates.<UUID>alwaysTrue());
             assertEquals(segments, newHashSet(segmentGraph.vertices()));
@@ -143,7 +144,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraphWithFilter() throws IOException {
-        ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
+        ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Predicate<UUID> filter = createRegExpFilter(".*(writer2|writer3).*", store.getTracker());
             Graph<UUID> segmentGraph = parseSegmentGraph(store, filter);
@@ -163,7 +164,7 @@ public class SegmentGraphTest {
         // TODO Improve test coverage to non trivial cases with more than a single generation
         // This is quite tricky as there is no easy way to construct a file store with
         // a segment graphs having edges between generations (OAK-3348)
-        ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
+        ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
             assertEquals(ImmutableSet.of("0"), newHashSet(gcGraph.vertices()));

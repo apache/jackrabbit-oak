@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -49,7 +50,7 @@ public class ExternalBlobReferenceTest {
     @Before
     public void createFileStore() throws Exception {
         blobStore = mock(BlobStore.class);
-        fileStore = FileStore.builder(segmentFolder.getRoot()).withBlobStore(blobStore).build();
+        fileStore = fileStoreBuilder(segmentFolder.getRoot()).withBlobStore(blobStore).build();
     }
 
     @After

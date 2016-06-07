@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentGraph.writeSegmentGraph;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper.getTemplateId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -87,7 +88,7 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.Builder;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
@@ -243,7 +244,7 @@ final class SegmentTarUtils {
     }
 
     private static FileStore bootstrapFileStore(String path) throws IOException {
-        return FileStore.builder(new File(path)).build();
+        return fileStoreBuilder(new File(path)).build();
     }
 
     private static void listRevs(File store, File out) throws IOException {
@@ -301,7 +302,7 @@ final class SegmentTarUtils {
                     + "'.");
             return;
         }
-        ReadOnlyStore store = FileStore.builder(dir).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+        ReadOnlyStore store = fileStoreBuilder(dir).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
         RecordId idL = null;
         RecordId idR = null;
         try {
@@ -632,7 +633,7 @@ final class SegmentTarUtils {
     }
 
     private static FileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException {
-        return FileStore.builder(isValidFileStoreOrFail(path))
+        return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .withBlobStore(blobStore)
@@ -640,15 +641,15 @@ final class SegmentTarUtils {
     }
 
     private static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException {
-        return FileStore.builder(isValidFileStoreOrFail(path))
+        return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .buildReadOnly();
     }
 
-    private static Builder newFileStoreBuilder(String directory, boolean force)
+    private static FileStoreBuilder newFileStoreBuilder(String directory, boolean force)
             throws IOException {
-        return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
+        return fileStoreBuilder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED);
     }

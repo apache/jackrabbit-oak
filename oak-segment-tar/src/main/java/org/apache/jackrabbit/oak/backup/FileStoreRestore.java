@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.backup;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -44,10 +46,10 @@ public class FileStoreRestore {
                     + " is not a valid FileStore directory");
         }
 
-        FileStore restore = FileStore.builder(source).buildReadOnly();
+        FileStore restore = fileStoreBuilder(source).buildReadOnly();
         Stopwatch watch = Stopwatch.createStarted();
 
-        FileStore store = FileStore.builder(destination).build();
+        FileStore store = fileStoreBuilder(destination).build();
         // FIXME OAK-4278: Fix backup and restore
 //        SegmentNodeState current = store.getRevisions().getHead();
         try {

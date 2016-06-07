@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -41,7 +43,7 @@ class SegmentTarUtils {
     }
 
     private static FileStore fileStore(String path, BlobStore store) throws IOException {
-        return FileStore.builder(new File(path)).withBlobStore(store).build();
+        return fileStoreBuilder(new File(path)).withBlobStore(store).build();
     }
 
 }
