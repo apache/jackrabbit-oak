@@ -36,6 +36,18 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
  * The returned instances are thread safe if {@link #withWriterPool()}
  * was specified and <em>not</em> thread sage if {@link #withoutWriterPool()}
  * was specified (default).
+ * <p>
+ * <em>Default:</em> calling one of the {@code build()} methods without previously
+ * calling one of the {@code with...()} methods returns a {@code SegmentWriter}
+ * as would the following chain of calls:
+ * <pre>
+     segmentWriterBuilder("name")
+        .with(LATEST_VERSION)
+        .withGeneration(0)
+        .withoutWriterPool()
+        .with(new WriterCacheManager.Default())
+        .build(store);
+ * </pre>
  */
 public final class SegmentWriterBuilder {
 
@@ -55,6 +67,10 @@ public final class SegmentWriterBuilder {
 
     private SegmentWriterBuilder(@Nonnull String name) { this.name = checkNotNull(name); }
 
+    /**
+     * Set the {@code name} of this builder. This name will appear in the segment's
+     * meta data.
+     */
     @Nonnull
     public static SegmentWriterBuilder segmentWriterBuilder(@Nonnull String name) {
         return new SegmentWriterBuilder(name);
@@ -83,6 +99,10 @@ public final class SegmentWriterBuilder {
         return this;
     }
 
+    /**
+     * Specify the {@code generation} for the segment written by the returned
+     * segment writer.
+     */
     @Nonnull
     public SegmentWriterBuilder withGeneration(int generation) {
         this.generation = Suppliers.ofInstance(generation);
@@ -109,30 +129,46 @@ public final class SegmentWriterBuilder {
         return this;
     }
 
+    /**
+     * Specify the {@code cacheManager} used by the returned writer.
+     */
     @Nonnull
     public SegmentWriterBuilder with(WriterCacheManager cacheManager) {
         this.cacheManager = checkNotNull(cacheManager);
         return this;
     }
 
+    /**
+     * Specify that the returned writer should not use a cache.
+     * @see #with(WriterCacheManager)
+     */
     @Nonnull
     public SegmentWriterBuilder withoutCache() {
         this.cacheManager = Empty.INSTANCE;
         return this;
     }
 
+    /**
+     * Build a {@code SegmentWriter} for a {@code FileStore}.
+     */
     @Nonnull
     public SegmentWriter build(@Nonnull FileStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
                 store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
     }
 
+    /**
+     * Build a {@code SegmentWriter} for a {@code MemoryStore}.
+     */
     @Nonnull
     public SegmentWriter build(@Nonnull MemoryStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
                 store.getBlobStore(), store.getTracker(), cacheManager, createWriter(store, pooled));
     }
 
+    /**
+     * Build a {@code SegmentWriter} for a {@code HttpStore}.
+     */
     @Nonnull
     public SegmentWriter build(@Nonnull HttpStore store) {
         return new SegmentWriter(checkNotNull(store), store.getReader(),
