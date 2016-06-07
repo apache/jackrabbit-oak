@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby.store;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.io.ByteArrayOutputStream;
@@ -88,8 +89,13 @@ public class StandbyStore implements SegmentStore {
         long maxWeight = 0;
         long maxKeys = 0;
 
+        Set<SegmentId> visited = newHashSet();
+
         while (!ids.isEmpty()) {
             SegmentId id = ids.remove();
+
+            visited.add(id);
+
             if (!persisted.contains(id) && !delegate.containsSegment(id)) {
                 Segment s;
                 boolean logRefs = true;
@@ -114,7 +120,7 @@ public class StandbyStore implements SegmentStore {
                         }
                         for (SegmentId nr : refs) {
                             // skip already persisted or self-ref
-                            if (persisted.contains(nr) || id.equals(nr)) {
+                            if (persisted.contains(nr) || id.equals(nr) || visited.contains(nr)) {
                                 continue;
                             }
                             hasPendingRefs = true;
