@@ -886,6 +886,7 @@ public class FileStore implements SegmentStore, Closeable {
                         GC_COUNT, head.getRecordId(), before.getRecordId(), after.getRecordId());
                 before = head;
             }
+
             if (!success) {
                 gcListener.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
                         GC_COUNT, cycles - 1);
@@ -895,14 +896,7 @@ public class FileStore implements SegmentStore, Closeable {
                     if (!success) {
                         gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
                             "Most likely compaction didn't get exclusive access to the store or was " +
-                            "prematurely cancelled. Cleaning up.",
-                            GC_COUNT);
-                        cleanup(new Predicate<Integer>() {
-                            @Override
-                            public boolean apply(Integer generation) {
-                                return generation == newGeneration;
-                            }
-                        });
+                            "prematurely cancelled.", GC_COUNT);
                     }
                 }
             }
@@ -918,6 +912,14 @@ public class FileStore implements SegmentStore, Closeable {
                         GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
                 return true;
             } else {
+                gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
+                cleanup(new Predicate<Integer>() {
+                    @Override
+                    public boolean apply(Integer generation) {
+                        return generation == newGeneration;
+                    }
+                });
+
                 gcListener.compacted(FAILURE, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
                         GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
