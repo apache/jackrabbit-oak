@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static java.io.File.createTempFile;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -33,17 +34,18 @@ import java.util.concurrent.FutureTask;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -55,19 +57,76 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class RefreshOnGCTest {
-    private final boolean usePersistedMap;
+    private final Fixture fixture;
 
-    private FileStore fileStore;
+    private Callable<Void> compact;
     private Repository repository;
     private GCMonitorTracker gcMonitor;
 
-    @Parameterized.Parameters
-    public static List<Boolean[]> fixtures() {
-        return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
+    enum Fixture {
+        SEGMENT_PERSISTED_MAP(true),
+        SEGMENT_MEMORY_MAP(false),
+        SEGMENT_TAR(false);
+
+        private final boolean persistedMap;
+
+        Fixture(boolean persistedMap) {
+            this.persistedMap = persistedMap;
+        }
+
+        public boolean usePersistedMap() {
+            return persistedMap;
+        }
     }
 
-    public RefreshOnGCTest(boolean usePersistedMap) {
-        this.usePersistedMap = usePersistedMap;
+    @Parameterized.Parameters
+    public static List<Fixture[]> fixtures() {
+        return ImmutableList.of(
+                new Fixture[] {Fixture.SEGMENT_PERSISTED_MAP},
+                new Fixture[] {Fixture.SEGMENT_MEMORY_MAP},
+                new Fixture[] {Fixture.SEGMENT_TAR});
+    }
+
+    public RefreshOnGCTest(Fixture fixtures) {
+        this.fixture = fixtures;
+    }
+
+    private NodeStore createSegmentStore(File directory, GCMonitor gcMonitor) throws IOException {
+        CompactionStrategy strategy = new CompactionStrategy(
+                false, false, CLEAN_NONE, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+            @Override
+            public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
+                setHead.call();
+                return true;
+            }
+        };
+        strategy.setPersistCompactionMap(fixture.usePersistedMap());
+        final FileStore fileStore = FileStore.builder(directory)
+                .withGCMonitor(gcMonitor)
+                .build()
+                .setCompactionStrategy(strategy);
+
+        compact = new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                fileStore.compact();
+                return null;
+            }
+        };
+        return SegmentNodeStore.builder(fileStore).build();
+    }
+
+    private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws IOException {
+        final org.apache.jackrabbit.oak.segment.file.FileStore fileStore =
+                fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
+        compact = new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                fileStore.compact();
+                return null;
+            }
+        };
+        return SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
     @Before
@@ -79,22 +138,13 @@ public class RefreshOnGCTest {
         Whiteboard whiteboard = new DefaultWhiteboard();
         gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
-        CompactionStrategy strategy = new CompactionStrategy(
-                false, false, CLEAN_NONE, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-            @Override
-            public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-                setHead.call();
-                return true;
-            }
-        };
-        strategy.setPersistCompactionMap(usePersistedMap);
-        fileStore = FileStore.builder(directory)
-                .withGCMonitor(gcMonitor)
-                .build()
-                .setCompactionStrategy(strategy);
 
-        NodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();
-        Oak oak = new Oak(nodeStore);
+        Oak oak;
+        if (fixture == Fixture.SEGMENT_TAR) {
+            oak = new Oak(createSegmentTarStore(directory, gcMonitor));
+        } else {
+            oak = new Oak(createSegmentStore(directory, gcMonitor));
+        }
         oak.with(whiteboard);
         repository = new Jcr(oak).createRepository();
     }
@@ -108,7 +158,7 @@ public class RefreshOnGCTest {
     }
 
     @Test
-    public void compactionCausesRefresh() throws RepositoryException, InterruptedException, ExecutionException, IOException {
+    public void compactionCausesRefresh() throws Exception {
         Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         try {
             Node root = session.getRootNode();
@@ -117,7 +167,7 @@ public class RefreshOnGCTest {
 
             addNode(repository, "two");
 
-            fileStore.compact();
+            compact.call();
             assertTrue(root.hasNode("one"));
             assertTrue("Node two must be visible as compaction should cause the session to refresh",
                     root.hasNode("two"));
