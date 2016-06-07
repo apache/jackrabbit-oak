@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -37,7 +38,6 @@ import java.util.Random;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -167,7 +167,7 @@ public class ExternalBlobIT {
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
-            store = FileStore.builder(getWorkDir()).withBlobStore(blobStore)
+            store = fileStoreBuilder(getWorkDir()).withBlobStore(blobStore)
                     .withMaxFileSize(1).build();
             nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         }
@@ -283,7 +283,7 @@ public class ExternalBlobIT {
         close();
 
         SegmentGCOptions gcOptions = DEFAULT.setOffline();
-        store = FileStore.builder(getWorkDir()).withMaxFileSize(1)
+        store = fileStoreBuilder(getWorkDir()).withMaxFileSize(1)
                 .withGCOptions(gcOptions).build();
         assertTrue(store.size() < 10 * 1024);
 

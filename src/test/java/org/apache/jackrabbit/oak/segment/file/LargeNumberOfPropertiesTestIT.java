@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -68,7 +69,7 @@ public class LargeNumberOfPropertiesTestIT {
 
     @Test
     public void corruption() throws Exception {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(5)
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(5)
                 .withNoCache().withMemoryMapping(true).build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 

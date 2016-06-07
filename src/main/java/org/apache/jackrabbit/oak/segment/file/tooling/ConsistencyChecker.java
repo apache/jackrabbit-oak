@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.io.File;
@@ -118,7 +119,7 @@ public class ConsistencyChecker {
      */
     public ConsistencyChecker(File directory, long debugInterval)
             throws IOException {
-        store = FileStore.builder(directory).buildReadOnly();
+        store = fileStoreBuilder(directory).buildReadOnly();
         this.debugInterval = debugInterval;
     }
 

@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -69,7 +70,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.Builder;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
@@ -333,7 +334,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         SegmentGCOptions gcOptions = newGCOptions();
 
         // Build the FileStore
-        Builder builder = FileStore.builder(getDirectory())
+        FileStoreBuilder builder = fileStoreBuilder(getDirectory())
                 .withCacheSize(getCacheSize())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))

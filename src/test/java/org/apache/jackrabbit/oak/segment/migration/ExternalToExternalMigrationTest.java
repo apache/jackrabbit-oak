@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.migration;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -36,7 +38,7 @@ public class ExternalToExternalMigrationTest extends AbstractMigratorTest {
     @Override
     protected NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException {
         File segmentDir = new File(repository, "segmentstore");
-        store = FileStore.builder(segmentDir).withBlobStore(blobStore).build();
+        store = fileStoreBuilder(segmentDir).withBlobStore(blobStore).build();
         return SegmentNodeStoreBuilders.builder(store).build();
     }
 

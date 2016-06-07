@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_M
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DEFAULT;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -87,7 +88,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void compactionNoBinaryClone()
     throws IOException, CommitFailedException {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withGCOptions(DEFAULT.setRetainedGenerations(2))
                 .withMaxFileSize(1)
                 .build();
@@ -173,7 +174,7 @@ public class CompactionAndCleanupIT {
     public void offlineCompaction()
     throws IOException, CommitFailedException {
         SegmentGCOptions gcOptions = DEFAULT.setOffline();
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
                 .build();
@@ -264,7 +265,7 @@ public class CompactionAndCleanupIT {
     public void offlineCompactionCps() throws IOException,
             CommitFailedException {
         SegmentGCOptions gcOptions = DEFAULT.setOffline();
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
                 .build();
@@ -316,7 +317,7 @@ public class CompactionAndCleanupIT {
             CommitFailedException {
         SegmentGCOptions gcOptions = DEFAULT.setOffline()
                 .withBinaryDeduplication();
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1).withGCOptions(gcOptions).build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
                 .builder(fileStore).build();
@@ -371,7 +372,7 @@ public class CompactionAndCleanupIT {
         SegmentGCOptions gcOptions = DEFAULT.setOffline()
                 .withBinaryDeduplication()
                 .setBinaryDeduplicationMaxSize(blobSize / 2);
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1).withGCOptions(gcOptions).build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
                 .builder(fileStore).build();
@@ -424,7 +425,7 @@ public class CompactionAndCleanupIT {
     public void offlineCompactionBinR1() throws IOException,
             CommitFailedException {
         SegmentGCOptions gcOptions = DEFAULT.setOffline();
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1).withGCOptions(gcOptions).build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
                 .builder(fileStore).build();
@@ -486,7 +487,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void testCancelCompaction()
     throws Throwable {
-        final FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withGCOptions(DEFAULT.setRetainedGenerations(2))
                 .withMaxFileSize(1)
                 .build();
@@ -539,7 +540,7 @@ public class CompactionAndCleanupIT {
      */
     @Test
     public void testMixedSegments() throws Exception {
-        FileStore store = FileStore.builder(getFileStoreFolder())
+        FileStore store = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(2)
                 .withMemoryMapping(true)
                 .withGCOptions(DEFAULT.setForceAfterFail(true))
@@ -611,7 +612,7 @@ public class CompactionAndCleanupIT {
      */
     @Test
     public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         final SegmentWriter writer = fileStore.getWriter();
         final SegmentNodeState oldHead = fileStore.getReader().readHeadState();
 
@@ -635,7 +636,7 @@ public class CompactionAndCleanupIT {
         fileStore.getRevisions().setHead(oldHead.getRecordId(), newHead.getRecordId());
         fileStore.close();
 
-        fileStore = FileStore.builder(getFileStoreFolder()).build();
+        fileStore = fileStoreBuilder(getFileStoreFolder()).build();
 
         traverse(fileStore.getReader().readHeadState());
         fileStore.cleanup();
@@ -672,7 +673,7 @@ public class CompactionAndCleanupIT {
         for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
             SegmentGCOptions gcOptions = DEFAULT;
             File repoDir = new File(getFileStoreFolder(), ref);
-            FileStore fileStore = FileStore.builder(repoDir)
+            FileStore fileStore = fileStoreBuilder(repoDir)
                     .withMaxFileSize(2)
                     .withGCOptions(gcOptions)
                     .build();
@@ -722,7 +723,7 @@ public class CompactionAndCleanupIT {
             }
 
             // Re-initialise the file store to simulate off-line gc
-            fileStore = FileStore.builder(repoDir).withMaxFileSize(2).build();
+            fileStore = fileStoreBuilder(repoDir).withMaxFileSize(2).build();
             try {
                 // The 1M blob should get gc-ed
                 fileStore.cleanup();
@@ -830,7 +831,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void propertyRetention() throws IOException, CommitFailedException {
         SegmentGCOptions gcOptions = DEFAULT;
-        FileStore fileStore = FileStore.builder(getFileStoreFolder())
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
                 .build();
@@ -878,7 +879,7 @@ public class CompactionAndCleanupIT {
 
     @Test
     public void checkpointDeduplicationTest() throws IOException, CommitFailedException {
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         try {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             NodeBuilder builder = nodeStore.getRoot().builder();

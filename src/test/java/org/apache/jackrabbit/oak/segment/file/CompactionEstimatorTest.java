@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +53,7 @@ public class CompactionEstimatorTest {
         final int MB = 1024 * 1024;
         final int blobSize = 2 * MB;
 
-        FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(2).withMemoryMapping(false).build();
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(2).withMemoryMapping(false).build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         // 1. Create some blob properties

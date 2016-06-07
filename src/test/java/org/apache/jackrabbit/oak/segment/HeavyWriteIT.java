@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.CIHelper.travis;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
@@ -62,7 +63,7 @@ public class HeavyWriteIT {
 
     @Test
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
-        final FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
+        final FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         int writes = 100;

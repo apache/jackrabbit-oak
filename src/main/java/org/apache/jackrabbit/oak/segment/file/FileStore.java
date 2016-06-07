@@ -30,7 +30,6 @@ import static java.lang.String.format;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -93,14 +92,10 @@ import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
-import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,217 +221,17 @@ public class FileStore implements SegmentStore, Closeable {
     @Nonnull
     private final SegmentCache segmentCache;
 
-    /**
-     * Create a new instance of a {@link Builder} for a file store.
-     * @param directory  directory where the tar files are stored
-     * @return a new {@link Builder} instance.
-     */
-    @Nonnull
-    public static Builder builder(@Nonnull File directory) {
-        return new Builder(checkNotNull(directory));
-    }
-
-    /**
-     * Builder for creating {@link FileStore} instances.
-     */
-    public static class Builder {
-
-        private final File directory;
-
-        private BlobStore blobStore;   // null ->  store blobs inline
-
-        private int maxFileSize = 256;
-
-        private int cacheSize;   // 0 -> DEFAULT_MEMORY_CACHE_SIZE
-
-        private boolean memoryMapping;
-
-        private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor(
-                singleton(new LoggingGCMonitor(log)));
-
-        private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
-
-        private SegmentVersion version = SegmentVersion.LATEST_VERSION;
-
-        private SegmentGCOptions gcOptions = SegmentGCOptions.DEFAULT;
-
-        private Builder(File directory) {
-            this.directory = directory;
-        }
-
-        private TarRevisions revisions;
-
-        /**
-         * Specify the {@link BlobStore}.
-         * @param blobStore
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withBlobStore(@Nonnull BlobStore blobStore) {
-            this.blobStore = checkNotNull(blobStore);
-            return this;
-        }
-
-        /**
-         * Maximal size of the generated tar files in MB.
-         * @param maxFileSize
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withMaxFileSize(int maxFileSize) {
-            this.maxFileSize = maxFileSize;
-            return this;
-        }
-
-        /**
-         * Size of the cache in MB.
-         * @param cacheSize
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withCacheSize(int cacheSize) {
-            this.cacheSize = cacheSize;
-            return this;
-        }
-
-        /**
-         * Turn caching off
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withNoCache() {
-            this.cacheSize = -1;
-            return this;
-        }
-
-        /**
-         * Turn memory mapping on or off
-         * @param memoryMapping
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withMemoryMapping(boolean memoryMapping) {
-            this.memoryMapping = memoryMapping;
-            return this;
-        }
-
-        /**
-         * Set memory mapping to the default value based on OS properties
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withDefaultMemoryMapping() {
-            this.memoryMapping = MEMORY_MAPPING_DEFAULT;
-            return this;
-        }
-
-        /**
-         * {@link GCMonitor} for monitoring this files store's gc process.
-         * @param gcMonitor
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withGCMonitor(@Nonnull GCMonitor gcMonitor) {
-            this.gcMonitor.registerGCMonitor(checkNotNull(gcMonitor));
-            return this;
-        }
-
-        /**
-         * {@link StatisticsProvider} for collecting statistics related to FileStore
-         * @param statisticsProvider
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
-            this.statsProvider = checkNotNull(statisticsProvider);
-            return this;
-        }
-
-        /**
-         * {@link SegmentVersion} the segment version of the store
-         * @param version
-         * @return this instance
-         */
-        @Nonnull
-        public Builder withSegmentVersion(SegmentVersion version) {
-            this.version = checkNotNull(version);
-            return this;
-        }
-
-        @Nonnull
-        public Builder withGCOptions(SegmentGCOptions gcOptions) {
-            this.gcOptions = checkNotNull(gcOptions);
-            return this;
-        }
-
-        /**
-         * Create a new {@link FileStore} instance with the settings specified in this
-         * builder. If none of the {@code with} methods have been called before calling
-         * this method, a file store with the following default settings is returned:
-         * <ul>
-         * <li>blob store: inline</li>
-         * <li>root: empty node</li>
-         * <li>max file size: 256MB</li>
-         * <li>cache size: 256MB</li>
-         * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
-         * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
-         * <li>statsProvider: StatisticsProvider.NOOP</li>
-         * </ul>
-         *
-         * @return a new file store instance
-         * @throws IOException
-         */
-        @Nonnull
-        public FileStore build() throws IOException {
-            directory.mkdir();
-            revisions = new TarRevisions(false, directory);
-            FileStore store = new FileStore(this, false);
-            revisions.bind(store, store.getTracker(), initialNode(store));
-            return store;
-        }
-
-        @Nonnull
-        public ReadOnlyStore buildReadOnly() throws IOException {
-            checkState(directory.exists() && directory.isDirectory());
-            revisions = new TarRevisions(true, directory);
-            ReadOnlyStore store = new ReadOnlyStore(this);
-            revisions.bind(store, store.getTracker(), initialNode(store));
-            return store;
-        }
-
-        @Nonnull
-        private static Supplier<RecordId> initialNode(final FileStore store) {
-            return new Supplier<RecordId>() {
-                @Override
-                public RecordId get() {
-                    try {
-                        SegmentWriter writer = segmentWriterBuilder("init").build(store);
-                        NodeBuilder builder = EMPTY_NODE.builder();
-                        builder.setChildNode("root", EMPTY_NODE);
-                        SegmentNodeState node = writer.writeNode(builder.getNodeState());
-                        writer.flush();
-                        return node.getRecordId();
-                    } catch (IOException e) {
-                        String msg = "Failed to write initial node";
-                        log.error(msg, e);
-                        throw new IllegalStateException(msg, e);
-                    }
-                }
-            };
-        }
-    }
-
-    private FileStore(Builder builder, boolean readOnly) throws IOException {
-        this.version = builder.version;
+    FileStore(FileStoreBuilder builder, boolean readOnly) throws IOException {
+        this.version = builder.getVersion();
         this.tracker = new SegmentTracker(this);
-        this.revisions = builder.revisions;
-        this.blobStore = builder.blobStore;
+        this.revisions = builder.getRevisions();
+        this.blobStore = builder.getBlobStore();
 
         // FIXME OAK-4373 refactor cache size configurations
-        if (builder.cacheSize < 0) {
+        if (builder.getCacheSize() < 0) {
             this.segmentCache = new SegmentCache(0);
-        } else if (builder.cacheSize > 0) {
-            this.segmentCache = new SegmentCache(builder.cacheSize);
+        } else if (builder.getCacheSize() > 0) {
+            this.segmentCache = new SegmentCache(builder.getCacheSize());
         } else {
             this.segmentCache = new SegmentCache(DEFAULT_STRING_CACHE_MB);
         }
@@ -446,10 +241,10 @@ public class FileStore implements SegmentStore, Closeable {
                 return getWriter();
             }
         };
-        if (builder.cacheSize < 0) {
+        if (builder.getCacheSize() < 0) {
             this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, 0);
-        } else if (builder.cacheSize > 0) {
-            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) builder.cacheSize);
+        } else if (builder.getCacheSize() > 0) {
+            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) builder.getCacheSize());
         } else {
             this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) DEFAULT_STRING_CACHE_MB);
         }
@@ -465,11 +260,11 @@ public class FileStore implements SegmentStore, Closeable {
                 .withGeneration(getGeneration)
                 .withWriterPool()
                 .build(this);
-        this.directory = builder.directory;
-        this.maxFileSize = builder.maxFileSize * MB;
-        this.memoryMapping = builder.memoryMapping;
-        this.gcMonitor = builder.gcMonitor;
-        this.gcOptions = builder.gcOptions;
+        this.directory = builder.getDirectory();
+        this.maxFileSize = builder.getMaxFileSize() * MB;
+        this.memoryMapping = builder.getMemoryMapping();
+        this.gcMonitor = builder.getGcMonitor();
+        this.gcOptions = builder.getGcOptions();
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
@@ -489,7 +284,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         long initialSize = size();
         this.approximateSize = new AtomicLong(initialSize);
-        this.stats = new FileStoreStats(builder.statsProvider, this, initialSize);
+        this.stats = new FileStoreStats(builder.getStatsProvider(), this, initialSize);
 
         if (!readOnly) {
             if (indices.length > 0) {
@@ -1514,7 +1309,7 @@ public class FileStore implements SegmentStore, Closeable {
      */
     public static class ReadOnlyStore extends FileStore {
 
-        private ReadOnlyStore(Builder builder) throws IOException {
+        ReadOnlyStore(FileStoreBuilder builder) throws IOException {
             super(builder, true);
         }
 
