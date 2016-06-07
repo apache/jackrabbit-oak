@@ -26,8 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.createRegExpFilter;
 import static org.apache.jackrabbit.oak.segment.SegmentGraph.parseSegmentGraph;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -71,9 +70,9 @@ public class SegmentGraphTest {
             SegmentNodeState root = store.getReader().readHeadState();
             segments.add(getSegmentId(root));
 
-            SegmentWriter w1 = segmentWriter(store, LATEST_VERSION, "writer1", 0);
-            SegmentWriter w2 = segmentWriter(store, LATEST_VERSION, "writer2", 0);
-            SegmentWriter w3 = segmentWriter(store, LATEST_VERSION, "writer3", 0);
+            SegmentWriter w1 = segmentWriterBuilder("writer1").build(store);
+            SegmentWriter w2 = segmentWriterBuilder("writer2").build(store);
+            SegmentWriter w3 = segmentWriterBuilder("writer3").build(store);
 
             SegmentPropertyState p1 = w1.writeProperty(createProperty("p1", "v1"));
             segments.add(getSegmentId(p1));

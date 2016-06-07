@@ -33,8 +33,7 @@ import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.LONG;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.MEDIUM;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.SMALL;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentWriters.segmentWriter;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -139,7 +138,7 @@ public class SegmentParserTest {
     @Before
     public void setup() throws IOException {
         store = new MemoryStore();
-        writer = segmentWriter(store, LATEST_VERSION, "", 0);
+        writer = segmentWriterBuilder("").build(store);
     }
 
     @Test
