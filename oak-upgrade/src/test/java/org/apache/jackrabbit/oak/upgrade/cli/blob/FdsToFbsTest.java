@@ -55,4 +55,9 @@ public class FdsToFbsTest extends AbstractOak2OakTest {
         return new String[] { "--copy-binaries", "--src-datastore", sourceBlob.getDescription(), "--fileblobstore",
                 destinationBlob.getDescription(), source.getDescription(), destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
 }

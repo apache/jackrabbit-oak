@@ -44,4 +44,9 @@ public class SegmentToSegmentTest extends AbstractOak2OakTest {
     protected String[] getArgs() {
         return new String[] { source.getDescription(), destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
 }

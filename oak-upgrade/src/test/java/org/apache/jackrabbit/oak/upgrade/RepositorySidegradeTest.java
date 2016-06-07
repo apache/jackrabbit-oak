@@ -61,14 +61,9 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -100,26 +95,11 @@ public class RepositorySidegradeTest {
     public JackrabbitSession createAdminSession() throws RepositoryException {
         return (JackrabbitSession) targetRepository.login(CREDENTIALS);
     }
-    
-    // OAK-2869
-    private static void setAsync(NodeStore source) throws Exception {
-        NodeBuilder builder = source.getRoot().builder();
-        builder.child(":async").setProperty("test", "123");
-        source.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-    
-    // OAK-2869
-    @Test
-    public void verifyAsync() throws Exception {
-        NodeState state = targetNodeStore.getRoot().getChildNode(":async");
-        assertFalse(state.hasProperty("test"));
-    }
 
     @SuppressWarnings("unchecked")
     protected NodeStore createSourceContent() throws Exception {
         NodeStore source = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        setAsync(source);
-        
+
         Repository repository = new Jcr(new Oak(source)).createRepository();
 
         Session session = repository.login(CREDENTIALS);

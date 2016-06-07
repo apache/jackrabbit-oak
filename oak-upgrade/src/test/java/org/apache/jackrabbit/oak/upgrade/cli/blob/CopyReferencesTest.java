@@ -51,4 +51,9 @@ public class CopyReferencesTest extends AbstractOak2OakTest {
         return new String[] { "--src-datastore", sourceBlob.getDescription(), source.getDescription(),
                 destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
 }
