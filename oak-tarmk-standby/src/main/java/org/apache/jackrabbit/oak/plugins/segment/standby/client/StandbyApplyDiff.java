@@ -47,6 +47,8 @@ class StandbyApplyDiff implements NodeStateDiff {
 
     private final SegmentStore store;
 
+    private final boolean hasDataStore;
+
     private final RemoteSegmentLoader loader;
 
     private final String path;
@@ -67,6 +69,7 @@ class StandbyApplyDiff implements NodeStateDiff {
             RemoteSegmentLoader loader, String path, boolean logOnly) {
         this.builder = builder;
         this.store = store;
+        this.hasDataStore = store.getBlobStore() != null;
         this.loader = loader;
         this.path = path;
         this.logOnly = logOnly;
@@ -125,7 +128,7 @@ class StandbyApplyDiff implements NodeStateDiff {
         if (b instanceof SegmentBlob) {
             SegmentBlob sb = (SegmentBlob) b;
             // verify if the blob exists
-            if (sb.isExternal() && b.getReference() == null) {
+            if (sb.isExternal() && hasDataStore && b.getReference() == null) {
                 String blobId = sb.getBlobId();
                 if (blobId != null) {
                     readBlob(blobId, pName);
@@ -154,47 +157,44 @@ class StandbyApplyDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        if (!loader.isRunning()) {
-            return false;
-        }
-
-        if (after instanceof SegmentNodeState) {
-            if (log.isTraceEnabled()) {
-                log.trace("childNodeAdded {}, RO:{}", path + name, logOnly);
-            }
-            if (!logOnly) {
-                RecordId id = ((SegmentNodeState) after).getRecordId();
-                builder.setChildNode(name, new SegmentNodeState(id));
-            }
-            return after.compareAgainstBaseState(EmptyNodeState.EMPTY_NODE,
-                    new StandbyApplyDiff(builder.getChildNode(name), store,
-                            loader, path + name + "/", true));
-        }
-        return false;
+        return process(name, "childNodeAdded", EmptyNodeState.EMPTY_NODE,
+                after);
     }
 
     @Override
     public boolean childNodeChanged(String name, NodeState before,
             NodeState after) {
+        return process(name, "childNodeChanged", before, after);
+    }
+
+    private boolean process(String name, String op, NodeState before,
+            NodeState after) {
         if (!loader.isRunning()) {
             return false;
         }
-
         if (after instanceof SegmentNodeState) {
-            RecordId id = ((SegmentNodeState) after).getRecordId();
-
             if (log.isTraceEnabled()) {
-                RecordId oldId = ((SegmentNodeState) before).getRecordId();
-                log.trace("childNodeChanged {}, {} -> {}, RO:{}", path + name,
-                        oldId, id, logOnly);
+                log.trace("{} {}, readonly binary check {}", op, path + name,
+                        logOnly);
             }
             if (!logOnly) {
+                RecordId id = ((SegmentNodeState) after).getRecordId();
                 builder.setChildNode(name, new SegmentNodeState(id));
             }
-
-            return after.compareAgainstBaseState(before, new StandbyApplyDiff(
-                    builder.getChildNode(name), store, loader, path + name
-                            + "/", true));
+            if ("checkpoints".equals(name)) {
+                // if we're on the /checkpoints path, there's no need for a deep
+                // traversal to verify binaries
+                return true;
+            }
+            if (hasDataStore) {
+                // has external datastore, we need a deep
+                // traversal to verify binaries
+                return after.compareAgainstBaseState(before,
+                        new StandbyApplyDiff(builder.getChildNode(name), store,
+                                loader, path + name + "/", true));
+            } else {
+                return true;
+            }
         }
         return false;
     }
