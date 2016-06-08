@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.data.AsyncTouchCallback;
 import org.apache.jackrabbit.core.data.AsyncTouchResult;
 import org.apache.jackrabbit.core.data.AsyncUploadCallback;
@@ -65,6 +70,9 @@ import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
+
+import static com.google.common.collect.Iterables.filter;
+import static java.lang.Thread.currentThread;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -411,33 +419,13 @@ public class S3Backend implements SharedS3Backend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers()
             throws DataStoreException {
-        long start = System.currentTimeMillis();
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
-            Set<DataIdentifier> ids = new HashSet<DataIdentifier>();
-            ObjectListing prevObjectListing = s3service.listObjects(bucket);
-            while (true) {
-                for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                    String id = getIdentifierName(s3ObjSumm.getKey());
-                    if (id != null && !id.startsWith(META_KEY_PREFIX)) {
-                        ids.add(new DataIdentifier(id));
-                    }
+        return new RecordsIterator<DataIdentifier>(
+            new Function<S3ObjectSummary, DataIdentifier>() {
+                @Override
+                public DataIdentifier apply(S3ObjectSummary input) {
+                    return new DataIdentifier(getIdentifierName(input.getKey()));
                 }
-                if (!prevObjectListing.isTruncated()) break;
-                prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
-            }
-            LOG.debug("getAllIdentifiers returned size [{}] took [{}] ms.",
-                ids.size(), (System.currentTimeMillis() - start));
-            return ids.iterator();
-        } catch (AmazonServiceException e) {
-            throw new DataStoreException("Could not list objects", e);
-        } finally {
-            if (contextClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(contextClassLoader);
-            }
-        }
+        });
     }
 
     @Override
@@ -702,6 +690,81 @@ public class S3Backend implements SharedS3Backend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    /**
+     * Returns an iterator over the S3 objects
+     * @param <T>
+     */
+    class RecordsIterator<T> extends AbstractIterator<T> {
+        ObjectListing prevObjectListing;
+        Queue<S3ObjectSummary> queue;
+        long size;
+        Function<S3ObjectSummary, T> transformer;
+
+        public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
+            queue = Lists.newLinkedList();
+            this.transformer = transformer;
+        }
+
+        @Override
+        protected T computeNext() {
+            if (queue.isEmpty()) {
+                loadBatch();
+            }
+
+            if (!queue.isEmpty()) {
+                return transformer.apply(queue.remove());
+            }
+
+            return endOfData();
+        }
+
+        private boolean loadBatch() {
+            ClassLoader contextClassLoader = currentThread().getContextClassLoader();
+            long start = System.currentTimeMillis();
+            try {
+                currentThread().setContextClassLoader(getClass().getClassLoader());
+
+                // initialize the listing the first time
+                if (prevObjectListing == null) {
+                    prevObjectListing = s3service.listObjects(bucket);
+                } else if (prevObjectListing.isTruncated()) { //already initialized more objects available
+                    prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
+                } else { // no more available
+                    return false;
+                }
+
+                List<S3ObjectSummary> listing = Lists.newArrayList(
+                    filter(prevObjectListing.getObjectSummaries(),
+                        new Predicate<S3ObjectSummary>() {
+                            @Override
+                            public boolean apply(S3ObjectSummary input) {
+                                return !input.getKey().startsWith(META_KEY_PREFIX);
+                            }
+                        }));
+
+                // After filtering no elements
+                if (listing.isEmpty()) {
+                    return false;
+                }
+
+                size += listing.size();
+                queue.addAll(listing);
+
+                LOG.info("Loaded batch of size [{}] in [{}] ms.",
+                    listing.size(), (System.currentTimeMillis() - start));
+
+                return true;
+            } catch (AmazonServiceException e) {
+                LOG.warn("Could not list objects", e);
+            } finally {
+                if (contextClassLoader != null) {
+                    currentThread().setContextClassLoader(contextClassLoader);
+                }
+            }
+            return false;
         }
     }
 
