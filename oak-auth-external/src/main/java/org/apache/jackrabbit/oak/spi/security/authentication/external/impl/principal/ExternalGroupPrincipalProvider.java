@@ -273,7 +273,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      */
     private final class ExternalGroupPrincipal extends PrincipalImpl implements java.security.acl.Group {
 
-        public ExternalGroupPrincipal(String principalName) {
+        private ExternalGroupPrincipal(String principalName) {
             super(principalName);
 
         }
