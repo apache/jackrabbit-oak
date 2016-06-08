@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -72,6 +73,13 @@ public interface SharedDataStore {
      * @param prefix metadata type identifier
      */
     void deleteAllMetadataRecords(String prefix);
+
+    /**
+     * Retrieved an iterator over all DataRecords.
+     *
+     * @return iterator over DataRecords
+     */
+    Iterator<DataRecord> getAllRecords();
 
     /**
      * Gets the type.

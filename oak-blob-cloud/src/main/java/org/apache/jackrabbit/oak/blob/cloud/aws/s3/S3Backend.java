@@ -693,6 +693,18 @@ public class S3Backend implements SharedS3Backend {
         }
     }
 
+    @Override
+    public Iterator<DataRecord> getAllRecords() {
+        return new RecordsIterator<DataRecord>(
+            new Function<S3ObjectSummary, DataRecord>() {
+                @Override
+                public DataRecord apply(S3ObjectSummary input) {
+                    return new S3DataRecord(s3service, bucket, getIdentifierName(input.getKey()),
+                        input.getLastModified().getTime(), input.getSize());
+                }
+            });
+    }
+
     /**
      * Returns an iterator over the S3 objects
      * @param <T>

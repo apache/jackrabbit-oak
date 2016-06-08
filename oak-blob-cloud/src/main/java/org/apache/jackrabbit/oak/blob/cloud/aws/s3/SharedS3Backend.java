@@ -24,6 +24,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -70,4 +71,13 @@ public interface SharedS3Backend extends Backend {
      * @param prefix the prefix of the record
      */
     void deleteAllMetadataRecords(String prefix);
+
+    /**
+     * Returns a list of all DataRecords
+     *
+     * @return iterator over DataRecords
+     * @throws DataStoreException
+     */
+    Iterator<DataRecord> getAllRecords()
+        throws DataStoreException;
 }
