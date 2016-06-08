@@ -52,7 +52,6 @@ public class FilterTest {
     }
     
     @Test
-    @Ignore
     public void oak4170() throws ParseException {
         String sql2 = "select * from [nt:unstructured] where CONTAINS([jcr:content/metadata/comment], 'december')";
         Filter f = createFilterSQL(sql2);
