@@ -156,7 +156,7 @@ Authentication with External Login Module : Examples
                          idp.name="your_idp_name";
        };
        
-See [Pre-Authenticated Login](../preauthentication.html) for an example 
+See [Pre-Authenticated Login](../preauthentication.html#withloginchain) for an example 
 `LoginModule` that illustrates how the pre-authentication is being pushed 
 to the shared stated.
 
