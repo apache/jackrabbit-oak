@@ -364,18 +364,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        return transform(filter(transform(delegate.getAllIdentifiers(), new Function<DataIdentifier, DataRecord>() {
-            @Nullable
-            @Override
-            public DataRecord apply(@Nullable DataIdentifier input) {
-                try {
-                    return delegate.getRecord(input);
-                } catch (DataStoreException e) {
-                    log.warn("Error occurred while fetching DataRecord for identifier {}", input, e);
-                }
-                return null;
-            }
-        }), new Predicate<DataRecord>() {
+        return transform(filter(getAllRecords(), new Predicate<DataRecord>() {
             @Override
             public boolean apply(@Nullable DataRecord input) {
                 if (input != null && (maxLastModifiedTime <= 0
@@ -462,6 +451,14 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         if (delegate instanceof SharedDataStore) {
             ((SharedDataStore) delegate).deleteAllMetadataRecords(prefix);
         }
+    }
+
+    @Override
+    public Iterator<DataRecord> getAllRecords() {
+        if (delegate instanceof SharedDataStore) {
+            return ((SharedDataStore) delegate).getAllRecords();
+        }
+        return Iterators.emptyIterator();
     }
 
     @Override

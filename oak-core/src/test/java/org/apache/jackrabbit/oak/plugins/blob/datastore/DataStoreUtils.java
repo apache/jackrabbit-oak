@@ -105,7 +105,7 @@ public class DataStoreUtils {
     }
 
     public static FileDataStore createFDS(File root, int minRecordLength) {
-        FileDataStore fds = new FileDataStore();
+        OakFileDataStore fds = new OakFileDataStore();
         fds.setPath(root.getAbsolutePath());
         fds.setMinRecordLength(minRecordLength);
         fds.init(null);

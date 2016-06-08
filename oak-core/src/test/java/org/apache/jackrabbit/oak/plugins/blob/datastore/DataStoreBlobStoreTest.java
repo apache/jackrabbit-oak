@@ -28,7 +28,12 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -38,6 +43,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.junit.After;
 import org.junit.Before;
@@ -159,9 +165,16 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataIdentifier d20 = new DataIdentifier("d-20");
         DataIdentifier d30 = new DataIdentifier("d-30");
         List<DataIdentifier> dis = ImmutableList.of(d10, d20, d30);
-
-        DataStore mockedDS = mock(DataStore.class);
-        when(mockedDS.getAllIdentifiers()).thenReturn(dis.iterator());
+        List<DataRecord> recs = Lists.newArrayList(
+            Iterables.transform(dis, new Function<DataIdentifier, DataRecord>() {
+                @Nullable
+                @Override
+                public DataRecord apply(@Nullable DataIdentifier input) {
+                    return new TimeDataRecord(input);
+                }
+        }));
+        OakFileDataStore mockedDS = mock(OakFileDataStore.class);
+        when(mockedDS.getAllRecords()).thenReturn(recs.iterator());
         when(mockedDS.getRecord(new DataIdentifier("d-10"))).thenReturn(new TimeDataRecord(d10));
         when(mockedDS.getRecord(new DataIdentifier("d-20"))).thenReturn(new TimeDataRecord(d20));
         when(mockedDS.getRecord(new DataIdentifier("d-30"))).thenReturn(new TimeDataRecord(d30));
@@ -170,7 +183,6 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         Iterator<String> chunks = ds.getAllChunkIds(25);
         Set<String> expected = Sets.newHashSet("d-10","d-20");
         assertEquals(expected, Sets.newHashSet(chunks));
-
     }
 
     @Test

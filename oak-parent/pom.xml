@@ -168,6 +168,8 @@
                   <filter>!org.apache.jackrabbit.oak.namepath</filter>
                   <filter>!org.apache.jackrabbit.oak.osgi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.atomic</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.blob</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.blob.datastore</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.identifier</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index</filter>
