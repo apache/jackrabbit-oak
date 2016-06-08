@@ -42,9 +42,10 @@ public class OakFileDataStoreTest {
     @Test
     public void testGetAllIdentifiers() throws Exception {
         File testDir = new File("./target", "oak-fds-test");
-        FileUtils.touch(new File(testDir, "a"));
-        FileUtils.touch(new File(testDir, "b"));
-        FileUtils.touch(new File(testDir, "adir/c"));
+        FileUtils.touch(new File(testDir, "ab/cd/ef/abcdef"));
+        FileUtils.touch(new File(testDir, "bc/de/fg/bcdefg"));
+        FileUtils.touch(new File(testDir, "cd/ef/gh/cdefgh"));
+        FileUtils.touch(new File(testDir, "c"));
 
         FileDataStore fds = new OakFileDataStore();
         fds.setPath(testDir.getAbsolutePath());
@@ -58,7 +59,7 @@ public class OakFileDataStoreTest {
             }
         }));
 
-        Set<String> expectedNames = Sets.newHashSet("a","b","c");
+        Set<String> expectedNames = Sets.newHashSet("abcdef","bcdefg","cdefgh");
         assertEquals(expectedNames, fileNames);
         FileUtils.cleanDirectory(testDir);
     }
