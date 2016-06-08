@@ -141,10 +141,9 @@ public class BroadcastTest {
         Thread.sleep(Integer.MAX_VALUE);
     }
     
-    @Ignore("OAK-3887")
     @Test
     public void broadcastTCP() throws Exception {
-        broadcast("tcp:sendTo localhost;key 123", 90);
+        broadcast("tcp:sendTo localhost;key 123", 80);
     }
 
     @Test
@@ -190,7 +189,17 @@ public class BroadcastTest {
         throw e;
     }
 
-    private static void broadcast(String type, int minPercentCorrect) throws Exception {
+    private static void broadcast(String type, int minPercentCorrect)
+            throws Exception {
+        for (int i = 0; i < 20; i++) {
+            if (broadcastTry(type, minPercentCorrect, true)) {
+                return;
+            }
+        }
+        broadcastTry(type, minPercentCorrect, false);
+    }
+    
+    private static boolean broadcastTry(String type, int minPercentCorrect, boolean tryOnly) throws Exception {
         FileUtils.deleteDirectory(new File("target/broadcastTest"));
         new File("target/broadcastTest").mkdirs();        
         PersistentCache p1 = new PersistentCache("target/broadcastTest/p1,broadcast=" + type);
@@ -217,8 +226,14 @@ public class BroadcastTest {
         }
         p1.close();
         p2.close();
-        Assert.assertTrue("min: " + minPercentCorrect + " got: " + correct, 
-                correct >= minPercentCorrect);
+        if (correct >= minPercentCorrect) {
+            return true;
+        }
+        if (tryOnly) {
+            return false;
+        }
+        Assert.fail("min: " + minPercentCorrect + " got: " + correct);
+        return false;
     }
     
     private static boolean waitFor(Callable<Boolean> call, int timeout) {
