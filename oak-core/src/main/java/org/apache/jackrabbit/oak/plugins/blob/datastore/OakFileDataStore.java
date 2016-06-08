@@ -38,7 +38,6 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -49,6 +48,8 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
  *  Oak specific extension of JR2 FileDataStore which enables
@@ -67,12 +68,13 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() {
-        final String path = FilenameUtils.normalizeNoEndSeparator(getPath());
+        final String path = normalizeNoEndSeparator(getPath());
         return Files.fileTreeTraverser().postOrderTraversal(new File(getPath()))
                 .filter(new Predicate<File>() {
                     @Override
                     public boolean apply(File input) {
-                        return input.isFile() && !input.getParent().equals(path);
+                        return input.isFile() &&
+                            !normalizeNoEndSeparator(input.getParent()).equals(path);
                     }
                 })
                 .transform(new Function<File, DataIdentifier>() {
