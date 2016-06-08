@@ -72,6 +72,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SegmentNodeStore implements NodeStore, Observable {
 
+    // FIXME OAK-4449: SegmentNodeStore and SegmentStore builders should log their parameters on build()
     public static class SegmentNodeStoreBuilder {
 
         private final SegmentStore store;

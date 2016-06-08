@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Builder for creating {@link FileStore} instances.
  */
+// FIXME OAK-4449: SegmentNodeStore and SegmentStore builders should log their parameters on build()
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
 
