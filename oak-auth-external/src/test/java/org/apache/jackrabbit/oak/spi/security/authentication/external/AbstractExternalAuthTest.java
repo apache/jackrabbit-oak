@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.security.PrivilegedExceptionAction;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -33,13 +34,18 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.junit.After;
 import org.junit.Before;
@@ -162,5 +168,19 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
             systemRoot = systemSession.getLatestRoot();
         }
         return systemRoot;
+    }
+
+    protected static void waitUntilExpired(@Nonnull User user, @Nonnull Root root, long expTime) throws RepositoryException {
+        Tree t = root.getTree(user.getPath());
+        PropertyState ps = t.getProperty(ExternalIdentityConstants.REP_LAST_SYNCED);
+        if (ps == null || ps.count() == 0) {
+            return;
+        }
+
+        long lastSynced = ps.getValue(Type.LONG);
+        long now = Calendar.getInstance().getTimeInMillis();
+        while (now - lastSynced <= expTime) {
+            now = Calendar.getInstance().getTimeInMillis();
+        }
     }
 }

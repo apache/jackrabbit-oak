@@ -587,10 +587,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         gr.addMember(user);
         root.commit();
 
+        waitUntilExpired(user, root, expTime);
         DefaultSyncContext newCtx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
-        while (!newCtx.isExpired(user, expTime, "Properties")) {
-            newCtx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
-        }
 
         result = newCtx.sync(user.getID());
         root.commit();
