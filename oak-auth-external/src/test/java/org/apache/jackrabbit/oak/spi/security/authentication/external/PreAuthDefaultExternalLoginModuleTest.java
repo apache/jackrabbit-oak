@@ -26,6 +26,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
@@ -154,7 +155,8 @@ public class PreAuthDefaultExternalLoginModuleTest extends ExternalLoginModuleTe
     @Test
     public void testExistingExternalReSync() throws Exception {
         // sync user upfront
-        SyncContext syncContext = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory(root));
+        UserManager uMgr = getUserManager(root);
+        SyncContext syncContext = new DefaultSyncContext(syncConfig, idp, uMgr, getValueFactory(root));
         SyncResult result = syncContext.sync(idp.getUser(TestIdentityProvider.ID_TEST_USER));
         long lastSynced = result.getIdentity().lastSynced();
         root.commit();
@@ -162,6 +164,9 @@ public class PreAuthDefaultExternalLoginModuleTest extends ExternalLoginModuleTe
         PreAuthCredentials creds = new PreAuthCredentials(TestIdentityProvider.ID_TEST_USER);
         ContentSession cs = null;
         try {
+            // wait until the synced user is expired
+            waitUntilExpired(uMgr.getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class), root, syncConfig.user().getExpirationTime());
+
             cs = login(creds);
 
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
