@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -43,14 +44,48 @@ import org.junit.Test;
  * Tests the revision class
  */
 public class RevisionTest {
+    
+    @Test
+    public void invalid() {
+        // revisions need to start with "br" or "r"
+        for(String s : "1234,b,bb,".split(",")) {
+            try {
+                Revision.fromString(s);
+                fail("Expected: Invalid revision id exception for " + s);
+            } catch (Exception expected) {
+                // expected
+            }
+        }
+    }
+    
+    @Test
+    public void edgeCases() {
+        assertEquals("br0-0-0", new Revision(0, 0, 0, true).toString());
+        Random rand = new Random(0);
+        for (int i = 0; i < 1000; i++) {
+            Revision r = new Revision(rand.nextLong(), rand.nextInt(),
+                    rand.nextInt(), rand.nextBoolean());
+            assertEquals(r.toString(), Revision.fromString(r.toString()).toString());
+        }
+        for (int i = 0; i < 1000; i++) {
+            Revision r = new Revision(rand.nextInt(10), rand.nextInt(10),
+                    rand.nextInt(10), rand.nextBoolean());
+            assertEquals(r.toString(), Revision.fromString(r.toString()).toString());
+        }
+    }
 
     @Test
     public void fromStringToString() {
         for (int i = 0; i < 10000; i++) {
             Revision r = Revision.newRevision(i);
             // System.out.println(r);
-            Revision r2 = Revision.fromString(r.toString());
-            assertEquals(r.toString(), r2.toString());
+            String rs = r.toString();
+            Revision r2 = Revision.fromString(rs);
+            if(!rs.equals(r2.toString())) {
+                r2 = Revision.fromString(rs);
+                assertEquals(rs, r2.toString());
+            }
+            assertEquals(rs, r2.toString());
             assertEquals(r.hashCode(), r2.hashCode());
             assertTrue(r.equals(r2));
         }

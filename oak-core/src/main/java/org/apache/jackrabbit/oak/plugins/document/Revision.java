@@ -223,34 +223,45 @@ public final class Revision implements CacheValue {
     }
 
     public static Revision fromString(String rev) {
-        boolean isBranch = false;
-        if (rev.startsWith("b")) {
-            isBranch = true;
-            rev = rev.substring(1);
-        }
-        if (!rev.startsWith("r")) {
+        boolean isBranch = rev.charAt(0) == 'b';
+        int idx = isBranch ? 2 : 1;
+        if (rev.charAt(idx - 1) != 'r') {
             throw new IllegalArgumentException(rev);
         }
-        int idxCount = rev.indexOf('-');
-        if (idxCount < 0) {
-            throw new IllegalArgumentException(rev);
+        int len = rev.length();
+        // Parse timestamp
+        long timestamp = 0;
+        for (; idx < len; idx++) {
+            char c = rev.charAt(idx);
+            if (c == '-') {
+                break;
+            }
+            int digit = c >= 'a'? c - 'a' + 10 : c - '0';
+            timestamp = (timestamp << 4) + digit;
         }
-        int idxClusterId = rev.indexOf('-', idxCount + 1);
-        if (idxClusterId < 0) {
-            throw new IllegalArgumentException(rev);
+        // Parse counter
+        int counter = 0;
+        for (idx++; idx < len; idx++) {
+            char c = rev.charAt(idx);
+            if (c == '-') {
+                break;
+            }
+            int digit = c >= 'a' ? c - 'a' + 10 : c - '0';
+            counter = (counter << 4) + digit;
         }
-        String t = rev.substring(1, idxCount);
-        long timestamp = Long.parseLong(t, 16);
-        t = rev.substring(idxCount + 1, idxClusterId);
-        int c = Integer.parseInt(t, 16);
-        t = rev.substring(idxClusterId + 1);
-        int clusterId = Integer.parseInt(t, 16);
-        return new Revision(timestamp, c, clusterId, isBranch);
+        // Parse clusterId
+        int clusterId = 0;
+        for (idx++; idx < len; idx++) {
+            char c = rev.charAt(idx);
+            int digit = c >= 'a' ? c - 'a' + 10 : c - '0';
+            clusterId = (clusterId << 4) + digit;
+        }
+        return new Revision(timestamp, counter, clusterId, isBranch);
     }
 
     @Override
     public String toString() {
-        return toStringBuilder(new StringBuilder()).toString();
+        return toStringBuilder(new StringBuilder(REV_STRING_APPROX_SIZE)).toString();
     }
 
     /**
@@ -265,18 +276,11 @@ public final class Revision implements CacheValue {
             sb.append('b');
         }
         sb.append('r');
-        sb.append(Long.toHexString(timestamp)).append('-');
-        if (counter < 10) {
-            sb.append(counter);
-        } else {
-            sb.append(Integer.toHexString(counter));
-        }
+        toHexString(sb, timestamp);
         sb.append('-');
-        if (clusterId < 10) {
-            sb.append(clusterId);
-        } else {
-            sb.append(Integer.toHexString(clusterId));
-        }
+        toHexString(sb, counter);
+        sb.append('-');
+        toHexString(sb, clusterId);
         return sb;
     }
 
@@ -374,4 +378,19 @@ public final class Revision implements CacheValue {
     public int getMemory() {
         return SHALLOW_MEMORY_USAGE;
     }
+
+    private static void toHexString(StringBuilder sb, long x) {
+        int bitCount = (64 - Long.numberOfLeadingZeros(x));
+        bitCount = Math.max(0,  ((bitCount + 3) / 4 * 4) - 4);
+        for (int i = bitCount; i >= 0; i -= 4) {
+            int t = (int) (x >> i) & 15;
+            if (t > 9) {
+                t = t - 10 + 'a';
+            } else {
+                t += '0';
+            }
+            sb.append((char) t);
+        }
+    }
+    
 }
