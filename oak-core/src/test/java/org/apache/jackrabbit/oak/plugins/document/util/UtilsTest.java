@@ -122,17 +122,20 @@ public class UtilsTest {
     @Ignore("Performance test")
     @Test
     public void performance_revisionToString() {
-        Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        // warm up
-        for (int i = 0; i < 1 * 1000 * 1000; i++) {
-            r.toString();
+        for (int i = 0; i < 4; i++) {
+            performance_revisionToStringOne();
         }
+    }
+    
+    private static void performance_revisionToStringOne() {
+        Revision r = new Revision(System.currentTimeMillis(), 0, 0);
+        int dummy = 0;
         long time = System.currentTimeMillis();
         for (int i = 0; i < 30 * 1000 * 1000; i++) {
-            r.toString();
+            dummy += r.toString().length();
         }
         time = System.currentTimeMillis() - time;
-        System.out.println(time);
+        System.out.println("time: " + time + " dummy " + dummy);
     }
 
     @Test
