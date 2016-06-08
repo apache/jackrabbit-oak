@@ -86,6 +86,16 @@ marker to the shared state:
             }
 
             [...]
+            
+            // subsequent login modules need to succeed and process the 'PreAuthenticatedLogin'
+            return false;
+        }
+        
+        @Overwrite
+        public boolean commit() {
+            // this module leaves subject population to the subsequent modules 
+            // that already handled the login with 'PreAuthenticatedLogin' marker.
+            return false;
         }
     }
 
