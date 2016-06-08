@@ -31,6 +31,8 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
+// FIXME OAK-4451: Implement a proper template cache
+// - move the template cache into this class, implement monitoring, management, logging, tests
 public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
 
