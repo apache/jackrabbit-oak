@@ -36,7 +36,7 @@ import com.google.common.collect.AbstractIterator;
 
 /**
  * RDB specific version of {@link VersionGCSupport} which uses an extended query
- * interface to fetch required {@link NodeDocuments}.
+ * interface to fetch required {@link NodeDocument}s.
  */
 public class RDBVersionGCSupport extends VersionGCSupport {
     private RDBDocumentStore store;
