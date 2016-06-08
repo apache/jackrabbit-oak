@@ -98,7 +98,7 @@ _Phase 2: Commit_
 * if there is no credentials in the private state, it **returns `false`**
 * if there are credentials in the private state propagate the subject and **return `true`**
 
-See section [Example Configurations](external/externalLogin_examples.html) for 
+See section [Example Configurations](external/externallogin_examples.html) for 
 some common setup scenarios.
 
 #### External Identity Provider
