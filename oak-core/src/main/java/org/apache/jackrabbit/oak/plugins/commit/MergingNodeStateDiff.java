@@ -62,15 +62,15 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     }
 
     static NodeState merge(NodeState fromState, NodeState toState, ConflictHandler conflictHandler) {
-        return merge(fromState, toState, toState.builder(), conflictHandler);
+        return merge(fromState, toState, toState.builder(), conflictHandler).getNodeState();
     }
 
-    private static NodeState merge(NodeState fromState, NodeState toState, NodeBuilder target,
-            ConflictHandler conflictHandler) {
+    private static NodeBuilder merge(NodeState fromState, NodeState toState, NodeBuilder target,
+                                     ConflictHandler conflictHandler) {
         toState.compareAgainstBaseState(fromState,
                 new MergingNodeStateDiff(toState, target, conflictHandler));
 
-        return target.getNodeState();
+        return target;
     }
 
     //------------------------------------------------------< NodeStateDiff >---
