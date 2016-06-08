@@ -31,7 +31,9 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -39,13 +41,10 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-@Ignore
-// FIXME OAK-4278: Fix backup and restore
 public class FileStoreBackupTest {
 
     private File src;
@@ -62,36 +61,41 @@ public class FileStoreBackupTest {
 
     @Test
     public void testBackup() throws Exception {
-        FileStore source = fileStoreBuilder(src).withMaxFileSize(8).build();
+        FileStore source = newFileStore(src);
+        SegmentNodeStore store = SegmentNodeStoreBuilders.builder(source)
+                .build();
+        try {
+            init(store);
+            source.flush();
+            FileStoreBackup.backup(store, destination);
+            compare(source, destination);
 
-        NodeStore store = SegmentNodeStoreBuilders.builder(source).build();
-        init(store);
+            addTestContent(store);
+            source.flush();
+            FileStoreBackup.backup(store, destination);
+            compare(source, destination);
 
-        // initial content
-        FileStoreBackup.backup(store, destination);
-
-        compare(source, destination);
-
-        addTestContent(store);
-        FileStoreBackup.backup(store, destination);
-        compare(source, destination);
-
-        source.close();
+            source.compact();
+            FileStoreBackup.cleanup(source);
+            FileStoreBackup.backup(store, destination);
+            compare(source, destination);
+        } finally {
+            source.close();
+        }
     }
 
     @Test
     public void testRestore() throws Exception {
-        FileStore source = fileStoreBuilder(src).withMaxFileSize(8).build();
-
-        NodeStore store = SegmentNodeStoreBuilders.builder(source).build();
+        FileStore source = newFileStore(src);
+        SegmentNodeStore store = SegmentNodeStoreBuilders.builder(source)
+                .build();
         init(store);
+        source.flush();
         FileStoreBackup.backup(store, destination);
-        addTestContent(store);
         source.close();
 
         FileStoreRestore.restore(destination, src);
-
-        source = fileStoreBuilder(src).withMaxFileSize(8).build();
+        source = newFileStore(src);
         compare(source, destination);
         source.close();
     }
@@ -101,22 +105,35 @@ public class FileStoreBackupTest {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder c = builder.child("test-backup").child("binaries");
         for (int i = 0; i < 2; i++) {
-            c.setProperty("bin" + i, createBlob(store, 64 * 1024));
+            c.setProperty("binS" + i, createBlob(store, 6 * 1024));
+        }
+
+        for (int i = 0; i < 2; i++) {
+            c.setProperty("binL" + i, createBlob(store, 64 * 1024));
         }
         builder.child("root"); // make sure we don't backup the super-root
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
+    private static Blob createBlob(NodeStore nodeStore, int size)
+            throws IOException {
         byte[] data = new byte[size];
         new Random().nextBytes(data);
         return nodeStore.createBlob(new ByteArrayInputStream(data));
     }
 
+    private static FileStore newFileStore(File fs) throws IOException {
+        return fileStoreBuilder(fs)
+                .withMaxFileSize(1)
+                .withGCOptions(SegmentGCOptions.defaultGCOptions().setOffline())
+                .build();
+    }
+
     private static void compare(FileStore store, File destination)
             throws IOException {
-        FileStore backup = fileStoreBuilder(destination).withMaxFileSize(8).build();
-        assertEquals(store.getRevisions().getHead(), backup.getRevisions().getHead());
+        FileStore backup = fileStoreBuilder(destination).build();
+        assertEquals(store.getReader().readHeadState(), backup.getReader()
+                .readHeadState());
         backup.close();
     }
 

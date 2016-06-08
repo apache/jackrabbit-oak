@@ -25,49 +25,91 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.WriterCacheManager;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 
 public class FileStoreBackup {
 
     private static final Logger log = LoggerFactory
             .getLogger(FileStoreBackup.class);
 
-    public static boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
+    public static boolean USE_FAKE_BLOBSTORE = Boolean
+            .getBoolean("oak.backup.UseFakeBlobStore");
 
     public static void backup(NodeStore store, File destination)
             throws IOException {
         checkArgument(store instanceof SegmentNodeStore);
         Stopwatch watch = Stopwatch.createStarted();
-        NodeState current = ((SegmentNodeStore) store).getSuperRoot();
+        SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions()
+                .setOffline();
+
         FileStoreBuilder builder = fileStoreBuilder(destination)
                 .withDefaultMemoryMapping();
         if (USE_FAKE_BLOBSTORE) {
             builder.withBlobStore(new BasicReadOnlyBlobStore());
         }
+        builder.withGCOptions(gcOptions);
         FileStore backup = builder.build();
+        SegmentNodeState current = (SegmentNodeState) ((SegmentNodeStore) store)
+                .getSuperRoot();
         try {
-            // FIXME OAK-4278: Fix backup and restore
-//            SegmentNodeState state = backup.getRevisions().getHead();
-            // Use dedicated implementation instead of compactor.
-            // This is allows us to decouple and fix problems for online compaction independent
-            // of backup / restore.
-//            Compactor compactor = new Compactor(backup.getTracker());
-//            compactor.setDeepCheckLargeBinaries(true);
-//            compactor.setContentEqualityCheck(true);
-//            SegmentNodeState after = compactor.compact(state, current, state);
-//            backup.setHead(state, after);
+            int gen = 0;
+            if (current instanceof SegmentNodeState) {
+                gen = ((SegmentNodeState) current).getRecordId().getSegment()
+                        .getGcGeneration();
+            }
+            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(backup,
+                    backup.getTracker(), backup.getReader(), "b", gen);
+            SegmentWriter writer = new SegmentWriter(backup,
+                    backup.getReader(), backup.getBlobStore(),
+                    new WriterCacheManager.Default(), bufferWriter);
+            Compactor compactor = new Compactor(backup.getReader(), writer,
+                    backup.getBlobStore(), Suppliers.ofInstance(false),
+                    gcOptions);
+            compactor.setContentEqualityCheck(true);
+            SegmentNodeState head = backup.getReader().readHeadState();
+            SegmentNodeState after = compactor.compact(head, current, head);
+            if (after != null) {
+                backup.getRevisions().setHead(head.getRecordId(),
+                        after.getRecordId());
+            }
+        } finally {
+            backup.close();
+            backup = null;
+        }
+
+        FileStoreBuilder builder2 = fileStoreBuilder(destination)
+                .withDefaultMemoryMapping();
+        builder2.withGCOptions(gcOptions);
+        backup = builder2.build();
+        try {
+            cleanup(backup);
         } finally {
             backup.close();
         }
         watch.stop();
         log.info("Backup finished in {}.", watch);
+    }
+
+    static boolean cleanup(FileStore f) throws IOException {
+        boolean ok = true;
+        for (File file : f.cleanup()) {
+            ok = ok && file.delete();
+        }
+        return true;
     }
 }

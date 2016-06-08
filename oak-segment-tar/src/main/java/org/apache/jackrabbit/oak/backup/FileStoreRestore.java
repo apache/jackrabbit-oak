@@ -19,16 +19,25 @@
 
 package org.apache.jackrabbit.oak.backup;
 
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.WriterCacheManager;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 
 public class FileStoreRestore {
 
@@ -50,17 +59,23 @@ public class FileStoreRestore {
         Stopwatch watch = Stopwatch.createStarted();
 
         FileStore store = fileStoreBuilder(destination).build();
-        // FIXME OAK-4278: Fix backup and restore
-//        SegmentNodeState current = store.getRevisions().getHead();
+        SegmentNodeState current = store.getReader().readHeadState();
         try {
-            // Use dedicated implementation instead of compactor.
-            // This is allows us to decouple and fix problems for online compaction independent
-            // of backup / restore.
-            // compactor.setDeepCheckLargeBinaries(true);
-//            Compactor compactor = new Compactor(store.getTracker());
-//            SegmentNodeState after = compactor.compact(current,
-//                    restore.getHead(), current);
-//            store.setHead(current, after);
+            SegmentNodeState head = restore.getReader().readHeadState();
+            int gen = head.getRecordId().getSegment().getGcGeneration();
+            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store,
+                    store.getTracker(), store.getReader(), "r", gen);
+            SegmentWriter writer = new SegmentWriter(store, store.getReader(),
+                    store.getBlobStore(), new WriterCacheManager.Default(),
+                    bufferWriter);
+            SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
+            Compactor compactor = new Compactor(store.getReader(), writer,
+                    store.getBlobStore(), Suppliers.ofInstance(false),
+                    gcOptions);
+            compactor.setContentEqualityCheck(true);
+            SegmentNodeState after = compactor.compact(current, head, current);
+            store.getRevisions().setHead(current.getRecordId(),
+                    after.getRecordId());
         } finally {
             restore.close();
             store.close();
