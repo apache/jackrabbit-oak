@@ -424,6 +424,7 @@ public class SegmentWriter {
             }
         }
 
+        @Nonnull
         private final Supplier<Boolean> cancel;
 
         @CheckForNull
@@ -445,7 +446,8 @@ public class SegmentWriter {
         @Override
         public abstract RecordId execute(SegmentBufferWriter writer) throws IOException;
 
-        SegmentWriteOperation with(SegmentBufferWriter writer) {
+        @Nonnull
+        SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
             checkState(this.writer == null);
             this.writer = writer;
             int generation = writer.getGeneration();
