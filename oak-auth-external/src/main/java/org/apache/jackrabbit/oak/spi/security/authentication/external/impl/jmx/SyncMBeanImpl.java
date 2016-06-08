@@ -316,10 +316,10 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
 
         private boolean isMyIDP(SyncedIdentity id) {
-            String idpName = id.getExternalIdRef() == null
+            String providerName = id.getExternalIdRef() == null
                     ? null
                     : id.getExternalIdRef().getProviderName();
-            return (idpName == null || idpName.length() ==0 || idpName.equals(idp.getName()));
+            return providerName != null && (providerName.isEmpty() || providerName.equals(idp.getName()));
         }
     }
 
