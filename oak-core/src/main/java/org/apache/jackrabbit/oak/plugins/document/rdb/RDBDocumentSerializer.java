@@ -140,7 +140,7 @@ public class RDBDocumentSerializer {
     }
 
     /**
-     * Reconstructs a {@link Document) based on the persisted {@link RDBRow}.
+     * Reconstructs a {@link Document} based on the persisted {@link RDBRow}.
      */
     @Nonnull
     public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {

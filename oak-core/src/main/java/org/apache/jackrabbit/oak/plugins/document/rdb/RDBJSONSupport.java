@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 
@@ -55,7 +56,7 @@ public class RDBJSONSupport {
 
     /**
      * @param useRevisionMaps
-     *            whether to use {@link RevisionMap}s instead of regular
+     *            whether to use revision maps instead of regular
      *            {@link Map}s.
      */
     public RDBJSONSupport(boolean useRevisionMaps) {

@@ -218,7 +218,7 @@ public class RDBJDBCTools {
      * @param drmax
      *            minimal driver major version number (where {@code -1} disables
      *            the check)
-     * @param drin
+     * @param drmin
      *            minimal driver minor version number
      * @param dbname
      *            database type
@@ -322,7 +322,7 @@ public class RDBJDBCTools {
          * 
          * @param stmt
          *            the statement
-         * @param index
+         * @param startIndex
          *            of first parameter to set
          * @return index of next parameter to set
          * @throws SQLException
