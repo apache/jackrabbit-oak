@@ -17,9 +17,6 @@
 
 ## Lucene Index
 
-**Following details are applicable for Oak release 1.0.9 onwards. For pre 1.0
-.9 release refer to [Pre 1.0.9 Lucene documentation](lucene-old.html)**
-
 Oak supports Lucene based indexes to support both property constraint and full
 text constraints. Depending on the configuration a Lucene index can be used
 to evaluate property constraints, full text constraints, path restrictions
