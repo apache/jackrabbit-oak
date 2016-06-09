@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.commons.io;
 
+import static com.google.common.io.Files.asByteSource;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,11 +31,6 @@ import java.io.IOException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static com.google.common.io.Files.asByteSource;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 /**
  * Tests the LazyInputStream class.
@@ -40,7 +40,7 @@ public class LazyInputStreamTest {
     private File file;
     
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder(); 
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void test() throws IOException {

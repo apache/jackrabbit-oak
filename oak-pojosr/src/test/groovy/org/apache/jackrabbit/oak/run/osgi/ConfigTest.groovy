@@ -41,7 +41,7 @@ class ConfigTest {
     ConfigurationAdmin cm
 
     @Rule
-    public final TemporaryFolder tmpFolder = new TemporaryFolder()
+    public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"))
 
     @Before
     void setUp(){

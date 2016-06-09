@@ -39,7 +39,7 @@ import static org.junit.Assert.assertNotNull;
 
 public class SimpleRepositoryFactoryTest {
     @Rule
-    public final TemporaryFolder tmpFolder = new TemporaryFolder();
+    public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void testRepositoryService() throws Exception{

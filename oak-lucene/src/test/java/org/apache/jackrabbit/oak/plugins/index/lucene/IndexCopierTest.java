@@ -88,7 +88,7 @@ public class IndexCopierTest {
     private NodeState root = INITIAL_CONTENT;
 
     @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private NodeBuilder builder = root.builder();
 

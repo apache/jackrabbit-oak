@@ -43,7 +43,7 @@ import static org.junit.Assert.assertEquals;
 
 public class NodeStoreBinaryResourceProviderTest {
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private NodeState root = INITIAL_CONTENT;
 

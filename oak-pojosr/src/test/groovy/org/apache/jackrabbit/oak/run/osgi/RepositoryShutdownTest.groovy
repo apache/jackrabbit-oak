@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify
 class RepositoryShutdownTest {
 
     @Rule
-    public final TemporaryFolder tmpFolder = new TemporaryFolder()
+    public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"))
 
     @Test
     public void multipleShutdown() throws Exception{

@@ -24,6 +24,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -40,7 +41,7 @@ import org.junit.rules.TemporaryFolder;
 public class ExternalBlobReferenceTest {
 
     @Rule
-    public final TemporaryFolder segmentFolder = new TemporaryFolder();
+    public final TemporaryFolder segmentFolder = new TemporaryFolder(new File("target"));
 
     private FileStore fileStore;
 

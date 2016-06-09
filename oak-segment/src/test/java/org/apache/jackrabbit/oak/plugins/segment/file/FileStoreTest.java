@@ -31,7 +31,7 @@ import org.junit.rules.TemporaryFolder;
 public class FileStoreTest {
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private File getFileStoreFolder() {
         return folder.getRoot();

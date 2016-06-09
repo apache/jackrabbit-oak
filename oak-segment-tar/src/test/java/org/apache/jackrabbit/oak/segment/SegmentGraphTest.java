@@ -58,7 +58,7 @@ public class SegmentGraphTest {
     private final Map<UUID, Set<UUID>> filteredReferences = newHashMap();
 
     @Rule
-    public TemporaryFolder storeFolder = new TemporaryFolder();
+    public TemporaryFolder storeFolder = new TemporaryFolder(new File("target"));
 
     private File getStoreFolder() {
          return storeFolder.getRoot();

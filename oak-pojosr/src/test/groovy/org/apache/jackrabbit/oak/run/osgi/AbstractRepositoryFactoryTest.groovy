@@ -45,7 +45,7 @@ abstract class AbstractRepositoryFactoryTest{
     RepositoryFactory repositoryFactory = new OakOSGiRepositoryFactory();
 
     @Rule
-    public final TemporaryFolder tmpFolder = new TemporaryFolder()
+    public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"))
 
     @Before
     void setUp() {

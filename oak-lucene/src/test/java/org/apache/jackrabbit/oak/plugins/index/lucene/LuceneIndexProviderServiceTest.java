@@ -19,6 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,12 +47,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 public class LuceneIndexProviderServiceTest {
     /*
         The test case uses raw config name and not access it via
@@ -54,7 +55,7 @@ public class LuceneIndexProviderServiceTest {
      */
 
     @Rule
-    public final TemporaryFolder folder = new TemporaryFolder();
+    public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Rule
     public final OsgiContext context = new OsgiContext();

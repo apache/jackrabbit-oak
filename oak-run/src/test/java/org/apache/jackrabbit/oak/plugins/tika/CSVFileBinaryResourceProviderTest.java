@@ -35,7 +35,7 @@ import static org.junit.Assert.assertEquals;
 public class CSVFileBinaryResourceProviderTest {
 
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void testGetBinaries() throws Exception {
