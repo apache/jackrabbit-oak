@@ -36,6 +36,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -65,7 +66,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class RecordTest {
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private static final String HELLO_WORLD = "Hello, World!";
 

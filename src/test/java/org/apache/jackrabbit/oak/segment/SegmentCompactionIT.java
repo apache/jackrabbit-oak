@@ -39,6 +39,7 @@ import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 import static org.slf4j.helpers.MessageFormatter.format;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -160,7 +161,7 @@ public class SegmentCompactionIT {
     private volatile long fileStoreSize;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     public synchronized void stop() {
         stopping = true;

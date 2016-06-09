@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Collections;
@@ -47,7 +48,7 @@ import org.junit.rules.TemporaryFolder;
  */
 public class SegmentSizeTest {
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private FileStore store;
 

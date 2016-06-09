@@ -70,7 +70,7 @@ public class ReversedLinesFileReaderTestParamFile {
     private final int buffSize;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     public ReversedLinesFileReaderTestParamFile(byte[] data, String encoding, Integer buffSize) {
         this.data = data;

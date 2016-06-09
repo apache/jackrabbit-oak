@@ -51,7 +51,7 @@ public class FileStoreBackupTest {
     private File destination;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Before
     public void before() throws Exception {
