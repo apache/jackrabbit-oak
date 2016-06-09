@@ -629,11 +629,11 @@ public class ExternalSort {
         }
     };
 
-    static String readLine(BufferedReader br) throws IOException {
+    public static String readLine(BufferedReader br) throws IOException {
         return EscapeUtils.unescapeLineBreaks(br.readLine());
     }
 
-    static void writeLine(BufferedWriter wr, String line) throws IOException {
+    public static void writeLine(BufferedWriter wr, String line) throws IOException {
         wr.write(EscapeUtils.escapeLineBreak(line));
     }
 
