@@ -337,7 +337,9 @@ ordered
     * _//element(*, app:Asset)[jcr:contains(type, 'image')] order by
     jcr:content/@jcr:lastModified_
 
-  Refer to [Lucene based Sorting][OAK-2196] for more details
+  Refer to [Lucene based Sorting][OAK-2196] for more details. Note that this is 
+  only supported for single value property. Enabling this on multi value property
+  would cause indexing to fail.
 
 type
 : JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String` or `Long`. Mostly
