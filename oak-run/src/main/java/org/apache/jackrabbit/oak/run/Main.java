@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.console.Console;
 import org.apache.jackrabbit.oak.explorer.Explorer;
 import org.apache.jackrabbit.oak.explorer.NodeStoreTree;
@@ -1175,9 +1176,11 @@ public final class Main {
                                     idBatch.add(delimJoiner.join(id, nodeId));
                                     count.getAndIncrement();
                                     if (idBatch.size() >= 1024) {
-                                        writer.append(Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(idBatch));
-                                        writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
-                                        writer.flush();
+                                        for (String rec : idBatch) {
+                                            ExternalSort.writeLine(writer, rec);
+                                            writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                                            writer.flush();
+                                        }
                                         idBatch.clear();
                                     }
                                 }
@@ -1188,9 +1191,11 @@ public final class Main {
                     }
                 );
                 if (!idBatch.isEmpty()) {
-                    writer.append(Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(idBatch));
-                    writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
-                    writer.flush();
+                    for (String rec : idBatch) {
+                        ExternalSort.writeLine(writer, rec);
+                        writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                        writer.flush();
+                    }
                     idBatch.clear();
                 }
                 System.out.println(count.get() + " DataStore references dumped in " + dumpFile);
