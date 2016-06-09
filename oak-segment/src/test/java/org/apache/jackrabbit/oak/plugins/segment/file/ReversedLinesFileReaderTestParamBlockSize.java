@@ -49,7 +49,7 @@ public class ReversedLinesFileReaderTestParamBlockSize {
     private static final String ISO_8859_1 = "ISO-8859-1";
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private File createFile(byte[] data) throws IOException {
         return ReversedLinesReaderTestData.createFile(folder.newFile(), data);

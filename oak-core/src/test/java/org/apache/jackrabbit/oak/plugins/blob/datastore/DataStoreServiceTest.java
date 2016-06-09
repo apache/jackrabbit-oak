@@ -19,12 +19,22 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingFDS;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FSBackend;
+import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
@@ -35,16 +45,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import static org.junit.Assert.*;
-
 public class DataStoreServiceTest {
     @Rule
-    public final TemporaryFolder folder = new TemporaryFolder();
+    public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Rule
     public final OsgiContext context = new OsgiContext();

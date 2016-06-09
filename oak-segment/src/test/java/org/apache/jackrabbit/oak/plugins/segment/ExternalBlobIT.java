@@ -64,7 +64,7 @@ public class ExternalBlobIT {
     private FileBlob fileBlob;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @BeforeClass
     public static void assumptions() {

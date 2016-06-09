@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
+import java.io.File;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -43,7 +44,7 @@ public class SegmentNodeStoreServiceTest {
     public OsgiContext context = new OsgiContext();
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Before
     public void setUp(){

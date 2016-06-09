@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
+
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -39,18 +47,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Random;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class LuceneBlobCacheTest {
     private Random rnd = new Random();
     
     @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
+    public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
     
     FileStore store;
     ReadAccessCountingDataStore fileDataStore;

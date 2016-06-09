@@ -16,6 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -39,15 +52,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.*;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
-import static org.junit.Assert.*;
-
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexSuggestionTest {
     @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private static final String TEST_USER_NAME = "testUserName";
 

@@ -40,7 +40,7 @@ import static org.mockito.Mockito.mock;
 
 public class FileStoreStatsTest {
     @Rule
-    public final TemporaryFolder segmentFolder = new TemporaryFolder();
+    public final TemporaryFolder segmentFolder = new TemporaryFolder(new File("target"));
 
     private FileStore fileStore;
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();

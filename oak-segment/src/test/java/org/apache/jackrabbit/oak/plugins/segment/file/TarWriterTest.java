@@ -49,7 +49,7 @@ import org.junit.rules.TemporaryFolder;
 public class TarWriterTest {
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     /**
      * Regression test for OAK-2800

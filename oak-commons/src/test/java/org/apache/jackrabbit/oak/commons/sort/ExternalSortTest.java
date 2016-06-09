@@ -105,7 +105,7 @@ public class ExternalSortTest {
     private List<File> fileList;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     /**
      * @throws Exception

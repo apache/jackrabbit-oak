@@ -35,6 +35,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -84,7 +85,7 @@ public class PartialCompactionMapTest {
     private PartialCompactionMap map;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Parameterized.Parameters
     public static List<Boolean[]> fixtures() {

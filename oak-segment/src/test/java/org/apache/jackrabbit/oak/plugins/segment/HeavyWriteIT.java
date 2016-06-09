@@ -60,7 +60,7 @@ public class HeavyWriteIT {
     private final boolean usePersistedMap;
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private File getFileStoreFolder() {
         return folder.getRoot();

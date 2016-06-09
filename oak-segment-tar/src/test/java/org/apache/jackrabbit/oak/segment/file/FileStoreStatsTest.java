@@ -39,7 +39,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class FileStoreStatsTest {
     @Rule
-    public final TemporaryFolder segmentFolder = new TemporaryFolder();
+    public final TemporaryFolder segmentFolder = new TemporaryFolder(new File("target"));
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 

@@ -19,8 +19,47 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.InputStream;
+import static com.google.common.collect.ImmutableSet.of;
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
+import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
@@ -78,45 +117,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.JcrConstants.NT_FILE;
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
-import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_PROPERTY_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
-import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.containsString;
-
 public class LucenePropertyIndexTest extends AbstractQueryTest {
     /**
      * Set the size to twice the batch size to test the pagination with sorting
@@ -126,7 +126,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private String corDir = null;
     private String cowDir = null;

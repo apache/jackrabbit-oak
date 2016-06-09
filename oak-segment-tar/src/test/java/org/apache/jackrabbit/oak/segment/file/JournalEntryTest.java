@@ -42,7 +42,7 @@ import org.junit.rules.TemporaryFolder;
 public class JournalEntryTest {
 
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void timestampInJournalEntry() throws Exception{

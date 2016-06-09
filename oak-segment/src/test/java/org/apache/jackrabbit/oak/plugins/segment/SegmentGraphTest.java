@@ -92,7 +92,7 @@ public class SegmentGraphTest {
     );
 
     @Rule
-    public TemporaryFolder storeFolder = new TemporaryFolder();
+    public TemporaryFolder storeFolder = new TemporaryFolder(new File("target"));
 
     private File getStoreFolder() {
         return storeFolder.getRoot();

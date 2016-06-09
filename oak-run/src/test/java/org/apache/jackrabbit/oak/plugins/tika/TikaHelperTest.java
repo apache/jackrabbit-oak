@@ -32,7 +32,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TikaHelperTest {
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void supportedTypes() throws Exception {

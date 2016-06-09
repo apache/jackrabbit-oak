@@ -70,7 +70,7 @@ public class OakOSGiRepositoryFactoryTest {
     private boolean calledOnStop;
 
     @Rule
-    public final TemporaryFolder tmpFolder = new TemporaryFolder();
+    public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"));
 
     @Before
     public void setUp() throws IOException {
