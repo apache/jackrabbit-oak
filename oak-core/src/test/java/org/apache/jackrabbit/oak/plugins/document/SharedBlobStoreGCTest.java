@@ -135,6 +135,22 @@ public class SharedBlobStoreGCTest {
     }
 
     @Test
+    public void testGCWithNodeSpecialChars() throws Exception {
+        log.debug("Running testGC()");
+        // Only run the mark phase on both the clusters
+        cluster1.initBlobs.addAll(cluster1.addNodeSpecialChars());
+        cluster2.initBlobs.addAll(cluster1.addNodeSpecialChars());
+        cluster1.gc.collectGarbage(true);
+        cluster2.gc.collectGarbage(true);
+
+        // Execute the gc with sweep
+        cluster1.gc.collectGarbage(false);
+
+        Assert.assertEquals(true, Sets.symmetricDifference(Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+            cluster1.getExistingBlobIds()).isEmpty());
+    }
+
+    @Test
     public void testGCStats() throws Exception {
         log.debug("Running testGCStats()");
         // Only run the mark phase on both the clusters to get the stats
@@ -283,6 +299,24 @@ public class SharedBlobStoreGCTest {
                 Thread.sleep(1000);
             }
         }
+
+        private HashSet<String> addNodeSpecialChars() throws Exception {
+            HashSet<String> set = new HashSet<String>();
+            NodeBuilder a = ds.getRoot().builder();
+            int number = 1;
+            for (int i = 0; i < number; i++) {
+                Blob b = ds.createBlob(randomStream(i, 18432));
+                NodeBuilder n = a.child("cspecial");
+                n.child("q\\%22afdg\\%22").setProperty("x", b);
+                Iterator<String> idIter =
+                    ((GarbageCollectableBlobStore) ds.getBlobStore())
+                        .resolveChunks(b.toString());
+                set.addAll(Lists.newArrayList(idIter));
+            }
+            ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            return set;
+        }
+
 
         public Set<String> getExistingBlobIds() throws Exception {
             GarbageCollectableBlobStore store = (GarbageCollectableBlobStore) ds.getBlobStore();
