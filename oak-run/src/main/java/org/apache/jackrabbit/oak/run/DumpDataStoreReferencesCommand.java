@@ -39,6 +39,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
@@ -117,9 +118,11 @@ class DumpDataStoreReferencesCommand implements Command {
                                         idBatch.add(delimJoiner.join(id, nodeId));
                                         count.getAndIncrement();
                                         if (idBatch.size() >= 1024) {
-                                            writer.append(Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(idBatch));
-                                            writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
-                                            writer.flush();
+                                            for (String rec : idBatch) {
+                                                ExternalSort.writeLine(writer, rec);
+                                                writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                                                writer.flush();
+                                            }
                                             idBatch.clear();
                                         }
                                     }
@@ -130,9 +133,11 @@ class DumpDataStoreReferencesCommand implements Command {
                         }
                 );
                 if (!idBatch.isEmpty()) {
-                    writer.append(Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(idBatch));
-                    writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
-                    writer.flush();
+                    for (String rec : idBatch) {
+                        ExternalSort.writeLine(writer, rec);
+                        writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                        writer.flush();
+                    }
                     idBatch.clear();
                 }
                 System.out.println(count.get() + " DataStore references dumped in " + dumpFile);

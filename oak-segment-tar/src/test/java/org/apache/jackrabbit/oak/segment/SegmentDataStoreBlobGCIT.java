@@ -207,6 +207,21 @@ public class SegmentDataStoreBlobGCIT {
         return set;
     }
 
+    private HashSet<String> addNodeSpecialChars() throws Exception {
+        HashSet<String> set = new HashSet<String>();
+        NodeBuilder a = nodeStore.getRoot().builder();
+        int number = 1;
+        for (int i = 0; i < number; i++) {
+            SegmentBlob b = (SegmentBlob) nodeStore.createBlob(randomStream(i, 18432));
+            NodeBuilder n = a.child("cspecial");
+            n.child("q \\%22afdg\\%22").setProperty("x", b);
+            Iterator<String> idIter = blobStore.resolveChunks(b.getBlobId());
+            set.addAll(Lists.newArrayList(idIter));
+        }
+        nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return set;
+    }
+
     private class DataStoreState {
         Set<String> blobsAdded = Sets.newHashSet();
         Set<String> blobsPresent = Sets.newHashSet();
@@ -236,7 +251,17 @@ public class SegmentDataStoreBlobGCIT {
         Set<String> existingAfterGC = gcInternal(86400);
         assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
     }
-    
+
+    @Test
+    public void gcSpecialChar() throws Exception {
+        DataStoreState state = setUp();
+        Set<String> specialCharNodeBlobs = addNodeSpecialChars();
+        state.blobsAdded.addAll(specialCharNodeBlobs);
+        state.blobsPresent.addAll(specialCharNodeBlobs);
+        Set<String> existingAfterGC = gcInternal(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    }
+
     @Test
     public void consistencyCheckInit() throws Exception {
         DataStoreState state = setUp();

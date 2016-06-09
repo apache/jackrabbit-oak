@@ -57,6 +57,7 @@ import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -453,8 +454,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * Save batch to file.
      */
     static void saveBatchToFile(List<String> ids, BufferedWriter writer) throws IOException {
-        writer.append(Joiner.on(NEWLINE).join(ids));
-        writer.append(NEWLINE);
+        for (String id : ids) {
+            ExternalSort.writeLine(writer, id);
+            writer.append(NEWLINE);
+        }
         ids.clear();
         writer.flush();
     }
