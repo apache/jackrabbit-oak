@@ -147,6 +147,24 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         return set;
     }
 
+    private HashSet<String> addNodeSpecialChars() throws Exception {
+        HashSet<String> set = new HashSet<String>();
+        DocumentNodeStore s = mk.getNodeStore();
+        NodeBuilder a = s.getRoot().builder();
+        int number = 1;
+        for (int i = 0; i < number; i++) {
+            Blob b = s.createBlob(randomStream(i, 18432));
+            NodeBuilder n = a.child("cspecial");
+            n.child("q\\%22afdg\\%22").setProperty("x", b);
+            Iterator<String> idIter =
+                ((GarbageCollectableBlobStore) s.getBlobStore())
+                    .resolveChunks(b.toString());
+            set.addAll(Lists.newArrayList(idIter));
+        }
+        s.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return set;
+    }
+
     private void deleteFromMongo(String nodeId) {
         DBCollection coll = mongoConnection.getDB().getCollection("nodes");
         BasicDBObject blobNodeObj = new BasicDBObject();
@@ -160,6 +178,17 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         Set<String> existingAfterGC = gc(0);
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
+
+    @Test
+    public void gcSpecialChar() throws Exception {
+        DataStoreState state = setUp(true);
+        Set<String> specialCharNodeBlobs = addNodeSpecialChars();
+        state.blobsAdded.addAll(specialCharNodeBlobs);
+        state.blobsPresent.addAll(specialCharNodeBlobs);
+        Set<String> existingAfterGC = gc(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    }
+
     
     @Test
     public void noGc() throws Exception {
