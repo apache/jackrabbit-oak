@@ -39,7 +39,7 @@ public class SegmentNotFoundException extends IllegalRepositoryStateException {
     }
 
     public SegmentNotFoundException(String message, SegmentNotFoundException cause) {
-        super(message);
+        super(message, cause);
         this.segmentId = cause.getSegmentId();
     }
 
