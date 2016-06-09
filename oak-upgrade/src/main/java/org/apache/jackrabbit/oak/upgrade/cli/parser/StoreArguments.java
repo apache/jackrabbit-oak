@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.blob.BlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.DummyBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.MissingBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.D
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FDS;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3_CONFIG;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.MISSING_BLOBSTORE;
 
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
@@ -96,6 +98,8 @@ public class StoreArguments {
             factory = new S3DataStoreFactory(parser.getOption(SRC_S3_CONFIG), parser.getOption(SRC_S3));
         } else if (parser.hasOption(SRC_FDS)) {
             factory = new FileDataStoreFactory(parser.getOption(SRC_FDS));
+        } else if (parser.hasOption(MISSING_BLOBSTORE)) {
+            factory = new MissingBlobStoreFactory();
         } else {
             factory = new DummyBlobStoreFactory();
         }
@@ -111,6 +115,8 @@ public class StoreArguments {
             factory = new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3));
         } else if (parser.hasOption(DST_FDS)) {
             factory = new FileDataStoreFactory(parser.getOption(DST_FDS));
+        } else if (parser.hasOption(MISSING_BLOBSTORE)) {
+            factory = new MissingBlobStoreFactory();
         } else {
             factory = new DummyBlobStoreFactory();
         }
