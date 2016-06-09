@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import static org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer.isMongoAvailable;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
@@ -27,11 +34,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 @RunWith(Parameterized.class)
 public class MissingBlobStoreTest extends AbstractOak2OakTest {
@@ -49,10 +51,20 @@ public class MissingBlobStoreTest extends AbstractOak2OakTest {
         params.add(new Object[] { "SegmentTar -> Segment (FDS)", new SegmentTarNodeStoreContainer(blob), new SegmentNodeStoreContainer(blob), true });
         params.add(new Object[] { "SegmentTar -> SegmentTar (FDS)", new SegmentTarNodeStoreContainer(blob), new SegmentTarNodeStoreContainer(blob), true });
         try {
-            params.add(new Object[] { "Mongo -> Mongo (FDS)", new MongoNodeStoreContainer(blob), new MongoNodeStoreContainer(blob), false });
-            // params.add(new Object[] { "Segment -> Mongo (FDS)", new SegmentNodeStoreContainer(blob), new MongoNodeStoreContainer(blob), false });
-            // params.add(new Object[] { "SegmentTar -> Mongo (FDS)", new SegmentTarNodeStoreContainer(blob), new MongoNodeStoreContainer(blob), false });
-            params.add(new Object[] { "Mongo -> Segment (FDS)", new MongoNodeStoreContainer(blob), new SegmentNodeStoreContainer(blob), false });
+            if (isMongoAvailable()) {
+                params.add(new Object[] { "Mongo -> Mongo (FDS)",
+                        new MongoNodeStoreContainer(blob),
+                        new MongoNodeStoreContainer(blob), false });
+                // params.add(new Object[] { "Segment -> Mongo (FDS)", new
+                // SegmentNodeStoreContainer(blob), new
+                // MongoNodeStoreContainer(blob), false });
+                // params.add(new Object[] { "SegmentTar -> Mongo (FDS)", new
+                // SegmentTarNodeStoreContainer(blob), new
+                // MongoNodeStoreContainer(blob), false });
+                params.add(new Object[] { "Mongo -> Segment (FDS)",
+                        new MongoNodeStoreContainer(blob),
+                        new SegmentNodeStoreContainer(blob), false });
+            }
         } catch (IOException e) {
             log.error("Can't create Mongo -> Mongo case", e);
         }
