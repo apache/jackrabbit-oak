@@ -140,7 +140,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                     if (pProvider instanceof AggregatedPermissionProvider) {
                         aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
                     } else {
-                        log.warn("Ignoring permission provider of '{}': missing implementation of AggregatedPermissionProvider", conf.getClass().getName());
+                        log.debug("Ignoring permission provider of '{}': Not an AggregatedPermissionProvider", conf.getClass().getName());
                     }
                 }
                 PermissionProvider pp;
