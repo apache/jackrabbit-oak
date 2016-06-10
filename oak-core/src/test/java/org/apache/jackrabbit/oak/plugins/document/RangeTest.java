@@ -55,4 +55,13 @@ public class RangeTest {
         assertEquals("r1-0-1/0", r.getLowValue());
         assertEquals(r, Range.fromEntry(high, r.getLowValue()));
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void invalidRange() throws Exception{
+        Revision low = new Revision(0x100, 0, 1);
+        Revision high = new Revision(0x300, 0, 1);
+
+        Range range = new Range(low, high, 0);
+
+    }
 }
