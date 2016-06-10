@@ -55,8 +55,6 @@ public class TarRevisions implements Revisions, Closeable {
 
     public static final String JOURNAL_FILE_NAME = "journal.log";
 
-    private final boolean readOnly;
-
     /**
      * The latest head state.
      */
@@ -110,7 +108,6 @@ public class TarRevisions implements Revisions, Closeable {
 
     public TarRevisions(boolean readOnly, @Nonnull File directory)
     throws IOException {
-        this.readOnly = readOnly;
         this.directory = checkNotNull(directory);
         this.journalFile = new RandomAccessFile(new File(directory, JOURNAL_FILE_NAME),
                 readOnly ? "r" : "rw");
@@ -239,11 +236,5 @@ public class TarRevisions implements Revisions, Closeable {
     @Override
     public void close() throws IOException {
         journalFile.close();
-    }
-
-    void setHeadId(@Nonnull RecordId headId) {
-        checkState(readOnly, "Cannot set revision on a writable store");
-        head.set(headId);
-        persistedHead.set(headId);
     }
 }
