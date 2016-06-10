@@ -326,6 +326,7 @@ analyzed
     * _//element(*, app:Asset)[jcr:contains(type, 'image')]_
     * _//element(*, app:Asset)[jcr:contains(jcr:content/metadata/@format, 'image')]_
 
+<a name="ordered"></a>
 ordered
 : If the property is to be used in _order by_ clause to perform sorting then
   this should be set to true. This should be set to true only if the property
