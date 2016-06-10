@@ -225,4 +225,27 @@ public class FileStoreIT {
         }
     }
 
+    @Test
+    public void setRevisionTest() throws IOException {
+        try (FileStore store = fileStoreBuilder(getFileStoreFolder()).build()) {
+            RecordId id1 = store.getRevisions().getHead();
+            SegmentNodeState base = store.getReader().readHeadState();
+            SegmentNodeBuilder builder = base.builder();
+            builder.setProperty("step", "a");
+            store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
+            RecordId id2 = store.getRevisions().getHead();
+            store.flush();
+
+            try (ReadOnlyStore roStore = fileStoreBuilder(getFileStoreFolder()).buildReadOnly()) {
+                assertEquals(id2, roStore.getRevisions().getHead());
+
+                roStore.setRevision(id1.toString());
+                assertEquals(id1, roStore.getRevisions().getHead());
+
+                roStore.setRevision(id2.toString());
+                assertEquals(id2, roStore.getRevisions().getHead());
+            }
+        }
+    }
+
 }
