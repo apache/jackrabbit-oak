@@ -103,6 +103,22 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
+    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        if (v == null) {
+            return;
+        }
+        String name = getName(query, v);
+        if (name != null && f.getSelector().equals(selector)
+                && NodeNameImpl.supportedOperator(operator)) {
+            String localName = NodeLocalNameImpl.getLocalName(name);
+            String restrictionName = QueryConstants.FUNCTION_RESTRICTION_PREFIX + 
+                    functionName + "*@" + QueryConstants.RESTRICTION_LOCAL_NAME;            
+            f.restrictProperty(restrictionName,
+                    operator, PropertyValues.newString(localName));
+        }
+    }
+
+    @Override
     public boolean canRestrictSelector(SelectorImpl s) {
         return s.equals(selector);
     }

@@ -29,9 +29,33 @@ public abstract class DynamicOperandImpl extends AstElement {
 
     public abstract PropertyValue currentProperty();
 
+    /**
+     * Apply a restriction of type "this = value" to the given filter.
+     * 
+     * @param f the filter where the restriction is applied.
+     * @param operator the operator (for example "=").
+     * @param v the value
+     */
     public abstract void restrict(FilterImpl f, Operator operator, PropertyValue v);
-    
+
+    /**
+     * Apply a restriction of type "this in (list)" to the given filter.
+     * 
+     * @param f the filter where the restriction is applied.
+     * @param list the list of values
+     */
     public abstract void restrictList(FilterImpl f, List<PropertyValue> list);
+    
+    /**
+     * Apply a restriction of type "function(this) = value" to the given filter.
+     * 
+     * @param functionName the function name (for example "upper")
+     * @param f the filter where the restriction is applied.
+     * @param operator the operator (for example "=").
+     * @param v the value
+     */
+    public abstract void restrictFunction(FilterImpl f, String functionName, Operator operator,
+            PropertyValue v);
 
     /**
      * Check whether the condition can be applied to a selector (to restrict the

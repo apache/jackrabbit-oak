@@ -52,6 +52,49 @@ public class FilterTest {
     }
     
     @Test
+    public void functionBasedIndex() throws Exception {
+        String sql2 = "select [jcr:path] from [nt:base] where lower([test]) = 'hello'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
+                "where lower([test]) = 'hello', " + 
+                "path=*, property=[" + 
+                "function*lower*@test=[hello], " +
+                "test=[is not null]])", createFilterSQL(sql2).toString());
+        
+        sql2 = "select [jcr:path] from [nt:base] where upper([test]) = 'HELLO'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
+                "where upper([test]) = 'HELLO', " + 
+                "path=*, property=[" + 
+                "function*upper*@test=[HELLO], " +
+                "test=[is not null]])", createFilterSQL(sql2).toString());
+        
+        sql2 = "select [jcr:path] from [nt:base] where upper(name()) = 'ACME:TEST'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
+                "where upper(name()) = 'ACME:TEST', " + 
+                "path=*, property=[" + 
+                "function*upper*@:localname=[TEST]])", createFilterSQL(sql2).toString());
+        
+        sql2 = "select [jcr:path] from [nt:base] where lower(localname()) = 'test'";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
+                "where lower(localname()) = 'test', " + 
+                "path=*, property=[" + 
+                "function*lower*@:localname=[test]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where length([test]) <= 10";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
+                "where length([test]) <= 10, " + 
+                "path=*, property=[test=[is not null], " + 
+                "function*length*@test=[..10]]])", createFilterSQL(sql2).toString());
+        
+        sql2 = "select [jcr:path] from [nt:base] where length([test]) > 2";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
+                "where length([test]) > 2, " + 
+                "path=*, property=[test=[is not null], " + 
+                "function*length*@test=[(2..]])", createFilterSQL(sql2).toString());
+        
+
+    }
+    
+    @Test
     public void oak4170() throws ParseException {
         String sql2 = "select * from [nt:unstructured] where CONTAINS([jcr:content/metadata/comment], 'december')";
         Filter f = createFilterSQL(sql2);

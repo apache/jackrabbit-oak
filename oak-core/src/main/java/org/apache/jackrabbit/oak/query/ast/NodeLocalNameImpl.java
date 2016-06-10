@@ -85,7 +85,6 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
-
         String name = NodeNameImpl.getName(query, v);
         if (name != null && f.getSelector().equals(selector)
                 && NodeNameImpl.supportedOperator(operator)) {
@@ -97,6 +96,22 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of type "LOCALNAME(..) IN(A, B)" are not supported
+    }
+    
+    @Override
+    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        // optimizations of the type "lower(LOCALNAME(x)) = 'x'"
+        if (v == null) {
+            return;
+        }
+        String name = NodeNameImpl.getName(query, v);
+        if (name != null && f.getSelector().equals(selector)
+                && NodeNameImpl.supportedOperator(operator)) {
+            String restrictionName = QueryConstants.FUNCTION_RESTRICTION_PREFIX + 
+                    functionName + "*@" + QueryConstants.RESTRICTION_LOCAL_NAME;            
+            f.restrictProperty(restrictionName,
+                    operator, PropertyValues.newString(name));
+        }
     }
 
     @Override

@@ -94,12 +94,18 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         // LOWER(x) implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
+        operand.restrictFunction(f, "lower", operator, v);
     }
     
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // "LOWER(x) IN (A, B)" implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
+    }
+
+    @Override
+    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        // optimizations of the type "lower(upper(x)) = 'x'" are not currently supported
     }
 
     @Override

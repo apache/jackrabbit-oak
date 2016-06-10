@@ -100,11 +100,17 @@ public class LengthImpl extends DynamicOperandImpl {
         }
         // LENGTH(x) implies x is not null
         propertyValue.restrict(f, Operator.NOT_EQUAL, null);
+        propertyValue.restrictFunction(f, "length", operator, v);
     }
     
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of the type "length(x) in(1, 2, 3)" are not supported
+    }
+
+    @Override
+    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        // optimizations of the type "upper(length(x)) = '1'" are not supported
     }
 
     @Override
