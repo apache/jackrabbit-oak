@@ -95,6 +95,7 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -368,6 +369,32 @@ public class FileStore implements SegmentStore, Closeable {
             log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
         }
         log.debug("TarMK readers {}", this.readers);
+    }
+
+    FileStore bind(TarRevisions revisions) throws IOException {
+        revisions.bind(this, initialNode());
+        return this;
+    }
+
+    @Nonnull
+    private Supplier<RecordId> initialNode() {
+        return new Supplier<RecordId>() {
+            @Override
+            public RecordId get() {
+                try {
+                    SegmentWriter writer = segmentWriterBuilder("init").build(FileStore.this);
+                    NodeBuilder builder = EMPTY_NODE.builder();
+                    builder.setChildNode("root", EMPTY_NODE);
+                    SegmentNodeState node = writer.writeNode(builder.getNodeState());
+                    writer.flush();
+                    return node.getRecordId();
+                } catch (IOException e) {
+                    String msg = "Failed to write initial node";
+                    log.error(msg, e);
+                    throw new IllegalStateException(msg, e);
+                }
+            }
+        };
     }
 
     private int getGcGeneration() {
@@ -1304,15 +1331,6 @@ public class FileStore implements SegmentStore, Closeable {
         return emptyMap();
     }
 
-    private void setRevision(String rootRevision) {
-        fileStoreLock.writeLock().lock();
-        try {
-            revisions.setHeadId(RecordId.fromString(this, rootRevision));
-        } finally {
-            fileStoreLock.writeLock().unlock();
-        }
-    }
-
     private void checkDiskSpace() {
         long repositoryDiskSpace = approximateSize.get();
         long availableDiskSpace = directory.getFreeSpace();
@@ -1339,9 +1357,22 @@ public class FileStore implements SegmentStore, Closeable {
      * All write methods are no-ops.
      */
     public static class ReadOnlyStore extends FileStore {
+        private RecordId currentHead;
 
         ReadOnlyStore(FileStoreBuilder builder) throws IOException {
             super(builder, true);
+        }
+
+        @Override
+        ReadOnlyStore bind(@Nonnull TarRevisions revisions) throws IOException {
+            revisions.bind(this, new Supplier<RecordId>() {
+                @Override
+                public RecordId get() {
+                    throw new IllegalStateException("Cannot start readonly store from empty journal");
+                }
+            });
+            currentHead = revisions.getHead();
+            return this;
         }
 
         /**
@@ -1350,7 +1381,10 @@ public class FileStore implements SegmentStore, Closeable {
          * @param revision
          */
         public void setRevision(String revision) {
-            super.setRevision(revision);
+            RecordId newHead = RecordId.fromString(this, revision);
+            if (super.revisions.setHead(currentHead, newHead)) {
+                currentHead = newHead;
+            }
         }
 
         /**

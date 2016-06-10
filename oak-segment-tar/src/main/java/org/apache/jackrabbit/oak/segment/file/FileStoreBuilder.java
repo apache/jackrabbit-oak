@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
@@ -33,10 +31,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
-import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -44,7 +38,6 @@ import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -279,9 +272,7 @@ public class FileStoreBuilder {
     public FileStore build() throws IOException {
         directory.mkdir();
         revisions = new TarRevisions(false, directory);
-        FileStore store = new FileStore(this, false);
-        revisions.bind(store, initialNode(store));
-        return store;
+        return new FileStore(this, false).bind(revisions);
     }
 
     /**
@@ -305,30 +296,7 @@ public class FileStoreBuilder {
     public ReadOnlyStore buildReadOnly() throws IOException {
         checkState(directory.exists() && directory.isDirectory());
         revisions = new TarRevisions(true, directory);
-        ReadOnlyStore store = new ReadOnlyStore(this);
-        revisions.bind(store, initialNode(store));
-        return store;
-    }
-
-    @Nonnull
-    private static Supplier<RecordId> initialNode(final FileStore store) {
-        return new Supplier<RecordId>() {
-            @Override
-            public RecordId get() {
-                try {
-                    SegmentWriter writer = segmentWriterBuilder("init").build(store);
-                    NodeBuilder builder = EMPTY_NODE.builder();
-                    builder.setChildNode("root", EMPTY_NODE);
-                    SegmentNodeState node = writer.writeNode(builder.getNodeState());
-                    writer.flush();
-                    return node.getRecordId();
-                } catch (IOException e) {
-                    String msg = "Failed to write initial node";
-                    LOG.error(msg, e);
-                    throw new IllegalStateException(msg, e);
-                }
-            }
-        };
+        return new ReadOnlyStore(this).bind(revisions);
     }
 
     @Nonnull
