@@ -47,7 +47,6 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +120,6 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     synchronized void bind(@Nonnull SegmentStore store,
-                           @Nonnull SegmentTracker tracker,
                            @Nonnull Supplier<RecordId> writeInitialNode)
     throws IOException {
         if (head.get() == null) {

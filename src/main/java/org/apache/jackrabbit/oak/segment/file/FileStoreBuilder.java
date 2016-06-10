@@ -280,7 +280,7 @@ public class FileStoreBuilder {
         directory.mkdir();
         revisions = new TarRevisions(false, directory);
         FileStore store = new FileStore(this, false);
-        revisions.bind(store, store.getTracker(), initialNode(store));
+        revisions.bind(store, initialNode(store));
         return store;
     }
 
@@ -306,7 +306,7 @@ public class FileStoreBuilder {
         checkState(directory.exists() && directory.isDirectory());
         revisions = new TarRevisions(true, directory);
         ReadOnlyStore store = new ReadOnlyStore(this);
-        revisions.bind(store, store.getTracker(), initialNode(store));
+        revisions.bind(store, initialNode(store));
         return store;
     }
 
