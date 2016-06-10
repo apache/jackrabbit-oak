@@ -269,7 +269,7 @@ public class FileStoreBuilder {
      * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
      * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
      * <li>statsProvider: {@link StatisticsProvider#NOOP}</li>
-     * <li>GC options: {@link SegmentGCOptions#DEFAULT}</li>
+     * <li>GC options: {@link SegmentGCOptions#defaultGCOptions()}</li>
      * </ul>
      *
      * @return a new file store instance
@@ -295,7 +295,7 @@ public class FileStoreBuilder {
      * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
      * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
      * <li>statsProvider: {@link StatisticsProvider#NOOP}</li>
-     * <li>GC options: {@link SegmentGCOptions#DEFAULT}</li>
+     * <li>GC options: {@link SegmentGCOptions#defaultGCOptions()}</li>
      * </ul>
      *
      * @return a new file store instance
