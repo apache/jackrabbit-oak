@@ -886,13 +886,15 @@ public class FileStore implements SegmentStore, Closeable {
         try {
             int cycles = 0;
             boolean success = false;
-            while (cycles++ < gcOptions.getRetryCount() &&
+            while (cycles < gcOptions.getRetryCount() &&
                     !(success = revisions.setHead(before.getRecordId(), after.getRecordId()))) {
                 // Some other concurrent changes have been made.
                 // Rebase (and compact) those changes on top of the
                 // compacted state before retrying to set the head.
+                cycles++;
                 gcListener.info("TarMK GC #{}: compaction detected concurrent commits while compacting. " +
-                    "Compacting these commits. Cycle {}", GC_COUNT, cycles);
+                    "Compacting these commits. Cycle {} of {}",
+                    GC_COUNT, cycles, gcOptions.getRetryCount());
                 SegmentNodeState head = segmentReader.readHeadState();
                 after = compact(bufferWriter, head, cancel);
                 if (after == null) {
@@ -907,9 +909,10 @@ public class FileStore implements SegmentStore, Closeable {
 
             if (!success) {
                 gcListener.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
-                        GC_COUNT, cycles - 1);
+                        GC_COUNT, cycles);
                 if (gcOptions.getForceAfterFail()) {
                     gcListener.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
+                    cycles++;
                     success = forceCompact(bufferWriter, cancel);
                     if (!success) {
                         gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
@@ -922,7 +925,7 @@ public class FileStore implements SegmentStore, Closeable {
             if (success) {
                 gcListener.compacted(SUCCESS, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
-                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                 return true;
             } else {
                 gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
@@ -941,7 +944,7 @@ public class FileStore implements SegmentStore, Closeable {
 
                 gcListener.compacted(FAILURE, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
-                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles - 1);
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                 return false;
             }
         } catch (InterruptedException e) {
