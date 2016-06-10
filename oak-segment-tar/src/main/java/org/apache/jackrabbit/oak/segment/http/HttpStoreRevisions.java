@@ -63,7 +63,7 @@ public class HttpStoreRevisions implements Revisions {
 
     @Override
     public boolean setHead(
-            @Nonnull RecordId base, @Nonnull RecordId head,
+            @Nonnull RecordId expected, @Nonnull RecordId head,
             @Nonnull Option... options) {
         throw new UnsupportedOperationException();
     }
