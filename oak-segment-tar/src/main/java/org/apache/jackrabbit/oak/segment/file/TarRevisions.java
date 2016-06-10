@@ -121,6 +121,8 @@ public class TarRevisions implements Revisions, Closeable {
         return new TimeOutOption(time, unit);
     }
 
+    // FIXME OAK-4465: Remove the read-only concern from TarRevisions: this should be possible once
+    // the ReadOnlyStore is properly separated from the FileStore. See OAK-4450.
     /**
      * Create a new instance placing the journal log file into the passed
      * {@code directory}.
