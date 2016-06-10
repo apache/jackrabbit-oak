@@ -21,10 +21,9 @@ package org.apache.jackrabbit.oak.backup;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
-import static org.apache.jackrabbit.oak.backup.FileStoreRestore.restore;
 
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -35,7 +34,9 @@ import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.segment.Revisions;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentReader;
 
 /**
  * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
@@ -45,7 +46,9 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     public static final String BACKUP_OP_NAME = "Backup";
     public static final String RESTORE_OP_NAME = "Restore";
 
-    private final NodeStore store;
+    private final SegmentNodeStore store;
+    private final Revisions revisions;
+    private final SegmentReader reader;
     private final File file;
     private final Executor executor;
 
@@ -58,10 +61,14 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
      * @param executor  executor for running the back up or restore operation
      */
     public FileStoreBackupRestore(
-            @Nonnull NodeStore store,
+            @Nonnull SegmentNodeStore store,
+            @Nonnull Revisions revisions,
+            @Nonnull SegmentReader reader,
             @Nonnull File file,
             @Nonnull Executor executor) {
         this.store = checkNotNull(store);
+        this.revisions = checkNotNull(revisions);
+        this.reader = checkNotNull(reader);
         this.file = checkNotNull(file);
         this.executor = checkNotNull(executor);
     }
@@ -73,7 +80,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
                 @Override
                 public String call() throws Exception {
                     long t0 = nanoTime();
-                    FileStoreBackup.backup(store, file);
+                    FileStoreBackup.backup(reader, file);
                     return "Backup completed in " + formatTime(nanoTime() - t0);
                 }
             });
@@ -94,7 +101,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
                 @Override
                 public String call() throws Exception {
                     long t0 = nanoTime();
-                    FileStoreRestore.restore(file, store);
+                    FileStoreRestore.restore(file);
                     return "Restore completed in " + formatTime(nanoTime() - t0);
                 }
             });
