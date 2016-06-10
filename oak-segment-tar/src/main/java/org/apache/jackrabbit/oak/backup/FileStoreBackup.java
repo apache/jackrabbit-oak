@@ -19,28 +19,27 @@
 
 package org.apache.jackrabbit.oak.backup;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Suppliers;
 
 public class FileStoreBackup {
 
@@ -50,9 +49,9 @@ public class FileStoreBackup {
     public static boolean USE_FAKE_BLOBSTORE = Boolean
             .getBoolean("oak.backup.UseFakeBlobStore");
 
-    public static void backup(NodeStore store, File destination)
+    public static void backup(@Nonnull SegmentReader reader,
+                              @Nonnull File destination)
             throws IOException {
-        checkArgument(store instanceof SegmentNodeStore);
         Stopwatch watch = Stopwatch.createStarted();
         SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions()
                 .setOffline();
@@ -64,14 +63,10 @@ public class FileStoreBackup {
         }
         builder.withGCOptions(gcOptions);
         FileStore backup = builder.build();
-        SegmentNodeState current = (SegmentNodeState) ((SegmentNodeStore) store)
-                .getSuperRoot();
+        SegmentNodeState current = reader.readHeadState();
         try {
             int gen = 0;
-            if (current instanceof SegmentNodeState) {
-                gen = ((SegmentNodeState) current).getRecordId().getSegment()
-                        .getGcGeneration();
-            }
+            gen = current.getRecordId().getSegment().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(backup,
                     backup.getTracker(), backup.getReader(), "b", gen);
             SegmentWriter writer = new SegmentWriter(backup,

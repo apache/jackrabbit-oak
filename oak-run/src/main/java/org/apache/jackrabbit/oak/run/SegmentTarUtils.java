@@ -127,8 +127,7 @@ final class SegmentTarUtils {
                 fs = openReadOnlyFileStore(source);
             }
             closer.register(fs);
-            NodeStore store = SegmentNodeStoreBuilders.builder(fs).build();
-            FileStoreBackup.backup(store, target);
+            FileStoreBackup.backup(fs.getReader(), target);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {

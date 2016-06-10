@@ -67,17 +67,17 @@ public class FileStoreBackupTest {
         try {
             init(store);
             source.flush();
-            FileStoreBackup.backup(store, destination);
+            FileStoreBackup.backup(source.getReader(), destination);
             compare(source, destination);
 
             addTestContent(store);
             source.flush();
-            FileStoreBackup.backup(store, destination);
+            FileStoreBackup.backup(source.getReader(), destination);
             compare(source, destination);
 
             source.compact();
             FileStoreBackup.cleanup(source);
-            FileStoreBackup.backup(store, destination);
+            FileStoreBackup.backup(source.getReader(), destination);
             compare(source, destination);
         } finally {
             source.close();
@@ -91,7 +91,7 @@ public class FileStoreBackupTest {
                 .build();
         init(store);
         source.flush();
-        FileStoreBackup.backup(store, destination);
+        FileStoreBackup.backup(source.getReader(), destination);
         source.close();
 
         FileStoreRestore.restore(destination, src);

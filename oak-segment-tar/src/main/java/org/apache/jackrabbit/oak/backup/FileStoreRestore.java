@@ -25,6 +25,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -32,12 +34,8 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Suppliers;
 
 public class FileStoreRestore {
 
@@ -84,7 +82,7 @@ public class FileStoreRestore {
         log.info("Restore finished in {}.", watch);
     }
 
-    public static void restore(File source, NodeStore store) {
+    public static void restore(File source) {
         log.warn("Restore not available as an online operation.");
     }
 
