@@ -257,18 +257,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return head.get().getChildNode(ROOT);
     }
 
-    @Nonnull
-    public NodeState getSuperRoot() {
-        if (commitSemaphore.tryAcquire()) {
-            try {
-                refreshHead();
-            } finally {
-                commitSemaphore.release();
-            }
-        }
-        return head.get();
-    }
-
     @Override
     public NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
