@@ -47,17 +47,26 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This implementation of {@code Revisions} is backed by a
+ * {@link #JOURNAL_FILE_NAME journal} file where the current head is persisted
+ * by calling {@link #flush(Callable)}.
+ * <p>
+ * The {@link #setHead(Function, Option...)} method supports a timeout
+ * {@link Option}, which can be retrieved through factory methods of this class.
+ * <p>
+ * Instance of this class must be {@link #bind(SegmentStore, Supplier) bound} to
+ * a {@code SegmentStore} otherwise its method throw {@code IllegalStateException}s.
+ */
 public class TarRevisions implements Revisions, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(TarRevisions.class);
 
     public static final String JOURNAL_FILE_NAME = "journal.log";
 
-    /**
-     * The latest head state.
-     */
     @Nonnull
     private final AtomicReference<RecordId> head;
 
@@ -100,12 +109,26 @@ public class TarRevisions implements Revisions, Closeable {
         }
     }
 
+    /**
+     * Timeout option approximating no time out ({@code Long.MAX_VALUE} days).
+     */
     public static final Option INFINITY = new TimeOutOption(MAX_VALUE, DAYS);
 
+    /**
+     * Factory method for creating a timeout option.
+     */
     public static Option timeout(long time, TimeUnit unit) {
         return new TimeOutOption(time, unit);
     }
 
+    /**
+     * Create a new instance placing the journal log file into the passed
+     * {@code directory}.
+     * @param readOnly      safeguard for {@link ReadOnlyStore}: open the journal
+     *                      file in read only mode.
+     * @param directory     directory of the journal file
+     * @throws IOException
+     */
     public TarRevisions(boolean readOnly, @Nonnull File directory)
     throws IOException {
         this.directory = checkNotNull(directory);
@@ -116,6 +139,12 @@ public class TarRevisions implements Revisions, Closeable {
         this.persistedHead = new AtomicReference<>(null);
     }
 
+    /**
+     * Bind this instance to a store.
+     * @param store              store to bind to
+     * @param writeInitialNode   provider for the initial node in case the journal is empty.
+     * @throws IOException
+     */
     synchronized void bind(@Nonnull SegmentStore store,
                            @Nonnull Supplier<RecordId> writeInitialNode)
     throws IOException {
@@ -153,6 +182,15 @@ public class TarRevisions implements Revisions, Closeable {
 
     private final Lock flushLock = new ReentrantLock();
 
+    /**
+     * Flush the id of the current head to the journal after a call to
+     * {@code persisted}. This method does nothing and returns immediately if
+     * called concurrently and a call is already in progress.
+     * @param persisted     call back for upstream dependencies to ensure
+     *                      the current head state is actually persisted before
+     *                      its id is written to the head state.
+     * @throws IOException
+     */
     public void flush(@Nonnull Callable<Void> persisted) throws IOException {
         checkBound();
         if (flushLock.tryLock()) {
@@ -198,6 +236,16 @@ public class TarRevisions implements Revisions, Closeable {
         }
     }
 
+    /**
+     * This implementation blocks if a concurrent call is already in progress.
+     * @param newHead  function mapping an record id to the record id to which
+     *                 the current head id should be set.
+     * @param options  zero or one timeout options specifying how long to block
+     * @return
+     * @throws InterruptedException
+     * @see #timeout(long, TimeUnit)
+     * @see #INFINITY
+     */
     @Override
     public boolean setHead(
             @Nonnull Function<RecordId, RecordId> newHead,
@@ -233,6 +281,10 @@ public class TarRevisions implements Revisions, Closeable {
         }
     }
 
+    /**
+     * Close the underlying journal file.
+     * @throws IOException
+     */
     @Override
     public void close() throws IOException {
         journalFile.close();
