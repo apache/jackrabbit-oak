@@ -92,6 +92,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     }
 
     @Override
+    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        // optimizations of the type "upper(jcr:score()) = '1'" are not supported
+    }
+
+    @Override
     public boolean canRestrictSelector(SelectorImpl s) {
         return s.equals(selector);
     }

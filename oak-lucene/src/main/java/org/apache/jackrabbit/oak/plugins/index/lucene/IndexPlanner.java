@@ -154,6 +154,10 @@ class IndexPlanner {
                 if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
                     continue;
                 }
+                if (name.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX)) {
+                    // TODO support function-based indexes
+                    continue;
+                }
                 if (QueryImpl.REP_FACET.equals(pr.propertyName)) {
                     String value = pr.first.getValue(Type.STRING);
                     facetFields.add(FacetHelper.parseFacetField(value));

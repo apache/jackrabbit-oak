@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
 /**
  * A property expression.
@@ -138,6 +139,16 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         if (f.getSelector().equals(selector)) {
             String pn = normalizePropertyName(propertyName);            
             f.restrictPropertyAsList(pn, list);
+        }
+    }
+    
+    @Override
+    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        if (f.getSelector().equals(selector)) {
+            String pn = normalizePropertyName(propertyName);
+            String restrictionName = QueryConstants.FUNCTION_RESTRICTION_PREFIX +
+                    functionName + "*@" + pn;
+            f.restrictProperty(restrictionName, operator, v, propertyType);
         }
     }
 

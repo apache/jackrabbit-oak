@@ -35,8 +35,11 @@ public class NativeFunctionImpl extends ConstraintImpl {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    /**
+     * The prefix for native function restrictions (native, similar, spellcheck, suggest).
+     */
     public static final String NATIVE_PREFIX = "native*";
-    
+
     private final String selectorName;
     private final String language;
     private final StaticOperandImpl nativeSearchExpression;
