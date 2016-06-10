@@ -190,14 +190,14 @@ public class TarRevisions implements Revisions, Closeable {
 
     @Override
     public boolean setHead(
-            @Nonnull RecordId base,
+            @Nonnull RecordId expected,
             @Nonnull RecordId head,
             @Nonnull Option... options) {
         checkBound();
         rwLock.readLock().lock();
         try {
             RecordId id = this.head.get();
-            return id.equals(base) && this.head.compareAndSet(id, head);
+            return id.equals(expected) && this.head.compareAndSet(id, head);
         } finally {
             rwLock.readLock().unlock();
         }
