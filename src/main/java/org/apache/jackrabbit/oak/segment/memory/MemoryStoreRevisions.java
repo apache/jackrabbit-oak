@@ -56,10 +56,10 @@ public class MemoryStoreRevisions implements Revisions {
 
     @Override
     public synchronized boolean setHead(
-            @Nonnull RecordId base, @Nonnull RecordId head,
+            @Nonnull RecordId expected, @Nonnull RecordId head,
             @Nonnull Option... options) {
         checkBound();
-        if (this.head.equals(base)) {
+        if (this.head.equals(expected)) {
             this.head = head;
             return true;
         } else {
