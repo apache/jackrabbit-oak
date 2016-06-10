@@ -55,12 +55,6 @@ public class MissingBlobStoreTest extends AbstractOak2OakTest {
                 params.add(new Object[] { "Mongo -> Mongo (FDS)",
                         new MongoNodeStoreContainer(blob),
                         new MongoNodeStoreContainer(blob), false });
-                // params.add(new Object[] { "Segment -> Mongo (FDS)", new
-                // SegmentNodeStoreContainer(blob), new
-                // MongoNodeStoreContainer(blob), false });
-                // params.add(new Object[] { "SegmentTar -> Mongo (FDS)", new
-                // SegmentTarNodeStoreContainer(blob), new
-                // MongoNodeStoreContainer(blob), false });
                 params.add(new Object[] { "Mongo -> Segment (FDS)",
                         new MongoNodeStoreContainer(blob),
                         new SegmentNodeStoreContainer(blob), false });
@@ -68,9 +62,6 @@ public class MissingBlobStoreTest extends AbstractOak2OakTest {
         } catch (IOException e) {
             log.error("Can't create Mongo -> Mongo case", e);
         }
-
-        // blob = new FileBlobStoreContainer();
-        // params.add(new Object[] { "SegmentTar -> SegmentTar (FBS)", new SegmentTarNodeStoreContainer(blob), new SegmentTarNodeStoreContainer(blob), true });
         return params;
     }
 
