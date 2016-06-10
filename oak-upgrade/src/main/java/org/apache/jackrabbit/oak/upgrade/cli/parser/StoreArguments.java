@@ -46,6 +46,8 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.M
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JDBC;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.MONGO;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
@@ -79,6 +81,10 @@ public class StoreArguments {
 
         if (dst.getType() == SEGMENT) {
             logSegmentVersion();
+        }
+
+        if (parser.hasOption(MISSING_BLOBSTORE) && !nodeStoresSupportMissingBlobStore()) {
+            throw new CliArgumentException("This combination of nodestores is not supported by the --" + MISSING_BLOBSTORE, 1);
         }
     }
 
@@ -236,6 +242,21 @@ public class StoreArguments {
                 lastVersion);
         if (lastVersion == SegmentVersion.V_11) {
             log.info("Requires Oak 1.0.12, 1.1.7 or later");
+        }
+    }
+
+    private boolean nodeStoresSupportMissingBlobStore() {
+        StoreType srcType = src.getType();
+        StoreType dstType = dst.getType();
+
+        if (srcType.isSegment() && dstType.isSegment()) {
+            return true;
+        } else if (srcType == MONGO && (dstType.isSegment() || dstType == MONGO)) {
+            return true;
+        } else if (srcType == JDBC && (dstType.isSegment() || dstType == JDBC)) {
+            return true;
+        } else {
+            return false;
         }
     }
 

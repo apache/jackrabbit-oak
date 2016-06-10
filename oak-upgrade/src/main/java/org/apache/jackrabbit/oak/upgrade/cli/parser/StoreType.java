@@ -130,4 +130,8 @@ enum StoreType {
     public abstract boolean matches(String argument);
 
     public abstract StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments);
+
+    public boolean isSegment() {
+        return this == SEGMENT || this == SEGMENT_TAR;
+    }
 }
