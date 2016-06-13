@@ -223,6 +223,13 @@ public class TarRevisions implements Revisions, Closeable {
         return head.get();
     }
 
+    /**
+     * This implementation blocks if a concurrent call to
+     * {@link #setHead(Function, Option...)} is already in
+     * progress.
+
+     * @param options   none
+     */
     @Override
     public boolean setHead(
             @Nonnull RecordId expected,
@@ -241,10 +248,13 @@ public class TarRevisions implements Revisions, Closeable {
     /**
      * This implementation blocks if a concurrent call is already in progress.
      * @param newHead  function mapping an record id to the record id to which
-     *                 the current head id should be set.
+     *                 the current head id should be set. If it returns
+     *                 {@code null} the head remains unchanged and {@code setHead}
+     *                 returns {@code false}.
+
      * @param options  zero or one timeout options specifying how long to block
-     * @return
      * @throws InterruptedException
+     * @throws IllegalArgumentException  on any non recognised {@code option}.
      * @see #timeout(long, TimeUnit)
      * @see #INFINITY
      */
