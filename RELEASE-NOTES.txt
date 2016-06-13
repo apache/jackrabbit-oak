@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.15
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.16
 
 Introduction
 ------------
@@ -7,60 +7,69 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.15 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.16 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.15
---------------------
-
-Sub-task
-
-    [OAK-2943] - Support measure for union queries
-    [OAK-2944] - Support merge iterator for union order by queries
-
+Changes in Oak 1.2.16
+---------------------
 
 Technical task
 
-    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
-    [OAK-4204] - GarbageCollectorFileState.copy() leaks FileOutputStream
-    [OAK-4250] - DocumentStore: add test coverage for find() with ultra-long keys
-
+    [OAK-4388] - RDBDocumentStore: conditional update to _modified
+    property sometimes applied unconditionally
+    [OAK-4389] - RDBDocumentStore: add system property for disabling
+    appending updates
+    [OAK-4398] - RDBDocumentStore: dead code in internalUpdate
+    [OAK-4408] - RDBDocumentStore: synchronize access to BloomFilter
+    [OAK-4425] - RDBDocumentStore: upgrade MySQL JDBC driver
+    dependency to 5.1.39
 
 Bug
 
-    [OAK-3879] - Lucene index / compatVersion 2: search for 'abc!' does not work
-    [OAK-4099] - Lucene index appear to be corrupted with compaction enabled
-    [OAK-4275] - Backport OAK-4065 (Counter index can get out of sync) to 1.2 and 1.4
-    [OAK-4313] - QueryImpl should avoid traversal with queries containing native constraints
-    [OAK-4324] - Backport OAK-3991 (Incorrect resultset from XPATH, multiple ORs and Lucene full-text) to 1.2
-    [OAK-4359] - Lucene index / compatVersion 2: search for 'a=b=c' does not work
-
+    [OAK-3007] - SegmentStore cache does not take "string" map into
+    account
+    [OAK-3109] - OOME in tarkmk standby tests
+    [OAK-3584] - PathNotFoundException when reading child node and
+    property definitions below nt root
+    [OAK-3794] - The Cold Standby should expect loops in the segment
+    graph
+    [OAK-3961] - Cold Standby revisit timeout setup
+    [OAK-3963] - Cold Standby optimize sync for checkpoints
+    [OAK-4058] - Cold Standby intermittently throws
+    RejectedExecutionException
+    [OAK-4083] - Simplify concurrency when loading data from the
+    primary
+    [OAK-4085] - Malformed node type definition when reregistered
+    after upgrade
+    [OAK-4432] - Ignore files in the root directory of the
+    FileDataStore in #getAllIdentifiers
+    [OAK-4437] - Backport OAK-4387 (XPath: querying for nodes named
+    "text"...) to 1.2 and 1.4
+    [OAK-4441] - [BlobGC] Writing of strings should be escaped
 
 Improvement
 
-    [OAK-2618] - Improve performance of queries with ORDER BY and multiple OR filters
-    [OAK-4035] - AsyncIndexUpdate should not log exception when its forcibly stopped
-    [OAK-4164] - Expose path stats for Lucene index
-    [OAK-4262] - Provide a way to abort an async indexing run
-    [OAK-4306] - Disable cleanup when compaction is paused
-    [OAK-4317] - Similar and Native queries should return no results if no index can handle them
-    [OAK-4321] - Improve conflict exception message to show if conflict is unexpected
-
-
-New Feature
-
-    [OAK-4144] - Expose PropertyIndex stats
+    [OAK-3094] - Potential ClassCastException with LIRS cache builder
+    [OAK-3113] - ColdStandby should provide sync start and end
+    timestamps
+    [OAK-3273] - ColdStandby make sync start and end timestamp updates
+    atomic
+    [OAK-3502] - Improve logging during cleanup
+    [OAK-3508] - External login module should reduce LDAP lookups for
+    pre-authenticated users
+    [OAK-4297] - Oak-run console should allow to setup FDS of
+    repository
+    [OAK-4372] - VersionGarbageCollector uses more temporary memory
+    than needed
 
 Task
 
-    [OAK-4100] - ClusterNodeInfo lease renewal: add logging
-    [OAK-4354] - OAK 1.2: update Jackrabbit dependency to 2.10.3
-    [OAK-4355] - [oak-blob-cloud] Update to latest version of aws-sdk-java
-
+    [OAK-4411] - DocumentNodeStore: Improve test coverage for
+    concurrent updates and queries
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.14 release.
