@@ -52,7 +52,11 @@ public interface Revisions {
      * Atomically set the record id of the current head state to the
      * given {@code head} state if the current head state matches
      * the {@code expected} value.
+     * <p>
      * All record ids must be valid ids for {@code SegmentNodeState}s.
+     * <p>
+     * The locking behaviour of this method regarding implementation
+     * specific.
      *
      * @param expected  the expected head for the update to take place
      * @param head      the new head to update to
@@ -68,8 +72,11 @@ public interface Revisions {
      * Atomically set the record id of the current head state to the value
      * returned from the {@code newHead} function when called with the record
      * id of the current head.
-     * The behaviour of this function regarding locking and handling
-     * {@code null}s returned by {@code newHead} is implementation specific.
+     * <p>
+     * All record ids must be valid ids for {@code SegmentNodeState}s.
+     * <p>
+     * The behaviour of this method regarding locking and handling
+     * {@code null} values returned by {@code newHead} is implementation specific.
      *
      * @param newHead  function mapping an record id to the record id to which
      *                 the current head id should be set.
