@@ -22,16 +22,16 @@ package org.apache.jackrabbit.oak.segment.file;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
 import com.google.common.collect.AbstractIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Reader for journal files of the SegmentMK.
+ * Iterator over the revisions in the journal in reverse order
+ * (end of the file to beginning).
  */
-public final class JournalReader implements Closeable, Iterable<String> {
+public final class JournalReader extends AbstractIterator<String> implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(JournalReader.class);
 
     private final ReversedLinesFileReader journal;
@@ -41,34 +41,28 @@ public final class JournalReader implements Closeable, Iterable<String> {
     }
 
     /**
-     * @return Iterator over the revisions in the journal in reverse order
-     *         (end of the file to beginning).
+     * @throws IllegalStateException  if an {@code IOException} occurs while reading from
+     *                                the journal file.
      */
     @Override
-    public Iterator<String> iterator() {
-        return new AbstractIterator<String>() {
-            @Override
-            protected String computeNext() {
-                try {
-                    String line = journal.readLine();
-                    while (line != null) {
-                        int space = line.indexOf(' ');
-                        if (space != -1) {
-                            return line.substring(0, space);
-                        }
-                        line = journal.readLine();
-                    }
-                } catch (IOException e) {
-                    LOG.error("Error reading journal file", e);
+    protected String computeNext() {
+        try {
+            String line = journal.readLine();
+            while (line != null) {
+                int space = line.indexOf(' ');
+                if (space != -1) {
+                    return line.substring(0, space);
                 }
-                return endOfData();
+                line = journal.readLine();
             }
-        };
+        } catch (IOException e) {
+            LOG.error("Error reading journal file", e);
+        }
+        return endOfData();
     }
 
     @Override
     public void close() throws IOException {
         journal.close();
     }
-
 }
