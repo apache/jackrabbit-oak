@@ -104,9 +104,9 @@ public class SegmentTracker {
      * @return the segment id
      */
     @Nonnull
-    public SegmentId getSegmentId(long msb, long lsb, SegmentIdFactory maker) {
+    public SegmentId newSegmentId(long msb, long lsb, SegmentIdFactory maker) {
         int index = ((int) msb) & (tables.length - 1);
-        return tables[index].getSegmentId(msb, lsb, maker);
+        return tables[index].newSegmentId(msb, lsb, maker);
     }
 
     /**
@@ -136,7 +136,7 @@ public class SegmentTracker {
         segmentCounter.incrementAndGet();
         long msb = (random.nextLong() & MSB_MASK) | VERSION;
         long lsb = (random.nextLong() & LSB_MASK) | type;
-        return getSegmentId(msb, lsb, maker);
+        return newSegmentId(msb, lsb, maker);
     }
 
     public synchronized void clearSegmentIdTables(@Nonnull Set<UUID> reclaimed, @Nonnull String gcInfo) {

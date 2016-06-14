@@ -1253,7 +1253,7 @@ public class FileStore implements SegmentStore, Closeable {
     @Override
     @Nonnull
     public SegmentId newSegmentId(long msb, long lsb) {
-        return tracker.getSegmentId(msb, lsb, segmentIdFactory);
+        return tracker.newSegmentId(msb, lsb, segmentIdFactory);
     }
 
     @Override
