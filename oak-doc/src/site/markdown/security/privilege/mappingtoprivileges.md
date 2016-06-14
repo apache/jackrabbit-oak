@@ -19,7 +19,9 @@
 The following table allows to identify which API calls require which type of
 privilege(s)
 
-#### Read
+#### Transient Operations
+
+##### Read
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -58,7 +60,7 @@ privilege(s)
 | `Session.exportSystemView`                   | `jcr:read`                     |
 | `Session.exportDocumentView`                 | `jcr:read`                     |
 
-#### Writing Properties
+##### Writing Properties
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -69,7 +71,7 @@ privilege(s)
 | `Node.setProperty(String, null)`             | `rep:removeProperties`         |
 | `JackrabbitSession.removeItem` (item is a property) | `rep:removeProperties`  |
 
-#### Writing Nodes
+##### Writing Nodes
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -82,52 +84,33 @@ privilege(s)
 | `Node.removeMixin`                           | `jcr:nodeTypeManagement`       |
 | `Node.orderBefore`                           | `jcr:addChildNodes` and `jcr:removeChildNodes` (on parent) |
 
-#### Move, Copy and Import
+##### Writing Index Definition
+
+While covered by regular JCR API write operations the target items require a
+dedicated privilege despite the fact that the item definitions are not protected
+(see Oak JIRA for corresponding discussions).
+
+All items located within a path that contains `oak:index` will be considered part
+of the special index definition.
+
+| API Call                                     | Privilege(s)                   |
+|----------------------------------------------|--------------------------------|
+| `Node.addNode(String, String)`               | `rep:indexDefinitionManagement`|
+| `Node.addNode(String)`                       | `rep:indexDefinitionManagement`|
+| `Node.orderBefore`                           | `rep:indexDefinitionManagement`|
+| `Node.setProperty`                           | `rep:indexDefinitionManagement`|
+| `Property.setValue`                          | `rep:indexDefinitionManagement`|
+| `Item.remove` (i.e. Node and Property)       | `rep:indexDefinitionManagement`|
+| `JackrabbitSession.removeItem`               | `rep:indexDefinitionManagement`|
+
+##### Move and Import
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
 | `Session.move`                               | `jcr:removeChildNodes` (source parent) and `jcr:addChildNodes` (target parent) |
-| `Workspace.move`                             | `jcr:removeChildNodes` (source parent) and `jcr:addChildNodes` (target parent) |
-| `Workspace.copy`                             | same privileges as if items would be created using regular API calls |
 | `Session.importXml`                          | same privileges as if items would be created using regular API calls |
-| `Workspace.importXml`                        | same privileges as if items would be created using regular API calls |
 
-#### Version Management
-
-| API Call                                     | Privilege(s)                   |
-|----------------------------------------------|--------------------------------|
-| `VersionManager.isCheckedOut`                | `rep:readNodes` on versionable node and `rep:readProperties` on its property `jcr:isCheckedOut` |
-| `VersionManager.getVersionHistory`           | `rep:readNodes` on versionable node and `rep:readProperties` on its property `jcr:versionHistory` |
-| `VersionManager.getBaseVersion`              | `rep:readNodes` on versionable node and `rep:readProperties` on its property `jcr:baseVersion` |
-| `VersionManager.checkin`                     | `jcr:versionManagement` on versionable node |
-| `VersionManager.checkout`                    | `jcr:versionManagement` on versionable node |
-| `VersionManager.checkpoint`                  | `jcr:versionManagement` on versionable node |
-| `VersionManager.restore`                     | _TODO_                         |
-| `VersionManager.restoreByLabel`              | _TODO_                         |
-| `VersionManager.merge`                       | _TODO_                         |
-| `VersionManager.cancelMerge`                 | _TODO_                         |
-| `VersionManager.doneMerge`                   | _TODO_                         |
-| `VersionManager.createConfiguration`         | _TODO_                         |
-| `VersionManager.setActivity`                 | _TODO_                         |
-| `VersionManager.createActivity`              | _TODO_                         |
-| `VersionManager.removeActivity`              | _TODO_                         |
-| `VersionHistory.*` (read)                    | `rep:readNodes` on versionable node |
-| `VersionHistory.removeVersion`               | `jcr:versionManagement` on versionable node |
-| `Version.*` (read)                           | `rep:readNodes` on versionable node |
-
-NOTE: since Oak 1.0 read/write access to version storage is defined by accessibility of the versionable node and _not_ to the version store items.
-
-#### Lock Management
-
-| API Call                                     | Privilege(s)                   |
-|----------------------------------------------|--------------------------------|
-| `LockManager.getLock` = `Node.getLock`       | `jcr:read`                     |
-| `LockManager.isLocked` = `Node.isLocked`     | `jcr:read`                     |
-| `LockManager.holdsLock` = `Node.holdsLock`   | `jcr:read`                     |
-| `LockManager.lock` = `Node.lock`             | `jcr:lockManagement`           |
-| `LockManager.unlock` = `Node.unlock`         | `jcr:lockManagement`           |
-
-#### Access Control Management
+##### Access Control Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -138,7 +121,7 @@ NOTE: since Oak 1.0 read/write access to version storage is defined by accessibi
 | `AccessControlManager.removePolicy`          | `jcr:modifyAccessControl`      |
 | `PrivilegeManager.registerPrivilege`         | `rep:privilegeManagent` at 'null' path |
 
-#### User Management
+##### User Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -176,13 +159,13 @@ NOTE: since Oak 1.0 read/write access to version storage is defined by accessibi
 | `Authorizable.setProperty` (with relPath     | `rep:addProperties` and/or `rep:alterProperties`, `jcr:addChildNodes` |
 | `Authorizable.removeProperty`                | `rep:removeProperties`         |
 
-#### LifeCycle Management
+##### LifeCycle Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
 | `Node.followLifecycleTransition`             | `jcr:lifecycleManagement`      |
 
-#### Retention Management
+##### Retention Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -193,7 +176,56 @@ NOTE: since Oak 1.0 read/write access to version storage is defined by accessibi
 | `RetentionManager.setRetentionPolicy`        | `jcr:retentionManagement`      |
 | `RetentionManager.removeRetentionPolicy`     | `jcr:retentionManagement`      |
 
-#### Namespace Management
+#### Workspace Operations
+
+##### Move, Copy and Import
+
+| API Call                                     | Privilege(s)                   |
+|----------------------------------------------|--------------------------------|
+| `Workspace.move`                             | `jcr:removeChildNodes` (source parent) and `jcr:addChildNodes` (target parent) |
+| `Workspace.copy`                             | same privileges as if items would be created using regular API calls |
+| `Workspace.importXml`                        | same privileges as if items would be created using regular API calls |
+
+##### Version Management
+
+| API Call                                     | Privilege(s)                   |
+|----------------------------------------------|--------------------------------|
+| `VersionManager.isCheckedOut`                | `rep:readNodes` on versionable node and `rep:readProperties` on its property `jcr:isCheckedOut` |
+| `VersionManager.getVersionHistory`           | `rep:readNodes` on versionable node and `rep:readProperties` on its property `jcr:versionHistory` |
+| `VersionManager.getBaseVersion`              | `rep:readNodes` on versionable node and `rep:readProperties` on its property `jcr:baseVersion` |
+| `VersionManager.checkin`                     | `jcr:versionManagement` on versionable node |
+| `VersionManager.checkout`                    | `jcr:versionManagement` on versionable node |
+| `VersionManager.checkpoint`                  | `jcr:versionManagement` on versionable node |
+| `VersionManager.restore`                     | _TODO_                         |
+| `VersionManager.restoreByLabel`              | _TODO_                         |
+| `VersionManager.merge`                       | _TODO_                         |
+| `VersionManager.cancelMerge`                 | _TODO_                         |
+| `VersionManager.doneMerge`                   | _TODO_                         |
+| `VersionManager.createConfiguration`         | _TODO_                         |
+| `VersionManager.setActivity`                 | _TODO_                         |
+| `VersionManager.createActivity`              | _TODO_                         |
+| `VersionManager.removeActivity`              | _TODO_                         |
+| `VersionHistory.*` (read)                    | `rep:readNodes` on versionable node |
+| `VersionHistory.removeVersion`               | `jcr:versionManagement` on versionable node |
+| `Version.*` (read)                           | `rep:readNodes` on versionable node |
+
+NOTE: since Oak 1.0 read/write access to version storage is defined by accessibility of the versionable node and _not_ to the version store items.
+
+##### Lock Management
+
+| API Call                                     | Privilege(s)                   |
+|----------------------------------------------|--------------------------------|
+| `LockManager.getLock` = `Node.getLock`       | `jcr:read`                     |
+| `LockManager.isLocked` = `Node.isLocked`     | `jcr:read`                     |
+| `LockManager.holdsLock` = `Node.holdsLock`   | `jcr:read`                     |
+| `LockManager.lock` = `Node.lock`             | `jcr:lockManagement`           |
+| `LockManager.unlock` = `Node.unlock`         | `jcr:lockManagement`           |
+
+#### Repository Operations 
+
+Note: privileges for repository operations need to be granted|denied on the _null_ path.
+
+##### Namespace Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -204,7 +236,7 @@ NOTE: since Oak 1.0 read/write access to version storage is defined by accessibi
 | `NamespaceRegistry.registerNamespace`        | `jcr:namespaceManagement`      |
 | `NamespaceRegistry.unregisterNamespace`      | `jcr:namespaceManagement`      |
 
-#### NodeType Management
+##### NodeType Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -221,7 +253,7 @@ NOTE: since Oak 1.0 read/write access to version storage is defined by accessibi
 | `NodeTypeManager.unregisterNodeType`         | `jcr:nodeTypeDefinitionManagement` |
 | `NodeTypeManager.unregisterNodeTypes`        | `jcr:nodeTypeDefinitionManagement` |
 
-#### Privilege Management
+##### Privilege Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
@@ -229,7 +261,7 @@ NOTE: since Oak 1.0 read/write access to version storage is defined by accessibi
 | `PrivilegeManager.getPrivilege`              | `jcr:read`                     |
 | `PrivilegeManager.registerPrivilege`         | `rep:privilegeManagement`      |
 
-#### Workspace Management
+##### Workspace Management
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
