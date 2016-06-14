@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -405,8 +406,9 @@ public class FilterImpl implements Filter {
         buff.append(", path=").append(getPathPlan());
         if (!propertyRestrictions.isEmpty()) {
             buff.append(", property=[");
-            Iterator<Entry<String, Collection<PropertyRestriction>>> iterator = propertyRestrictions
-                    .asMap().entrySet().iterator();
+            Iterator<Entry<String, Collection<PropertyRestriction>>> iterator = 
+                    new TreeMap<String, Collection<PropertyRestriction>>(propertyRestrictions
+                    .asMap()).entrySet().iterator();
             while (iterator.hasNext()) {
                 Entry<String, Collection<PropertyRestriction>> p = iterator.next();
                 buff.append(p.getKey()).append("=").append(p.getValue());
