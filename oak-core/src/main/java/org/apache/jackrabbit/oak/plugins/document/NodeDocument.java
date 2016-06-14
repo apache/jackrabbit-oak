@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -39,6 +40,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -54,7 +56,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
 
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -65,6 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
 /**
@@ -759,18 +761,24 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
         // if we don't have clusterIds, we can use the local changes only
         boolean fullScan = true;
-        Iterable<Revision> changes;
-        if (clusterIds.isEmpty()) {
-            // baseRev is newer than all previous documents
-            changes = Iterables.mergeSorted(
-                    ImmutableList.of(
-                            getLocalRevisions().keySet(),
-                            getLocalCommitRoot().keySet()),
-                    getLocalRevisions().comparator());
-        } else {
+        Iterable<Revision> changes = Iterables.mergeSorted(
+                ImmutableList.of(
+                        getLocalRevisions().keySet(),
+                        getLocalCommitRoot().keySet()),
+                getLocalRevisions().comparator()
+        );
+        if (!clusterIds.isEmpty()) {
+            // there are some previous documents that potentially
+            // contain changes after 'lower' revision vector
             // include previous documents as well (only needed in rare cases)
             fullScan = false;
-            changes = getAllChanges();
+            changes = Iterables.mergeSorted(
+                    ImmutableList.of(
+                            changes,
+                            getChanges(REVISIONS, lower),
+                            getChanges(COMMIT_ROOT, lower)
+                    ), getLocalRevisions().comparator()
+            );
             if (LOG.isDebugEnabled()) {
                 LOG.debug("getNewestRevision() with changeRev {} on {}, " +
                                 "_revisions {}, _commitRoot {}",
@@ -1448,90 +1456,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @return revisions of all changes performed on this document.
      */
     Iterable<Revision> getAllChanges() {
-        final SortedSet<Revision> stack = Sets.newTreeSet(REVERSE);
-        // initialize with local revisions and commitRoot entries
-        stack.addAll(getLocalCommitRoot().keySet());
-        stack.addAll(getLocalRevisions().keySet());
-        if (getPreviousRanges().isEmpty()) {
-            return stack;
-        }
-        return new Iterable<Revision>() {
-            @Override
-            public Iterator<Revision> iterator() {
-                final Iterator<NodeDocument> previousDocs = getPreviousDocLeaves();
-                return new AbstractIterator<Revision>() {
-                    private NodeDocument nextDoc;
-                    private Revision nextRevision;
-                    @Override
-                    protected Revision computeNext() {
-                        if (stack.isEmpty()) {
-                            return endOfData();
-                        }
-                        Revision next = stack.first();
-                        stack.remove(next);
-                        fillStackIfNeeded();
-                        return next;
-                    }
-
-                    private void fillStackIfNeeded() {
-                        for (;;) {
-                            fetchNextDoc();
-
-                            // no more changes to compare with
-                            if (nextDoc == null) {
-                                return;
-                            }
-
-                            // check if current top revision is still newer than
-                            // most recent revision of next document
-                            if (!stack.isEmpty()) {
-                                Revision top = stack.first();
-                                if (top.compareRevisionTimeThenClusterId(nextRevision) > 0) {
-                                    return;
-                                }
-                            }
-
-                            // if we get here, we need to pull in changes
-                            // from nextDoc
-                            Iterables.addAll(stack, nextDoc.getAllChanges());
-                            nextDoc = null;
-                            nextRevision = null;
-                        }
-                    }
-
-                    /**
-                     * Fetch the next document if {@code nextDoc} is
-                     * {@code null} and there are more documents.
-                     */
-                    private void fetchNextDoc() {
-                        for (;;) {
-                            if (nextDoc != null) {
-                                break;
-                            }
-                            if (!previousDocs.hasNext()) {
-                                // no more previous docs
-                                break;
-                            }
-                            nextDoc = previousDocs.next();
-                            Iterator<Revision> changes = nextDoc.getAllChanges().iterator();
-                            if (changes.hasNext()) {
-                                nextRevision = changes.next();
-                                break;
-                            } else {
-                                // empty document, try next
-                                nextDoc = null;
-                            }
-                        }
-                    }
-                };
-            }
-        };
+        RevisionVector empty = new RevisionVector();
+        return Iterables.mergeSorted(ImmutableList.of(
+                getChanges(REVISIONS, empty),
+                getChanges(COMMIT_ROOT, empty)
+        ), StableRevisionComparator.REVERSE);
     }
 
     /**
      * Returns all changes for the given property back to {@code min} revision
      * (exclusive). The revisions include committed as well as uncommitted
-     * changes.
+     * changes. The returned revisions are sorted in reverse order (newest
+     * first).
      *
      * @param property the name of the property.
      * @param min the lower bound revision (exclusive).
@@ -1540,43 +1476,27 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     @Nonnull
     Iterable<Revision> getChanges(@Nonnull final String property,
                                   @Nonnull final RevisionVector min) {
-        return new Iterable<Revision>() {
+        Predicate<Revision> p = new Predicate<Revision>() {
             @Override
-            public Iterator<Revision> iterator() {
-                final Set<Revision> changes = getValueMap(property).keySet();
-                final Set<Integer> clusterIds = Sets.newHashSet();
-                for (Revision r : getLocalMap(property).keySet()) {
-                    clusterIds.add(r.getClusterId());
-                }
-                for (Range r : getPreviousRanges().values()) {
-                    if (min.isRevisionNewer(r.high)) {
-                        clusterIds.add(r.high.getClusterId());
-                    }
-                }
-                final Iterator<Revision> unfiltered = changes.iterator();
-                return new AbstractIterator<Revision>() {
-                    @Override
-                    protected Revision computeNext() {
-                        while (unfiltered.hasNext()) {
-                            Revision next = unfiltered.next();
-                            if (min.isRevisionNewer(next)) {
-                                return next;
-                            } else {
-                                // further revisions with this clusterId
-                                // are older than min revision
-                                clusterIds.remove(next.getClusterId());
-                                // no more revisions to check
-                                if (clusterIds.isEmpty()) {
-                                    return endOfData();
-                                }
-                            }
-                        }
-                        return endOfData();
-                    }
-                };
+            public boolean apply(Revision input) {
+                return min.isRevisionNewer(input);
             }
         };
-
+        List<Iterable<Revision>> changes = Lists.newArrayList();
+        changes.add(abortingIterable(getLocalMap(property).keySet(), p));
+        for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
+            if (min.isRevisionNewer(e.getKey())) {
+                final NodeDocument prev = getPreviousDoc(e.getKey(), e.getValue());
+                if (prev != null) {
+                    changes.add(abortingIterable(prev.getValueMap(property).keySet(), p));
+                }
+            }
+        }
+        if (changes.size() == 1) {
+            return changes.get(0);
+        } else {
+            return Iterables.mergeSorted(changes, StableRevisionComparator.REVERSE);
+        }
     }
 
     /**

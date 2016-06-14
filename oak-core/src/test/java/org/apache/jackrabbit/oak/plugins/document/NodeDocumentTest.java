@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -552,7 +551,6 @@ public class NodeDocumentTest {
     }
 
     // OAK-4358
-    @Ignore
     @Test
     public void tooManyReadsOnGetNewestRevision() throws Exception {
         final Set<String> prevDocCalls = newHashSet();
