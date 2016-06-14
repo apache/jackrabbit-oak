@@ -28,7 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import com.google.common.collect.Iterables;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -109,6 +110,16 @@ public class JournalReaderTest {
             assertFalse(journal.hasNext());
         } finally {
             journalReader.close();
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testIterable() throws IOException {
+        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3")) {
+            assertTrue(Iterables.contains(journalReader, "one"));
+            assertTrue(Iterables.contains(journalReader, "two"));
+            assertTrue(Iterables.contains(journalReader, "three"));
         }
     }
 
