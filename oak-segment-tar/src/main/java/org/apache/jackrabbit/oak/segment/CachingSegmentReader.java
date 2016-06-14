@@ -30,9 +30,15 @@ import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 // FIXME OAK-4451: Implement a proper template cache
 // - move the template cache into this class, implement monitoring, management, logging, tests
+
+/**
+ * This {@code SegmentReader} implementation implements caching for
+ * strings and templates. It can also optionally rely on a {@link BlobStore} for resolving blobs.
+ */
 public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
 
@@ -53,6 +59,16 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     private final StringCache stringCache;
 
+    /**
+     * Create a new instance based on the supplied arguments.
+     * @param writer          A {@code Supplier} for a the {@code SegmentWriter} used by the segment
+     *                        builders returned from {@link NodeState#builder()} to write ahead changes.
+     *                        {@code writer.get()} must not return {@code null}.
+     * @param revisions       {@code Revisions} instance of the underlying {@link SegmentStore}.
+     * @param blobStore       {@code BlobStore} instance of the underlying {@link SegmentStore}, or
+     *                        {@code null} if none.
+     * @param stringCacheMB   the size of the string cache in MBs or {@code 0} for no cache.
+     */
     public CachingSegmentReader(
             @Nonnull Supplier<SegmentWriter> writer,
             @Nonnull Revisions revisions,
@@ -64,6 +80,9 @@ public class CachingSegmentReader implements SegmentReader {
         stringCache = new StringCache(getLong(STRING_CACHE_MB, stringCacheMB) * 1024 * 1024);
     }
 
+    /**
+     * Cached reading of a string.
+     */
     @Nonnull
     @Override
     public String readString(@Nonnull RecordId id) {
@@ -85,6 +104,9 @@ public class CachingSegmentReader implements SegmentReader {
         return new MapRecord(this, id);
     }
 
+    /**
+     * Cached reading of a template.
+     */
     @Nonnull
     @Override
     public Template readTemplate(@Nonnull RecordId id) {
