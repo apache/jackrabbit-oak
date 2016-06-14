@@ -26,21 +26,34 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.http.HttpStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
+/**
+ * Static factories for creating {@link SegmentNodeBuilder} instances
+ * pertaining to specific {@link SegmentStore} instances.
+ */
 public final class SegmentNodeStoreBuilders {
     private SegmentNodeStoreBuilders() {}
 
+    /**
+     * Create a {@code SegmentNodeStoreBuilder} based on a {@code FileStore}.
+     */
     @Nonnull
     public static SegmentNodeStoreBuilder builder(@Nonnull FileStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
                 store.getReader(), store.getWriter(), store.getBlobStore());
     }
 
+    /**
+     * Create a {@code SegmentNodeStoreBuilder} based on a {@code MemoryStore}.
+     */
     @Nonnull
     public static SegmentNodeStoreBuilder builder(@Nonnull MemoryStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
                 store.getReader(), store.getWriter(), store.getBlobStore());
     }
 
+    /**
+     * Create a {@code SegmentNodeStoreBuilder} based on a {@code HttpStore}.
+     */
     @Nonnull
     public static SegmentNodeStoreBuilder builder(@Nonnull HttpStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
