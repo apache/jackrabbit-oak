@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Builder for creating {@link FileStore} instances.
  */
-// FIXME OAK-4449: SegmentNodeStore and SegmentStore builders should log their parameters on build()
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
 
@@ -272,6 +271,7 @@ public class FileStoreBuilder {
     public FileStore build() throws IOException {
         directory.mkdir();
         revisions = new TarRevisions(false, directory);
+        LOG.info("Creating file store {}", this);
         return new FileStore(this, false).bind(revisions);
     }
 
@@ -296,6 +296,7 @@ public class FileStoreBuilder {
     public ReadOnlyStore buildReadOnly() throws IOException {
         checkState(directory.exists() && directory.isDirectory());
         revisions = new TarRevisions(true, directory);
+        LOG.info("Creating file store {}", this);
         return new ReadOnlyStore(this).bind(revisions);
     }
 
@@ -345,5 +346,17 @@ public class FileStoreBuilder {
     @Nonnull
     WriterCacheManager getCacheManager() {
         return cacheManager;
+    }
+
+    @Override
+    public String toString() {
+        return "FileStoreBuilder{" +
+                "directory=" + directory +
+                ", blobStore=" + blobStore +
+                ", maxFileSize=" + maxFileSize +
+                ", cacheSize=" + cacheSize +
+                ", memoryMapping=" + memoryMapping +
+                ", gcOptions=" + gcOptions +
+                '}';
     }
 }
