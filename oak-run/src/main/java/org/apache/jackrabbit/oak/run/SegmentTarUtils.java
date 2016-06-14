@@ -92,6 +92,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
+import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryElement;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -169,8 +170,9 @@ final class SegmentTarUtils {
     }
 
     static void history(File directory, File journal, String path, int depth) throws IOException {
-        Iterable<RevisionHistory.HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
-        for (RevisionHistory.HistoryElement historyElement : history) {
+        Iterator<HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
+        while (history.hasNext()) {
+            RevisionHistory.HistoryElement historyElement = history.next();
             System.out.println(historyElement.toString(depth));
         }
     }
@@ -211,7 +213,7 @@ final class SegmentTarUtils {
             File journal = new File(directory, "journal.log");
             JournalReader journalReader = new JournalReader(journal);
             try {
-                head = journalReader.iterator().next() + " root " + System.currentTimeMillis() + "\n";
+                head = journalReader.next() + " root " + System.currentTimeMillis() + "\n";
             } finally {
                 journalReader.close();
             }
@@ -275,7 +277,7 @@ final class SegmentTarUtils {
         try {
             journalReader = new JournalReader(journal);
             try {
-                revs = newArrayList(journalReader.iterator());
+                revs = newArrayList(journalReader);
             } finally {
                 journalReader.close();
             }

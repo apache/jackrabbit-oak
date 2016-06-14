@@ -87,7 +87,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
             journalReader = new JournalReader(journal);
 
             try {
-                revs = newArrayList(journalReader.iterator());
+                revs = newArrayList(journalReader);
             } finally {
                 journalReader.close();
             }

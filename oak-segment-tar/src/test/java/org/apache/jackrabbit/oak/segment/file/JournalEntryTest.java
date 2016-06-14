@@ -75,7 +75,7 @@ public class JournalEntryTest {
         assertTrue(entryTime >= startTime);
 
         JournalReader jr = new JournalReader(journal);
-        assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), jr.iterator().next());
+        assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), jr.next());
         jr.close();
     }
 
