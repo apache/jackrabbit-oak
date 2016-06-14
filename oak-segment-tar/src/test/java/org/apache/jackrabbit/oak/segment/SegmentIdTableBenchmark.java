@@ -63,7 +63,7 @@ public class SegmentIdTableBenchmark {
         final SegmentIdTable tbl = new SegmentIdTable();
         for (int i = 0; i < repeat; i++) {
             for (int j = 0; j < count; j++) {
-                tbl.getSegmentId(j, array[j], maker);
+                tbl.newSegmentId(j, array[j], maker);
             }
         }
         time = System.currentTimeMillis() - time;
