@@ -101,6 +101,10 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
         // optimizations of the type "lower(LOCALNAME(x)) = 'x'"
+        if (operator == Operator.NOT_EQUAL) {
+            // not supported
+            return;
+        }
         if (v == null) {
             return;
         }

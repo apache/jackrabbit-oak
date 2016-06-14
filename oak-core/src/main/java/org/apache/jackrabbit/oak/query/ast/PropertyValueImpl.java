@@ -144,6 +144,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     
     @Override
     public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        if (operator == Operator.NOT_EQUAL) {
+            // not supported
+            return;
+        }
         if (f.getSelector().equals(selector)) {
             String pn = normalizePropertyName(propertyName);
             String restrictionName = QueryConstants.FUNCTION_RESTRICTION_PREFIX +
