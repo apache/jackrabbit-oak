@@ -82,14 +82,14 @@ public class FilterTest {
         sql2 = "select [jcr:path] from [nt:base] where length([test]) <= 10";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
                 "where length([test]) <= 10, " + 
-                "path=*, property=[test=[is not null], " + 
-                "function*length*@test=[..10]]])", createFilterSQL(sql2).toString());
+                "path=*, property=[function*length*@test=[..10]], " + 
+                "test=[is not null]])", createFilterSQL(sql2).toString());
         
         sql2 = "select [jcr:path] from [nt:base] where length([test]) > 2";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
                 "where length([test]) > 2, " + 
-                "path=*, property=[test=[is not null], " + 
-                "function*length*@test=[(2..]])", createFilterSQL(sql2).toString());
+                "path=*, property=[function*length*@test=[(2..], " + 
+                "test=[is not null]])", createFilterSQL(sql2).toString());
         
 
     }
