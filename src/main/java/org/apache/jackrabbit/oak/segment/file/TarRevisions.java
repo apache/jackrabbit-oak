@@ -30,7 +30,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -153,9 +152,8 @@ public class TarRevisions implements Revisions, Closeable {
         if (head.get() == null) {
             RecordId persistedId = null;
             try (JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME))) {
-                Iterator<String> entries = journalReader.iterator();
-                while (persistedId == null && entries.hasNext()) {
-                    String entry = entries.next();
+                while (persistedId == null && journalReader.hasNext()) {
+                    String entry = journalReader.next();
                     try {
                         RecordId id = RecordId.fromString(store, entry);
                         if (store.containsSegment(id.getSegmentId())) {

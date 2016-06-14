@@ -26,10 +26,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
-import com.google.common.collect.Iterables;
-import org.junit.Ignore;
+import com.google.common.collect.Iterators;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -41,85 +39,65 @@ public class JournalReaderTest {
 
     @Test
     public void testEmpty() throws IOException {
-        JournalReader journalReader = createJournalReader("");
-        try {
-            assertFalse(journalReader.iterator().hasNext());
-        } finally {
-            journalReader.close();
+        try (JournalReader journalReader = createJournalReader("")) {
+            assertFalse(journalReader.hasNext());
         }
     }
 
     @Test
     public void testSingleton() throws IOException {
-        JournalReader journalReader = createJournalReader("one 1");
-        try {
-            Iterator<String> journal = journalReader.iterator();
-            assertTrue(journal.hasNext());
-            assertEquals("one", journal.next());
-            assertFalse(journal.hasNext());
-        } finally {
-            journalReader.close();
+        try (JournalReader journalReader = createJournalReader("one 1")) {
+            assertTrue(journalReader.hasNext());
+            assertEquals("one", journalReader.next());
+            assertFalse(journalReader.hasNext());
         }
     }
 
     @Test
     public void testMultiple() throws IOException {
-        JournalReader journalReader = createJournalReader("one 1\ntwo 2\nthree 3 456");
-        try {
-            Iterator<String> journal = journalReader.iterator();
-            assertTrue(journal.hasNext());
-            assertEquals("three", journal.next());
-            assertTrue(journal.hasNext());
-            assertEquals("two", journal.next());
-            assertTrue(journal.hasNext());
-            assertEquals("one", journal.next());
-            assertFalse(journal.hasNext());
-        } finally {
-            journalReader.close();
+        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\nthree 3 456")) {
+            assertTrue(journalReader.hasNext());
+            assertEquals("three", journalReader.next());
+            assertTrue(journalReader.hasNext());
+            assertEquals("two", journalReader.next());
+            assertTrue(journalReader.hasNext());
+            assertEquals("one", journalReader.next());
+            assertFalse(journalReader.hasNext());
         }
     }
 
     @Test
     public void testSpaces() throws IOException {
-        JournalReader journalReader = createJournalReader("\n \n  \n   ");
-        try {
-            Iterator<String> journal = journalReader.iterator();
-            assertTrue(journal.hasNext());
-            assertEquals("", journal.next());
-            assertTrue(journal.hasNext());
-            assertEquals("", journal.next());
-            assertTrue(journal.hasNext());
-            assertEquals("", journal.next());
-            assertFalse(journal.hasNext());
-        } finally {
-            journalReader.close();
+        try (JournalReader journalReader = createJournalReader("\n \n  \n   ")) {
+            assertTrue(journalReader.hasNext());
+            assertEquals("", journalReader.next());
+            assertTrue(journalReader.hasNext());
+            assertEquals("", journalReader.next());
+            assertTrue(journalReader.hasNext());
+            assertEquals("", journalReader.next());
+            assertFalse(journalReader.hasNext());
         }
     }
 
     @Test
     public void testIgnoreInvalid() throws IOException {
-        JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3");
-        try {
-            Iterator<String> journal = journalReader.iterator();
-            assertTrue(journal.hasNext());
-            assertEquals("three", journal.next());
-            assertTrue(journal.hasNext());
-            assertEquals("two", journal.next());
-            assertTrue(journal.hasNext());
-            assertEquals("one", journal.next());
-            assertFalse(journal.hasNext());
-        } finally {
-            journalReader.close();
+        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3")) {
+            assertTrue(journalReader.hasNext());
+            assertEquals("three", journalReader.next());
+            assertTrue(journalReader.hasNext());
+            assertEquals("two", journalReader.next());
+            assertTrue(journalReader.hasNext());
+            assertEquals("one", journalReader.next());
+            assertFalse(journalReader.hasNext());
         }
     }
 
-    @Ignore
     @Test
     public void testIterable() throws IOException {
         try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3")) {
-            assertTrue(Iterables.contains(journalReader, "one"));
-            assertTrue(Iterables.contains(journalReader, "two"));
-            assertTrue(Iterables.contains(journalReader, "three"));
+            assertTrue(Iterators.contains(journalReader, "three"));
+            assertTrue(Iterators.contains(journalReader, "two"));
+            assertTrue(Iterators.contains(journalReader, "one"));
         }
     }
 
