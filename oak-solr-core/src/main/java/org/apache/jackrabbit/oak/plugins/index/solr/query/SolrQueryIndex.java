@@ -539,6 +539,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 || QueryImpl.OAK_SCORE_EXPLANATION.equals(property.propertyName) // score explain is not handled at the property level
                 || QueryImpl.REP_FACET.equals(property.propertyName) // rep:facet is not handled at the property level
                 || QueryConstants.RESTRICTION_LOCAL_NAME.equals(property.propertyName)
+                || property.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX)
                 || configuration.getIgnoredProperties().contains(property.propertyName));
     }
 

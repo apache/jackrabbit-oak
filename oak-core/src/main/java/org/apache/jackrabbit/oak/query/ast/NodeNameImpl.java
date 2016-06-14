@@ -104,6 +104,10 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+        if (operator == Operator.NOT_EQUAL) {
+            // not supported
+            return;
+        }
         if (v == null) {
             return;
         }
