@@ -73,6 +73,7 @@ import org.slf4j.LoggerFactory;
 public class SegmentNodeStore implements NodeStore, Observable {
 
     public static class SegmentNodeStoreBuilder {
+        private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeStoreBuilder.class);
 
         @Nonnull
         private final Revisions revisions;
@@ -103,7 +104,20 @@ public class SegmentNodeStore implements NodeStore, Observable {
         public SegmentNodeStore build() {
             checkState(!isCreated);
             isCreated = true;
+            LOG.info("Creating segment node store {}", this);
             return new SegmentNodeStore(this);
+        }
+
+        @Nonnull
+        private static String getString(@CheckForNull BlobStore blobStore) {
+            return "blobStore=" + (blobStore == null ? "inline" : blobStore);
+        }
+
+        @Override
+        public String toString() {
+            return "SegmentNodeStoreBuilder{" +
+                    getString(blobStore) +
+                    '}';
         }
     }
 
