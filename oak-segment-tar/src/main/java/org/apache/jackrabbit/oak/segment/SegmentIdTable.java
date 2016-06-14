@@ -88,7 +88,7 @@ public class SegmentIdTable {
      * @return the segment id
      */
     @Nonnull
-    synchronized SegmentId getSegmentId(long msb, long lsb, SegmentIdFactory maker) {
+    synchronized SegmentId newSegmentId(long msb, long lsb, SegmentIdFactory maker) {
         int index = getIndex(lsb);
         boolean shouldRefresh = false;
 
