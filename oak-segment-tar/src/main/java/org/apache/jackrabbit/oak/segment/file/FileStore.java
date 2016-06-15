@@ -718,7 +718,6 @@ public class FileStore implements SegmentStore, Closeable {
         Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
             reader.mark(bulkRefs, reclaim, reclaimGeneration);
-            // FIXME OAK-4165: Too verbose logging during revision gc
             log.info("{}: size of bulk references/reclaim set {}/{}",
                     reader, bulkRefs.size(), reclaim.size());
             if (shutdown) {
