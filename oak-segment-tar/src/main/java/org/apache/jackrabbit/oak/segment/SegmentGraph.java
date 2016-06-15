@@ -160,7 +160,7 @@ public final class SegmentGraph {
         checkNotNull(epoch);
         PrintWriter writer = new PrintWriter(checkNotNull(out));
         try {
-            SegmentNodeState root = checkNotNull(fileStore).getReader().readHeadState();
+            SegmentNodeState root = checkNotNull(fileStore).getHead();
             Predicate<UUID> filter = pattern == null
                 ? Predicates.<UUID>alwaysTrue()
                 : createRegExpFilter(pattern, fileStore);
@@ -232,7 +232,7 @@ public final class SegmentGraph {
     public static Graph<UUID> parseSegmentGraph(
             @Nonnull ReadOnlyStore fileStore,
             @Nonnull Predicate<UUID> filter) throws IOException {
-        SegmentNodeState root = checkNotNull(fileStore).getReader().readHeadState();
+        SegmentNodeState root = checkNotNull(fileStore).getHead();
         HashSet<UUID> roots = newHashSet(root.getRecordId().asUUID());
         return parseSegmentGraph(fileStore, roots, filter, Functions.<UUID>identity());
     }
@@ -285,7 +285,7 @@ public final class SegmentGraph {
     @Nonnull
     public static Graph<String> parseGCGraph(@Nonnull final ReadOnlyStore fileStore)
             throws IOException {
-        SegmentNodeState root = checkNotNull(fileStore).getReader().readHeadState();
+        SegmentNodeState root = checkNotNull(fileStore).getHead();
         HashSet<UUID> roots = newHashSet(root.getRecordId().asUUID());
         return parseSegmentGraph(fileStore, roots, Predicates.<UUID>alwaysTrue(), new Function<UUID, String>() {
             @Override @Nullable

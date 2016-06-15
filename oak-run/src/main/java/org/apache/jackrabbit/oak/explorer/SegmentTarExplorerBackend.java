@@ -170,7 +170,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public NodeState getHead() {
-        return store.getReader().readHeadState();
+        return store.getHead();
     }
 
     @Override

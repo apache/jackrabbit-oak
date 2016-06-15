@@ -83,7 +83,7 @@ public class RevisionHistory {
                 @Nullable @Override
                 public HistoryElement apply(String revision) {
                     store.setRevision(revision);
-                    NodeState node = getNode(store.getReader().readHeadState(), path);
+                    NodeState node = getNode(store.getHead(), path);
                     return new HistoryElement(revision, node);
                 }
         });

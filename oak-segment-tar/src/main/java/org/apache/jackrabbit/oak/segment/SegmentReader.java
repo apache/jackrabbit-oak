@@ -63,11 +63,12 @@ public interface SegmentReader {
     SegmentNodeState readNode(@Nonnull RecordId id);
 
     /**
-     * Read the current head state
+     * Read the current head state based on the head of {@code revisions}
+     * @param revisions
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
     @Nonnull
-    SegmentNodeState readHeadState();
+    SegmentNodeState readHeadState(@Nonnull Revisions revisions);
 
     /**
      * Read the property identified by {@code id} and {@code template}

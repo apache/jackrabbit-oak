@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
@@ -50,6 +51,7 @@ public class FileStoreBackup {
             .getBoolean("oak.backup.UseFakeBlobStore");
 
     public static void backup(@Nonnull SegmentReader reader,
+                              @Nonnull Revisions revisions,
                               @Nonnull File destination)
             throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
@@ -63,7 +65,7 @@ public class FileStoreBackup {
         }
         builder.withGCOptions(gcOptions);
         FileStore backup = builder.build();
-        SegmentNodeState current = reader.readHeadState();
+        SegmentNodeState current = reader.readHeadState(revisions);
         try {
             int gen = 0;
             gen = current.getRecordId().getSegment().getGcGeneration();
@@ -76,7 +78,7 @@ public class FileStoreBackup {
                     backup.getBlobStore(), Suppliers.ofInstance(false),
                     gcOptions);
             compactor.setContentEqualityCheck(true);
-            SegmentNodeState head = backup.getReader().readHeadState();
+            SegmentNodeState head = backup.getHead();
             SegmentNodeState after = compactor.compact(head, current, head);
             if (after != null) {
                 backup.getRevisions().setHead(head.getRecordId(),

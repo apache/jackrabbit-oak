@@ -128,7 +128,7 @@ final class SegmentTarUtils {
                 fs = openReadOnlyFileStore(source);
             }
             closer.register(fs);
-            FileStoreBackup.backup(fs.getReader(), target);
+            FileStoreBackup.backup(fs.getReader(), fs.getRevisions(), target);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
@@ -485,7 +485,7 @@ final class SegmentTarUtils {
             if (hasrefs) {
                 System.out.println("SegmentNodeState references to " + f);
                 List<String> paths = new ArrayList<String>();
-                filterNodeStates(uuids, paths, store.getReader().readHeadState(), "/");
+                filterNodeStates(uuids, paths, store.getHead(), "/");
                 for (String p : paths) {
                     System.out.println("  " + p);
                 }
