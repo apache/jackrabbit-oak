@@ -33,7 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * FIXME OAK-4373 document, add monitoring, management, tests, logging
+ * FIXME OAK-4474: Finalise SegmentCache: document, add monitoring, management, tests, logging
+ * FIXME OAK-3309: SegmentMK segment cache loader stats
  */
 public class SegmentCache {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCache.class);
