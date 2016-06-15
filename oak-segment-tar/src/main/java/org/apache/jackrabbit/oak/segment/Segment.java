@@ -152,7 +152,7 @@ public class Segment {
     /**
      * Template records read from segment. Used to avoid duplicate
      * copies and repeated parsing of the same templates.
-     * FIXME OAK-4373 move the template cache to the segment reader along side with the string cache
+     * FIXME OAK-4451 move the template cache to the segment reader along side with the string cache
      */
     @CheckForNull
     final ConcurrentMap<Integer, Template> templates;
