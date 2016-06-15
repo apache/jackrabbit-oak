@@ -80,7 +80,7 @@ public class FileStoreIT {
         store.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
-        SegmentNodeState base = store.getReader().readHeadState();
+        SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
         byte[] data = new byte[10 * 1024 * 1024];
         new Random().nextBytes(data);
@@ -108,7 +108,7 @@ public class FileStoreIT {
         RandomAccessFile data0 = new RandomAccessFile(new File(getFileStoreFolder(), "data00000a.tar"), "r");
         long pos0 = data0.length();
 
-        SegmentNodeState base = store.getReader().readHeadState();
+        SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
         builder.setProperty("step", "a");
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
@@ -116,14 +116,14 @@ public class FileStoreIT {
         long pos1 = data0.length();
         data0.close();
 
-        base = store.getReader().readHeadState();
+        base = store.getHead();
         builder = base.builder();
         builder.setProperty("step", "b");
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
         store.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
-        assertEquals("b", store.getReader().readHeadState().getString("step"));
+        assertEquals("b", store.getHead().getString("step"));
         store.close();
 
         RandomAccessFile file = new RandomAccessFile(
@@ -132,7 +132,7 @@ public class FileStoreIT {
         file.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
-        assertEquals("a", store.getReader().readHeadState().getString("step"));
+        assertEquals("a", store.getHead().getString("step"));
         store.close();
 
         file = new RandomAccessFile(
@@ -141,7 +141,7 @@ public class FileStoreIT {
         file.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
-        assertFalse(store.getReader().readHeadState().hasProperty("step"));
+        assertFalse(store.getHead().hasProperty("step"));
         store.close();
     }
 
@@ -207,7 +207,7 @@ public class FileStoreIT {
     public void nonBlockingROStore() throws IOException {
         FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         store.flush(); // first 1kB
-        SegmentNodeState base = store.getReader().readHeadState();
+        SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
         builder.setProperty("step", "a");
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
@@ -229,7 +229,7 @@ public class FileStoreIT {
     public void setRevisionTest() throws IOException {
         try (FileStore store = fileStoreBuilder(getFileStoreFolder()).build()) {
             RecordId id1 = store.getRevisions().getHead();
-            SegmentNodeState base = store.getReader().readHeadState();
+            SegmentNodeState base = store.getHead();
             SegmentNodeBuilder builder = base.builder();
             builder.setProperty("step", "a");
             store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());

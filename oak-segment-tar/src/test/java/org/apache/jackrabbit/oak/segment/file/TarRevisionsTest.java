@@ -144,7 +144,7 @@ public class TarRevisionsTest {
         SegmentNodeState rootB = addChild(reader.readNode(headId), "a");
         assertTrue(revisions.setHead(headId, rootA.getRecordId()));
         assertFalse(revisions.setHead(headId, rootB.getRecordId()));
-        assertEquals(rootA, reader.readHeadState());
+        assertEquals(rootA, reader.readHeadState(revisions));
     }
 
     @Test

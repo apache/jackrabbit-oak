@@ -67,17 +67,17 @@ public class FileStoreBackupTest {
         try {
             init(store);
             source.flush();
-            FileStoreBackup.backup(source.getReader(), destination);
+            FileStoreBackup.backup(source.getReader(), source.getRevisions(), destination);
             compare(source, destination);
 
             addTestContent(store);
             source.flush();
-            FileStoreBackup.backup(source.getReader(), destination);
+            FileStoreBackup.backup(source.getReader(), source.getRevisions(), destination);
             compare(source, destination);
 
             source.compact();
             FileStoreBackup.cleanup(source);
-            FileStoreBackup.backup(source.getReader(), destination);
+            FileStoreBackup.backup(source.getReader(), source.getRevisions(), destination);
             compare(source, destination);
         } finally {
             source.close();
@@ -91,7 +91,7 @@ public class FileStoreBackupTest {
                 .build();
         init(store);
         source.flush();
-        FileStoreBackup.backup(source.getReader(), destination);
+        FileStoreBackup.backup(source.getReader(), source.getRevisions(), destination);
         source.close();
 
         FileStoreRestore.restore(destination, src);
@@ -132,8 +132,7 @@ public class FileStoreBackupTest {
     private static void compare(FileStore store, File destination)
             throws IOException {
         FileStore backup = fileStoreBuilder(destination).build();
-        assertEquals(store.getReader().readHeadState(), backup.getReader()
-                .readHeadState());
+        assertEquals(store.getHead(), backup.getHead());
         backup.close();
     }
 

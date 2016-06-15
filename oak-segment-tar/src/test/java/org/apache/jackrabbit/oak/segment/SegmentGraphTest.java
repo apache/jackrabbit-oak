@@ -68,7 +68,7 @@ public class SegmentGraphTest {
     public void setup() throws IOException {
         FileStore store = fileStoreBuilder(getStoreFolder()).build();
         try {
-            SegmentNodeState root = store.getReader().readHeadState();
+            SegmentNodeState root = store.getHead();
             segments.add(getSegmentId(root));
 
             SegmentWriter w1 = segmentWriterBuilder("writer1").build(store);

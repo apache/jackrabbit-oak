@@ -611,7 +611,7 @@ public class CompactionAndCleanupIT {
     public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         final SegmentWriter writer = fileStore.getWriter();
-        final SegmentNodeState oldHead = fileStore.getReader().readHeadState();
+        final SegmentNodeState oldHead = fileStore.getHead();
 
         final SegmentNodeState child = run(new Callable<SegmentNodeState>() {
             @Override
@@ -635,11 +635,11 @@ public class CompactionAndCleanupIT {
 
         fileStore = fileStoreBuilder(getFileStoreFolder()).build();
 
-        traverse(fileStore.getReader().readHeadState());
+        traverse(fileStore.getHead());
         fileStore.cleanup();
 
         // Traversal after cleanup might result in an SNFE
-        traverse(fileStore.getReader().readHeadState());
+        traverse(fileStore.getHead());
 
         fileStore.close();
     }

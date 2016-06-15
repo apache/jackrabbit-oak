@@ -57,9 +57,9 @@ public class FileStoreRestore {
         Stopwatch watch = Stopwatch.createStarted();
 
         FileStore store = fileStoreBuilder(destination).build();
-        SegmentNodeState current = store.getReader().readHeadState();
+        SegmentNodeState current = store.getHead();
         try {
-            SegmentNodeState head = restore.getReader().readHeadState();
+            SegmentNodeState head = restore.getHead();
             int gen = head.getRecordId().getSegment().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store,
                     store.getTracker(), store.getReader(), "r", gen);

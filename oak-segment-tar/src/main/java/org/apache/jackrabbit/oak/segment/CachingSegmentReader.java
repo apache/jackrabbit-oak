@@ -47,9 +47,6 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     private final Supplier<SegmentWriter> writer;
 
-    @Nonnull
-    private final Revisions revisions;
-
     @CheckForNull
     private final BlobStore blobStore;
 
@@ -64,18 +61,15 @@ public class CachingSegmentReader implements SegmentReader {
      * @param writer          A {@code Supplier} for a the {@code SegmentWriter} used by the segment
      *                        builders returned from {@link NodeState#builder()} to write ahead changes.
      *                        {@code writer.get()} must not return {@code null}.
-     * @param revisions       {@code Revisions} instance of the underlying {@link SegmentStore}.
      * @param blobStore       {@code BlobStore} instance of the underlying {@link SegmentStore}, or
      *                        {@code null} if none.
      * @param stringCacheMB   the size of the string cache in MBs or {@code 0} for no cache.
      */
     public CachingSegmentReader(
             @Nonnull Supplier<SegmentWriter> writer,
-            @Nonnull Revisions revisions,
             @Nullable BlobStore blobStore,
             long stringCacheMB) {
         this.writer = checkNotNull(writer);
-        this.revisions = checkNotNull(revisions);
         this.blobStore = blobStore;
         stringCache = new StringCache(getLong(STRING_CACHE_MB, stringCacheMB) * 1024 * 1024);
     }
@@ -130,7 +124,7 @@ public class CachingSegmentReader implements SegmentReader {
 
     @Nonnull
     @Override
-    public SegmentNodeState readHeadState() {
+    public SegmentNodeState readHeadState(@Nonnull Revisions revisions) {
         return readNode(revisions.getHead());
     }
 

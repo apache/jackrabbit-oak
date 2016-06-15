@@ -254,11 +254,11 @@ public class FileStore implements SegmentStore, Closeable {
         // FIXME OAK-4451: Implement a proper template cache: inject caches
         // from the outside so we can get rid of the cache stat accessors
         if (builder.getCacheSize() < 0) {
-            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, 0);
+            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, 0);
         } else if (builder.getCacheSize() > 0) {
-            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) builder.getCacheSize());
+            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, (long) builder.getCacheSize());
         } else {
-            this.segmentReader = new CachingSegmentReader(getWriter, revisions, blobStore, (long) DEFAULT_STRING_CACHE_MB);
+            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, (long) DEFAULT_STRING_CACHE_MB);
         }
 
         Supplier<Integer> getGeneration = new Supplier<Integer>() {
@@ -608,7 +608,7 @@ public class FileStore implements SegmentStore, Closeable {
      * @return compaction gain estimate
      */
     CompactionGainEstimate estimateCompactionGain(Supplier<Boolean> stop) {
-        CompactionGainEstimate estimate = new CompactionGainEstimate(segmentReader.readHeadState(), count(), stop);
+        CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(), count(), stop);
         fileStoreLock.readLock().lock();
         try {
             for (TarReader reader : readers) {
@@ -878,7 +878,7 @@ public class FileStore implements SegmentStore, Closeable {
         gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
         Stopwatch watch = Stopwatch.createStarted();
 
-        SegmentNodeState before = segmentReader.readHeadState();
+        SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
         if (existing > 1) {
@@ -914,7 +914,7 @@ public class FileStore implements SegmentStore, Closeable {
                 gcListener.info("TarMK GC #{}: compaction detected concurrent commits while compacting. " +
                     "Compacting these commits. Cycle {} of {}",
                     GC_COUNT, cycles, gcOptions.getRetryCount());
-                SegmentNodeState head = segmentReader.readHeadState();
+                SegmentNodeState head = getHead();
                 after = compact(bufferWriter, head, cancel);
                 if (after == null) {
                     gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
@@ -1056,6 +1056,19 @@ public class FileStore implements SegmentStore, Closeable {
     @Nonnull
     public TarRevisions getRevisions() {
         return revisions;
+    }
+
+    /**
+     * Convenience method for accessing the root node for the current head.
+     * This is equivalent to
+     * <pre>
+     * fileStore.getReader().readHeadState(fileStore.getRevisions())
+     * </pre>
+     * @return the current head node state
+     */
+    @Nonnull
+    public SegmentNodeState getHead() {
+        return segmentReader.readHeadState(revisions);
     }
 
     @Override

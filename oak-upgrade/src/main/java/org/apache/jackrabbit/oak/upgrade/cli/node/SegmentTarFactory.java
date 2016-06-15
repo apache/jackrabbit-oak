@@ -74,7 +74,7 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
             @Override
             public NodeState getSuperRoot() {
-                return fs.getReader().readHeadState();
+                return fs.getHead();
             }
         });
     }
