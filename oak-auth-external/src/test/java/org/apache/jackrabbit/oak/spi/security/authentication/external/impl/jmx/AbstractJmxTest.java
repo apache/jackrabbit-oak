@@ -16,27 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -44,88 +32,22 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public abstract class AbstractJmxTest {
+public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
 
-    static Repository REPOSITORY;
-
-    Session session;
-    UserManager userManager;
-
-    DefaultSyncConfig syncConfig;
-
-    ExternalIdentityProvider idp;
     ExternalIdentityProvider foreignIDP;
-
-    private Set<String> ids;
-
-    @BeforeClass
-    public static void beforeClass() {
-        REPOSITORY = new Jcr().createRepository();
-    }
 
     @Before
     public void before() throws Exception {
-        session = REPOSITORY.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        if (!(session instanceof JackrabbitSession)) {
-            throw new IllegalStateException();
-        } else {
-            userManager = ((JackrabbitSession) session).getUserManager();
-        }
-        ids = Sets.newHashSet(getAllAuthorizableIds(userManager));
+        super.before();
 
-        syncConfig = new DefaultSyncConfig();
-        syncConfig.user().setMembershipNestingDepth(1);
-
-        idp = new TestIdentityProvider();
         foreignIDP = new TestIdentityProvider("anotherIDP");
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            session.refresh(false);
-            Iterator<String> iter = getAllAuthorizableIds(userManager);
-            while (iter.hasNext()) {
-                String id = iter.next();
-                if (!ids.remove(id)) {
-                    Authorizable a = userManager.getAuthorizable(id);
-                    if (a != null) {
-                        a.remove();
-                    }
-                }
-            }
-            session.save();
-        } finally {
-            session.logout();
-        }
-    }
-
-    private static Iterator<String> getAllAuthorizableIds(@Nonnull UserManager userManager) throws Exception {
-        Iterator<Authorizable> it = userManager.findAuthorizables("jcr:primaryType", null);
-        return Iterators.filter(Iterators.transform(it, new Function<Authorizable, String>() {
-            @Nullable
-            @Override
-            public String apply(Authorizable input) {
-                try {
-                    if (input != null) {
-                        return input.getID();
-                    }
-                } catch (RepositoryException e) {
-                    // failed to retrieve ID
-                }
-                return null;
-            }
-        }), Predicates.notNull());
     }
 
     static void assertResultMessages(@Nonnull String[] resultMessages, String uid, @Nonnull String expectedOperation) {
@@ -163,9 +85,14 @@ public abstract class AbstractJmxTest {
     }
 
     SyncResult sync(@Nonnull ExternalIdentity externalIdentity, @Nonnull ExternalIdentityProvider idp) throws Exception {
-        SyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, session.getValueFactory());
+        SyncContext ctx = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory(root));
         SyncResult res = ctx.sync(externalIdentity);
-        session.save();
+        root.commit();
         return res;
+    }
+
+    UserManager getUserManager() {
+        root.refresh();
+        return getUserManager(root);
     }
 }

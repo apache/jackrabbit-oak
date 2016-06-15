@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Hashtable;
-import javax.jcr.Repository;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.security.auth.spi.LoginModule;
@@ -30,15 +29,20 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,19 +103,24 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     )
     public static final String PARAM_SYNC_HANDLER_NAME = SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
 
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC)
+    private SecurityProvider securityProvider;
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC)
+    private ContentRepository contentRepository;
+
     @Reference
     private SyncManager syncManager;
 
     @Reference
     private ExternalIdentityProviderManager idpManager;
 
-    @Reference
-    private Repository repository;
-
     /**
      * default configuration for the login modules
      */
-    private ConfigurationParameters osgiConfig;
+    private ConfigurationParameters osgiConfig = ConfigurationParameters.EMPTY;
+
+    private BundleContext bundleContext;
 
     /**
      * whiteboard registration handle of the manager mbean
@@ -128,32 +137,89 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     private void activate(ComponentContext context) {
         //noinspection unchecked
         osgiConfig = ConfigurationParameters.of(context.getProperties());
-        String idpName = osgiConfig.getConfigValue(PARAM_IDP_NAME, "");
-        String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
+        bundleContext = context.getBundleContext();
 
-        Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        try {
-            SyncMBeanImpl bean = new SyncMBeanImpl(repository, syncManager, sncName, idpManager, idpName);
-            Hashtable<String, String> table = new Hashtable<String, String>();
-            table.put("type", "UserManagement");
-            table.put("name", "External Identity Synchronization Management");
-            table.put("handler", ObjectName.quote(sncName));
-            table.put("idp", ObjectName.quote(idpName));
-            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, ImmutableMap.of(
-                    "jmx.objectname",
-                    new ObjectName("org.apache.jackrabbit.oak", table))
-            );
-        } catch (MalformedObjectNameException e) {
-            log.error("Unable to register SynchronizationMBean.", e);
-        }
+        mayRegisterSyncMBean();
     }
 
     @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate() {
+        unregisterSyncMBean();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void bindContentRepository(ContentRepository contentRepository) {
+        this.contentRepository = contentRepository;
+        mayRegisterSyncMBean();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void unbindContentRepository(ContentRepository contentRepository) {
+        this.contentRepository = null;
+        unregisterSyncMBean();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void bindSecurityProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+        mayRegisterSyncMBean();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void unbindSecurityProvider(SecurityProvider securityProvider)  {
+        this.securityProvider = null;
+        unregisterSyncMBean();
+    }
+
+    private void mayRegisterSyncMBean() {
+        log.debug("Trying to register SynchronizationMBean");
+
         if (mbeanRegistration != null) {
+            log.debug("SynchronizationMBean already registered");
+            return;
+        }
+        if (bundleContext == null) {
+            log.debug("Cannot register SynchronizationMBean; not yet activated.");
+            return;
+        }
+        if (contentRepository == null || securityProvider == null) {
+            log.debug("Cannot register SynchronizationMBean; waiting for references to ContentRepository|SecurityProvider.");
+            return;
+        }
+
+        Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
+        try {
+            log.debug("Registering SynchronizationMBean");
+
+            String idpName = osgiConfig.getConfigValue(PARAM_IDP_NAME, "");
+            String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
+
+            SyncMBeanImpl bean = new SyncMBeanImpl(contentRepository, securityProvider, syncManager, sncName, idpManager, idpName);
+            Hashtable<String, String> table = new Hashtable();
+            table.put("type", "UserManagement");
+            table.put("name", "External Identity Synchronization Management");
+            table.put("handler", ObjectName.quote(sncName));
+            table.put("idp", ObjectName.quote(idpName));
+            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, ImmutableMap.of(
+                            "jmx.objectname",
+                            new ObjectName("org.apache.jackrabbit.oak", table))
+            );
+            log.debug("Registration of SynchronizationMBean completed");
+        } catch (MalformedObjectNameException e) {
+            log.error("Unable to register SynchronizationMBean", e);
+        }
+    }
+
+    private void unregisterSyncMBean() {
+        if (mbeanRegistration != null) {
+            log.debug("Unregistering SynchronizationMBean");
+
             mbeanRegistration.unregister();
             mbeanRegistration = null;
+            log.debug("Unregister SynchronizationMBean: completed");
+        } else {
+            log.debug("Unable to unregister SynchronizationMBean; missing registration.");
         }
     }
 

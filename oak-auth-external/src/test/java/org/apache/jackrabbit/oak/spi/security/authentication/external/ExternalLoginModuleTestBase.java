@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Defau
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -91,11 +92,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTe
     }
 
     protected SynchronizationMBean createMBean() {
-        // todo: how to retrieve JCR repository here? maybe we should base the sync mbean on oak directly (=> OAK-4218).
-        // JackrabbitRepository repository =  null;
-        // return new SyncMBeanImpl(repository, syncManager, "default", idpManager, idp.getName());
-
-        throw new UnsupportedOperationException("creating the mbean is not supported yet.");
+        return new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, syncConfig.getName(), idpManager, idp.getName());
     }
 
     protected void setSyncConfig(DefaultSyncConfig cfg) {

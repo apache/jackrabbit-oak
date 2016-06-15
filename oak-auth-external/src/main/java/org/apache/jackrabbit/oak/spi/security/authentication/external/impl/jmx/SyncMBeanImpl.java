@@ -17,8 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
 import javax.annotation.Nonnull;
-import javax.jcr.Repository;
 
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
@@ -33,7 +34,9 @@ public class SyncMBeanImpl implements SynchronizationMBean {
 
     private static final Logger log = LoggerFactory.getLogger(SyncMBeanImpl.class);
 
-    private final Repository repository;
+    private final ContentRepository repository;
+
+    private final SecurityProvider securityProvider;
 
     private final SyncManager syncManager;
 
@@ -43,9 +46,11 @@ public class SyncMBeanImpl implements SynchronizationMBean {
 
     private final String idpName;
 
-    public SyncMBeanImpl(Repository repository, SyncManager syncManager, String syncName,
-                         ExternalIdentityProviderManager idpManager, String idpName) {
+    public SyncMBeanImpl(@Nonnull ContentRepository repository, @Nonnull SecurityProvider securityProvider,
+                         @Nonnull SyncManager syncManager, @Nonnull String syncName,
+                         @Nonnull ExternalIdentityProviderManager idpManager, @Nonnull String idpName) {
         this.repository = repository;
+        this.securityProvider = securityProvider;
         this.syncManager = syncManager;
         this.syncName = syncName;
         this.idpManager = idpManager;
@@ -64,7 +69,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
             log.error("No idp available for name", idpName);
             throw new IllegalArgumentException("No idp manager available for name " + idpName);
         }
-        return Delegatee.createInstance(repository, handler, idp);
+        return Delegatee.createInstance(repository, securityProvider, handler, idp);
     }
 
     //-----------------------------------------------< SynchronizationMBean >---
