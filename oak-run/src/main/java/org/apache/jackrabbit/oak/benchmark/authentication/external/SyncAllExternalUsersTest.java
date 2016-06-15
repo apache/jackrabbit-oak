@@ -45,7 +45,7 @@ public class SyncAllExternalUsersTest extends AbstractExternalTest {
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
-        bean = new SyncMBeanImpl(getRepository(), syncManager, "default", idpManager, idp.getName());
+        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, "default", idpManager, idp.getName());
     }
 
     @Override
