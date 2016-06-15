@@ -233,7 +233,7 @@ public class FileStore implements SegmentStore, Closeable {
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
 
-        // FIXME OAK-4373 refactor cache size configurations
+        // FIXME OAK-4451 refactor cache size configurations
         // FIXME OAK-4277: Finalise de-duplication caches: inject caches
         // from the outside so we can get rid of the cache stat accessors
         if (builder.getCacheSize() < 0) {
@@ -250,7 +250,7 @@ public class FileStore implements SegmentStore, Closeable {
             }
         };
 
-        // FIXME OAK-4373 refactor cache size configurations
+        // FIXME OAK-4451 refactor cache size configurations
         // FIXME OAK-4451: Implement a proper template cache: inject caches
         // from the outside so we can get rid of the cache stat accessors
         if (builder.getCacheSize() < 0) {
