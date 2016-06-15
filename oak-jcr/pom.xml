@@ -367,4 +367,32 @@
       <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <profile>
+      <id>rdb-derby</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <systemProperties>
+                <rdb.jdbc-url>jdbc:derby:./{fname}oaktest;create=true</rdb.jdbc-url>
+                <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+              </systemProperties>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <systemProperties>
+                <rdb.jdbc-url>jdbc:derby:./{fname}oaktest;create=true</rdb.jdbc-url>
+                <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+              </systemProperties>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
