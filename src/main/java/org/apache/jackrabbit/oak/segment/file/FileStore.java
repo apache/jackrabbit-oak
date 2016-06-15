@@ -631,13 +631,6 @@ public class FileStore implements SegmentStore, Closeable {
         revisions.flush(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                // FIXME OAK-4291: FileStore.flush prone to races leading to corruption
-                // There is a small windows that could lead to a corrupted store:
-                // if we crash right after setting the persisted head but before any delay-flushed
-                // SegmentBufferWriter instance flushes (see SegmentBufferWriterPool.returnWriter())
-                // then that data is lost although it might be referenced from the persisted head already.
-                // Need a test case. Possible fix: return a future from flush() and set the persisted head
-                // in the completion handler.
                 segmentWriter.flush();
                 tarWriter.flush();
                 return null;
@@ -1079,9 +1072,6 @@ public class FileStore implements SegmentStore, Closeable {
         try {
             flush();
             revisions.close();
-            // FIXME OAK-4291: FileStore.flush prone to races leading to corruption
-            // Replace this with a way to "close" the underlying SegmentBufferWriter(s)
-            // tracker.getWriter().dropCache();
             fileStoreLock.writeLock().lock();
             try {
                 closeAndLogOnFail(tarWriter);
