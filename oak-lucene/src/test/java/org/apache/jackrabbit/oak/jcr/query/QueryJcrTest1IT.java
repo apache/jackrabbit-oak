@@ -42,21 +42,21 @@ public class QueryJcrTest1IT extends TestCase {
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(
                 "Jackrabbit query tests using a Lucene based index");
-        suite.addTestSuite(FulltextQueryTest.class);
-        suite.addTestSuite(SQLTest.class);
-        suite.addTestSuite(JoinTest.class);
-        suite.addTestSuite(SkipDeletedNodesTest.class);
-        suite.addTestSuite(PathQueryNodeTest.class);
-        suite.addTestSuite(FulltextSQL2QueryTest.class);
-        suite.addTestSuite(SQL2NodeLocalNameTest.class);
-        suite.addTestSuite(SQL2OrderByTest.class);
-        suite.addTestSuite(MixinTest.class);
-        suite.addTestSuite(SQL2OuterJoinTest.class);
-        suite.addTestSuite(SQL2OffsetLimitTest.class);
-        suite.addTestSuite(LimitAndOffsetTest.class);
-        suite.addTestSuite(OrderByTest.class);
+//        suite.addTestSuite(FulltextQueryTest.class);
+//        suite.addTestSuite(SQLTest.class);
+//        suite.addTestSuite(JoinTest.class);
+//        suite.addTestSuite(SkipDeletedNodesTest.class);
+//        suite.addTestSuite(PathQueryNodeTest.class);
+//        suite.addTestSuite(FulltextSQL2QueryTest.class);
+//        suite.addTestSuite(SQL2NodeLocalNameTest.class);
+//        suite.addTestSuite(SQL2OrderByTest.class);
+//        suite.addTestSuite(MixinTest.class);
+//        suite.addTestSuite(SQL2OuterJoinTest.class);
+//        suite.addTestSuite(SQL2OffsetLimitTest.class);
+//        suite.addTestSuite(LimitAndOffsetTest.class);
+//        suite.addTestSuite(OrderByTest.class);
         suite.addTestSuite(ExcerptTest.class);
-        suite.addTestSuite(QueryResultTest.class);
+//        suite.addTestSuite(QueryResultTest.class);
         return suite;
     }
 }
