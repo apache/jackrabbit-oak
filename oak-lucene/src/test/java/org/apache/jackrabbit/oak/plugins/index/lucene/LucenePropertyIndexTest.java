@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
+
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
@@ -63,15 +66,13 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ComparisonChain;
@@ -659,7 +660,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;
     }
-    
+
     @Test
     public void orderByScore() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
@@ -1917,7 +1918,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
         assertQuery(propabQuery, asList("/test/a"));
     }
-    
+
     @Test
     public void indexingPropertyWithAnalyzeButQueryWithWildcard() throws Exception {
         Tree index = root.getTree("/");
@@ -1935,22 +1936,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
         prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
         root.commit();
-        
+
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("jcr:mimeType", "1234");
         test.addChild("b").setProperty("other", "1234");
         test.addChild("c").setProperty("jcr:mimeType", "a");
-        root.commit();        
-        
+        root.commit();
+
         String query;
-        
+
         query = "/jcr:root/test//*[jcr:contains(@jcr:mimeType, '1234')]";
         assertThat(explainXpath(query), containsString("lucene:test2(/oak:index/test2)"));
         assertQuery(query, "xpath", asList("/test/a"));
 
         query = "/jcr:root/test//*[jcr:contains(., '1234')]";
         assertThat(explainXpath(query), containsString("no-index"));
-        
+
         query = "/jcr:root/test//*[@jcr:mimeType = '1234']";
         assertThat(explainXpath(query), containsString("lucene:test2(/oak:index/test2)"));
         assertQuery(query, "xpath", asList("/test/a"));
@@ -2092,6 +2093,36 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select * from [nt:base] where CONTAINS([jcr:content/metadata/comment], 'december')";
         assertPlanAndQuery(propabQuery, "lucene:test1(/oak:index/test1)", asList("/test"));
+    }
+
+    @Test
+    public void longRepExcerpt() throws Exception {
+        Tree luceneIndex = createFullTextIndex(root.getTree("/"), "lucene");
+
+        root.commit();
+
+        StringBuilder s = new StringBuilder();
+        for (int k = 0; k < 1000; k++) {
+            s.append("foo bar ").append(k).append(" ");
+        }
+        String text = s.toString();
+        List<String> names = new LinkedList<String>();
+        for (int j = 0; j < 30; j++) {
+            Tree test = root.getTree("/").addChild("ex-test-" + j);
+            for (int i = 0; i < 200; i++) {
+                String name = "cont" + i;
+                test.addChild(name).setProperty("text", text);
+                names.add("/" + test.getName() + "/" + name);
+            }
+        }
+
+        root.commit();
+
+        String query;
+
+        query = "SELECT [jcr:path],[rep:excerpt] from [nt:base] WHERE CONTAINS([text], 'foo')";
+        assertQuery(query, SQL2, names);
+
     }
 
     @Test

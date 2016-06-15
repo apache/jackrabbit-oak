@@ -59,7 +59,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
@@ -366,10 +365,20 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                             PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
                             boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
+
+                            Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
+
+                            if (addExcerpt) {
+                                // setup highlighter
+                                QueryScorer scorer = new QueryScorer(query);
+                                scorer.setExpandMultiTermQuery(true);
+                                highlighter.setFragmentScorer(scorer);
+                            }
+
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 String excerpt = null;
                                 if (addExcerpt) {
-                                    excerpt = getExcerpt(indexNode, searcher, query, doc);
+                                    excerpt = getExcerpt(analyzer, searcher, doc);
                                 }
 
                                 LuceneResultRow row = convertToRow(doc, searcher, excerpt);
@@ -484,20 +493,17 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         return new LucenePathCursor(itr, settings, sizeEstimator);
     }
 
-    private String getExcerpt(IndexNode indexNode, IndexSearcher searcher, Query query, ScoreDoc doc) throws IOException {
+    private String getExcerpt(Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc) throws IOException {
         StringBuilder excerpt = new StringBuilder();
-        QueryScorer scorer = new QueryScorer(query);
-        scorer.setExpandMultiTermQuery(true);
-        highlighter.setFragmentScorer(scorer);
-        Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
 
-        for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields())
-            if (!FieldNames.SUGGEST.equals(field.name())) {
+        for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields()) {
+            String name = field.name();
+            // only full text or analyzed fields
+            if (name.startsWith(FieldNames.FULLTEXT) || name.startsWith(FieldNames.ANALYZED_FIELD_PREFIX)) {
+                String text = field.stringValue();
+                TokenStream tokenStream = analyzer.tokenStream(name, text);
                 try {
-                    TokenStream tokenStream = analyzer.tokenStream(field.name(), field.stringValue());
-                    tokenStream.reset();
-                    CachingTokenFilter cachingTokenFilter = new CachingTokenFilter(tokenStream);
-                    TextFragment[] textFragments = highlighter.getBestTextFragments(cachingTokenFilter, field.stringValue(), true, 2);
+                    TextFragment[] textFragments = highlighter.getBestTextFragments(tokenStream, text, true, 2);
                     if (textFragments != null && textFragments.length > 0) {
                         for (TextFragment fragment : textFragments) {
                             if (excerpt.length() > 0) {
@@ -505,11 +511,13 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                             }
                             excerpt.append(fragment.toString());
                         }
+                        break;
                     }
                 } catch (InvalidTokenOffsetsException e) {
                     LOG.error("higlighting failed", e);
                 }
             }
+        }
         return excerpt.toString();
     }
 

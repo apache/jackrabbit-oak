@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -75,24 +74,17 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
-import org.apache.lucene.facet.FacetsCollector;
-import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.LabelAndValue;
-import org.apache.lucene.facet.MultiFacets;
-import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
-import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
-import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.CustomScoreQuery;
@@ -123,16 +115,15 @@ import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.search.highlight.SimpleHTMLEncoder;
 import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.search.highlight.TextFragment;
+import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -140,8 +131,8 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.ANALYZED_FIELD_PREFIX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.SUGGEST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NATIVE_SORT_ORDER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
@@ -209,6 +200,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
     private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
             new SimpleHTMLEncoder(), null);
+
+    private final PostingsHighlighter postingsHighlighter = new PostingsHighlighter();
 
     private final IndexAugmentorFactory augmentorFactory;
 
@@ -417,10 +410,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             restriction = filter.getPropertyRestriction(QueryImpl.OAK_SCORE_EXPLANATION);
                             boolean addExplain = restriction != null && restriction.isNotNullRestriction();
 
+                            Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
+
+                            FieldInfos mergedFieldInfos = null;
+                            if (addExcerpt) {
+                                // setup highlighter
+                                QueryScorer scorer = new QueryScorer(query);
+                                scorer.setExpandMultiTermQuery(true);
+                                highlighter.setFragmentScorer(scorer);
+                                mergedFieldInfos = MultiFields.getMergedFieldInfos(searcher.getIndexReader());
+                            }
+
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 String excerpt = null;
                                 if (addExcerpt) {
-                                    excerpt = getExcerpt(indexNode, searcher, query, doc);
+                                    excerpt = getExcerpt(query, analyzer, searcher, doc, mergedFieldInfos);
                                 }
 
                                 String explanation = null;
@@ -572,32 +576,69 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return query;
     }
 
-    private String getExcerpt(IndexNode indexNode, IndexSearcher searcher, Query query, ScoreDoc doc) throws IOException {
+    private String getExcerpt(Query query, Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc,
+                              FieldInfos fieldInfos) throws IOException {
         StringBuilder excerpt = new StringBuilder();
-        QueryScorer scorer = new QueryScorer(query);
-        scorer.setExpandMultiTermQuery(true);
-        highlighter.setFragmentScorer(scorer);
+        int docID = doc.doc;
+        List<String> names = new LinkedList<String>();
 
-        Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
-        for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields())
-            if (!SUGGEST.equals(field.name())) {
-                try {
-                    TokenStream tokenStream = analyzer.tokenStream(field.name(), field.stringValue());
-                    tokenStream.reset();
-                    CachingTokenFilter cachingTokenFilter = new CachingTokenFilter(tokenStream);
-                    TextFragment[] textFragments = highlighter.getBestTextFragments(cachingTokenFilter, field.stringValue(), true, 2);
-                    if (textFragments != null && textFragments.length > 0) {
-                        for (TextFragment fragment : textFragments) {
-                            if (excerpt.length() > 0) {
-                                excerpt.append("...");
-                            }
-                            excerpt.append(fragment.toString());
+        for (IndexableField field : searcher.getIndexReader().document(docID).getFields()) {
+            String name = field.name();
+            // postings highlighter can be used on analyzed fields with docs, freqs, positions and offsets stored.
+            if (name.startsWith(ANALYZED_FIELD_PREFIX) && fieldInfos.hasProx() && fieldInfos.hasOffsets()) {
+                names.add(name);
+            }
+        }
+
+        if (names.size() > 0) {
+            int[] maxPassages = new int[names.size()];
+            for (int i = 0; i < maxPassages.length; i++) {
+                maxPassages[i] = 1;
+            }
+            try {
+                Map<String, String[]> stringMap = postingsHighlighter.highlightFields(names.toArray(new String[names.size()]),
+                        query, searcher, new int[]{docID}, maxPassages);
+                for (Map.Entry<String, String[]> entry : stringMap.entrySet()) {
+                    String value = Arrays.toString(entry.getValue());
+                    if (value.contains("<b>")) {
+                        if (excerpt.length() > 0) {
+                            excerpt.append("...");
                         }
+                        excerpt.append(value);
                     }
-                } catch (InvalidTokenOffsetsException e) {
-                    LOG.error("higlighting failed", e);
+                }
+            } catch (Exception e) {
+                LOG.error("postings highlighting failed", e);
+            }
+        }
+
+        // fallback if no excerpt could be retrieved using postings highlighter
+        if (excerpt.length() == 0) {
+
+            for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields()) {
+                String name = field.name();
+                // only full text or analyzed fields
+                if (name.startsWith(FieldNames.FULLTEXT) || name.startsWith(FieldNames.ANALYZED_FIELD_PREFIX)) {
+                    String text = field.stringValue();
+                    TokenStream tokenStream = analyzer.tokenStream(name, text);
+
+                    try {
+                        TextFragment[] textFragments = highlighter.getBestTextFragments(tokenStream, text, true, 1);
+                        if (textFragments != null && textFragments.length > 0) {
+                            for (TextFragment fragment : textFragments) {
+                                if (excerpt.length() > 0) {
+                                    excerpt.append("...");
+                                }
+                                excerpt.append(fragment.toString());
+                            }
+                            break;
+                        }
+                    } catch (InvalidTokenOffsetsException e) {
+                        LOG.error("higlighting failed", e);
+                    }
                 }
             }
+        }
         return excerpt.toString();
     }
 
