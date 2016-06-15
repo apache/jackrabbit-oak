@@ -63,7 +63,7 @@ public class HttpStore implements SegmentStore {
     };
     @Nonnull
     private final SegmentReader segmentReader = new CachingSegmentReader(
-            getWriter, revisions, null, DEFAULT_STRING_CACHE_MB);
+            getWriter, null, DEFAULT_STRING_CACHE_MB);
 
     private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
 

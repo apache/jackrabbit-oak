@@ -80,7 +80,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
                 @Override
                 public String call() throws Exception {
                     long t0 = nanoTime();
-                    FileStoreBackup.backup(reader, file);
+                    FileStoreBackup.backup(reader, revisions, file);
                     return "Backup completed in " + formatTime(nanoTime() - t0);
                 }
             });

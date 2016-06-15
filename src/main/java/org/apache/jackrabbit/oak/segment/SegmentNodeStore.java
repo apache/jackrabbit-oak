@@ -187,7 +187,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         this.reader = builder.reader;
         this.writer = builder.writer;
         this.blobStore = builder.blobStore;
-        this.head = new AtomicReference<SegmentNodeState>(reader.readHeadState());
+        this.head = new AtomicReference<SegmentNodeState>(reader.readHeadState(revisions));
         this.changeDispatcher = new ChangeDispatcher(getRoot());
     }
 
@@ -247,7 +247,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
      * permit from the {@link #commitSemaphore}.
      */
     private void refreshHead() {
-        SegmentNodeState state = reader.readHeadState();
+        SegmentNodeState state = reader.readHeadState(revisions);
         if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
             changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
