@@ -122,7 +122,6 @@ public abstract class NodeCache {
                 int removed = nodes.remove(d).size();
                 size -= removed;
                 if (removed > 0) {
-                    // FIXME OAK-4165: Too verbose logging during revision gc
                     LOG.info("Evicted cache at depth {} as size {} reached capacity {}. " +
                             "New size is {}", d, size + removed, capacity, size);
                 }
