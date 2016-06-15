@@ -147,7 +147,7 @@ public enum RDBDocumentStoreDB {
     DB2("DB2") {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return RDBJDBCTools.versionCheck(md, 10, 1, description);
+            return RDBJDBCTools.versionCheck(md, 10, 5, description);
         }
 
         @Override
