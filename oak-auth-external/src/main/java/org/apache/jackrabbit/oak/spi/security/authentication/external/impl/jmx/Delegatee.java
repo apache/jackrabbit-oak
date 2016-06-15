@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -24,18 +25,23 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.Repository;
+import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.json.JsonUtil;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -49,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,64 +72,64 @@ final class Delegatee {
     private final SyncHandler handler;
     private final ExternalIdentityProvider idp;
     private final UserManager userMgr;
-    private final Session systemSession;
+
+    private final ContentSession systemSession;
+    private final Root root;
 
     private final int batchSize;
 
     private SyncContext context;
 
     private Delegatee(@Nonnull SyncHandler handler, @Nonnull ExternalIdentityProvider idp,
-                      @Nonnull JackrabbitSession systemSession, int batchSize) throws SyncException, RepositoryException {
+                      @Nonnull ContentSession systemSession, @Nonnull SecurityProvider securityProvider, int batchSize) throws SyncException {
         this.handler = handler;
         this.idp = idp;
 
         this.systemSession = systemSession;
-        this.userMgr = systemSession.getUserManager();
-        this.context = handler.createContext(idp, userMgr, systemSession.getValueFactory());
         this.batchSize = batchSize;
 
-        log.info("Created delegatee for SyncMBean with session: {} {}", systemSession, systemSession.getUserID());
+        root = systemSession.getLatestRoot();
+        userMgr = securityProvider.getConfiguration(UserConfiguration.class).getUserManager(root, NamePathMapper.DEFAULT);
+        context = handler.createContext(idp, userMgr, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
+
+        log.info("Created delegatee for SyncMBean with session: {} {}", systemSession, systemSession.getAuthInfo().getUserID());
     }
 
-    static Delegatee createInstance(@Nonnull final Repository repository,
-                                    @Nonnull SyncHandler handler,
-                                    @Nonnull ExternalIdentityProvider idp) {
-        return createInstance(repository, handler, idp, DEFAULT_BATCH_SIZE);
+    static Delegatee createInstance(@Nonnull ContentRepository repository, @Nonnull SecurityProvider securityProvider,
+                                    @Nonnull SyncHandler handler, @Nonnull ExternalIdentityProvider idp) {
+        return createInstance(repository, securityProvider, handler, idp, DEFAULT_BATCH_SIZE);
     }
 
-    static Delegatee createInstance(@Nonnull final Repository repository,
+    static Delegatee createInstance(@Nonnull final ContentRepository repository,
+                                    @Nonnull SecurityProvider securityProvider,
                                     @Nonnull SyncHandler handler,
                                     @Nonnull ExternalIdentityProvider idp,
                                     int batchSize) {
-        Session systemSession;
+        ContentSession systemSession;
         try {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
+            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                 @Override
-                public Session run() throws RepositoryException {
-                    if (repository instanceof JackrabbitRepository) {
-                        // this is to bypass GuestCredentials injection in the "AbstractSlingRepository2"
-                        return ((JackrabbitRepository) repository).login(null, null, null);
-                    } else {
-                        return repository.login(null, null);
-                    }
+                public ContentSession run() throws NoSuchWorkspaceException, LoginException {
+                    return repository.login(null, null);
                 }
             });
         } catch (PrivilegedActionException e) {
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
         }
 
-        if (!(systemSession instanceof JackrabbitSession)) {
-            systemSession.logout();
-            throw new SyncRuntimeException("Unable to create SyncContext: JackrabbitSession required.");
-        }
         try {
-            return new Delegatee(handler, idp, (JackrabbitSession) systemSession, batchSize);
-        } catch (RepositoryException e) {
-            systemSession.logout();
-            throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
+            return new Delegatee(handler, idp, systemSession, securityProvider, batchSize);
         } catch (SyncException e) {
-            systemSession.logout();
+            close(systemSession);
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
+        }
+    }
+
+    private static void close(@Nonnull ContentSession systemSession) {
+        try {
+            systemSession.close();
+        } catch (IOException e) {
+            log.error("Error while closing ContentSession {}", systemSession);
         }
     }
 
@@ -131,9 +138,7 @@ final class Delegatee {
             context.close();
             context = null;
         }
-        if (systemSession.isLive()) {
-            systemSession.logout();
-        }
+        close(systemSession);
     }
 
     /**
@@ -306,17 +311,13 @@ final class Delegatee {
             return resultList;
         } else {
             try {
-                systemSession.save();
+                root.commit();
                 append(list, resultList);
-            } catch (RepositoryException e) {
+            } catch (CommitFailedException e) {
                 append(list, resultList, e);
             } finally {
                 // make sure there are not pending changes that would fail the next batches
-                try {
-                    systemSession.refresh(false);
-                } catch (RepositoryException e) {
-                    log.warn(e.getMessage());
-                }
+                root.refresh();
             }
             return new ArrayList<SyncResult>(size);
         }
