@@ -77,9 +77,6 @@ public class RDBDataSourceFactory {
                 dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
                 dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
                 dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
-                dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds,
-                        System.getProperty("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
-                                "StatementCache;SlowQueryReport(threshold=10000);ConnectionState"));
                 return new CloseableDataSource(ds);
             } catch (Exception ex) {
                 String message = "trying to create datasource " + classname;
