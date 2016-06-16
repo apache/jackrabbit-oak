@@ -21,7 +21,6 @@ import java.security.acl.Group;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,9 +30,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -53,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
+import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -168,46 +166,6 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private boolean dynamicMembershipEnabled() {
         return syncConfigTracker != null && syncConfigTracker.isEnabled;
-    }
-
-    /**
-     * Implementation of the {@code PrincipalProvider} interface that never
-     * returns any principals.
-     */
-    private static final class EmptyPrincipalProvider implements PrincipalProvider {
-
-        private static final PrincipalProvider INSTANCE = new EmptyPrincipalProvider();
-
-        private EmptyPrincipalProvider() {}
-
-        @Override
-        public Principal getPrincipal(@Nonnull String principalName) {
-            return null;
-        }
-
-        @Nonnull
-        @Override
-        public Set<Group> getGroupMembership(@Nonnull Principal principal) {
-            return ImmutableSet.of();
-        }
-
-        @Nonnull
-        @Override
-        public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
-            return ImmutableSet.of();
-        }
-
-        @Nonnull
-        @Override
-        public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-            return Iterators.emptyIterator();
-        }
-
-        @Nonnull
-        @Override
-        public Iterator<? extends Principal> findPrincipals(int searchType) {
-            return Iterators.emptyIterator();
-        }
     }
 
     /**

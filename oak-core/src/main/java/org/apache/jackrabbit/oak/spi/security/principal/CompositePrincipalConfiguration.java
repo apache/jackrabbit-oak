@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -49,11 +49,19 @@ public class CompositePrincipalConfiguration extends CompositeConfiguration<Prin
     @Nonnull
     @Override
     public PrincipalProvider getPrincipalProvider(final Root root, final NamePathMapper namePathMapper) {
-        return new CompositePrincipalProvider(Lists.transform(getConfigurations(), new Function<PrincipalConfiguration, PrincipalProvider>() {
-            @Override
-            public PrincipalProvider apply(PrincipalConfiguration principalConfiguration) {
-                return principalConfiguration.getPrincipalProvider(root, namePathMapper);
-            }
-        }));
+        List<PrincipalConfiguration> configurations = getConfigurations();
+        switch (configurations.size()) {
+            case 0: return EmptyPrincipalProvider.INSTANCE;
+            case 1: return configurations.get(0).getPrincipalProvider(root, namePathMapper);
+            default:
+                List<PrincipalProvider> pps = new ArrayList<>(configurations.size());
+                for (PrincipalConfiguration principalConfig : configurations) {
+                    PrincipalProvider principalProvider = principalConfig.getPrincipalProvider(root, namePathMapper);
+                    if (!(principalProvider instanceof EmptyPrincipalProvider)) {
+                        pps.add(principalProvider);
+                    }
+                }
+                return CompositePrincipalProvider.of(pps);
+        }
     }
 }

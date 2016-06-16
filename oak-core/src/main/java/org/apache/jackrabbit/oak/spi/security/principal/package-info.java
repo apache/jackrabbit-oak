@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.3.0")
+@Version("1.4.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.spi.security.principal;
 
