@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -289,20 +290,25 @@ public class SegmentTracker {
      */
     public void collectBlobReferences(ReferenceCollector collector) {
         try {
-            Set<SegmentId> processed = newHashSet();
-            Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
+            Set<UUID> processed = newHashSet();
+            for (SegmentId sid : getReferencedSegmentIds()) {
+                if (sid.isDataSegmentId()) {
+                    processed.add(sid.asUUID());
+                }
+            }
+            Queue<UUID> queue = newArrayDeque(processed);
             writer.flush(); // force the current segment to have root record info
             while (!queue.isEmpty()) {
-                SegmentId id = queue.remove();
-                if (id.isDataSegmentId() && processed.add(id)) {
-                    Segment segment = id.getSegment();
-
-                    segment.collectBlobReferences(collector);
-
-                    for (SegmentId refid : segment.getReferencedIds()) {
-                        if (refid.isDataSegmentId() && !processed.contains(refid)) {
-                            queue.add(refid);
-                        }
+                UUID uid = queue.remove();
+                SegmentId id = getSegmentId(uid.getMostSignificantBits(),
+                        uid.getLeastSignificantBits());
+                Segment segment = id.getSegment();
+                segment.collectBlobReferences(collector);
+                for (SegmentId refid : segment.getReferencedIds()) {
+                    UUID rid = refid.asUUID();
+                    if (refid.isDataSegmentId() && !processed.contains(rid)) {
+                        queue.add(rid);
+                        processed.add(rid);
                     }
                 }
             }
