@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -653,7 +655,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;
     }
-    
+
     @Test
     public void orderByScore() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
@@ -2010,6 +2012,36 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String query4 = "select * from [nt:base] where CONTAINS(tag, 'c=d=e')";
         assertPlanAndQuery(query4, "lucene:test1(/oak:index/test1)", asList("/test4"));
+
+    }
+
+    @Test
+    public void longRepExcerpt() throws Exception {
+        Tree luceneIndex = createFullTextIndex(root.getTree("/"), "lucene");
+
+        root.commit();
+
+        StringBuilder s = new StringBuilder();
+        for (int k = 0; k < 1000; k++) {
+            s.append("foo bar ").append(k).append(" ");
+        }
+        String text = s.toString();
+        List<String> names = new LinkedList<String>();
+        for (int j = 0; j < 30; j++) {
+            Tree test = root.getTree("/").addChild("ex-test-" + j);
+            for (int i = 0; i < 200; i++) {
+                String name = "cont" + i;
+                test.addChild(name).setProperty("text", text);
+                names.add("/" + test.getName() + "/" + name);
+            }
+        }
+
+        root.commit();
+
+        String query;
+
+        query = "SELECT [jcr:path],[rep:excerpt] from [nt:base] WHERE CONTAINS([text], 'foo')";
+        assertQuery(query, SQL2, names);
 
     }
 
