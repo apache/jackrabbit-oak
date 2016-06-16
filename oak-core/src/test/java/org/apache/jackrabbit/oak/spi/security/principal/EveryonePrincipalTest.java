@@ -37,6 +37,36 @@ public class EveryonePrincipalTest  {
     }
 
     @Test
+    public void testIsMember() {
+        assertTrue(EveryonePrincipal.getInstance().isMember(new PrincipalImpl("test")));
+    }
+
+    @Test
+    public void testIsMemberSelf() {
+        assertFalse(EveryonePrincipal.getInstance().isMember(everyone));
+    }
+
+    @Test
+    public void testAddMember() {
+        assertFalse(EveryonePrincipal.getInstance().addMember(new PrincipalImpl("test")));
+    }
+
+    @Test
+    public void testAddMemberSelf() {
+        assertFalse(EveryonePrincipal.getInstance().addMember(everyone));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveMember() {
+        EveryonePrincipal.getInstance().removeMember(everyone);
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testMembers() {
+        EveryonePrincipal.getInstance().members();
+    }
+
+    @Test
     public void testEquals() {
         assertEquals(everyone, EveryonePrincipal.getInstance());
     }

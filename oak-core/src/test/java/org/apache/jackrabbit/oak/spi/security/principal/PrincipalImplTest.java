@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * PrincipalImplTest...
@@ -36,6 +37,11 @@ public class PrincipalImplTest {
     @Test
     public void testGetName() {
         assertEquals("name", principal.getName());
+    }
+
+    @Test
+    public void testEqualsSame() {
+        assertTrue(principal.equals(principal));
     }
 
     @Test
