@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
