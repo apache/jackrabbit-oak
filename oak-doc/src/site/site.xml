@@ -66,6 +66,7 @@ under the License.
       <item href="developing-with-git.html" name="Developing with Git" />
       <item href="diagnostic-builds.html" name="Cutting diagnostic builds" />
       <item href="attribution.html" name="Attribution" />
+      <item href="release-schedule.html" name="Release Schedule" />
     </menu>
     <menu name="Links">
       <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
