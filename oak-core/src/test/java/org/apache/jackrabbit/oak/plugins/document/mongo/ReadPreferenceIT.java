@@ -54,7 +54,6 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         replicationLag = TimeUnit.SECONDS.toMillis(10);
         mongoConnection = connectionFactory.getConnection();
         mk = new DocumentMK.Builder()
-                .setMaxReplicationLag(replicationLag, TimeUnit.MILLISECONDS)
                 .setMongoDB(mongoConnection.getDB())
                 .setClusterId(1)
                 .setLeaseCheck(false)
@@ -83,27 +82,27 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
     @Test
     public void testMongoReadPreferencesDefault() throws Exception{
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PRIMARY));
+                mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PRIMARY));
 
         assertEquals(ReadPreference.primaryPreferred(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_PRIMARY));
+                mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PREFER_PRIMARY));
 
         //By default Mongo read preference is primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
+                mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PREFER_SECONDARY));
 
         //Change the default and assert again
         mongoDS.getDBCollection(NODES).getDB().setReadPreference(ReadPreference.secondary());
         assertEquals(ReadPreference.secondary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
+                mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PREFER_SECONDARY));
 
         //for case where parent age cannot be determined the preference should be primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //For collection other than NODES always primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(SETTINGS,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(SETTINGS,"foo", null, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
     }
 
@@ -124,7 +123,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
         //For modifiedTime < replicationLag primary must be used
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES,parentId, null, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //Going into future to make parent /x old enough
         clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
@@ -132,7 +131,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
         //For old modified nodes secondaries should be preferred
         assertEquals(testPref,
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, parentId, null, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
     }
 
     @Test
