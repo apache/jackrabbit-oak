@@ -1965,31 +1965,6 @@ public final class DocumentNodeStore
         return stats;
     }
 
-    private static class BackgroundReadStats {
-        CacheInvalidationStats cacheStats;
-        long readHead;
-        long cacheInvalidationTime;
-        long populateDiffCache;
-        long lock;
-        long dispatchChanges;
-
-        @Override
-        public String toString() {
-            String cacheStatsMsg = "NOP";
-            if (cacheStats != null){
-                cacheStatsMsg = cacheStats.summaryReport();
-            }
-            return  "ReadStats{" +
-                    "cacheStats:" + cacheStatsMsg +
-                    ", head:" + readHead +
-                    ", cache:" + cacheInvalidationTime +
-                    ", diff: " + populateDiffCache +
-                    ", lock:" + lock +
-                    ", dispatch:" + dispatchChanges +
-                    '}';
-        }
-    }
-
     private void cleanOrphanedBranches() {
         Branch b;
         while ((b = branches.pollOrphanedBranch()) != null) {
