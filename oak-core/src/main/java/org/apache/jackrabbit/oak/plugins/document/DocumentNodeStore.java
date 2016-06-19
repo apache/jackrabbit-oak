@@ -408,8 +408,11 @@ public final class DocumentNodeStore
 
     private final boolean readOnlyMode;
 
+    private final DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
+        this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
         if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
         }
@@ -1717,6 +1720,7 @@ public final class DocumentNodeStore
     }
 
     private void internalRunBackgroundUpdateOperations() {
+        BackgroundWriteStats stats = null;
         synchronized (backgroundWriteMonitor) {
             long start = clock.getTime();
             long time = start;
@@ -1729,7 +1733,7 @@ public final class DocumentNodeStore
             backgroundSplit();
             long splitTime = clock.getTime() - time;
             // write back pending updates to _lastRev
-            BackgroundWriteStats stats = backgroundWrite();
+            stats = backgroundWrite();
             stats.split = splitTime;
             stats.clean = cleanTime;
             stats.totalWriteTime = clock.getTime() - start;
@@ -1741,6 +1745,8 @@ public final class DocumentNodeStore
                 LOG.debug(msg, stats);
             }
         }
+        //Push stats outside of sync block
+        nodeStoreStatsCollector.doneBackgroundUpdate(stats);
     }
 
     //----------------------< background read operations >----------------------
@@ -1763,10 +1769,11 @@ public final class DocumentNodeStore
 
     /** OAK-2624 : background read operations are split from background update ops */
     private void internalRunBackgroundReadOperations() {
+        BackgroundReadStats readStats = null;
         synchronized (backgroundReadMonitor) {
             long start = clock.getTime();
             // pull in changes from other cluster nodes
-            BackgroundReadStats readStats = backgroundRead();
+            readStats = backgroundRead();
             readStats.totalReadTime = clock.getTime() - start;
             String msg = "Background read operations stats (read:{} {})";
             if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
@@ -1776,6 +1783,7 @@ public final class DocumentNodeStore
                 LOG.debug(msg, readStats.totalReadTime, readStats);
             }
         }
+        nodeStoreStatsCollector.doneBackgroundRead(readStats);
     }
 
     /**
@@ -2753,5 +2761,9 @@ public final class DocumentNodeStore
     @Override
     public String getInstanceId() {
         return String.valueOf(getClusterId());
+    }
+
+    public DocumentNodeStoreStatsCollector getStatsCollector() {
+        return nodeStoreStatsCollector;
     }
 }
