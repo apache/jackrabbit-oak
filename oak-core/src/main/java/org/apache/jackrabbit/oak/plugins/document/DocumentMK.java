@@ -529,6 +529,7 @@ public class DocumentMK {
         private BlobStoreStats blobStoreStats;
         private CacheStats blobStoreCacheStats;
         private DocumentStoreStatsCollector documentStoreStatsCollector;
+        private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
         private Map<CacheType, PersistentCacheStats> persistentCacheStats =
                 new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
 
@@ -921,6 +922,18 @@ public class DocumentMK {
 
         public Builder setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
             this.documentStoreStatsCollector = documentStoreStatsCollector;
+            return this;
+        }
+
+        public DocumentNodeStoreStatsCollector getNodeStoreStatsCollector() {
+            if (nodeStoreStatsCollector == null) {
+                nodeStoreStatsCollector = new DocumentNodeStoreStats(statisticsProvider);
+            }
+            return nodeStoreStatsCollector;
+        }
+
+        public Builder setNodeStoreStatsCollector(DocumentNodeStoreStatsCollector statsCollector) {
+            this.nodeStoreStatsCollector = statsCollector;
             return this;
         }
 

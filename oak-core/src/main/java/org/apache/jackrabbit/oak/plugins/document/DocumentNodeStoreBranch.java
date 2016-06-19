@@ -155,6 +155,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         Set<Revision> conflictRevisions = new HashSet<Revision>();
         long time = System.currentTimeMillis();
         int numRetries = 0;
+        boolean suspended= false;
         for (long backoff = MIN_BACKOFF; backoff <= maximumBackoff; backoff *= 2) {
             if (ex != null) {
                 try {
@@ -166,6 +167,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         // suspend until conflicting revision is visible
                         LOG.debug("Suspending until {} is visible. Current head {}.",
                                 conflictRevisions, store.getHeadRevision());
+                        suspended = true;
                         store.suspendUntilAll(conflictRevisions);
                         conflictRevisions.clear();
                         LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
@@ -179,8 +181,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 }
             }
             try {
-                return branchState.merge(checkNotNull(hook),
+                NodeState result = branchState.merge(checkNotNull(hook),
                         checkNotNull(info), exclusive);
+                store.getStatsCollector().doneMerge(numRetries, System.currentTimeMillis() - time, suspended, exclusive);
+                return result;
             } catch (FailedWithConflictException e) {
                 ex = e;
                 conflictRevisions.addAll(e.getConflictRevisions());
@@ -198,6 +202,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
         // if we get here retrying failed
         time = System.currentTimeMillis() - time;
+        store.getStatsCollector().failedMerge(numRetries, time, suspended, exclusive);
         String msg = ex.getMessage() + " (retries " + numRetries + ", " + time + " ms)";
         throw new CommitFailedException(ex.getSource(), ex.getType(),
                 ex.getCode(), msg, ex.getCause());
