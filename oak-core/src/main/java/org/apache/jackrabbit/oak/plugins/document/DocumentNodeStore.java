@@ -85,7 +85,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
-import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
@@ -1733,8 +1732,9 @@ public final class DocumentNodeStore
             BackgroundWriteStats stats = backgroundWrite();
             stats.split = splitTime;
             stats.clean = cleanTime;
+            stats.totalWriteTime = clock.getTime() - start;
             String msg = "Background operations stats ({})";
-            if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
+            if (stats.totalWriteTime > TimeUnit.SECONDS.toMillis(10)) {
                 // log as info if it took more than 10 seconds
                 LOG.info(msg, stats);
             } else {
@@ -1767,13 +1767,13 @@ public final class DocumentNodeStore
             long start = clock.getTime();
             // pull in changes from other cluster nodes
             BackgroundReadStats readStats = backgroundRead();
-            long readTime = clock.getTime() - start;
+            readStats.totalReadTime = clock.getTime() - start;
             String msg = "Background read operations stats (read:{} {})";
             if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
                 // log as info if it took more than 10 seconds
-                LOG.info(msg, readTime, readStats);
+                LOG.info(msg, readStats.totalReadTime, readStats);
             } else {
-                LOG.debug(msg, readTime, readStats);
+                LOG.debug(msg, readStats.totalReadTime, readStats);
             }
         }
     }
@@ -1899,6 +1899,7 @@ public final class DocumentNodeStore
                 } else {
                     try {
                         externalSort.sort();
+                        stats.numExternalChanges = externalSort.getSize();
                         stats.cacheStats = store.invalidateCache(pathToId(externalSort));
                         // OAK-3002: only invalidate affected items (using journal)
                         long origSize = docChildrenCache.size();
