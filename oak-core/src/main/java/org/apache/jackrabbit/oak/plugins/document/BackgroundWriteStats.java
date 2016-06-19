@@ -26,6 +26,7 @@ class BackgroundWriteStats {
     long lock;
     long write;
     long num;
+    long totalWriteTime;
 
     @Override
     public String toString() {
@@ -33,6 +34,7 @@ class BackgroundWriteStats {
                 ", split:" + split+
                 ", lock:" + lock +
                 ", write:" + write +
-                ", num:" + num;
+                ", num:" + num +
+                ", totalWriteTime:" + totalWriteTime;
     }
 }

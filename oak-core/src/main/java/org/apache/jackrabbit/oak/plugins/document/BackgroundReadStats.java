@@ -28,8 +28,8 @@ class BackgroundReadStats {
     long populateDiffCache;
     long lock;
     long dispatchChanges;
-
-    //TODO external diff size
+    long totalReadTime;
+    long numExternalChanges;
 
     @Override
     public String toString() {
@@ -44,6 +44,8 @@ class BackgroundReadStats {
                 ", diff: " + populateDiffCache +
                 ", lock:" + lock +
                 ", dispatch:" + dispatchChanges +
+                ", numExternalChanges:" + numExternalChanges +
+                ", totalReadTime:" + totalReadTime +
                 '}';
     }
 }
