@@ -1326,17 +1326,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     NodeDocument getPreviousDocument(String prevId){
+        //Use the maxAge variant such that in case of Mongo call for
+        //previous doc are directed towards replicas first
         LOG.trace("get previous document {}", prevId);
-        NodeDocument doc = store.find(Collection.NODES, prevId);
-        if (doc == null) {
-            // In case secondary read preference is used and node is not found
-            // then check with primary again as it might happen that node document has not been
-            // replicated. We know that document with such an id must exist but possibly dut to
-            // replication lag it has not reached to secondary. So in that case read again
-            // from primary
-            doc = store.find(Collection.NODES, prevId, 0);
-        }
-        return doc;
+        return store.find(Collection.NODES, prevId, Integer.MAX_VALUE);
     }
 
     @Nonnull
