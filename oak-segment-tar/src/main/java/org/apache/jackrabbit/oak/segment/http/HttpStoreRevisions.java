@@ -68,7 +68,7 @@ public class HttpStoreRevisions implements Revisions {
 
     /**
      * Not supported: throws {@code UnsupportedOperationException}
-     * @throws UnsupportedOperationException, always
+     * @throws UnsupportedOperationException always
      */
     @Override
     public boolean setHead(
@@ -79,7 +79,7 @@ public class HttpStoreRevisions implements Revisions {
 
     /**
      * Not supported: throws {@code UnsupportedOperationException}
-     * @throws UnsupportedOperationException, always
+     * @throws UnsupportedOperationException always
      */
     @Override
     public boolean setHead(
