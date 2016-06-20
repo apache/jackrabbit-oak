@@ -20,7 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.lang.management.ManagementFactory;
+import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -32,6 +36,9 @@ import javax.management.Query;
 import javax.management.QueryExp;
 
 import com.codahale.metrics.JmxReporter;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
@@ -140,6 +147,44 @@ public class MetricStatisticsProviderTest {
     @Test
     public void statsOptions_Default() throws Exception{
         assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.DEFAULT), CompositeStats.class);
+    }
+
+    @Test
+    public void concurrentAccess() throws Exception{
+        //Queue is used to collect instances with minimal overhead in concurrent scenario
+        final Queue<MeterStats> statsQueue = new ConcurrentLinkedDeque<MeterStats>();
+        List<Thread> threads = Lists.newArrayList();
+        int numWorker = 5;
+        final CountDownLatch latch = new CountDownLatch(1);
+        for (int i = 0; i < numWorker; i++) {
+            threads.add(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Uninterruptibles.awaitUninterruptibly(latch);
+                    statsQueue.add(statsProvider.getMeter("foo", StatsOptions.DEFAULT));
+                }
+            }));
+        }
+
+        for (Thread t : threads){
+            t.start();
+        }
+
+        latch.countDown();
+
+        for (Thread t : threads){
+            t.join();
+        }
+
+        //Assert that we get same reference for every call
+        Set<MeterStats> statsSet = Sets.newIdentityHashSet();
+
+        for (MeterStats m : statsQueue){
+            statsSet.add(m);
+        }
+
+        assertEquals(1, statsSet.size());
+
     }
 
     @After
