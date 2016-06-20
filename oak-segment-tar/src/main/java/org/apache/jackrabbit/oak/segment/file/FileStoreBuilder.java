@@ -61,8 +61,7 @@ public class FileStoreBuilder {
     private boolean memoryMapping;
 
     @Nonnull
-    private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor(
-            singleton(new LoggingGCMonitor(LOG)));
+    private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
@@ -151,6 +150,7 @@ public class FileStoreBuilder {
 
     private FileStoreBuilder(@Nonnull File directory) {
         this.directory = checkNotNull(directory);
+        this.gcMonitor.registerGCMonitor(new LoggingGCMonitor(LOG));
     }
 
     /**
