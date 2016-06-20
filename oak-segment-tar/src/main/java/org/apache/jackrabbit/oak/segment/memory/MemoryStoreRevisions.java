@@ -76,7 +76,7 @@ public class MemoryStoreRevisions implements Revisions {
 
     /**
      * Not supported: throws {@code UnsupportedOperationException}
-     * @throws UnsupportedOperationException, always
+     * @throws UnsupportedOperationException always
      */
     @Override
     public boolean setHead(
