@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>oak-segment-tar</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
@@ -42,26 +42,6 @@
         <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-segment-tar</developerConnection>
         <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-segment-tar</url>
     </scm>
-
-    <profiles>
-
-        <!-- When invoking release:perform for this module, this profile has to
-        be manually activated on the command line. -->
-
-        <profile>
-            <id>release-perform</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-release-plugin</artifactId>
-                        <configuration>
-                            <arguments>-Dmaven.deploy.skip=false</arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
     <build>
         <plugins>
