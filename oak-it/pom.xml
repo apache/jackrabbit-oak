@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-tar</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.segment.tar.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-tar</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.segment.tar.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
