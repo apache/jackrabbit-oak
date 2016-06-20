@@ -45,12 +45,12 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private static final String BGW_TOTAL = "DOCUMENT_NS_BGW_TOTAL_TIME";
 
     private static final String MERGE_SUCCESS_NUM_RETRY = "DOCUMENT_NS_MERGE_SUCCESS_RETRY";
-    private static final String MERGE_SUCCESS_COUNT = "DOCUMENT_NS_MERGE_SUCCESS_COUNT";
+    static final String MERGE_SUCCESS_COUNT = "DOCUMENT_NS_MERGE_SUCCESS_COUNT";
     private static final String MERGE_SUCCESS_TIME = "DOCUMENT_NS_MERGE_SUCCESS_TIME";
     private static final String MERGE_SUCCESS_SUSPENDED = "DOCUMENT_NS_MERGE_SUCCESS_SUSPENDED";
     private static final String MERGE_SUCCESS_EXCLUSIVE = "DOCUMENT_NS_MERGE_SUCCESS_EXCLUSIVE";
 
-    private static final String MERGE_FAILED_EXCLUSIVE = "DOCUMENT_NS_MERGE_FAILED_EXCLUSIVE";
+    static final String MERGE_FAILED_EXCLUSIVE = "DOCUMENT_NS_MERGE_FAILED_EXCLUSIVE";
 
     private final TimerStats readHead;
     private final TimerStats readCacheInvalidate;
@@ -91,7 +91,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         writeSplit = sp.getTimer(BGW_SPLIT, StatsOptions.METRICS_ONLY);
         writeWrite = sp.getTimer(BGW_WRITE, StatsOptions.METRICS_ONLY);
         writeTotal = sp.getTimer(BGW_TOTAL, StatsOptions.METRICS_ONLY);
-        writeNum = sp.getHistogram(BGW_NUM, StatsOptions.DEFAULT);
+        writeNum = sp.getHistogram(BGW_NUM, StatsOptions.METRICS_ONLY);
         numWritesRate = sp.getMeter(BGW_NUM_WRITES_RATE, StatsOptions.DEFAULT); //Enable time series
 
         mergeSuccessRetries = sp.getHistogram(MERGE_SUCCESS_NUM_RETRY, StatsOptions.METRICS_ONLY);

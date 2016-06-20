@@ -67,6 +67,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.management.NotCompliantMBeanException;
+import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -79,6 +80,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -115,7 +117,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -410,8 +414,11 @@ public final class DocumentNodeStore
 
     private final DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
 
+    private final StatisticsProvider statisticsProvider;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
+        this.statisticsProvider = builder.getStatisticsProvider();
         this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
         if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
@@ -2594,6 +2601,36 @@ public final class DocumentNodeStore
         @Override
         public long determineServerTimeDifferenceMillis() {
             return store.determineServerTimeDifferenceMillis();
+        }
+
+        @Override
+        public CompositeData getMergeSuccessHistory() {
+            return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT, "Merge Success Count");
+        }
+
+        @Override
+        public CompositeData getMergeFailureHistory() {
+            return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE, "Merge failure count");
+        }
+
+        @Override
+        public CompositeData getExternalChangeCountHistory() {
+            return getTimeSeriesData(DocumentNodeStoreStats.BGR_NUM_CHANGES_RATE, "Count of nodes modified by other " +
+                    "cluster nodes since last background read");
+        }
+
+        @Override
+        public CompositeData getBackgroundUpdateCountHistory() {
+            return getTimeSeriesData(DocumentNodeStoreStats.BGW_NUM_WRITES_RATE, "Count of nodes updated as part of " +
+                    "background update");
+        }
+
+        private CompositeData getTimeSeriesData(String name, String desc){
+            return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);
+        }
+
+        private TimeSeries getTimeSeries(String name) {
+            return statisticsProvider.getStats().getTimeSeries(name, true);
         }
     }
 

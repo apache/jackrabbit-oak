@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import javax.management.openmbean.CompositeData;
+
 import org.apache.jackrabbit.oak.commons.jmx.Name;
 
 @SuppressWarnings("UnusedDeclaration")
@@ -52,4 +54,12 @@ public interface DocumentNodeStoreMBean {
      * @throws UnsupportedOperationException if this DocumentStore does not support this method
      */
     long determineServerTimeDifferenceMillis();
+
+    CompositeData getMergeSuccessHistory();
+
+    CompositeData getMergeFailureHistory();
+
+    CompositeData getExternalChangeCountHistory();
+
+    CompositeData getBackgroundUpdateCountHistory();
 }
