@@ -759,21 +759,6 @@ public class Utils {
     }
 
     /**
-     * Returns true if all the revisions in the {@code a} greater or equals
-     * to their counterparts in {@code b}. If {@code b} contains revisions
-     * for cluster nodes that are not present in {@code a}, return false.
-     *
-     * @param a
-     * @param b
-     * @return true if all the revisions in the {@code a} are at least
-     * as recent as their counterparts in the {@code b}
-     */
-    public static boolean isGreaterOrEquals(@Nonnull RevisionVector a,
-                                            @Nonnull RevisionVector b) {
-        return a.pmax(b).equals(a);
-    }
-
-    /**
      * Wraps the given iterable and aborts iteration over elements when the
      * predicate on an element evaluates to {@code false}.
      *
