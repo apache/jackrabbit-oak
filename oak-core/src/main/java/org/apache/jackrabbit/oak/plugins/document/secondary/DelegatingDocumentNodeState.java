@@ -52,7 +52,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     private static final Predicate<PropertyState> NOT_META_PROPS = new Predicate<PropertyState>() {
         @Override
-        public boolean apply(@Nullable PropertyState input) {
+        public boolean apply(PropertyState input) {
             return !input.getName().startsWith(":doc-");
         }
     };
@@ -60,9 +60,9 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     private final NodeState delegate;
     private final RevisionVector rootRevision;
     private final boolean fromExternalChange;
-    private final RevisionVector lastRevision;
-    private final RevisionVector readRevision;
-    private final String path;
+    private RevisionVector lastRevision;
+    private RevisionVector readRevision;
+    private String path;
 
     /**
      * Wraps a given NodeState as a {@link DelegatingDocumentNodeState} if
@@ -98,9 +98,6 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         this.delegate = delegate;
         this.rootRevision = rootRevision;
         this.fromExternalChange = fromExternalChange;
-        this.path = getRequiredProp(PROP_PATH);
-        this.readRevision = RevisionVector.fromString(getRequiredProp(PROP_REVISION));
-        this.lastRevision = RevisionVector.fromString(getRequiredProp(PROP_LAST_REV));
     }
 
     private DelegatingDocumentNodeState(DelegatingDocumentNodeState original,
@@ -118,16 +115,25 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     @Override
     public String getPath() {
+        if (path == null){
+            this.path = getRequiredProp(PROP_PATH);
+        }
         return path;
     }
 
     @Override
     public RevisionVector getRevision() {
+        if (readRevision == null){
+            this.readRevision = RevisionVector.fromString(getRequiredProp(PROP_REVISION));
+        }
         return readRevision;
     }
 
     @Override
     public RevisionVector getLastRevision() {
+        if (lastRevision == null){
+            this.lastRevision = RevisionVector.fromString(getRequiredProp(PROP_LAST_REV));
+        }
         return lastRevision;
     }
 
@@ -186,7 +192,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         return Iterables.transform(delegate.getChildNodeEntries(), new Function<ChildNodeEntry, ChildNodeEntry>() {
             @Nullable
             @Override
-            public ChildNodeEntry apply(@Nullable ChildNodeEntry input) {
+            public ChildNodeEntry apply(ChildNodeEntry input) {
                 return new MemoryChildNodeEntry(input.getName(), decorate(input.getNodeState()));
             }
         });
