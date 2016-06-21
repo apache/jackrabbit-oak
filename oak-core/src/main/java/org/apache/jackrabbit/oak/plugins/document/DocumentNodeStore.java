@@ -875,17 +875,12 @@ public final class DocumentNodeStore
     AbstractDocumentNodeState getNode(@Nonnull final String path,
                               @Nonnull final RevisionVector rootRevision,
                               @Nonnull final RevisionVector rev) {
-        AbstractDocumentNodeState result = nodeCache.getIfPresent(new PathRev(path, rev));
-        if (result == null){
-            NodeStateCacheEntry entry  = nodeStateCache.getDocumentNodeState(path, rootRevision, rev);
-            if (entry.isMissing()){
-                return null;
-            } else if (entry.isFound()){
-                return entry.getState();
-            }
-        } else {
-            return result == missing
-                    || result.equals(missing) ? null : result;
+        //Check secondary cache first
+        NodeStateCacheEntry entry  = nodeStateCache.getDocumentNodeState(path, rootRevision, rev);
+        if (entry.isMissing()){
+            return null;
+        } else if (entry.isFound()){
+            return entry.getState();
         }
 
         return getNode(path, rev);
