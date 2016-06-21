@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootObserver {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -126,9 +125,9 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         NodeState state = root;
 
         //Get the parent node state
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(path)) {
             parentNodeState = state;
-            state = state.getChildNode(checkNotNull(name));
+            state = state.getChildNode(name);
         }
 
         if (parentNodeState.exists()) {
