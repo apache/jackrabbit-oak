@@ -48,6 +48,9 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
     private final NodeStateDiffer differ;
     private final MeterStats unknownPaths;
     private final MeterStats knownMissed;
+    private final MeterStats knownMissedOld;
+    private final MeterStats knownMissedNew;
+    private final MeterStats knownMissedInRange;
     private final MeterStats headRevMatched;
     private final MeterStats prevRevMatched;
     private final int maxSize = 10000;
@@ -65,6 +68,10 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         this.pathFilter = pathFilter;
         this.unknownPaths = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_UNKNOWN", StatsOptions.DEFAULT);
         this.knownMissed = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED", StatsOptions.DEFAULT);
+        this.knownMissedOld = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_OLD", StatsOptions.DEFAULT);
+        this.knownMissedNew = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_NEW", StatsOptions.DEFAULT);
+        this.knownMissedInRange = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_IN_RANGE", StatsOptions
+                .DEFAULT);
         this.headRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_HEAD", StatsOptions.DEFAULT);
         this.prevRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_OLD", StatsOptions.DEFAULT);
         this.queue = EvictingQueue.create(maxSize);
@@ -144,20 +151,30 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
 
     @CheckForNull
     private AbstractDocumentNodeState findMatchingRoot(RevisionVector rr) {
-        if (previousRoots.length == 0){
+        if (isEmpty()){
             return null;
         }
-        //TODO Binary search
-        AbstractDocumentNodeState latest = previousRoots[previousRoots.length - 1];
-        AbstractDocumentNodeState oldest = previousRoots[0];
-        if (rr.compareTo(latest.getRootRevision()) <= 0
-                && rr.compareTo(oldest.getRootRevision()) >= 0){
-            for (AbstractDocumentNodeState s : previousRoots){
-                if (s.getRootRevision().equals(rr)){
-                    return s;
-                }
-            }
+
+        //Use a local variable as the array can get changed in process
+        AbstractDocumentNodeState[] roots = previousRoots;
+        AbstractDocumentNodeState latest = roots[roots.length - 1];
+        AbstractDocumentNodeState oldest = roots[0];
+
+        if (rr.compareTo(latest.getRootRevision()) > 0){
+            knownMissedNew.mark();
+            return null;
         }
+
+        if (rr.compareTo(oldest.getRootRevision()) < 0){
+            knownMissedOld.mark();
+            return null;
+        }
+
+        AbstractDocumentNodeState result = findMatchingRoot(roots, rr);
+        if (result != null){
+            return result;
+        }
+        knownMissedInRange.mark();
         return null;
     }
 
@@ -168,5 +185,31 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
             queue.add(root);
             previousRoots = queue.toArray(EMPTY);
         }
+    }
+
+    private boolean isEmpty() {
+        return previousRoots.length == 0;
+    }
+
+
+    static AbstractDocumentNodeState findMatchingRoot(AbstractDocumentNodeState[] roots, RevisionVector key) {
+        int low = 0;
+        int high = roots.length - 1;
+
+        //Perform a binary search as the array is sorted in ascending order
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            AbstractDocumentNodeState midVal = roots[mid];
+            int cmp = midVal.getRootRevision().compareTo(key);
+
+            if (cmp < 0) {
+                low = mid + 1;
+            } else if (cmp > 0) {
+                high = mid - 1;
+            } else {
+                return midVal; // key found
+            }
+        }
+        return null;  // key not found.
     }
 }

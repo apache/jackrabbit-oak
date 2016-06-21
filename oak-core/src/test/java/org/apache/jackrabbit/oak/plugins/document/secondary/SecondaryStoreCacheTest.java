@@ -23,12 +23,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache.NodeStateCacheEntry;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
@@ -146,6 +147,43 @@ public class SecondaryStoreCacheTest {
         result
                 = cache.getDocumentNodeState("/a/c", r0.getRootRevision(), a_c_0.getLastRevision());
         assertTrue(EqualsDiff.equals(a_c_0, result.getState()));
+    }
+
+    @Test
+    public void binarySearch() throws Exception{
+        PathFilter pathFilter = new PathFilter(of("/a"), empty);
+        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
+                DEFAULT_DIFFER, StatisticsProvider.NOOP);
+        primary.addObserver(observer);
+
+        List<AbstractDocumentNodeState> roots = Lists.newArrayList();
+        List<RevisionVector> revs = Lists.newArrayList();
+        for (int i = 0; i < 50; i++) {
+            NodeBuilder nb = primary.getRoot().builder();
+            create(nb, "/a/b"+i);
+            AbstractDocumentNodeState r =
+                    (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            roots.add(r);
+            revs.add(r.getRootRevision());
+        }
+
+        AbstractDocumentNodeState[] rootsArr = Iterables.toArray(roots, AbstractDocumentNodeState.class);
+
+        Collections.shuffle(revs);
+        for (RevisionVector rev : revs){
+            AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, rev);
+            assertNotNull(result);
+            assertEquals(rev, result.getRootRevision());
+        }
+
+        NodeBuilder nb = primary.getRoot().builder();
+        create(nb, "/a/m");
+        AbstractDocumentNodeState r =
+                (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, r.getRootRevision());
+        assertNull(result);
+
     }
 
 }
