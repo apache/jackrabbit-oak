@@ -127,7 +127,7 @@ import org.slf4j.LoggerFactory;
  * Implementation of a NodeStore on {@link DocumentStore}.
  */
 public final class DocumentNodeStore
-        implements NodeStore, RevisionContext, Observable, Clusterable {
+        implements NodeStore, RevisionContext, Observable, Clusterable, NodeStateDiffer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStore.class);
 
@@ -910,7 +910,7 @@ public final class DocumentNodeStore
         }
     }
 
-    DocumentNodeState.Children getChildren(@Nonnull final DocumentNodeState parent,
+    DocumentNodeState.Children getChildren(@Nonnull final AbstractDocumentNodeState parent,
                               @Nullable final String name,
                               final int limit)
             throws DocumentStoreException {
@@ -959,7 +959,7 @@ public final class DocumentNodeStore
      * @param limit the maximum number of child nodes to return.
      * @return the children of {@code parent}.
      */
-    DocumentNodeState.Children readChildren(DocumentNodeState parent,
+    DocumentNodeState.Children readChildren(AbstractDocumentNodeState parent,
                                             String name, int limit) {
         String queriedName = name;
         String path = parent.getPath();
@@ -1494,8 +1494,9 @@ public final class DocumentNodeStore
      *         {@code false} if it was aborted as requested by the handler
      *         (see the {@link NodeStateDiff} contract for more details)
      */
-    boolean compare(@Nonnull final DocumentNodeState node,
-                    @Nonnull final DocumentNodeState base,
+    @Override
+    public boolean compare(@Nonnull final AbstractDocumentNodeState node,
+                    @Nonnull final AbstractDocumentNodeState base,
                     @Nonnull NodeStateDiff diff) {
         if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
             return false;
@@ -2169,8 +2170,8 @@ public final class DocumentNodeStore
     }
 
     private boolean dispatch(@Nonnull final String jsonDiff,
-                             @Nonnull final DocumentNodeState node,
-                             @Nonnull final DocumentNodeState base,
+                             @Nonnull final AbstractDocumentNodeState node,
+                             @Nonnull final AbstractDocumentNodeState base,
                              @Nonnull final NodeStateDiff diff) {
         return DiffCache.parseJsopDiff(jsonDiff, new DiffCache.Diff() {
             @Override
@@ -2249,7 +2250,7 @@ public final class DocumentNodeStore
         return false;
     }
 
-    private String diffImpl(DocumentNodeState from, DocumentNodeState to)
+    private String diffImpl(AbstractDocumentNodeState from, AbstractDocumentNodeState to)
             throws DocumentStoreException {
         JsopWriter w = new JsopStream();
         // TODO this does not work well for large child node lists
