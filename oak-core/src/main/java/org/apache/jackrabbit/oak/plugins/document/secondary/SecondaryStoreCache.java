@@ -122,20 +122,22 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         NodeState state = root;
 
         for (String name : PathUtils.elements(path)) {
-            if (state.exists()){
-                if (lastRev.compareTo(asDocState(state).getLastRevision()) > 0){
-                    return null;
-                }
-            }
             state = state.getChildNode(name);
+
+            if (!state.exists()){
+                return null;
+            }
+
+            //requested lastRev is > current node lastRev then no need to check further
+            if (lastRev.compareTo(asDocState(state).getLastRevision()) > 0){
+                return null;
+            }
         }
 
-        if (state.exists()) {
-            AbstractDocumentNodeState docState = asDocState(state);
-            if (lastRev.equals(docState.getLastRevision())) {
-                headRevMatched.mark();
-                return docState;
-            }
+        AbstractDocumentNodeState docState = asDocState(state);
+        if (lastRev.equals(docState.getLastRevision())) {
+            headRevMatched.mark();
+            return docState;
         }
 
         return null;
