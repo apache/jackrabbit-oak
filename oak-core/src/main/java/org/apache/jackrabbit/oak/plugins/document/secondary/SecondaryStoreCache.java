@@ -94,6 +94,12 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
 
         AbstractDocumentNodeState currentRoot = DelegatingDocumentNodeState.wrap(store.getRoot(), differ);
 
+        //If the root rev is < lastRev then secondary store is lagging and would
+        //not have the matching result
+        if (lastRev.compareTo(currentRoot.getLastRevision()) > 0){
+            return null;
+        }
+
         AbstractDocumentNodeState nodeState = findByMatchingLastRev(currentRoot, path, lastRev);
         if (nodeState != null){
             headRevMatched.mark();

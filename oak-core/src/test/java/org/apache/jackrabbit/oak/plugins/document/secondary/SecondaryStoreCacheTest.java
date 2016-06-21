@@ -165,6 +165,42 @@ public class SecondaryStoreCacheTest {
 
     }
 
+    @Test
+    public void readWithSecondaryLagging() throws Exception{
+        PathFilter pathFilter = new PathFilter(of("/a"), empty);
+        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
+                DEFAULT_DIFFER, StatisticsProvider.NOOP);
+
+        NodeBuilder nb = primary.getRoot().builder();
+        create(nb, "/a/b", "/a/c");
+        AbstractDocumentNodeState r0 = merge(nb);
+        AbstractDocumentNodeState a_c_0 = documentState(primary.getRoot(), "/a/c");
+
+        observer.contentChanged(r0, null);
+
+        AbstractDocumentNodeState result = cache.getDocumentNodeState("/a/c", r0.getRootRevision(), a_c_0
+                .getLastRevision());
+        assertTrue(EqualsDiff.equals(a_c_0, result));
+
+        //Make change in some other part of tree i.e. /a/c is unmodified
+        nb = primary.getRoot().builder();
+        create(nb, "/a/e");
+        AbstractDocumentNodeState r1 = merge(nb);
+
+        //Change is yet not pushed to secondary i.e. observer not invoked
+        //but lookup with latest root should still work fine if lastRev matches
+        result = cache.getDocumentNodeState("/a/c", r1.getRootRevision(), a_c_0
+                .getLastRevision());
+        assertTrue(EqualsDiff.equals(a_c_0, result));
+
+        //Change which is not pushed would though not be visible
+        AbstractDocumentNodeState a_e_1 = documentState(primary.getRoot(), "/a/e");
+        result = cache.getDocumentNodeState("/a/e", r1.getRootRevision(), a_e_1
+                .getLastRevision());
+        assertNull(result);
+    }
+
     private SecondaryStoreCache createCache(PathFilter pathFilter){
         SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
         SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
