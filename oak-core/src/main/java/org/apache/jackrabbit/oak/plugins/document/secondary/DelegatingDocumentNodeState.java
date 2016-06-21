@@ -49,6 +49,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     static final String PROP_PATH = ":doc-path";
     static final String PROP_REVISION = ":doc-rev";
     static final String PROP_LAST_REV = ":doc-lastRev";
+    private static final int META_PROP_COUNT = 3; //Count of above meta props
 
     private static final Predicate<PropertyState> NOT_META_PROPS = new Predicate<PropertyState>() {
         @Override
@@ -204,6 +205,66 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         checkState(!denotesRoot(getPath()), "Builder cannot be opened for root " +
                 "path for state of type [%s]", delegate.getClass());
         return new MemoryNodeBuilder(this);
+    }
+
+    //Following method should be overridden as default implementation in AbstractNodeState
+    //is not optimized
+
+    @Override
+    public PropertyState getProperty(@Nonnull String name) {
+        return delegate.getProperty(name);
+    }
+
+    @Override
+    public long getPropertyCount() {
+        return delegate.getPropertyCount() - META_PROP_COUNT;
+    }
+
+    @Override
+    public boolean hasProperty(@Nonnull String name) {
+        return delegate.hasProperty(name);
+    }
+
+    @Override
+    public boolean getBoolean(@Nonnull String name) {
+        return delegate.getBoolean(name);
+    }
+
+    @Override
+    public long getLong(String name) {
+        return delegate.getLong(name);
+    }
+
+    @Override
+    public String getString(String name) {
+        return delegate.getString(name);
+    }
+
+    @Nonnull
+    @Override
+    public Iterable<String> getStrings(@Nonnull String name) {
+        return delegate.getStrings(name);
+    }
+
+    @Override
+    public String getName(@Nonnull String name) {
+        return delegate.getName(name);
+    }
+
+    @Nonnull
+    @Override
+    public Iterable<String> getNames(@Nonnull String name) {
+        return delegate.getNames(name);
+    }
+
+    @Override
+    public long getChildNodeCount(long max) {
+        return delegate.getChildNodeCount(max);
+    }
+
+    @Override
+    public Iterable<String> getChildNodeNames() {
+        return delegate.getChildNodeNames();
     }
 
     //~--------------------------------------------< internal >
