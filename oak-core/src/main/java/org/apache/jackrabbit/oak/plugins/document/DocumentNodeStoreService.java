@@ -351,6 +351,10 @@ public class DocumentNodeStoreService {
 
     private DocumentNodeStore documentNodeStore;
 
+    private ServiceRegistration blobStoreReg;
+
+    private BlobStore defaultBlobStore;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
@@ -474,6 +478,13 @@ public class DocumentNodeStoreService {
             log.info("Connected to database '{}'", db);
         }
 
+        if (!customBlobStore){
+            defaultBlobStore = mkBuilder.getBlobStore();
+            log.info("Registering the BlobStore with ServiceRegistry");
+            blobStoreReg = context.getBundleContext().registerService(BlobStore.class.getName(),
+                    defaultBlobStore , null);
+        }
+
         //Set wrapping blob store after setting the DB
         if (wrappingCustomBlobStore) {
             ((BlobStoreWrapper) blobStore).setBlobStore(mkBuilder.getBlobStore());
@@ -558,6 +569,9 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
+        if (defaultBlobStore == blobStore){
+            return;
+        }
         log.info("Initializing DocumentNodeStore with BlobStore [{}]", blobStore);
         this.blobStore = blobStore;
         registerNodeStoreIfPossible();
@@ -621,6 +635,15 @@ public class DocumentNodeStoreService {
         if (nodeStoreReg != null) {
             nodeStoreReg.unregister();
             nodeStoreReg = null;
+        }
+
+        //If we exposed our BlobStore then unregister it *after*
+        //NodeStore service. This ensures that if any other component
+        //like SecondaryStoreCache depends on this then it remains active
+        //untill DocumentNodeStore get deactivated
+        if (blobStoreReg != null){
+            blobStoreReg.unregister();
+            blobStoreReg = null;
         }
 
         if (mk != null) {

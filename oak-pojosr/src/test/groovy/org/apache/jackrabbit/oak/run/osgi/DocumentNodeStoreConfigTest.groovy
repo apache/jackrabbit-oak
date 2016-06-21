@@ -260,6 +260,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         assert getService(BlobStoreStatsMBean.class) : "BlobStoreStatsMBean should " +
                 "be registered by DocumentNodeStoreService in default blobStore used"
 
+        assert getService(BlobStore.class) : "BlobStore service should be exposed for default setup"
         testBlobStoreStats(ns)
         testDocumentStoreStats(ns)
     }
