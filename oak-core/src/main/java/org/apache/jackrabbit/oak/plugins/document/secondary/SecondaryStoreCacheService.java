@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.SecondaryNodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -77,8 +76,8 @@ public class SecondaryStoreCacheService {
     @Reference
     private BlobStore blobStore;
 
-    @Reference
-    private SecondaryNodeStoreProvider secondaryNodeStoreProvider;
+    @Reference(target = "(type=secondary)")
+    private NodeStore secondaryStore;
 
     @Reference
     private Executor executor;
@@ -145,9 +144,8 @@ public class SecondaryStoreCacheService {
         String[] excludedPaths = toStringArray(config.get(PROP_EXCLUDES), new String[]{""});
 
         pathFilter = new PathFilter(asList(includedPaths), asList(excludedPaths));
-        NodeStore segStore = secondaryNodeStoreProvider.getSecondaryStore();
 
-        SecondaryStoreBuilder builder = new SecondaryStoreBuilder(segStore)
+        SecondaryStoreBuilder builder = new SecondaryStoreBuilder(secondaryStore)
                 .differ(differ)
                 .statisticsProvider(statisticsProvider)
                 .pathFilter(pathFilter);
