@@ -223,7 +223,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return false;
         } else {
             String p = PathUtils.concat(getPath(), name);
-            return store.getNode(p, lastRevision) != null;
+            return store.getNode(p, rootRevision, lastRevision) != null;
         }
     }
 
@@ -235,7 +235,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return EmptyNodeState.MISSING_NODE;
         }
         String p = PathUtils.concat(getPath(), name);
-        DocumentNodeState child = store.getNode(p, lastRevision);
+        AbstractDocumentNodeState child = store.getNode(p, rootRevision, lastRevision);
         if (child == null) {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;

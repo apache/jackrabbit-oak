@@ -87,6 +87,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache.NodeStateCacheEntry;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
@@ -411,6 +412,8 @@ public final class DocumentNodeStore
     private final DocumentNodeStoreMBean mbean;
 
     private final boolean readOnlyMode;
+
+    private DocumentNodeStateCache nodeStateCache = DocumentNodeStateCache.NOOP;
 
     private final DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
 
@@ -866,6 +869,26 @@ public final class DocumentNodeStore
                 markAsDeleted(child, commit, true);
             }
         }
+    }
+
+    @CheckForNull
+    AbstractDocumentNodeState getNode(@Nonnull final String path,
+                              @Nonnull final RevisionVector rootRevision,
+                              @Nonnull final RevisionVector rev) {
+        AbstractDocumentNodeState result = nodeCache.getIfPresent(new PathRev(path, rev));
+        if (result == null){
+            NodeStateCacheEntry entry  = nodeStateCache.getDocumentNodeState(path, rootRevision, rev);
+            if (entry.isMissing()){
+                return null;
+            } else if (entry.isFound()){
+                return entry.getState();
+            }
+        } else {
+            return result == missing
+                    || result.equals(missing) ? null : result;
+        }
+
+        return getNode(path, rev);
     }
 
     /**
@@ -2803,5 +2826,9 @@ public final class DocumentNodeStore
 
     public DocumentNodeStoreStatsCollector getStatsCollector() {
         return nodeStoreStatsCollector;
+    }
+
+    public void setNodeStateCache(DocumentNodeStateCache nodeStateCache) {
+        this.nodeStateCache = nodeStateCache;
     }
 }
