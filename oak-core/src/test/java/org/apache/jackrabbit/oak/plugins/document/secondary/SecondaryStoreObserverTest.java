@@ -62,7 +62,7 @@ public class SecondaryStoreObserverTest {
     @Test
     public void basicSetup() throws Exception{
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, NodeStateDiffer.DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
         NodeBuilder nb = primary.getRoot().builder();
@@ -78,7 +78,7 @@ public class SecondaryStoreObserverTest {
     @Test
     public void childNodeAdded() throws Exception{
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, NodeStateDiffer.DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
         NodeBuilder nb = primary.getRoot().builder();
@@ -96,7 +96,7 @@ public class SecondaryStoreObserverTest {
     @Test
     public void childNodeChangedAndExclude() throws Exception{
         PathFilter pathFilter = new PathFilter(of("/a"), of("a/b"));
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, NodeStateDiffer.DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
         NodeBuilder nb = primary.getRoot().builder();
@@ -113,7 +113,7 @@ public class SecondaryStoreObserverTest {
     @Test
     public void childNodeDeleted() throws Exception{
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, NodeStateDiffer.DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
         NodeBuilder nb = primary.getRoot().builder();
@@ -130,6 +130,11 @@ public class SecondaryStoreObserverTest {
     private NodeState secondaryRoot() {
         return DelegatingDocumentNodeState.wrap(secondary.getRoot(), NodeStateDiffer.DEFAULT_DIFFER);
     }
+
+    private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {
+        return new SecondaryStoreBuilder(secondary).pathFilter(pathFilter);
+    }
+
 
     private static void assertMetaState(NodeState root1, NodeState root2, String path){
         assertMetaState(documentState(root1, path), documentState(root2, path));

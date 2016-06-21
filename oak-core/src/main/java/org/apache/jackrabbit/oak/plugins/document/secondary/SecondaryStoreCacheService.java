@@ -147,9 +147,12 @@ public class SecondaryStoreCacheService {
         pathFilter = new PathFilter(asList(includedPaths), asList(excludedPaths));
         NodeStore segStore = secondaryNodeStoreProvider.getSecondaryStore();
 
-        SecondaryStoreCache cache = new SecondaryStoreCache(segStore, pathFilter, statisticsProvider, differ);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(segStore, pathFilter,
-                cache, differ, statisticsProvider);
+        SecondaryStoreBuilder builder = new SecondaryStoreBuilder(segStore)
+                .differ(differ)
+                .statisticsProvider(statisticsProvider)
+                .pathFilter(pathFilter);
+        SecondaryStoreCache cache = builder.buildCache();
+        SecondaryStoreObserver observer = builder.buildObserver(cache);
         registerObserver(observer, config);
 
         regs.add(bundleContext.registerService(DocumentNodeStateCache.class.getName(), cache, null));

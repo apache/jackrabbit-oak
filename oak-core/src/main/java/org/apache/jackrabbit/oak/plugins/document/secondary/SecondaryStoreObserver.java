@@ -52,13 +52,11 @@ class SecondaryStoreObserver implements Observer {
     private final TimerStats external;
     private boolean firstEventProcessed;
 
-    public SecondaryStoreObserver(NodeStore nodeStore, PathFilter pathFilter, NodeStateDiffer differ) {
-        this(nodeStore, pathFilter, SecondaryStoreRootObserver.NOOP, differ, StatisticsProvider.NOOP);
-    }
-
-    public SecondaryStoreObserver(NodeStore nodeStore, PathFilter pathFilter,
-                                  SecondaryStoreRootObserver secondaryObserver,
-                                  NodeStateDiffer differ, StatisticsProvider statisticsProvider) {
+    public SecondaryStoreObserver(NodeStore nodeStore,
+                                  NodeStateDiffer differ,
+                                  PathFilter pathFilter,
+                                  StatisticsProvider statisticsProvider,
+                                  SecondaryStoreRootObserver secondaryObserver) {
         this.nodeStore = nodeStore;
         this.pathFilter = pathFilter;
         this.secondaryObserver = secondaryObserver;

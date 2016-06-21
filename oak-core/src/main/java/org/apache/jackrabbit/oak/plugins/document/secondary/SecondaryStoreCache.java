@@ -56,14 +56,10 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
     private final EvictingQueue<AbstractDocumentNodeState> queue;
     private volatile AbstractDocumentNodeState[] previousRoots = EMPTY;
 
-    public SecondaryStoreCache(NodeStore store, PathFilter pathFilter, NodeStateDiffer differ) {
-        this(store, pathFilter, StatisticsProvider.NOOP, differ);
-    }
-
-    public SecondaryStoreCache(NodeStore store, PathFilter pathFilter, StatisticsProvider statisticsProvider,
-                               NodeStateDiffer differ) {
+    public SecondaryStoreCache(NodeStore nodeStore, NodeStateDiffer differ, PathFilter pathFilter,
+                               StatisticsProvider statisticsProvider) {
         this.differ = differ;
-        this.store = store;
+        this.store = nodeStore;
         this.pathFilter = pathFilter;
         this.unknownPaths = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_UNKNOWN", StatsOptions.DEFAULT);
         this.knownMissed = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED", StatsOptions.DEFAULT);
