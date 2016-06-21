@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
@@ -33,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.SecondaryNodeStoreProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -58,12 +58,7 @@ public class SecondaryStoreCacheServiceTest {
     @Before
     public void configureDefaultServices(){
         context.registerService(BlobStore.class, new MemoryBlobStore());
-        context.registerService(SecondaryNodeStoreProvider.class, new SecondaryNodeStoreProvider() {
-            @Override
-            public NodeStore getSecondaryStore() {
-                return secondaryStore;
-            }
-        });
+        context.registerService(NodeStore.class, secondaryStore, ImmutableMap.<String, Object>of("type", "secondary"));
         context.registerService(Executor.class, Executors.newSingleThreadExecutor());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         MockOsgi.injectServices(cacheService, context.bundleContext());
