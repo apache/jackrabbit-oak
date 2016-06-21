@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.FULLTEXT;
 import static org.apache.lucene.document.Field.Store.NO;
 import static org.apache.lucene.document.Field.Store.YES;
+import static org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS;
 
 /**
  * {@code FieldFactory} is a factory for <code>Field</code> instances with
@@ -59,7 +60,7 @@ public final class FieldFactory {
         OAK_TYPE.setIndexed(true);
         OAK_TYPE.setOmitNorms(true);
         OAK_TYPE.setStored(true);
-        OAK_TYPE.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS);
+        OAK_TYPE.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
         OAK_TYPE.setTokenized(true);
         OAK_TYPE.freeze();
 
