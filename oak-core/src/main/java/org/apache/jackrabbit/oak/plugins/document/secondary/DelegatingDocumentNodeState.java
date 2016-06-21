@@ -75,7 +75,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     public static NodeState wrapIfPossible(NodeState delegate, NodeStateDiffer differ) {
         if (hasMetaProps(delegate)) {
             String revVector = getRequiredProp(delegate, PROP_REVISION);
-            return new DelegatingDocumentNodeState(delegate, RevisionVector.fromString(revVector), differ);
+            return new DelegatingDocumentNodeState(delegate, RevisionVector.fromString(revVector), false, differ);
         }
         return delegate;
     }
@@ -86,14 +86,10 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     public static AbstractDocumentNodeState wrap(NodeState delegate, NodeStateDiffer differ) {
         String revVector = getRequiredProp(delegate, PROP_REVISION);
-        return new DelegatingDocumentNodeState(delegate, RevisionVector.fromString(revVector), differ);
+        return new DelegatingDocumentNodeState(delegate, RevisionVector.fromString(revVector), false, differ);
     }
 
-    public DelegatingDocumentNodeState(NodeState delegate, RevisionVector rootRevision, NodeStateDiffer differ) {
-        this(delegate, rootRevision, false, differ);
-    }
-
-    public DelegatingDocumentNodeState(NodeState delegate, RevisionVector rootRevision,
+    private DelegatingDocumentNodeState(NodeState delegate, RevisionVector rootRevision,
                                        boolean fromExternalChange, NodeStateDiffer differ) {
         super(differ);
         this.delegate = delegate;
