@@ -76,14 +76,14 @@ class SecondaryStoreObserver implements Observer {
         }
 
         Stopwatch w = Stopwatch.createStarted();
-        NodeState target = root;
+        AbstractDocumentNodeState target = (AbstractDocumentNodeState) root;
         NodeState secondaryRoot = nodeStore.getRoot();
         NodeState base = DelegatingDocumentNodeState.wrapIfPossible(secondaryRoot, differ);
         NodeBuilder builder = secondaryRoot.builder();
-        ApplyDiff diff = new PathFilteringDiff(builder, pathFilter);
+        ApplyDiff diff = new PathFilteringDiff(builder, pathFilter, target);
 
         //Copy the root node meta properties
-        PathFilteringDiff.copyMetaProperties((AbstractDocumentNodeState) target, builder);
+        PathFilteringDiff.copyMetaProperties(target, builder);
 
         //Apply the rest of properties
         target.compareAgainstBaseState(base, diff);
