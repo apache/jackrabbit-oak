@@ -58,6 +58,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         }
     };
 
+    private final NodeStateDiffer differ;
     private final NodeState delegate;
     private final RevisionVector rootRevision;
     private final boolean fromExternalChange;
@@ -91,7 +92,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     private DelegatingDocumentNodeState(NodeState delegate, RevisionVector rootRevision,
                                        boolean fromExternalChange, NodeStateDiffer differ) {
-        super(differ);
+        this.differ = differ;
         this.delegate = delegate;
         this.rootRevision = rootRevision;
         this.fromExternalChange = fromExternalChange;
@@ -99,7 +100,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     private DelegatingDocumentNodeState(DelegatingDocumentNodeState original,
                                         RevisionVector rootRevision, boolean fromExternalChange) {
-        super(original.differ);
+        this.differ = original.differ;
         this.delegate = original.delegate;
         this.rootRevision = rootRevision;
         this.fromExternalChange = fromExternalChange;
@@ -157,6 +158,11 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     public boolean hasNoChildren() {
         //Passing max as 1 so as to minimize any overhead.
         return delegate.getChildNodeCount(1) == 0;
+    }
+
+    @Override
+    protected NodeStateDiffer getNodeStateDiffer() {
+        return differ;
     }
 
     //~----------------------------------< NodeState >
