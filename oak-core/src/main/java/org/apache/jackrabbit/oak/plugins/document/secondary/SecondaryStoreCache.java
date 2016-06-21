@@ -110,7 +110,7 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         if (matchingRoot != null){
             NodeState state = NodeStateUtils.getNode(matchingRoot, path);
             if (state.exists()){
-                AbstractDocumentNodeState docState = (AbstractDocumentNodeState) state;
+                AbstractDocumentNodeState docState = asDocState(state);
                 prevRevMatched.mark();
                 return docState;
             }
@@ -126,11 +126,16 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         NodeState state = root;
 
         for (String name : PathUtils.elements(path)) {
+            if (state.exists()){
+                if (lastRev.compareTo(asDocState(state).getLastRevision()) > 0){
+                    return null;
+                }
+            }
             state = state.getChildNode(name);
         }
 
         if (state.exists()) {
-            AbstractDocumentNodeState docState = (AbstractDocumentNodeState) state;
+            AbstractDocumentNodeState docState = asDocState(state);
             if (lastRev.equals(docState.getLastRevision())) {
                 headRevMatched.mark();
                 return docState;
@@ -203,4 +208,9 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         }
         return null;  // key not found.
     }
+
+    private static AbstractDocumentNodeState asDocState(NodeState state) {
+        return (AbstractDocumentNodeState)state;
+    }
+
 }
