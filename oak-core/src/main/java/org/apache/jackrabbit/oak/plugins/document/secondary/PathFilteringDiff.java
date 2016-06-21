@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
@@ -38,19 +39,21 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 class PathFilteringDiff extends ApplyDiff {
     private static final Logger logger = LoggerFactory.getLogger(PathFilteringDiff.class);
     private final DiffContext ctx;
+    private final AbstractDocumentNodeState parent;
 
-    public PathFilteringDiff(NodeBuilder builder, PathFilter pathFilter) {
-        this(builder, new DiffContext(pathFilter));
+    public PathFilteringDiff(NodeBuilder builder, PathFilter pathFilter, AbstractDocumentNodeState parent) {
+        this(builder, new DiffContext(pathFilter), parent);
     }
 
-    private PathFilteringDiff(NodeBuilder builder, DiffContext ctx) {
+    private PathFilteringDiff(NodeBuilder builder, DiffContext ctx, AbstractDocumentNodeState parent) {
         super(builder);
         this.ctx = ctx;
+        this.parent = parent;
     }
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        AbstractDocumentNodeState afterDoc = asDocumentState(after);
+        AbstractDocumentNodeState afterDoc = asDocumentState(after, name);
         String nextPath = afterDoc.getPath();
         PathFilter.Result result = ctx.pathFilter.filter(nextPath);
         if (result == PathFilter.Result.EXCLUDE){
@@ -64,30 +67,37 @@ class PathFilteringDiff extends ApplyDiff {
         NodeBuilder childBuilder = builder.child(name);
         copyMetaProperties(afterDoc, childBuilder);
         return after.compareAgainstBaseState(EMPTY_NODE,
-                new PathFilteringDiff(childBuilder, ctx));
+                new PathFilteringDiff(childBuilder, ctx, afterDoc));
     }
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        AbstractDocumentNodeState afterDoc = asDocumentState(after);
+        AbstractDocumentNodeState afterDoc = asDocumentState(after, name);
         String nextPath = afterDoc.getPath();
         if (ctx.pathFilter.filter(nextPath) != PathFilter.Result.EXCLUDE) {
             ctx.traversingNode(nextPath);
             NodeBuilder childBuilder = builder.getChildNode(name);
             copyMetaProperties(afterDoc, childBuilder);
             return after.compareAgainstBaseState(
-                    before, new PathFilteringDiff(builder.getChildNode(name), ctx));
+                    before, new PathFilteringDiff(builder.getChildNode(name), ctx, afterDoc));
         }
         return true;
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        String path = asDocumentState(before).getPath();
+        String path = asDocumentState(before, name).getPath();
         if (ctx.pathFilter.filter(path) != PathFilter.Result.EXCLUDE) {
             return super.childNodeDeleted(name, before);
         }
         return true;
+    }
+
+    private AbstractDocumentNodeState asDocumentState(NodeState state, String name){
+        checkArgument(state instanceof AbstractDocumentNodeState, "Node %s (%s) at [%s/%s] is not" +
+                " of expected type i.e. AbstractDocumentNodeState. Parent %s (%s)",
+                state, state.getClass(), parent.getPath(), name, parent, parent.getClass());
+        return (AbstractDocumentNodeState) state;
     }
 
     static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder) {
@@ -98,10 +108,6 @@ class PathFilteringDiff extends ApplyDiff {
 
     private static PropertyState asPropertyState(String name, RevisionVector revision) {
         return createProperty(name, revision.asString());
-    }
-
-    private static AbstractDocumentNodeState asDocumentState(NodeState state){
-        return (AbstractDocumentNodeState) state;
     }
 
     private static class DiffContext {
