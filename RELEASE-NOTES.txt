@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.4
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.3 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.4 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,111 +15,75 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.3
+Changes in Oak 1.5.4
 ---------------------
 
 Technical task
 
-    [OAK-4326] - Add a flag to choose between segment store
-    implementations in the "backup" command
-    [OAK-4327] - Add a flag to choose between segment store
-    implementations in the "restore" command
-    [OAK-4328] - Add a fixture to choose between segment store
-    implementations in the "benchmark" command
-    [OAK-4329] - Add a flag to choose between segment store
-    implementations in the "console" command
-    [OAK-4330] - Add a flag to choose between segment store
-    implementations in the "debug" command
-    [OAK-4331] - Add a flag to choose between segment store
-    implementations in the "graph" command
-    [OAK-4332] - Add a flag to choose between segment store
-    implementations in the "history" command
-    [OAK-4333] - Add a flag to choose between segment store
-    implementations in the "check" command
-    [OAK-4334] - Add a flag to choose between segment store
-    implementations in the "compact" command
-    [OAK-4335] - Add a flag to choose between segment store
-    implementations in the "server" command
-    [OAK-4336] - Add a flag to choose between segment store
-    implementations in the "scalability" command
-    [OAK-4337] - Add a flag to choose between segment store
-    implementations in the "explore" command
-    [OAK-4338] - Add a flag to choose between segment store
-    implementations in the "checkpoints" command
-    [OAK-4339] - Add a flag to choose between segment store
-    implementations in the "tika" command
-    [OAK-4340] - Add a flag to choose between segment store
-    implementations in the "tarmkdiff" command
-    [OAK-4341] - Add a flag to choose between segment store
-    implementations in the "tarmkrecovery" command
-    [OAK-4342] - Add a flag to choose between segment store
-    implementations in the "dumpdatastorerefs" command
-    [OAK-4343] - Add a flag to choose between segment store
-    implementations in the "resetclusterid" command
-    [OAK-4388] - RDBDocumentStore: conditional update to _modified
-    property sometimes applied unconditionally
-    [OAK-4389] - RDBDocumentStore: add system property for disabling
-    appending updates
-    [OAK-4398] - RDBDocumentStore: dead code in internalUpdate
-    [OAK-4425] - RDBDocumentStore: upgrade MySQL JDBC driver
-    dependency to 5.1.39
+    [OAK-4102] - Break cyclic dependency of FileStore and
+    SegmentTracker
+    [OAK-4409] - RDB*Store: bump up recommended DB2 version to 10.5
+    [OAK-4482] - RDB*Store: update tomcat-jdbc test dependency
 
 Bug
 
-    [OAK-4358] - Stale cluster ids can potentially lead to lots of
-    previous docs traversal in NodeDocument.getNewestRevision
-    [OAK-4366] - SyncMBeanImpl.testSyncExternalUsersLastSyncedProperty
-    makes assumption about System.currentTimeMillis()
-    [OAK-4375] - oak-jcr has compile dependencies on oak-segment and
-    oak-segment-tar
-    [OAK-4376] - XPath: queries starting with "//" are not always
-    converted correctly
-    [OAK-4377] - TestS3Ds overwrites system property 'config'
-    [OAK-4387] - XPath: querying for nodes named "text", "element",
-    and "rep:excerpt" fails
-    [OAK-4397] - DefaultSyncContext.syncMembership may sync group of a
-    foreign IDP
-    [OAK-4423] - Possible overflow in checkpoint creation
-    [OAK-4426] - RepositorySidegrade: oak-segment to oak-segment-tar
-    should drop the name length check
+    [OAK-4420] - RepositorySidegrade: oak-segment to oak-segment-tar
+    should migrate checkpoint info
+    [OAK-4429] - [oak-blob-cloud] S3Backend#getAllIdentifiers should
+    not store all elements in memory
+    [OAK-4430] - DataStoreBlobStore#getAllChunkIds fetches DataRecord
+    when not needed
+    [OAK-4431] - Index path property should be considered optional for
+    copy on read logic
+    [OAK-4439] - Fix the errors reported by the Javadoc tool in JDK8
+    [OAK-4441] - [BlobGC] Writing of strings should be escaped
+    [OAK-4448] - Test failures that rely on expiration time to
+    experience a re-sync.
+    [OAK-4478] - Enable writer cache for offline compaction
+    [OAK-4486] - [IT][Failures] testPreferenceConversion,
+    testMongoReadPreferencesWithAge
 
 Epic
 
-    [OAK-4215] - Improve test-coverage for External Authentication
+    [OAK-4391] - Dynamic Membership for External Authentication
 
 Improvement
 
-    [OAK-4361] - Reduce performance impact of observation ACFilter
-    [OAK-4370] - Unreferenced empty VersionHistories should be deleted
-    automatically
-    [OAK-4372] - VersionGarbageCollector uses more temporary memory
-    than needed
-    [OAK-4380] - DocumentNodeState should override getPropertyCount
-    [OAK-4381] - Query engine: decouple nodetype lookup
-    [OAK-4384] - Benchmarks: add support 'automembership' config
-    option
-    [OAK-4385] - Benchmarks: proper init of
-    ExternalPrincipalConfiguration with dynamicMembership
-    [OAK-4413] - IndexCopier logs too verbose
-    [OAK-4424] - Optimize PathUtils.concat by using a properly sized
-    StringBuilder
-
-New Feature
-
-    [OAK-4101] - Consider separate external (group) principal
-    management
+    [OAK-2065] - JMX stats for operations being performed in
+    DocumentNodeStore
+    [OAK-3797] - SegmentTracker#collectBlobReferences should retain
+    fewer SegmentId instances
+    [OAK-4218] - Base SyncMBeanImpl on Oak API
+    [OAK-4368] - Excerpt extraction from the Lucene index should be
+    more selective
+    [OAK-4421] - Optimize Revison fromString and toString
+    implementation
+    [OAK-4428] - Optimize RevisionVector methods
+    [OAK-4444] - Reduce number of calls to NodeBuilder.getNodeState
+    from MergingNodeStateDiff
+    [OAK-4447] - RepositorySidegrade: oak-segment to oak-segment-tar
+    migrate without external datastore
+    [OAK-4455] - Reduce log level in
+    CompositeAuthorizationConfiguration
+    [OAK-4457] - Range constructor should use parametrized assertion
+    message
+    [OAK-4479] - Move EmptyPrincipalProvider to oak-core
+    [OAK-4483] - Remove synchronized access requirement from
+    MetricStatisticsProvider#getStats
 
 Task
 
-    [OAK-4279] - Rework offline compaction
-    [OAK-4364] - Initial Benchmarks for oak-auth-external
-    [OAK-4411] - DocumentNodeStore: Improve test coverage for
-    concurrent updates and queries
+    [OAK-4417] - Missing LoginModule Test and Documentation for
+    OAK-3508
+    [OAK-4427] - NodeDocument.fromString should also seal the returned
+    document
+    [OAK-4442] - S3DataStoreService should initialize
+    SharedS3DataStore
 
 Test
 
-    [OAK-4386] - Verify that external login with dynamic membership
-    populates subject
+    [OAK-4489] - Improve test coverage on DocumentStore for concurrent
+    query and invalidate
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
