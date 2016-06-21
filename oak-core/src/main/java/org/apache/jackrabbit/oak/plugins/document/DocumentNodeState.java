@@ -60,10 +60,6 @@ import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
  */
 public class DocumentNodeState extends AbstractDocumentNodeState implements CacheValue {
 
-    private static final PerfLogger perfLogger = new PerfLogger(
-            LoggerFactory.getLogger(DocumentNodeState.class.getName()
-                    + ".perf"));
-
     public static final Children NO_CHILDREN = new Children();
 
     /**
@@ -463,18 +459,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return cachedSecondaryState;
     }
 
-    /**
-     * Returns {@code true} if this state has the same revision as the
-     * {@code other} state. This method first compares the {@link #readRevision}
-     * and then the {@link #lastRevision}.
-     *
-     * @param other the other state to compare with.
-     * @return {@code true} if the revisions are equal, {@code false} otherwise.
-     */
-    private boolean revisionEquals(DocumentNodeState other) {
-        return this.readRevision.equals(other.readRevision)
-                || this.lastRevision.equals(other.lastRevision);
-    }
 
     /**
      * Returns up to {@code limit} child node entries, starting after the given
