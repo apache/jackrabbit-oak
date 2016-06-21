@@ -19,68 +19,31 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
-import static com.google.common.base.Preconditions.checkState;
 
 public interface DocumentNodeStateCache {
     DocumentNodeStateCache NOOP = new DocumentNodeStateCache() {
-        @Nonnull
         @Override
-        public NodeStateCacheEntry getDocumentNodeState(String path, @Nullable RevisionVector rootRevision,
-                                                        RevisionVector parentLastRev) {
-            return UNKNOWN;
+        public AbstractDocumentNodeState getDocumentNodeState(String path, @Nullable RevisionVector rootRevision,
+                                                        RevisionVector lastRev) {
+            return null;
         }
     };
-
-    NodeStateCacheEntry MISSING = new NodeStateCacheEntry(NodeStateCacheEntry.EntryType.MISSING);
-
-    NodeStateCacheEntry UNKNOWN = new NodeStateCacheEntry(NodeStateCacheEntry.EntryType.UNKNOWN);
 
     /**
      * Get the node for the given path and revision.
      *
      * @param path the path of the node.
-     * @param rootRevision
-     * @param readRevision the read revision.
-     * @return the node or {@link MISSING} if no state is there for given path and revision or {@link UNKNOWN} if
-     * cache does not have any knowledge of nodeState for given parameters
+     * @param rootRevision revision of root NodeState
+     * @param lastRev last revision of the node at given path
+     *
+     * @return nodeState at given path or null. If given revision is not present or the
+     * path is not cached then <code>null</code> would be returned
      */
-    @Nonnull
-    NodeStateCacheEntry getDocumentNodeState(String path, RevisionVector rootRevision,
-                                             RevisionVector parentLastRev);
+    @CheckForNull
+    AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision, RevisionVector lastRev);
 
-    class NodeStateCacheEntry {
-        private enum EntryType {FOUND, MISSING, UNKNOWN}
-        private final AbstractDocumentNodeState state;
-        private final EntryType entryType;
 
-        public NodeStateCacheEntry(AbstractDocumentNodeState state) {
-            this.state = state;
-            this.entryType = EntryType.FOUND;
-        }
-
-        private NodeStateCacheEntry(EntryType entryType) {
-            this.state = null;
-            this.entryType = entryType;
-        }
-
-        public AbstractDocumentNodeState getState(){
-            checkState(entryType == EntryType.FOUND, "Cannot read state from an entry of type [%s]", entryType);
-            return state;
-        }
-
-        public boolean isUnknown(){
-            return entryType == EntryType.UNKNOWN;
-        }
-
-        public boolean isMissing(){
-            return entryType == EntryType.MISSING;
-        }
-
-        public boolean isFound(){
-            return entryType == EntryType.FOUND;
-        }
-    }
 }

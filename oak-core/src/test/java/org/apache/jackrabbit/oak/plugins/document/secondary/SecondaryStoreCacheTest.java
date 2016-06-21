@@ -25,10 +25,9 @@ import java.util.List;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache.NodeStateCacheEntry;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -48,7 +47,10 @@ import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer.DEFAULT_DIFFER;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.create;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.documentState;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class SecondaryStoreCacheTest {
     private final List<String> empty = Collections.emptyList();
@@ -66,104 +68,82 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void basicTest() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, DEFAULT_DIFFER);
-        primary.addObserver(observer);
-
-        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
+        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c", "/x/y/z");
-        primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        merge(nb);
 
         RevisionVector rv1 = new RevisionVector(new Revision(1,0,1));
         RevisionVector rv2 = new RevisionVector(new Revision(1,0,3));
-        assertSame(DocumentNodeStateCache.UNKNOWN, cache.getDocumentNodeState("/a/b", rv1, rv2));
-        assertSame(DocumentNodeStateCache.UNKNOWN, cache.getDocumentNodeState("/x", rv1, rv2));
+        assertNull(cache.getDocumentNodeState("/a/b", rv1, rv2));
+        assertNull(cache.getDocumentNodeState("/x", rv1, rv2));
     }
 
     @Test
     public void updateAndReadAtReadRev() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, DEFAULT_DIFFER);
-        primary.addObserver(observer);
-
-        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
+        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c", "/x/y/z");
-        AbstractDocumentNodeState r1 =
-                (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState r1 = merge(nb);
 
         //Update some other part of tree i.e. which does not change lastRev for /a/c
         nb = primary.getRoot().builder();
         create(nb, "/a/e/d");
-        AbstractDocumentNodeState r2 =
-                (AbstractDocumentNodeState)primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState r2 = merge(nb);
 
         //Lookup should work fine
-        AbstractDocumentNodeState a_r2 = documentState(r2, "/a");
-        NodeStateCacheEntry result
+        AbstractDocumentNodeState a_r2 = documentState(r2, "/a/c");
+        AbstractDocumentNodeState result
                 = cache.getDocumentNodeState("/a/c", r2.getRootRevision(), a_r2.getLastRevision());
-        assertTrue(EqualsDiff.equals(a_r2.getChildNode("c"), result.getState()));
+        assertTrue(EqualsDiff.equals(a_r2, result));
 
         nb = primary.getRoot().builder();
         nb.child("a").child("c").remove();
-        primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState r3 = merge(nb);
 
         //Now look from older revision
-        result = cache.getDocumentNodeState("/a/c", r1.getRootRevision(), a_r2.getLastRevision());
+        result = cache.getDocumentNodeState("/a/c", r3.getRootRevision(), a_r2.getLastRevision());
 
         //now as its not visible from head it would not be visible
-        assertSame(DocumentNodeStateCache.UNKNOWN, result);
+        assertNull(result);
     }
 
     @Test
     public void updateAndReadAtPrevRevision() throws Exception {
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
-                DEFAULT_DIFFER, StatisticsProvider.NOOP);
-        primary.addObserver(observer);
+        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c");
-        AbstractDocumentNodeState r0 =
-                (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState r0 = merge(nb);
         AbstractDocumentNodeState a_c_0 = documentState(primary.getRoot(), "/a/c");
 
         //Update some other part of tree i.e. which does not change lastRev for /a/c
         nb = primary.getRoot().builder();
         create(nb, "/a/c/d");
-        AbstractDocumentNodeState r1 =
-                (AbstractDocumentNodeState)primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState r1 = merge(nb);
         AbstractDocumentNodeState a_c_1 = documentState(primary.getRoot(), "/a/c");
 
-        NodeStateCacheEntry result
+        AbstractDocumentNodeState result
                 = cache.getDocumentNodeState("/a/c", r1.getRootRevision(), a_c_1.getLastRevision());
-        assertTrue(EqualsDiff.equals(a_c_1, result.getState()));
+        assertTrue(EqualsDiff.equals(a_c_1, result));
 
         //Read from older revision
-        result
-                = cache.getDocumentNodeState("/a/c", r0.getRootRevision(), a_c_0.getLastRevision());
-        assertTrue(EqualsDiff.equals(a_c_0, result.getState()));
+        result = cache.getDocumentNodeState("/a/c", r0.getRootRevision(), a_c_0.getLastRevision());
+        assertTrue(EqualsDiff.equals(a_c_0, result));
     }
 
     @Test
     public void binarySearch() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
-                DEFAULT_DIFFER, StatisticsProvider.NOOP);
-        primary.addObserver(observer);
+        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         List<AbstractDocumentNodeState> roots = Lists.newArrayList();
         List<RevisionVector> revs = Lists.newArrayList();
         for (int i = 0; i < 50; i++) {
             NodeBuilder nb = primary.getRoot().builder();
             create(nb, "/a/b"+i);
-            AbstractDocumentNodeState r =
-                    (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            AbstractDocumentNodeState r = merge(nb);
             roots.add(r);
             revs.add(r.getRootRevision());
         }
@@ -179,11 +159,23 @@ public class SecondaryStoreCacheTest {
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/m");
-        AbstractDocumentNodeState r =
-                (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState r = merge(nb);
         AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, r.getRootRevision());
         assertNull(result);
 
+    }
+
+    private SecondaryStoreCache createCache(PathFilter pathFilter){
+        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
+        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
+                DEFAULT_DIFFER, StatisticsProvider.NOOP);
+        primary.addObserver(observer);
+
+        return cache;
+    }
+
+    private AbstractDocumentNodeState merge(NodeBuilder nb) throws CommitFailedException {
+        return (AbstractDocumentNodeState) primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 }
