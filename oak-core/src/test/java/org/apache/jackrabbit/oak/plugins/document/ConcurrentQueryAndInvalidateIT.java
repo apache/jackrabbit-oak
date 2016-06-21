@@ -43,16 +43,38 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
     private volatile long counter;
 
     @Test
-    public void cacheUpdate() throws Exception {
-        cacheUpdate(false);
+    public void cacheUpdateInvalidateWithIDs() throws Exception {
+        cacheUpdate(new Invalidate() {
+            @Override
+            public void perform(DocumentStore store, Iterable<String> ids) {
+                store.invalidateCache(ids);
+            }
+        });
     }
 
     @Test
     public void cacheUpdateInvalidateAll() throws Exception {
-        cacheUpdate(true);
+        cacheUpdate(new Invalidate() {
+            @Override
+            public void perform(DocumentStore store, Iterable<String> ids) {
+                store.invalidateCache();
+            }
+        });
     }
 
-    private void cacheUpdate(final boolean invalidateAll) throws Exception {
+    @Test
+    public void cacheUpdateInvalidateIndividual() throws Exception {
+        cacheUpdate(new Invalidate() {
+            @Override
+            public void perform(DocumentStore store, Iterable<String> ids) {
+                for (String id : ids) {
+                    store.invalidateCache(NODES, id);
+                }
+            }
+        });
+    }
+
+    private void cacheUpdate(final Invalidate inv) throws Exception {
         Revision r = newRevision();
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
@@ -82,11 +104,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
                     // update docs on ds2
                     Iterable<String> ids = updateDocuments();
                     // invalidate docs on ds1
-                    if (invalidateAll) {
-                        ds1.invalidateCache();
-                    } else {
-                        ds1.invalidateCache(ids);
-                    }
+                    inv.perform(ds1, ids);
                 }
             });
             q.start();
@@ -119,5 +137,9 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
         NodeDocument.setLastRev(op, newRevision());
         ds2.update(NODES, ids, op);
         return ids;
+    }
+
+    private interface Invalidate {
+        void perform(DocumentStore store, Iterable<String> ids);
     }
 }
