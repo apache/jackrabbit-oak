@@ -104,7 +104,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                               @Nullable RevisionVector lastRevision,
                               @Nullable RevisionVector rootRevision,
                               boolean fromExternalChange) {
-        super(store);
         this.store = checkNotNull(store);
         this.path = checkNotNull(path);
         this.readRevision = checkNotNull(readRevision);
@@ -352,6 +351,11 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Override
     public boolean hasNoChildren() {
         return !hasChildren;
+    }
+
+    @Override
+    protected NodeStateDiffer getNodeStateDiffer() {
+        return store;
     }
 
     @Override

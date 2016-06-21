@@ -36,11 +36,6 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
     private static final PerfLogger perfLogger = new PerfLogger(
             LoggerFactory.getLogger(AbstractDocumentNodeState.class.getName()
                     + ".perf"));
-    protected final NodeStateDiffer differ;
-
-    protected AbstractDocumentNodeState(NodeStateDiffer differ) {
-        this.differ = differ;
-    }
 
     public abstract String getPath();
 
@@ -69,6 +64,8 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
                                                boolean externalChange);
 
     public abstract boolean hasNoChildren();
+
+    protected abstract NodeStateDiffer getNodeStateDiffer();
 
     //--------------------------< NodeState >-----------------------------------
 
@@ -116,7 +113,7 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
                     // use DocumentNodeStore compare
                     final long start = perfLogger.start();
                     try {
-                        return differ.compare(this, mBase, diff);
+                        return getNodeStateDiffer().compare(this, mBase, diff);
                     } finally {
                         if (start > 0) {
                             perfLogger
