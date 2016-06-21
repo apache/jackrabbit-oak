@@ -68,6 +68,7 @@ public class DelegatingDocumentNodeStateTest {
 
         AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
         assertEquals(1, Iterables.size(state.getProperties()));
+        assertEquals(1, state.getPropertyCount());
     }
 
     @Test
