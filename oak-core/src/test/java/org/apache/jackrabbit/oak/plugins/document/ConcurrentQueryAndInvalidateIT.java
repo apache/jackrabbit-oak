@@ -21,7 +21,6 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -31,13 +30,11 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperL
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
-public class ConcurrentQueryAndInvalidateIT extends AbstractDocumentStoreTest {
+public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTest {
 
     public ConcurrentQueryAndInvalidateIT(DocumentStoreFixture dsf) {
         super(dsf);
-        assumeTrue(dsf.hasSinglePersistence());
         assumeFalse(dsf instanceof DocumentStoreFixture.RDBFixture);
     }
 
@@ -45,15 +42,17 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractDocumentStoreTest {
 
     private volatile long counter;
 
-    private DocumentStore ds2;
-
-    @Before
-    public void setupSecondDocumentStore() {
-        ds2 = dsf.createDocumentStore(2);
+    @Test
+    public void cacheUpdate() throws Exception {
+        cacheUpdate(false);
     }
 
     @Test
-    public void cacheUpdate() throws Exception {
+    public void cacheUpdateInvalidateAll() throws Exception {
+        cacheUpdate(true);
+    }
+
+    private void cacheUpdate(final boolean invalidateAll) throws Exception {
         Revision r = newRevision();
         List<UpdateOp> ops = Lists.newArrayList();
         List<String> ids = Lists.newArrayList();
@@ -66,10 +65,10 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractDocumentStoreTest {
             ops.add(op);
             removeMe.add(id);
         }
-        ds.remove(NODES, ids);
-        ds.create(NODES, ops);
+        ds1.remove(NODES, ids);
+        ds1.create(NODES, ops);
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 200; i++) {
             Thread q = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -83,7 +82,11 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractDocumentStoreTest {
                     // update docs on ds2
                     Iterable<String> ids = updateDocuments();
                     // invalidate docs on ds1
-                    invalidateDocuments(ids);
+                    if (invalidateAll) {
+                        ds1.invalidateCache();
+                    } else {
+                        ds1.invalidateCache(ids);
+                    }
                 }
             });
             q.start();
@@ -91,7 +94,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractDocumentStoreTest {
             q.join();
             u.join();
             for (int j = 0; j < NUM_NODES; j++) {
-                NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/node-" + j));
+                NodeDocument doc = ds1.find(NODES, Utils.getIdFromPath("/node-" + j));
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
                         counter, doc.getLastRev().get(1).getTimestamp());
@@ -104,11 +107,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractDocumentStoreTest {
     }
 
     private void queryDocuments() {
-        ds.query(NODES, getKeyLowerLimit("/"), getKeyUpperLimit("/"), 100);
-    }
-
-    private void invalidateDocuments(Iterable<String> ids) {
-        ds.invalidateCache(ids);
+        ds1.query(NODES, getKeyLowerLimit("/"), getKeyUpperLimit("/"), 100);
     }
 
     private Iterable<String> updateDocuments() {
