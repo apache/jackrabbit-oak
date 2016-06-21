@@ -38,13 +38,11 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer.DEFAULT_DIFFER;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.create;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.documentState;
 import static org.junit.Assert.assertEquals;
@@ -168,9 +166,8 @@ public class SecondaryStoreCacheTest {
     @Test
     public void readWithSecondaryLagging() throws Exception{
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
-        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
-                DEFAULT_DIFFER, StatisticsProvider.NOOP);
+        SecondaryStoreCache cache = createBuilder(pathFilter).buildCache();
+        SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver(cache);
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c");
@@ -202,12 +199,16 @@ public class SecondaryStoreCacheTest {
     }
 
     private SecondaryStoreCache createCache(PathFilter pathFilter){
-        SecondaryStoreCache cache = new SecondaryStoreCache(secondary, pathFilter, DEFAULT_DIFFER);
-        SecondaryStoreObserver observer = new SecondaryStoreObserver(secondary, pathFilter, cache,
-                DEFAULT_DIFFER, StatisticsProvider.NOOP);
+        SecondaryStoreBuilder builder = createBuilder(pathFilter);
+        SecondaryStoreCache cache = builder.buildCache();
+        SecondaryStoreObserver observer = builder.buildObserver(cache);
         primary.addObserver(observer);
 
         return cache;
+    }
+
+    private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {
+        return new SecondaryStoreBuilder(secondary).pathFilter(pathFilter);
     }
 
     private AbstractDocumentNodeState merge(NodeBuilder nb) throws CommitFailedException {
