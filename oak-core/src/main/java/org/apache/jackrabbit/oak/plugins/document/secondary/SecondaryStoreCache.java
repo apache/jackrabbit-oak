@@ -76,29 +76,28 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         this.queue = EvictingQueue.create(maxSize);
     }
 
-    @Nonnull
+    @CheckForNull
     @Override
-    public NodeStateCacheEntry getDocumentNodeState(String path, RevisionVector rootRevision,
-                                                    RevisionVector parentLastRev) {
+    public AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision,
+                                                    RevisionVector lastRev) {
         //TODO We might need skip the calls if they occur due to SecondaryStoreObserver
         //doing the diff or in the startup when we try to sync the state
         PathFilter.Result result = pathFilter.filter(path);
         if (result != PathFilter.Result.INCLUDE) {
             unknownPaths.mark();
-            return DocumentNodeStateCache.UNKNOWN;
+            return null;
         }
 
         if (!DelegatingDocumentNodeState.hasMetaProps(store.getRoot())){
-            return DocumentNodeStateCache.UNKNOWN;
+            return null;
         }
 
         AbstractDocumentNodeState currentRoot = DelegatingDocumentNodeState.wrap(store.getRoot(), differ);
 
-        NodeStateCacheEntry cacheEntryResult = findByMatchingParentLastRev(currentRoot, path,
-                rootRevision, parentLastRev);
-        if (cacheEntryResult != DocumentNodeStateCache.UNKNOWN){
+        AbstractDocumentNodeState nodeState = findByMatchingLastRev(currentRoot, path, lastRev);
+        if (nodeState != null){
             headRevMatched.mark();
-            return cacheEntryResult;
+            return nodeState;
         }
 
         AbstractDocumentNodeState matchingRoot = findMatchingRoot(rootRevision);
@@ -107,45 +106,32 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
             if (state.exists()){
                 AbstractDocumentNodeState docState = (AbstractDocumentNodeState) state;
                 prevRevMatched.mark();
-                return new NodeStateCacheEntry(docState);
-            } else {
-                return DocumentNodeStateCache.MISSING;
+                return docState;
             }
         }
 
-        //TODO Check in tail if rootRevision is not in our maintained list of root
         knownMissed.mark();
-        return DocumentNodeStateCache.UNKNOWN;
+        return null;
     }
 
-    @Nonnull
-    private NodeStateCacheEntry findByMatchingParentLastRev(AbstractDocumentNodeState root, String path,
-                                                            RevisionVector rootRevision, RevisionVector parentLastRev){
-        NodeState parentNodeState = root;
+    @CheckForNull
+    private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root, String path,
+                                                      RevisionVector lastRev){
         NodeState state = root;
 
-        //Get the parent node state
         for (String name : PathUtils.elements(path)) {
-            parentNodeState = state;
             state = state.getChildNode(name);
         }
 
-        if (parentNodeState.exists()) {
-            AbstractDocumentNodeState parentDocState = (AbstractDocumentNodeState) parentNodeState;
-            //So parent state exists and matches the expected revision
-            if (parentLastRev.equals(parentDocState.getLastRevision())) {
+        if (state.exists()) {
+            AbstractDocumentNodeState docState = (AbstractDocumentNodeState) state;
+            if (lastRev.equals(docState.getLastRevision())) {
                 headRevMatched.mark();
-                if (state.exists()) {
-                    AbstractDocumentNodeState stateAtExpectedRootRev =
-                            ((AbstractDocumentNodeState) state).withRootRevision(rootRevision, false);
-                    return new NodeStateCacheEntry(stateAtExpectedRootRev);
-                } else {
-                    return DocumentNodeStateCache.MISSING;
-                }
+                return docState;
             }
         }
 
-        return DocumentNodeStateCache.UNKNOWN;
+        return null;
     }
 
     @CheckForNull

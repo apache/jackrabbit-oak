@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -84,6 +85,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     final boolean hasChildren;
 
     private final DocumentNodeStore store;
+
+    private AbstractDocumentNodeState cachedSecondaryState;
 
     DocumentNodeState(@Nonnull DocumentNodeStore store,
                       @Nonnull String path,
@@ -222,8 +225,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         if (!hasChildren || !isValidName(name)) {
             return false;
         } else {
-            String p = PathUtils.concat(getPath(), name);
-            return store.getNode(p, rootRevision, lastRevision) != null;
+            return getChildNodeDoc(name) != null;
         }
     }
 
@@ -234,8 +236,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         }
-        String p = PathUtils.concat(getPath(), name);
-        AbstractDocumentNodeState child = store.getNode(p, rootRevision, lastRevision);
+        AbstractDocumentNodeState child = getChildNodeDoc(name);
         if (child == null) {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
@@ -273,6 +274,12 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         if (!hasChildren) {
             return Collections.emptyList();
         }
+
+        AbstractDocumentNodeState secondaryState = getSecondaryNodeState();
+        if (secondaryState != null){
+            return secondaryState.getChildNodeEntries();
+        }
+
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
@@ -432,6 +439,29 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     //------------------------------< internal >--------------------------------
+
+    @CheckForNull
+    private AbstractDocumentNodeState getChildNodeDoc(String childNodeName){
+        AbstractDocumentNodeState secondaryState = getSecondaryNodeState();
+        if (secondaryState != null){
+            NodeState result = secondaryState.getChildNode(childNodeName);
+            //If given child node exist then cast it and return
+            //else return null
+            if (result.exists()){
+                return (AbstractDocumentNodeState) result;
+            }
+            return null;
+        }
+        return store.getNode(PathUtils.concat(getPath(), childNodeName), lastRevision);
+    }
+
+    @CheckForNull
+    private AbstractDocumentNodeState getSecondaryNodeState(){
+        if (cachedSecondaryState == null){
+            cachedSecondaryState = store.getSecondaryNodeState(getPath(), rootRevision, lastRevision);
+        }
+        return cachedSecondaryState;
+    }
 
     /**
      * Returns {@code true} if this state has the same revision as the
