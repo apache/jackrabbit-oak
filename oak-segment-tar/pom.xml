@@ -23,14 +23,19 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.6-SNAPSHOT</version>
-        <relativePath>../oak-parent/pom.xml</relativePath>
+        <version>1.5.3</version>
+        <relativePath/>
     </parent>
 
     <artifactId>oak-segment-tar</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
+
+    <properties>
+        <oak.version>1.5.3</oak.version>
+    </properties>
 
     <build>
         <plugins>
@@ -48,10 +53,21 @@
                 <artifactId>maven-scr-plugin</artifactId>
             </plugin>
             <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip>
+                    <systemPropertyVariables>
+                        <nsfixtures>SEGMENT_TAR</nsfixtures>
+                    </systemPropertyVariables>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -63,25 +79,25 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-commons</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob-cloud</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -162,14 +178,14 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-commons</artifactId>
-            <version>${project.version}</version>
+            <version>${oak.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
