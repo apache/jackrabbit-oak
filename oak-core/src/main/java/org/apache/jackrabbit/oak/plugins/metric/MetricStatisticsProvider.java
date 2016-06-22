@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.io.Closeable;
 import java.util.Hashtable;
-import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -59,7 +59,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
     private static final String JMX_TYPE_METRICS = "Metrics";
 
-    private final Map<String, Stats> statsRegistry = Maps.newHashMap();
+    private final ConcurrentMap<String, Stats> statsRegistry = Maps.newConcurrentMap();
     private final MetricRegistry registry;
     private final JmxReporter reporter;
     private final RepositoryStatisticsImpl repoStats;
@@ -125,17 +125,25 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         return repoStats;
     }
 
-    private synchronized <T extends Stats> T getStats(String name, StatsBuilder<T> builder, StatsOptions options) {
+    private <T extends Stats> T getStats(String name, StatsBuilder<T> builder, StatsOptions options) {
         Stats stats = statsRegistry.get(name);
+        //Use double locking pattern. The map should get populated with required set
+        //during startup phase so for later calls should not hit the synchronized block
         if (stats == null) {
-            if (options.isOnlyMetricEnabled()) {
-                stats = builder.newMetric(this, name);
-            } else if (options.isOnlyTimeSeriesEnabled()){
-                stats = new SimpleStats(getTimerSeriesStats(name, builder), builder.getType());
-            } else {
-                stats = builder.newComposite(getTimerSeriesStats(name, builder), this, name);
+            synchronized (this){
+                stats = statsRegistry.get(name);
+                //If still null then go ahead and create it within lock
+                if (stats == null){
+                    if (options.isOnlyMetricEnabled()) {
+                        stats = builder.newMetric(this, name);
+                    } else if (options.isOnlyTimeSeriesEnabled()) {
+                        stats = new SimpleStats(getTimerSeriesStats(name, builder), builder.getType());
+                    } else {
+                        stats = builder.newComposite(getTimerSeriesStats(name, builder), this, name);
+                    }
+                    statsRegistry.put(name, stats);
+                }
             }
-            statsRegistry.put(name, stats);
         }
 
         if (builder.isInstance(stats)) {
