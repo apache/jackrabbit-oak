@@ -265,6 +265,13 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
+     * @return keys stored in cache
+     */
+    public Iterable<CacheValue> keys() {
+        return nodesCache.asMap().keySet();
+    }
+
+    /**
      * Returns a view of the entries stored in this cache as a thread-safe map.
      * Modifications made to the map directly affect the cache.
      */
