@@ -53,6 +53,15 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
+    private static boolean eagerFlush = Boolean
+            .getBoolean("oak.compaction.eagerFlush");
+
+    static {
+        if (eagerFlush) {
+            log.debug("Eager flush enabled.");
+        }
+    }
+
     /**
      * Locks down the RecordId persistence structure
      */
@@ -180,7 +189,12 @@ public class Compactor {
                 }
             }
 
-            NodeBuilder child = EmptyNodeState.EMPTY_NODE.builder();
+            NodeBuilder child;
+            if (eagerFlush) {
+                child = builder.setChildNode(name);
+            } else {
+                child = EmptyNodeState.EMPTY_NODE.builder();
+            }
             boolean success = EmptyNodeState.compareAgainstEmptyState(after,
                     new CompactDiff(child, path, name));
 
