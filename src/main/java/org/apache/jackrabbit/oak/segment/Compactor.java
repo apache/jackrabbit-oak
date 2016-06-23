@@ -57,6 +57,14 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
+    private static boolean eagerFlush = Boolean.getBoolean("oak.compaction.eagerFlush");
+
+    static {
+        if (eagerFlush) {
+            log.debug("Eager flush enabled.");
+        }
+    }
+
     private final SegmentReader reader;
 
     private final BlobStore blobStore;
@@ -234,7 +242,12 @@ public class Compactor {
 
             progress.onNode();
             try {
-                NodeBuilder child = EMPTY_NODE.builder();
+                NodeBuilder child;
+                if (eagerFlush) {
+                    child = builder.setChildNode(name);
+                } else {
+                    child = EMPTY_NODE.builder();
+                }
                 boolean success = new CompactDiff(child, path, name).diff(
                         EMPTY_NODE, after);
                 if (success) {
