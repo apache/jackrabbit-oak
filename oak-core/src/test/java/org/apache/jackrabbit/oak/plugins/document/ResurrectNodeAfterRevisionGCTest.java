@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -39,8 +38,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
-@Ignore
 public class ResurrectNodeAfterRevisionGCTest
         extends AbstractMultiDocumentStoreTest {
 
@@ -50,6 +49,7 @@ public class ResurrectNodeAfterRevisionGCTest
 
     public ResurrectNodeAfterRevisionGCTest(DocumentStoreFixture dsf) {
         super(dsf);
+        assumeFalse(dsf instanceof DocumentStoreFixture.RDBFixture);
     }
 
     @Before
@@ -66,6 +66,7 @@ public class ResurrectNodeAfterRevisionGCTest
         }
         c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
+        Revision.setClock(c);
         ns1 = new DocumentMK.Builder().setAsyncDelay(0)
                 .clock(c).setClusterId(1).setDocumentStore(ds1).getNodeStore();
         ns2 = new DocumentMK.Builder().setAsyncDelay(0)
@@ -76,6 +77,7 @@ public class ResurrectNodeAfterRevisionGCTest
     public void disposeNodeStores() {
         ns1.dispose();
         ns2.dispose();
+        Revision.resetClockToDefault();
     }
 
     @Test
