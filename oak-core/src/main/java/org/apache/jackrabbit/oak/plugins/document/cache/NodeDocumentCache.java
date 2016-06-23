@@ -105,23 +105,25 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Invalidate document with given keys iff their mod counts are different as
-     * passed in the map.
+     * Invalidate document with given keys iff their modification stamps are
+     * different as passed in the map.
      *
-     * @param modCounts map where key is the document id and the value is the mod count
+     * @param modStamps map where key is the document id and the value is the
+     *                  modification stamps.
      * @return number of invalidated entries
      */
     @Nonnegative
-    public int invalidateOutdated(@Nonnull Map<String, Long> modCounts) {
+    public int invalidateOutdated(@Nonnull Map<String, ModificationStamp> modStamps) {
         int invalidatedCount = 0;
-        for (Entry<String, Long> e : modCounts.entrySet()) {
+        for (Entry<String, ModificationStamp> e : modStamps.entrySet()) {
             String id = e.getKey();
-            Long modCount = e.getValue();
+            ModificationStamp stamp = e.getValue();
             NodeDocument doc = getIfPresent(id);
             if (doc == null) {
                 continue;
             }
-            if (!Objects.equal(modCount, doc.getModCount())) {
+            if (!Objects.equal(stamp.modCount, doc.getModCount())
+                    || !Objects.equal(stamp.modified, doc.getModified())) {
                 invalidate(id);
                 invalidatedCount++;
             }
