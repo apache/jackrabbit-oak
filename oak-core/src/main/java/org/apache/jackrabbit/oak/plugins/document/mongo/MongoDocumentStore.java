@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheChangesTracker;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
@@ -309,11 +310,11 @@ public class MongoDocumentStore implements DocumentStore {
                         ids.size(), size);
             }
 
-            Map<String, Long> modCounts = getModCounts(ids);
+            Map<String, ModificationStamp> modStamps = getModStamps(ids);
             result.queryCount++;
 
-            int invalidated = nodesCache.invalidateOutdated(modCounts);
-            for (String id : filter(ids, not(in(modCounts.keySet())))) {
+            int invalidated = nodesCache.invalidateOutdated(modStamps);
+            for (String id : filter(ids, not(in(modStamps.keySet())))) {
                 nodesCache.invalidate(id);
                 invalidated++;
             }
@@ -1139,17 +1140,17 @@ public class MongoDocumentStore implements DocumentStore {
             try {
                 dbCollection.update(query.get(), update, false, true);
                 if (collection == Collection.NODES) {
-                    Map<String, Long> modCounts = getModCounts(filterValues(cachedDocs, notNull()).keySet());
+                    Map<String, ModificationStamp> modCounts = getModStamps(filterValues(cachedDocs, notNull()).keySet());
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         // the cachedDocs is not empty, so the collection = NODES
                         Lock lock = nodeLocks.acquire(entry.getKey());
                         try {
-                            Long postUpdateModCount = modCounts.get(entry.getKey());
-                            if (postUpdateModCount != null
+                            ModificationStamp postUpdateModStamp = modCounts.get(entry.getKey());
+                            if (postUpdateModStamp != null
                                     && entry.getValue() != null
                                     && entry.getValue() != NodeDocument.NULL
-                                    && Long.valueOf(postUpdateModCount - 1).equals(entry.getValue().getModCount())) {
+                                    && Long.valueOf(postUpdateModStamp.modCount - 1).equals(entry.getValue().getModCount())) {
                                 // post update modCount is one higher than
                                 // what we currently see in the cache. we can
                                 // replace the cached document
@@ -1179,30 +1180,40 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     /**
-     * Returns the {@link Document#MOD_COUNT} value of the documents with the
+     * Returns the {@link Document#MOD_COUNT} and
+     * {@link NodeDocument#MODIFIED_IN_SECS} values of the documents with the
      * given {@code keys}. The returned map will only contain entries for
-     * existing documents.
+     * existing documents. The default value is -1 if the document does not have
+     * a modCount field. The same applies to the modified field.
      *
      * @param keys the keys of the documents.
-     * @return map with key to {@link Document#MOD_COUNT} value mapping.
+     * @return map with key to modification stamp mapping.
      * @throws MongoException if the call fails
      */
     @Nonnull
-    private Map<String, Long> getModCounts(Iterable<String> keys)
+    private Map<String, ModificationStamp> getModStamps(Iterable<String> keys)
             throws MongoException {
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // Fetch only the modCount and id
         final BasicDBObject fields = new BasicDBObject(Document.ID, 1);
         fields.put(Document.MOD_COUNT, 1);
+        fields.put(NodeDocument.MODIFIED_IN_SECS, 1);
 
         DBCursor cursor = nodes.find(query.get(), fields);
         cursor.setReadPreference(ReadPreference.primary());
 
-        Map<String, Long> modCounts = Maps.newHashMap();
+        Map<String, ModificationStamp> modCounts = Maps.newHashMap();
         for (DBObject obj : cursor) {
             String id = (String) obj.get(Document.ID);
             Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
-            modCounts.put(id, modCount);
+            if (modCount == null) {
+                modCount = -1L;
+            }
+            Long modified = Utils.asLong((Number) obj.get(NodeDocument.MODIFIED_IN_SECS));
+            if (modified == null) {
+                modified = -1L;
+            }
+            modCounts.put(id, new ModificationStamp(modCount, modified));
         }
         return modCounts;
     }
