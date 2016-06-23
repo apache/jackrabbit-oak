@@ -454,11 +454,23 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     }
 
     @Override
-    public Iterator<DataRecord> getAllRecords() {
+    public Iterator<DataRecord> getAllRecords() throws DataStoreException {
         if (delegate instanceof SharedDataStore) {
             return ((SharedDataStore) delegate).getAllRecords();
+        } else {
+            return Iterators.transform(delegate.getAllIdentifiers(),
+                new Function<DataIdentifier, DataRecord>() {
+                    @Nullable @Override
+                    public DataRecord apply(@Nullable DataIdentifier input) {
+                        try {
+                            return delegate.getRecord(input);
+                        } catch (DataStoreException e) {
+                            log.warn("Error occurred while fetching DataRecord for identifier {}", input, e);
+                        }
+                        return null;
+                    }
+            });
         }
-        return Iterators.emptyIterator();
     }
 
     @Override
