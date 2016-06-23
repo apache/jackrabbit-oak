@@ -80,7 +80,7 @@ public interface SharedDataStore {
      *
      * @return iterator over DataRecords
      */
-    Iterator<DataRecord> getAllRecords();
+    Iterator<DataRecord> getAllRecords() throws DataStoreException;
 
     /**
      * Gets the type.
