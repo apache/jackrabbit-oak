@@ -2102,14 +2102,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         StringBuilder s = new StringBuilder();
-        for (int k = 0; k < 1000; k++) {
+        for (int k = 0; k < 100; k++) {
             s.append("foo bar ").append(k).append(" ");
         }
         String text = s.toString();
         List<String> names = new LinkedList<String>();
         for (int j = 0; j < 30; j++) {
             Tree test = root.getTree("/").addChild("ex-test-" + j);
-            for (int i = 0; i < 200; i++) {
+            for (int i = 0; i < 100; i++) {
                 String name = "cont" + i;
                 test.addChild(name).setProperty("text", text);
                 names.add("/" + test.getName() + "/" + name);
