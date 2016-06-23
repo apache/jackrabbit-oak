@@ -34,7 +34,7 @@ public class S3DataStoreService extends AbstractDataStoreService{
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
-        S3DataStore dataStore = new S3DataStore();
+        SharedS3DataStore dataStore = new SharedS3DataStore();
 
         Properties properties = new Properties();
         properties.putAll(config);
