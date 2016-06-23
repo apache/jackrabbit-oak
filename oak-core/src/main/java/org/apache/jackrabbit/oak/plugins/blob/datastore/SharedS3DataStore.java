@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -66,6 +67,11 @@ public class SharedS3DataStore extends S3DataStore implements SharedDataStore {
     @Override
     public void deleteAllMetadataRecords(String prefix) {
         backend.deleteAllMetadataRecords(prefix);
+    }
+
+    @Override
+    public Iterator<DataRecord> getAllRecords() {
+        return backend.getAllRecords();
     }
 
     @Override

@@ -218,6 +218,26 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     }
 
     @Override
+    public Iterator<DataRecord> getAllRecords() {
+        final String path = normalizeNoEndSeparator(getPath());
+        final OakFileDataStore store = this;
+        return Files.fileTreeTraverser().postOrderTraversal(new File(getPath()))
+            .filter(new Predicate<File>() {
+                @Override
+                public boolean apply(File input) {
+                    return input.isFile() &&
+                        !normalizeNoEndSeparator(input.getParent()).equals(path);
+                }
+            })
+            .transform(new Function<File, DataRecord>() {
+                @Override
+                public DataRecord apply(File input) {
+                    return new FileDataRecord(store, new DataIdentifier(input.getName()), input);
+                }
+            }).iterator();
+    }
+
+    @Override
     public Type getType() {
         return Type.SHARED;
     }
