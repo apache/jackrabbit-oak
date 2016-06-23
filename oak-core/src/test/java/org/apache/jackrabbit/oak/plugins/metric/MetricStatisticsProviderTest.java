@@ -23,7 +23,7 @@ import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -151,10 +151,11 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void concurrentAccess() throws Exception{
-        //Queue is used to collect instances with minimal overhead in concurrent scenario
-        final Queue<MeterStats> statsQueue = new ConcurrentLinkedDeque<MeterStats>();
-        List<Thread> threads = Lists.newArrayList();
         int numWorker = 5;
+        //Queue is used to collect instances with minimal overhead in concurrent scenario
+        final Queue<MeterStats> statsQueue = new ArrayBlockingQueue<MeterStats>(numWorker);
+        List<Thread> threads = Lists.newArrayList();
+
         final CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < numWorker; i++) {
             threads.add(new Thread(new Runnable() {
