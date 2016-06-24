@@ -43,7 +43,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -63,13 +62,11 @@ import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
-import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -185,13 +182,6 @@ final class SegmentTarUtils {
         FileStore store = newFileStoreBuilder(directory.getAbsolutePath(),
                 force).withGCOptions(defaultGCOptions().setOffline()).build();
         try {
-            System.out.println("Compacting " + directory);
-            System.out.println("    before " + Arrays.toString(directory.list()));
-            long sizeBefore = FileUtils.sizeOfDirectory(directory);
-            System.out.println("    size "
-                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
-                    + " bytes)");
-            System.out.println("    -> compacting");
             store.compact();
         } finally {
             store.close();
