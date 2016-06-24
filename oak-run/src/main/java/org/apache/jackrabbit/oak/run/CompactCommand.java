@@ -90,7 +90,7 @@ class CompactCommand implements Command {
                         + sizeAfter + " bytes)");
                 System.out.println("    removed files " + difference(beforeLs, afterLs));
                 System.out.println("    added files " + difference(afterLs, beforeLs));
-                System.out.println("Compaction succeed in " + watch.toString()
+                System.out.println("Compaction succeeded in " + watch.toString()
                         + " (" + watch.elapsed(TimeUnit.SECONDS) + "s).");
             } else {
                 System.out.println("Compaction failed in " + watch.toString()
