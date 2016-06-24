@@ -151,7 +151,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * revision is actually committed. Depth 0 means the commit is in the root node,
      * depth 1 means one node below the root, and so on.
      */
-    static final String COMMIT_ROOT = "_commitRoot";
+    public static final String COMMIT_ROOT = "_commitRoot";
 
     /**
      * The number of previous documents (documents that contain old revisions of
@@ -190,7 +190,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * "c-" + base revision of the successfully merged branch commit,
      * "b" + base revision of an un-merged branch commit
      */
-    static final String REVISIONS = "_revisions";
+    public static final String REVISIONS = "_revisions";
 
     /**
      * The last revision.
