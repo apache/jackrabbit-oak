@@ -516,6 +516,9 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> void invalidateCache(Collection<T> collection, String id, boolean remove) {
         if (collection == Collection.NODES) {
+            for (QueryContext qc : qmap.values()) {
+                qc.addKey(id);
+            }
             invalidateNodesCache(id, remove);
         }
     }
@@ -1889,7 +1892,15 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if (modCount <= cachedModCount) {
                 // we can use the cached document
-                inCache.markUpToDate(now);
+                Lock lock = locks.acquire(row.getId());
+                try {
+                    if (qp.mayUpdate(id)) {
+                        inCache.markUpToDate(now);
+                    }
+                }
+                finally {
+                    lock.unlock();
+                }
                 return castAsT(inCache);
             }
         }
