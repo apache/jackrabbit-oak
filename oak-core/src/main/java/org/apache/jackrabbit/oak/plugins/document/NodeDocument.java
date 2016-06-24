@@ -1460,7 +1460,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      *
      * @return revisions of all changes performed on this document.
      */
-    Iterable<Revision> getAllChanges() {
+    public Iterable<Revision> getAllChanges() {
         RevisionVector empty = new RevisionVector();
         return Iterables.mergeSorted(ImmutableList.of(
                 getChanges(REVISIONS, empty),
