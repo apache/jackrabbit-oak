@@ -524,6 +524,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (remove) {
                 nodesCache.invalidate(id);
             } else {
+                nodesCache.markChanged(id);
                 NodeDocument entry = nodesCache.getIfPresent(id);
                 if (entry != null) {
                     entry.markUpToDate(0);
@@ -1416,8 +1417,17 @@ public class RDBDocumentStore implements DocumentStore {
                     // already in the cache
                     doc = convertFromDBObject(collection, row);
                 } else {
-                    // otherwise mark it as fresh
-                    ((NodeDocument) doc).markUpToDate(now);
+                    // we got a document from the cache, thus collection is NODES
+                    // and a tracker is present
+                    Lock lock = locks.acquire(row.getId());
+                    try {
+                        if (!tracker.mightBeenAffected(row.getId())) {
+                            // otherwise mark it as fresh
+                            ((NodeDocument) doc).markUpToDate(now);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
                 }
                 result.add(doc);
             }

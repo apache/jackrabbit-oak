@@ -29,13 +29,11 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerL
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeFalse;
 
 public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTest {
 
     public ConcurrentQueryAndInvalidateIT(DocumentStoreFixture dsf) {
         super(dsf);
-        assumeFalse(dsf instanceof DocumentStoreFixture.RDBFixture);
     }
 
     protected static final int NUM_NODES = 50;

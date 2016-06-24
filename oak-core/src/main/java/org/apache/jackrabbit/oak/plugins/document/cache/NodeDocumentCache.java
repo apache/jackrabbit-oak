@@ -96,9 +96,21 @@ public class NodeDocumentCache implements Closeable {
                 nodeDocumentsCache.invalidate(new StringValue(key));
             }
 
-            for (CacheChangesTracker tracker : changeTrackers) {
-                tracker.invalidateDocument(key);
-            }
+            internalMarkChanged(key);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Mark that the document with the given key is being changed.
+     *
+     * @param key to mark
+     */
+    public void markChanged(@Nonnull String key) {
+        Lock lock = locks.acquire(key);
+        try {
+            internalMarkChanged(key);
         } finally {
             lock.unlock();
         }
@@ -445,6 +457,17 @@ public class NodeDocumentCache implements Closeable {
     }
 
     //----------------------------< internal >----------------------------------
+
+    /**
+     * Marks the document as potentially changed.
+     * 
+     * @param key the document to be marked
+     */
+    private void internalMarkChanged(String key) {
+        for (CacheChangesTracker tracker : changeTrackers) {
+            tracker.invalidateDocument(key);
+        }
+    }
 
     /**
      * Puts a document into the cache without acquiring a lock.
