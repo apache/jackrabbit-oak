@@ -166,6 +166,63 @@ public class ResurrectNodeAfterRevisionGCTest
         });
     }
 
+    @Test
+    public void resurrectInvalidateWithModified() throws Exception {
+        resurrectInvalidateWithModified(new Invalidate() {
+            @Override
+            public void perform(DocumentStore store, Iterable<String> ids) {
+                store.invalidateCache(ids);
+            }
+        });
+    }
+
+    @Test
+    public void resurrectInvalidateAllWithModified() throws Exception {
+        resurrectInvalidateWithModified(new Invalidate() {
+            @Override
+            public void perform(DocumentStore store, Iterable<String> ids) {
+                store.invalidateCache();
+            }
+        });
+    }
+
+    @Test
+    public void resurrectInvalidateIndividualWithModified() throws Exception {
+        resurrectInvalidateWithModified(new Invalidate() {
+            @Override
+            public void perform(DocumentStore store, Iterable<String> ids) {
+                for (String id : ids) {
+                    store.invalidateCache(Collection.NODES, id);
+                }
+            }
+        });
+    }
+
+    private void resurrectInvalidateWithModified(Invalidate inv)
+            throws Exception {
+        UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
+        op.set(Document.ID, op.getId());
+        op.set("p", 0);
+        op.set(NodeDocument.MODIFIED_IN_SECS, 50);
+        assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
+        NodeDocument doc = ds2.find(Collection.NODES, op.getId());
+        assertNotNull(doc);
+        assertEquals(0L, doc.get("p"));
+        assertEquals(50L, (long) doc.getModified());
+
+        ds1.remove(Collection.NODES, op.getId());
+        // recreate with different value for 'p'
+        op.set("p", 1);
+        op.set(NodeDocument.MODIFIED_IN_SECS, 55);
+        assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
+
+        inv.perform(ds2, Lists.newArrayList(op.getId()));
+        doc = ds2.find(Collection.NODES, op.getId());
+        assertNotNull(doc);
+        assertEquals(1L, doc.get("p"));
+        assertEquals(55L, (long) doc.getModified());
+    }
+
     private void resurrectInvalidate(Invalidate inv) throws Exception {
         UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
         op.set(Document.ID, op.getId());
