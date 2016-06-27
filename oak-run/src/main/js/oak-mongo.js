@@ -86,6 +86,12 @@ var oak = (function(global){
      * @returns {number} the number of children, including all descendant nodes.
      */
     api.countChildren = function(path){
+        if (path === undefined) {
+            return 0;
+        } else if (path != "/") {
+            path = path + "/";
+        }
+
         var depth = pathDepth(path);
         var totalCount = 0;
         while (true) {
@@ -130,6 +136,10 @@ var oak = (function(global){
      *        parameter of the function.
      */
     api.forEachChild = function(path, callable) {
+        if (path !== undefined && path != "/") {
+            path = path + "/";
+        }
+
         var depth = pathDepth(path);
         while (true) {
             var cur = db.nodes.find({_id: pathFilter(depth++, path)});
