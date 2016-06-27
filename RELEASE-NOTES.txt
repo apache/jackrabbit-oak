@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.4
 
 Introduction
 ------------
@@ -7,53 +7,56 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.3 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.4 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.3
+Changes in Oak 1.4.4
 ---------------------
 
 Technical task
 
-    [OAK-3977] - RDBDocumentStore: remove PostgreSQL workaround after upgrading to JDBC driver 9.4.1208
-    [OAK-4094] - RDBDocumentStore: upgrade PostgreSQL JDBC driver dependency to 9.4.1208
-    [OAK-4134] - RDBBlobStore: improve error handling and logging
-    [OAK-4156] - RDBConnectionHandler: add logging when getting the connection takes long
-    [OAK-4190] - DocumentMK: refactor RDB-specific code
-    [OAK-4193] - RDBBlobStore: logging for garbage collection has parameters reversed
-    [OAK-4199] - RDBBlobStore: garbage collection fails to delete DATA records when there was subsequent blobstore activity
-    [OAK-4250] - DocumentStore: add test coverage for find() with ultra-long keys
-    [OAK-4388] - RDBDocumentStore: conditional update to _modified property sometimes applied unconditionally
-    [OAK-4389] - RDBDocumentStore: add system property for disabling appending updates
-    [OAK-4398] - RDBDocumentStore: dead code in internalUpdate
-    [OAK-4408] - RDBDocumentStore: synchronize access to BloomFilter
+    [OAK-4409] - RDB*Store: bump up recommended DB2 version to 10.5
+    [OAK-4425] - RDBDocumentStore: upgrade MySQL JDBC driver dependency to 5.1.39
+    [OAK-4482] - RDB*Store: update tomcat-jdbc test dependency
+    [OAK-4495] - RDBDocumentStore: consistent handling of invalidate methods
+    [OAK-4497] - RDBDocumentStore: potential race condition between update and invalidate can cause stale cache entries
+
 
 Bug
 
-    [OAK-4359] - Lucene index / compatVersion 2: search for 'a=b=c' does not work
+    [OAK-4296] - Oak-run console's lucene command is broken
+    [OAK-4358] - Stale cluster ids can potentially lead to lots of previous docs traversal in NodeDocument.getNewestRevision
+    [OAK-4429] - [oak-blob-cloud] S3Backend#getAllIdentifiers should not store all elements in memory
+    [OAK-4430] - DataStoreBlobStore#getAllChunkIds fetches DataRecord when not needed
+    [OAK-4432] - Ignore files in the root directory of the FileDataStore in #getAllIdentifiers
+    [OAK-4437] - Backport OAK-4387 (XPath: querying for nodes named "text"...) to 1.2 and 1.4
+    [OAK-4441] - [BlobGC] Writing of strings should be escaped
+    [OAK-4493] - Offline compaction persisted mode
+    [OAK-4496] - Enable DataStoreBlobStore#getAllRecords to support non-shared DataStore
+    [OAK-4499] - LucenePropertyIndexTest#longRepExcerpt is too aggressive
+
 
 Improvement
 
-    [OAK-4029] - RDBDocumentStore: optimize the bulk update method
-    [OAK-4163] - LastRevRecoveryAgent: improve startup diagnostics
-    [OAK-4164] - Expose path stats for Lucene index
-    [OAK-4165] - Too verbose logging during revision gc
-    [OAK-4262] - Provide a way to abort an async indexing run
-    [OAK-4321] - Improve conflict exception message to show if conflict is unexpected
-    [OAK-4372] - VersionGarbageCollector uses more temporary memory than needed
+    [OAK-4297] - Oak-run console should allow to setup FDS of repository
+    [OAK-4368] - Excerpt extraction from the Lucene index should be more selective
+    [OAK-4483] - Remove synchronized access requirement from MetricStatisticsProvider#getStats
 
-New Feature
-
-    [OAK-4144] - Expose PropertyIndex stats
 
 Task
 
-    [OAK-4355] - [oak-blob-cloud] Update to latest version of aws-sdk-java
-    [OAK-4411] - DocumentNodeStore: Improve test coverage for concurrent updates and queries
+    [OAK-4418] - Benchmark Results for Oak 1.4
+    [OAK-4442] - S3DataStoreService should initialize SharedS3DataStore
+    [OAK-4480] - update oak 1.4 to JR 2.12.2
+
+
+Test
+
+    [OAK-4489] - Improve test coverage on DocumentStore for concurrent query and invalidate
 
 
 In addition to the above-mentioned changes, this release contains
