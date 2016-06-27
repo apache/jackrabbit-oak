@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.difference;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
@@ -32,6 +33,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -54,6 +56,7 @@ import javax.jcr.Repository;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -64,10 +67,13 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -495,43 +501,87 @@ public final class Main {
             System.exit(1);
         } else {
             File directory = new File(args[0]);
+
+            boolean success = false;
+            Set<String> beforeLs = newHashSet();
+            Set<String> afterLs = newHashSet();
+            Stopwatch watch = Stopwatch.createStarted();
+
             System.out.println("Compacting " + directory);
-            System.out.println("    before " + Arrays.toString(directory.list()));
-
+            System.out.println("    before ");
+            beforeLs.addAll(list(directory));
+            long sizeBefore = FileUtils.sizeOfDirectory(directory);
+            System.out.println("    size "
+                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
+                    + " bytes)");
             System.out.println("    -> compacting");
-            FileStore store = openFileStore(directory);
-            try {
-                CompactionStrategy compactionStrategy = new CompactionStrategy(
-                        false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
-                        CleanupType.CLEAN_ALL, 0,
-                        CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-                    @Override
-                    public boolean compacted(Callable<Boolean> setHead)
-                            throws Exception {
-                        // oak-run is doing compaction single-threaded
-                        // hence no guarding needed - go straight ahead
-                        // and call setHead
-                        return setHead.call();
-                    }
-                };
-                compactionStrategy.setOfflineCompaction(true);
-                store.setCompactionStrategy(compactionStrategy);
-                store.compact();
-            } finally {
-                store.close();
-            }
 
-            System.out.println("    -> cleaning up");
-            store = openFileStore(directory);
             try {
-                store.cleanup();
-            } finally {
-                store.close();
-            }
+                FileStore store = openFileStore(directory);
+                try {
+                    CompactionStrategy compactionStrategy = new CompactionStrategy(
+                            false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
+                            CleanupType.CLEAN_ALL, 0,
+                            CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+                        @Override
+                        public boolean compacted(Callable<Boolean> setHead)
+                                throws Exception {
+                            // oak-run is doing compaction single-threaded
+                            // hence no guarding needed - go straight ahead
+                            // and call setHead
+                            return setHead.call();
+                        }
+                    };
+                    compactionStrategy.setOfflineCompaction(true);
+                    store.setCompactionStrategy(compactionStrategy);
+                    store.compact();
+                } finally {
+                    store.close();
+                }
 
-            System.out.println("    after  " + Arrays.toString(directory.list()));
+                System.out.println("    -> cleaning up");
+                store = openFileStore(directory);
+                try {
+                    store.cleanup();
+                } finally {
+                    store.close();
+                }
+                success = true;
+            } catch (Throwable e) {
+                System.out.println("Compaction failure stack trace:");
+                e.printStackTrace(System.out);
+            } finally {
+                watch.stop();
+                if (success) {
+                    System.out.println("    after ");
+                    afterLs.addAll(list(directory));
+                    long sizeAfter = FileUtils.sizeOfDirectory(directory);
+                    System.out.println("    size "
+                            + IOUtils.humanReadableByteCount(sizeAfter) + " ("
+                            + sizeAfter + " bytes)");
+                    System.out.println("    removed files " + difference(beforeLs, afterLs));
+                    System.out.println("    added files " + difference(afterLs, beforeLs));
+                    System.out.println("Compaction succeeded in " + watch.toString()
+                            + " (" + watch.elapsed(TimeUnit.SECONDS) + "s).");
+                } else {
+                    System.out.println("Compaction failed in " + watch.toString()
+                            + " (" + watch.elapsed(TimeUnit.SECONDS) + "s).");
+                    System.exit(1);
+                }
+            }
         }
     }
+
+        private static Set<String> list(File directory) {
+            Set<String> files = newHashSet();
+            for (File f : directory.listFiles()) {
+                String d = new Date(f.lastModified()).toString();
+                String n = f.getName();
+                System.out.println("        " + d + ", " + n);
+                files.add(n);
+            }
+            return files;
+        }
 
     private static FileStore openFileStore(File directory) throws IOException {
         return FileStore
