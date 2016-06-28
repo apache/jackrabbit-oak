@@ -55,10 +55,16 @@ public class FixturesHelper {
             String[] fs = raw.split(SPLIT_ON);
             Set<Fixture> tmp = new HashSet<Fixture>();
             for (String f : fs) {
-                String x = f.trim();
-                Fixture fx = Fixture.valueOf(x.toUpperCase());
-                if (fx != null) {
+                String x = f.trim().toUpperCase();
+                try {
+                    Fixture fx = Fixture.valueOf(x);
                     tmp.add(fx);
+                } catch (IllegalArgumentException e){
+                    //This fixture is not present in branches
+                    //so would need to be ignored
+                    if (!"SEGMENT_TAR".equals(x)){
+                        throw e;
+                    }
                 }
             }
             
