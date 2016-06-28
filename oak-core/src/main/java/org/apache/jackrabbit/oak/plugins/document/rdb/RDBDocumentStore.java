@@ -1419,14 +1419,21 @@ public class RDBDocumentStore implements DocumentStore {
                 } else {
                     // we got a document from the cache, thus collection is NODES
                     // and a tracker is present
-                    Lock lock = locks.acquire(row.getId());
-                    try {
-                        if (!tracker.mightBeenAffected(row.getId())) {
-                            // otherwise mark it as fresh
-                            ((NodeDocument) doc).markUpToDate(now);
+                    long lastmodified = modifiedOf(doc);
+                    if (lastmodified == row.getModified() && lastmodified >= 1) {
+                        Lock lock = locks.acquire(row.getId());
+                        try {
+                            if (!tracker.mightBeenAffected(row.getId())) {
+                                // otherwise mark it as fresh
+                                ((NodeDocument) doc).markUpToDate(now);
+                            }
+                        } finally {
+                            lock.unlock();
                         }
-                    } finally {
-                        lock.unlock();
+                    }
+                    else {
+                        // we need a fresh document instance
+                        doc = convertFromDBObject(collection, row);
                     }
                 }
                 result.add(doc);
@@ -1466,9 +1473,10 @@ public class RDBDocumentStore implements DocumentStore {
         final Stopwatch watch = startWatch();
         boolean docFound = true;
         try {
-            long lastmodcount = -1;
+            long lastmodcount = -1, lastmodified = -1;
             if (cachedDoc != null) {
                 lastmodcount = modcountOf(cachedDoc);
+                lastmodified = modifiedOf(cachedDoc);
             }
             connection = this.ch.getROConnection();
             RDBRow row = db.read(connection, tmd, id, lastmodcount);
@@ -1477,11 +1485,18 @@ public class RDBDocumentStore implements DocumentStore {
                 docFound = false;
                 return null;
             } else {
-                if (lastmodcount == row.getModcount()) {
+                if (lastmodcount == row.getModcount() && lastmodified == row.getModified() && lastmodified >= 1) {
                     // we can re-use the cached document
                     cachedDoc.markUpToDate(System.currentTimeMillis());
                     return castAsT(cachedDoc);
                 } else {
+                    // workaround: need to re-read if data is not present
+                    // that would be the case if the modcount did match but the modified time did not
+                    // see OAK-4509
+                    if (row.getData() == null) {
+                        row = db.read(connection, tmd, id, -1);
+                        connection.commit();
+                    }
                     return convertFromDBObject(collection, row);
                 }
             }
@@ -1810,6 +1825,11 @@ public class RDBDocumentStore implements DocumentStore {
     private static long modcountOf(@Nonnull Document doc) {
         Long n = doc.getModCount();
         return n != null ? n : -1;
+    }
+
+    private static long modifiedOf(@Nonnull Document doc) {
+        Object l = doc.get(NodeDocument.MODIFIED_IN_SECS);
+        return (l instanceof Long) ? ((Long)l).longValue() : -1;
     }
 
     @Nonnull
