@@ -67,10 +67,10 @@ public class ResurrectNodeAfterRevisionGCTest
         c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
         Revision.setClock(c);
-        ns1 = new DocumentMK.Builder().setAsyncDelay(0)
-                .clock(c).setClusterId(1).setDocumentStore(ds1).getNodeStore();
-        ns2 = new DocumentMK.Builder().setAsyncDelay(0)
-                .clock(c).setClusterId(2).setDocumentStore(ds2).getNodeStore();
+        ns1 = new DocumentMK.Builder().setAsyncDelay(0).clock(c)
+                .setClusterId(1).setDocumentStore(wrap(ds1)).getNodeStore();
+        ns2 = new DocumentMK.Builder().setAsyncDelay(0).clock(c)
+                .setClusterId(2).setDocumentStore(wrap(ds2)).getNodeStore();
     }
 
     @After
@@ -250,5 +250,21 @@ public class ResurrectNodeAfterRevisionGCTest
     private static void merge(NodeStore store, NodeBuilder builder)
             throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private static DocumentStore wrap(DocumentStore store) {
+        return new DSWrapper(store);
+    }
+
+    private static class DSWrapper extends DocumentStoreWrapper {
+
+        DSWrapper(DocumentStore store) {
+            super(store);
+        }
+
+        @Override
+        public void dispose() {
+            // ignore
+        }
     }
 }
