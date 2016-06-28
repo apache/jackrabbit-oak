@@ -1298,9 +1298,10 @@ public class RDBDocumentStore implements DocumentStore {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         try {
-            long lastmodcount = -1;
+            long lastmodcount = -1, lastmodified = -1;
             if (cachedDoc != null) {
                 lastmodcount = modcountOf(cachedDoc);
+                lastmodified = modifiedOf(cachedDoc);
             }
             connection = this.ch.getROConnection();
             RDBRow row = db.read(connection, tmd, id, lastmodcount);
@@ -1308,11 +1309,18 @@ public class RDBDocumentStore implements DocumentStore {
             if (row == null) {
                 return null;
             } else {
-                if (lastmodcount == row.getModcount()) {
+                if (lastmodcount == row.getModcount() && lastmodified == row.getModified() && lastmodified >= 1) {
                     // we can re-use the cached document
                     cachedDoc.markUpToDate(System.currentTimeMillis());
                     return castAsT(cachedDoc);
                 } else {
+                    // workaround: need to re-read if data is not present
+                    // that would be the case if the modcount did match but the modified time did not
+                    // see OAK-4509
+                    if (row.getData() == null) {
+                        row = db.read(connection, tmd, id, -1);
+                        connection.commit();
+                    }
                     return convertFromDBObject(collection, row);
                 }
             }
@@ -1630,6 +1638,11 @@ public class RDBDocumentStore implements DocumentStore {
         return n != null ? n : -1;
     }
 
+    private static long modifiedOf(@Nonnull Document doc) {
+        Object l = doc.get(NodeDocument.MODIFIED_IN_SECS);
+        return (l instanceof Long) ? ((Long)l).longValue() : -1;
+    }
+
     @Nonnull
     protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection, @Nonnull RDBRow row) {
         // this method is present here in order to facilitate unit testing for OAK-3566
@@ -1655,18 +1668,21 @@ public class RDBDocumentStore implements DocumentStore {
             if (cachedModCount == null) {
                 throw new IllegalStateException("Missing " + Document.MOD_COUNT);
             }
-            if (modCount <= cachedModCount) {
-                // we can use the cached document
-                Lock lock = locks.acquire(row.getId());
-                try {
-                    if (qp.mayUpdate(id)) {
-                        inCache.markUpToDate(now);
+            long lastmodified = modifiedOf(inCache);
+            if (lastmodified == row.getModified() && lastmodified >= 1) {
+                if (modCount <= cachedModCount) {
+                    // we can use the cached document
+                    Lock lock = locks.acquire(row.getId());
+                    try {
+                        if (qp.mayUpdate(id)) {
+                            inCache.markUpToDate(now);
+                        }
                     }
+                    finally {
+                        lock.unlock();
+                    }
+                    return castAsT(inCache);
                 }
-                finally {
-                    lock.unlock();
-                }
-                return castAsT(inCache);
             }
         }
 

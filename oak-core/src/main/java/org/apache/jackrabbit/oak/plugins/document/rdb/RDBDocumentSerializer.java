@@ -146,7 +146,9 @@ public class RDBDocumentSerializer {
     public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());
-        doc.put(MODIFIED, row.getModified());
+        if (row.getModified() != 0) {
+            doc.put(MODIFIED, row.getModified());
+        }
         doc.put(MODCOUNT, row.getModcount());
         if (RDBDocumentStore.USECMODCOUNT) {
             doc.put(CMODCOUNT, row.getCollisionsModcount());
