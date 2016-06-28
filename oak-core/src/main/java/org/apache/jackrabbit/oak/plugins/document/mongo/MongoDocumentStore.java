@@ -87,6 +87,7 @@ import com.mongodb.BulkWriteException;
 import com.mongodb.BulkWriteOperation;
 import com.mongodb.BulkWriteResult;
 import com.mongodb.BulkWriteUpsert;
+import com.mongodb.CommandResult;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -1549,14 +1550,22 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = System.currentTimeMillis();
         // assumption here: server returns UTC - ie the returned
         // date object is correctly taking care of time zones.
-        final Date serverLocalTime = db.command("serverStatus").getDate("localTime");
+        final CommandResult serverStatus = db.command("serverStatus");
+        if (serverStatus == null) {
+            // OAK-4107 / OAK-4515 : extra safety
+            LOG.warn("determineServerTimeDifferenceMillis: db.serverStatus returned null - cannot determine time difference - assuming 0ms.");
+            return 0;
+        }
+        final Date serverLocalTime = serverStatus.getDate("localTime");
         if (serverLocalTime == null) {
-        	// OAK-4107 : looks like this can happen - at least
-        	// has been seen once on mongo 3.0.9
-        	// let's handle this gently and issue a log.warn
-        	// instead of throwing a NPE
-        	LOG.warn("determineServerTimeDifferenceMillis: db.serverStatus.localTime returned null - cannot determine time difference - assuming 0ms");
-        	return 0;
+            // OAK-4107 / OAK-4515 : looks like this can happen - at least
+            // has been seen once on mongo 3.0.9
+            // let's handle this gently and issue a log.warn
+            // instead of throwing a NPE
+            LOG.warn("determineServerTimeDifferenceMillis: db.serverStatus.localTime returned null - cannot determine time difference - assuming 0ms. "
+                    + "(Result details: server exception=" + serverStatus.getException() + ", server error message=" + serverStatus.getErrorMessage() + ")", 
+                    serverStatus.getException());
+            return 0;
         }
         final long end = System.currentTimeMillis();
 
