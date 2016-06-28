@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
 
-@Ignore
 public class UpdateLimitTest {
 
     @Rule
