@@ -159,13 +159,13 @@ public class FileStore implements SegmentStore, Closeable {
      * The background flush thread. Automatically flushes the TarMK state
      * once every five seconds.
      */
-    private final BackgroundThread flushThread;
+    private final PeriodicOperation flushOperation;
 
     /**
      * The background compaction thread. Compacts the TarMK contents whenever
      * triggered by the {@link #gc()} method.
      */
-    private final BackgroundThread compactionThread;
+    private final TriggeredOperation compactionOperation;
 
     /**
      * This background thread periodically asks the {@code SegmentGCOptions}
@@ -173,7 +173,7 @@ public class FileStore implements SegmentStore, Closeable {
      * space. The result of this comparison is stored in the state of this
      * {@code FileStore}.
      */
-    private final BackgroundThread diskSpaceThread;
+    private final PeriodicOperation diskSpaceOperation;
 
     private final SegmentGCOptions gcOptions;
 
@@ -228,7 +228,7 @@ public class FileStore implements SegmentStore, Closeable {
     };
 
     // FIXME OAK-4450: Properly split the FileStore into read-only and r/w variants
-    FileStore(FileStoreBuilder builder, boolean readOnly) throws IOException {
+    FileStore(FileStoreBuilder builder, final boolean readOnly) throws IOException {
         this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
@@ -317,47 +317,46 @@ public class FileStore implements SegmentStore, Closeable {
             lock = null;
         }
 
+        flushOperation = new PeriodicOperation(String.format("TarMK flush thread [%s]", directory), 5, SECONDS, new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    flush();
+                } catch (IOException e) {
+                    log.warn("Failed to flush the TarMK at {}", directory, e);
+                }
+            }
+
+        });
+
+        compactionOperation = new TriggeredOperation(String.format("TarMK compaction thread [%s]", directory), new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    maybeCompact(true);
+                } catch (IOException e) {
+                    log.error("Error running compaction", e);
+                }
+            }
+
+        });
+
+        diskSpaceOperation = new PeriodicOperation(String.format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
+
+            @Override
+            public void run() {
+                checkDiskSpace();
+            }
+
+        });
+
         // FIXME OAK-3468 Replace BackgroundThread with Scheduler
         // Externalise these background operations
         if (!readOnly) {
-            flushThread = BackgroundThread.run(
-                    "TarMK flush thread [" + directory + "]", 5000, // 5s interval
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                flush();
-                            } catch (IOException e) {
-                                log.warn("Failed to flush the TarMK at {}", directory, e);
-                            }
-                        }
-                    });
-            compactionThread = BackgroundThread.run(
-                    "TarMK compaction thread [" + directory + "]", -1,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                maybeCompact(true);
-                            } catch (IOException e) {
-                                log.error("Error running compaction", e);
-                            }
-                        }
-                    });
-
-            diskSpaceThread = BackgroundThread.run(
-                    "TarMK disk space check [" + directory + "]", MINUTES.toMillis(1), new Runnable() {
-
-                @Override
-                public void run() {
-                    checkDiskSpace();
-                }
-
-            });
-        } else {
-            flushThread = null;
-            compactionThread = null;
-            diskSpaceThread = null;
+            flushOperation.start();
+            diskSpaceOperation.start();
         }
 
         sufficientDiskSpace = new AtomicBoolean(true);
@@ -1078,9 +1077,37 @@ public class FileStore implements SegmentStore, Closeable {
 
         // avoid deadlocks by closing (and joining) the background
         // threads before acquiring the synchronization lock
-        closeAndLogOnFail(compactionThread);
-        closeAndLogOnFail(flushThread);
-        closeAndLogOnFail(diskSpaceThread);
+
+        try {
+            if (compactionOperation.stop(5, SECONDS)) {
+                log.debug("The compaction background thread was successfully shut down");
+            } else {
+                log.warn("The compaction background thread takes too long to shutdown");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        try {
+            if (flushOperation.stop(5, SECONDS)) {
+                log.debug("The flush background thread was successfully shut down");
+            } else {
+                log.warn("The flush background thread takes too long to shutdown");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        try {
+            if (diskSpaceOperation.stop(5, SECONDS)) {
+                log.debug("The disk space check background thread was successfully shut down");
+            } else {
+                log.warn("The disk space check background thread takes too long to shutdown");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         try {
             flush();
             revisions.close();
@@ -1305,7 +1332,7 @@ public class FileStore implements SegmentStore, Closeable {
      * Trigger a garbage collection cycle
      */
     public void gc() {
-        compactionThread.trigger();
+        compactionOperation.trigger();
     }
 
     public Map<String, Set<UUID>> getTarReaderIndex() {
