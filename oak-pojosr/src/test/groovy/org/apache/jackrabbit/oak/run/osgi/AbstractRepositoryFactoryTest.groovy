@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS
+import static org.junit.Assert.fail
 
 abstract class AbstractRepositoryFactoryTest{
     static final int SVC_WAIT_TIME = Integer.getInteger("pojosr.waitTime", 10)
@@ -128,6 +129,26 @@ abstract class AbstractRepositoryFactoryTest{
             return baseDir
         }
         return new File(".").getAbsolutePath();
+    }
+
+    static retry(int timeoutSeconds, int intervalBetweenTriesMsec, Closure c) {
+        long timeout = System.currentTimeMillis() + timeoutSeconds * 1000L;
+        while (System.currentTimeMillis() < timeout) {
+            try {
+                if (c.call()) {
+                    return;
+                }
+            } catch (AssertionError ignore) {
+            } catch (Exception ignore) {
+            }
+
+            try {
+                Thread.sleep(intervalBetweenTriesMsec);
+            } catch (InterruptedException ignore) {
+            }
+        }
+
+        fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds: ");
     }
 
 }

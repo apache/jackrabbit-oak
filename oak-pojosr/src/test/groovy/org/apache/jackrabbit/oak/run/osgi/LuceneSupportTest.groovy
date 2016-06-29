@@ -114,23 +114,4 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         }
     }
 
-    private static retry(int timeoutSeconds, int intervalBetweenTriesMsec, Closure c) {
-        long timeout = System.currentTimeMillis() + timeoutSeconds * 1000L;
-        while (System.currentTimeMillis() < timeout) {
-            try {
-                if (c.call()) {
-                    return;
-                }
-            } catch (AssertionError ignore) {
-            } catch (Exception ignore) {
-            }
-
-            try {
-                Thread.sleep(intervalBetweenTriesMsec);
-            } catch (InterruptedException ignore) {
-            }
-        }
-
-        fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds: ");
-    }
 }
