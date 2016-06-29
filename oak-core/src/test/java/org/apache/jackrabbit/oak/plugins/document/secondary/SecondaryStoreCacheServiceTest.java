@@ -100,11 +100,10 @@ public class SecondaryStoreCacheServiceTest {
     public void configurePathFilter() throws Exception{
         Map<String, Object> config = new HashMap<>();
         config.put("includedPaths", new String[] {"/a"});
-        config.put("excludedPaths", new String[] {"/a/b"});
         MockOsgi.activate(cacheService, context.bundleContext(), config);
 
         assertEquals(PathFilter.Result.INCLUDE, cacheService.getPathFilter().filter("/a"));
-        assertEquals(PathFilter.Result.EXCLUDE, cacheService.getPathFilter().filter("/a/b/c"));
+        assertEquals(PathFilter.Result.EXCLUDE, cacheService.getPathFilter().filter("/b"));
     }
 
 }

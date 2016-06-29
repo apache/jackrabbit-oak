@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -100,14 +101,6 @@ public class SecondaryStoreCacheService {
     )
     private static final String PROP_INCLUDES = "includedPaths";
 
-    @Property(unbounded = PropertyUnbounded.ARRAY,
-            label = "Excluded Paths",
-            description = "List of paths which are to be excluded in the secondary store",
-            value = {}
-    )
-    private static final String PROP_EXCLUDES = "excludedPaths";
-
-
     private static final boolean PROP_ASYNC_OBSERVER_DEFAULT = true;
     @Property(
             boolValue = PROP_ASYNC_OBSERVER_DEFAULT,
@@ -141,9 +134,11 @@ public class SecondaryStoreCacheService {
         bundleContext = context;
         whiteboard = new OsgiWhiteboard(context);
         String[] includedPaths = toStringArray(config.get(PROP_INCLUDES), new String[]{"/"});
-        String[] excludedPaths = toStringArray(config.get(PROP_EXCLUDES), new String[]{""});
 
-        pathFilter = new PathFilter(asList(includedPaths), asList(excludedPaths));
+        //TODO Support for exclude is not possible as once a NodeState is loaded from secondary
+        //store it assumes that complete subtree is in same store. With exclude it would need to
+        //check for each child access and route to primary
+        pathFilter = new PathFilter(asList(includedPaths), Collections.<String>emptyList());
 
         SecondaryStoreBuilder builder = new SecondaryStoreBuilder(secondaryStoreProvider.getNodeStore())
                 .differ(differ)
