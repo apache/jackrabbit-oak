@@ -28,19 +28,21 @@ import javax.annotation.Nonnull;
  */
 public class RDBRow {
 
+    public static final long LONG_UNSET = Long.MIN_VALUE;
+
     private final String id;
     private final boolean hasBinaryProperties, deletedOnce;
     private final long modified, modcount, cmodcount;
     private final String data;
     private final byte[] bdata;
 
-    public RDBRow(String id, boolean hasBinaryProperties, boolean deletedOnce, long modified, long modcount, long cmodcount, String data, byte[] bdata) {
+    public RDBRow(String id, boolean hasBinaryProperties, boolean deletedOnce, Long modified, Long modcount, Long cmodcount, String data, byte[] bdata) {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
         this.deletedOnce = deletedOnce;
-        this.modified = modified;
-        this.modcount = modcount;
-        this.cmodcount = cmodcount;
+        this.modified = modified != null ? modified.longValue() : LONG_UNSET;
+        this.modcount = modcount != null ? modcount.longValue() : LONG_UNSET;
+        this.cmodcount = cmodcount != null ? cmodcount.longValue() : LONG_UNSET;
         this.data = data;
         this.bdata = bdata;
     }
@@ -63,17 +65,23 @@ public class RDBRow {
         return data;
     }
 
-    @Nonnull
+    /**
+     * @return {@link #LONG_UNSET} when not set in the database
+     */
     public long getModified() {
         return modified;
     }
 
-    @Nonnull
+    /**
+     * @return {@link #LONG_UNSET} when not set in the database
+     */
     public long getModcount() {
         return modcount;
     }
 
-    @Nonnull
+    /**
+     * @return {@link #LONG_UNSET} when not set in the database
+     */
     public long getCollisionsModcount() {
         return cmodcount;
     }
