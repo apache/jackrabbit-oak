@@ -668,25 +668,23 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testUpdateModified() {
         String id = this.getClass().getName() + ".testUpdateModified";
         // create a test node
-        super.ds.remove(Collection.NODES, id);
+        super.ds.remove(Collection.SETTINGS, id);
         UpdateOp up = new UpdateOp(id, true);
         up.set("_id", id);
-        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        boolean success = super.ds.create(Collection.SETTINGS, Collections.singletonList(up));
         assertTrue(success);
-        removeMe.add(id);
+        removeMeSettings.add(id);
 
-        ds.invalidateCache();
-        Document d = super.ds.find(Collection.NODES, id);
+        Document d = super.ds.find(Collection.SETTINGS, id);
         Object m = d.get("_modified");
         assertNull("_modified should be null until set", m);
 
         up = new UpdateOp(id, true);
         up.set("_id", id);
         up.set("_modified", 123L);
-        super.ds.findAndUpdate(Collection.NODES, up); 
+        super.ds.findAndUpdate(Collection.SETTINGS, up); 
 
-        ds.invalidateCache();
-        d = super.ds.find(Collection.NODES, id);
+        d = super.ds.find(Collection.SETTINGS, id);
         m = d.get("_modified");
         assertNotNull("_modified should now be != null", m);
         assertEquals("123", m.toString());
@@ -694,10 +692,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         up = new UpdateOp(id, true);
         up.set("_id", id);
         up.max("_modified", 122L);
-        super.ds.findAndUpdate(Collection.NODES, up); 
+        super.ds.findAndUpdate(Collection.SETTINGS, up); 
 
-        ds.invalidateCache();
-        d = super.ds.find(Collection.NODES, id);
+        d = super.ds.find(Collection.SETTINGS, id);
         m = d.get("_modified");
         assertNotNull("_modified should now be != null", m);
         assertEquals("123", m.toString());
@@ -705,10 +702,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         up = new UpdateOp(id, true);
         up.set("_id", id);
         up.max("_modified", 124L);
-        super.ds.findAndUpdate(Collection.NODES, up); 
+        super.ds.findAndUpdate(Collection.SETTINGS, up); 
 
         ds.invalidateCache();
-        d = super.ds.find(Collection.NODES, id);
+        d = super.ds.find(Collection.SETTINGS, id);
         m = d.get("_modified");
         assertNotNull("_modified should now be != null", m);
         assertEquals("124", m.toString());

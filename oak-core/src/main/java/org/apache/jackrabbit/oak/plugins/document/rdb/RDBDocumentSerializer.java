@@ -146,11 +146,13 @@ public class RDBDocumentSerializer {
     public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());
-        if (row.getModified() != 0) {
+        if (row.getModified() != RDBRow.LONG_UNSET) {
             doc.put(MODIFIED, row.getModified());
         }
-        doc.put(MODCOUNT, row.getModcount());
-        if (RDBDocumentStore.USECMODCOUNT) {
+        if (row.getModcount() != RDBRow.LONG_UNSET) {
+            doc.put(MODCOUNT, row.getModcount());
+        }
+        if (RDBDocumentStore.USECMODCOUNT && row.getCollisionsModcount() != RDBRow.LONG_UNSET) {
             doc.put(CMODCOUNT, row.getCollisionsModcount());
         }
         if (row.hasBinaryProperties()) {
