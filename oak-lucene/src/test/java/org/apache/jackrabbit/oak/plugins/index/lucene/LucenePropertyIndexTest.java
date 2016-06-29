@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.QUERY_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
@@ -744,6 +745,89 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/c", "/test/f"));
+    }
+
+    //OAK-4517
+    @Test
+    public void pathIncludeSubrootIndex() throws Exception {
+        Tree subTreeRoot = root.getTree("/").addChild("test");
+        Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
+        idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/a"), Type.STRINGS));
+        //Do not provide type information
+        root.commit();
+
+        subTreeRoot.addChild("a").setProperty("propa", 10);
+        subTreeRoot.addChild("a").addChild("b").setProperty("propa", 10);
+        subTreeRoot.addChild("c").setProperty("propa", 10);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
+        assertThat(explain(query), containsString("lucene:test1"));
+        assertQuery(query, asList("/test/a", "/test/a/b"));
+    }
+
+    //OAK-4517
+    @Test
+    public void pathQuerySubrootIndex() throws Exception {
+        Tree subTreeRoot = root.getTree("/").addChild("test");
+        Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
+        idx.setProperty(createProperty(QUERY_PATHS, of("/test/a"), Type.STRINGS));
+        //Do not provide type information
+        root.commit();
+
+        subTreeRoot.addChild("a").setProperty("propa", 10);
+        subTreeRoot.addChild("a").addChild("b").setProperty("propa", 10);
+        subTreeRoot.addChild("a").addChild("b").addChild("c").setProperty("propa", 10);
+        subTreeRoot.addChild("c").setProperty("propa", 10);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/a')";
+        String explanation = explain(query);
+        assertThat(explanation, containsString("lucene:test1"));
+        assertQuery(query, asList("/test/a/b", "/test/a/b/c"));
+
+        query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/a/b')";
+        explanation = explain(query);
+        assertThat(explanation, containsString("lucene:test1"));
+        assertQuery(query, asList("/test/a/b/c"));
+
+        query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
+        explanation = explain(query);
+        assertThat(explanation, not(containsString("lucene:test1")));
+        assertThat(explanation, containsString("/* no-index"));
+
+        query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/c')";
+        explanation = explain(query);
+        assertThat(explanation, not(containsString("lucene:test1")));
+        assertThat(explanation, containsString("/* no-index"));
+    }
+
+    //OAK-4517
+    @Test
+    public void pathExcludeSubrootIndex() throws Exception{
+        Tree subTreeRoot = root.getTree("/").addChild("test");
+        Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
+        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/a"), Type.STRINGS));
+        //Do not provide type information
+        root.commit();
+
+        subTreeRoot.addChild("a").setProperty("propa", 10);
+        subTreeRoot.addChild("a").addChild("b").setProperty("propa", 10);
+        subTreeRoot.addChild("c").setProperty("propa", 10);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
+
+        assertThat(explain(query), containsString("lucene:test1"));
+        assertQuery(query, asList("/test/c"));
+
+        //Make some change and then check
+        subTreeRoot = root.getTree("/").getChild("test");
+        subTreeRoot.addChild("a").addChild("e").setProperty("propa", 10);
+        subTreeRoot.addChild("f").setProperty("propa", 10);
+        root.commit();
+
+        assertQuery(query, asList("/test/c", "/test/f"));
     }
 
     @Test
