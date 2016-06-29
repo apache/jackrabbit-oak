@@ -34,7 +34,7 @@
     <name>Oak Segment Tar</name>
 
     <properties>
-        <oak.version>1.6-SNAPSHOT</oak.version>
+        <oak.version>1.5.3</oak.version>
     </properties>
 
     <scm>
