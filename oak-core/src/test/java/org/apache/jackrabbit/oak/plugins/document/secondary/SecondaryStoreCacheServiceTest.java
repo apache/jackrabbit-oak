@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -58,7 +59,12 @@ public class SecondaryStoreCacheServiceTest {
     @Before
     public void configureDefaultServices(){
         context.registerService(BlobStore.class, new MemoryBlobStore());
-        context.registerService(NodeStore.class, secondaryStore, ImmutableMap.<String, Object>of("type", "secondary"));
+        context.registerService(NodeStoreProvider.class, new NodeStoreProvider() {
+            @Override
+            public NodeStore getNodeStore() {
+                return secondaryStore;
+            }
+        }, ImmutableMap.<String, Object>of("role", "secondary"));
         context.registerService(Executor.class, Executors.newSingleThreadExecutor());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         MockOsgi.injectServices(cacheService, context.bundleContext());
