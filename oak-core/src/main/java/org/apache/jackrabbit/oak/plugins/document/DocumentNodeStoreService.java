@@ -579,6 +579,9 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindBlobStore(BlobStore blobStore) {
+        if (defaultBlobStore == blobStore){
+            return;
+        }
         this.blobStore = null;
         unregisterNodeStore();
     }
