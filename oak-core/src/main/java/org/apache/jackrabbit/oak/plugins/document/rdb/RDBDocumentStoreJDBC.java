@@ -418,9 +418,9 @@ public class RDBDocumentStoreJDBC {
                     throw new DocumentStoreException(
                             "unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId + "' - broken DB collation?");
                 }
-                long modified = rs.getLong(2);
-                long modcount = rs.getLong(3);
-                long cmodcount = rs.getLong(4);
+                long modified = readLongFromResultSet(rs, 2);
+                long modcount = readLongFromResultSet(rs, 3);
+                long cmodcount = readLongFromResultSet(rs, 4);
                 long hasBinary = rs.getLong(5);
                 long deletedOnce = rs.getLong(6);
                 String data = rs.getString(7);
@@ -479,9 +479,9 @@ public class RDBDocumentStoreJDBC {
 
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                long modified = rs.getLong(1);
-                long modcount = rs.getLong(2);
-                long cmodcount = rs.getLong(3);
+                long modified = readLongFromResultSet(rs, 1);
+                long modcount = readLongFromResultSet(rs, 2);
+                long cmodcount = readLongFromResultSet(rs, 3);
                 long hasBinary = rs.getLong(4);
                 long deletedOnce = rs.getLong(5);
                 String data = rs.getString(6);
@@ -577,5 +577,10 @@ public class RDBDocumentStoreJDBC {
         } else {
             stmt.setString(idx, id);
         }
+    }
+
+    private static long readLongFromResultSet(ResultSet res, int index) throws SQLException {
+        long v = res.getLong(index);
+        return res.wasNull() ? RDBRow.LONG_UNSET : v;
     }
 }
