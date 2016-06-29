@@ -46,7 +46,6 @@ class SecondaryStoreConfigIT extends AbstractRepositoryFactoryTest{
                         mongouri       : MongoUtils.URL
                 ],
                 'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [
-                        customBlobStore : true,
                         secondary       : true
                 ],
                 'org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreCacheService' : [
