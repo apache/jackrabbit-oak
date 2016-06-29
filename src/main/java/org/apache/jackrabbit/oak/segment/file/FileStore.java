@@ -317,6 +317,12 @@ public class FileStore implements SegmentStore, Closeable {
             lock = null;
         }
 
+        // FIXME The following background operations are historically part of
+        // the implementation of the FileStore, but they should better be
+        // scheduled and invoked by an external agent. The code deploying the
+        // FileStore might have better insights on when and how these background
+        // operations should be invoked. See also OAK-3468.
+
         flushOperation = new PeriodicOperation(String.format("TarMK flush thread [%s]", directory), 5, SECONDS, new Runnable() {
 
             @Override
@@ -352,8 +358,6 @@ public class FileStore implements SegmentStore, Closeable {
 
         });
 
-        // FIXME OAK-3468 Replace BackgroundThread with Scheduler
-        // Externalise these background operations
         if (!readOnly) {
             flushOperation.start();
             diskSpaceOperation.start();
