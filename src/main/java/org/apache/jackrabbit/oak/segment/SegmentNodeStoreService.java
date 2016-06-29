@@ -271,7 +271,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Activate
     public void activate(ComponentContext context) throws IOException {
         this.context = context;
-        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE));
+
+        //In secondaryNodeStore mode customBlobStore is always enabled
+        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE)) || isSecondaryStoreMode();
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
@@ -316,7 +318,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 return;
             }
 
-            if (toBoolean(property(SECONDARY_STORE), false)){
+            if (isSecondaryStoreMode()){
                 registerSecondaryStore();
                 return;
             }
@@ -328,6 +330,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
             }
         }
+    }
+
+    private boolean isSecondaryStoreMode() {
+        return toBoolean(property(SECONDARY_STORE), false);
     }
 
     private void registerSecondaryStore() {
