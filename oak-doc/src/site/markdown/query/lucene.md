@@ -463,6 +463,13 @@ Key points to consider while using `excludedPaths`, `includedPaths` and `queryPa
    So only exclude those paths which do not have node matching given nodeType or nodes which
    are known to be not part of any query result
 
+4. Sub-root index definitions (e.g. `/test/oak:index/index-def-node`) -
+   `excludedPaths` and `includedPaths` need to be relative to the path that index is defined
+    for. e.g. if the condition is supposed to be put for `/test/a` where the index definition
+    is at `/test/oak:index/index-def-node` then `/a` needs to be put as value of `excludedPaths`
+    or `includedPaths`. On the other hand, `queryPaths` remains to be an absolute path. So, for
+    the example above, `queryPaths` would get the value `/test/a`.
+
 In most cases use of `queryPaths` would not be required as index definition should not have
 any overlap. 
     
