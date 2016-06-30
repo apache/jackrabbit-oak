@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAgg
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -102,6 +103,7 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
@@ -109,6 +111,9 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -135,6 +140,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private LuceneIndexEditorProvider editorProvider;
 
+    private NodeStore nodeStore;
+
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
@@ -150,7 +157,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
         LuceneIndexProvider provider = new LuceneIndexProvider(copier);
-        return new Oak()
+        nodeStore = new MemoryNodeStore();
+        return new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
@@ -2128,6 +2136,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String localPathAfterReindex = cowDir;
 
         assertNotEquals("CoW should write to different dir on reindexing", localPathBeforeReindex, localPathAfterReindex);
+    }
+
+    @Test
+    public void uniqueIdInitializedInIndexing() throws Exception{
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        //Make some changes such incremental indexing happens
+        root.getTree("/").addChild("a").setProperty("jcr:title", "foo");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+        IndexDefinition defn = new IndexDefinition(INITIAL_CONTENT, idxState);
+
+        //Check that with normal indexing uid gets initialized
+        String uid = defn.getUniqueId();
+        assertNotNull(defn.getUniqueId());
+
+        //Now trigger a reindex
+        idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        //Refetch the NodeState
+        idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+        defn = new IndexDefinition(INITIAL_CONTENT, idxState);
+
+        //Check that uid is also initialized in reindexing
+        String uid2 = defn.getUniqueId();
+        assertNotNull(defn.getUniqueId());
+        assertNotEquals(uid, uid2);
     }
 
     @Test

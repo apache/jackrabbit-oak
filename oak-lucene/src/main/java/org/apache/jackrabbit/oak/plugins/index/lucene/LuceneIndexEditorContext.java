@@ -164,6 +164,7 @@ public class LuceneIndexEditorContext {
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
                              @Nullable IndexCopier indexCopier, ExtractedTextCache extractedTextCache,
                              IndexAugmentorFactory augmentorFactory) {
+        configureUniqueId(definition);
         this.root = root;
         this.definitionBuilder = definition;
         this.indexCopier = indexCopier;
@@ -373,6 +374,7 @@ public class LuceneIndexEditorContext {
         reindex = true;
         IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
+        configureUniqueId(definitionBuilder);
 
         //Refresh the index definition based on update builder state
         definition = new IndexDefinition(root, definitionBuilder);
@@ -426,6 +428,20 @@ public class LuceneIndexEditorContext {
 
     public boolean isReindex() {
         return reindex;
+    }
+
+    public static void configureUniqueId(NodeBuilder definition) {
+        NodeBuilder status = definition.child(IndexDefinition.STATUS_NODE);
+        if (!status.hasProperty(IndexDefinition.PROP_UID)) {
+            String uid;
+            try {
+                uid = String.valueOf(Clock.SIMPLE.getTimeIncreasing());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                uid = String.valueOf(Clock.SIMPLE.getTime());
+            }
+            status.setProperty(IndexDefinition.PROP_UID, uid);
+        }
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {

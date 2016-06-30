@@ -846,6 +846,26 @@ public class IndexDefinitionTest {
         assertEquals(1.5, defn.getCostPerEntry(), 0.0);
     }
 
+    @Test
+    public void uniqueId() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        assertNull(defn.getUniqueId());
+
+        //Check that uniqueId is properly seeded
+        LuceneIndexEditorContext.configureUniqueId(builder);
+        String uid = builder.child(IndexDefinition.STATUS_NODE).getString(IndexDefinition.PROP_UID);
+        assertNotNull(uid);
+
+        //Assert via NodeState
+        defn = new IndexDefinition(root, builder.getNodeState());
+        assertEquals(uid, defn.getUniqueId());
+
+        //Assert via NodeBuilder
+        defn = new IndexDefinition(root, EMPTY_NODE, builder);
+        assertEquals(uid, defn.getUniqueId());
+
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){

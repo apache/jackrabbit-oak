@@ -69,9 +69,9 @@ import org.junit.rules.TemporaryFolder;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -92,9 +92,12 @@ public class IndexCopierTest {
 
     private NodeBuilder builder = root.builder();
 
+    private String indexPath = "/oak:index/test";
+
     @Before
     public void setUp(){
-        builder.setProperty(IndexConstants.INDEX_PATH, "/oak:index/test");
+        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
+        LuceneIndexEditorContext.configureUniqueId(builder);
     }
 
     @Test
@@ -200,8 +203,7 @@ public class IndexCopierTest {
         readAndAssert(wrapped, "t1", t1);
 
         //t1 should now be added to testDir
-        File indexBaseDir = c1.getIndexDir("/foo");
-        File indexDir = new File(indexBaseDir, "0");
+        File indexDir = c1.getIndexDir(defn, "/foo");
         assertTrue(new File(indexDir, "t1").exists());
 
         TabularData td = c1.getIndexPathMapping();
@@ -215,7 +217,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
         Directory remote = new CloseSafeDir();
-        Directory w1 = c1.wrapForRead("/foo", defn, remote);
+        Directory w1 = c1.wrapForRead(indexPath, defn, remote);
 
         byte[] t1 = writeFile(remote, "t1");
         byte[] t2 = writeFile(remote , "t2");
@@ -224,24 +226,24 @@ public class IndexCopierTest {
         readAndAssert(w1, "t2", t2);
 
         //t1 should now be added to testDir
-        File indexBaseDir = c1.getIndexDir("/foo");
-        File indexDir = new File(indexBaseDir, "0");
+        File indexDir = c1.getIndexDir(defn, indexPath);
         assertTrue(new File(indexDir, "t1").exists());
 
-        builder.setProperty(REINDEX_COUNT, 1);
+        doReindex(builder);
         defn = new IndexDefinition(root, builder.getNodeState());
 
         //Close old version
         w1.close();
         //Get a new one with updated reindexCount
-        Directory w2 = c1.wrapForRead("/foo", defn, remote);
+        Directory w2 = c1.wrapForRead(indexPath, defn, remote);
 
         readAndAssert(w2, "t1", t1);
 
         w2.close();
         assertFalse("Old index directory should have been removed", indexDir.exists());
 
-        File indexDir2 = new File(indexBaseDir, "1");
+        //Assert that new index file do exist and not get removed
+        File indexDir2 = c1.getIndexDir(defn, indexPath);
         assertTrue(new File(indexDir2, "t1").exists());
     }
 
@@ -580,9 +582,13 @@ public class IndexCopierTest {
 
         readAndAssert(remote, "t1", t1);
         //Work dir must be empty post close
-        List<File> files = new ArrayList<File>(FileUtils.listFiles(copier.getIndexRootDir(), null, true));
-        assertEquals(1, files.size());
-        assertEquals("t1", files.get(0).getName());
+        File indexDir = copier.getIndexDir(defn, "foo");
+        List<File> files = new ArrayList<File>(FileUtils.listFiles(indexDir, null, true));
+        Set<String> fileNames = Sets.newHashSet();
+        for (File f : files){
+            fileNames.add(f.getName());
+        }
+        assertThat(fileNames, contains("t1"));
     }
 
     @Test
@@ -991,6 +997,11 @@ public class IndexCopierTest {
         assertTrue("f2 should exist", remote.fileExists("f2"));
 
         executorService.shutdown();
+    }
+
+    private static void doReindex(NodeBuilder builder) {
+        builder.child(IndexDefinition.STATUS_NODE).remove();
+        LuceneIndexEditorContext.configureUniqueId(builder);
     }
 
     private byte[] writeFile(Directory dir, String name) throws IOException {
