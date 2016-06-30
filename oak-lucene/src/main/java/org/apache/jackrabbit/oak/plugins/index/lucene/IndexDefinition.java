@@ -87,7 +87,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.get
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
-class IndexDefinition implements Aggregate.AggregateMapper {
+public final class IndexDefinition implements Aggregate.AggregateMapper {
     /**
      * Name of the internal property that contains the child order defined in
      * org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants
@@ -124,6 +124,16 @@ class IndexDefinition implements Aggregate.AggregateMapper {
      * System managed hidden property to record the current index version
      */
     static final String INDEX_VERSION = ":version";
+
+    /**
+     * Hidden node under index definition which is used to store meta info
+     */
+    static final String STATUS_NODE = ":status";
+
+    /**
+     * Meta property which provides the unique id
+     */
+    static final String PROP_UID = "uid";
 
     private static String TYPES_ALLOW_ALL_NAME = "all";
 
@@ -220,6 +230,9 @@ class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final String indexPath;
 
+    @Nullable
+    private final String uid;
+
     public IndexDefinition(NodeState root, NodeBuilder defn) {
         this(root, defn.getBaseState(), defn);
     }
@@ -231,6 +244,7 @@ class IndexDefinition implements Aggregate.AggregateMapper {
     public IndexDefinition(NodeState root, NodeState defn, @Nullable NodeBuilder defnb) {
         this.root = root;
         this.version = determineIndexFormatVersion(defn, defnb);
+        this.uid = determineUniqueId(defn, defnb);
         this.definition = defn;
         this.indexPath = determineIndexPath(defn, defnb);
         this.indexName = indexPath;
@@ -415,6 +429,11 @@ class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     public String[] getQueryPaths() {
         return queryPaths;
+    }
+
+    @CheckForNull
+    public String getUniqueId() {
+        return uid;
     }
 
     @Override
@@ -1506,6 +1525,24 @@ class IndexDefinition implements Aggregate.AggregateMapper {
             return defn.getProperty(REINDEX_COUNT).getValue(Type.LONG);
         }
         return 0;
+    }
+
+    @CheckForNull
+    private static String determineUniqueId(NodeState defn, @Nullable NodeBuilder defnb) {
+        String uid = null;
+
+        //Check in builder first as that would have latest value
+        if (defnb != null){
+            uid = defnb.getChildNode(STATUS_NODE).getString(PROP_UID);
+        }
+
+        //Fallback to NodeState
+        if (uid == null){
+            uid = defn.getChildNode(STATUS_NODE).getString(PROP_UID);
+        }
+
+        //uid can be null if an old format index has not received any update
+        return uid;
     }
 
     public boolean getActiveDeleteEnabled() {

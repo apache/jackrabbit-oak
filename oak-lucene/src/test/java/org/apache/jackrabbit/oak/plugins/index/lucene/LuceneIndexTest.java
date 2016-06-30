@@ -76,6 +76,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -118,7 +119,6 @@ import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Function;
@@ -770,7 +770,9 @@ public class LuceneIndexTest {
     @Test
     public void luceneWithCopyOnReadDirAndReindex() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2", "foo3"), null);
+        NodeBuilder defnState =
+                newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2", "foo3"), null);
+        IndexDefinition definition = new IndexDefinition(root, defnState.getNodeState());
 
         //1. Create index in two increments
         NodeState before = builder.getNodeState();
@@ -799,10 +801,12 @@ public class LuceneIndexTest {
         indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
         tracker.update(indexed);
 
+        defnState = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
+        definition = new IndexDefinition(root, defnState.getNodeState());
         assertQuery(tracker, indexed, "foo2", "bar2");
         //If reindex case handled properly then invalid count should be zero
         assertEquals(0, copier.getInvalidFileCount());
-        assertEquals(2, copier.getIndexDir("/oak:index/lucene").listFiles().length);
+        assertEquals(2, copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene").size());
 
         //3. Update again. Now with close of previous reader
         //orphaned directory must be removed
@@ -812,7 +816,14 @@ public class LuceneIndexTest {
         tracker.update(indexed);
         assertQuery(tracker, indexed, "foo3", "bar3");
         assertEquals(0, copier.getInvalidFileCount());
-        assertEquals(1, copier.getIndexDir("/oak:index/lucene").listFiles().length);
+        List<LocalIndexDir> idxDirs = copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene");
+        List<LocalIndexDir> nonEmptyDirs = Lists.newArrayList();
+        for (LocalIndexDir dir : idxDirs){
+            if (!dir.isEmpty()){
+                nonEmptyDirs.add(dir);
+            }
+        }
+        assertEquals(1, nonEmptyDirs.size());
     }
 
     @Test
