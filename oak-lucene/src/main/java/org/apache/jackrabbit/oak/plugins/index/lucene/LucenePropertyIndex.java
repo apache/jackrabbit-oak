@@ -464,7 +464,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             if (topDocs.totalHits > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
                                     Document retrievedDoc = searcher.doc(doc.doc);
-                                    if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
+                                    String prefix = filter.getPath();
+                                    if (prefix.length() == 1) {
+                                        prefix = "";
+                                    }
+                                    if (filter.isAccessible(prefix + retrievedDoc.get(FieldNames.PATH))) {
                                         queue.add(new LuceneResultRow(suggestion.string));
                                         break;
                                     }
@@ -492,7 +496,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             if (topDocs.totalHits > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
                                     Document retrievedDoc = searcher.doc(doc.doc);
-                                    if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
+                                    String prefix = filter.getPath();
+                                    if (prefix.length() == 1) {
+                                        prefix = "";
+                                    }
+                                    if (filter.isAccessible(prefix + retrievedDoc.get(FieldNames.PATH))) {
                                         queue.add(new LuceneResultRow(suggestion.key.toString(), suggestion.value));
                                         break;
                                     }
