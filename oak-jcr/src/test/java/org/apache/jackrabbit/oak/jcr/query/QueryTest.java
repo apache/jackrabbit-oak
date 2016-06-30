@@ -67,6 +67,24 @@ public class QueryTest extends AbstractRepositoryTest {
     public QueryTest(NodeStoreFixture fixture) {
         super(fixture);
     }
+    
+    @Test
+    public void firstSelector() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        Node a = root.addNode("a");
+        a.setProperty("test", true);
+        Node b = a.addNode("b");
+        b.setProperty("test", true);
+        session.save();
+        QueryResult r = session.getWorkspace().getQueryManager()
+                .createQuery("//a[@test]/b[@test]", "xpath").execute();
+        String firstSelector = r.getSelectorNames()[0];
+        RowIterator rows = r.getRows();
+        Row row = rows.nextRow();
+        String path = row.getPath(firstSelector);
+        assertEquals("/a/b", path);
+    }
 
     @Test
     public void join() throws Exception {
