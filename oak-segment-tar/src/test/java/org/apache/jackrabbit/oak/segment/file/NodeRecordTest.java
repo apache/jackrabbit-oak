@@ -23,7 +23,8 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.junit.Ignore;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.SegmentWriterBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -38,10 +39,12 @@ public class NodeRecordTest {
     }
 
     @Test
-    @Ignore("OAK-4525")
-    public void newNodeRecordShouldBeRoot() throws Exception {
+    public void unreferencedNodeRecordShouldBeRoot() throws Exception {
         try (FileStore store = newFileStore()) {
-            assertTrue(isRootRecord(store.getWriter().writeNode(EmptyNodeState.EMPTY_NODE)));
+            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
+            SegmentNodeState state = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
+            assertTrue(isRootRecord(state));
         }
     }
 
