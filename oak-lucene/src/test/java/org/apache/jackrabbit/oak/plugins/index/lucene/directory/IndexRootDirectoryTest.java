@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.util.List;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
@@ -106,6 +107,28 @@ public class IndexRootDirectoryTest {
 
         assertEquals(fb2.getParentFile().getAbsolutePath(), getDir("/b", dirs).getFSPath());
         assertEquals(fa2.getParentFile().getAbsolutePath(), getDir("/a", dirs).getFSPath());
+    }
+
+    @Test
+    public void indexFolderName() throws Exception{
+        assertEquals("abc", IndexRootDirectory.getIndexFolderBaseName("/abc"));
+        assertEquals("abc12", IndexRootDirectory.getIndexFolderBaseName("/abc12"));
+        assertEquals("xyabc12", IndexRootDirectory.getIndexFolderBaseName("/xy:abc12"));
+        assertEquals("xyabc12", IndexRootDirectory.getIndexFolderBaseName("/xy:abc#^&12"));
+        assertEquals("xyabc12", IndexRootDirectory.getIndexFolderBaseName("/oak:index/xy:abc12"));
+        assertEquals("content_xyabc12", IndexRootDirectory.getIndexFolderBaseName("/content/oak:index/xy:abc12"));
+        assertEquals("sales_xyabc12", IndexRootDirectory.getIndexFolderBaseName("/content/sales/oak:index/xy:abc12"));
+        assertEquals("appsales_xyabc12", IndexRootDirectory.getIndexFolderBaseName
+                ("/content/app:sales/oak:index/xy:abc12"));
+    }
+
+    @Test
+    public void longFileName() throws Exception{
+        String longName = Strings.repeat("x", IndexRootDirectory.MAX_NAME_LENGTH);
+        assertEquals(longName, IndexRootDirectory.getIndexFolderBaseName(longName));
+
+        String longName2 = Strings.repeat("x", IndexRootDirectory.MAX_NAME_LENGTH + 10);
+        assertEquals(longName, IndexRootDirectory.getIndexFolderBaseName(longName2));
     }
 
     private NodeBuilder resetBuilder() {

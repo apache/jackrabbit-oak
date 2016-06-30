@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import static com.google.common.base.Preconditions.checkState;
 
 public class IndexRootDirectory {
+    static final int MAX_NAME_LENGTH = 127;
     public static final String INDEX_METADATA_FILE_NAME = "index-details.txt";
 
     private final File indexRootDir;
@@ -110,11 +113,35 @@ public class IndexRootDirectory {
         return result == null ? Collections.<LocalIndexDir>emptyList() : result;
     }
 
+    /**
+     * <ul>
+     *     <li>abc -> abc</li>
+     *     <li>xy:abc -> xyabc</li>
+     *     <li>/oak:index/abc -> abc</li>
+     * </ul>
+     *
+     * The resulting file name would be truncated to MAX_NAME_LENGTH
+     */
     static String getIndexFolderBaseName(String indexPath) {
-        String nodeName = PathUtils.getName(indexPath);
+        List<String> elements = Lists.newArrayList(PathUtils.elements(indexPath));
+        Collections.reverse(elements);
+        List<String> result = Lists.newArrayListWithCapacity(2);
 
-        //Strip of any char outside of a-zA-Z0-9-
-        return nodeName.replaceAll("\\W+", "");
+        //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
+        for (String e : Iterables.limit(elements, 3)) {
+            if ("oak:index".equals(e)) {
+                continue;
+            }
+            //Strip of any char outside of a-zA-Z0-9-
+            result.add(e.replaceAll("\\W", ""));
+        }
+
+        Collections.reverse(result);
+        String name = Joiner.on('_').join(result);
+        if (name.length() > MAX_NAME_LENGTH){
+            name = name.substring(0, MAX_NAME_LENGTH);
+        }
+        return name;
     }
 
     static String getPathHash(String indexPath) {
