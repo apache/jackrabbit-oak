@@ -151,7 +151,7 @@ public class SegmentSizeTest {
         deny.setProperty("rep:principalName", "everyone");
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        expectSize(224, builder);
+        expectSize(240, builder);
         expectAmortizedSize(40, builder);
 
         NodeBuilder allow = builder.child("allow");
@@ -168,7 +168,7 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        expectSize(464, builder);
+        expectSize(480, builder);
         expectAmortizedSize(136, builder);
 
         NodeBuilder allow0 = builder.child("allow0");

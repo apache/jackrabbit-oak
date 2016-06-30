@@ -496,12 +496,17 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id, SegmentBufferWriter writer) {
+
+            // Write the stable record ID. This is only a marker and is not a
+            // reference to another record. Because of this, those record IDs
+            // should not be marked as references.
+
             if (stableId == null) {
                 // Write this node's record id to indicate that the stable id is not
                 // explicitly stored.
-                writer.writeRecordId(id);
+                writer.writeRecordId(id, false);
             } else {
-                writer.writeRecordId(stableId);
+                writer.writeRecordId(stableId, false);
             }
 
             for (RecordId recordId : ids) {
