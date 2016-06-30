@@ -43,6 +43,7 @@ enum Mode {
     TARMKRECOVERY("tarmkrecovery", new FileStoreRevisionRecoveryCommand()),
     DUMPDATASTOREREFS("dumpdatastorerefs", new DumpDataStoreReferencesCommand()),
     RESETCLUSTERID("resetclusterid", new ResetClusterIdCommand()),
+    PERSISTENTCACHE("persistentcache", new PersistentCacheCommand()),
     HELP("help", new HelpCommand());
 
     private final String name;
