@@ -125,6 +125,13 @@ public class SegmentId implements Comparable<SegmentId> {
         return creationTime;
     }
 
+    /**
+     * @return  this segment id as UUID
+     */
+    public UUID asUUID() {
+        return new UUID(msb, lsb);
+    }
+
     // --------------------------------------------------------< Comparable >--
 
     @Override
