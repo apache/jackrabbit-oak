@@ -44,6 +44,7 @@ enum Mode {
     DUMPDATASTOREREFS("dumpdatastorerefs", new DataStoreCheckCommand()),
     RESETCLUSTERID("resetclusterid", new ResetClusterIdCommand()),
     PERSISTENTCACHE("persistentcache", new PersistentCacheCommand()),
+    THREADDUMP("threaddump", new ThreadDumpCommand()),
     HELP("help", new HelpCommand());
 
     private final String name;

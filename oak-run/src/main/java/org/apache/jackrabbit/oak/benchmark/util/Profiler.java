@@ -17,13 +17,16 @@
 package org.apache.jackrabbit.oak.benchmark.util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.lang.instrument.Instrumentation;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,26 +35,38 @@ import java.util.Map;
 /**
  * A simple CPU profiling tool similar to java -Xrunhprof. It can be used
  * in-process (to profile the current application) or as a standalone program
- * (to profile a different process).
+ * (to profile a different process, or files containing full thread dumps).
  */
 public class Profiler implements Runnable {
 
     private static Instrumentation instrumentation;
-    private static final String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
+    private static final String LINE_SEPARATOR =
+            System.getProperty("line.separator", "\n");
     private static final int MAX_ELEMENTS = 1000;
 
     public int interval = 2;
     public int depth = 48;
     public boolean paused;
     public boolean sumClasses;
+    public boolean sumMethods;
 
     private int pid;
 
-    private final String[] ignoreLines = {};
+    private final String[] ignoreLines = (
+            "java," +
+            "sun," +
+            "com.sun.," +
+            "com.google.common.," +
+            "com.mongodb.," +
+            "org.bson.,"
+            ).split(",");
     private final String[] ignorePackages = (
             "java," +
             "sun," +
-            "com.sun."
+            "com.sun.," +
+            "com.google.common.," +
+            "com.mongodb.," +
+            "org.bson"
             ).split(",");
     private final String[] ignoreThreads = (
             "java.lang.Object.wait," +
@@ -59,29 +74,37 @@ public class Profiler implements Runnable {
             "java.lang.Thread.getThreads," +
             "java.lang.Thread.sleep," +
             "java.lang.UNIXProcess.waitForProcessExit," +
+            "java.net.PlainDatagramSocketImpl.receive0," +
             "java.net.PlainSocketImpl.accept," +
             "java.net.PlainSocketImpl.socketAccept," +
             "java.net.SocketInputStream.socketRead," +
             "java.net.SocketOutputStream.socketWrite," +
+            "org.eclipse.jetty.io.nio.SelectorManager$SelectSet.doSelect," +
             "sun.awt.windows.WToolkit.eventLoop," +
             "sun.misc.Unsafe.park," +
+            "sun.nio.ch.EPollArrayWrapper.epollWait," +
+            "sun.nio.ch.KQueueArrayWrapper.kevent0," +
+            "sun.nio.ch.ServerSocketChannelImpl.accept," +
             "dalvik.system.VMStack.getThreadStackTrace," +
             "dalvik.system.NativeStart.run"
             ).split(",");
 
     private volatile boolean stop;
-    private final HashMap<String, Integer> counts = new HashMap<String, Integer>();
+    private final HashMap<String, Integer> counts =
+            new HashMap<String, Integer>();
 
     /**
      * The summary (usually one entry per package, unless sumClasses is enabled,
      * in which case it's one entry per class).
      */
-    private final HashMap<String, Integer> summary = new HashMap<String, Integer>();
+    private final HashMap<String, Integer> summary =
+            new HashMap<String, Integer>();
     private int minCount = 1;
     private int total;
     private Thread thread;
     private long start;
     private long time;
+    private int threadDumps;
 
     /**
      * This method is called when the agent is installed.
@@ -116,23 +139,66 @@ public class Profiler implements Runnable {
     private void run(String... args) {
         if (args.length == 0) {
             System.out.println("Show profiling data");
-            System.out.println("Usage: java " + getClass().getName() + " <pid>");
+            System.out.println("Usage: java " + getClass().getName() +
+                    " <pid> | <stackTraceFileNames>");
             System.out.println("Processes:");
             String processes = exec("jps", "-l");
             System.out.println(processes);
             return;
         }
-        pid = Integer.parseInt(args[0]);
         start = System.currentTimeMillis();
-        long last = 0;
-        while (true) {
-            tick();
-            long t = System.currentTimeMillis();
-            if (t - last > 5000) {
-                time = System.currentTimeMillis() - start;
-                System.out.println(getTopTraces(3));
-                last = t;
+        if (args[0].matches("\\d+")) {
+            pid = Integer.parseInt(args[0]);
+            long last = 0;
+            while (true) {
+                tick();
+                long t = System.currentTimeMillis();
+                if (t - last > 5000) {
+                    time = System.currentTimeMillis() - start;
+                    System.out.println(getTopTraces(3));
+                    last = t;
+                }
             }
+        }
+        try {
+            for (String arg : args) {
+                if (arg.startsWith("-")) {
+                    if ("-classes".equals(arg)) {
+                        sumClasses = true;
+                    } else if ("-methods".equals(arg)) {
+                        sumMethods = true;
+                    } else if ("-packages".equals(arg)) {
+                        sumClasses = false;
+                        sumMethods = false;
+                    } else {
+                        throw new IllegalArgumentException(arg);
+                    }
+                    continue;
+                }
+                String file = arg;
+                Reader reader;
+                LineNumberReader r;
+                reader = new InputStreamReader(
+                        new FileInputStream(file), "CP1252");
+                r = new LineNumberReader(reader);
+                while (true) {
+                    String line = r.readLine();
+                    if (line == null) {
+                        break;
+                    } else if (line.startsWith("Full thread dump")) {
+                        threadDumps++;
+                    }
+                }
+                reader.close();
+                reader = new InputStreamReader(
+                        new FileInputStream(file), "CP1252");
+                r = new LineNumberReader(reader);
+                processList(readStackTrace(r));
+                reader.close();
+            }
+            System.out.println(getTopTraces(5));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -154,52 +220,58 @@ public class Profiler implements Runnable {
     }
 
     private static List<Object[]> readRunnableStackTraces(int pid) {
-        ArrayList<Object[]> list = new ArrayList<Object[]>();
         try {
             String jstack = exec("jstack", "" + pid);
-            LineNumberReader r = new LineNumberReader(new StringReader(jstack));
+            LineNumberReader r = new LineNumberReader(
+                    new StringReader(jstack));
+            return readStackTrace(r);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static List<Object[]> readStackTrace(LineNumberReader r)
+            throws IOException {
+        ArrayList<Object[]> list = new ArrayList<Object[]>();
+        while (true) {
+            String line = r.readLine();
+            if (line == null) {
+                break;
+            }
+            if (!line.startsWith("\"")) {
+                // not a thread
+                continue;
+            }
+            line = r.readLine();
+            if (line == null) {
+                break;
+            }
+            line = line.trim();
+            if (!line.startsWith("java.lang.Thread.State: RUNNABLE")) {
+                continue;
+            }
+            ArrayList<String> stack = new ArrayList<String>();
             while (true) {
-                String line = r.readLine();
-                if (line == null) {
-                    break;
-                }
-                if (!line.startsWith("\"")) {
-                    // not a thread
-                    continue;
-                }
                 line = r.readLine();
                 if (line == null) {
                     break;
                 }
                 line = line.trim();
-                if (!line.startsWith("java.lang.Thread.State: RUNNABLE")) {
+                if (line.startsWith("- ")) {
                     continue;
                 }
-                ArrayList<String> stack = new ArrayList<String>();
-                while (true) {
-                    line = r.readLine();
-                    if (line == null) {
-                        break;
-                    }
-                    line = line.trim();
-                    if (line.startsWith("- ")) {
-                        continue;
-                    }
-                    if (!line.startsWith("at ")) {
-                        break;
-                    }
-                    line = line.substring(3).trim();
-                    stack.add(line);
+                if (!line.startsWith("at ")) {
+                    break;
                 }
-                if (stack.size() > 0) {
-                    String[] s = stack.toArray(new String[stack.size()]);
-                    list.add(s);
-                }
+                line = line.substring(3).trim();
+                stack.add(line);
             }
-            return list;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            if (stack.size() > 0) {
+                String[] s = stack.toArray(new String[stack.size()]);
+                list.add(s);
+            }
         }
+        return list;
     }
 
     private static String exec(String... args) {
@@ -221,7 +293,8 @@ public class Profiler implements Runnable {
         }
     }
 
-    private static void copyInThread(final InputStream in, final OutputStream out) {
+    private static void copyInThread(final InputStream in,
+            final OutputStream out) {
         new Thread("Profiler stream copy") {
             @Override
             public void run() {
@@ -238,7 +311,7 @@ public class Profiler implements Runnable {
                     throw new RuntimeException(e);
                 }
             }
-        }.run();
+        }.start();
     }
 
     /**
@@ -302,6 +375,11 @@ public class Profiler implements Runnable {
         } else {
             list = getRunnableStackTraces();
         }
+        threadDumps++;
+        processList(list);
+    }
+
+    private void processList(List<Object[]> list) {
         for (Object[] dump : list) {
             if (startsWithAny(dump[0].toString(), ignoreThreads)) {
                 continue;
@@ -331,6 +409,10 @@ public class Profiler implements Runnable {
                             int m = el.indexOf('.', index + 1);
                             index = m >= 0 ? m : index;
                         }
+                        if (sumMethods) {
+                            int m = el.indexOf('(', index + 1);
+                            index = m >= 0 ? m : index;
+                        }
                         String groupName = el.substring(0, index);
                         increment(summary, groupName, 0);
                     }
@@ -353,7 +435,8 @@ public class Profiler implements Runnable {
         return false;
     }
 
-    private static int increment(HashMap<String, Integer> map, String trace, int minCount) {
+    private static int increment(HashMap<String, Integer> map, String trace,
+            int minCount) {
         Integer oldCount = map.get(trace);
         if (oldCount == null) {
             map.put(trace, 1);
@@ -361,7 +444,8 @@ public class Profiler implements Runnable {
             map.put(trace, oldCount + 1);
         }
         while (map.size() > MAX_ELEMENTS) {
-            for (Iterator<Map.Entry<String, Integer>> ei = map.entrySet().iterator(); ei.hasNext();) {
+            for (Iterator<Map.Entry<String, Integer>> ei =
+                    map.entrySet().iterator(); ei.hasNext();) {
                 Map.Entry<String, Integer> e = ei.next();
                 if (e.getValue() <= minCount) {
                     ei.remove();
@@ -387,8 +471,14 @@ public class Profiler implements Runnable {
 
     private String getTopTraces(int count) {
         StringBuilder buff = new StringBuilder();
-        buff.append("Profiler: top ").append(count).append(" stack trace(s) of ").append(time).
-            append(" ms:").append(LINE_SEPARATOR);
+        buff.append("Profiler: top ").append(count).append(" stack trace(s) of ");
+        if (time > 0) {
+            buff.append(" of ").append(time).append(" ms");
+        }
+        if (threadDumps > 0) {
+            buff.append(" of ").append(threadDumps).append(" thread dumps");
+        }
+        buff.append(":").append(LINE_SEPARATOR);
         if (counts.size() == 0) {
             buff.append("(none)").append(LINE_SEPARATOR);
         }
@@ -401,7 +491,8 @@ public class Profiler implements Runnable {
         return buff.toString();
     }
 
-    private static void appendTop(StringBuilder buff, HashMap<String, Integer> map, int count, int total, boolean table) {
+    private static void appendTop(StringBuilder buff,
+            HashMap<String, Integer> map, int count, int total, boolean table) {
         for (int x = 0, min = 0;;) {
             int highest = 0;
             Map.Entry<String, Integer> best = null;
