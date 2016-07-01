@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -46,11 +45,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.PeekingIterator;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListenableFutureTask;
@@ -59,6 +55,7 @@ import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
@@ -79,14 +76,22 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final Logger LOG = LoggerFactory.getLogger(MarkSweepGarbageCollector.class);
 
-    public static final String NEWLINE = StandardSystemProperty.LINE_SEPARATOR.value();
-
     public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
     public static final int DEFAULT_BATCH_COUNT = 2048;
     
     public static final String DELIM = ",";
-    
+
+    private static final Function<String, String> transformer = new Function<String, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable String input) {
+            if (input != null) {
+                return input.split(DELIM)[0];
+            }
+            return "";
+        }};
+
     /** The last modified time before current time of blobs to consider for garbage collection. */
     private final long maxLastModifiedInterval;
 
@@ -296,7 +301,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
                 fs.getMarkedRefs(),
-                fs.getAvailableRefs());
+                fs.getAvailableRefs(),
+                transformer);
         calculateDifference(fs, iter);
 
         LOG.debug("Ending difference phase of the garbage collector");
@@ -542,12 +548,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     "Blob garbage collection [{}]", count.get());
             // sort the marked references with the first part of the key
             GarbageCollectorFileState.sort(fs.getMarkedRefs(), 
-                                              new Comparator<String>() {
-                                                    @Override
-                                                    public int compare(String s1, String s2) {
-                                                        return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
-                                                    }
-                                                });
+                new Comparator<String>() {
+                    @Override
+                    public int compare(String s1, String s2) {
+                        return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
+                    }
+                });
         } finally {
             IOUtils.closeQuietly(writer);
         }
@@ -566,7 +572,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long candidates = 0;
         
         try {
-            Stopwatch sw = Stopwatch.createStarted();
             LOG.info("Starting blob consistency check");
     
             // Find all blobs available in the blob store
@@ -585,7 +590,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             }
             
             LOG.trace("Starting difference phase of the consistency check");
-            FileLineDifferenceIterator iter = new FileLineDifferenceIterator(fs.getAvailableRefs(), fs.getMarkedRefs());
+            FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
+                fs.getAvailableRefs(),
+                fs.getMarkedRefs(),
+                transformer);
             candidates = calculateDifference(fs, iter);
             LOG.trace("Ending difference phase of the consistency check");
             
@@ -644,81 +652,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 IOUtils.closeQuietly(bufferWriter);
             }
             return blobsCount;
-        }
-    }
-
-
-    /**
-     * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.
-     */
-    static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
-        private final PeekingIterator<String> peekMarked;
-        private final LineIterator marked;
-        private final LineIterator all;
-
-        public FileLineDifferenceIterator(File marked, File available) throws IOException {
-            this(FileUtils.lineIterator(marked), FileUtils.lineIterator(available));
-        }
-
-        public FileLineDifferenceIterator(LineIterator marked, LineIterator available) throws IOException {
-            this.marked = marked;
-            this.peekMarked = Iterators.peekingIterator(marked);
-            this.all = available;
-        }
-
-        @Override
-        protected String computeNext() {
-            String diff = computeNextDiff();
-            if (diff == null) {
-                close();
-                return endOfData();
-            }
-            return diff;
-        }
-
-        @Override
-        public void close() {
-            LineIterator.closeQuietly(marked);
-            LineIterator.closeQuietly(all);
-        }
-        
-        private String getKey(String row) {
-            return row.split(DELIM)[0];
-        }
-        
-        private String computeNextDiff() {
-            if (!all.hasNext()) {
-                return null;
-            }
-
-            //Marked finish the rest of all are part of diff
-            if (!peekMarked.hasNext()) {
-                return all.next();
-            }
-            
-            String diff = null;
-            while (all.hasNext() && diff == null) {
-                diff = all.next();
-                while (peekMarked.hasNext()) {
-                    String marked = peekMarked.peek();
-                    int comparisonResult = getKey(diff).compareTo(getKey(marked));
-                    if (comparisonResult > 0) {
-                        //Extra entries in marked. Ignore them and move on
-                        peekMarked.next();
-                    } else if (comparisonResult == 0) {
-                        //Matching entry found in marked move past it. Not a
-                        //dif candidate
-                        peekMarked.next();
-                        diff = null;
-                        break;
-                    } else {
-                        //This entry is not found in marked entries
-                        //hence part of diff
-                        return diff;
-                    }
-                }
-            }
-            return diff;
         }
     }
 

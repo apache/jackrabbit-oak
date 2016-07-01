@@ -26,7 +26,7 @@ The following runmodes are currently available:
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * tarmkdiff       : Show changes between revisions on TarMk
     * tarmkrecovery   : Lists candidates for head journal entries
-    * dumpdatastorerefs : Dump all the blob references used to a file 
+    * datastorecheck  : Consistency checker for data store 
     * resetclusterid  : Resets the cluster id   
     * help            : Print a list of available runmodes
     
@@ -975,15 +975,60 @@ The following options are available:
 
     --version-v10           - Uses V10 version repository reading (see OAK-2527)
 
-Oak Dump DataStore References
------------------------------
+Oak DataStore Check
+-------------------
 
-Dumps all the DataStore/BlobStore references used. Use the following commmand
+Consistency checker for the DataStore.
+Also can be used to list all the blob references in the node store and all the blob ids available in the data store. 
+Use the following command:
 
-    $ java -jar oak-run-*.jar dumpdatastorerefs \
-            { /path/to/oak/repository | mongodb://host:port/database } [/path/to/dump]
+    $ java -jar oak-run-*.jar datastorecheck [--id] [--ref] [--consistency] \
+            [--store <path>|<mongo_uri>] \
+            [--s3ds <s3ds_config>|--fds <fds_config>] \
+            [--dump <path>]
 
-This will create a dump file with name starting with 'marked-'.The dump path is optional and if not specified the file will be created in the user tmp directory.
+The following options are available:
+
+    --id             - List all the ids in the data store
+    --ref            - List all the blob references in the node store
+    --consistency    - Lists all the missing blobs by doind a consistency check
+    Atleast one of the above should be specified
+    
+    --store          - Path to the segment store of mongo uri (Required for --ref & --consistency option above)
+    --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
+    --s3ds           - Path to the S3DataStore configuration file
+    --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
+
+Note:
+For using S3DataStore the following additional jars have to be downloaded
+    - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
+    - [httpcore-4.4.4.jar](http://central.maven.org/maven2/org/apache/httpcomponents/httpcore/4.4.4/httpcore-4.4.4.jar)
+    - [aws-java-sdk-1.10.76.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk/1.10.76/aws-java-sdk-1.10.76.jar)
+    
+The command to be executed for S3DataStore
+
+    java -classpath oak-run-*.jar:httpcore-4.4.4.jar:aws-java-sdk-osgi-1.10.76.jar:commons-logging-1.1.3.jar \
+        org.apache.jackrabbit.oak.run.Main \
+        datastorecheck --id --ref --consistency \
+        --store <path>|<mongo_uri> \
+        --s3ds <s3ds_config> \
+        --dump <dump_path>
+
+The config files should be formatted according to the OSGi configuration admin specification
+
+    E.g.
+    cat > org.apache.jackrabbit.oak.plugins.S3DataStore.config << EOF 
+    accessKey="XXXXXXXXX"
+    secretKey="YYYYYY"
+    s3Bucket="bucket1"
+    s3Region="region1"
+    EOF
+    
+    cat > org.apache.jackrabbit.oak.plugins.FileDataStore.config << EOF 
+    path="/data/datastore"
+    EOF        
+    
+
 
 Reset Cluster Id
 ---------------
