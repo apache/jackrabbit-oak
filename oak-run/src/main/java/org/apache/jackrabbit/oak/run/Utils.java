@@ -18,21 +18,38 @@
 package org.apache.jackrabbit.oak.run;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
 
 import java.io.Closeable;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Properties;
 
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+
+import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedS3DataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class Utils {
@@ -87,6 +104,44 @@ class Utils {
         return SegmentUtils.bootstrapNodeStore(src, closer);
     }
 
+    @Nullable
+    public static GarbageCollectableBlobStore bootstrapDataStore(String[] args, Closer closer)
+        throws IOException, RepositoryException {
+        OptionParser parser = new OptionParser();
+        parser.allowsUnrecognizedOptions();
+
+        ArgumentAcceptingOptionSpec<String> s3dsConfig =
+            parser.accepts("s3ds", "S3DataStore config").withRequiredArg().ofType(String.class);
+        ArgumentAcceptingOptionSpec<String> fdsConfig =
+            parser.accepts("fds", "FileDataStore config").withRequiredArg().ofType(String.class);
+
+        OptionSet options = parser.parse(args);
+
+        if (!options.has(s3dsConfig) && !options.has(fdsConfig)) {
+            return null;
+        }
+
+        DataStore delegate;
+        if (options.has(s3dsConfig)) {
+            SharedS3DataStore s3ds = new SharedS3DataStore();
+            String cfgPath = s3dsConfig.value(options);
+            Properties props = loadAndTransformProps(cfgPath);
+            s3ds.setProperties(props);
+            s3ds.init(null);
+            delegate = s3ds;
+        } else {
+            delegate = new OakFileDataStore();
+            String cfgPath = fdsConfig.value(options);
+            Properties props = loadAndTransformProps(cfgPath);
+            populate(delegate, Maps.fromProperties(props), true);
+            delegate.init(null);
+        }
+        DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
+        closer.register(Utils.asCloseable(blobStore));
+
+        return blobStore;
+    }
+
     static Closeable asCloseable(final FileStore fs) {
         return new Closeable() {
 
@@ -115,5 +170,31 @@ class Utils {
                 con.close();
             }
         };
+    }
+
+    static Closeable asCloseable(final DataStoreBlobStore blobStore) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                try {
+                    blobStore.close();
+                } catch (DataStoreException e) {
+                    throw new IOException(e);
+                }
+            }
+        };
+    }
+
+
+    private static Properties loadAndTransformProps(String cfgPath) throws IOException {
+        Dictionary dict = ConfigurationHandler.read(new FileInputStream(cfgPath));
+        Properties props = new Properties();
+        Enumeration keys = dict.keys();
+        while (keys.hasMoreElements()) {
+            String key = (String) keys.nextElement();
+            props.put(key, dict.get(key));
+        }
+        return props;
     }
 }

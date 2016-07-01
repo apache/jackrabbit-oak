@@ -18,13 +18,17 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -32,17 +36,21 @@ import java.util.Random;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 
 /**
@@ -61,11 +69,11 @@ public class FileIOUtilsTest {
         File f = folder.newFile();
 
         int count = writeStrings(added.iterator(), f, false);
-        Assert.assertEquals(added.size(), count);
+        assertEquals(added.size(), count);
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
 
-        Assert.assertEquals(added, retrieved);
+        assertEquals(added, retrieved);
     }
 
     @Test
@@ -73,10 +81,10 @@ public class FileIOUtilsTest {
         Set<String> added = newHashSet(getLineBreakStrings());
         File f = folder.newFile();
         int count = writeStrings(added.iterator(), f, true);
-        Assert.assertEquals(added.size(), count);
+        assertEquals(added.size(), count);
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), true);
-        Assert.assertEquals(added, retrieved);
+        assertEquals(added, retrieved);
     }
 
     @Test
@@ -88,38 +96,71 @@ public class FileIOUtilsTest {
             added.add(getRandomTestString());
         }
         int count = writeStrings(added.iterator(), f, true);
-        Assert.assertEquals(added.size(), count);
+        assertEquals(added.size(), count);
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), true);
-        Assert.assertEquals(added, retrieved);
+        assertEquals(added, retrieved);
     }
 
     @Test
     public void compareWithLineBreaks() throws Exception {
-        Comparator<String> lexCmp = new Comparator<String>() {
-            @Override public int compare(String s1, String s2) {
-                return s1.compareTo(s2);
-            }
-        };
-        Comparator<String> cmp = FileIOUtils.lineBreakAwareComparator(lexCmp);
+        Comparator<String> cmp = lineBreakAwareComparator(lexComparator);
 
         List<String> strs = getLineBreakStrings();
-        Collections.sort(strs, lexCmp);
+        Collections.sort(strs);
 
         // Escape line breaks and then compare with string sorted
         List<String> escapedStrs = escape(getLineBreakStrings());
         Collections.sort(escapedStrs, cmp);
 
-        Assert.assertEquals(strs, unescape(escapedStrs));
+        assertEquals(strs, unescape(escapedStrs));
+    }
+
+    @Test
+    public void sortTest() throws IOException {
+        List<String> list = newArrayList("a", "z", "e", "b");
+        File f = folder.newFile();
+        writeStrings(list.iterator(), f, false);
+        sort(f);
+
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader(new FileInputStream(f), Charsets.UTF_8));
+        String line = null;
+        List<String> retrieved = newArrayList();
+        while ((line = reader.readLine()) != null) {
+            retrieved.add(line);
+        }
+        IOUtils.closeQuietly(reader);
+        Collections.sort(list);
+        assertArrayEquals(Arrays.toString(list.toArray()), list.toArray(), retrieved.toArray());
+    }
+
+    @Test
+    public void sortCustomComparatorTest() throws IOException {
+        List<String> list = getLineBreakStrings();
+        File f = folder.newFile();
+        writeStrings(list.iterator(), f, true);
+        sort(f, lineBreakAwareComparator(lexComparator));
+
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader(new FileInputStream(f), Charsets.UTF_8));
+        String line = null;
+        List<String> retrieved = newArrayList();
+        while ((line = reader.readLine()) != null) {
+            retrieved.add(unescapeLineBreaks(line));
+        }
+        IOUtils.closeQuietly(reader);
+        Collections.sort(list);
+        assertArrayEquals(Arrays.toString(list.toArray()), list.toArray(), retrieved.toArray());
     }
 
     private static List<String> getLineBreakStrings() {
-        return Lists.newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
+        return newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
             "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
     }
 
     private static List<String> escape(List<String> list) {
-        List<String> escaped = Lists.newArrayList();
+        List<String> escaped = newArrayList();
         for (String s : list) {
             escaped.add(escapeLineBreak(s));
         }
@@ -127,7 +168,7 @@ public class FileIOUtilsTest {
     }
 
     private static List<String> unescape(List<String> list) {
-        List<String> unescaped = Lists.newArrayList();
+        List<String> unescaped = newArrayList();
         for (String s : list) {
             unescaped.add(unescapeLineBreaks(s));
         }
