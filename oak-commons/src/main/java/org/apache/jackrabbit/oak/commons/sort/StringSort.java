@@ -38,6 +38,7 @@ import com.google.common.io.Files;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,7 +177,7 @@ public class StringSort implements Iterable<String>, Closeable {
 
         public PersistentState(Comparator<String> comparator, File workDir) {
             this.workDir = workDir;
-            this.comparator = comparator;
+            this.comparator = FileIOUtils.lineBreakAwareComparator(comparator);
         }
 
         public BufferedWriter getWriter() throws FileNotFoundException {

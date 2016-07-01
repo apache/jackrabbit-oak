@@ -39,6 +39,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -56,15 +58,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -455,8 +455,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     static void saveBatchToFile(List<String> ids, BufferedWriter writer) throws IOException {
         for (String id : ids) {
-            ExternalSort.writeLine(writer, id);
-            writer.append(NEWLINE);
+            FileIOUtils.writeAsLine(writer, id, true);
         }
         ids.clear();
         writer.flush();

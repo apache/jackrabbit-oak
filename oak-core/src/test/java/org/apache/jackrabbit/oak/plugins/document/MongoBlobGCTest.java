@@ -148,20 +148,21 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private HashSet<String> addNodeSpecialChars() throws Exception {
+        List<String> specialCharSets =
+            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+        DocumentNodeStore ds = mk.getNodeStore();
         HashSet<String> set = new HashSet<String>();
-        DocumentNodeStore s = mk.getNodeStore();
-        NodeBuilder a = s.getRoot().builder();
-        int number = 1;
-        for (int i = 0; i < number; i++) {
-            Blob b = s.createBlob(randomStream(i, 18432));
+        NodeBuilder a = ds.getRoot().builder();
+        for (int i = 0; i < specialCharSets.size(); i++) {
+            Blob b = ds.createBlob(randomStream(i, 18432));
             NodeBuilder n = a.child("cspecial");
-            n.child("q\\%22afdg\\%22").setProperty("x", b);
+            n.child(specialCharSets.get(i)).setProperty("x", b);
             Iterator<String> idIter =
-                ((GarbageCollectableBlobStore) s.getBlobStore())
+                ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
             set.addAll(Lists.newArrayList(idIter));
         }
-        s.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;
     }
 
