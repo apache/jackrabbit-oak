@@ -31,9 +31,9 @@ import static com.google.common.base.Preconditions.checkState;
  * to handle data which contains line break. If left unescaped
  * then such data interferes with the processing of such utilities
  */
-abstract class EscapeUtils {
+public abstract class EscapeUtils {
 
-    static String escapeLineBreak(@Nullable String line) {
+    public static String escapeLineBreak(@Nullable String line) {
         if (line == null) {
             return null;
         }
@@ -43,7 +43,7 @@ abstract class EscapeUtils {
         return line;
     }
 
-    static String unescapeLineBreaks(@Nullable String line) {
+    public static String unescapeLineBreaks(@Nullable String line) {
         if (line == null) {
             return null;
         }

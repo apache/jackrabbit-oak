@@ -301,13 +301,14 @@ public class SharedBlobStoreGCTest {
         }
 
         private HashSet<String> addNodeSpecialChars() throws Exception {
+            List<String> specialCharSets =
+                Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
             HashSet<String> set = new HashSet<String>();
             NodeBuilder a = ds.getRoot().builder();
-            int number = 1;
-            for (int i = 0; i < number; i++) {
+            for (int i = 0; i < specialCharSets.size(); i++) {
                 Blob b = ds.createBlob(randomStream(i, 18432));
                 NodeBuilder n = a.child("cspecial");
-                n.child("q\\%22afdg\\%22").setProperty("x", b);
+                n.child(specialCharSets.get(i)).setProperty("x", b);
                 Iterator<String> idIter =
                     ((GarbageCollectableBlobStore) ds.getBlobStore())
                         .resolveChunks(b.toString());
