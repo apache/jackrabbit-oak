@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -30,8 +32,10 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class CheckpointsTest {
 
@@ -150,5 +154,30 @@ public class CheckpointsTest {
 
         assertEquals(1, store.getCheckpoints().size());
         assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+    }
+
+    @Test
+    public void checkpoint() throws CommitFailedException {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        test.setProperty("a", 1);
+        test.setProperty("b", 2);
+        test.setProperty("c", 3);
+        test.child("x");
+        test.child("y");
+        test.child("z");
+        NodeState root = store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        String cp = store.checkpoint(Long.MAX_VALUE);
+
+        builder = store.getRoot().builder();
+        builder.setChildNode("new");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertFalse(root.equals(store.getRoot()));
+        assertEquals(root, store.retrieve(cp));
+
+        assertTrue(store.release(cp));
+        assertNull(store.retrieve(cp));
     }
 }
