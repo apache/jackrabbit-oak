@@ -84,7 +84,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
     private static final int MAX_FAILURE_ENTRIES = 10000;
-    private static final AtomicInteger UNIQUE_COUNTER = new AtomicInteger();
     private static final String WORK_DIR_NAME = "indexWriterDir";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -113,7 +112,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final AtomicLong uploadTime = new AtomicLong();
 
 
-    private final Map<String, String> indexPathMapping = newConcurrentMap();
     private final Map<String, Set<String>> sharedWorkingSetMap = newHashMap();
     private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
@@ -1089,7 +1087,10 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                 //Clean out the local dir irrespective of any error occurring upon
                 //close in wrapped directory
                 try{
+                    long totalDeletedSize = FileUtils.sizeOf(oldIndexDir);
                     FileUtils.deleteDirectory(oldIndexDir);
+                    totalDeletedSize  += indexRootDirectory.gcEmptyDirs(oldIndexDir);
+                    garbageCollectedSize.addAndGet(totalDeletedSize);
                     log.debug("Removed old index content from {} ", oldIndexDir);
                 } catch (IOException e){
                     log.warn("Not able to remove old version of copied index at {}", oldIndexDir, e);

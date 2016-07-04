@@ -20,9 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
@@ -47,7 +49,7 @@ public class IndexRootDirectoryTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Before
-    public void setUp(){
+    public void setUp() throws IOException {
         dir = new IndexRootDirectory(temporaryFolder.getRoot());
     }
 
@@ -131,9 +133,75 @@ public class IndexRootDirectoryTest {
         assertEquals(longName, IndexRootDirectory.getIndexFolderBaseName(longName2));
     }
 
+    @Test
+    public void gcIndexDirs() throws Exception{
+        //Create an old format directory
+        File fa0 = dir.getIndexDir(getDefn(), "/a");
+
+        configureUniqueId();
+        File fa1 = dir.getIndexDir(getDefn(), "/a");
+        configureUniqueId();
+        File fa2 = dir.getIndexDir(getDefn(), "/a");
+
+        List<LocalIndexDir> dirs = dir.getLocalIndexes("/a");
+        assertEquals(2, dirs.size());
+
+        dir.gcEmptyDirs(fa2);
+        //No index dir should be removed. Even empty ones
+        assertEquals(2, dirs.size());
+
+        configureUniqueId();
+        File fa3 = dir.getIndexDir(getDefn(), "/a");
+
+        assertEquals(3, dir.getLocalIndexes("/a").size());
+
+        //Dir size should still be 3 as non empty dir cannot be be collected
+        dir.gcEmptyDirs(fa3);
+        assertEquals(3, dir.getLocalIndexes("/a").size());
+
+        //Now get rid of 'default' for the first localDir dir i.e. fa1
+        FileUtils.deleteQuietly(fa1);
+        dir.gcEmptyDirs(fa1);
+
+        assertEquals(2, dir.getLocalIndexes("/a").size());
+        assertFalse(fa0.exists());
+
+        FileUtils.deleteDirectory(fa2);
+        FileUtils.deleteDirectory(fa3);
+
+        //Note that we deleted both fa2 and fa3 but GC was done based on fa2 (fa2 < fa3)
+        //So only dirs which are of same time or older than fa2 would be removed. So in this
+        //case fa3 would be left
+        dir.gcEmptyDirs(fa2);
+        assertEquals(1, dir.getLocalIndexes("/a").size());
+    }
+
+    @Test
+    public void gcIndexDirsOnStart() throws Exception{
+        File fa0 = dir.getIndexDir(getDefn(), "/a");
+
+        configureUniqueId();
+        File fa1 = dir.getIndexDir(getDefn(), "/a");
+        configureUniqueId();
+        File fa2 = dir.getIndexDir(getDefn(), "/a");
+        assertEquals(2, dir.getLocalIndexes("/a").size());
+
+        //Now reinitialize
+        dir = new IndexRootDirectory(temporaryFolder.getRoot());
+
+        assertFalse(fa0.exists());
+        assertFalse(fa1.exists());
+        assertTrue(fa2.exists());
+        assertEquals(1, dir.getLocalIndexes("/a").size());
+    }
+
     private NodeBuilder resetBuilder() {
         builder = EMPTY_NODE.builder();
         return builder;
+    }
+
+    private void configureUniqueId(){
+        LuceneIndexEditorContext.configureUniqueId(resetBuilder());
     }
 
     private IndexDefinition getDefn(){
