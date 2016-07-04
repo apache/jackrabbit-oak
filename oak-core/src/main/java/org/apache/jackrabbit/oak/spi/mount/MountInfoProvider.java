@@ -27,7 +27,7 @@ import javax.annotation.CheckForNull;
 public interface MountInfoProvider {
     MountInfoProvider DEFAULT = new MountInfoProvider() {
         @Override
-        public Mount getMountInfo(String path) {
+        public Mount getMountByPath(String path) {
             return Mount.DEFAULT;
         }
 
@@ -37,7 +37,7 @@ public interface MountInfoProvider {
         }
 
         @Override
-        public Mount getMount(String name) {
+        public Mount getMountByName(String name) {
             return null;
         }
 
@@ -54,7 +54,7 @@ public interface MountInfoProvider {
      * @return mountInfo for the given path. If no explicit mount configured then
      * default mount would be returned
      */
-    Mount getMountInfo(String path);
+    Mount getMountByPath(String path);
 
     /**
      * Set of non default mount points configured for the setup
@@ -69,7 +69,7 @@ public interface MountInfoProvider {
      * null would be returned
      */
     @CheckForNull
-    Mount getMount(String name);
+    Mount getMountByName(String name);
 
     /**
      * Return true if there are explicit mounts configured

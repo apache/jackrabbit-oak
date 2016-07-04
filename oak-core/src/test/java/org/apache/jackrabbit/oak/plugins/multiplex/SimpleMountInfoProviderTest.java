@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.junit.Test;
@@ -40,8 +38,8 @@ public class SimpleMountInfoProviderTest {
     public void defaultMount() throws Exception {
         MountInfoProvider mip = new SimpleMountInfoProvider(Collections.<MountInfo>emptyList());
 
-        assertNotNull(mip.getMountInfo("/a"));
-        assertTrue(mip.getMountInfo("/a").isDefault());
+        assertNotNull(mip.getMountByPath("/a"));
+        assertTrue(mip.getMountByPath("/a").isDefault());
         assertFalse(mip.hasNonDefaultMounts());
     }
 
@@ -52,10 +50,10 @@ public class SimpleMountInfoProviderTest {
                 .mount("bar", "/x", "/y")
                 .build();
 
-        assertEquals("foo", mip.getMountInfo("/a").getName());
-        assertEquals("foo", mip.getMountInfo("/a/x").getName());
-        assertEquals("bar", mip.getMountInfo("/x").getName());
-        assertTrue(mip.getMountInfo("/z").isDefault());
+        assertEquals("foo", mip.getMountByPath("/a").getName());
+        assertEquals("foo", mip.getMountByPath("/a/x").getName());
+        assertEquals("bar", mip.getMountByPath("/x").getName());
+        assertTrue(mip.getMountByPath("/z").isDefault());
         assertTrue(mip.hasNonDefaultMounts());
     }
 
@@ -70,9 +68,9 @@ public class SimpleMountInfoProviderTest {
         assertEquals(2, mounts.size());
         assertFalse(mounts.contains(Mount.DEFAULT));
 
-        assertNotNull(mip.getMount("foo"));
-        assertNotNull(mip.getMount("bar"));
-        assertNull(mip.getMount("boom"));
+        assertNotNull(mip.getMountByName("foo"));
+        assertNotNull(mip.getMountByName("bar"));
+        assertNull(mip.getMountByName("boom"));
     }
 
     @Test
@@ -82,8 +80,8 @@ public class SimpleMountInfoProviderTest {
                 .readOnlyMount("bar", "/x", "/y")
                 .build();
 
-        assertTrue(mip.getMount("bar").isReadOnly());
-        assertFalse(mip.getMount("foo").isReadOnly());
+        assertTrue(mip.getMountByName("bar").isReadOnly());
+        assertFalse(mip.getMountByName("foo").isReadOnly());
     }
 
 }

@@ -48,7 +48,7 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     @Override
-    public Mount getMountInfo(String path) {
+    public Mount getMountByPath(String path) {
         for (MountInfo md : mountInfos){
             if (md.isMounted(path)){
                 return md.getMount();
@@ -63,7 +63,7 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     @Override
-    public Mount getMount(String name) {
+    public Mount getMountByName(String name) {
         return mounts.get(name);
     }
 
