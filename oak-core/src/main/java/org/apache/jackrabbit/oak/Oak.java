@@ -138,6 +138,8 @@ public class Oak {
 
     private Executor executor = defaultExecutorService();
 
+    private final Closer closer = Closer.create();
+
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
      * This default spawns up to 32 background thread on an as need basis. Idle
@@ -285,7 +287,7 @@ public class Oak {
     /**
      * Flag controlling the asynchronous indexing behavior. If false (default)
      * there will be no background indexing happening.
-     * 
+     *
      */
     private boolean asyncIndexing = false;
 
@@ -521,7 +523,7 @@ public class Oak {
             // Register AsyncIndexStats for execution stats update
             regs.add(
                 scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1, false));
-
+            closer.register(task);
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,
                             store, indexEditors, true), executor);
@@ -571,6 +573,7 @@ public class Oak {
                 super.close();
                 repoStateCheckHook.close();
                 new CompositeRegistration(regs).unregister();
+                closer.close();
             }
         };
     }
