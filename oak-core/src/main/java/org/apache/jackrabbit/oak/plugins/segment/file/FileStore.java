@@ -400,7 +400,7 @@ public class FileStore implements SegmentStore {
             persistedHead = new AtomicReference<RecordId>(null);
         }
 
-        this.flushThread = new BackgroundThread(
+        this.flushThread = BackgroundThread.run(
                 "TarMK flush thread [" + directory + "]", 5000, // 5s interval
                 new Runnable() {
                     @Override
@@ -413,7 +413,7 @@ public class FileStore implements SegmentStore {
                         }
                     }
                 });
-        this.compactionThread = new BackgroundThread(
+        this.compactionThread = BackgroundThread.run(
                 "TarMK compaction thread [" + directory + "]", -1,
                 new Runnable() {
                     @Override
