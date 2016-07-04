@@ -61,11 +61,11 @@ public class MountInfoProviderServiceTest {
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertEquals(1, provider.getNonDefaultMounts().size());
 
-        Mount m = provider.getMount(MountInfoProviderService.PROP_MOUNT_NAME_DEFAULT);
+        Mount m = provider.getMountByName(MountInfoProviderService.PROP_MOUNT_NAME_DEFAULT);
         assertNotNull(m);
         assertFalse(m.isReadOnly());
-        assertEquals(m, provider.getMountInfo("/a"));
-        assertEquals(Mount.DEFAULT, provider.getMountInfo("/x"));
+        assertEquals(m, provider.getMountByPath("/a"));
+        assertEquals(Mount.DEFAULT, provider.getMountByPath("/x"));
     }
 
     @Test
@@ -80,12 +80,12 @@ public class MountInfoProviderServiceTest {
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertEquals(1, provider.getNonDefaultMounts().size());
 
-        Mount m = provider.getMount(MountInfoProviderService.PROP_MOUNT_NAME_DEFAULT);
+        Mount m = provider.getMountByName(MountInfoProviderService.PROP_MOUNT_NAME_DEFAULT);
         assertNull(m);
 
-        m = provider.getMount("foo");
-        assertEquals(m, provider.getMountInfo("/a"));
-        assertEquals(Mount.DEFAULT, provider.getMountInfo("/x"));
+        m = provider.getMountByName("foo");
+        assertEquals(m, provider.getMountByPath("/a"));
+        assertEquals(Mount.DEFAULT, provider.getMountByPath("/x"));
         assertTrue(m.isReadOnly());
     }
 
