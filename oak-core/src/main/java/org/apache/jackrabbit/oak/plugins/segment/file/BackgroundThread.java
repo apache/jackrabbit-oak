@@ -73,6 +73,7 @@ class BackgroundThread extends Thread {
                         + ", max " + maxDuration + "ms");
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error(name + " interrupted", e);
         }
     }
