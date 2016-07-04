@@ -666,6 +666,9 @@ Points to note
    query for `range` (due to lower case filter) and won't give the result (as might be
    expected). An easy work-around for this example could be to have lower case mappings
    i.e. just use `domain => range`.
+4. Precedence: Specifying analyzer class directly has precedence over analyzer configuration
+   by composition. If you want to configure analyzers by composition then analyzer class
+   MUST NOT not be specified.
 
 <a name="codec"></a>
 #### Codec
