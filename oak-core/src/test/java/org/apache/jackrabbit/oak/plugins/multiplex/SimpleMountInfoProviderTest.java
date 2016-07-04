@@ -42,6 +42,7 @@ public class SimpleMountInfoProviderTest {
 
         assertNotNull(mip.getMountInfo("/a"));
         assertTrue(mip.getMountInfo("/a").isDefault());
+        assertFalse(mip.hasNonDefaultMounts());
     }
 
     @Test
@@ -55,6 +56,7 @@ public class SimpleMountInfoProviderTest {
         assertEquals("foo", mip.getMountInfo("/a/x").getName());
         assertEquals("bar", mip.getMountInfo("/x").getName());
         assertTrue(mip.getMountInfo("/z").isDefault());
+        assertTrue(mip.hasNonDefaultMounts());
     }
 
     @Test

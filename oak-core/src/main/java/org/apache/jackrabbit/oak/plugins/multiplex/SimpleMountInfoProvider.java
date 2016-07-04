@@ -38,10 +38,12 @@ import static java.util.Arrays.asList;
 public class SimpleMountInfoProvider implements MountInfoProvider {
     private final List<MountInfo> mountInfos;
     private final Map<String, Mount> mounts;
+    private final boolean hasMounts;
 
     public SimpleMountInfoProvider(List<MountInfo> mountInfos){
         this.mountInfos = ImmutableList.copyOf(mountInfos);
         this.mounts = getMounts(mountInfos);
+        this.hasMounts = !mountInfos.isEmpty();
         //TODO add validation of mountpoints
     }
 
@@ -63,6 +65,11 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
     @Override
     public Mount getMount(String name) {
         return mounts.get(name);
+    }
+
+    @Override
+    public boolean hasNonDefaultMounts() {
+        return hasMounts;
     }
 
     //~----------------------------------------< builder >
