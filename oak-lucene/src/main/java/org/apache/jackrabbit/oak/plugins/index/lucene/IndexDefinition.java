@@ -75,6 +75,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -469,10 +470,16 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
         Map<String, Analyzer> analyzerMap = newHashMap();
         NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(LuceneIndexConstants.VERSION);
-        for (ChildNodeEntry cne : defn.getChildNode(LuceneIndexConstants.ANALYZERS).getChildNodeEntries()) {
+        NodeState analyzersTree = defn.getChildNode(LuceneIndexConstants.ANALYZERS);
+        for (ChildNodeEntry cne : analyzersTree.getChildNodeEntries()) {
             Analyzer a = factory.createInstance(cne.getNodeState());
             analyzerMap.put(cne.getName(), a);
         }
+
+        if (getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false) && !analyzerMap.containsKey(ANL_DEFAULT)) {
+            analyzerMap.put(ANL_DEFAULT, new OakAnalyzer(VERSION, true));
+        }
+
         return ImmutableMap.copyOf(analyzerMap);
     }
 

@@ -40,12 +40,17 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_ORIGINAL_TERM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_ANALYZED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE_SCOPE_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
@@ -753,6 +758,60 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/c", "/test/f"));
+    }
+
+    //OAK-4516
+    @Test
+    public void wildcardQueryToLookupUnanalyzedText() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        idx.setProperty(PROP_TYPE, "lucene");
+        idx.addChild(ANALYZERS).setProperty(INDEX_ORIGINAL_TERM, true);
+        useV2(idx);
+        //Do not provide type information
+        root.commit();
+
+        //setup propa def to be analyzed
+        Tree propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propa");
+        propTree.setProperty(PROP_ANALYZED, true);
+        root.commit();
+
+        //set propb def to be node scope indexed
+        propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propb");
+        propTree.setProperty(PROP_NODE_SCOPE_INDEX, true);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        Tree node1Tree = rootTree.addChild("node1");
+        node1Tree.setProperty("propa", "abcdef");
+        node1Tree.setProperty("propb", "abcdef");
+        Tree node2Tree = rootTree.addChild("node2");
+        node2Tree.setProperty("propa", "abc_def");
+        node2Tree.setProperty("propb", "abc_def");
+        root.commit();
+
+        //normal query still works
+        String query = "select [jcr:path] from [nt:base] where contains('propa', 'abc*')";
+        String explanation = explain(query);
+        assertThat(explanation, containsString("lucene:test1"));
+        assertQuery(query, asList("/node1", "/node2"));
+
+        //unanalyzed wild-card query can still match original term
+        query = "select [jcr:path] from [nt:base] where contains('propa', 'abc_d*')";
+        explanation = explain(query);
+        assertThat(explanation, containsString("lucene:test1"));
+        assertQuery(query, asList("/node2"));
+
+        //normal query still works
+        query = "select [jcr:path] from [nt:base] where contains(*, 'abc*')";
+        explanation = explain(query);
+        assertThat(explanation, containsString("lucene:test1"));
+        assertQuery(query, asList("/node1", "/node2"));
+
+        //unanalyzed wild-card query can still match original term
+        query = "select [jcr:path] from [nt:base] where contains(*, 'abc_d*')";
+        explanation = explain(query);
+        assertThat(explanation, containsString("lucene:test1"));
+        assertQuery(query, asList("/node2"));
     }
 
     //OAK-4517
