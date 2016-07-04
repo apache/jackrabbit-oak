@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -72,24 +71,17 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
     public boolean hasNonDefaultMounts() {
         return hasMounts;
     }
-    
-    @Override
-    public Collection<Mount> getMountsContainedBetweenPaths(String fromPath, String toPath) {
 
-        List<Mount> matching = Lists.newArrayList();
-        List<MountInfo> allMountInfos = Lists.newArrayList();
-        allMountInfos.add(new MountInfo(Mount.DEFAULT, Collections.singletonList("/")));
-        allMountInfos.addAll(mountInfos);
-        
-        boolean hasUncertainPaths = fromPath == null || toPath == null;
-        
-        for ( MountInfo mountInfo : allMountInfos ) {
-            if ( !hasUncertainPaths && mountInfo.isWrapped(fromPath, toPath)) {
-                matching.add(mountInfo.getMount());
+
+    @Override
+    public Collection<Mount> getMountsPlacedUnder(String path) {
+        Collection<Mount> mounts = Lists.newArrayList();
+        for ( MountInfo mount : mountInfos ) {
+            if ( mount.isUnder(path) ) {
+                mounts.add(mount.getMount());
             }
         }
-        
-        return matching;
+        return mounts;
     }
 
     //~----------------------------------------< builder >
