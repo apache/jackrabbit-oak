@@ -178,6 +178,19 @@ public class LastRevRecoveryAgent {
                 Revision calcLastRev = unsavedParents.get(parentPath);
                 Revision knownLastRev = knownLastRevs.get(parentPath);
 
+                if (knownLastRev == null) {
+                    // we don't know when the document was last modified with
+                    // the given clusterId. need to read from store
+                    String id = Utils.getIdFromPath(parentPath);
+                    NodeDocument doc = docStore.find(Collection.NODES, id);
+                    if (doc != null) {
+                        knownLastRev = doc.getLastRev().get(clusterId);
+                    } else {
+                        log.warn("Unable to find document: {}", id);
+                        continue;
+                    }
+                }
+
                 //Copy the calcLastRev of parent only if they have changed
                 //In many case it might happen that parent have consistent lastRev
                 //This check ensures that unnecessary updates are not made
