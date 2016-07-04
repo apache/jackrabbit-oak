@@ -180,4 +180,9 @@ public class CheckpointsTest {
         assertTrue(store.release(cp));
         assertNull(store.retrieve(cp));
     }
+
+    @Test
+    public void retrieveAny() {
+        assertTrue(store.retrieve("r42-0-0") == null);
+    }
 }
