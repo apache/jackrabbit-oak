@@ -84,15 +84,15 @@ public class SimpleMountInfoProviderTest {
     }
     
     @Test
-    public void mountsContainedBetweenPaths() {
+    public void mountsPlacedUnder() {
         
         MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
                 .mount("first", "/b")
-                .mount("second", "/d")
-                .mount("third", "/h")
+                .mount("second", "/d", "/b/a")
+                .mount("third", "/h", "/b/c")
                 .build();
         
-        Collection<Mount> mountsContainedBetweenPaths = mip.getMountsContainedBetweenPaths("/a", "/f");
+        Collection<Mount> mountsContainedBetweenPaths = mip.getMountsPlacedUnder("/b");
         
         assertEquals(2, mountsContainedBetweenPaths.size());
     }

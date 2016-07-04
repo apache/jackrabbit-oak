@@ -37,7 +37,7 @@ final class MountInfo {
         @Override
         public String apply(String input) {
             if ( input.endsWith("/") && input.length() > 1) {
-                return input.substring(0, input.length() - 2); 
+                return input.substring(0, input.length() - 1); 
             }
             return input;
         }
@@ -54,8 +54,22 @@ final class MountInfo {
     public Mount getMount() {
         return mount;
     }
+    
+    public boolean isUnder(String path) {
+
+        path = SANITIZE_PATH.apply(path);
+
+        for (String includedPath : includedPaths) {
+            if (isAncestor(path, includedPath)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public boolean isMounted(String path){
+        
         if (path.contains(mount.getPathFragmentName())){
             return true;
         }
@@ -65,20 +79,10 @@ final class MountInfo {
         //TODO may be optimized via trie
         
         for (String includedPath : includedPaths){
-            if (includedPath.equals(path) || isAncestor(includedPath, path)) {
+            if ( includedPath.equals(path) || isAncestor(includedPath, path)) {
                 return true;
             }
         }
-        return false;
-    }
-    
-    public boolean isWrapped(String from, String to) {
-        for ( String path : includedPaths ) {
-            if ( from.compareTo(path) < 0 && path.compareTo(to) < 0 ) {
-                return true;
-            }
-        }
-        
         return false;
     }
 

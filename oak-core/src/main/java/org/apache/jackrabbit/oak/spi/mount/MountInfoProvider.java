@@ -46,10 +46,9 @@ public interface MountInfoProvider {
             return false;
         }
         
-        @Override
-        public Collection<Mount> getMountsContainedBetweenPaths(String fromPath, String toPath) {
-            return Collections.singleton(Mount.DEFAULT);
-        }
+        public Collection<Mount> getMountsPlacedUnder(String path) {
+            return Collections.emptySet();
+        };
     };
 
     /**
@@ -82,23 +81,10 @@ public interface MountInfoProvider {
     boolean hasNonDefaultMounts();
     
     /**
-     * Returns all mounts which are contained between the specified <tt>fromPath</tt> and <tt>toPath</tt>
+     * Returns all mounts placed under the specified path
      * 
-     * <p>If either of the path parameters is null, all stores are returned</p>
-     * 
-     * <p>For instance, assume that we have the following mounts:</p>
-     * 
-     * <ol>
-     *  <li>first:/b</li>
-     *  <li>second:/d</li>
-     *  <li>third:/e</li>
-     * </ol>
-     * 
-     * <p>A call to <tt>infoProvider.getMountsContainedBetweenPaths("/c","/f")</tt> would return stores <tt>second</tt> and <tt>third</tt>.
-     * 
-     * @param fromPath the start path
-     * @param toPath the end path
-     * @return a Collection for stores, never <code>null</code>
+     * @param path the path under which mounts are to be found
+     * @return a collection of mounts, possibly empty
      */
-    Collection<Mount> getMountsContainedBetweenPaths(String fromPath, String toPath);
+    Collection<Mount> getMountsPlacedUnder(String path);    
 }
