@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -51,5 +53,16 @@ final class MountInfo {
             }
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        pw.print(mount);
+        for (String path : includedPaths) {
+            pw.printf("\t%s%n", path);
+        }
+        return sw.toString();
     }
 }
