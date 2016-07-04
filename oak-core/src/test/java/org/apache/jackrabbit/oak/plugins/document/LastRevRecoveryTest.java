@@ -19,23 +19,35 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.Iterators;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class LastRevRecoveryTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
+    private Clock clock;
     private DocumentNodeStore ds1;
     private DocumentNodeStore ds2;
     private int c1Id;
@@ -43,9 +55,13 @@ public class LastRevRecoveryTest {
     private MemoryDocumentStore sharedStore;
 
     @Before
-    public void setUp(){
+    public void setUp() throws Exception {
+        clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
         sharedStore = new MemoryDocumentStore();
         ds1 = builderProvider.newBuilder()
+                .clock(clock)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .setClusterId(1)
@@ -53,11 +69,19 @@ public class LastRevRecoveryTest {
         c1Id = ds1.getClusterId();
 
         ds2 = builderProvider.newBuilder()
+                .clock(clock)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .setClusterId(2)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
+    }
+
+    @After
+    public void tearDown() {
+        ds1.dispose();
+        ds2.dispose();
+        Revision.resetClockToDefault();
     }
 
 
@@ -110,7 +134,64 @@ public class LastRevRecoveryTest {
         assertEquals(head2, getDocument(ds1, "/").getLastRev().get(c2Id));
     }
 
+    // OAK-3079
+    @Test
+    public void recoveryWithoutRootUpdate() throws Exception {
+        String clusterId = String.valueOf(c1Id);
+        ClusterNodeInfoDocument doc = sharedStore.find(CLUSTER_NODES, clusterId);
+
+        NodeBuilder builder = ds1.getRoot().builder();
+        builder.child("x").child("y").child("z");
+        merge(ds1, builder);
+        ds1.dispose();
+
+        // reset clusterNodes entry to simulate a crash
+        sharedStore.remove(CLUSTER_NODES, clusterId);
+        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+
+        // 'wait' until lease expires
+        clock.waitUntil(doc.getLeaseEndTime() + 1);
+
+        // run recovery on ds2
+        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(ds2);
+        List<Integer> clusterIds = agent.getRecoveryCandidateNodes();
+        assertTrue(clusterIds.contains(c1Id));
+        assertEquals("must not recover any documents",
+                0, agent.recover(c1Id));
+    }
+
+
     private NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {
         return nodeStore.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
+    }
+
+    private static void merge(NodeStore store, NodeBuilder builder)
+            throws CommitFailedException {
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private static UpdateOp updateOpFromDocument(Document doc) {
+        UpdateOp op = new UpdateOp(doc.getId(), true);
+        for (String key : doc.keySet()) {
+            Object obj = doc.get(key);
+            if (obj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<Revision, String> map = (Map<Revision, String>) obj;
+                for (Map.Entry<Revision, String> entry : map.entrySet()) {
+                    op.setMapEntry(key, entry.getKey(), entry.getValue());
+                }
+            } else {
+                if (obj instanceof Boolean) {
+                    op.set(key, (Boolean) obj);
+                } else if (obj instanceof Number) {
+                    op.set(key, ((Number) obj).longValue());
+                } else if (obj != null) {
+                    op.set(key, obj.toString());
+                } else {
+                    op.set(key, null);
+                }
+            }
+        }
+        return op;
     }
 }
