@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -361,7 +362,7 @@ public final class DocumentNodeStore
     private final VersionGarbageCollector versionGarbageCollector;
 
     private final JournalGarbageCollector journalGarbageCollector;
-    
+
     private final Executor executor;
 
     private final LastRevRecoveryAgent lastRevRecoveryAgent;
@@ -1589,7 +1590,8 @@ public final class DocumentNodeStore
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
         Revision r = Revision.fromString(checkpoint);
-        if (checkpoints.getCheckpoints().containsKey(r)) {
+        SortedMap<Revision, String> checkpoints = this.checkpoints.getCheckpoints();
+        if (checkpoints != null && checkpoints.containsKey(r)) {
             return getRoot(r);
         } else {
             return null;
@@ -1959,7 +1961,7 @@ public final class DocumentNodeStore
     private void cleanOrphanedBranches() {
         Branch b;
         while ((b = branches.pollOrphanedBranch()) != null) {
-            LOG.debug("Cleaning up orphaned branch with base revision: {}, " + 
+            LOG.debug("Cleaning up orphaned branch with base revision: {}, " +
                     "commits: {}", b.getBase(), b.getCommits());
             UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
             for (Revision r : b.getCommits()) {
@@ -1969,7 +1971,7 @@ public final class DocumentNodeStore
             store.findAndUpdate(NODES, op);
         }
     }
-    
+
     private void cleanCollisions() {
         String id = Utils.getIdFromPath("/");
         NodeDocument root = store.find(NODES, id);
@@ -1985,7 +1987,7 @@ public final class DocumentNodeStore
                 // this revision and the revision is before the current
                 // head. That is, the collision cannot be related to commit
                 // which is progress.
-                if (branches.getBranchCommit(r) == null 
+                if (branches.getBranchCommit(r) == null
                         && isRevisionNewer(head, r)) {
                     NodeDocument.removeCollision(op, r);
                 }
@@ -2648,7 +2650,7 @@ public final class DocumentNodeStore
     public JournalGarbageCollector getJournalGarbageCollector() {
         return journalGarbageCollector;
     }
-    
+
     @Nonnull
     public LastRevRecoveryAgent getLastRevRecoveryAgent() {
         return lastRevRecoveryAgent;
