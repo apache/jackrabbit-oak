@@ -587,6 +587,20 @@ defaults to 5
 
 #### Analyzers
 
+`@since Oak 1.5.5`
+Unless custom analyzer is configured (as documented below), in-built analyzer
+can be configured to include original term as well to be indexed. This is
+controlled by setting boolean property `indexOriginalTerm` on analyzers node.
+
+    /oak:index/assetType
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - compatVersion = 2
+      - type = "lucene"
+      + analyzers
+        - indexOriginalTerm = true
+
+(See [OAK-4516][OAK-4516] for details)
+
 `@since Oak 1.2.0`
 
 Analyzers can be configured as part of index definition via `analyzers` node.
@@ -668,7 +682,10 @@ Points to note
    i.e. just use `domain => range`.
 4. Precedence: Specifying analyzer class directly has precedence over analyzer configuration
    by composition. If you want to configure analyzers by composition then analyzer class
-   MUST NOT not be specified.
+   MUST NOT not be specified. In-build analyzer has least precedence and comes into play only
+   if no custom analyzer has been configured. Similary, setting `indexOriginalTerm` on
+   analyzers node to modify behavior of in-built analyzer also works only when no custom
+   analyzer has been configured.
 
 <a name="codec"></a>
 #### Codec
@@ -1606,6 +1623,7 @@ such fields
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
 [OAK-3994]: https://issues.apache.org/jira/browse/OAK-3394
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
+[OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
