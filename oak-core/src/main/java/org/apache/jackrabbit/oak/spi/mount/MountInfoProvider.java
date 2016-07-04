@@ -40,6 +40,11 @@ public interface MountInfoProvider {
         public Mount getMount(String name) {
             return null;
         }
+
+        @Override
+        public boolean hasNonDefaultMounts() {
+            return false;
+        }
     };
 
     /**
@@ -65,4 +70,9 @@ public interface MountInfoProvider {
      */
     @CheckForNull
     Mount getMount(String name);
+
+    /**
+     * Return true if there are explicit mounts configured
+     */
+    boolean hasNonDefaultMounts();
 }
