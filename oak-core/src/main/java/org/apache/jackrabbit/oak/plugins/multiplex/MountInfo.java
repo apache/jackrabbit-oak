@@ -54,6 +54,16 @@ final class MountInfo {
         }
         return false;
     }
+    
+    public boolean isWrapped(String from, String to) {
+        for ( String path : includedPaths ) {
+            if ( from.compareTo(path) < 0 && path.compareTo(to) < 0 ) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 
     @Override
     public String toString() {

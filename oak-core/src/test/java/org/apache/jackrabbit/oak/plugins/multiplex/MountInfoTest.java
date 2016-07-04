@@ -37,5 +37,14 @@ public class MountInfoTest {
         assertFalse(md.isMounted("/x/y"));
         assertFalse(md.isMounted("/x/y/foo"));
     }
+    
+    @Test
+    public void isWrapped() {
+        MountInfo mi = new MountInfo(new Mount("foo"), of("/c", "/f"));
+        assertTrue(mi.isWrapped("/a", "/g")); // wraps both
+        assertTrue(mi.isWrapped("/b", "/d")); // wraps one
+        assertFalse(mi.isWrapped("/a", "/b")); // wraps none ('outside c-f')
+        assertFalse(mi.isWrapped("/d", "/e")); // wraps none ('inside c-f')
+    }
 
 }

@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableList.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -83,5 +82,18 @@ public class SimpleMountInfoProviderTest {
         assertTrue(mip.getMountByName("bar").isReadOnly());
         assertFalse(mip.getMountByName("foo").isReadOnly());
     }
-
+    
+    @Test
+    public void mountsContainedBetweenPaths() {
+        
+        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+                .mount("first", "/b")
+                .mount("second", "/d")
+                .mount("third", "/h")
+                .build();
+        
+        Collection<Mount> mountsContainedBetweenPaths = mip.getMountsContainedBetweenPaths("/a", "/f");
+        
+        assertEquals(2, mountsContainedBetweenPaths.size());
+    }
 }
