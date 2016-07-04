@@ -239,7 +239,6 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
     @Test
     public void testPrePrepareRexindex() throws Exception {
-
         final IndexStatusListener l1 = new IndexStatusListener() {
 
             @Override
@@ -293,6 +292,66 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         assertRunOk(new SpecialAsyncIndexUpdate(name, store, provider, l1));
     }
 
+    @Test
+    public void testPostPrepareReindexLeaseExpired() throws Exception {
+        final long lease = 50;
+        final IndexStatusListener l1 = new IndexStatusListener() {
+
+            @Override
+            protected void postPrepare() {
+                executed.set(true);
+                try {
+                    TimeUnit.MILLISECONDS.sleep(lease * 3);
+                } catch (InterruptedException e) {
+                    //
+                }
+                assertRunOk(new AsyncIndexUpdate(name, store, provider));
+            }
+        };
+        assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
+                .setLeaseTimeOut(lease));
+    }
+
+    @Test
+    public void testPreIndexUpdateReindexLeaseExpired() throws Exception {
+        final long lease = 50;
+        final IndexStatusListener l1 = new IndexStatusListener() {
+
+            @Override
+            protected void preIndexUpdate() {
+                executed.set(true);
+                try {
+                    TimeUnit.MILLISECONDS.sleep(lease * 3);
+                } catch (InterruptedException e) {
+                    //
+                }
+                assertRunOk(new AsyncIndexUpdate(name, store, provider));
+            }
+        };
+        assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
+                .setLeaseTimeOut(lease));
+    }
+
+    @Test
+    public void testPostIndexUpdateReindexLeaseExpired() throws Exception {
+        final long lease = 50;
+        final IndexStatusListener l1 = new IndexStatusListener() {
+
+            @Override
+            protected void postIndexUpdate() {
+                executed.set(true);
+                try {
+                    TimeUnit.MILLISECONDS.sleep(lease * 3);
+                } catch (InterruptedException e) {
+                    //
+                }
+                assertRunOk(new AsyncIndexUpdate(name, store, provider));
+            }
+        };
+        assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
+                .setLeaseTimeOut(lease));
+    }
+
     // -------------------------------------------------------------------
 
     private static String getReferenceCp(NodeStore store, String name) {
@@ -309,9 +368,9 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         assertConcurrentUpdate(a.getIndexStats());
     }
 
-    private void assertRun(AsyncIndexUpdate a, boolean status) {
+    private void assertRun(AsyncIndexUpdate a, boolean failing) {
         a.run();
-        assertEquals("Unexpected failiure flag", status, a.isFailing());
+        assertEquals("Unexpected failiure flag", failing, a.isFailing());
     }
 
     private void assertConcurrentUpdate(AsyncIndexStats stats) {
