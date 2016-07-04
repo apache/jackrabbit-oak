@@ -245,6 +245,10 @@ public class IndexCopierTest {
         //Assert that new index file do exist and not get removed
         File indexDir2 = c1.getIndexDir(defn, indexPath);
         assertTrue(new File(indexDir2, "t1").exists());
+
+        //Check if parent directory is also removed i.e.
+        //index count should be 1 now
+        assertEquals(1, c1.getIndexRootDirectory().getLocalIndexes(indexPath).size());
     }
 
     @Test

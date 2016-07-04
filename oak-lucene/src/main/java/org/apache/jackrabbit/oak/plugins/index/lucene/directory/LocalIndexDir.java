@@ -32,7 +32,7 @@ public final class LocalIndexDir implements Comparable<LocalIndexDir> {
     final IndexMeta indexMeta;
 
     public LocalIndexDir(File dir) throws IOException {
-        this.dir = dir;
+        this.dir = dir.getCanonicalFile();
         File indexDetails = new File(dir, IndexRootDirectory.INDEX_METADATA_FILE_NAME);
         checkState(isIndexDir(dir), "No file [%s] found in dir [%s]",
                 INDEX_METADATA_FILE_NAME, dir.getAbsolutePath());
@@ -68,6 +68,11 @@ public final class LocalIndexDir implements Comparable<LocalIndexDir> {
     @Override
     public int compareTo(LocalIndexDir o) {
         return indexMeta.compareTo(o.indexMeta);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s (%s)", dir.getAbsolutePath(), indexMeta);
     }
 
     static boolean isIndexDir(File file){

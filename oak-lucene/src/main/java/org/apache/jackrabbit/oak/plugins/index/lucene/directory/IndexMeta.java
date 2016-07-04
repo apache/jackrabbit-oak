@@ -69,6 +69,11 @@ final class IndexMeta implements Comparable<IndexMeta> {
         return Long.compare(creationTime, o.creationTime);
     }
 
+    @Override
+    public String toString() {
+        return String.format("%s, %tc", indexPath, creationTime);
+    }
+
     private static Properties loadFromFile(File file) throws IOException {
         InputStream is = null;
         try {
