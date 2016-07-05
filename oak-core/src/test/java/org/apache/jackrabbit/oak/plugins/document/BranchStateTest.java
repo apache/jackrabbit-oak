@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -50,7 +49,6 @@ public class BranchStateTest {
     }
 
     // OAK-4536
-    @Ignore("OAK-4536")
     @Test
     public void commitException() throws Exception {
         NodeBuilder builder = ns.getRoot().builder();

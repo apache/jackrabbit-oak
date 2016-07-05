@@ -2317,7 +2317,9 @@ public class DocumentNodeStoreTest {
         builder.child("foo");
         b.setRoot(builder.getNodeState());
         // branch state is now InMemory
-        builder.child("bar").setProperty("p", "foo");
+        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT; i++) {
+            builder.child("bar").setProperty("p-" + i, "foo");
+        }
         b.setRoot(builder.getNodeState());
         // branch state is now Persisted
 
