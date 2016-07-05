@@ -60,6 +60,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -113,7 +114,7 @@ public class DataStoreCheckTest {
         log.info("Created blobs : {}", blobsAdded);
 
         File cfgFile = temporaryFolder.newFile();
-        BufferedWriter writer = Files.newWriter(cfgFile, Charsets.UTF_8);
+        BufferedWriter writer = Files.newWriter(cfgFile, UTF_8);
         FileIOUtils.writeAsLine(writer, "path=\"" + StringEscapeUtils.escapeJava(dsPath) + "\"",false);
         writer.close();
         cfgFilePath = cfgFile.getAbsolutePath();
@@ -124,7 +125,7 @@ public class DataStoreCheckTest {
 
     @After
     public void tearDown() {
-        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
     }
 
     @Test
@@ -171,8 +172,8 @@ public class DataStoreCheckTest {
         List<String> argsList = Lists
             .newArrayList("--fds", cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, "Missing "
-            + "required option(s) ['id', 'ref', 'consistency']");
+        log.info("Running testMissinOpParams: {}", argsList);
+        testIncorrectParams(argsList, "Missing required option(s) ['id', 'ref', 'consistency']");
     }
 
     @Test
@@ -201,14 +202,17 @@ public class DataStoreCheckTest {
 
     public static void testIncorrectParams(List<String> argList, String assertMsg) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(buffer));
+        System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
 
         DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
 
         checkCommand.execute(argList.toArray(new String[0]));
-        String message = buffer.toString(Charsets.UTF_8.toString());
+        String message = buffer.toString(UTF_8.toString());
+        log.info("Assert message: {}", assertMsg);
+        log.info("Message logged in System.err: {}", message);
+
         Assert.assertTrue(message.contains(assertMsg));
-        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
     }
 
     private static void assertFileEquals(File dump, String prefix, Set<String> blobsAdded)
