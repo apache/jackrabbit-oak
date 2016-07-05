@@ -51,6 +51,5 @@ public class TestS3DataStore {
         s3ds.setProperties(props);
         s3ds.setSecret("123456");
         s3ds.init(folder.newFolder().getAbsolutePath());
-        expectedEx.expect(RuntimeException.class);
     }
 }
