@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
@@ -39,6 +40,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.AsyncTouchCallback;
 import org.apache.jackrabbit.core.data.AsyncTouchResult;
 import org.apache.jackrabbit.core.data.AsyncUploadCallback;
@@ -205,8 +207,17 @@ public class S3Backend implements SharedS3Backend {
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.debug("  error ", e);
+            Map<String, String> filteredMap = Maps.newHashMap();
+            if (prop != null) {
+                filteredMap = Maps.filterKeys(Maps.fromProperties(prop), new Predicate<String>() {
+                    @Override public boolean apply(String input) {
+                        return !input.equals(S3Constants.ACCESS_KEY) && !input.equals(S3Constants
+                            .SECRET_KEY);
+                    }
+                });
+            }
             throw new DataStoreException("Could not initialize S3 from "
-                + prop, e);
+                + filteredMap, e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
