@@ -625,28 +625,31 @@ public class RDBDocumentStoreJDBC {
     }
 
     @CheckForNull
-    public RDBRow read(Connection connection, RDBTableMetaData tmd, String id, long lastmodcount) throws SQLException {
-        PreparedStatement stmt;
+    public RDBRow read(Connection connection, RDBTableMetaData tmd, String id, long lastmodcount, long lastmodified) throws SQLException {
 
         boolean useCaseStatement = lastmodcount != -1 && this.dbInfo.allowsCaseInSelect();
+        StringBuffer sql = new StringBuffer();
+        sql.append("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, ");
         if (useCaseStatement) {
             // the case statement causes the actual row data not to be
             // sent in case we already have it
-            stmt = connection.prepareStatement(
-                    "select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, case MODCOUNT when ? then null else DATA end as DATA, "
-                            + "case MODCOUNT when ? then null else BDATA end as BDATA from " + tmd.getName() + " where ID = ?");
+            sql.append("case when (MODCOUNT = ? and MODIFIED = ?) then null else DATA end as DATA, ");
+            sql.append("case when (MODCOUNT = ? and MODIFIED = ?) then null else BDATA end as BDATA ");
         } else {
             // either we don't have a previous version of the document
             // or the database does not support CASE in SELECT
-            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from "
-                    + tmd.getName() + " where ID = ?");
+            sql.append("DATA, BDATA ");
         }
+        sql.append("from " + tmd.getName() + " where ID = ?");
+        PreparedStatement stmt = connection.prepareStatement(sql.toString());
 
         try {
             int si = 1;
             if (useCaseStatement) {
                 stmt.setLong(si++, lastmodcount);
+                stmt.setLong(si++, lastmodified);
                 stmt.setLong(si++, lastmodcount);
+                stmt.setLong(si++, lastmodified);
             }
             setIdInStatement(tmd, stmt, si, id);
 
