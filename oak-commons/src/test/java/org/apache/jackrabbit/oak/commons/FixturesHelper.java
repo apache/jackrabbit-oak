@@ -31,13 +31,13 @@ public class FixturesHelper {
     /**
      * splitter for specifying multiple fixtures
      */
-    
-    private static final String SPLIT_ON = ","; 
+
+    private static final String SPLIT_ON = ",";
     /**
      * System property to be used.
      */
     public static final String NS_FIXTURES = "ns-fixtures";
-    
+
     /**
      * default fixtures when no {@code ns-fixtures} is provided
      */
@@ -54,6 +54,7 @@ public class FixturesHelper {
         } else {
             String[] fs = raw.split(SPLIT_ON);
             Set<Fixture> tmp = new HashSet<Fixture>();
+            boolean unknownFixture = false;
             for (String f : fs) {
                 String x = f.trim().toUpperCase();
                 try {
@@ -64,10 +65,18 @@ public class FixturesHelper {
                     //so would need to be ignored
                     if (!"SEGMENT_TAR".equals(x)){
                         throw e;
+                    } else {
+                        unknownFixture = true;
                     }
                 }
             }
-            
+
+            //If SEGMENT_TAR is missing (true for branches) then
+            //ensure that tmp maps to SEGMENT_MK to avoid running all fixture
+            if (tmp.isEmpty() && unknownFixture){
+                tmp.add(Fixture.SEGMENT_MK);
+            }
+
             if (tmp.isEmpty()) {
                 FIXTURES = Collections.unmodifiableSet(new HashSet<Fixture>(Arrays.asList(Fixture
                     .values())));
