@@ -53,6 +53,7 @@ public final class FixturesHelper {
             FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
         } else {
             Set<Fixture> tmp = EnumSet.noneOf(Fixture.class);
+            boolean unknownFixture = false;
             for (String f : raw.split(SPLIT_ON)) {
                 String x = f.trim().toUpperCase();
                 try {
@@ -63,8 +64,16 @@ public final class FixturesHelper {
                     //so would need to be ignored
                     if (!"SEGMENT_TAR".equals(x)){
                         throw e;
+                    } else {
+                        unknownFixture = true;
                     }
                 }
+            }
+
+            //If SEGMENT_TAR is missing (true for branches) then
+            //ensure that tmp maps to MEMORY_NS to avoid running all fixture
+            if (tmp.isEmpty() && unknownFixture){
+                tmp.add(Fixture.MEMORY_NS);
             }
             
             if (tmp.isEmpty()) {
