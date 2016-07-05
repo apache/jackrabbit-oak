@@ -40,6 +40,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
@@ -113,7 +114,7 @@ public class DataStoreCheckTest {
 
         File cfgFile = temporaryFolder.newFile();
         BufferedWriter writer = Files.newWriter(cfgFile, Charsets.UTF_8);
-        FileIOUtils.writeAsLine(writer, "path=\"" + dsPath + "\"",false);
+        FileIOUtils.writeAsLine(writer, "path=\"" + StringEscapeUtils.escapeJava(dsPath) + "\"",false);
         writer.close();
         cfgFilePath = cfgFile.getAbsolutePath();
 
