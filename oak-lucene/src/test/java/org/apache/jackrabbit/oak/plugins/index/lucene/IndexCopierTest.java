@@ -212,7 +212,6 @@ public class IndexCopierTest {
 
     @Test
     public void deleteOldPostReindex() throws Exception{
-        assumeNotWindows();
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
@@ -552,7 +551,6 @@ public class IndexCopierTest {
 
     @Test
     public void wrapForWriteWithoutIndexPath() throws Exception{
-        assumeNotWindows();
         Directory remote = new CloseSafeDir();
 
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
@@ -571,7 +569,6 @@ public class IndexCopierTest {
 
     @Test
     public void wrapForWriteWithIndexPath() throws Exception{
-        assumeNotWindows();
         Directory remote = new CloseSafeDir();
 
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
@@ -1125,7 +1122,4 @@ public class IndexCopierTest {
         }
     }
 
-    private static void assumeNotWindows() {
-        assumeTrue(!StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows"));
-    }
 }
