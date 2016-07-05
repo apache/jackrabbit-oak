@@ -1479,7 +1479,7 @@ public class RDBDocumentStore implements DocumentStore {
                 lastmodified = modifiedOf(cachedDoc);
             }
             connection = this.ch.getROConnection();
-            RDBRow row = db.read(connection, tmd, id, lastmodcount);
+            RDBRow row = db.read(connection, tmd, id, lastmodcount, lastmodified);
             connection.commit();
             if (row == null) {
                 docFound = false;
@@ -1490,13 +1490,6 @@ public class RDBDocumentStore implements DocumentStore {
                     cachedDoc.markUpToDate(System.currentTimeMillis());
                     return castAsT(cachedDoc);
                 } else {
-                    // workaround: need to re-read if data is not present
-                    // that would be the case if the modcount did match but the modified time did not
-                    // see OAK-4509
-                    if (row.getData() == null) {
-                        row = db.read(connection, tmd, id, -1);
-                        connection.commit();
-                    }
                     return convertFromDBObject(collection, row);
                 }
             }
