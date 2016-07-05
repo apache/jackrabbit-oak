@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * A DocumentStore implementation which wraps another store and delegates all
  * calls to it.
  */
-public class DocumentStoreWrapper implements DocumentStore {
+public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     protected final DocumentStore store;
 
@@ -163,5 +163,12 @@ public class DocumentStoreWrapper implements DocumentStore {
     @Override
     public long determineServerTimeDifferenceMillis() {
         return store.determineServerTimeDifferenceMillis();
+    }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision) {
+        if (store instanceof RevisionListener) {
+            ((RevisionListener) store).updateAccessedRevision(revision);
+        }
     }
 }

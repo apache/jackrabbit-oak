@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -37,7 +39,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * <p>
  * @see "https://issues.apache.org/jira/browse/OAK-2739 for more details"
  */
-public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
+public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     private final DocumentStore delegate;
     private final ClusterNodeInfo clusterNodeInfo;
@@ -201,6 +203,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     public long determineServerTimeDifferenceMillis() {
         performLeaseCheck();
         return delegate.determineServerTimeDifferenceMillis();
+    }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision) {
+        if (delegate instanceof RevisionListener) {
+            ((RevisionListener) delegate).updateAccessedRevision(revision);
+        }
     }
 
 }

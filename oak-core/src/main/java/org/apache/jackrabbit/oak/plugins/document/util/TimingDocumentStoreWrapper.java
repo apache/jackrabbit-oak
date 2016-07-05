@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
@@ -41,7 +43,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * A DocumentStore wrapper that can be used to log and also time DocumentStore
  * calls.
  */
-public class TimingDocumentStoreWrapper implements DocumentStore {
+public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("base.debug", "true"));
     private static final AtomicInteger NEXT_ID = new AtomicInteger();
@@ -389,6 +391,19 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision) {
+        try {
+            long start = now();
+            if (base instanceof RevisionListener) {
+                ((RevisionListener) base).updateAccessedRevision(revision);
+            }
+            updateAndLogTimes("updateAccessedRevision", start, 0, 0);
+        } catch (Exception e) {
+            throw convert(e);
+        }
+   }
 
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);

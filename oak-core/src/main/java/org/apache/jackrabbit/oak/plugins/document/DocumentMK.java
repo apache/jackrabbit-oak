@@ -499,6 +499,7 @@ public class DocumentMK {
         public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
+        private String mongoUri;
         private DiffCache diffCache;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
@@ -555,6 +556,8 @@ public class DocumentMK {
                                   @Nonnull String name,
                                   int blobCacheSizeMB)
                 throws UnknownHostException {
+            this.mongoUri = uri;
+
             DB db = new MongoConnection(uri).getDB(name);
             if (!MongoConnection.hasWriteConcern(uri)) {
                 db.setWriteConcern(MongoConnection.getDefaultWriteConcern(db));
@@ -599,6 +602,16 @@ public class DocumentMK {
          */
         public Builder setMongoDB(@Nonnull DB db) {
             return setMongoDB(db, 16);
+        }
+
+        /**
+         * Returns the Mongo URI used in the {@link #setMongoDB(String, String, int)} method.
+         *
+         * @return the Mongo URI or null if the {@link #setMongoDB(String, String, int)} method hasn't
+         * been called.
+         */
+        public String getMongoUri() {
+            return mongoUri;
         }
 
         /**
