@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
-public class CountingDocumentStore implements DocumentStore {
+public class CountingDocumentStore implements DocumentStore, RevisionListener {
 
     private DocumentStore delegate;
 
@@ -229,5 +229,12 @@ public class CountingDocumentStore implements DocumentStore {
     @Override
     public long determineServerTimeDifferenceMillis() {
         return delegate.determineServerTimeDifferenceMillis();
+    }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision) {
+        if (delegate instanceof RevisionListener) {
+            ((RevisionListener) delegate).updateAccessedRevision(revision);
+        }
     }
 }

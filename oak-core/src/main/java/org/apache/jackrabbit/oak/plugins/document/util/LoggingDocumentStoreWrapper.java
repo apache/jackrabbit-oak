@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.slf4j.Logger;
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements a <code>DocumentStore</code> wrapper and logs all calls.
  */
-public class LoggingDocumentStoreWrapper implements DocumentStore {
+public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoggingDocumentStoreWrapper.class);
 
@@ -407,5 +409,13 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             System.out.println(out);
         }
         LOG.info(out);
+    }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision) {
+        logMethod("updateAccessedRevision", revision);
+        if (store instanceof RevisionListener) {
+            ((RevisionListener) store).updateAccessedRevision(revision);
+        }
     }
 }
