@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.STATE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.util.CountingDiff.countChanges;
 
 import java.util.HashSet;
 import java.util.Random;
@@ -444,14 +445,18 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * Transitions to:
      * <ul>
      *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
-     *         as the base of this branch or
-     *     <li>{@link Persisted} otherwise.
+     *         as the base of this branch</li>
+     *     <li>{@link Persisted} on {@link #setRoot(NodeState)} if the number of
+     *         changes counted from the base to the new root reaches
+     *         {@link DocumentRootBuilder#UPDATE_LIMIT}.</li>
      *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */
     private class InMemory extends BranchState {
         /** Root state of the transient head. */
         private NodeState head;
+        /** Number of in-memory updates */
+        private int numUpdates;
 
         @Override
         public String toString() {
@@ -461,6 +466,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         InMemory(DocumentNodeState base, NodeState head) {
             super(base);
             this.head = head;
+            this.numUpdates = countChanges(base, head);
         }
 
         @Override
@@ -474,8 +480,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             if (base.equals(root)) {
                 branchState = new Unmodified(base);
             } else if (!head.equals(root)) {
+                numUpdates += countChanges(head, root);
                 head = root;
-                persist();
+                if (numUpdates > DocumentRootBuilder.UPDATE_LIMIT) {
+                    persist();
+                }
             }
         }
 
