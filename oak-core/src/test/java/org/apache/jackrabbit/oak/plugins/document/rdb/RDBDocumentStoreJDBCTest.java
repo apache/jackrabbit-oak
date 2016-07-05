@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static com.google.common.collect.ImmutableSet.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -30,6 +32,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +40,9 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.junit.Test;
 
 /**
@@ -44,9 +50,57 @@ import org.junit.Test;
  */
 public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
 
+    private RDBDocumentStoreJDBC jdbc;
+    private RDBDocumentStoreDB dbInfo;
+
     public RDBDocumentStoreJDBCTest(DocumentStoreFixture dsf) {
         super(dsf);
         assumeTrue(super.rdbDataSource != null);
+
+        dbInfo = RDBDocumentStoreDB.getValue(((RDBDocumentStore) super.ds).getMetadata().get("db"));
+        RDBDocumentSerializer ser = new RDBDocumentSerializer(super.ds,  Collections.singleton("_id"));
+        jdbc = new RDBDocumentStoreJDBC(dbInfo, ser, 100, 10000);
+    }
+
+    @Test
+    public void conditionalRead() throws SQLException {
+
+        // this tests functionality that relies on case statements
+        assumeTrue(dbInfo.allowsCaseInSelect());
+
+        String id = this.getClass().getName() + ".conditionalRead";
+        super.ds.remove(Collection.NODES, id);
+        UpdateOp op = new UpdateOp(id, true);
+        op.set("_id", id);
+        op.set("_modified", 1L);
+        removeMe.add(id);
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(op)));
+
+        NodeDocument nd = super.ds.find(Collection.NODES, id, 0);
+        assertNotNull(nd);
+        Long lastmodcount = nd.getModCount();
+        Long lastmodified = nd.getModified();
+        assertNotNull(lastmodcount);
+        assertNotNull(lastmodified);
+
+        RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
+        Connection con = super.rdbDataSource.getConnection();
+        con.setReadOnly(true);
+        try {
+            RDBRow rMcNotMatch = jdbc.read(con, tmd, id, lastmodcount + 1, lastmodified);
+            assertNotNull(rMcNotMatch.getData());
+
+            RDBRow rMcNotGiven = jdbc.read(con, tmd, id, -1, lastmodified);
+            assertNotNull(rMcNotGiven.getData());
+
+            RDBRow rMcMatch = jdbc.read(con, tmd, id, lastmodcount, lastmodified);
+            assertNull(rMcMatch.getData());
+
+            RDBRow rMcMatchModNonmatch = jdbc.read(con, tmd, id, lastmodcount, lastmodified + 2);
+            assertNotNull(rMcMatchModNonmatch.getData());
+        } finally {
+            con.close();
+        }
     }
 
     @Test
