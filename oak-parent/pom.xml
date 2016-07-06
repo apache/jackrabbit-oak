@@ -105,7 +105,7 @@
           <configuration>
             <source>${java.version}</source>
             <links>
-              <link>http://docs.oracle.com/javase/6/docs/api/</link>
+              <link>http://docs.oracle.com/javase/7/docs/api/</link>
               <link>http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/</link>
             </links>
           </configuration>
