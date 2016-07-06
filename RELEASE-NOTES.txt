@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.5
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.4 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.5 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,75 +15,61 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.4
+Changes in Oak 1.5.5
 ---------------------
 
 Technical task
 
-    [OAK-4102] - Break cyclic dependency of FileStore and
-    SegmentTracker
-    [OAK-4409] - RDB*Store: bump up recommended DB2 version to 10.5
-    [OAK-4482] - RDB*Store: update tomcat-jdbc test dependency
+    [OAK-4369] - Introduce interface for Secondary NodeStore provider
+    [OAK-4490] - Expose SegmentNodeStore as a secondary NodeStore
+    [OAK-4495] - RDBDocumentStore: consistent handling of invalidate
+    methods
+    [OAK-4497] - RDBDocumentStore: potential race condition between
+    update and invalidate can cause stale cache entries
+    [OAK-4509] - RDBDocumentStore: low-level read method should also
+    support condition on MODIFIED value
+    [OAK-4510] - RDBDocumentStore: can't persist _modified value of
+    null
+    [OAK-4536] - Avoid premature branch
 
 Bug
 
-    [OAK-4420] - RepositorySidegrade: oak-segment to oak-segment-tar
-    should migrate checkpoint info
-    [OAK-4429] - [oak-blob-cloud] S3Backend#getAllIdentifiers should
-    not store all elements in memory
-    [OAK-4430] - DataStoreBlobStore#getAllChunkIds fetches DataRecord
-    when not needed
-    [OAK-4431] - Index path property should be considered optional for
-    copy on read logic
-    [OAK-4439] - Fix the errors reported by the Javadoc tool in JDK8
-    [OAK-4441] - [BlobGC] Writing of strings should be escaped
-    [OAK-4448] - Test failures that rely on expiration time to
-    experience a re-sync.
-    [OAK-4478] - Enable writer cache for offline compaction
-    [OAK-4486] - [IT][Failures] testPreferenceConversion,
-    testMongoReadPreferencesWithAge
-
-Epic
-
-    [OAK-4391] - Dynamic Membership for External Authentication
+    [OAK-2819] - Persistent cache: tool to dump the contents
+    [OAK-3629] - Index corruption seen with CopyOnRead when index
+    defnition is recreated
+    [OAK-4475] - CI failing on branches due to unknown fixture
+    SEGMENT_TAR
+    [OAK-4493] - Offline compaction persisted mode
+    [OAK-4494] - Stale documents after revision GC in cluster
+    [OAK-4496] - Enable DataStoreBlobStore#getAllRecords to support
+    non-shared DataStore
+    [OAK-4502] - LucenePropertyIndex doesn't use filter's path for ACL
+    checks of suggest queries
+    [OAK-4503] - Update count increases with rebase
+    [OAK-4507] - [oak-mongo.js] oak.indexStats() does not compute
+    counts properly
+    [OAK-4515] - Catch NPE and log serverResult in
+    MongoDocumentStore.determineServerTimeDifferenceMillis
+    [OAK-4527] - [oak-blob-cloud] Access parameters configured leak
+    out in the exception message
+    [OAK-4537] - rat-plugin does not ignore oak-segment-tar/target
+    [OAK-4538] - IndexDefinition.createCodec class loading deadlock
 
 Improvement
 
-    [OAK-2065] - JMX stats for operations being performed in
-    DocumentNodeStore
-    [OAK-3797] - SegmentTracker#collectBlobReferences should retain
-    fewer SegmentId instances
-    [OAK-4218] - Base SyncMBeanImpl on Oak API
-    [OAK-4368] - Excerpt extraction from the Lucene index should be
-    more selective
-    [OAK-4421] - Optimize Revison fromString and toString
-    implementation
-    [OAK-4428] - Optimize RevisionVector methods
-    [OAK-4444] - Reduce number of calls to NodeBuilder.getNodeState
-    from MergingNodeStateDiff
-    [OAK-4447] - RepositorySidegrade: oak-segment to oak-segment-tar
-    migrate without external datastore
-    [OAK-4455] - Reduce log level in
-    CompositeAuthorizationConfiguration
-    [OAK-4457] - Range constructor should use parametrized assertion
-    message
-    [OAK-4479] - Move EmptyPrincipalProvider to oak-core
-    [OAK-4483] - Remove synchronized access requirement from
-    MetricStatisticsProvider#getStats
+    [OAK-4454] - Create consistent API in ExternalSort to write and
+    read escaped line breaks
+    [OAK-4488] - Create separate reactor POM to perform releases
+    [OAK-4505] - Offline compaction clearer output values
+    [OAK-4514] - ResurrectNodeAfterRevisionGCTest's cleanup may
+    interfere with DS disposal
+    [OAK-4516] - Configurable option to lucene index defs to index
+    original (unanalyzed value as well)
+    [OAK-4523] - Query: first selector should be main selector
 
-Task
+New Feature
 
-    [OAK-4417] - Missing LoginModule Test and Documentation for
-    OAK-3508
-    [OAK-4427] - NodeDocument.fromString should also seal the returned
-    document
-    [OAK-4442] - S3DataStoreService should initialize
-    SharedS3DataStore
-
-Test
-
-    [OAK-4489] - Improve test coverage on DocumentStore for concurrent
-    query and invalidate
+    [OAK-4476] - Option to check datastore consistency in oak-run
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
