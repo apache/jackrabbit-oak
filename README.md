@@ -13,7 +13,7 @@ Getting Started
 ---------------
 
 To get started with Oak, build the latest sources with
-Maven 3 and Java 6 (or higher) like this:
+Maven 3 and Java 7 (or higher) like this:
 
     mvn clean install
 
