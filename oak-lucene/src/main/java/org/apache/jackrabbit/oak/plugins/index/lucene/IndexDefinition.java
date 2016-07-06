@@ -1323,7 +1323,14 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
         Codec codec = null;
         if (codecName != null) {
+            // prevent LUCENE-6482
+            // (also done in LuceneIndexProviderService, just to be save)
+            OakCodec ensureLucene46CodecLoaded = new OakCodec();
+            // to ensure the JVM doesn't optimize away object creation
+            // (probably not really needed; just to be save)
+            log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
             codec = Codec.forName(codecName);
+            log.debug("Codec is loaded: {}", codecName);
         } else if (fullTextEnabled) {
             codec = new OakCodec();
         }
