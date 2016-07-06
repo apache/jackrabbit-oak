@@ -227,6 +227,7 @@ public class LuceneIndexProviderService {
 
         configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
+        initializeClasses();
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeExtractedTextCache(bundleContext, config);
@@ -443,6 +444,15 @@ public class LuceneIndexProviderService {
         TokenizerFactory.reloadTokenizers(classLoader);
         CharFilterFactory.reloadCharFilters(classLoader);
         TokenFilterFactory.reloadTokenFilters(classLoader);
+    }
+
+    private void initializeClasses() {
+        // prevent LUCENE-6482
+        // (also done in IndexDefinition, just to be save)
+        OakCodec ensureLucene46CodecLoaded = new OakCodec();
+        // to ensure the JVM doesn't optimize away object creation
+        // (probably not really needed; just to be save)
+        log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
     }
 
     private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config) {
