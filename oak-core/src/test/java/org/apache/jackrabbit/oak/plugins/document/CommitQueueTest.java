@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -45,6 +46,7 @@ import static com.google.common.collect.Sets.union;
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link CommitQueue}.
@@ -343,6 +345,46 @@ public class CommitQueueTest {
         for (Thread t : threads) {
             t.join(1000);
             assertFalse(t.isAlive());
+        }
+    }
+
+    // OAK-4540
+    @Test
+    public void headOfQueueMustNotBlockNewRevision() throws Exception {
+        RevisionContext context = new DummyRevisionContext();
+        final CommitQueue queue = new CommitQueue(context);
+        final Revision r1 = queue.createRevision();
+        final Semaphore s1 = new Semaphore(0);
+        final CommitQueue.Callback c = new CommitQueue.Callback() {
+            @Override
+            public void headOfQueue(@Nonnull Revision revision) {
+                s1.acquireUninterruptibly();
+            }
+        };
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queue.done(r1, c);
+            }
+        });
+        t1.start();
+        Thread t2 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queue.createRevision();
+            }
+        });
+        t2.start();
+        t2.join(3000);
+        try {
+            if (t2.isAlive()) {
+                fail("CommitQueue.Callback.headOfQueue() must not " +
+                        "block CommitQueue.createRevision()");
+            }
+        } finally {
+            s1.release();
+            t1.join();
+            t2.join();
         }
     }
 
