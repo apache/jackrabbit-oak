@@ -1164,6 +1164,7 @@ public class DocumentNodeStoreTest {
 
         DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        ns2.setMaxBackOffMillis(0);
         // ns2 sees /node
         assertTrue(ns2.getRoot().hasChildNode("node"));
 
@@ -1206,11 +1207,13 @@ public class DocumentNodeStoreTest {
                 .setClusterId(1)
                 .getNodeStore();
         store1.setEnableConcurrentAddRemove(true);
+        store1.setMaxBackOffMillis(0);
         final DocumentNodeStore store2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(2)
                 .getNodeStore();
         store2.setEnableConcurrentAddRemove(true);
+        store2.setMaxBackOffMillis(0);
 
         NodeBuilder builder = store1.getRoot().builder();
         builder.child(":hidden");
