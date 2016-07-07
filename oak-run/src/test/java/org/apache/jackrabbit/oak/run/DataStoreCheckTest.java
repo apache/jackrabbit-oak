@@ -28,12 +28,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -173,7 +173,7 @@ public class DataStoreCheckTest {
             .newArrayList("--fds", cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
-        testIncorrectParams(argsList, "Missing required option(s) ['id', 'ref', 'consistency']");
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "'id'", "'ref'", "'consistency'"));
     }
 
     @Test
@@ -182,7 +182,7 @@ public class DataStoreCheckTest {
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, "Operation not defined for SegmentNodeStore without external datastore");
+        testIncorrectParams(argsList, Lists.newArrayList("Operation not defined for SegmentNodeStore without external datastore"));
 
     }
 
@@ -192,15 +192,15 @@ public class DataStoreCheckTest {
         List<String> argsList = Lists
             .newArrayList("--consistency", "--fds", cfgFilePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, "Missing required option(s) ['store']");
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) ['store']"));
 
         argsList = Lists
             .newArrayList("--ref", "--fds", cfgFilePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, "Missing required option(s) ['store']");
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) ['store']"));
     }
 
-    public static void testIncorrectParams(List<String> argList, String assertMsg) throws Exception {
+    public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
 
@@ -211,7 +211,9 @@ public class DataStoreCheckTest {
         log.info("Assert message: {}", assertMsg);
         log.info("Message logged in System.err: {}", message);
 
-        Assert.assertTrue(message.contains(assertMsg));
+        for (String msg : assertMsg) {
+            Assert.assertTrue(message.contains(msg));
+        }
         System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
     }
 
