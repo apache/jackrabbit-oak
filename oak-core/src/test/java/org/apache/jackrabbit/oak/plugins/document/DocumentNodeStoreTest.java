@@ -1122,6 +1122,7 @@ public class DocumentNodeStoreTest {
         DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
                 .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
                 .getNodeStore();
+        ns2.setMaxBackOffMillis(0);
         // ns2 sees /node
         assertTrue(ns2.getRoot().hasChildNode("node"));
 
