@@ -90,6 +90,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -98,9 +99,15 @@ public class DocumentNodeStoreTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
+    @Before
+    public void setUp() {
+        System.setProperty("oak.useMemoryMapFactory", "true");
+    }
+
     @After
     public void tearDown() {
         Revision.resetClockToDefault();
+        System.clearProperty("oak.useMemoryMapFactory");
     }
 
     // OAK-1254
