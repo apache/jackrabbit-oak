@@ -505,9 +505,7 @@ public final class DocumentNodeStore
             DocumentNodeState n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
-            // use dummy Revision as before
-            RevisionVector before = new RevisionVector(new Revision(0, 0, clusterId));
-            commit.applyToCache(before, false);
+            unsavedLastRevisions.put("/", commitRev);
             setRoot(head);
             // make sure _lastRev is written back to store
             backgroundWrite();
@@ -1164,27 +1162,101 @@ public final class DocumentNodeStore
     /**
      * Apply the changes of a node to the cache.
      *
+     * @param before the before revision (old head)
+     * @param after the after revision (new head)
      * @param rev the commit revision
      * @param path the path
      * @param isNew whether this is a new node
      * @param added the list of added child nodes
      * @param removed the list of removed child nodes
-     * @param changed the list of changed child nodes.
+     * @param changed the list of changed child nodes
      *
      */
-    void applyChanges(RevisionVector rev, String path,
+    void applyChanges(RevisionVector before, RevisionVector after,
+                      Revision rev, String path,
                       boolean isNew, List<String> added,
                       List<String> removed, List<String> changed,
                       DiffCache.Entry cacheEntry) {
-        if (isNew && !added.isEmpty()) {
-            DocumentNodeState.Children c = new DocumentNodeState.Children();
-            Set<String> set = Sets.newTreeSet();
-            for (String p : added) {
-                set.add(Utils.unshareString(PathUtils.getName(p)));
+        if (isNew) {
+            if (added.isEmpty()) {
+                // this is a leaf node.
+                // check if it has the children flag set
+                NodeDocument doc = store.find(NODES, getIdFromPath(path));
+                if (doc != null && doc.hasChildren()) {
+                    PathRev key = childNodeCacheKey(path, after, null);
+                    LOG.debug("nodeChildrenCache.put({},{})", key, "NO_CHILDREN");
+                    nodeChildrenCache.put(key, DocumentNodeState.NO_CHILDREN);
+                }
+            } else {
+                DocumentNodeState.Children c = new DocumentNodeState.Children();
+                Set<String> set = Sets.newTreeSet();
+                for (String p : added) {
+                    set.add(Utils.unshareString(PathUtils.getName(p)));
+                }
+                c.children.addAll(set);
+                PathRev key = childNodeCacheKey(path, after, null);
+                LOG.debug("nodeChildrenCache.put({},{})", key, c);
+                nodeChildrenCache.put(key, c);
             }
-            c.children.addAll(set);
-            PathRev key = childNodeCacheKey(path, rev, null);
-            nodeChildrenCache.put(key, c);
+        } else {
+            // existed before
+            DocumentNodeState beforeState = getRoot(before);
+            // do we have a cached before state that can be used
+            // to calculate the new children?
+            int depth = PathUtils.getDepth(path);
+            for (int i = 1; i <= depth && beforeState != null; i++) {
+                String p = PathUtils.getAncestorPath(path, depth - i);
+                PathRev key = new PathRev(p, beforeState.getLastRevision());
+                beforeState = nodeCache.getIfPresent(key);
+            }
+            DocumentNodeState.Children children = null;
+            if (beforeState != null) {
+                if (beforeState.hasNoChildren()) {
+                    children = DocumentNodeState.NO_CHILDREN;
+                } else {
+                    PathRev key = childNodeCacheKey(path, beforeState.getLastRevision(), null);
+                    children = nodeChildrenCache.getIfPresent(key);
+                }
+            }
+            if (children != null) {
+                PathRev afterKey = new PathRev(path, before.update(rev));
+                // are there any added or removed children?
+                if (added.isEmpty() && removed.isEmpty()) {
+                    // simply use the same list
+                    LOG.debug("nodeChildrenCache.put({},{})", afterKey, children);
+                    nodeChildrenCache.put(afterKey, children);
+                } else if (!children.hasMore){
+                    // list is complete. use before children as basis
+                    Set<String> afterChildren = Sets.newTreeSet(children.children);
+                    for (String p : added) {
+                        afterChildren.add(Utils.unshareString(PathUtils.getName(p)));
+                    }
+                    for (String p : removed) {
+                        afterChildren.remove(PathUtils.getName(p));
+                    }
+                    DocumentNodeState.Children c = new DocumentNodeState.Children();
+                    c.children.addAll(afterChildren);
+                    if (c.children.size() <= DocumentNodeState.MAX_FETCH_SIZE) {
+                        LOG.debug("nodeChildrenCache.put({},{})", afterKey, c);
+                        nodeChildrenCache.put(afterKey, c);
+                    } else {
+                        LOG.info("not caching more than {} child names for {}",
+                                DocumentNodeState.MAX_FETCH_SIZE, path);
+                    }
+                } else if (added.isEmpty()) {
+                    // incomplete list, but we only removed nodes
+                    // use linked hash set to retain order
+                    Set<String> afterChildren = Sets.newLinkedHashSet(children.children);
+                    for (String p : removed) {
+                        afterChildren.remove(PathUtils.getName(p));
+                    }
+                    DocumentNodeState.Children c = new DocumentNodeState.Children();
+                    c.children.addAll(afterChildren);
+                    c.hasMore = true;
+                    LOG.debug("nodeChildrenCache.put({},{})", afterKey, c);
+                    nodeChildrenCache.put(afterKey, c);
+                }
+            }
         }
 
         // update diff cache

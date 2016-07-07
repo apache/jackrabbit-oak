@@ -644,7 +644,9 @@ public class Commit {
             }
             list.add(p);
         }
-        RevisionVector after = before.update(revision);
+        // the commit revision with branch flag if this is a branch commit
+        Revision rev = isBranchCommit ? revision.asBranchRevision() : revision;
+        RevisionVector after = before.update(rev);
         DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, after, true);
         LastRevTracker tracker = nodeStore.createTracker(revision, isBranchCommit);
         List<String> added = new ArrayList<String>();
@@ -672,7 +674,7 @@ public class Commit {
                 // track intermediate node and root
                 tracker.track(path);
             }
-            nodeStore.applyChanges(after, path, isNew,
+            nodeStore.applyChanges(before, after, rev, path, isNew,
                     added, removed, changed, cacheEntry);
         }
         cacheEntry.done();

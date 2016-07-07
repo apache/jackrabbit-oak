@@ -218,14 +218,8 @@ public class DocumentNodeStoreTest {
         }
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         counter.set(0);
-        // the following should just make one call to DocumentStore.query()
-        for (ChildNodeEntry e : store.getRoot().getChildNodeEntries()) {
-            e.getNodeState();
-        }
-        assertEquals(1, counter.get());
-
-        counter.set(0);
-        // now the child node entries are cached and no call should happen
+        // the following must read from the nodeChildrenCache populated by
+        // the commit and not use a query on the document store (OAK-1322)
         for (ChildNodeEntry e : store.getRoot().getChildNodeEntries()) {
             e.getNodeState();
         }
@@ -2212,6 +2206,8 @@ public class DocumentNodeStoreTest {
         NodeState afterTest = after.getChildNode("test");
 
         startValues.clear();
+        // make sure diff is not served from node children cache entries
+        ns.invalidateNodeChildrenCache();
         afterTest.compareAgainstBaseState(beforeTest, new DefaultNodeStateDiff());
 
         assertEquals(1, startValues.size());
