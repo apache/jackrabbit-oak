@@ -194,7 +194,8 @@ public final class DocumentNodeStore
      * The maximum back off time in milliseconds when merges are retried. The
      * default value is twice the {@link #asyncDelay}.
      */
-    protected int maxBackOffMillis = asyncDelay * 2;
+    protected int maxBackOffMillis =
+            Integer.getInteger("oak.maxBackOffMS", asyncDelay * 2);
 
     /**
      * Whether this instance is disposed.
