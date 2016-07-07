@@ -82,10 +82,10 @@ public class CommitRateLimiter implements CommitHook {
                 try {
                     long t0 = Clock.ACCURATE.getTime();
                     long dt = delay;
-                    do {
+                    while (delay > 0 && dt > 0) {
                         wait(dt);
                         dt = dt - Clock.ACCURATE.getTime() + t0;
-                    } while (delay > 0 && dt > 0);
+                    }
                 } catch (InterruptedException e) {
                     throw new CommitFailedException(OAK, 2, "Interrupted while waiting to commit", e);
                 }
