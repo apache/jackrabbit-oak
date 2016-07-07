@@ -1164,11 +1164,13 @@ public class DocumentNodeStoreTest {
                 .setClusterId(1)
                 .getNodeStore();
         store1.setEnableConcurrentAddRemove(true);
+        store1.setMaxBackOffMillis(0);
         final DocumentNodeStore store2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(2)
                 .getNodeStore();
         store2.setEnableConcurrentAddRemove(true);
+        store2.setMaxBackOffMillis(0);
 
         NodeBuilder builder = store1.getRoot().builder();
         builder.child(":hidden");
