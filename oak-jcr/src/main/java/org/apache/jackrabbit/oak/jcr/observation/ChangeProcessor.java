@@ -82,14 +82,40 @@ class ChangeProcessor implements Observer {
      * Fill ratio of the revision queue at which commits should be delayed
      * (conditional of {@code commitRateLimiter} being non {@code null}).
      */
-    public static final double DELAY_THRESHOLD = 0.8;
+    public static final double DELAY_THRESHOLD;
 
     /**
      * Maximal number of milli seconds a commit is delayed once {@code DELAY_THRESHOLD}
      * kicks in.
      */
-    public static final int MAX_DELAY = 10000;
+    public static final int MAX_DELAY;
 
+    // OAK-4533: make DELAY_THRESHOLD and MAX_DELAY adjustable - using System.properties for now
+    static {
+        final String delayThresholdStr = System.getProperty("oak.commitRateLimiter.delayThreshold");
+        final String maxDelayStr = System.getProperty("oak.commitRateLimiter.maxDelay");
+        double delayThreshold = 0.8; /* default is 0.8 still */
+        int maxDelay = 10000; /* default is 10000 still */
+        try{
+            if (delayThresholdStr != null && delayThresholdStr.length() != 0) {
+                delayThreshold = Double.parseDouble(delayThresholdStr);
+                LOG.info("<clinit> using oak.commitRateLimiter.delayThreshold of " + delayThreshold);
+            }
+        } catch(RuntimeException e) {
+            LOG.warn("<clinit> could not parse oak.commitRateLimiter.delayThreshold, using default(" + delayThreshold + "): " + e, e);
+        }
+        try{
+            if (maxDelayStr != null && maxDelayStr.length() != 0) {
+                maxDelay = Integer.parseInt(maxDelayStr);
+                LOG.info("<clinit> using oak.commitRateLimiter.maxDelay of " + maxDelay + "ms");
+            }
+        } catch(RuntimeException e) {
+            LOG.warn("<clinit> could not parse oak.commitRateLimiter.maxDelay, using default(" + maxDelay + "): " + e, e);
+        }
+        DELAY_THRESHOLD = delayThreshold;
+        MAX_DELAY = maxDelay;
+    }
+    
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     /**
