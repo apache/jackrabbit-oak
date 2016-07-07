@@ -28,12 +28,15 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This {@code CommitHook} can be used to block or delay commits for any length of time.
  * As long as commits are blocked this hook throws a {@code CommitFailedException}.
  */
 public class CommitRateLimiter implements CommitHook {
+    private static final Logger LOG = LoggerFactory.getLogger(CommitRateLimiter.class);
     private volatile boolean blockCommits;
     private volatile long delay;
 
@@ -57,6 +60,12 @@ public class CommitRateLimiter implements CommitHook {
      * @param delay  milli seconds
      */
     public void setDelay(long delay) {
+        if (LOG.isTraceEnabled()) {
+            if (this.delay != delay) {
+                // only log if the delay has changed
+                LOG.trace("setDelay: delay changed from " + this.delay + " to " + delay);
+            }
+        }
         this.delay = delay;
         if (delay == 0) {
             synchronized (this) {
@@ -83,6 +92,7 @@ public class CommitRateLimiter implements CommitHook {
                     long t0 = Clock.ACCURATE.getTime();
                     long dt = delay;
                     while (delay > 0 && dt > 0) {
+                        LOG.trace("delay: waiting {}ms (delay={}ms)", dt, delay);
                         wait(dt);
                         dt = dt - Clock.ACCURATE.getTime() + t0;
                     }
