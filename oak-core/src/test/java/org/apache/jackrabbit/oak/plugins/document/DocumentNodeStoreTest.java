@@ -1589,6 +1589,18 @@ public class DocumentNodeStoreTest {
 
     }
 
+    // OAK-4545
+    @Test
+    public void configurableMaxBackOffMillis() throws Exception {
+        System.setProperty("oak.maxBackOffMS", "1234");
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+            assertEquals(1234, ns.getMaxBackOffMillis());
+        } finally {
+            System.clearProperty("oak.maxBackOffMS");
+        }
+    }
+
     // OAK-3579
     @Test
     public void backgroundLeaseUpdateThread() throws Exception {
