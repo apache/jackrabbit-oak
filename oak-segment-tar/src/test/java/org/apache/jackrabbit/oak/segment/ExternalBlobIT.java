@@ -18,15 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -56,7 +53,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,12 +67,8 @@ public class ExternalBlobIT {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    @BeforeClass
-    public static void assumptions() {
-        assumeTrue(getFixtures().contains(SEGMENT_MK));
-    }
-    
-    @Test @Ignore("would need a FileBlobStore for this")
+    @Test
+    @Ignore("would need a FileBlobStore for this")
     public void testFileBlob() throws Exception {
         nodeStore = getNodeStore(new TestBlobStore());
         testCreateAndRead(getFileBlob());

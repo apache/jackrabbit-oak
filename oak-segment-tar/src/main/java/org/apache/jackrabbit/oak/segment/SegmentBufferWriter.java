@@ -23,7 +23,6 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
@@ -41,7 +40,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -77,11 +75,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * in this segment.
      */
     private final Map<RecordId, RecordType> roots = newLinkedHashMap();
-
-    /**
-     * Identifiers of the external blob references stored in this segment.
-     */
-    private final List<RecordId> blobrefs = newArrayList();
 
     @Nonnull
     private final SegmentStore store;
@@ -173,7 +166,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         length = 0;
         position = buffer.length;
         roots.clear();
-        blobrefs.clear();
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
@@ -294,10 +286,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         position += length;
     }
 
-    public void addBlobRef(RecordId blobId) {
-        blobrefs.add(blobId);
-    }
-
     /**
      * Adds a segment header to the buffer and writes a segment to the segment
      * store. This is done automatically (called from prepare) when there is not
@@ -312,13 +300,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             buffer[Segment.ROOT_COUNT_OFFSET] = (byte) (rootcount >> 8);
             buffer[Segment.ROOT_COUNT_OFFSET + 1] = (byte) rootcount;
 
-            int blobrefcount = blobrefs.size();
-            buffer[Segment.BLOBREF_COUNT_OFFSET] = (byte) (blobrefcount >> 8);
-            buffer[Segment.BLOBREF_COUNT_OFFSET + 1] = (byte) blobrefcount;
-
-            length = align(
-                    refcount * 16 + rootcount * 3 + blobrefcount * 2 + length,
-                    16);
+            length = align(refcount * 16 + rootcount * 3 + length, 16);
 
             checkState(length <= buffer.length);
 
@@ -341,12 +323,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             for (Map.Entry<RecordId, RecordType> entry : roots.entrySet()) {
                 int offset = entry.getKey().getOffset();
                 buffer[pos++] = (byte) entry.getValue().ordinal();
-                buffer[pos++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
-                buffer[pos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
-            }
-
-            for (RecordId blobref : blobrefs) {
-                int offset = blobref.getOffset();
                 buffer[pos++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
                 buffer[pos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
             }
@@ -386,16 +362,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         // that *all* identifiers stored in this record point to previously
         // unreferenced segments.
         int refCount = segment.getRefCount() + idCount;
-        int blobRefCount = blobrefs.size() + 1;
         int rootCount = roots.size() + 1;
-        int headerSize = refCount * 16 + rootCount * 3 + blobRefCount * 2;
+        int headerSize = refCount * 16 + rootCount * 3;
         int segmentSize = align(headerSize + recordSize + length, 16);
 
         // If the size estimate looks too big, recompute it with a more
         // accurate refCount value. We skip doing this when possible to
         // avoid the somewhat expensive list and set traversals.
-        if (segmentSize > buffer.length - 1
-                || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
+        if (segmentSize > buffer.length - 1 || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
             refCount -= idCount;
 
             Set<SegmentId> segmentIds = newHashSet();
@@ -423,12 +397,11 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 refCount += segmentIds.size();
             }
 
-            headerSize = refCount * 16 + rootCount * 3 + blobRefCount * 2;
+            headerSize = refCount * 16 + rootCount * 3;
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 
         if (segmentSize > buffer.length - 1
-                || blobRefCount > 0xffff
                 || rootCount > 0xffff
                 || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();

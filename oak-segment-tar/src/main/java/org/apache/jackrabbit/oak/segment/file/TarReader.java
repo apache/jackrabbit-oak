@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -32,6 +33,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.getGcGeneration;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.file.TarWriter.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.TarWriter.GRAPH_MAGIC;
 
 import java.io.Closeable;
@@ -44,6 +46,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -53,12 +56,11 @@ import java.util.zip.CRC32;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Predicate;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -734,17 +736,23 @@ class TarReader implements Closeable {
     /**
      * Collect the references of those blobs that are reachable from any segment with a
      * generation at or above {@code minGeneration}.
-     * @param store
      * @param collector
      * @param minGeneration
      */
-    void collectBlobReferences(SegmentStore store, ReferenceCollector collector, int minGeneration) {
-        for (TarEntry entry : getEntries()) {
-            if (entry.generation() >= minGeneration) {
-                // FIXME OAK-4201: Add an index of binary references in a tar file
-                // Fetch the blob references from the tar index instead reading them from the segment
-                SegmentId id = store.newSegmentId(entry.msb(), entry.lsb());
-                id.getSegment().collectBlobReferences(collector);
+    void collectBlobReferences(ReferenceCollector collector, int minGeneration) {
+        Map<Integer, Set<String>> references = getBinaryReferences();
+
+        if (references == null) {
+            return;
+        }
+
+        for (Entry<Integer, Set<String>> entry : references.entrySet()) {
+            if (entry.getKey() < minGeneration) {
+                continue;
+            }
+
+            for (String reference : entry.getValue()) {
+                collector.addReference(reference, null);
             }
         }
     }
@@ -930,6 +938,106 @@ class TarReader implements Closeable {
         return hasGraph;
     }
 
+    private int getIndexEntrySize() {
+        return getEntrySize(index.remaining() + 16);
+    }
+
+    private int getGraphEntrySize() {
+        ByteBuffer buffer;
+
+        try {
+            buffer = loadGraph();
+        } catch (IOException e) {
+            return 0;
+        }
+
+        if (buffer == null) {
+            return 0;
+        }
+
+        return getEntrySize(buffer.getInt(buffer.limit() - 8));
+    }
+
+    Map<Integer, Set<String>> getBinaryReferences() {
+        ByteBuffer buffer;
+
+        try {
+            buffer = loadBinaryReferences();
+        } catch (IOException e) {
+            return null;
+        }
+
+        if (buffer == null) {
+            return null;
+        }
+
+        return parseBinaryReferences(buffer);
+    }
+
+    private ByteBuffer loadBinaryReferences() throws IOException {
+        int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
+
+        ByteBuffer meta = access.read(end - 16, 16);
+
+        int crc32 = meta.getInt();
+        int count = meta.getInt();
+        int size = meta.getInt();
+        int magic = meta.getInt();
+
+        if (magic != BINARY_REFERENCES_MAGIC) {
+            log.warn("Invalid binary references magic number");
+            return null;
+        }
+
+        if (count < 0 || size < count * 22 + 16) {
+            log.warn("Invalid binary references size or count");
+            return null;
+        }
+
+        ByteBuffer buffer = access.read(end - size, size);
+
+        byte[] data = new byte[size - 16];
+        buffer.mark();
+        buffer.get(data);
+        buffer.reset();
+
+        CRC32 checksum = new CRC32();
+        checksum.update(data);
+
+        if ((int) (checksum.getValue()) != crc32) {
+            log.warn("Invalid binary references checksum");
+            return null;
+        }
+
+        return buffer;
+    }
+
+    private Map<Integer, Set<String>> parseBinaryReferences(ByteBuffer buffer) {
+        int nGenerations = buffer.getInt(buffer.limit() - 12);
+
+        Map<Integer, Set<String>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
+
+        for (int i = 0; i < nGenerations; i++) {
+            int generation = buffer.getInt();
+            int nReferences = buffer.getInt();
+
+            Set<String> references = newHashSetWithExpectedSize(nReferences);
+
+            for (int j = 0; j < nReferences; j++) {
+                int length = buffer.getInt();
+
+                byte[] data = new byte[length];
+                buffer.get(data);
+
+                references.add(new String(data, Charsets.UTF_8));
+            }
+
+            binaryReferences.put(generation, references);
+        }
+
+        return binaryReferences;
+    }
+
     /**
      * Loads the optional pre-compiled graph entry from the given tar file.
      *
@@ -938,7 +1046,7 @@ class TarReader implements Closeable {
      */
     private ByteBuffer loadGraph() throws IOException {
         // read the graph metadata just before the tar index entry
-        int pos = access.length() - 2 * BLOCK_SIZE - getEntrySize(index.remaining() + 16);
+        int pos = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
         ByteBuffer meta = access.read(pos - 16, 16);
         int crc32 = meta.getInt();
         int count = meta.getInt();

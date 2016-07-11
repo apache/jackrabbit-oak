@@ -61,11 +61,21 @@ public class FileStoreRestore {
         try {
             SegmentNodeState head = restore.getHead();
             int gen = head.getRecordId().getSegment().getGcGeneration();
-            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), "r", gen);
-            SegmentWriter writer = new SegmentWriter(store, store.getReader(),
-                    store.getBlobStore(), new WriterCacheManager.Default(),
-                    bufferWriter);
+            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    "r",
+                    gen
+            );
+            SegmentWriter writer = new SegmentWriter(
+                    store,
+                    store.getReader(),
+                    store.getBlobStore(),
+                    new WriterCacheManager.Default(),
+                    bufferWriter,
+                    store.getBinaryReferenceConsumer()
+            );
             SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
             Compactor compactor = new Compactor(store.getReader(), writer,
                     store.getBlobStore(), Suppliers.ofInstance(false),
