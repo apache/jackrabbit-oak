@@ -1182,7 +1182,7 @@ public class FileStore implements SegmentStore, Closeable {
     @Nonnull
     public Segment readSegment(final SegmentId id) {
         try {
-            return segmentCache.geSegment(id, new Callable<Segment>() {
+            return segmentCache.getSegment(id, new Callable<Segment>() {
                 @Override
                 public Segment call() throws Exception {
                     long msb = id.getMostSignificantBits();
