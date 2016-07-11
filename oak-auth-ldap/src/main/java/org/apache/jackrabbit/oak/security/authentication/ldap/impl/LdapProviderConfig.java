@@ -128,6 +128,18 @@ public class LdapProviderConfig {
     )
     public static final String PARAM_NO_CERT_CHECK = "host.noCertCheck";
 
+
+    /**
+     * @see #getSearchAttributes()
+     */
+    @Property(
+            label = "Search attributes",
+            description = "Array of attributes to retrieve when searching LDAP entries. Leave empty to retrieve all available attributes.",
+            value = {},
+            cardinality = Integer.MAX_VALUE
+    )
+    public static final String PARAM_SEARCH_ATTRIBUTES = "search.attributes";
+
     /**
      * @see #getBindDN()
      */
@@ -403,6 +415,22 @@ public class LdapProviderConfig {
     public static final String PARAM_GROUP_MEMBER_ATTRIBUTE = "group.memberAttribute";
 
     /**
+     * @see Identity#getCustomAttributes()
+     */
+    public static final String[] PARAM_CUSTOM_ATTRIBUTES_DEFAULT = {};
+
+    /**
+     * @see Identity#getCustomAttributes()
+     */
+    @Property(
+            label = "Custom Attributes",
+            description = "Attributes retrieved when looking up LDAP entries. Leave empty to retrieve all attributes.",
+            value = {},
+            cardinality = Integer.MAX_VALUE
+    )
+    public static final String PARAM_CUSTOM_ATTRIBUTES = "customattributes";
+
+    /**
      * Defines the configuration of an identity (user or group).
      */
     public class Identity {
@@ -412,6 +440,8 @@ public class LdapProviderConfig {
         private String[] objectClasses;
 
         private String idAttribute;
+
+        private String[] customAttributes = {};
 
         private String extraFilter;
 
@@ -575,6 +605,7 @@ public class LdapProviderConfig {
             sb.append("baseDN='").append(baseDN).append('\'');
             sb.append(", objectClasses=").append(Arrays.toString(objectClasses));
             sb.append(", idAttribute='").append(idAttribute).append('\'');
+            sb.append(", userAttributes='").append(Arrays.toString(customAttributes));
             sb.append(", extraFilter='").append(extraFilter).append('\'');
             sb.append(", filterTemplate='").append(filterTemplate).append('\'');
             sb.append(", makeDnPath=").append(makeDnPath);
@@ -666,13 +697,13 @@ public class LdapProviderConfig {
                 .setNoCertCheck(params.getConfigValue(PARAM_NO_CERT_CHECK, PARAM_NO_CERT_CHECK_DEFAULT))
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
-                .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT));
+                .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT))
+                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT));
 
         ConfigurationParameters.Milliseconds ms = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT));
         if (ms != null) {
             cfg.setSearchTimeout(ms.value);
         }
-
 
         cfg.getUserConfig()
                 .setBaseDN(params.getConfigValue(PARAM_USER_BASE_DN, PARAM_USER_BASE_DN))
@@ -720,6 +751,8 @@ public class LdapProviderConfig {
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
 
     private String memberOfFilterTemplate;
+
+    private String[] customAttributes = PARAM_CUSTOM_ATTRIBUTES_DEFAULT;
 
     private final PoolConfig adminPoolConfig = new PoolConfig()
             .setMaxActive(PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT);
@@ -960,6 +993,29 @@ public class LdapProviderConfig {
     @Nonnull
     public LdapProviderConfig setGroupMemberAttribute(@Nonnull String groupMemberAttribute) {
         this.groupMemberAttribute = groupMemberAttribute;
+        return this;
+    }
+
+    /**
+     * Optionally configures an array of attribute names that will be retrieved when looking up LDAP entries.
+     * Defaults to the empty array indicating that all attributes will be retrieved.
+     *
+     * @return an array of attribute names. The empty array indicates that all attributes will be retrieved.
+     */
+    @Nonnull
+    public String[] getCustomAttributes() {
+        return customAttributes;
+    }
+
+    /**
+     * Sets the attribute names to be retrieved when looking up LDAP entries. The empty array indicates that all attributes will be retrieved.
+     *
+     * @param customAttributes an array of attribute names
+     * @return the Identity instance
+     */
+    @Nonnull
+    public LdapProviderConfig setCustomAttributes(@Nonnull String[] customAttributes) {
+        this.customAttributes = customAttributes;
         return this;
     }
 

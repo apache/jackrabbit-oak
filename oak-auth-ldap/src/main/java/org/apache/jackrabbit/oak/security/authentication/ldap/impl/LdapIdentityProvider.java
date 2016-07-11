@@ -215,7 +215,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         LdapConnection connection = connect();
         timer.mark("connect");
         try {
-            Entry entry = getEntry(connection, config.getUserConfig(), userId);
+            Entry entry = getEntry(connection, config.getUserConfig(), userId, config.getCustomAttributes());
             timer.mark("lookup");
             if (log.isDebugEnabled()) {
                 log.debug("getUser({}) {}", userId, timer.getString());
@@ -240,7 +240,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         LdapConnection connection = connect();
         timer.mark("connect");
         try {
-            Entry entry = getEntry(connection, config.getGroupConfig(), name);
+            Entry entry = getEntry(connection, config.getGroupConfig(), name, config.getCustomAttributes());
             timer.mark("lookup");
             if (log.isDebugEnabled()) {
                 log.debug("getGroup({}) {}", name, timer.getString());
@@ -541,14 +541,18 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     }
 
     @CheckForNull
-    private Entry getEntry(@Nonnull LdapConnection connection, @Nonnull LdapProviderConfig.Identity idConfig, @Nonnull String id)
+    private Entry getEntry(@Nonnull LdapConnection connection, @Nonnull LdapProviderConfig.Identity idConfig, @Nonnull String id, @Nonnull String[] customAttributes)
             throws CursorException, LdapException {
         String searchFilter = idConfig.getSearchFilter(id);
 
         // Create the SearchRequest object
         SearchRequest req = new SearchRequestImpl();
         req.setScope(SearchScope.SUBTREE);
-        req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
+        if (customAttributes.length == 0) {
+            req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
+        } else {
+            req.addAttributes(customAttributes);
+        }
         req.setTimeLimit((int) config.getSearchTimeout());
         req.setBase(new Dn(idConfig.getBaseDN()));
         req.setFilter(searchFilter);
@@ -657,10 +661,14 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
         //-------------------------------------------------------< internal >---
 
-        private SearchRequest createSearchRequest(LdapConnection connection, byte[] cookie) throws LdapException {
+        private SearchRequest createSearchRequest(LdapConnection connection, byte[] cookie, @Nonnull String[] userAttributes) throws LdapException {
             SearchRequest req = new SearchRequestImpl();
             req.setScope(SearchScope.SUBTREE);
-            req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
+            if (userAttributes.length == 0) {
+                req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
+            } else {
+                req.addAttributes(userAttributes);
+            }
             req.setTimeLimit((int) config.getSearchTimeout());
             req.setBase(new Dn(idConfig.getBaseDN()));
             req.setFilter(searchFilter);
@@ -684,7 +692,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             timer.mark("connect");
             page = new ArrayList<Entry>();
             try {
-                searchCursor = connection.search(createSearchRequest(connection, cookie));
+                searchCursor = connection.search(createSearchRequest(connection, cookie, config.getCustomAttributes()));
                 while (searchCursor.next()) {
                     Response response = searchCursor.get();
 
