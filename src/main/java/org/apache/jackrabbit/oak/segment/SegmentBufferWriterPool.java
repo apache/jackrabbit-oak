@@ -189,10 +189,22 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         try {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
-                writer = new SegmentBufferWriter(store, tracker, reader, getWriterId(wid), gcGeneration.get());
+                writer = new SegmentBufferWriter(
+                        store,
+                        tracker,
+                        reader,
+                        getWriterId(wid),
+                        gcGeneration.get()
+                );
             } else if (writer.getGeneration() != gcGeneration.get()) {
                 disposed.add(writer);
-                writer = new SegmentBufferWriter(store, tracker, reader, getWriterId(wid), gcGeneration.get());
+                writer = new SegmentBufferWriter(
+                        store,
+                        tracker,
+                        reader,
+                        getWriterId(wid),
+                        gcGeneration.get()
+                );
             }
             borrowed.add(writer);
             return writer;

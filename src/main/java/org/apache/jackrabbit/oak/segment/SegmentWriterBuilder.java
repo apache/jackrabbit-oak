@@ -143,8 +143,14 @@ public final class SegmentWriterBuilder {
      */
     @Nonnull
     public SegmentWriter build(@Nonnull FileStore store) {
-        return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), cacheManager, createWriter(store, pooled));
+        return new SegmentWriter(
+                checkNotNull(store),
+                store.getReader(),
+                store.getBlobStore(),
+                cacheManager,
+                createWriter(store, pooled),
+                store.getBinaryReferenceConsumer()
+        );
     }
 
     /**
@@ -152,8 +158,14 @@ public final class SegmentWriterBuilder {
      */
     @Nonnull
     public SegmentWriter build(@Nonnull MemoryStore store) {
-        return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), cacheManager, createWriter(store, pooled));
+        return new SegmentWriter(
+                checkNotNull(store),
+                store.getReader(),
+                store.getBlobStore(),
+                cacheManager,
+                createWriter(store, pooled),
+                store.getBinaryReferenceConsumer()
+        );
     }
 
     /**
@@ -161,40 +173,76 @@ public final class SegmentWriterBuilder {
      */
     @Nonnull
     public SegmentWriter build(@Nonnull HttpStore store) {
-        return new SegmentWriter(checkNotNull(store), store.getReader(),
-                store.getBlobStore(), cacheManager, createWriter(store, pooled));
+        return new SegmentWriter(
+                checkNotNull(store),
+                store.getReader(),
+                store.getBlobStore(),
+                cacheManager,
+                createWriter(store, pooled),
+                store.getBinaryReferenceConsumer()
+        );
     }
 
     @Nonnull
     private WriteOperationHandler createWriter(@Nonnull FileStore store, boolean pooled) {
         if (pooled) {
-            return new SegmentBufferWriterPool(store,
-                    store.getTracker(), store.getReader(), name, generation);
+            return new SegmentBufferWriterPool(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    name,
+                    generation
+            );
         } else {
-            return new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), name, generation.get());
+            return new SegmentBufferWriter(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    name,
+                    generation.get()
+            );
         }
     }
 
     @Nonnull
     private WriteOperationHandler createWriter(@Nonnull MemoryStore store, boolean pooled) {
         if (pooled) {
-            return new SegmentBufferWriterPool(store,
-                    store.getTracker(), store.getReader(), name, generation);
+            return new SegmentBufferWriterPool(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    name,
+                    generation
+            );
         } else {
-            return new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), name, generation.get());
+            return new SegmentBufferWriter(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    name,
+                    generation.get()
+            );
         }
     }
 
     @Nonnull
     private WriteOperationHandler createWriter(@Nonnull HttpStore store, boolean pooled) {
         if (pooled) {
-            return new SegmentBufferWriterPool(store,
-                    store.getTracker(), store.getReader(), name, generation);
+            return new SegmentBufferWriterPool(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    name,
+                    generation
+            );
         } else {
-            return new SegmentBufferWriter(store,
-                    store.getTracker(), store.getReader(), name, generation.get());
+            return new SegmentBufferWriter(
+                    store,
+                    store.getTracker(),
+                    store.getReader(),
+                    name,
+                    generation.get()
+            );
         }
     }
 

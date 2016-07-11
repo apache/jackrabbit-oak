@@ -26,7 +26,6 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.segment.SegmentBlob.readBlobId;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
@@ -49,7 +48,6 @@ import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
@@ -119,8 +117,6 @@ public class Segment {
     public static final int REF_COUNT_OFFSET = 5;
 
     static final int ROOT_COUNT_OFFSET = 6;
-
-    static final int BLOBREF_COUNT_OFFSET = 8;
 
     public static final int GC_GENERATION_OFFSET = 10;
 
@@ -391,20 +387,6 @@ public class Segment {
         return data.remaining();
     }
 
-    public void collectBlobReferences(ReferenceCollector collector) {
-        int refcount = getRefCount();
-        int rootcount =
-                data.getShort(data.position() + ROOT_COUNT_OFFSET) & 0xffff;
-        int blobrefcount =
-                data.getShort(data.position() + BLOBREF_COUNT_OFFSET) & 0xffff;
-        int blobrefpos = data.position() + refcount * 16 + rootcount * 3;
-
-        for (int i = 0; i < blobrefcount; i++) {
-            int offset = (data.getShort(blobrefpos + i * 2) & 0xffff) << RECORD_ALIGN_BITS;
-            collector.addReference(readBlobId(this, offset), null);
-        }
-    }
-
     byte readByte(int offset) {
         return data.get(pos(offset, 1));
     }
@@ -592,14 +574,6 @@ public class Segment {
                             "root %d: %s at %04x%n", rootid,
                             RecordType.values()[data.get(pos + rootid * 3) & 0xff],
                             data.getShort(pos + rootid * 3 + 1) & 0xffff);
-                }
-                int blobrefcount = data.getShort(BLOBREF_COUNT_OFFSET) & 0xffff;
-                pos += rootcount * 3;
-                for (int blobrefid = 0; blobrefid < blobrefcount; blobrefid++) {
-                    int offset = data.getShort(pos + blobrefid * 2) & 0xffff;
-                    writer.format(
-                            "blobref %d: %s at %04x%n", blobrefid,
-                            readBlobId(this, offset << RECORD_ALIGN_BITS), offset);
                 }
             }
             writer.println("--------------------------------------------------------------------------");

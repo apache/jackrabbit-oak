@@ -69,11 +69,21 @@ public class FileStoreBackup {
         try {
             int gen = 0;
             gen = current.getRecordId().getSegment().getGcGeneration();
-            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(backup,
-                    backup.getTracker(), backup.getReader(), "b", gen);
-            SegmentWriter writer = new SegmentWriter(backup,
-                    backup.getReader(), backup.getBlobStore(),
-                    new WriterCacheManager.Default(), bufferWriter);
+            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
+                    backup,
+                    backup.getTracker(),
+                    backup.getReader(),
+                    "b",
+                    gen
+            );
+            SegmentWriter writer = new SegmentWriter(
+                    backup,
+                    backup.getReader(),
+                    backup.getBlobStore(),
+                    new WriterCacheManager.Default(),
+                    bufferWriter,
+                    backup.getBinaryReferenceConsumer()
+            );
             Compactor compactor = new Compactor(backup.getReader(), writer,
                     backup.getBlobStore(), Suppliers.ofInstance(false),
                     gcOptions);

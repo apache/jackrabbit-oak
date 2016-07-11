@@ -434,8 +434,13 @@ public class RecordTest {
     @Test
     public void testCancel() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
-        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(store, store.getTracker(),
-                store.getReader(), "test", 0);
+        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
+                store,
+                store.getTracker(),
+                store.getReader(),
+                "test",
+                0
+        );
         NodeState state = writer.writeNode(builder.getNodeState(), bufferWriter, Suppliers.ofInstance(true));
         assertNull(state);
     }
