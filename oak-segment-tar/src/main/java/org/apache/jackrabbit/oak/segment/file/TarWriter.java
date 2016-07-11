@@ -22,8 +22,6 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.reverse;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
@@ -42,11 +40,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,6 +96,11 @@ class TarWriter implements Closeable {
     static final int GRAPH_MAGIC =
             ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
 
+    /**
+     * Magic sequence at the end of the binary references block.
+     */
+    static final int BINARY_REFERENCES_MAGIC = ('\n' << 24) + ('0' << 16) + ('B' << 8) + '\n';
+
     /** The tar file block size. */
     static final int BLOCK_SIZE = 512;
 
@@ -122,7 +127,7 @@ class TarWriter implements Closeable {
 
     /**
      * File handle. Initialized lazily in
-     * {@link #writeEntry(long, long, byte[], int, int)} to avoid creating
+     * {@link #writeEntry(long, long, byte[], int, int, int)} to avoid creating
      * an extra empty file when just reading from the repository.
      * Should only be accessed from synchronized code.
      */
@@ -153,6 +158,11 @@ class TarWriter implements Closeable {
      * Segment graph of the entries that have already been written.
      */
     private final SortedMap<UUID, List<UUID>> graph = newTreeMap();
+
+    /**
+     * List of binary references contained in this TAR file.
+     */
+    private final Map<Integer, Set<String>> binaryReferences = newHashMap();
 
     TarWriter(File file) {
         this(file, FileStoreMonitor.DEFAULT);
@@ -272,6 +282,17 @@ class TarWriter implements Closeable {
         return currentLength;
     }
 
+    void addBinaryReference(int generation, String reference) {
+        Set<String> references = binaryReferences.get(generation);
+
+        if (references == null) {
+            references = newHashSet();
+            binaryReferences.put(generation, references);
+        }
+
+        references.add(reference);
+    }
+
     /**
      * Flushes the entries that have so far been written to the disk.
      * This method is <em>not</em> synchronized to allow concurrent reads
@@ -328,6 +349,7 @@ class TarWriter implements Closeable {
         long initialPosition, currentPosition;
         synchronized (file) {
             initialPosition = access.getFilePointer();
+            writeBinaryReferences();
             writeGraph();
             writeIndex();
             access.write(ZERO_BYTES);
@@ -338,6 +360,84 @@ class TarWriter implements Closeable {
         }
 
         monitor.written(currentPosition - initialPosition);
+    }
+
+    private void writeBinaryReferences() throws IOException {
+        int binaryReferenceSize = 0;
+
+        // The following information are stored in the footer as meta-
+        // information about the entry.
+
+        // 4 bytes to store a magic number identifying this entry as containing
+        // references to binary values.
+        binaryReferenceSize += 4;
+
+        // 4 bytes to store the CRC32 checksum of the data in this entry.
+        binaryReferenceSize += 4;
+
+        // 4 bytes to store the length of this entry, without including the
+        // optional padding.
+        binaryReferenceSize += 4;
+
+        // 4 bytes to store the number of generations pairs in the binary
+        // references map.
+        binaryReferenceSize += 4;
+
+        // The following information are stored as part of the main content of
+        // this entry, after the optional padding.
+
+        for (Set<String> references : binaryReferences.values()) {
+            // 4 bytes per generation to store the generation number itself.
+            binaryReferenceSize += 4;
+
+            // 4 bytes per generation to store the amount of binary references
+            // associated to the generation.
+            binaryReferenceSize += 4;
+
+            for (String reference : references) {
+                // 4 bytes for each reference to store the length of the reference.
+                binaryReferenceSize += 4;
+
+                // A variable amount of bytes, depending on the reference itself.
+                binaryReferenceSize += reference.getBytes(Charsets.UTF_8).length;
+            }
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(binaryReferenceSize);
+
+        for (Entry<Integer, Set<String>> entry : binaryReferences.entrySet()) {
+            int generation = entry.getKey();
+            Set<String> references = entry.getValue();
+
+            buffer.putInt(generation);
+            buffer.putInt(references.size());
+
+            for (String reference : references) {
+                byte[] bytes = reference.getBytes(Charsets.UTF_8);
+
+                buffer.putInt(bytes.length);
+                buffer.put(bytes);
+            }
+        }
+
+        CRC32 checksum = new CRC32();
+        checksum.update(buffer.array(), 0, buffer.position());
+        buffer.putInt((int) checksum.getValue());
+        buffer.putInt(binaryReferences.size());
+        buffer.putInt(binaryReferenceSize);
+        buffer.putInt(BINARY_REFERENCES_MAGIC);
+
+        int paddingSize = getPaddingSize(binaryReferenceSize);
+
+        byte[] header = newEntryHeader(file.getName() + ".brf", binaryReferenceSize + paddingSize);
+
+        access.write(header);
+
+        if (paddingSize > 0) {
+            access.write(ZERO_BYTES, 0, paddingSize);
+        }
+
+        access.write(buffer.array());
     }
 
     private void writeGraph() throws IOException {

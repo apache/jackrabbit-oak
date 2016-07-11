@@ -399,7 +399,6 @@ final class RecordWriters {
             // This allows the code to take apart small from a large blob IDs.
             writer.writeByte((byte) 0xF0);
             writer.writeRecordId(stringRecord);
-            writer.addBlobRef(id);
             return id;
         }
     }
@@ -426,7 +425,6 @@ final class RecordWriters {
             int length = blobId.length;
             writer.writeShort((short) (length | 0xE000));
             writer.writeBytes(blobId, 0, length);
-            writer.addBlobRef(id);
             return id;
         }
     }

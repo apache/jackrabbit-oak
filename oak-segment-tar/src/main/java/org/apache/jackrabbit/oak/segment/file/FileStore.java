@@ -76,6 +76,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.segment.BinaryReferenceConsumer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -131,6 +132,9 @@ public class FileStore implements SegmentStore, Closeable {
 
     @Nonnull
     private final CachingSegmentReader segmentReader;
+
+    @Nonnull
+    private final BinaryReferenceConsumer binaryReferenceConsumer;
 
     private final File directory;
 
@@ -267,6 +271,22 @@ public class FileStore implements SegmentStore, Closeable {
                 return getGcGeneration();
             }
         };
+
+        binaryReferenceConsumer = new BinaryReferenceConsumer() {
+
+            @Override
+            public void consume(int generation, String binaryReference) {
+                fileStoreLock.writeLock().lock();
+
+                try {
+                    tarWriter.addBinaryReference(generation, binaryReference);
+                } finally {
+                    fileStoreLock.writeLock().unlock();
+                }
+            }
+
+        };
+
         this.segmentWriter = segmentWriterBuilder("sys")
                 .withGeneration(getGeneration)
                 .withWriterPool()
@@ -810,7 +830,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
         for (TarReader tarReader : tarReaders) {
-            tarReader.collectBlobReferences(this, collector, minGeneration);
+            tarReader.collectBlobReferences(collector, minGeneration);
         }
     }
 
@@ -893,8 +913,7 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         final int newGeneration = getGcGeneration() + 1;
-        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
-                this, tracker, segmentReader, "c", newGeneration);
+        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(this, tracker, segmentReader, "c", newGeneration);
         Supplier<Boolean> cancel = newCancelCompactionCondition();
         SegmentNodeState after = compact(bufferWriter, before, cancel);
         if (after == null) {
@@ -983,7 +1002,7 @@ public class FileStore implements SegmentStore, Closeable {
                                      Supplier<Boolean> cancel)
     throws IOException {
         if (gcOptions.isOffline()) {
-            SegmentWriter writer = new SegmentWriter(this, segmentReader, blobStore, new Default(), bufferWriter);
+            SegmentWriter writer = new SegmentWriter(this, segmentReader, blobStore, new Default(), bufferWriter, binaryReferenceConsumer);
             return new Compactor(segmentReader, writer, blobStore, cancel, gcOptions)
                     .compact(EMPTY_NODE, head, EMPTY_NODE);
         } else {
@@ -1054,6 +1073,11 @@ public class FileStore implements SegmentStore, Closeable {
     @Nonnull
     public SegmentReader getReader() {
         return segmentReader;
+    }
+
+    @Nonnull
+    public BinaryReferenceConsumer getBinaryReferenceConsumer() {
+        return binaryReferenceConsumer;
     }
 
     @Nonnull

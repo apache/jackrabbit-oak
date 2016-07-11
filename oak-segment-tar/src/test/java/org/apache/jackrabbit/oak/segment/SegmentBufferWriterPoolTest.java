@@ -51,7 +51,12 @@ public class SegmentBufferWriterPoolTest {
     private final RecordId rootId = store.getRevisions().getHead();
 
     private final SegmentBufferWriterPool pool = new SegmentBufferWriterPool(
-        store, store.getTracker(), store.getReader(), "", Suppliers.ofInstance(0));
+            store,
+            store.getTracker(),
+            store.getReader(),
+            "",
+            Suppliers.ofInstance(0)
+    );
 
     private final ExecutorService[] executors = new ExecutorService[] {
         newSingleThreadExecutor(), newSingleThreadExecutor(), newSingleThreadExecutor()};

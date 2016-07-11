@@ -99,6 +99,9 @@ public class SegmentWriter {
     @Nonnull
     private final WriteOperationHandler writeOperationHandler;
 
+    @Nonnull
+    private final BinaryReferenceConsumer binaryReferenceConsumer;
+
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
      * pointed out in the class comment.
@@ -113,12 +116,15 @@ public class SegmentWriter {
                          @Nonnull SegmentReader reader,
                          @Nullable BlobStore blobStore,
                          @Nonnull WriterCacheManager cacheManager,
-                         @Nonnull WriteOperationHandler writeOperationHandler) {
+            @Nonnull WriteOperationHandler writeOperationHandler,
+            @Nonnull BinaryReferenceConsumer binaryReferenceConsumer
+    ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
         this.blobStore = blobStore;
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
+        this.binaryReferenceConsumer = checkNotNull(binaryReferenceConsumer);
     }
 
     public void flush() throws IOException {
@@ -776,11 +782,18 @@ public class SegmentWriter {
          */
         private RecordId writeBlobId(String blobId) throws IOException {
             byte[] data = blobId.getBytes(UTF_8);
+
+            RecordId recordId;
+
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
-                return RecordWriters.newBlobIdWriter(data).write(writer);
+                recordId = RecordWriters.newBlobIdWriter(data).write(writer);
             } else {
-                return RecordWriters.newBlobIdWriter(writeString(blobId)).write(writer);
+                recordId = RecordWriters.newBlobIdWriter(writeString(blobId)).write(writer);
             }
+
+            binaryReferenceConsumer.consume(writer.getGeneration(), blobId);
+
+            return recordId;
         }
 
         private RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length)
