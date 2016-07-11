@@ -22,19 +22,18 @@ package org.apache.jackrabbit.oak.segment;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.RemovalCause;
+
 /**
  * FIXME OAK-4474: Finalise SegmentCache: document, add monitoring, management, tests, logging
- * FIXME OAK-3309: SegmentMK segment cache loader stats
  */
 public class SegmentCache {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCache.class);
@@ -60,23 +59,8 @@ public class SegmentCache {
             .build();
     }
 
-    /**
-     * Get a segment from the cache
-     * @param id  segment id
-     * @return  segment with the given {@code id} or {@code null} if not in the cache
-     */
-    @CheckForNull
-    public Segment geSegment(@Nonnull SegmentId id) {
-        try {
-            return cache.get(id);
-        } catch (ExecutionException e) {
-            LOG.error("Error loading segment {} from cache", id, e);
-            return null;
-        }
-    }
-
     @Nonnull
-    public Segment geSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader)
+    public Segment getSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader)
     throws ExecutionException {
         return cache.get(id, loader);
     }
@@ -92,6 +76,7 @@ public class SegmentCache {
 
     @Nonnull
     public CacheStats getCacheStats() {
-        return new CacheStats(cache, "Segment Cache", null, -1);
+        return new CacheStats(cache, "Segment Cache", null,
+                cache.getMaxMemory());
     }
 }
