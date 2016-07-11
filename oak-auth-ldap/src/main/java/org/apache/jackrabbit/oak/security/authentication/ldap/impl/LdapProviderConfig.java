@@ -128,18 +128,6 @@ public class LdapProviderConfig {
     )
     public static final String PARAM_NO_CERT_CHECK = "host.noCertCheck";
 
-
-    /**
-     * @see #getSearchAttributes()
-     */
-    @Property(
-            label = "Search attributes",
-            description = "Array of attributes to retrieve when searching LDAP entries. Leave empty to retrieve all available attributes.",
-            value = {},
-            cardinality = Integer.MAX_VALUE
-    )
-    public static final String PARAM_SEARCH_ATTRIBUTES = "search.attributes";
-
     /**
      * @see #getBindDN()
      */
