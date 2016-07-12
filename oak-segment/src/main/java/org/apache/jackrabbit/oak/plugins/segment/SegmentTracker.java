@@ -302,7 +302,15 @@ public class SegmentTracker {
                 UUID uid = queue.remove();
                 SegmentId id = getSegmentId(uid.getMostSignificantBits(),
                         uid.getLeastSignificantBits());
-                Segment segment = id.getSegment();
+                Segment segment = null;
+                try {
+                    segment = id.getSegment();
+                } catch (SegmentNotFoundException ex) {
+                    // gc'ed
+                }
+                if (segment == null) {
+                    continue;
+                }
                 segment.collectBlobReferences(collector);
                 for (SegmentId refid : segment.getReferencedIds()) {
                     UUID rid = refid.asUUID();
