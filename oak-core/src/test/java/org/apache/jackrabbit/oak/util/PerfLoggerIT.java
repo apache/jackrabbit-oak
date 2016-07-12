@@ -29,6 +29,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+/**
+ * Timing tests for {@link PerfLogger} using {@code Thread.sleep} because
+ * virtual clock requires currentTimeMillis (OAK-3877)
+ */
 public class PerfLoggerIT {
     @Mock
     Logger logger;
@@ -67,7 +71,7 @@ public class PerfLoggerIT {
         perfLogger.end(start, 20, "message", "argument");
 
         verifyTraceInteractions(1, false, false);
-        verifyDebugInteractions(2, true);
+        verifyDebugInteractions(3, true);
         verifyNoMoreInteractions(logger);
     }
     //end DEBUG tests
@@ -83,6 +87,34 @@ public class PerfLoggerIT {
         perfLogger.end(start, 20, "message", "argument");
 
         verifyDebugInteractions(1, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtInfoInfoTimeoutNotHit() throws InterruptedException {
+        setupInfoLogger();
+
+        long start = perfLogger.startForInfoLog();
+        Thread.sleep(100);
+        perfLogger.end(start, 20, 500, "message", "argument");
+
+        verifyTraceInteractions(1, false, false);
+        verifyDebugInteractions(1, false);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtInfoInfoTimeoutHit() throws InterruptedException {
+        setupInfoLogger();
+
+        long start = perfLogger.startForInfoLog();
+        Thread.sleep(100);
+        perfLogger.end(start, 20, 50, "message", "argument");
+
+        verifyTraceInteractions(1, false, false);
+        verifyDebugInteractions(1, false);
+        verifyInfoInteractions(2, true);
         verifyNoMoreInteractions(logger);
     }
     //end INFO tests
@@ -111,6 +143,14 @@ public class PerfLoggerIT {
 
         if (shouldLog) {
             verify(logger, times(1)).debug(anyString(), any(Object[].class));
+        }
+    }
+
+    private void verifyInfoInteractions(int enabled, boolean shouldLog) {
+        verify(logger, times(enabled)).isInfoEnabled();
+
+        if (shouldLog) {
+            verify(logger, times(1)).info(anyString(), any(Object[].class));
         }
     }
 }

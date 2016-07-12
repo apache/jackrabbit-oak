@@ -59,32 +59,57 @@ public final class PerfLogger {
     }
 
     /**
-     * Returns quickly if log level is not DEBUG or TRACE - otherwise just
-     * returns the current time in millis.
-     * 
-     * @return the current time if level is DEBUG or TRACE, -1 otherwise
+     * Shortcut to {@code #start(null, false)}
      */
     public final long start() {
-        if (!delegate.isDebugEnabled()) {
-            // if log level is not at least DEBUG, then return fast, no-op
+        if (canExitEarly()) {
             return -1;
         }
-        return start(null);
+        return start(null, false);
+    }
+
+    /**
+     * Shortcut to {@code start(null, true)}
+     */
+    public final long startForInfoLog() {
+        if (canExitEarly(true)) {
+            return -1;
+        }
+        return start(null, true);
+    }
+
+    /**
+     * Shortcut to {@code start(traceMsgOrNull, false)}
+     */
+    public final long start(String traceMsgOrNull) {
+        if (canExitEarly()) {
+            return -1;
+        }
+        return start(traceMsgOrNull, false);
+    }
+
+    /**
+     * Shortcut to {@code start(traceMsgOrNull, true)}
+     */
+    public final long startForInfoLog(String traceMsgOrNull) {
+        if (canExitEarly(true)) {
+            return -1;
+        }
+        return start(traceMsgOrNull, true);
     }
 
     /**
      * Returns quickly if log level is not DEBUG or TRACE - if it is DEBUG, then
      * just returns the current time in millis, if it is TRACE, then log the
      * given message and also return the current time in millis.
-     * 
+     *
      * @param traceMsgOrNull
      *            the message to log if log level is TRACE - or null if no
      *            message should be logged (even on TRACE level)
      * @return the current time if level is DEBUG or TRACE, -1 otherwise
      */
-    public final long start(String traceMsgOrNull) {
-        if (!delegate.isDebugEnabled()) {
-            // if log level is not at least DEBUG, then return fast, no-op
+    private long start(String traceMsgOrNull, boolean logAtInfoToo) {
+        if (canExitEarly(logAtInfoToo)) {
             return -1;
         }
         if (traceMsgOrNull != null && delegate.isTraceEnabled()) {
@@ -94,70 +119,89 @@ public final class PerfLogger {
     }
 
     /**
-     * Returns quickly if log level is not DEBUG or TRACE - if it is DEBUG
-     * and the difference between now and the provided 'start' is bigger (slower)
-     * than 'logAtDebugIfSlowerThanMs', then a log.debug is emitted, if at
-     * TRACE then a log.trace is always emitted (independent of time measured).
-     * <p>
+     * See {@link #end(long, long, long, String, Object...)}
      * Note that this method exists for performance optimization only (compared
      * to the other end() method with a vararg.
-     * @param start the start time with which 'now' should be compared
-     * @param logAtDebugIfSlowerThanMs the number of milliseconds that must
-     * be surpassed to issue a log.debug (if log level is DEBUG)
-     * @param logMessagePrefix the log message 'prefix' - to which the given
-     * argument will be passed, plus the measured time difference in the format
-     * '[took x ms']
-     * @param arg1 the argument which is to be passed to the log statement
      */
     public final void end(long start, long logAtDebugIfSlowerThanMs,
             String logMessagePrefix, Object arg1) {
         if (start < 0) {
             return;
         }
-        end(start, logAtDebugIfSlowerThanMs, logMessagePrefix,
+        end(start, logAtDebugIfSlowerThanMs, Long.MAX_VALUE, logMessagePrefix,
                 new Object[] { arg1 });
     }
 
     /**
-     * Returns quickly if log level is not DEBUG or TRACE - if it is DEBUG
-     * and the difference between now and the provided 'start' is bigger (slower)
-     * than 'logAtDebugIfSlowerThanMs', then a log.debug is emitted, if at
-     * TRACE then a log.trace is always emitted (independent of time measured).
-     * <p>
+     * See {@link #end(long, long, long, String, Object...)}
      * Note that this method exists for performance optimization only (compared
      * to the other end() method with a vararg.
-     * @param start the start time with which 'now' should be compared
-     * @param logAtDebugIfSlowerThanMs the number of milliseconds that must
-     * be surpassed to issue a log.debug (if log level is DEBUG)
-     * @param logMessagePrefix the log message 'prefix' - to which the given
-     * arguments will be passed, plus the measured time difference in the format
-     * '[took x ms']
-     * @param arg1 the first argument which is to be passed to the log statement
-     * @param arg2 the second argument which is to be passed to the log statement
      */
     public final void end(long start, long logAtDebugIfSlowerThanMs,
             String logMessagePrefix, Object arg1, Object arg2) {
         if (start < 0) {
             return;
         }
-        end(start, logAtDebugIfSlowerThanMs, logMessagePrefix, new Object[] {
-                arg1, arg2 });
+        end(start, logAtDebugIfSlowerThanMs, Long.MAX_VALUE, logMessagePrefix,
+                new Object[] { arg1, arg2 });
     }
 
     /**
-     * Returns quickly if log level is not DEBUG or TRACE - if it is DEBUG
-     * and the difference between now and the provided 'start' is bigger (slower)
-     * than 'logAtDebugIfSlowerThanMs', then a log.debug is emitted, if at
-     * TRACE then a log.trace is always emitted (independent of time measured).
+     * Shortcut to {@link #end(long, long, long, String, Object...)} for
+     * {@code logMessagePrefix} = {@link Long#MAX_VALUE}
+     */
+    public void end(long start, long logAtDebugIfSlowerThanMs,
+                    String logMessagePrefix, Object... arguments) {
+        end(start, logAtDebugIfSlowerThanMs, Long.MAX_VALUE, logMessagePrefix, arguments);
+    }
+
+    /**
+     * See {@link #end(long, long, long, String, Object...)}
+     * Note that this method exists for performance optimization only (compared
+     * to the other end() method with a vararg.
+     */
+    public final void end(long start, long logAtDebugIfSlowerThanMs, long logAtInfoIfSlowerThanMs,
+                          String logMessagePrefix, Object arg1) {
+        if (start < 0) {
+            return;
+        }
+        end(start, logAtDebugIfSlowerThanMs, logAtInfoIfSlowerThanMs, logMessagePrefix,
+                new Object[] { arg1 });
+    }
+
+    /**
+     * See {@link #end(long, long, long, String, Object...)}
+     * Note that this method exists for performance optimization only (compared
+     * to the other end() method with a vararg.
+     */
+    public final void end(long start, long logAtDebugIfSlowerThanMs, long logAtInfoIfSlowerThanMs,
+                          String logMessagePrefix, Object arg1, Object arg2) {
+        if (start < 0) {
+            return;
+        }
+        end(start, logAtDebugIfSlowerThanMs, logAtInfoIfSlowerThanMs, logMessagePrefix,
+                new Object[] { arg1, arg2 });
+    }
+
+    /**
+     * Returns quickly if start is negative (which is the case according to log level
+     * at the time of {@link #start()} or {@link #startForInfoLog()}).
+     * If log level is set to TRACE, log.trace is always emitted.
+     * If log level is set to DEBUG, then log.debug is emitted if 'now' is bigger (slower)
+     * than {@code start} by at least {@code logAtDebugIfSlowerThanMs}.
+     * If log level is set to INFO, then long.info is emitted if 'now' is bigger (slower)
+     * than {@code start} by at least {@code logAtInfoIfSlowerThanMs}.
      * @param start the start time with which 'now' should be compared
      * @param logAtDebugIfSlowerThanMs the number of milliseconds that must
      * be surpassed to issue a log.debug (if log level is DEBUG)
+     * @param logAtInfoIfSlowerThanMs the number of milliseconds that must
+     * be surpassed to issue a log.info (if log level is DEBUG)
      * @param logMessagePrefix the log message 'prefix' - to which the given
      * arguments will be passed, plus the measured time difference in the format
      * '[took x ms']
      * @param arguments the arguments which is to be passed to the log statement
      */
-    public void end(long start, long logAtDebugIfSlowerThanMs,
+    public void end(long start, long logAtDebugIfSlowerThanMs, long logAtInfoIfSlowerThanMs,
             String logMessagePrefix, Object... arguments) {
         if (start < 0) {
             // if start is negative, we assume that start() returned -1 because the log level is above DEBUG
@@ -165,20 +209,55 @@ public final class PerfLogger {
         }
 
         final long diff = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        if (delegate.isTraceEnabled()) {
+        if (isTraceEnabled()) {
             // if log level is TRACE, then always log - and do that on TRACE
             // then:
             delegate.trace(logMessagePrefix + " [took " + diff + "ms]",
                     (Object[]) arguments);
-        } else if ((logAtDebugIfSlowerThanMs < 0)
-                || (diff > logAtDebugIfSlowerThanMs)) {
+        } else if ( ( logAtDebugIfSlowerThanMs < 0 || diff > logAtDebugIfSlowerThanMs )
+                && isDebugEnabled()) {
             // otherwise (log level is DEBUG) only log if
             // logDebugIfSlowerThanMs is set to -1 (or negative)
             // OR the measured diff is larger than logDebugIfSlowerThanMs -
             // and then do that on DEBUG:
             delegate.debug(logMessagePrefix + " [took " + diff + "ms]",
                     (Object[]) arguments);
+        } else if ( logAtInfoIfSlowerThanMs < 0 || diff > logAtInfoIfSlowerThanMs ) {
+            // otherwise (log level is INFO) only log if
+            // logAtInfoIfSlowerThanMs is set to -1 (or negative)
+            // OR the measured diff is larger than logAtInfoIfSlowerThanMs -
+            // and then do that on INFO:
+            delegate.info(logMessagePrefix + " [took " + diff + "ms]",
+                    (Object[]) arguments);
         }
+    }
+
+    /**
+     * @return same as {@code canExitEarly(false)}
+     */
+    private boolean canExitEarly() {
+        return canExitEarly(false);
+    }
+
+    /**
+     * Whether early exit is OK?
+     *
+     * @param logAtInfoToo We want to log at INFO level too
+     * @return {@code true} if log level not even at INFO
+     *                      or log level is not at least DEBUG as well as {@code logAtInfoToo} is false too
+     *                      ; false otherwise
+     */
+    private boolean canExitEarly(boolean logAtInfoToo) {
+        if (!logAtInfoToo) {
+            return !isDebugEnabled();
+        } else {
+            return !isInfoEnabled();
+        }
+    }
+
+    /** Whether or not the delegate has log level INFO configured **/
+    public final boolean isInfoEnabled() {
+        return delegate.isInfoEnabled();
     }
 
     /** Whether or not the delegate has log level DEBUG configured **/
