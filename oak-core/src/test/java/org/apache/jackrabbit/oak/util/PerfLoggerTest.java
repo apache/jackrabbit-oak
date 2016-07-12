@@ -16,50 +16,140 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class PerfLoggerTest {
+    @Mock
+    Logger logger;
 
-    @Test
-    public void testEndDebug() {
-        Logger logger = Mockito.mock(Logger.class);
+    private PerfLogger perfLogger;
+
+    @Before
+    public void setup() {
+        MockitoAnnotations.initMocks(this);
         when(logger.isTraceEnabled()).thenReturn(false);
-        when(logger.isDebugEnabled()).thenReturn(true);
+        when(logger.isDebugEnabled()).thenReturn(false);
+        when(logger.isInfoEnabled()).thenReturn(false);
 
-        PerfLogger perfLogger = new PerfLogger(logger);
+        perfLogger = new PerfLogger(logger);
+    }
+
+    //test for logger set at TRACE
+    @Test
+    public void logAtTraceSimpleStart() {
+        setupTraceLogger();
+
         long start = perfLogger.start();
         perfLogger.end(start, -1, "message", "argument");
 
-        verify(logger, atLeastOnce()).isTraceEnabled();
-        verify(logger, atLeastOnce()).isDebugEnabled();
-        verify(logger, times(1)).debug(anyString(), any(Object[].class));
+        verifyTraceInteractions(1, false, true);
+        verifyDebugInteractions(2, false);
         verifyNoMoreInteractions(logger);
     }
 
     @Test
-    public void testEndSkipsIsDebugEnabled() {
-        Logger logger = Mockito.mock(Logger.class);
-        when(logger.isTraceEnabled()).thenReturn(false);
-        when(logger.isDebugEnabled()).thenReturn(false);
+    public void logAtTraceMessageStart() {
+        setupTraceLogger();
 
-        PerfLogger perfLogger = new PerfLogger(logger);
+        long start = perfLogger.start("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, true, true);
+        verifyDebugInteractions(1, false);
+        verifyNoMoreInteractions(logger);
+    }
+    //end TRACE tests
+
+    //test for logger set at DEBUG
+    @Test
+    public void logAtDebugSimpleStart() {
+        setupDebugLogger();
+
         long start = perfLogger.start();
         perfLogger.end(start, -1, "message", "argument");
 
-        verify(logger, never()).isTraceEnabled();
-        verify(logger, times(1)).isDebugEnabled();
+        verifyTraceInteractions(1, false, false);
+        verifyDebugInteractions(2, true);
         verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtDebugMessageStart() {
+        setupDebugLogger();
+
+        long start = perfLogger.start("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, false, false);
+        verifyDebugInteractions(1, true);
+        verifyNoMoreInteractions(logger);
+    }
+    //end DEBUG tests
+
+    //test for logger set at INFO
+    @Test
+    public void logAtInfoSimpleStart() {
+        setupInfoLogger();
+
+        long start = perfLogger.start();
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyDebugInteractions(1, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtInfoMessageStart() {
+        setupInfoLogger();
+
+        long start = perfLogger.start("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyDebugInteractions(1, false);
+        verifyNoMoreInteractions(logger);
+    }
+    //end INFO tests
+
+    private void setupTraceLogger() {
+        when(logger.isTraceEnabled()).thenReturn(true);
+        setupDebugLogger();
+    }
+    private void setupDebugLogger() {
+        when(logger.isDebugEnabled()).thenReturn(true);
+        setupInfoLogger();
+    }
+    private void setupInfoLogger() {
+        when(logger.isInfoEnabled()).thenReturn(true);
+    }
+
+    private void verifyTraceInteractions(int enabled, boolean shouldLogStart, boolean shouldLogEnd) {
+        verify(logger, times(enabled)).isTraceEnabled();
+
+        if (shouldLogStart) {
+            verify(logger, times(1)).trace(anyString());
+        }
+        if (shouldLogEnd) {
+            verify(logger, times(1)).trace(anyString(), any(Object[].class));
+        }
+    }
+
+    private void verifyDebugInteractions(int enabled, boolean shouldLog) {
+        verify(logger, times(enabled)).isDebugEnabled();
+
+        if (shouldLog) {
+            verify(logger, times(1)).debug(anyString(), any(Object[].class));
+        }
     }
 
 }
