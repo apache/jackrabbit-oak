@@ -66,7 +66,31 @@ public class PerfLoggerTest {
         perfLogger.end(start, -1, "message", "argument");
 
         verifyTraceInteractions(2, true, true);
-        verifyDebugInteractions(1, false);
+        verifyDebugInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtTraceSimpleStartWithInfoLog() {
+        setupTraceLogger();
+
+        long start = perfLogger.startForInfoLog();
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(1, false, true);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtTraceMessageStartWithInfoLog() {
+        setupTraceLogger();
+
+        long start = perfLogger.startForInfoLog("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, true, true);
+        verifyInfoInteractions(2, false);
         verifyNoMoreInteractions(logger);
     }
     //end TRACE tests
@@ -80,7 +104,7 @@ public class PerfLoggerTest {
         perfLogger.end(start, -1, "message", "argument");
 
         verifyTraceInteractions(1, false, false);
-        verifyDebugInteractions(2, true);
+        verifyDebugInteractions(3, true);
         verifyNoMoreInteractions(logger);
     }
 
@@ -92,7 +116,33 @@ public class PerfLoggerTest {
         perfLogger.end(start, -1, "message", "argument");
 
         verifyTraceInteractions(2, false, false);
+        verifyDebugInteractions(3, true);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtDebugSimpleStartWithInfoLog() {
+        setupDebugLogger();
+
+        long start = perfLogger.startForInfoLog();
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(1, false, false);
         verifyDebugInteractions(1, true);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtDebugMessageStartWithInfoLog() {
+        setupDebugLogger();
+
+        long start = perfLogger.startForInfoLog("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, false, false);
+        verifyDebugInteractions(1, true);
+        verifyInfoInteractions(2, false);
         verifyNoMoreInteractions(logger);
     }
     //end DEBUG tests
@@ -117,6 +167,32 @@ public class PerfLoggerTest {
         perfLogger.end(start, -1, "message", "argument");
 
         verifyDebugInteractions(1, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtInfoSimpleStartWithInfoLog() {
+        setupInfoLogger();
+
+        long start = perfLogger.startForInfoLog();
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(1, false, false);
+        verifyDebugInteractions(1, false);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtInfoMessageStartWithInfoLog() {
+        setupInfoLogger();
+
+        long start = perfLogger.startForInfoLog("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, false, false);
+        verifyDebugInteractions(1, false);
+        verifyInfoInteractions(2, false);
         verifyNoMoreInteractions(logger);
     }
     //end INFO tests
@@ -149,6 +225,14 @@ public class PerfLoggerTest {
 
         if (shouldLog) {
             verify(logger, times(1)).debug(anyString(), any(Object[].class));
+        }
+    }
+
+    private void verifyInfoInteractions(int enabled, boolean shouldLog) {
+        verify(logger, times(enabled)).isInfoEnabled();
+
+        if (shouldLog) {
+            verify(logger, times(1)).info(anyString(), any(Object[].class));
         }
     }
 
