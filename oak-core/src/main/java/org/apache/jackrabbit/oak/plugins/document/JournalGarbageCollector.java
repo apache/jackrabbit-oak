@@ -38,12 +38,12 @@ import com.google.common.base.Stopwatch;
  */
 public class JournalGarbageCollector {
 
-    private final DocumentStore ds;
+    private final DocumentNodeStore ns;
 
     private static final Logger log = LoggerFactory.getLogger(JournalGarbageCollector.class);
 
     public JournalGarbageCollector(DocumentNodeStore nodeStore) {
-        this.ds = nodeStore.getDocumentStore();
+        this.ns = nodeStore;
     }
 
     /**
@@ -55,7 +55,16 @@ public class JournalGarbageCollector {
      * @return the number of entries that have been removed
      */
     public int gc(long maxRevisionAge, int batchSize, TimeUnit unit) {
+        DocumentStore ds = ns.getDocumentStore();
+        Revision keep = ns.getCheckpoints().getOldestRevisionToKeep();
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
+        long now = ns.getClock().getTime();
+        long gcOlderThan = now - maxRevisionAgeInMillis;
+        if (keep != null && keep.getTimestamp() < gcOlderThan) {
+            gcOlderThan = keep.getTimestamp();
+            log.debug("gc: Checkpoint {} is older than maxRevisionAge: {} min",
+                    keep, unit.toMinutes(maxRevisionAge));
+        }
         if (log.isDebugEnabled()) {
             log.debug("gc: Journal garbage collection starts with maxAge: {} min., batch size: {}.", 
                     TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis), batchSize);
@@ -100,7 +109,7 @@ public class JournalGarbageCollector {
             long startPointer = 0;
             while (true) {
                 String fromKey = JournalEntry.asId(new Revision(startPointer, 0, clusterNodeId, branch));
-                String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis() - maxRevisionAgeInMillis, Integer.MAX_VALUE, clusterNodeId, branch));
+                String toKey = JournalEntry.asId(new Revision(gcOlderThan, 0, clusterNodeId, branch));
                 List<JournalEntry> deletionBatch = ds.query(Collection.JOURNAL, fromKey, toKey, batchSize);
                 if (deletionBatch.size() > 0) {
                     ds.remove(Collection.JOURNAL, asKeys(deletionBatch));
@@ -125,7 +134,7 @@ public class JournalGarbageCollector {
 
         if (numDeleted > 0) {
             log.info("gc: Journal garbage collection took {}, deleted {} entries that were older than {} min.",
-                    sw, numDeleted, TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis));
+                    sw, numDeleted, TimeUnit.MILLISECONDS.toMinutes(now - gcOlderThan));
         }
         return numDeleted;
     }
