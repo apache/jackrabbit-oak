@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -36,6 +37,7 @@ import com.google.common.collect.ImmutableMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -135,6 +137,29 @@ public class CheckpointsTest {
         //This time no valid checkpoint
         clock.waitUntil(starttime + et2 + 1);
         assertNull(store.getCheckpoints().getOldestRevisionToKeep());
+    }
+
+    // OAK-4552
+    @Ignore("OAK-4552")
+    @Test
+    public void testGetOldestRevisionToKeep2() throws Exception {
+        long lifetime = TimeUnit.HOURS.toMillis(1);
+
+        String r1 = store.getHeadRevision().toString();
+        String c1 = store.checkpoint(lifetime);
+
+        // Do some commit to change headRevision
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x");
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        String r2 = store.getHeadRevision().toString();
+        String c2 = store.checkpoint(lifetime);
+        assertNotEquals(r1, r2);
+        assertNotEquals(c1, c2);
+
+        // r1 is older
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
     }
 
     @Test
