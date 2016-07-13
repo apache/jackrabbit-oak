@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.StandardSystemProperty.JAVA_SPECIFICATION_VERSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -527,6 +529,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testInterestingStrings() {
+        assumeFalse(dsf instanceof DocumentStoreFixture.MongoFixture
+                && JAVA_SPECIFICATION_VERSION.value().equals("1.8"));
         // test case  "gclef:\uD834\uDD1E" will fail on MySQL unless properly configured to use utf8mb4 charset        // Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
 
         String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
