@@ -32,6 +32,7 @@ import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
@@ -72,14 +73,13 @@ public class MountInfoProviderService {
         String mountName = PropertiesUtil.toString(config.get(PROP_MOUNT_NAME), PROP_MOUNT_NAME_DEFAULT);
         boolean readOnly = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_READONLY), PROP_MOUNT_READONLY_DEFAULT);
 
-        MountInfoProvider mip = MountInfoProvider.DEFAULT;
-        if (paths != null){
-            Mount mount = new Mount(mountName.trim(), readOnly);
+        MountInfoProvider mip = Mounts.defaultMountInfoProvider();
+        if (paths != null) {
             List<String> trimmedPaths = new ArrayList<String>(paths.length);
-            for (String path : paths){
+            for (String path : paths) {
                 trimmedPaths.add(path.trim());
             }
-            MountInfo mi = new MountInfo(mount, trimmedPaths);
+            Mount mi = new MountInfo(mountName.trim(), readOnly, false, trimmedPaths);
             mip = new SimpleMountInfoProvider(Collections.singletonList(mi));
             log.info("Enabling mount for {}", mi);
         } else {

@@ -29,10 +29,11 @@ import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
-final class MountInfo {
-    
+final class MountInfo implements Mount {
+
     private static final Function<String, String> SANITIZE_PATH =  new Function<String,String>() {
         @Override
         public String apply(String input) {
@@ -42,23 +43,25 @@ final class MountInfo {
             return input;
         }
     };
-    
-    private final Mount mount;
+
+    private final String name;
+    private final boolean readOnly;
+    private final boolean defaultMount;
+    private final String pathFragmentName;
     private final List<String> includedPaths;
 
-    public MountInfo(Mount mount, List<String> includedPaths){
-        this.mount = mount;
+    public MountInfo(String name, boolean readOnly, boolean defaultMount,
+            List<String> includedPaths) {
+        this.name = checkNotNull(name, "Mount name must not be null");
+        this.readOnly = readOnly;
+        this.defaultMount = defaultMount;
+        this.pathFragmentName = "oak:" + name;
         this.includedPaths = cleanCopy(includedPaths);
     }
 
-    public Mount getMount() {
-        return mount;
-    }
-    
+    @Override
     public boolean isUnder(String path) {
-
         path = SANITIZE_PATH.apply(path);
-
         for (String includedPath : includedPaths) {
             if (isAncestor(path, includedPath)) {
                 return true;
@@ -68,9 +71,9 @@ final class MountInfo {
         return false;
     }
 
-    public boolean isMounted(String path){
-        
-        if (path.contains(mount.getPathFragmentName())){
+    @Override
+    public boolean isMounted(String path) {
+        if (path.contains(pathFragmentName)){
             return true;
         }
 
@@ -87,18 +90,57 @@ final class MountInfo {
     }
 
     @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
+    }
+
+    @Override
+    public boolean isDefault() {
+        return defaultMount;
+    }
+
+    @Override
+    public String getPathFragmentName() {
+        return pathFragmentName;
+    }
+
+    private static ImmutableList<String> cleanCopy(List<String> includedPaths) {
+        // ensure that paths don't have trailing slashes - this triggers an assertion in PahtUtils isAncestor
+        return ImmutableList.copyOf(Iterables.transform(includedPaths, SANITIZE_PATH));
+    }
+
+    @Override
     public String toString() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        pw.print(mount);
+        String readAttr = readOnly ? "r" : "rw";
+        String displayName = defaultMount ? "default" : name;
+        pw.print(displayName + "(" + readAttr + ")");
         for (String path : includedPaths) {
             pw.printf("\t%s%n", path);
         }
         return sw.toString();
     }
-    
-    private ImmutableList<String> cleanCopy(List<String> includedPaths) {
-        // ensure that paths don't have trailing slashes - this triggers an assertion in PahtUtils isAncestor
-        return ImmutableList.copyOf(Iterables.transform(includedPaths, SANITIZE_PATH));
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MountInfo other = (MountInfo) obj;
+        return name.equals(other.name);
     }
 }

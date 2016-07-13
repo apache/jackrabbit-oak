@@ -20,36 +20,11 @@
 package org.apache.jackrabbit.oak.spi.mount;
 
 import java.util.Collection;
-import java.util.Collections;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 public interface MountInfoProvider {
-    MountInfoProvider DEFAULT = new MountInfoProvider() {
-        @Override
-        public Mount getMountByPath(String path) {
-            return Mount.DEFAULT;
-        }
-
-        @Override
-        public Collection<Mount> getNonDefaultMounts() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public Mount getMountByName(String name) {
-            return null;
-        }
-
-        @Override
-        public boolean hasNonDefaultMounts() {
-            return false;
-        }
-        
-        public Collection<Mount> getMountsPlacedUnder(String path) {
-            return Collections.emptySet();
-        };
-    };
 
     /**
      * Maps a given path to logical store name.
@@ -58,11 +33,13 @@ public interface MountInfoProvider {
      * @return mountInfo for the given path. If no explicit mount configured then
      * default mount would be returned
      */
+    @Nonnull
     Mount getMountByPath(String path);
 
     /**
      * Set of non default mount points configured for the setup
      */
+    @Nonnull
     Collection<Mount> getNonDefaultMounts();
 
     /**
@@ -79,12 +56,19 @@ public interface MountInfoProvider {
      * Return true if there are explicit mounts configured
      */
     boolean hasNonDefaultMounts();
-    
+
     /**
      * Returns all mounts placed under the specified path
      * 
      * @param path the path under which mounts are to be found
      * @return a collection of mounts, possibly empty
      */
-    Collection<Mount> getMountsPlacedUnder(String path);    
+    @Nonnull
+    Collection<Mount> getMountsPlacedUnder(String path);
+
+    /**
+     * Returns the default mount
+     */
+    @Nonnull
+    Mount getDefaultMount();
 }

@@ -19,17 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
-import org.apache.jackrabbit.oak.spi.mount.Mount;
-import org.junit.Test;
-
 import static com.google.common.collect.ImmutableList.of;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class MountInfoTest {
 
     @Test
     public void mountNameInPath() throws Exception{
-        MountInfo md = new MountInfo(new Mount("foo"), of("/a", "/b"));
+        MountInfo md = new MountInfo("foo", false, false, of("/a", "/b"));
         assertTrue(md.isMounted("/a"));
         assertTrue(md.isMounted("/b"));
         assertTrue(md.isMounted("/b/c/d"));

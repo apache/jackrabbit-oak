@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.commit.*;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -50,7 +51,7 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
     private boolean failOnDetection;
 
     @Reference
-    private MountInfoProvider mountInfoProvider = MountInfoProvider.DEFAULT;
+    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     private ServiceRegistration serviceRegistration;
 
