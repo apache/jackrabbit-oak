@@ -265,7 +265,7 @@ public class DocumentNodeStoreTest {
             public void run() {
                 try {
                     Revision r = store.newRevision();
-                    Commit c = new Commit(store, r, head, null);
+                    Commit c = new Commit(store, r, head);
                     c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
                     c.addNode(new DocumentNodeState(store, "/deletedNode", new RevisionVector(r)));
                     c.updateProperty("/updateNode", "foo", "baz");
@@ -283,7 +283,7 @@ public class DocumentNodeStoreTest {
         created.acquireUninterruptibly();
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
-        Commit c = new Commit(store, r, head, null);
+        Commit c = new Commit(store, r, head);
         c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
         c.addNode(new DocumentNodeState(store, "/newNonConflictingNode", new RevisionVector(r)));
         c.apply();

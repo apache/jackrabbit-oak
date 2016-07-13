@@ -501,7 +501,7 @@ public final class DocumentNodeStore
         if (rootDoc == null) {
             // root node is missing: repository is not initialized
             Revision commitRev = newRevision();
-            Commit commit = new Commit(this, commitRev, null, null);
+            Commit commit = new Commit(this, commitRev, null);
             RevisionVector head = new RevisionVector(commitRev);
             DocumentNodeState n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
@@ -770,6 +770,11 @@ public final class DocumentNodeStore
                 commitQueue.canceled(c.getRevision());
             } finally {
                 backgroundOperationLock.readLock().unlock();
+            }
+        } else {
+            Branch b = branches.getBranch(c.getBaseRevision());
+            if (b != null) {
+                b.removeCommit(c.getRevision().asBranchRevision());
             }
         }
     }
@@ -2219,7 +2224,7 @@ public final class DocumentNodeStore
         Commit c;
         try {
             checkOpen();
-            c = new Commit(this, commitQueue.createRevision(), base, null);
+            c = new Commit(this, commitQueue.createRevision(), base);
             success = true;
         } finally {
             if (!success) {
@@ -2236,7 +2241,23 @@ public final class DocumentNodeStore
                 "base must be a branch revision: " + base);
 
         checkOpen();
-        return new Commit(this, newRevision(), base, branch);
+        Commit c = new Commit(this, newRevision(), base);
+        if (!isDisableBranches()) {
+            Revision rev = c.getRevision().asBranchRevision();
+            // remember branch commit
+            Branch b = getBranches().getBranch(base);
+            if (b == null) {
+                // baseRev is marker for new branch
+                getBranches().create(base.asTrunkRevision(), rev, branch);
+                LOG.debug("Branch created with base revision {}", base);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Branch created", new Exception());
+                }
+            } else {
+                b.addCommit(rev);
+            }
+        }
+        return c;
     }
 
     /**
