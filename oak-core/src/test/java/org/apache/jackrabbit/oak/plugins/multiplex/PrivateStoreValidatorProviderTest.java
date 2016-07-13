@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -186,7 +187,7 @@ public class PrivateStoreValidatorProviderTest {
     }
 
     private MountInfoProvider createMountInfoProvider(String... readOnlyPaths) {
-        MountInfoProvider mountInfoProvider = MountInfoProvider.DEFAULT;
+        MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
         if (readOnlyPaths.length > 0) {
             mountInfoProvider = SimpleMountInfoProvider.newBuilder().readOnlyMount("readOnly", readOnlyPaths).build();
         }

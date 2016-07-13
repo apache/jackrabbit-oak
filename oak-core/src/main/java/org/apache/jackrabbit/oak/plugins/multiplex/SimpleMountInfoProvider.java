@@ -23,38 +23,39 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 
 import static java.util.Arrays.asList;
 
 /**
- * A simple and inefficient implementation to manage mountpoints
+ * A simple and inefficient implementation to manage mount points
  */
 public class SimpleMountInfoProvider implements MountInfoProvider {
-    private final List<MountInfo> mountInfos;
+
     private final Map<String, Mount> mounts;
+    private final Mount defMount;
     private final boolean hasMounts;
 
-    public SimpleMountInfoProvider(List<MountInfo> mountInfos){
-        this.mountInfos = ImmutableList.copyOf(mountInfos);
+    public SimpleMountInfoProvider(List<Mount> mountInfos) {
         this.mounts = getMounts(mountInfos);
-        this.hasMounts = !mountInfos.isEmpty();
+        this.hasMounts = !this.mounts.isEmpty();
+        this.defMount = defaultMount(this.mounts);
         //TODO add validation of mountpoints
     }
 
     @Override
     public Mount getMountByPath(String path) {
-        for (MountInfo md : mountInfos){
-            if (md.isMounted(path)){
-                return md.getMount();
+        for (Mount m : mounts.values()){
+            if (m.isMounted(path)){
+                return m;
             }
         }
-        return Mount.DEFAULT;
+        return defMount;
     }
 
     @Override
@@ -72,16 +73,20 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
         return hasMounts;
     }
 
-
     @Override
     public Collection<Mount> getMountsPlacedUnder(String path) {
         Collection<Mount> mounts = Lists.newArrayList();
-        for ( MountInfo mount : mountInfos ) {
+        for ( Mount mount : this.mounts.values()) {
             if ( mount.isUnder(path) ) {
-                mounts.add(mount.getMount());
+                mounts.add(mount);
             }
         }
         return mounts;
+    }
+
+    @Override
+    public Mount getDefaultMount() {
+        return defMount;
     }
 
     //~----------------------------------------< builder >
@@ -91,15 +96,15 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     public static final class Builder {
-        private final List<MountInfo> mounts = Lists.newArrayListWithCapacity(1);
+        private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
 
         public Builder mount(String name, String... paths) {
-            mounts.add(new MountInfo(new Mount(name), asList(paths)));
+            mounts.add(new MountInfo(name, false, false, asList(paths)));
             return this;
         }
 
         public Builder readOnlyMount(String name, String... paths) {
-            mounts.add(new MountInfo(new Mount(name, true), asList(paths)));
+            mounts.add(new MountInfo(name, true, false, asList(paths)));
             return this;
         }
 
@@ -110,12 +115,16 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
 
     //~----------------------------------------< private >
 
-    private static Map<String, Mount> getMounts(List<MountInfo> mountInfos) {
+    private static Map<String, Mount> getMounts(List<Mount> mountInfos) {
         Map<String, Mount> mounts = Maps.newHashMap();
-        for (MountInfo mi : mountInfos){
-            mounts.put(mi.getMount().getName(), mi.getMount());
+        for (Mount mi : mountInfos) {
+            mounts.put(mi.getName(), mi);
         }
         return ImmutableMap.copyOf(mounts);
+    }
+
+    private static Mount defaultMount(Map<String, Mount> mounts) {
+        return Mounts.defaultMount(mounts.values());
     }
 
 }

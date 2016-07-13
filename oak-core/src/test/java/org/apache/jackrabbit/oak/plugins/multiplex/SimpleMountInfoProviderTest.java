@@ -35,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 public class SimpleMountInfoProviderTest {
     @Test
     public void defaultMount() throws Exception {
-        MountInfoProvider mip = new SimpleMountInfoProvider(Collections.<MountInfo>emptyList());
+        MountInfoProvider mip = new SimpleMountInfoProvider(Collections.<Mount>emptyList());
 
         assertNotNull(mip.getMountByPath("/a"));
         assertTrue(mip.getMountByPath("/a").isDefault());
@@ -65,7 +65,7 @@ public class SimpleMountInfoProviderTest {
 
         Collection<Mount> mounts = mip.getNonDefaultMounts();
         assertEquals(2, mounts.size());
-        assertFalse(mounts.contains(Mount.DEFAULT));
+        assertFalse(mounts.contains(mip.getDefaultMount()));
 
         assertNotNull(mip.getMountByName("foo"));
         assertNotNull(mip.getMountByName("bar"));
