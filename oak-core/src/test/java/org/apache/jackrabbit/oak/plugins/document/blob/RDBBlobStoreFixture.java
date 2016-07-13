@@ -20,6 +20,7 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +74,7 @@ public abstract class RDBBlobStoreFixture {
         public MyFixture(String name, String url, String username, String passwd) {
             this.name = name;
             try {
-                dataSource = RDBDataSourceFactory.forJdbcUrl(url, username, passwd);
+                dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
                 LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
             }
