@@ -44,12 +44,16 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class RDBPreparedStatementWrapper implements PreparedStatement {
 
     private final RDBDataSourceWrapper datasource;
     private final PreparedStatement statement;
     private ResultSet resultSet = null;
     private List<Object> parameters = new ArrayList<Object>();
+    private static final Logger LOG = LoggerFactory.getLogger(RDBPreparedStatementWrapper.class);
 
     public RDBPreparedStatementWrapper(RDBDataSourceWrapper datasource, PreparedStatement statement) {
         this.datasource = datasource;
@@ -88,10 +92,16 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
     }
 
     public void close() throws SQLException {
-        if (resultSet != null) {
-            resultSet.close();
-        }
         statement.close();
+        if (resultSet instanceof RDBResultSetWrapper) {
+            if (resultSet.isClosed()) {
+                ((RDBResultSetWrapper) resultSet).dumpResult(null);
+            } else {
+                ((RDBResultSetWrapper) resultSet).dumpResult("(not closed!)");
+                LOG.error("Wrapped statement " + statement + " failed to close associated ResultSet; call stack:",
+                        new Exception("call stack"));
+            }
+        }
     }
 
     // needed in Java 7...

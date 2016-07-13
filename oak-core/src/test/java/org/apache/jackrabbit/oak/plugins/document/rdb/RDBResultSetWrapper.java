@@ -46,6 +46,7 @@ public class RDBResultSetWrapper implements ResultSet {
     private final ResultSet resultSet;
     private final long rsstart;
     int results = 0;
+    boolean wasDumped = false;
 
     public RDBResultSetWrapper(RDBDataSourceWrapper datasource, ResultSet resultSet) {
         this.datasource = datasource;
@@ -74,22 +75,30 @@ public class RDBResultSetWrapper implements ResultSet {
     }
 
     public void close() throws SQLException {
-        long start = System.nanoTime();
-        SQLException x = null;
+        String info = null;
         try {
             resultSet.close();
         } catch (SQLException ex) {
-            x = ex;
+            info = ex.getMessage();
             throw ex;
         } finally {
+            dumpResult(info);
+        }
+    }
+
+    protected void dumpResult(String info) throws SQLException {
+        if (!wasDumped) {
+            long start = System.nanoTime();
             List<RDBLogEntry> l = datasource.getLog();
             if (l != null) {
                 String message = results + " results; resultSet.close() after " + ((start - rsstart) / 1000) + "us";
-                if (x != null) {
-                    message += " " + x.getMessage();
+                if (info != null) {
+                    message += " " + info;
                 }
                 l.add(new RDBLogEntry(start, message));
             }
+
+            wasDumped = true;
         }
     }
 
