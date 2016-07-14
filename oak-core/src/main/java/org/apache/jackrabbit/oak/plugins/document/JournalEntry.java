@@ -168,7 +168,9 @@ public final class JournalEntry extends Document {
     /**
      * Reads all external changes between the two given revisions (with the same
      * clusterId) from the journal and appends the paths therein to the provided
-     * sorter.
+     * sorter. If there is no exact match of a journal entry for the given
+     * {@code to} revision, this method will fill external changes from the
+     * next higher journal entry that contains the revision.
      *
      * @param sorter the StringSort to which all externally changed paths
      *               between the provided revisions will be added
@@ -184,6 +186,10 @@ public final class JournalEntry extends Document {
             throws IOException {
         checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
 
+        if (from.compareRevisionTime(to) >= 0) {
+            return;
+        }
+
         // to is inclusive, but DocumentStore.query() toKey is exclusive
         final String inclusiveToId = asId(to);
         to = new Revision(to.getTimestamp(), to.getCounter() + 1,
@@ -196,6 +202,8 @@ public final class JournalEntry extends Document {
         // limit, then loop and do subsequent queries
         final String toId = asId(to);
         String fromId = asId(from);
+        int numEntries = 0;
+        JournalEntry lastEntry = null;
         while (true) {
             if (fromId.equals(inclusiveToId)) {
                 // avoid query if from and to are off by just 1 counter (which
@@ -205,6 +213,10 @@ public final class JournalEntry extends Document {
                 break;
             }
             List<JournalEntry> partialResult = store.query(JOURNAL, fromId, toId, READ_CHUNK_SIZE);
+            numEntries += partialResult.size();
+            if (!partialResult.isEmpty()) {
+                lastEntry = partialResult.get(partialResult.size() - 1);
+            }
 
             for (JournalEntry d : partialResult) {
                 d.addTo(sorter);
@@ -216,6 +228,16 @@ public final class JournalEntry extends Document {
             // that works fine as the query is non-inclusive (ie does not
             // include the from which we'd otherwise double-process)
             fromId = partialResult.get(partialResult.size() - 1).getId();
+        }
+        // check if last processed journal entry covers toId, otherwise
+        // read next document. also read next journal entry when none
+        // were read so far
+        if (numEntries == 0
+                || (lastEntry != null && !lastEntry.getId().equals(inclusiveToId))) {
+            String maxId = asId(new Revision(Long.MAX_VALUE, 0, to.getClusterId()));
+            for (JournalEntry d : store.query(JOURNAL, inclusiveToId, maxId, 1)) {
+                d.addTo(sorter);
+            }
         }
     }
 
