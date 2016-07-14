@@ -1110,7 +1110,7 @@ public class SegmentWriter {
 
             RecordId stableId = null;
             if (state instanceof SegmentNodeState) {
-                byte[] id = ((Record) state).getRecordId().getBytes();
+                byte[] id = ((SegmentNodeState) state).getStableIdBytes();
                 stableId = writeBlock(id, 0, id.length);
             }
             return newNodeStateWriter(stableId, ids).write(writer);
