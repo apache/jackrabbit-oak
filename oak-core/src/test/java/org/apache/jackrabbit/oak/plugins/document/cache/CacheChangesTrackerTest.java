@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.cache;
 
 import com.google.common.base.Predicate;
 import com.google.common.cache.Cache;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -120,6 +121,30 @@ public class CacheChangesTrackerTest {
             }
         });
         assertTrue(tracker.mightBeenAffected("2:/parent/xyz"));
+    }
+
+    @Test
+    public void testRegisterKeysTracker() {
+        NodeDocumentCache cache = createCache();
+        CacheChangesTracker tracker = cache.registerTracker(ImmutableSet.of("1:/xyz", "1:/abc", "1:/aaa"));
+
+        assertFalse(tracker.mightBeenAffected("1:/xyz"));
+        assertFalse(tracker.mightBeenAffected("1:/abc"));
+        assertFalse(tracker.mightBeenAffected("1:/aaa"));
+
+        cache.put(createDoc("1:/xyz"));
+        assertTrue(tracker.mightBeenAffected("1:/xyz"));
+
+        cache.invalidate("1:/abc");
+        assertTrue(tracker.mightBeenAffected("1:/abc"));
+
+        cache.invalidate("1:/other");
+        assertFalse(tracker.mightBeenAffected("1:/other"));
+
+        tracker.close();
+
+        cache.invalidate("1:/aaa");
+        assertFalse(tracker.mightBeenAffected("1:/aaa"));
     }
 
     private NodeDocumentCache createCache() {
