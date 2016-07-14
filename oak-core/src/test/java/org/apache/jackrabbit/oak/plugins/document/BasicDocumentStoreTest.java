@@ -291,6 +291,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         while (max - min >= 2) {
             test = (max + min) / 2;
             String id = generateId(test, ascii);
+            // make sure it's gone before trying to create it
+            try {
+                super.ds.remove(Collection.NODES, id);
+            } catch (DocumentStoreException ignored) {
+            }
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
