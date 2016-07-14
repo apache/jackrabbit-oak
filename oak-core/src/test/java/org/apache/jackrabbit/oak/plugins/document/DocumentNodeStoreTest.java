@@ -2167,6 +2167,10 @@ public class DocumentNodeStoreTest {
     // OAK-1970
     @Test
     public void diffMany() throws Exception {
+        // make sure diffMany is used and not the new
+        // journal diff introduced with OAK-4528
+        System.setProperty("oak.disableJournalDiff", "true");
+
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
@@ -2229,6 +2233,8 @@ public class DocumentNodeStoreTest {
         // startValue must be based on the revision of the before state
         // and not when '/test' was last modified
         assertEquals(beforeModified, (long) startValues.get(0));
+
+        System.clearProperty("oak.disableJournalDiff");
     }
 
     // OAK-2620

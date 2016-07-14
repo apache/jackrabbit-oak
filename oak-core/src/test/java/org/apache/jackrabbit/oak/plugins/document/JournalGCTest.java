@@ -28,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -73,5 +74,42 @@ public class JournalGCTest {
         // now journal GC can remove the entry
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
         assertNull(entry);
+    }
+
+    @Test
+    public void getTailRevision() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .clock(c).setAsyncDelay(0).getNodeStore();
+
+        JournalGarbageCollector jgc = ns.getJournalGarbageCollector();
+        assertEquals(new Revision(0, 0, ns.getClusterId()), jgc.getTailRevision());
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns.runBackgroundOperations();
+
+        assertEquals(0, jgc.gc(1, 10, TimeUnit.HOURS));
+
+        // current time, but without the increment done by getTime()
+        long now = c.getTime() - 1;
+        Revision tail = new Revision(now - TimeUnit.HOURS.toMillis(1), 0, ns.getClusterId());
+
+        c.waitUntil(c.getTime() + TimeUnit.MINUTES.toMillis(1));
+        assertEquals(tail, jgc.getTailRevision());
+
+        c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(1));
+
+        // must collect all journal entries. the first created when
+        // DocumentNodeStore was initialized and the second created
+        // by the background update
+        assertEquals(2, jgc.gc(1, 10, TimeUnit.HOURS));
+
+        // current time, but without the increment done by getTime()
+        now = c.getTime() - 1;
+        tail = new Revision(now - TimeUnit.HOURS.toMillis(1), 0, ns.getClusterId());
+        assertEquals(tail, jgc.getTailRevision());
     }
 }

@@ -160,6 +160,12 @@ public final class DocumentNodeStore
             Long.getLong("oak.recoveryWaitTimeoutMS", 60000);
 
     /**
+     * Feature flag to disable the journal diff mechanism. See OAK-4528.
+     */
+    private boolean disableJournalDiff =
+            Boolean.getBoolean("oak.disableJournalDiff");
+
+    /**
      * The document store (might be used by multiple node stores).
      */
     protected final DocumentStore store;
@@ -823,6 +829,16 @@ public final class DocumentNodeStore
     @Nonnull
     public Iterable<CacheStats> getDiffCacheStats() {
         return diffCache.getStats();
+    }
+
+    /**
+     * Returns the journal entry that will be stored in the journal with the
+     * next background updated.
+     *
+     * @return the current journal entry.
+     */
+    JournalEntry getCurrentJournalEntry() {
+        return changes;
     }
 
     void invalidateDocChildrenCache() {
@@ -1584,22 +1600,22 @@ public final class DocumentNodeStore
      */
     @Override
     public boolean compare(@Nonnull final AbstractDocumentNodeState node,
-                    @Nonnull final AbstractDocumentNodeState base,
-                    @Nonnull NodeStateDiff diff) {
+                           @Nonnull final AbstractDocumentNodeState base,
+                           @Nonnull NodeStateDiff diff) {
         if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
             return false;
         }
         if (node.hasNoChildren() && base.hasNoChildren()) {
             return true;
         }
-        return dispatch(diffCache.getChanges(base.getRootRevision(),
+        return new JsopNodeStateDiffer(diffCache.getChanges(base.getRootRevision(),
                 node.getRootRevision(), node.getPath(),
                 new DiffCache.Loader() {
                     @Override
                     public String call() {
                         return diffImpl(base, node);
                     }
-                }), node, base, diff);
+                })).withoutPropertyChanges().compare(node, base, diff);
     }
 
     /**
@@ -2273,47 +2289,6 @@ public final class DocumentNodeStore
         }
     }
 
-    private boolean dispatch(@Nonnull final String jsonDiff,
-                             @Nonnull final AbstractDocumentNodeState node,
-                             @Nonnull final AbstractDocumentNodeState base,
-                             @Nonnull final NodeStateDiff diff) {
-        return DiffCache.parseJsopDiff(jsonDiff, new DiffCache.Diff() {
-            @Override
-            public boolean childNodeAdded(String name) {
-                return diff.childNodeAdded(name,
-                        node.getChildNode(name));
-            }
-
-            @Override
-            public boolean childNodeChanged(String name) {
-                boolean continueComparison = true;
-                NodeState baseChild = base.getChildNode(name);
-                NodeState nodeChild = node.getChildNode(name);
-                if (baseChild.exists()) {
-                    if (nodeChild.exists()) {
-                        continueComparison = diff.childNodeChanged(name,
-                                baseChild, nodeChild);
-                    } else {
-                        continueComparison = diff.childNodeDeleted(name,
-                                baseChild);
-                    }
-                } else {
-                    if (nodeChild.exists()) {
-                        continueComparison = diff.childNodeAdded(name,
-                                nodeChild);
-                    }
-                }
-                return continueComparison;
-            }
-
-            @Override
-            public boolean childNodeDeleted(String name) {
-                return diff.childNodeDeleted(name,
-                        base.getChildNode(name));
-            }
-        });
-    }
-
     /**
      * Search for presence of child node as denoted by path in the children cache of parent
      *
@@ -2356,44 +2331,54 @@ public final class DocumentNodeStore
 
     private String diffImpl(AbstractDocumentNodeState from, AbstractDocumentNodeState to)
             throws DocumentStoreException {
-        JsopWriter w = new JsopStream();
-        // TODO this does not work well for large child node lists
-        // use a document store index instead
         int max = MANY_CHILDREN_THRESHOLD;
 
         final boolean debug = LOG.isDebugEnabled();
         final long start = debug ? now() : 0;
+        long getChildrenDoneIn = start;
 
-        DocumentNodeState.Children fromChildren, toChildren;
-        fromChildren = getChildren(from, null, max);
-        toChildren = getChildren(to, null, max);
-
-        final long getChildrenDoneIn = debug ? now() : 0;
-
+        String diff;
         String diffAlgo;
         RevisionVector fromRev = from.getLastRevision();
         RevisionVector toRev = to.getLastRevision();
-        if (!fromChildren.hasMore && !toChildren.hasMore) {
-            diffAlgo = "diffFewChildren";
-            diffFewChildren(w, from.getPath(), fromChildren,
-                    fromRev, toChildren, toRev);
+        long minTimestamp = Utils.getMinTimestampForDiff(
+                fromRev, toRev, getMinExternalRevisions());
+
+        // use journal if possible
+        Revision tailRev = journalGarbageCollector.getTailRevision();
+        if (!disableJournalDiff
+                && tailRev.getTimestamp() < minTimestamp) {
+            diffAlgo = "diffJournalChildren";
+            diff = new JournalDiffLoader(from, to, this).call();
         } else {
-            if (FAST_DIFF) {
-                diffAlgo = "diffManyChildren";
-                fromRev = from.getRootRevision();
-                toRev = to.getRootRevision();
-                diffManyChildren(w, from.getPath(), fromRev, toRev);
-            } else {
-                diffAlgo = "diffAllChildren";
-                max = Integer.MAX_VALUE;
-                fromChildren = getChildren(from, null, max);
-                toChildren = getChildren(to, null, max);
+            DocumentNodeState.Children fromChildren, toChildren;
+            fromChildren = getChildren(from, null, max);
+            toChildren = getChildren(to, null, max);
+            getChildrenDoneIn = debug ? now() : 0;
+
+            JsopWriter w = new JsopStream();
+            if (!fromChildren.hasMore && !toChildren.hasMore) {
+                diffAlgo = "diffFewChildren";
                 diffFewChildren(w, from.getPath(), fromChildren,
                         fromRev, toChildren, toRev);
+            } else {
+                if (FAST_DIFF) {
+                    diffAlgo = "diffManyChildren";
+                    fromRev = from.getRootRevision();
+                    toRev = to.getRootRevision();
+                    diffManyChildren(w, from.getPath(), fromRev, toRev);
+                } else {
+                    diffAlgo = "diffAllChildren";
+                    max = Integer.MAX_VALUE;
+                    fromChildren = getChildren(from, null, max);
+                    toChildren = getChildren(to, null, max);
+                    diffFewChildren(w, from.getPath(), fromChildren,
+                            fromRev, toChildren, toRev);
+                }
             }
+            diff = w.toString();
         }
 
-        String diff = w.toString();
         if (debug) {
             long end = now();
             LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms), diff '{}', external '{}",
