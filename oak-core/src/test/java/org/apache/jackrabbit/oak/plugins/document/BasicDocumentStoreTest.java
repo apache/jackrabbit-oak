@@ -529,9 +529,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testInterestingStrings() {
+        // see OAK-3683
         assumeFalse(dsf instanceof DocumentStoreFixture.MongoFixture
                 && JAVA_SPECIFICATION_VERSION.value().equals("1.8"));
-        // test case  "gclef:\uD834\uDD1E" will fail on MySQL unless properly configured to use utf8mb4 charset        // Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
 
         String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
                 "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800" };
