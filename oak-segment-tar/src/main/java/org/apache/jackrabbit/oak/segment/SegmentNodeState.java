@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.segment.Segment.unpack;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -117,31 +118,33 @@ public class SegmentNodeState extends Record implements NodeState {
      * @return  stable id
      */
     String getStableId() {
+        ByteBuffer buffer = ByteBuffer.wrap(getStableIdBytes());
+        long msb = buffer.getLong();
+        long lsb = buffer.getLong();
+        int offset = unpack(buffer.getShort());
+        return new UUID(msb, lsb) + ":" + offset;
+    }
+
+    /**
+     * Returns the stable ID of this node, non parsed. In contrast to the node's
+     * record id (which is technically the node's address) the stable id doesn't
+     * change after an online gc cycle. It might though change after an offline
+     * gc cycle.
+     *
+     * @return the stable ID of this node.
+     */
+    byte[] getStableIdBytes() {
         // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getOffset());
+
         if (id.equals(getRecordId())) {
             // If that id is equal to the record id of this node then the stable
             // id is the string representation of the record id of this node.
             // See RecordWriters.NodeStateWriter.writeRecordContent()
-            return id.toString10();
+            return id.getBytes();
         } else {
             // Otherwise that id points to the serialised (msb, lsb, offset)
             // stable id.
-            Segment segment = id.getSegment();
-            int pos = id.getOffset();
-            long msb = segment.readLong(pos);
-            long lsb = segment.readLong(pos + 8);
-            int offset = unpack(segment.readShort(pos + 16));
-            return new UUID(msb, lsb) + ":" + offset;
-        }
-    }
-
-    byte[] getStableIdBytes() {
-        RecordId id = getSegment().readRecordId(getOffset());
-
-        if (id.equals(getRecordId())) {
-            return id.getBytes();
-        } else {
             byte[] buffer = new byte[18];
             id.getSegment().readBytes(id.getOffset(), buffer, 0, buffer.length);
             return buffer;
