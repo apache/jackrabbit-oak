@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -25,6 +26,9 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.SegmentWriterBuilder;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -45,6 +49,29 @@ public class NodeRecordTest {
             SegmentNodeState state = writer.writeNode(EmptyNodeState.EMPTY_NODE);
             writer.flush();
             assertTrue(isRootRecord(state));
+        }
+    }
+
+    @Test
+    @Ignore("OAK-4560")
+    public void stableIdShouldPersistAcrossGenerations() throws Exception {
+        try (FileStore store = newFileStore()) {
+            SegmentWriter writer;
+
+            writer = SegmentWriterBuilder.segmentWriterBuilder("1").withGeneration(1).build(store);
+            SegmentNodeState one = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
+
+            writer = SegmentWriterBuilder.segmentWriterBuilder("2").withGeneration(2).build(store);
+            SegmentNodeState two = writer.writeNode(one);
+            writer.flush();
+
+            writer = SegmentWriterBuilder.segmentWriterBuilder("3").withGeneration(3).build(store);
+            SegmentNodeState three = writer.writeNode(two);
+            writer.flush();
+
+            assertArrayEquals(three.getStableIdBytes(), two.getStableIdBytes());
+            assertArrayEquals(two.getStableIdBytes(), one.getStableIdBytes());
         }
     }
 
