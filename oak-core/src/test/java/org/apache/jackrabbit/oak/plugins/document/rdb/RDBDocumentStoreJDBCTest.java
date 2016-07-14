@@ -44,6 +44,8 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests checking certain JDBC related features.
@@ -52,6 +54,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
 
     private RDBDocumentStoreJDBC jdbc;
     private RDBDocumentStoreDB dbInfo;
+    private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreJDBCTest.class);
 
     public RDBDocumentStoreJDBCTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -238,6 +241,27 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             else {
                 assertEquals("Failure reported, but rows inserted.", of("key-3"), ids);
             }
+        } finally {
+            con.close();
+        }
+    }
+
+    @Test
+    public void statementCloseTest() throws SQLException {
+
+        // for now we just log the behavior, see https://bz.apache.org/bugzilla/show_bug.cgi?id=59850
+
+        String table = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).getName();
+
+        Connection con = super.rdbDataSource.getConnection();
+        con.setReadOnly(true);
+        try {
+            PreparedStatement st = con.prepareStatement("SELECT id from " + table + " WHERE id = ?");
+            setIdInStatement(st, 1, "key-1");
+            ResultSet rs = st.executeQuery();
+            st.close();
+            LOG.info(super.rdbDataSource + " on " + super.dsname + " - statement.close() closes ResultSet: " + rs.isClosed());
+            con.commit();
         } finally {
             con.close();
         }
