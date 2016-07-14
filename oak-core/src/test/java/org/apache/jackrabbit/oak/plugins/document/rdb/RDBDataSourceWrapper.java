@@ -154,4 +154,9 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
             ((Closeable) ds).close();
         }
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getName() + " wrapping a " + this.ds.toString();
+    }
 }
