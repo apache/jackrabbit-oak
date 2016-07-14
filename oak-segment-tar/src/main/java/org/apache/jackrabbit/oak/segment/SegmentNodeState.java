@@ -136,6 +136,18 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
+    byte[] getStableIdBytes() {
+        RecordId id = getSegment().readRecordId(getOffset());
+
+        if (id.equals(getRecordId())) {
+            return id.getBytes();
+        } else {
+            byte[] buffer = new byte[18];
+            id.getSegment().readBytes(id.getOffset(), buffer, 0, buffer.length);
+            return buffer;
+        }
+    }
+
     @Override
     public boolean exists() {
         return true;
