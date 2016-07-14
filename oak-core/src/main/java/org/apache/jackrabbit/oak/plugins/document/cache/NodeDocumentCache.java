@@ -417,7 +417,7 @@ public class NodeDocumentCache implements Closeable {
      * @param docs
      *            to put into cache
      */
-    public void putNonConflictingDocs(CacheChangesTracker tracker, List<NodeDocument> docs) {
+    public void putNonConflictingDocs(CacheChangesTracker tracker, Iterable<NodeDocument> docs) {
         for (NodeDocument d : docs) {
             if (d == null || d == NodeDocument.NULL) {
                 continue;
