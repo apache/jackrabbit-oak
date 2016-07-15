@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SKIP_NAME_CHECK;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.ALL;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NONE;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
@@ -49,7 +50,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.NamespaceException;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -66,6 +69,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.core.IndexAccessor;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
 import org.apache.jackrabbit.core.config.LoginModuleConfig;
@@ -74,6 +78,7 @@ import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
+import org.apache.jackrabbit.core.query.lucene.FieldNames;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -87,7 +92,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
@@ -133,6 +137,10 @@ import org.apache.jackrabbit.spi.QValueConstraint;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TermDocs;
+import org.apache.lucene.index.TermEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,7 +194,9 @@ public class RepositoryUpgrade {
 
     private List<CommitHook> customCommitHooks = null;
 
-    private boolean skipLongNames = true;
+    private boolean checkLongNames = false;
+
+    private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
 
@@ -260,12 +270,20 @@ public class RepositoryUpgrade {
         this.earlyShutdown = earlyShutdown;
     }
 
-    public boolean isSkipLongNames() {
-        return skipLongNames;
+    public boolean isCheckLongNames() {
+        return checkLongNames;
     }
 
-    public void setSkipLongNames(boolean skipLongNames) {
-        this.skipLongNames = skipLongNames;
+    public void setCheckLongNames(boolean checkLongNames) {
+        this.checkLongNames = checkLongNames;
+    }
+
+    public boolean isFilterLongNames() {
+        return filterLongNames;
+    }
+
+    public void setFilterLongNames(boolean filterLongNames) {
+        this.filterLongNames = filterLongNames;
     }
 
     public boolean isSkipInitialization() {
@@ -315,7 +333,6 @@ public class RepositoryUpgrade {
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
     }
-
 
     /**
      * Sets the paths that should be merged when the source repository
@@ -376,6 +393,10 @@ public class RepositoryUpgrade {
      * @throws RepositoryException if the copy operation fails
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
+        if (checkLongNames) {
+            assertNoLongNames();
+        }
+
         RepositoryConfig config = source.getRepositoryConfig();
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
@@ -454,7 +475,7 @@ public class RepositoryUpgrade {
                     new LoggingReporter(logger, "Migrating", 10000, -1)
             );
             final NodeState sourceRoot;
-            if (skipLongNames) {
+            if (filterLongNames) {
                 sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
             } else {
                 sourceRoot = reportingSourceRoot;
@@ -937,6 +958,40 @@ public class RepositoryUpgrade {
             includes.add("/" + childNodeName);
         }
         return includes;
+    }
+
+    void assertNoLongNames() throws RepositoryException {
+        Session session = source.getRepository().login(null, null);
+        boolean longNameFound = false;
+        try {
+            IndexReader reader = IndexAccessor.getReader(source);
+            TermEnum terms = reader.terms(new Term(FieldNames.LOCAL_NAME));
+            while (terms.next()) {
+                Term t = terms.term();
+                if (!FieldNames.LOCAL_NAME.equals(t.field())) {
+                    continue;
+                }
+                String name = t.text();
+                if (NameFilteringNodeState.isNameTooLong(name)) {
+                    TermDocs docs = reader.termDocs(t);
+                    if (docs.next()) {
+                        int docId = docs.doc();
+                        String uuid = reader.document(docId).get(FieldNames.UUID);
+                        Node n = session.getNodeByIdentifier(uuid);
+                        logger.warn("Name too long: {}", n.getPath());
+                        longNameFound = true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new RepositoryException(e);
+        } finally {
+            session.logout();
+        }
+        if (longNameFound) {
+            logger.error("Node with a long name has been found. Please fix the content or rerun the migration with {} option.", SKIP_NAME_CHECK);
+            throw new RepositoryException("Node with a long name has been found.");
+        }
     }
 
     static class LoggingCompositeHook implements CommitHook {

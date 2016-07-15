@@ -96,6 +96,14 @@ public class StoreArguments {
         return dst.getFactory(MigrationDirection.DST, parser);
     }
 
+    public StoreType getSrcType() {
+        return src.getType();
+    }
+
+    public StoreType getDstType() {
+        return dst.getType();
+    }
+
     public BlobStoreFactory getSrcBlobStore() throws IOException {
         BlobStoreFactory factory;
         if (parser.hasOption(SRC_FBS)) {
@@ -135,10 +143,6 @@ public class StoreArguments {
             return src.getPath().equals(dst.getPath());
         }
         return false;
-    }
-
-    public boolean isSkipLongNames() {
-        return dst.getType() != SEGMENT && dst.getType() != SEGMENT_TAR;
     }
 
     public String[] getSrcPaths() {

@@ -72,7 +72,7 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
      *            to check
      * @return true if the name is longer than {@link Utils#NODE_NAME_LIMIT}
      */
-    private static boolean isNameTooLong(@Nonnull String name) {
+    public static boolean isNameTooLong(@Nonnull String name) {
         // OAK-1589: maximum supported length of name for DocumentNodeStore
         // is 150 bytes. Skip the sub tree if the the name is too long
         return name.length() > SAFE_NODE_NAME_LENGTH && name.getBytes(Charsets.UTF_8).length > NODE_NAME_LIMIT;
