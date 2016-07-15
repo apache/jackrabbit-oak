@@ -91,4 +91,7 @@ An descriptor of the Oak node store. Possible options:
 
 # other options
 
--?, -h, --help            show help
+-?, -h, --help            Show help
+--skip-init               Don't initialize the destination repository
+--skip-name-check         Don't look for long-named nodes at the beginning of
+                          the migration

@@ -91,7 +91,7 @@ public class RepositorySidegrade {
      */
     private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
 
-    private boolean skipLongNames = true;
+    private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
 
@@ -198,12 +198,12 @@ public class RepositorySidegrade {
         this.mergePaths = copyOf(checkNotNull(merges));
     }
 
-    public boolean isSkipLongNames() {
-        return skipLongNames;
+    public boolean isFilterLongNames() {
+        return filterLongNames;
     }
 
-    public void setSkipLongNames(boolean skipLongNames) {
-        this.skipLongNames = skipLongNames;
+    public void setFilterLongNames(boolean filterLongNames) {
+        this.filterLongNames = filterLongNames;
     }
 
     /**
@@ -252,7 +252,7 @@ public class RepositorySidegrade {
 
             final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", 10000, -1));
             final NodeState sourceRoot;
-            if (skipLongNames) {
+            if (filterLongNames) {
                 sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
             } else {
                 sourceRoot = reportingSourceRoot;

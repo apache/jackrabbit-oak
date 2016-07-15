@@ -90,7 +90,8 @@ public class MigrationFactory {
         if (options.getMergePaths() != null) {
             upgrade.setMerges(options.getMergePaths());
         }
-        upgrade.setSkipLongNames(stores.isSkipLongNames());
+        upgrade.setFilterLongNames(!stores.getDstType().isSupportLongNames());
+        upgrade.setCheckLongNames(!options.isSkipNameCheck() && !stores.getDstType().isSupportLongNames());
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
         upgrade.setSkipInitialization(options.isSkipInitialization());
@@ -114,7 +115,7 @@ public class MigrationFactory {
         if (options.getMergePaths() != null) {
             sidegrade.setMerges(options.getMergePaths());
         }
-        sidegrade.setSkipLongNames(stores.isSkipLongNames());
+        sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
         sidegrade.setSkipInitialization(options.isSkipInitialization());
         return sidegrade;
     }

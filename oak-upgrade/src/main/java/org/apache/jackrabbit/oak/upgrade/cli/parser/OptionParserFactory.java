@@ -72,6 +72,8 @@ public class OptionParserFactory {
 
     public static final String SKIP_INIT = "skip-init";
 
+    public static final String SKIP_NAME_CHECK = "skip-name-check";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);

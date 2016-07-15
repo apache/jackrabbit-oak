@@ -52,6 +52,8 @@ public class MigrationOptions {
 
     private final boolean skipInitialization;
 
+    private final boolean skipNameCheck;
+
     public MigrationOptions(MigrationCliArguments args) {
         this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
         this.mmap = args.hasOption(OptionParserFactory.MMAP);
@@ -79,6 +81,7 @@ public class MigrationOptions {
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
+        this.skipNameCheck = args.hasOption(OptionParserFactory.SKIP_NAME_CHECK);
         logOptions();
     }
 
@@ -126,6 +129,10 @@ public class MigrationOptions {
         return skipInitialization;
     }
 
+    public boolean isSkipNameCheck() {
+        return skipNameCheck;
+    }
+
     private void logOptions() {
         if (copyBinariesByReference) {
             log.info("DataStore needs to be shared with new repository");
@@ -167,6 +174,10 @@ public class MigrationOptions {
 
         if (skipInitialization) {
             log.info("The repository initialization will be skipped");
+        }
+
+        if (skipNameCheck) {
+            log.info("Test for long-named nodes will be disabled");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.Iterables.cycle;
 import static com.google.common.collect.Iterables.limit;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -44,7 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class LongNameTest {
@@ -65,7 +66,8 @@ public class LongNameTest {
         FileUtils.deleteQuietly(crx2RepoDir);
 
         sourceRepositoryConfig = createCrx2Config(crx2RepoDir);
-        RepositoryImpl sourceRepository = RepositoryImpl.create(sourceRepositoryConfig);
+        RepositoryContext ctx = RepositoryContext.create(sourceRepositoryConfig);
+        RepositoryImpl sourceRepository = ctx.getRepository();
         Session session = sourceRepository.login(CREDENTIALS);
         try {
             Assert.assertTrue(TOO_LONG_NAME.getBytes().length > 150);
@@ -80,6 +82,7 @@ public class LongNameTest {
 
             Assert.assertTrue(longNameParent.hasNode(TOO_LONG_NAME));
             Assert.assertTrue(longNameParent.hasNode(NOT_TOO_LONG_NAME));
+
         } finally {
             session.logout();
         }
@@ -96,7 +99,7 @@ public class LongNameTest {
     public void longNameShouldBeSkipped() throws RepositoryException, IOException {
         DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
         try {
-            upgrade(nodeStore, true);
+            upgrade(nodeStore, false, true);
 
             NodeState parent = getParent(nodeStore.getRoot());
             Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
@@ -109,34 +112,50 @@ public class LongNameTest {
         }
     }
 
+    @Test
+    public void assertNoLongNamesTest() throws IOException, RepositoryException {
+        RepositoryConfig config = createCrx2Config(crx2RepoDir);
+        RepositoryContext context = RepositoryContext.create(config);
+        try {
+            RepositoryUpgrade upgrade = new RepositoryUpgrade(context, new MemoryNodeStore());
+            try {
+                upgrade.assertNoLongNames();
+                fail("Exception should be thrown");
+            } catch (RepositoryException e) {
+                // that's fine
+            }
+        } finally {
+            context.getRepository().shutdown();
+        }
+    }
+
     @Test(expected = RepositoryException.class)
-    @Ignore
     public void longNameOnDocumentStoreThrowsAnException() throws RepositoryException, IOException {
         DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
         try {
-            upgrade(nodeStore, false);
+            upgrade(nodeStore, false, false);
         } finally {
             nodeStore.dispose();
         }
     }
 
     @Test
-    @Ignore
     public void longNameOnSegmentStoreWorksFine() throws RepositoryException, IOException {
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        upgrade(nodeStore, false);
+        upgrade(nodeStore, false, false);
 
         NodeState parent = getParent(nodeStore.getRoot());
         Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
         Assert.assertTrue(parent.hasChildNode(TOO_LONG_NAME));
     }
 
-    private static void upgrade(NodeStore target, boolean skipLongNames) throws RepositoryException, IOException {
+    private static void upgrade(NodeStore target, boolean skipNameCheck, boolean filterLongNames) throws RepositoryException, IOException {
         RepositoryConfig config = createCrx2Config(crx2RepoDir);
         RepositoryContext context = RepositoryContext.create(config);
         try {
             RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
-            upgrade.setSkipLongNames(skipLongNames);
+            upgrade.setCheckLongNames(skipNameCheck);
+            upgrade.setFilterLongNames(filterLongNames);
             upgrade.copy(null);
         } finally {
             context.getRepository().shutdown();
