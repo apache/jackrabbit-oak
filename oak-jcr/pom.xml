@@ -322,12 +322,7 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-tests</artifactId>
-      <!--
-        OAK-3858: use snapshot dependency to take advantage of JCR-3961,
-        JCR-3962 and JCR-3963. Reset to jackrabbit.version for a release
-        or once 2.13.0 is available.
-      -->
-      <version>2.13.0-SNAPSHOT</version>
+      <version>${jackrabbit.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>
