@@ -76,6 +76,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public void close() {
+        String dropped = "";
         if (!this.tablesToBeDropped.isEmpty()) {
             LOG.debug("attempting to drop: " + this.tablesToBeDropped);
             for (String tname : this.tablesToBeDropped) {
@@ -87,30 +88,28 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         stmt = con.createStatement();
                         stmt.execute("drop table " + tname);
                         stmt.close();
-                        stmt = null;
                         con.commit();
+                        dropped += tname + " ";
                     } catch (SQLException ex) {
+                        LOG.debug("attempting to drop: " + tname, ex);
+                    } finally {
                         closeStatement(stmt);
-                        LOG.debug("attempting to drop: " + tname);
                     }
                 } catch (SQLException ex) {
-                    LOG.debug("attempting to drop: " + tname);
+                    LOG.debug("attempting to drop: " + tname, ex);
                 } finally {
-                    try {
-                        if (con != null) {
-                            con.close();
-                        }
-                    } catch (SQLException ex) {
-                        LOG.debug("on close ", ex);
-                    }
+                    this.ch.closeConnection(con);
                 }
             }
+            dropped = dropped.trim();
         }
         try {
             this.ch.close();
         } catch (IOException ex) {
             LOG.error("closing connection handler", ex);
         }
+        LOG.info("RDBBlobStore (" + OakVersion.getVersion() + ") closed"
+                + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
     }
 
     @Override
@@ -187,7 +186,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 try {
                     checkStatement = con.prepareStatement("select ID from " + tableName + " where ID = ?");
                     checkStatement.setString(1, "0");
-                    checkStatement.executeQuery();
+                    checkStatement.executeQuery().close();
                     checkStatement.close();
                     checkStatement = null;
                     con.commit();
@@ -289,15 +288,17 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     this.ch.rollbackConnection(con);
                     // the insert failed although it should have succeeded; see whether the blob already exists
                     prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
+                    ResultSet rs = null;
                     byte[] dbdata = null;
                     try {
                         prep.setString(1, id);
-                        ResultSet rs = prep.executeQuery();
+                        rs = prep.executeQuery();
                         if (rs.next()) {
                             dbdata = rs.getBytes(1);
                         }
                     } finally {
-                        prep.close();
+                        closeResultSet(rs);
+                        closeStatement(prep);
                     }
 
                     if (dbdata == null) {
@@ -350,15 +351,17 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         try {
             PreparedStatement prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
+            ResultSet rs = null;
             try {
                 prep.setString(1, id);
-                ResultSet rs = prep.executeQuery();
+                rs = prep.executeQuery();
                 if (!rs.next()) {
                     throw new IOException("Datastore block " + id + " not found");
                 }
                 data = rs.getBytes(1);
             } finally {
-                prep.close();
+                closeResultSet(rs);
+                closeStatement(prep);
             }
         } finally {
             con.commit();
@@ -378,15 +381,17 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             long start = System.nanoTime();
             try {
                 PreparedStatement prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
+                ResultSet rs = null;
                 try {
                     prep.setString(1, id);
-                    ResultSet rs = prep.executeQuery();
+                    rs = prep.executeQuery();
                     if (!rs.next()) {
                         throw new IOException("Datastore block " + id + " not found");
                     }
                     data = rs.getBytes(1);
                 } finally {
-                    prep.close();
+                    closeResultSet(rs);
+                    closeStatement(prep);
                 }
 
                 getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
