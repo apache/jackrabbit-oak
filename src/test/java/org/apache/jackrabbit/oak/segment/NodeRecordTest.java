@@ -22,6 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -97,7 +99,11 @@ public class NodeRecordTest {
             // otherwise the write of some records (in this case, template
             // records) will be cached and prevent this test to fail.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").withGeneration(generation).withWriterPool().withoutCache().build(store);
+            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test")
+                    .withGeneration(generation)
+                    .withWriterPool()
+                    .with(nodesOnlyCache())
+                    .build(store);
 
             generation.set(1);
 
@@ -143,6 +149,32 @@ public class NodeRecordTest {
 
             assertEquals(modified.getTemplateId(), compacted.getTemplateId());
         }
+    }
+
+    private WriterCacheManager nodesOnlyCache() {
+        return new WriterCacheManager() {
+
+            WriterCacheManager defaultCache = new WriterCacheManager.Default();
+
+            @Nonnull
+            @Override
+            public RecordCache<String> getStringCache(int generation) {
+                return Empty.INSTANCE.getStringCache(generation);
+            }
+
+            @Nonnull
+            @Override
+            public RecordCache<Template> getTemplateCache(int generation) {
+                return Empty.INSTANCE.getTemplateCache(generation);
+            }
+
+            @Nonnull
+            @Override
+            public NodeCache getNodeCache(int generation) {
+                return defaultCache.getNodeCache(generation);
+            }
+
+        };
     }
 
     private boolean isRootRecord(SegmentNodeState sns) {
