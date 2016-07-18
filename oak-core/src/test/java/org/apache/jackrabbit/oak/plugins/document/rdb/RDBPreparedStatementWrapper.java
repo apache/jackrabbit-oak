@@ -98,7 +98,7 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
                 ((RDBResultSetWrapper) resultSet).dumpResult(null);
             } else {
                 ((RDBResultSetWrapper) resultSet).dumpResult("(not closed!)");
-                LOG.error("Wrapped statement " + statement + " failed to close associated ResultSet; call stack:",
+                LOG.error("Wrapped statement " + statement.getClass() + " failed to close associated ResultSet; call stack:",
                         new Exception("call stack"));
             }
         }

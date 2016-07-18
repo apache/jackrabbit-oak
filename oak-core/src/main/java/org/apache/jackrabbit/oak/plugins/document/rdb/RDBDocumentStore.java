@@ -981,7 +981,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
         String tableName = tmd.getName();
 
-        PreparedStatement checkStatement = null, checkStatement2 = null;
+        PreparedStatement checkStatement = null;
 
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
@@ -1030,6 +1030,9 @@ public class RDBDocumentStore implements DocumentStore {
             // table does not appear to exist
             con.rollback();
 
+            PreparedStatement checkStatement2 = null;
+            ResultSet checkResultSet2 = null;
+
             try {
                 creatStatement = con.createStatement();
                 creatStatement.execute(this.dbInfo.getTableCreationStatement(tableName));
@@ -1047,9 +1050,9 @@ public class RDBDocumentStore implements DocumentStore {
 
                 checkStatement2 = con.prepareStatement("select * from " + tableName + " where ID = ?");
                 checkStatement2.setString(1, "0:/");
-                ResultSet rs = checkStatement2.executeQuery();
+                checkResultSet2 = checkStatement2.executeQuery();
                 // try to discover size of DATA column and binary-ness of ID
-                ResultSetMetaData met = rs.getMetaData();
+                ResultSetMetaData met = checkResultSet2.getMetaData();
                 obtainFlagsFromResultSetMeta(met, tmd);
 
                 if (col == Collection.NODES) {
@@ -1065,11 +1068,14 @@ public class RDBDocumentStore implements DocumentStore {
                 LOG.error("Failed to create table " + tableName + " in " + dbname, ex2);
                 throw ex2;
             }
+            finally {
+                closeResultSet(checkResultSet2);
+                closeStatement(checkStatement2);
+            }
         }
         finally {
             closeResultSet(checkResultSet);
             closeStatement(checkStatement);
-            closeStatement(checkStatement2);
             closeStatement(creatStatement);
         }
     }
