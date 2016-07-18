@@ -346,8 +346,14 @@ public final class DocumentNodeStore
     private final BlobSerializer blobSerializer = new BlobSerializer() {
         @Override
         public String serialize(Blob blob) {
+
             if (blob instanceof BlobStoreBlob) {
-                return ((BlobStoreBlob) blob).getBlobId();
+                BlobStoreBlob bsb = (BlobStoreBlob) blob;
+                BlobStore bsbBlobStore = bsb.getBlobStore();
+                //see if the blob has been created from another store
+                if (bsbBlobStore != null && bsbBlobStore.equals(blobStore)) {
+                    return bsb.getBlobId();
+                }
             }
 
             String id;
