@@ -3,3 +3,5 @@
 .project
 target
 oak-run/*.csv
+.idea
+*.iml
