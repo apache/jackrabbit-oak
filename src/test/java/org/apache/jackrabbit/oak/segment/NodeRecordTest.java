@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import javax.annotation.Nonnull;
@@ -28,7 +29,6 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -90,7 +90,6 @@ public class NodeRecordTest {
     }
 
     @Test
-    @Ignore("OAK-4570")
     public void baseNodeStateShouldBeReusedAcrossGenerations() throws Exception {
         try (FileStore store = newFileStore()) {
             Generation generation = new Generation();
@@ -110,7 +109,11 @@ public class NodeRecordTest {
             // Write a new node with a non trivial template. This record will
             // belong to generation 1.
 
-            SegmentNodeState base = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder().setProperty("k", "v1").getNodeState());
+            SegmentNodeState base = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder()
+                    .setProperty("a", "a")
+                    .setProperty("k", "v1")
+                    .getNodeState()
+            );
             writer.flush();
 
             generation.set(2);
@@ -148,6 +151,16 @@ public class NodeRecordTest {
             // to a new generation.
 
             assertEquals(modified.getTemplateId(), compacted.getTemplateId());
+
+            // Similarly the node state should have reused the property from
+            // the compacted node state, since this property didn't change.
+
+            Record modifiedProperty = (Record) modified.getProperty("a");
+            Record compactedProperty = (Record) compacted.getProperty("a");
+
+            assertNotNull(modifiedProperty);
+            assertNotNull(compactedProperty);
+            assertEquals(modifiedProperty.getRecordId(), compactedProperty.getRecordId());
         }
     }
 
