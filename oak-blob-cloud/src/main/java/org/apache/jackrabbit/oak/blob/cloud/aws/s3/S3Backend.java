@@ -629,6 +629,25 @@ public class S3Backend implements SharedS3Backend {
         }
     }
 
+    @Override
+    public void addMetadataRecord(File input, String name) throws DataStoreException {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+
+            Upload upload = tmx.upload(s3ReqDecorator
+                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input)));
+            upload.waitForUploadResult();
+        } catch (InterruptedException e) {
+            LOG.error("Exception in uploading metadata file {}", new Object[] {input, e});
+            throw new DataStoreException("Error in uploading metadata file", e);
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
     public DataRecord getMetadataRecord(String name) {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
