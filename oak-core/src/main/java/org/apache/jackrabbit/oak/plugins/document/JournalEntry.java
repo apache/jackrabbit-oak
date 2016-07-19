@@ -135,6 +135,9 @@ public final class JournalEntry extends Document {
                 // add parent to the diff entry
                 entry.append(node.getPath(), getChanges(node));
                 deDuplicatedCnt++;
+                // clean up the hierarchy when we are done with this
+                // part of the tree to avoid excessive memory usage
+                node.children = TreeNode.NO_CHILDREN;
                 node = node.parent;
             }
 
