@@ -417,12 +417,12 @@ public final class FilterBuilder {
 
             @Override
             public boolean isIncludeClusterLocal() {
-                return FilterBuilder.this.includeClusterExternal;
+                return FilterBuilder.this.includeClusterLocal;
             }
 
             @Override
             public boolean isIncludeClusterExternal() {
-                return FilterBuilder.this.includeClusterLocal;
+                return FilterBuilder.this.includeClusterExternal;
             }
         };
     }
