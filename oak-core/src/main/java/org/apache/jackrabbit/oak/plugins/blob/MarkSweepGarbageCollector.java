@@ -742,13 +742,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             @Override
             void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
                     String repoId) throws DataStoreException, IOException {
-                InputStream is = new FileInputStream(fs.getMarkedRefs());
-                try {
-                    ((SharedDataStore) blobStore)
-                        .addMetadataRecord(is, SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
-                } finally {
-                    Closeables.close(is, false);
-                }
+                ((SharedDataStore) blobStore)
+                    .addMetadataRecord(fs.getMarkedRefs(), SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
             }
             
             @Override

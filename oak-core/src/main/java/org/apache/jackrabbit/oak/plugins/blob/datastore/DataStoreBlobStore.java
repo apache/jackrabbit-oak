@@ -426,6 +426,13 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         }
     }
 
+    @Override
+    public void addMetadataRecord(File f, String name) throws DataStoreException {
+        if (delegate instanceof SharedDataStore) {
+            ((SharedDataStore) delegate).addMetadataRecord(f, name);
+        }
+    }
+
     @Override public DataRecord getMetadataRecord(String name) {
         if (delegate instanceof SharedDataStore) {
             return ((SharedDataStore) delegate).getMetadataRecord(name);

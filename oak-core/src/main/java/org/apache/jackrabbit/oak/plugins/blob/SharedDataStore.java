@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,16 @@ public interface SharedDataStore {
      */
     void addMetadataRecord(InputStream stream, String name)
             throws DataStoreException;
+
+    /**
+     * Adds the root record.
+     *
+     * @param f the file
+     * @param name the name of the root record
+     * @throws DataStoreException the data store exception
+     */
+    void addMetadataRecord(File f, String name)
+        throws DataStoreException;
 
     /**
      * Retrieves the metadata record with the given name
