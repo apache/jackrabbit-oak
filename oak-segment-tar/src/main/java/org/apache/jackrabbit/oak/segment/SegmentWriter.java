@@ -987,26 +987,11 @@ public class SegmentWriter {
             }
             assert compactionStats != null;
             compactionStats.nodeCount++;
-            if (state instanceof SegmentNodeState) {
-                SegmentNodeState sns = ((SegmentNodeState) state);
-                if (sameStore(sns)) {
-                    // This is a segment node state from an old generation. Check whether
-                    // an equivalent one of the current generation is in the cache
-                    if (isOldGeneration(sns.getRecordId())) {
-                        RecordId cachedId = nodeCache.get(sns.getStableId());
-                        if (cachedId != null) {
-                            compactionStats.cacheHits++;
-                            return cachedId;
-                        } else {
-                            compactionStats.cacheMiss++;
-                        }
-                    } else {
-                        // This segment node state is already in this store,
-                        // no need to write it again,
-                        compactionStats.deDupNodes++;
-                        return sns.getRecordId();
-                    }
-                }
+
+            RecordId compactedId = deduplicateNode(state);
+
+            if (compactedId != null) {
+                return compactedId;
             }
 
             compactionStats.writesOps++;
@@ -1022,21 +1007,24 @@ public class SegmentWriter {
         }
 
         private RecordId writeNodeUncached(@Nonnull NodeState state, int depth) throws IOException {
-            SegmentNodeState before = null;
-            Template beforeTemplate = null;
             ModifiedNodeState after = null;
+
             if (state instanceof ModifiedNodeState) {
                 after = (ModifiedNodeState) state;
-                NodeState base = after.getBaseState();
-                if (base instanceof SegmentNodeState) {
-                    SegmentNodeState sns = ((SegmentNodeState) base);
-                    if (sameStore(sns)) {
-                        if (!isOldGeneration(sns.getRecordId())) {
-                            before = sns;
-                            beforeTemplate = before.getTemplate();
-                        }
-                    }
-                }
+            }
+
+            RecordId beforeId = null;
+
+            if (after != null) {
+                beforeId = deduplicateNode(after.getBaseState());
+            }
+
+            SegmentNodeState before = null;
+            Template beforeTemplate = null;
+
+            if (beforeId != null) {
+                before = reader.readNode(beforeId);
+                beforeTemplate = before.getTemplate();
             }
 
             List<RecordId> ids = newArrayList();
@@ -1076,6 +1064,17 @@ public class SegmentWriter {
                 PropertyState property = state.getProperty(name);
                 assert property != null;
 
+                if (before != null) {
+                    // If this property is already present in before (the base state)
+                    // and it hasn't been modified use that one. This will result
+                    // in an already compacted property to be reused given before
+                    // has been already compacted.
+                    PropertyState beforeProperty = before.getProperty(name);
+                    if (property.equals(beforeProperty)) {
+                        property = beforeProperty;
+                    }
+                }
+
                 if (sameStore(property)) {
                     RecordId pid = ((Record) property).getRecordId();
                     if (isOldGeneration(pid)) {
@@ -1114,6 +1113,51 @@ public class SegmentWriter {
                 stableId = writeBlock(id, 0, id.length);
             }
             return newNodeStateWriter(stableId, ids).write(writer);
+        }
+
+        /**
+         * Try to deduplicate the passed {@code node}. This succeeds if
+         * the passed node state has already been persisted to this store and
+         * either it has the same generation or it has been already compacted
+         * and is still in the de-duplication cache for nodes.
+         *
+         * @param node The node states to de-duplicate.
+         * @return the id of the de-duplicated node or {@code null} if none.
+         */
+        private RecordId deduplicateNode(NodeState node) {
+            assert compactionStats != null;
+
+            if (!(node instanceof SegmentNodeState)) {
+                // De-duplication only for persisted node states
+                return null;
+            }
+
+            SegmentNodeState sns = (SegmentNodeState) node;
+
+            if (!sameStore(sns)) {
+                // De-duplication only within same store
+                return null;
+            }
+
+            if (!isOldGeneration(sns.getRecordId())) {
+                // This segment node state is already in this store, no need to
+                // write it again
+                compactionStats.deDupNodes++;
+                return sns.getRecordId();
+            }
+
+            // This is a segment node state from an old generation. Check
+            // whether an equivalent one of the current generation is in the
+            // cache
+            RecordId compacted = nodeCache.get(sns.getStableId());
+
+            if (compacted == null) {
+                compactionStats.cacheMiss++;
+                return null;
+            }
+
+            compactionStats.cacheHits++;
+            return compacted;
         }
 
         /**
