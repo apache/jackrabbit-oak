@@ -281,7 +281,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId);
 
         // Mark all used references
-        iterateNodeTree(fs);
+        iterateNodeTree(fs, false);
 
         // Move the marked references file to the data store meta area if applicable
         GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId);
@@ -494,8 +494,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Iterates the complete node tree and collect all blob references
      * @param fs the garbage collector file state
+     * @param logPath whether to log path in the file or not
      */
-    protected void iterateNodeTree(GarbageCollectorFileState fs) throws IOException {
+    protected void iterateNodeTree(GarbageCollectorFileState fs, final boolean logPath) throws IOException {
         final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         try {
@@ -516,8 +517,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                 Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                 while (idIter.hasNext()) {
                                     String id = idIter.next();
-                                    
-                                    idBatch.add(delimJoiner.join(id, nodeId));
+
+                                    if (logPath) {
+                                        idBatch.add(delimJoiner.join(id, nodeId));
+                                    } else {
+                                        idBatch.add(id);
+                                    }
 
                                     if (idBatch.size() >= getBatchCount()) {
                                         saveBatchToFile(idBatch, writer);
@@ -579,7 +584,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             executor.execute(blobIdRetriever);
     
             // Mark all used blob references
-            iterateNodeTree(fs);
+            iterateNodeTree(fs, true);
             
             try {
                 blobIdRetriever.get();

@@ -21,6 +21,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -33,7 +35,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import ch.qos.logback.classic.Level;
+import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -41,7 +46,11 @@ import com.google.common.io.Closeables;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import junit.framework.Assert;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -56,8 +65,9 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +79,9 @@ import javax.annotation.Nullable;
 public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     private Clock clock;
     private static final Logger log = LoggerFactory.getLogger(MongoBlobGCTest.class);
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     public DataStoreState setUp(boolean deleteDirect) throws Exception {
         DocumentNodeStore s = mk.getNodeStore();
@@ -306,7 +319,67 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertTrue(Sets.difference(state.blobsPresent, existingAfterGC).isEmpty());
         assertEquals(gc.additionalBlobs, Sets.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
-    
+
+    @Test
+    public void checkGcPathLogging() throws Exception {
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .enable(Level.TRACE)
+            .filter(Level.TRACE)
+            .create();
+
+        setUp(false);
+        customLogs.starting();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        String rootFolder = folder.newFolder().getAbsolutePath();
+        MarkSweepGarbageCollector gcObj = init(0, executor, rootFolder);
+        gcObj.collectGarbage(true);
+        customLogs.finished();
+
+        assertBlobReferenceRecords(1, rootFolder);
+    }
+
+    @Test
+    public void checkConsistencyPathLogging() throws Exception {
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .enable(Level.TRACE)
+            .filter(Level.TRACE)
+            .create();
+
+        setUp(false);
+        customLogs.starting();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        String rootFolder = folder.newFolder().getAbsolutePath();
+        MarkSweepGarbageCollector gcObj = init(86400, executor, rootFolder);
+        gcObj.checkConsistency();
+        customLogs.finished();
+
+        assertBlobReferenceRecords(2, rootFolder);
+    }
+
+    private static void assertBlobReferenceRecords(int expected, String rootFolder) throws IOException {
+        // Read the marked files to check if paths logged or not
+        File root = new File(rootFolder);
+        List<File> rootFile = FileFilterUtils.filterList(
+            FileFilterUtils.prefixFileFilter("gcworkdir-"),
+            root.listFiles());
+        List<File> markedFiles = FileFilterUtils.filterList(
+            FileFilterUtils.prefixFileFilter("marked-"),
+            rootFile.get(0).listFiles());
+        InputStream is = null;
+        try {
+            is = new FileInputStream(markedFiles.get(0));
+            Set<String> records = FileIOUtils.readStringsAsSet(is, true);
+            for (String rec : records) {
+                assertEquals(expected, Splitter.on(",").omitEmptyStrings().splitToList(rec).size());
+            }
+        } finally {
+            Closeables.close(is, false);
+            FileUtils.forceDelete(rootFile.get(0));
+        }
+    }
+
     private Set<String> gc(int blobGcMaxAgeInSecs) throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = init(blobGcMaxAgeInSecs, executor);
@@ -315,8 +388,13 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertEquals(0, executor.getTaskCount());
         return iterate();
     }
-    
+
     private MarkSweepGarbageCollector init(int blobGcMaxAgeInSecs, ThreadPoolExecutor executor) throws Exception {
+        return init(blobGcMaxAgeInSecs, executor, null);
+    }
+
+    private MarkSweepGarbageCollector init(int blobGcMaxAgeInSecs, ThreadPoolExecutor executor,
+        String root) throws Exception {
         DocumentNodeStore store = mk.getNodeStore();
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
@@ -325,9 +403,13 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
         }
+        if (Strings.isNullOrEmpty(root)) {
+            root = "./target";
+        }
+
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
-                (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, blobGcMaxAgeInSecs, repoId);
+                (GarbageCollectableBlobStore) store.getBlobStore(), executor, root, 5, blobGcMaxAgeInSecs, repoId);
         return gc;
     }
 
@@ -366,7 +448,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         String root;
         GarbageCollectableBlobStore blobStore;
         Set<String> additionalBlobs;
-        
+
         public TestGarbageCollector(BlobReferenceRetriever marker, GarbageCollectableBlobStore blobStore,
                                     Executor executor, String root, int batchCount, long maxLastModifiedInterval,
                                     @Nullable String repositoryId) throws IOException {
