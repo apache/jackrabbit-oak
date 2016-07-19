@@ -70,6 +70,8 @@ import org.slf4j.LoggerFactory;
 public class SegmentBufferWriter implements WriteOperationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);
 
+    private static final boolean DISABLE_GENERATION_CHECK = Boolean.getBoolean("disable-generation-check");
+
     /**
      * The set of root records (i.e. ones not referenced by other records)
      * in this segment.
@@ -239,16 +241,18 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGeneration
     // Disable/remove this in production
     private void checkGCGeneration(SegmentId id) {
-        try {
-            if (isDataSegmentId(id.getLeastSignificantBits())) {
-                if (id.getSegment().getGcGeneration() < generation) {
-                    LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
-                        info(this.segment), info(id.getSegment()), new Exception());
+        if (!DISABLE_GENERATION_CHECK) {
+            try {
+                if (isDataSegmentId(id.getLeastSignificantBits())) {
+                    if (id.getSegment().getGcGeneration() < generation) {
+                        LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
+                                info(this.segment), info(id.getSegment()), new Exception());
+                    }
                 }
+            } catch (SegmentNotFoundException snfe) {
+                LOG.warn("Detected reference from {} to non existing segment {}",
+                        info(this.segment), id, snfe);
             }
-        } catch (SegmentNotFoundException snfe) {
-            LOG.warn("Detected reference from {} to non existing segment {}",
-                info(this.segment), id, snfe);
         }
     }
 
