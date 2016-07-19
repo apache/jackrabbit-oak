@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import org.apache.jackrabbit.core.data.Backend;
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 
@@ -90,4 +91,12 @@ public interface SharedS3Backend extends Backend {
      */
     Iterator<DataRecord> getAllRecords()
         throws DataStoreException;
+
+    /**
+     * Gets the record with the specified identifier
+     *
+     * @param id the record identifier
+     * @return the metadata DataRecord
+     */
+    DataRecord getRecord(DataIdentifier id) throws DataStoreException;
 }

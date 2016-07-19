@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 
@@ -91,6 +92,14 @@ public interface SharedDataStore {
      * @return iterator over DataRecords
      */
     Iterator<DataRecord> getAllRecords() throws DataStoreException;
+
+    /**
+     * Retrieves the record for the given identifier
+     *
+     * @param id the if of the record
+     * @return data record
+     */
+    DataRecord getRecordForId(DataIdentifier id) throws DataStoreException;
 
     /**
      * Gets the type.
