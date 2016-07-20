@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
 
 import java.io.IOException;
@@ -55,12 +56,14 @@ public class RDBBlobStoreFriend {
         String id = StringUtils.convertBytesToHex(digest);
         Connection con = ds.ch.getROConnection();
         PreparedStatement prep = null;
+        ResultSet rs = null;
         try {
             prep = con.prepareStatement("select ID from " + ds.tnData + " where ID = ?");
             prep.setString(1, id);
-            ResultSet rs = prep.executeQuery();
+            rs = prep.executeQuery();
             return rs.next();
         } finally {
+            closeResultSet(rs);
             closeStatement(prep);
             con.commit();
             ds.ch.closeConnection(con);
