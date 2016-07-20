@@ -39,6 +39,13 @@ import com.google.common.cache.RemovalCause;
 public class SegmentCache {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCache.class);
 
+    private final Weigher<SegmentId, Segment> weigher = new Weigher<SegmentId, Segment>() {
+        @Override
+        public int weigh(SegmentId id, Segment segment) {
+            return 224 + segment.size();
+        }
+    };
+
     /**
      * Cache of recently accessed segments
      */
@@ -49,7 +56,8 @@ public class SegmentCache {
         this.cache = CacheLIRS.<SegmentId, Segment>newBuilder()
             .module("SegmentCache")
             .maximumWeight(cacheSizeMB * 1024 * 1024)
-            .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
+            .averageWeight(Segment.MAX_SEGMENT_SIZE / 2)
+            .weigher(weigher)
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
                 @Override
                 public void evicted(SegmentId id, Segment segment, RemovalCause cause) {
@@ -67,7 +75,7 @@ public class SegmentCache {
     }
 
     public void putSegment(@Nonnull Segment segment) {
-        cache.put(segment.getSegmentId(), segment, segment.size());
+        cache.put(segment.getSegmentId(), segment);
         segment.getSegmentId().loaded(segment);
     }
 
@@ -77,12 +85,6 @@ public class SegmentCache {
 
     @Nonnull
     public CacheStats getCacheStats() {
-        Weigher<?, ?> weigher = new Weigher<SegmentId, Segment>() {
-            @Override
-            public int weigh(SegmentId key, Segment segment) {
-                return segment.size();
-            }
-        };
         return new CacheStats(cache, "Segment Cache", weigher, cache.getMaxMemory());
     }
 }

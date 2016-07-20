@@ -33,7 +33,7 @@ public class StringCache extends ReaderCache<String> {
      * @param maxSize the maximum memory in bytes.
      */
     StringCache(long maxSize) {
-        super(maxSize, "String Cache");
+        super(maxSize, 250, "String Cache");
     }
 
     @Override
