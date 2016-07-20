@@ -32,16 +32,23 @@ import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
@@ -73,10 +80,7 @@ public class FileIOUtilsTest {
     @Test
     public void writeReadStrings() throws Exception {
         Set<String> added = newHashSet("a", "z", "e", "b");
-        File f = folder.newFile();
-
-        int count = writeStrings(added.iterator(), f, false);
-        assertEquals(added.size(), count);
+        File f = assertWrite(added.iterator(), false, added.size());
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
 
@@ -86,33 +90,29 @@ public class FileIOUtilsTest {
     @Test
     public void writeReadStringsWithLineBreaks() throws IOException {
         Set<String> added = newHashSet(getLineBreakStrings());
-        File f = folder.newFile();
-        int count = writeStrings(added.iterator(), f, true);
-        assertEquals(added.size(), count);
+        File f = assertWrite(added.iterator(), true, added.size());
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), true);
+
         assertEquals(added, retrieved);
     }
 
     @Test
     public void writeReadRandomStrings() throws Exception {
         Set<String> added = newHashSet();
-        File f = folder.newFile();
-
         for (int i = 0; i < 100; i++) {
             added.add(getRandomTestString());
         }
-        int count = writeStrings(added.iterator(), f, true);
-        assertEquals(added.size(), count);
+        File f = assertWrite(added.iterator(), true, added.size());
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), true);
+
         assertEquals(added, retrieved);
     }
 
     @Test
     public void compareWithLineBreaks() throws Exception {
         Comparator<String> cmp = lineBreakAwareComparator(lexComparator);
-
         List<String> strs = getLineBreakStrings();
         Collections.sort(strs);
 
@@ -126,12 +126,12 @@ public class FileIOUtilsTest {
     @Test
     public void sortTest() throws IOException {
         List<String> list = newArrayList("a", "z", "e", "b");
-        File f = folder.newFile();
-        writeStrings(list.iterator(), f, false);
+        File f = assertWrite(list.iterator(), false, list.size());
+
         sort(f);
 
         BufferedReader reader =
-            new BufferedReader(new InputStreamReader(new FileInputStream(f), Charsets.UTF_8));
+            new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
         String line = null;
         List<String> retrieved = newArrayList();
         while ((line = reader.readLine()) != null) {
@@ -145,12 +145,12 @@ public class FileIOUtilsTest {
     @Test
     public void sortCustomComparatorTest() throws IOException {
         List<String> list = getLineBreakStrings();
-        File f = folder.newFile();
-        writeStrings(list.iterator(), f, true);
+        File f = assertWrite(list.iterator(), true, list.size());
+
         sort(f, lineBreakAwareComparator(lexComparator));
 
         BufferedReader reader =
-            new BufferedReader(new InputStreamReader(new FileInputStream(f), Charsets.UTF_8));
+            new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
         String line = null;
         List<String> retrieved = newArrayList();
         while ((line = reader.readLine()) != null) {
@@ -173,16 +173,13 @@ public class FileIOUtilsTest {
     @Test
     public void appendTest() throws IOException {
         Set<String> added1 = newHashSet("a", "z", "e", "b");
-        File f1 = folder.newFile();
-        writeStrings(added1.iterator(), f1, false);
+        File f1 = assertWrite(added1.iterator(), false, added1.size());
 
         Set<String> added2 = newHashSet("2", "3", "5", "6");
-        File f2 = folder.newFile();
-        writeStrings(added2.iterator(), f2, false);
+        File f2 = assertWrite(added2.iterator(), false, added2.size());
 
         Set<String> added3 = newHashSet("t", "y", "8", "9");
-        File f3 = folder.newFile();
-        writeStrings(added3.iterator(), f3, false);
+        File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         append(newArrayList(f2, f3), f1, true);
         assertEquals(union(union(added1, added2), added3),
@@ -195,18 +192,16 @@ public class FileIOUtilsTest {
     @Test
     public void appendTestNoDelete() throws IOException {
         Set<String> added1 = newHashSet("a", "z", "e", "b");
-        File f1 = folder.newFile();
-        writeStrings(added1.iterator(), f1, false);
+        File f1 = assertWrite(added1.iterator(), false, added1.size());
 
         Set<String> added2 = newHashSet("2", "3", "5", "6");
-        File f2 = folder.newFile();
-        writeStrings(added2.iterator(), f2, false);
+        File f2 = assertWrite(added2.iterator(), false, added2.size());
 
         Set<String> added3 = newHashSet("t", "y", "8", "9");
-        File f3 = folder.newFile();
-        writeStrings(added3.iterator(), f3, false);
+        File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         append(newArrayList(f2, f3), f1, false);
+
         assertEquals(union(union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
         assertTrue(f2.exists());
@@ -217,19 +212,16 @@ public class FileIOUtilsTest {
     @Test
     public void appendRandomizedTest() throws Exception {
         Set<String> added1 = newHashSet();
-        File f1 = folder.newFile();
-
         for (int i = 0; i < 100; i++) {
             added1.add(getRandomTestString());
         }
-        int count = writeStrings(added1.iterator(), f1, true);
-        assertEquals(added1.size(), count);
+        File f1 = assertWrite(added1.iterator(), true, added1.size());
 
         Set<String> added2 = newHashSet("2", "3", "5", "6");
-        File f2 = folder.newFile();
-        writeStrings(added2.iterator(), f2, true);
+        File f2 = assertWrite(added2.iterator(), true, added2.size());
 
         append(newArrayList(f2), f1, true);
+
         assertEquals(union(added1, added2),
             readStringsAsSet(new FileInputStream(f1), true));
     }
@@ -237,18 +229,70 @@ public class FileIOUtilsTest {
     @Test
     public void appendWithLineBreaksTest() throws IOException {
         Set<String> added1 = newHashSet(getLineBreakStrings());
-        File f1 = folder.newFile();
-        int count = writeStrings(added1.iterator(), f1, true);
-        assertEquals(added1.size(), count);
+        File f1 = assertWrite(added1.iterator(), true, added1.size());
 
         Set<String> added2 = newHashSet("2", "3", "5", "6");
-        File f2 = folder.newFile();
-        writeStrings(added2.iterator(), f2, true);
+        File f2 = assertWrite(added2.iterator(), true, added2.size());
 
         append(newArrayList(f1), f2, true);
+
         assertEquals(union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
     }
 
+    @Test
+    public void fileIteratorTest() throws Exception {
+        Set<String> added = newHashSet("a", "z", "e", "b");
+        File f = assertWrite(added.iterator(), false, added.size());
+
+        BurnOnCloseFileIterator iterator =
+            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f));
+
+        assertEquals(added, Sets.newHashSet(iterator));
+        assertTrue(f.exists());
+    }
+
+    @Test
+    public void fileIteratorBurnTest() throws Exception {
+        Set<String> added = newHashSet("a", "z", "e", "b");
+        File f = assertWrite(added.iterator(), false, added.size());
+
+        BurnOnCloseFileIterator iterator =
+            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f), f);
+
+        assertEquals(added, Sets.newHashSet(iterator));
+        assertTrue(!f.exists());
+    }
+
+    @Test
+    public void fileIteratorLineBreakTest() throws IOException {
+        Set<String> added = newHashSet(getLineBreakStrings());
+        File f = assertWrite(added.iterator(), true, added.size());
+
+        BurnOnCloseFileIterator iterator =
+            new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f),
+                new Function<String, String>() {
+                    @Nullable @Override public String apply(@Nullable String input) {
+                        return unescapeLineBreaks(input);
+                    }
+                });
+
+        assertEquals(added, Sets.newHashSet(iterator));
+    }
+
+    @Test
+    public void fileIteratorRandomizedTest() throws Exception {
+        Set<String> added = newHashSet();
+        for (int i = 0; i < 100; i++) {
+            added.add(getRandomTestString());
+        }
+        File f = assertWrite(added.iterator(), false, added.size());
+
+        BurnOnCloseFileIterator iterator =
+            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
+
+        assertEquals(added, Sets.newHashSet(iterator));
+        assertTrue(!f.exists());
+    }
 
     private static List<String> getLineBreakStrings() {
         return newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
@@ -271,6 +315,14 @@ public class FileIOUtilsTest {
         return unescaped;
     }
 
+    private File assertWrite(Iterator<String> iterator, boolean escape, int size)
+        throws IOException {
+        File f = folder.newFile();
+        int count = writeStrings(iterator, f, escape);
+        assertEquals(size, count);
+        return f;
+    }
+
     private static String getRandomTestString() throws Exception {
         boolean valid = false;
         StringBuilder buffer = new StringBuilder();
@@ -280,7 +332,7 @@ public class FileIOUtilsTest {
                 buffer.append((char) (RANDOM.nextInt(Character.MAX_VALUE)));
             }
             String s = buffer.toString();
-            CharsetEncoder encoder = Charset.forName(Charsets.UTF_8.toString()).newEncoder();
+            CharsetEncoder encoder = Charset.forName(UTF_8.toString()).newEncoder();
             try {
                 encoder.encode(CharBuffer.wrap(s));
                 valid = true;

@@ -61,7 +61,7 @@ import static org.apache.commons.io.FileUtils.lineIterator;
 import static org.apache.commons.io.FilenameUtils.concat;
 import static org.apache.commons.io.FilenameUtils.removeExtension;
 import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.CloseableFileIterator.wrap;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator.wrap;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
