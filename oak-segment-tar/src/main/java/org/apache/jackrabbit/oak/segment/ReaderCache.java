@@ -37,6 +37,15 @@ import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
  * on an array, and a slow one uses a LIRS cache.
  */
 public abstract class ReaderCache<T> {
+
+    @Nonnull
+    private final Weigher<CacheKey<T>, T> weigher = new Weigher<CacheKey<T>, T>() {
+        @Override
+        public int weigh(CacheKey<T> key, T value) {
+            return getEntryWeight(value);
+        }
+    };
+
     @Nonnull
     private final String name;
 
@@ -55,35 +64,34 @@ public abstract class ReaderCache<T> {
     /**
      * Create a new string cache.
      *
-     * @param maxSize the maximum memory in bytes.
+     * @param maxWeight the maximum memory in bytes.
+     * @param averageWeight  an estimate for the average weight of the elements in the
+     *                       cache. See {@link CacheLIRS#setAverageMemory(int)}.
      */
-    protected ReaderCache(long maxSize, @Nonnull String name) {
+    protected ReaderCache(long maxWeight, int averageWeight, @Nonnull String name) {
         this.name = checkNotNull(name);
-        if (maxSize >= 0) {
+        if (maxWeight >= 0) {
             fastCache = new FastCache<>();
             cache = CacheLIRS.<CacheKey<T>, T>newBuilder()
                     .module(name)
-                    .maximumWeight(maxSize)
-                    .averageWeight(250)
+                    .maximumWeight(maxWeight)
+                    .averageWeight(averageWeight)
+                    .weigher(weigher)
                     .build();
         } else {
             fastCache = null;
             // dummy cache to prevent NPE on the getStats() call
             cache = CacheLIRS.<CacheKey<T>, T> newBuilder()
                     .module(name)
-                    .maximumSize(1)
+                    .maximumWeight(1)
+                    .averageWeight(averageWeight)
+                    .weigher(weigher)
                     .build();
         }
     }
 
     @Nonnull
     public CacheStats getStats() {
-        Weigher<?, ?> weigher = new Weigher<CacheKey<T>, T>() {
-            @Override
-            public int weigh(CacheKey<T> key, T value) {
-                return getEntryWeight(value);
-            }
-        };
         return new CacheStats(cache, name, weigher, cache.getMaxMemory());
     }
 
@@ -121,7 +129,7 @@ public abstract class ReaderCache<T> {
         if (value == null) {
             value = loader.apply(offset);
             assert value != null;
-            cache.put(key, value, getEntryWeight(value));
+            cache.put(key, value);
         }
         if (isSmall(value)) {
             fastCache.put(hash, new FastCacheEntry<>(hash, msb, lsb, offset, value));
