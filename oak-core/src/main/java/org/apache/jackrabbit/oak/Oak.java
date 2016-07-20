@@ -517,12 +517,12 @@ public class Oak {
             String name = "async";
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, store,
                     indexEditors);
-            regs.add(scheduleWithFixedDelay(whiteboard, task, 5, true));
+            regs.add(scheduleWithFixedDelay(whiteboard, task, 5, true, true));
             regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                     task.getIndexStats(), IndexStatsMBean.TYPE, name));
             // Register AsyncIndexStats for execution stats update
             regs.add(
-                scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1, false));
+                scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1));
             closer.register(task);
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,
