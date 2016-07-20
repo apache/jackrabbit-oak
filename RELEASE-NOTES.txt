@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.6
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.5 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.6 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,61 +15,71 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.5
+Changes in Oak 1.5.6
 ---------------------
 
 Technical task
 
-    [OAK-4369] - Introduce interface for Secondary NodeStore provider
-    [OAK-4490] - Expose SegmentNodeStore as a secondary NodeStore
-    [OAK-4495] - RDBDocumentStore: consistent handling of invalidate
-    methods
-    [OAK-4497] - RDBDocumentStore: potential race condition between
-    update and invalidate can cause stale cache entries
-    [OAK-4509] - RDBDocumentStore: low-level read method should also
-    support condition on MODIFIED value
-    [OAK-4510] - RDBDocumentStore: can't persist _modified value of
-    null
-    [OAK-4536] - Avoid premature branch
+    [OAK-4200] - [BlobGC] Improve collection times of blobs available
+    [OAK-4477] - RDBDatasourceFactory should use pool config similar
+    to sling datasource defaults
+    [OAK-4539] - Calculate children cache entry on commit
+    [OAK-4554] - RDBBlobStoreTest should use RDBDatasourceWrapper
+    [OAK-4557] - RDBPreparedStatementWrapper: do not hide
+    implementation bugs
+    [OAK-4559] - RDB*Store: failures with Tomcat JDBC pool's
+    StatementCache interceptor
+    [OAK-4562] - BasicDocumentStore max id test might return
+    misleading results
 
 Bug
 
-    [OAK-2819] - Persistent cache: tool to dump the contents
-    [OAK-3629] - Index corruption seen with CopyOnRead when index
-    defnition is recreated
-    [OAK-4475] - CI failing on branches due to unknown fixture
-    SEGMENT_TAR
-    [OAK-4493] - Offline compaction persisted mode
-    [OAK-4494] - Stale documents after revision GC in cluster
-    [OAK-4496] - Enable DataStoreBlobStore#getAllRecords to support
-    non-shared DataStore
-    [OAK-4502] - LucenePropertyIndex doesn't use filter's path for ACL
-    checks of suggest queries
-    [OAK-4503] - Update count increases with rebase
-    [OAK-4507] - [oak-mongo.js] oak.indexStats() does not compute
-    counts properly
-    [OAK-4515] - Catch NPE and log serverResult in
-    MongoDocumentStore.determineServerTimeDifferenceMillis
-    [OAK-4527] - [oak-blob-cloud] Access parameters configured leak
-    out in the exception message
-    [OAK-4537] - rat-plugin does not ignore oak-segment-tar/target
-    [OAK-4538] - IndexDefinition.createCodec class loading deadlock
+    [OAK-4518] - ConcurrentAddReferenceTest fails occasionally
+    [OAK-4532] - race-condition in commit-rate-limiter
+    [OAK-4544] - Fix failing test
+    DataStoreCheckTest.testMissingOpParams()
+    [OAK-4548] - SegmentDataStoreBlobGCIT failures
+    [OAK-4552] - Checkpoints.getOldestRevisionToKeep() returns newest
+    valid revision
+    [OAK-4565] - S3Backend fails to upload large metadata records
+    [OAK-4568] - JournalEntry.applyTo() creates complete change tree
+    in memory
+    [OAK-4571] - consolidated listener stats confuses
+    cluster-external/local flags
+    [OAK-4572] - Overflow to disk threshold too high
 
 Improvement
 
-    [OAK-4454] - Create consistent API in ExternalSort to write and
-    read escaped line breaks
-    [OAK-4488] - Create separate reactor POM to perform releases
-    [OAK-4505] - Offline compaction clearer output values
-    [OAK-4514] - ResurrectNodeAfterRevisionGCTest's cleanup may
-    interfere with DS disposal
-    [OAK-4516] - Configurable option to lucene index defs to index
-    original (unanalyzed value as well)
-    [OAK-4523] - Query: first selector should be main selector
+    [OAK-4512] - Detect and log commits to the read-only stores
+    [OAK-4528] - diff calculation in DocumentNodeStore should try to
+    re-use journal info on diff cache miss
+    [OAK-4533] - make DELAY_THRESHOLD & MAX_DELAY of ChangeProcessor
+    configurable
+    [OAK-4534] - add trace logging to CommitRateLimiter
+    [OAK-4540] - Cache update blocks new commits
+    [OAK-4542] - PerfLogger should also allow a threshold to log at
+    INFO
+    [OAK-4545] - Configurable maxBackOffMillis
+    [OAK-4553] - Retain journal entries for valid checkpoints
+    [OAK-4556] - Track branch on newBranchCommit()
+    [OAK-4563] - Specify thread pool name which should be used by
+    Async Indexing task
+    [OAK-4564] - Use Lucene index to look for long-named nodes in JCR2
+    upgrade
+    [OAK-4567] - Define oak:Resource nodetype as non referenceable
+    alternative to nt:resource
+    [OAK-4569] - Clean-up the oak-upgrade dependencies
+    [OAK-4573] - S3 fetching record leads to multiple calls and
+    background download
+    [OAK-4574] - [BlobGC] Remove adding of paths in file maintained
+    for blob references
+    [OAK-4578] - Clarify weight related methods/parameters/arguments
+    of the LIRS cache
 
-New Feature
+Task
 
-    [OAK-4476] - Option to check datastore consistency in oak-run
+    [OAK-3211] - Document External Identity Management
+    [OAK-4551] - Update Oak to Jackrabbit 2.13.1
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
