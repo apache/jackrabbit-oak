@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Store;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -54,7 +54,7 @@ import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
 /**
- * Test for BlobIdTracker.Store to test addition, retrieval and removal of blob ids.
+ * Test for BlobIdTracker.BlobIdStore to test addition, retrieval and removal of blob ids.
  */
 public class BlobIdTrackerStoreTest {
     private static final Logger log = LoggerFactory.getLogger(BlobIdTrackerStoreTest.class);
@@ -99,7 +99,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addSnapshot() throws Exception {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 10000));
         store.snapshot();
@@ -110,7 +110,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addSnapshotRetrieve() throws Exception {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 10000));
         store.snapshot();
@@ -121,7 +121,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addSnapshotAdd() throws Exception {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 10000));
         store.snapshot();
@@ -135,7 +135,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addSnapshotAddSnapshot() throws Exception {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 10000));
         store.snapshot();
@@ -148,7 +148,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addSnapshotRemove() throws Exception {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 10000));
         store.snapshot();
@@ -160,7 +160,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addRestart() throws IOException {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 100000));
         this.tracker = initTracker();
@@ -174,7 +174,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addCloseRestart() throws IOException {
-        BlobIdTracker.Store store = tracker.store;
+        BlobIdStore store = tracker.store;
 
         Set<String> initAdd = add(store, range(0, 10000));
         store.close();
@@ -187,7 +187,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addConcurrentSnapshot() throws IOException, InterruptedException {
-        final BlobIdTracker.Store store = tracker.store;
+        final BlobIdStore store = tracker.store;
         final CountDownLatch start = new CountDownLatch(1);
         final CountDownLatch done = new CountDownLatch(2);
 
@@ -208,7 +208,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addSnapshotConcurrentRetrieve() throws IOException, InterruptedException {
-        final BlobIdTracker.Store store = tracker.store;
+        final BlobIdStore store = tracker.store;
         final CountDownLatch start = new CountDownLatch(1);
         final CountDownLatch done = new CountDownLatch(2);
         Set<String> initAdd = add(store, range(0, 100000));
@@ -232,7 +232,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void snapshotConcurrentRemove() throws IOException, InterruptedException {
-        final BlobIdTracker.Store store = tracker.store;
+        final BlobIdStore store = tracker.store;
         final CountDownLatch start = new CountDownLatch(1);
         final CountDownLatch done = new CountDownLatch(2);
         final Set<String> initAdd = add(store, range(0, 100000));
@@ -255,7 +255,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void addBulkAdd() throws IOException {
-        final BlobIdTracker.Store store = tracker.store;
+        final BlobIdStore store = tracker.store;
         final Set<String> initAdd = add(store, range(0, 4));
 
         // Add new ids from a file
@@ -284,7 +284,7 @@ public class BlobIdTrackerStoreTest {
 
     @Test
     public void bulkAddConcurrentCompact() throws IOException, InterruptedException {
-        final BlobIdTracker.Store store = tracker.store;
+        final BlobIdStore store = tracker.store;
         final CountDownLatch start = new CountDownLatch(1);
         final CountDownLatch done = new CountDownLatch(2);
 
@@ -305,12 +305,12 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static Thread addThread(
-        final Store store, final CountDownLatch start, final CountDownLatch done) {
+        final BlobIdStore store, final CountDownLatch start, final CountDownLatch done) {
         return addThread(store, false, start, done);
     }
 
     private static Thread addThread(
-        final Store store, final boolean bulk, final CountDownLatch start, final CountDownLatch done) {
+        final BlobIdStore store, final boolean bulk, final CountDownLatch start, final CountDownLatch done) {
         return new Thread("AddThread") {
             @Override
             public void run() {
@@ -333,7 +333,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static Thread retrieveThread(
-        final Store store, final Set<String> retrieves, final CountDownLatch start,
+        final BlobIdStore store, final Set<String> retrieves, final CountDownLatch start,
         final CountDownLatch done) {
         return new Thread("RetrieveThread") {
             @Override
@@ -351,7 +351,7 @@ public class BlobIdTrackerStoreTest {
         };
     }
 
-    private static Thread removeThread(final Store store, final File temp,
+    private static Thread removeThread(final BlobIdStore store, final File temp,
         final Set<String> adds, final CountDownLatch start, final CountDownLatch done) {
         return new Thread("RemoveThread") {
             @Override
@@ -370,7 +370,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static Thread snapshotThread(
-        final Store store, final CountDownLatch start, final CountDownLatch done) {
+        final BlobIdStore store, final CountDownLatch start, final CountDownLatch done) {
         return new Thread("SnapshotThread") {
             @Override
             public void run() {
@@ -387,7 +387,7 @@ public class BlobIdTrackerStoreTest {
         };
     }
 
-    private static Set<String> add(Store store, List<String> ints) throws IOException {
+    private static Set<String> add(BlobIdStore store, List<String> ints) throws IOException {
         Set<String> s = newHashSet();
         for (String rec : ints) {
             store.addRecord(rec);
@@ -396,7 +396,7 @@ public class BlobIdTrackerStoreTest {
         return s;
     }
 
-    private static Set<String> retrieve(Store store) throws IOException {
+    private static Set<String> retrieve(BlobIdStore store) throws IOException {
         Set<String> retrieved = newHashSet();
         Iterator<String> iter = store.getRecords();
         while(iter.hasNext()) {
@@ -405,14 +405,14 @@ public class BlobIdTrackerStoreTest {
         closeQuietly((Closeable)iter);
         return retrieved;
     }
-    private static Set<String> retrieveFile(Store store, TemporaryFolder folder) throws IOException {
+    private static Set<String> retrieveFile(BlobIdStore store, TemporaryFolder folder) throws IOException {
         File f = folder.newFile();
         Set<String> retrieved = readStringsAsSet(
             new FileInputStream(store.getRecords(f.getAbsolutePath())), false);
         return retrieved;
     }
 
-    private static void remove(Store store, File temp, Set<String> initAdd,
+    private static void remove(BlobIdStore store, File temp, Set<String> initAdd,
             List<String> ints) throws IOException {
         writeStrings(ints.iterator(), temp, false);
         initAdd.removeAll(ints);
