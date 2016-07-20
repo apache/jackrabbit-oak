@@ -66,9 +66,9 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Store.Type.GENERATION;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Store.Type.IN_PROCESS;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Store.Type.REFS;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.GENERATION;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.IN_PROCESS;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.REFS;
 
 
 /**
@@ -90,7 +90,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     private final SharedDataStore datastore;
 
-    protected Store store;
+    protected BlobIdStore store;
 
     private final ScheduledExecutorService scheduler;
 
@@ -113,7 +113,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         try {
             forceMkdir(rootDir);
             prefix = fileNamePrefix + "-" + repositoryId;
-            this.store = new Store(rootDir, prefix);
+            this.store = new BlobIdStore(rootDir, prefix);
             scheduler.scheduleAtFixedRate(new SnapshotJob(),
                 SECONDS.toMillis(snapshotDelaySecs),
                 SECONDS.toMillis(snapshotIntervalSecs), MILLISECONDS);
@@ -258,7 +258,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     /**
      * Local store for managing the blob reference
      */
-    static class Store implements Closeable {
+    static class BlobIdStore implements Closeable {
         /* Suffix for a snapshot generation file */
         private static final String genFileNameSuffix = ".gen";
 
@@ -281,7 +281,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         /* Lock for operations on references file */
         private final ReentrantLock refLock;
 
-        Store(File rootDir, String prefix) throws IOException {
+        BlobIdStore(File rootDir, String prefix) throws IOException {
             this.rootDir = rootDir;
             this.prefix = prefix;
             this.refLock = new ReentrantLock();
