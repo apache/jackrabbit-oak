@@ -47,17 +47,22 @@ public class WhiteboardUtils {
 
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, long delayInSeconds) {
-        return scheduleWithFixedDelay(whiteboard, runnable, delayInSeconds, false);
+        return scheduleWithFixedDelay(whiteboard, runnable, delayInSeconds, false, false);
     }
 
     public static Registration scheduleWithFixedDelay(
-            Whiteboard whiteboard, Runnable runnable, long delayInSeconds, boolean runOnSingleClusterNode) {
+            Whiteboard whiteboard, Runnable runnable, long delayInSeconds, boolean runOnSingleClusterNode,
+            boolean useDedicatedPool) {
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .put("scheduler.period", delayInSeconds)
                 .put("scheduler.concurrent", false);
         if (runOnSingleClusterNode) {
             //Make use of feature while running in Sling SLING-2979
             builder.put("scheduler.runOn", "SINGLE");
+        }
+        if (useDedicatedPool) {
+            //Make use of dedicated threadpool SLING-5831
+            builder.put("scheduler.threadPool", "oak");
         }
         return whiteboard.register(
                 Runnable.class, runnable, builder.build());
