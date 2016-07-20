@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -76,7 +77,12 @@ public class SegmentCache {
 
     @Nonnull
     public CacheStats getCacheStats() {
-        return new CacheStats(cache, "Segment Cache", null,
-                cache.getMaxMemory());
+        Weigher<?, ?> weigher = new Weigher<SegmentId, Segment>() {
+            @Override
+            public int weigh(SegmentId key, Segment segment) {
+                return segment.size();
+            }
+        };
+        return new CacheStats(cache, "Segment Cache", weigher, cache.getMaxMemory());
     }
 }
