@@ -43,7 +43,7 @@ The [LdapIdentityProvider] is a service implementing the [ExternalIdentityProvid
 In an OSGi-base setup the configuration options required in order to establish
 connections to the LDAP are obtained form the properties associated with the service.
 
-Otherwise the identity provider must be instanciated with the corresponding
+Otherwise the identity provider must be instantiated with the corresponding
 `LdapProviderConfig` object revealing the mandatory config options. The details
 of the LDAP configuration are listed below in section Configuration.
 
@@ -51,7 +51,7 @@ of the LDAP configuration are listed below in section Configuration.
 
 Currently the only way to combine multiple LDAP sources is to have multiple
 entries of the `ExternalLoginModule` configured in the JAAS setup each coming
-with it's own identity provider implementation.
+with it's own identity provider implementation and sync handler.
 
 See [OAK-1839] for an improvement request that allows to have multiple identity
 provider implementations configured with the `ExternalLoginModule`.
