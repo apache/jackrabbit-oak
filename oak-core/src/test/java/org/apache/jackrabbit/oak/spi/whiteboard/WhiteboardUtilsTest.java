@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -32,7 +34,9 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.After;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class WhiteboardUtilsTest {
     private List<Registration> regs = Lists.newArrayList();
@@ -85,6 +89,26 @@ public class WhiteboardUtilsTest {
         assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=query,name=settings")));
     }
 
+    @Test
+    public void scheduledJobWithPoolName() throws Exception{
+        final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
+        Whiteboard wb = new DefaultWhiteboard(){
+            @Override
+            public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
+                props.set(properties);
+                return super.register(type, service, properties);
+            }
+        };
+
+        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), 1, false, true);
+        assertNotNull(props.get().get("scheduler.threadPool"));
+
+        props.set(null);
+        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), 1, true, false);
+        assertNull(props.get().get("scheduler.threadPool"));
+        assertEquals("SINGLE", props.get().get("scheduler.runOn"));
+    }
+
     public interface HelloMBean {
         boolean isRunning();
         int getCount();
@@ -107,5 +131,12 @@ public class WhiteboardUtilsTest {
 
     private static class HelloTest extends Hello {
 
+    }
+
+    private static class TestRunnable implements Runnable {
+        @Override
+        public void run() {
+
+        }
     }
 }

@@ -39,12 +39,11 @@ public class IndexMBeanRegistration implements Registration {
 
     public void registerAsyncIndexer(AsyncIndexUpdate task, long delayInSeconds) {
         task.setIndexMBeanRegistration(this);
-        regs.add(scheduleWithFixedDelay(whiteboard, task, delayInSeconds, true));
+        regs.add(scheduleWithFixedDelay(whiteboard, task, delayInSeconds, true, true));
         regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                 task.getIndexStats(), IndexStatsMBean.TYPE, task.getName()));
         // Register AsyncIndexStats for execution stats update
-        regs.add(scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1,
-                false));
+        regs.add(scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1));
     }
 
     @Override
