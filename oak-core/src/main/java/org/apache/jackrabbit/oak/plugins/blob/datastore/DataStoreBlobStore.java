@@ -211,8 +211,13 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
             checkNotNull(stream);
             DataRecord dr = writeStream(stream);
             String id = getBlobId(dr);
-            if (tracker != null) {
-                tracker.add(id);
+            if (tracker != null && !InMemoryDataRecord.isInstance(id)) {
+                try {
+                    tracker.add(id);
+                    log.trace("Tracked Id {}", id);
+                } catch (Exception e) {
+                    log.warn("Could not add track id", e);
+                }
             }
             threw = false;
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());

@@ -21,6 +21,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -40,7 +41,10 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -138,6 +142,39 @@ public class DataStoreTrackerGCTest {
         assertEquals(state.blobsPresent, existingAfterGC);
         // Tracked blobs should reflect deletions after gc
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
+    }
+
+    @Test
+    public void gcWithInlined() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        DataStoreState state = init(cluster.nodeStore, 0);
+        addInlined(cluster.nodeStore);
+        ScheduledFuture<?> scheduledFuture = newSingleThreadScheduledExecutor()
+            .schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
+        scheduledFuture.get();
+        // All blobs added should be tracked now
+        assertEquals(state.blobsAdded, retrieveTracked(tracker));
+
+        cluster.gc.collectGarbage(false);
+        Set<String> existingAfterGC = iterate(s);
+        // Check the state of the blob store after gc
+        assertEquals(state.blobsPresent, existingAfterGC);
+        // Tracked blobs should reflect deletions after gc
+        assertEquals(state.blobsPresent, retrieveTracked(tracker));
+    }
+
+    private HashSet<String> addInlined(NodeStore nodeStore) throws Exception {
+        HashSet<String> set = new HashSet<String>();
+        NodeBuilder a = nodeStore.getRoot().builder();
+        int number = 4;
+        for (int i = 0; i < number; i++) {
+            Blob b = nodeStore.createBlob(randomStream(i, 90));
+            a.child("cinline" + i).setProperty("x", b);
+        }
+        nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return set;
     }
 
     @Test
