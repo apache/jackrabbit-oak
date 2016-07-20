@@ -86,6 +86,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * System property to skip tracker. If set will skip:
      *  * Snapshots (No-op)
      *  * Retrieve (return empty)
+     *  * Add (No-op)
      */
     private final boolean SKIP_TRACKER = Boolean.getBoolean("oak.datastore.skipTracker");
 
@@ -144,17 +145,23 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     @Override
     public void add(String id) throws IOException {
-        store.addRecord(id);
+        if (!SKIP_TRACKER) {
+            store.addRecord(id);
+        }
     }
 
     @Override
     public void add(Iterator<String> recs) throws IOException {
-        store.addRecords(recs);
+        if (!SKIP_TRACKER) {
+            store.addRecords(recs);
+        }
     }
 
     @Override
     public void add(File recs) throws IOException {
-        store.addRecords(recs);
+        if (!SKIP_TRACKER) {
+            store.addRecords(recs);
+        }
     }
 
     /**
