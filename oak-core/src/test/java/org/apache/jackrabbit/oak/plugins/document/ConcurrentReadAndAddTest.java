@@ -33,13 +33,11 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-@Ignore
 public class ConcurrentReadAndAddTest {
 
     @Rule
