@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.String.valueOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -26,35 +27,35 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.segment.StringCache;
 import org.junit.Test;
 
 import com.google.common.base.Function;
 
-public class StringCacheTest {
+public class RecordCacheTest {
 
     @Test
     public void empty() {
         final AtomicInteger counter = new AtomicInteger();
         Function<Integer, String> loader = new Function<Integer, String>() {
-            @Override @Nullable
+            @Override @Nonnull
             public String apply(@Nullable Integer input) {
                 counter.incrementAndGet();
-                return "" + input;
+                return valueOf(input);
             }
         };
         StringCache c = new StringCache(0);
         for (int repeat = 0; repeat < 10; repeat++) {
             for (int i = 0; i < 1000; i++) {
-                assertEquals("" + i, c.getString(i, i, i, loader));
+                assertEquals(valueOf(i), c.get(i, i, i, loader));
             }
         }
         // the LIRS cache should be almost empty (low hit rate there)
-        assertTrue("" + counter, counter.get() > 1000);
+        assertTrue(valueOf(counter), counter.get() > 1000);
         // but the fast cache should improve the total hit rate
-        assertTrue("" + counter, counter.get() < 5000);
+        assertTrue(valueOf(counter), counter.get() < 5000);
     }
     
     @Test
@@ -71,14 +72,14 @@ public class StringCacheTest {
         StringCache c = new StringCache(1024);
         for (int repeat = 0; repeat < 10; repeat++) {
             for (int i = 0; i < 1000; i++) {
-                assertEquals(large + i, c.getString(i, i, i, loader));
-                assertEquals(large + 0, c.getString(0, 0, 0, loader));
+                assertEquals(large + i, c.get(i, i, i, loader));
+                assertEquals(large + 0, c.get(0, 0, 0, loader));
             }
         }
         // the LIRS cache should be almost empty (low hit rate there)
         // and large strings are not kept in the fast cache, so hit rate should be bad
-        assertTrue("" + counter, counter.get() > 9000);
-        assertTrue("" + counter, counter.get() < 10000);
+        assertTrue(valueOf(counter), counter.get() > 9000);
+        assertTrue(valueOf(counter), counter.get() < 10000);
     }
     
     @Test
@@ -87,18 +88,18 @@ public class StringCacheTest {
         Function<Integer, String> uniqueLoader = new Function<Integer, String>() {
             @Override @Nullable
             public String apply(@Nullable Integer input) {
-                return "" + counter.incrementAndGet();
+                return valueOf(counter.incrementAndGet());
             }
         };
         StringCache c = new StringCache(0);
         // load a new entry
-        assertEquals("1", c.getString(0, 0, 0, uniqueLoader));
+        assertEquals("1", c.get(0, 0, 0, uniqueLoader));
         // but only once
-        assertEquals("1", c.getString(0, 0, 0, uniqueLoader));
+        assertEquals("1", c.get(0, 0, 0, uniqueLoader));
         c.clear();
         // after clearing the cache, load a new entry
-        assertEquals("2", c.getString(0, 0, 0, uniqueLoader));
-        assertEquals("2", c.getString(0, 0, 0, uniqueLoader));
+        assertEquals("2", c.get(0, 0, 0, uniqueLoader));
+        assertEquals("2", c.get(0, 0, 0, uniqueLoader));
     }
     
     @Test
@@ -121,7 +122,7 @@ public class StringCacheTest {
             int segment = r.nextInt(segmentCount);
             int offset = r.nextInt(10);
             Function<Integer, String> loader = loaderList.get(segment);
-            String x = c.getString(segment, segment, offset, loader);
+            String x = c.get(segment, segment, offset, loader);
             assertEquals(loader.apply(offset), x);
         }
     }

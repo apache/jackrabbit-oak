@@ -370,7 +370,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 segmentCacheStats.getName()
         );
 
-        // Expose stats about the string cache, if available
+        // Expose stats about the string and template caches
 
         CacheStats stringCacheStats = store.getStringCacheStats();
         stringCacheMBean = registerMBean(
@@ -378,6 +378,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 CacheStatsMBean.class,
                 stringCacheStats,CacheStats.TYPE,
                 stringCacheStats.getName()
+        );
+
+        CacheStats templateCacheStats = store.getTemplateCacheStats();
+        stringCacheMBean = registerMBean(
+                whiteboard,
+                CacheStatsMBean.class,
+                templateCacheStats,CacheStats.TYPE,
+                templateCacheStats.getName()
         );
 
         // Listen for Executor services on the whiteboard

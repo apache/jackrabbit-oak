@@ -37,6 +37,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.FAILURE;
@@ -258,11 +259,13 @@ public class FileStore implements SegmentStore, Closeable {
         // FIXME OAK-4451: Implement a proper template cache: inject caches
         // from the outside so we can get rid of the cache stat accessors
         if (builder.getCacheSize() < 0) {
-            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, 0);
+            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, 0, 0);
         } else if (builder.getCacheSize() > 0) {
-            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, (long) builder.getCacheSize());
+            this.segmentReader = new CachingSegmentReader(getWriter, blobStore,
+                    (long) builder.getCacheSize(), (long) builder.getCacheSize());
         } else {
-            this.segmentReader = new CachingSegmentReader(getWriter, blobStore, (long) DEFAULT_STRING_CACHE_MB);
+            this.segmentReader = new CachingSegmentReader(getWriter, blobStore,
+                    (long) DEFAULT_STRING_CACHE_MB, (long) DEFAULT_TEMPLATE_CACHE_MB);
         }
 
         Supplier<Integer> getGeneration = new Supplier<Integer>() {
@@ -432,6 +435,11 @@ public class FileStore implements SegmentStore, Closeable {
     @Nonnull
     public CacheStats getStringCacheStats() {
         return segmentReader.getStringCacheStats();
+    }
+
+    @Nonnull
+    public CacheStats getTemplateCacheStats() {
+        return segmentReader.getTemplateCacheStats();
     }
 
     public void maybeCompact(boolean cleanup) throws IOException {

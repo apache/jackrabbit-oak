@@ -32,17 +32,16 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-// FIXME OAK-4451: Implement a proper template cache
-// - move the template cache into this class, implement monitoring, management, logging, tests
-
 /**
  * This {@code SegmentReader} implementation implements caching for
  * strings and templates. It can also optionally rely on a {@link BlobStore} for resolving blobs.
  */
 public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
-
     public static final String STRING_CACHE_MB = "oak.segment.stringCacheMB";
+
+    public static final int DEFAULT_TEMPLATE_CACHE_MB = 64;
+    public static final String TEMPLATE_CACHE_MB = "oak.segment.templateCacheMB";
 
     @Nonnull
     private final Supplier<SegmentWriter> writer;
@@ -57,6 +56,12 @@ public class CachingSegmentReader implements SegmentReader {
     private final StringCache stringCache;
 
     /**
+     * Cache for template records
+     */
+    @Nonnull
+    private final TemplateCache templateCache;
+
+    /**
      * Create a new instance based on the supplied arguments.
      * @param writer          A {@code Supplier} for a the {@code SegmentWriter} used by the segment
      *                        builders returned from {@link NodeState#builder()} to write ahead changes.
@@ -64,14 +69,17 @@ public class CachingSegmentReader implements SegmentReader {
      * @param blobStore       {@code BlobStore} instance of the underlying {@link SegmentStore}, or
      *                        {@code null} if none.
      * @param stringCacheMB   the size of the string cache in MBs or {@code 0} for no cache.
+     * @param templateCacheMB the size of the template cache in MBs or {@code 0} for no cache.
      */
     public CachingSegmentReader(
             @Nonnull Supplier<SegmentWriter> writer,
             @Nullable BlobStore blobStore,
-            long stringCacheMB) {
+            long stringCacheMB,
+            long templateCacheMB) {
         this.writer = checkNotNull(writer);
         this.blobStore = blobStore;
         stringCache = new StringCache(getLong(STRING_CACHE_MB, stringCacheMB) * 1024 * 1024);
+        templateCache = new TemplateCache(getLong(TEMPLATE_CACHE_MB, templateCacheMB * 1024 * 1024));
     }
 
     /**
@@ -83,8 +91,8 @@ public class CachingSegmentReader implements SegmentReader {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
-        return stringCache.getString(msb, lsb, id.getOffset(), new Function<Integer, String>() {
-            @Nullable
+        return stringCache.get(msb, lsb, id.getOffset(), new Function<Integer, String>() {
+            @Nonnull
             @Override
             public String apply(Integer offset) {
                 return segmentId.getSegment().readString(offset);
@@ -104,16 +112,16 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     @Override
     public Template readTemplate(@Nonnull RecordId id) {
-        int offset = id.getOffset();
-        if (id.getSegment().templates == null) {
-            return id.getSegment().readTemplate(offset);
-        }
-        Template template = id.getSegment().templates.get(offset);
-        if (template == null) {
-            template = id.getSegment().readTemplate(offset);
-            id.getSegment().templates.putIfAbsent(offset, template); // only keep the first copy
-        }
-        return template;
+        final SegmentId segmentId = id.getSegmentId();
+        long msb = segmentId.getMostSignificantBits();
+        long lsb = segmentId.getLeastSignificantBits();
+        return templateCache.get(msb, lsb, id.getOffset(), new Function<Integer, Template>() {
+            @Nonnull
+            @Override
+            public Template apply(Integer offset) {
+                return segmentId.getSegment().readTemplate(offset);
+            }
+        });
     }
 
     @Nonnull
@@ -144,5 +152,10 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     public CacheStats getStringCacheStats() {
         return stringCache.getStats();
+    }
+
+    @Nonnull
+    public CacheStats getTemplateCacheStats() {
+        return templateCache.getStats();
     }
 }
