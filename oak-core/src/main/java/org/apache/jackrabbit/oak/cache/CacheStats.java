@@ -41,6 +41,14 @@ public class CacheStats extends AnnotatedStandardMBean implements CacheStatsMBea
             new com.google.common.cache.CacheStats(
             0, 0, 0, 0, 0, 0);
 
+    /**
+     * Construct the cache stats object.
+     * 
+     * @param cache the cache
+     * @param name the name of the cache
+     * @param weigher the weigher used to estimate the current weight
+     * @param maxWeight the maximum weight
+     */
     @SuppressWarnings("unchecked")
     public CacheStats(Cache<?, ?> cache, String name, 
             Weigher<?, ?> weigher, long maxWeight) {
@@ -162,6 +170,7 @@ public class CacheStats extends AnnotatedStandardMBean implements CacheStatsMBea
                 .toString();
     }
 
+    @Override
     public String getName() {
         return name;
     }
