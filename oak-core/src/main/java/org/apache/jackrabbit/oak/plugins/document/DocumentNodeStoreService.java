@@ -69,7 +69,9 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
+import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
@@ -324,6 +326,24 @@ public class DocumentNodeStoreService {
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
+    /**
+     * Default interval for taking snapshots of locally tracked blob ids.
+     */
+    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+    @Property (longValue = DEFAULT_BLOB_SNAPSHOT_INTERVAL,
+        label = "Blob tracking snapshot interval (in secs)",
+        description = "This is the default interval in which the snapshots of locally tracked blob ids will"
+            + "be taken and synchronized with the blob store"
+    )
+    public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
+
+    private static final String DEFAULT_PROP_HOME = "./repository";
+    @Property(value = DEFAULT_PROP_HOME,
+        label = "Root directory",
+        description = "Root directory for local tracking of blob ids"
+    )
+    private static final String PROP_HOME = "repository.home";
+
     private static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
     @Property(longValue = DEFAULT_MAX_REPLICATION_LAG,
             label = "Max Replication Lag (in secs)",
@@ -504,14 +524,30 @@ public class DocumentNodeStoreService {
         
         // If a shared data store register the repo id in the data store
         if (SharedDataStoreUtils.isShared(blobStore)) {
+            String repoId = null;
             try {
-                String repoId = ClusterRepositoryInfo.getOrCreateId(mk.getNodeStore());
+                repoId = ClusterRepositoryInfo.getOrCreateId(mk.getNodeStore());
                 ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                     SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }
+
+            if (blobStore instanceof BlobTrackingStore) {
+                final long trackSnapshotInterval = toLong(prop(PROP_BLOB_SNAPSHOT_INTERVAL),
+                    DEFAULT_BLOB_SNAPSHOT_INTERVAL);
+                String root = PropertiesUtil.toString(prop(PROP_HOME), DEFAULT_PROP_HOME);
+
+                BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
+                if (trackingStore.getTracker() != null) {
+                    trackingStore.getTracker().close();
+                }
+                ((BlobTrackingStore) blobStore).addTracker(
+                    new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
+                        blobStore));
+            }
         }
+
 
         registerJMXBeans(mk.getNodeStore(), mkBuilder);
         registerLastRevRecoveryJob(mk.getNodeStore());

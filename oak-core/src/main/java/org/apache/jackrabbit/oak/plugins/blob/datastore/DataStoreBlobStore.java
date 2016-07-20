@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterators.filter;
 import static com.google.common.collect.Iterators.transform;
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -57,6 +58,7 @@ import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
@@ -70,13 +72,15 @@ import org.slf4j.LoggerFactory;
  * It also handles inlining binaries if there size is smaller than
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
-public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore,
-        GarbageCollectableBlobStore {
+public class DataStoreBlobStore implements DataStore, BlobStore,
+        GarbageCollectableBlobStore, BlobTrackingStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final DataStore delegate;
 
     private BlobStatsCollector stats = BlobStatsCollector.NOOP;
+
+    private BlobTracker tracker;
 
     /**
      * If set to true then the blob length information would be encoded as part of blobId
@@ -194,6 +198,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     public void close() throws DataStoreException {
         delegate.close();
         cache.invalidateAll();
+        closeQuietly(tracker);
     }
 
     //~-------------------------------------------< BlobStore >
@@ -206,6 +211,9 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
             checkNotNull(stream);
             DataRecord dr = writeStream(stream);
             String id = getBlobId(dr);
+            if (tracker != null) {
+                tracker.add(id);
+            }
             threw = false;
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
             stats.uploadCompleted(id);
@@ -332,7 +340,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
             in = new FileInputStream(file);
             return writeBlob(in);
         } finally {
-            org.apache.commons.io.IOUtils.closeQuietly(in);
+            closeQuietly(in);
             FileUtils.forceDelete(file);
         }
     }
@@ -520,6 +528,19 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     public void setBlobStatsCollector(BlobStatsCollector stats) {
         this.stats = stats;
     }
+
+
+    @Override
+    public void addTracker(BlobTracker tracker) {
+        this.tracker = tracker;
+    }
+
+    @Override
+    @Nullable
+    public BlobTracker getTracker() {
+        return tracker;
+    }
+
 
     //~---------------------------------------------< Internal >
 

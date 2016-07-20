@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.blob;
+package org.apache.jackrabbit.oak.commons;
 
 import java.io.IOException;
 import java.io.StringReader;
