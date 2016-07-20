@@ -46,7 +46,6 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.io.Files.asByteSource;
 import static com.google.common.io.Files.fileTreeTraverser;
 import static com.google.common.io.Files.move;
 import static com.google.common.io.Files.newWriter;
@@ -258,7 +257,6 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * @throws IOException
      */
     private void snapshot() throws IOException {
-        InputStream inputStream = null;
         try {
             if (!SKIP_TRACKER) {
                 Stopwatch watch = Stopwatch.createStarted();
@@ -266,16 +264,14 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
                 watch = Stopwatch.createStarted();
-                inputStream = asByteSource(store.getBlobRecordsFile()).openBufferedStream();
-                datastore.addMetadataRecord(inputStream, (prefix + instanceId + mergedFileSuffix));
+                datastore.addMetadataRecord(store.getBlobRecordsFile(),
+                    (prefix + instanceId + mergedFileSuffix));
                 LOG.info("Added blob id metadata record in DataStore in [{}]",
                     watch.elapsed(TimeUnit.MILLISECONDS));
             }
         } catch (Exception e) {
             LOG.error("Error taking snapshot", e);
             throw new IOException("Snapshot error", e);
-        } finally {
-            closeQuietly(inputStream);
         }
     }
 
