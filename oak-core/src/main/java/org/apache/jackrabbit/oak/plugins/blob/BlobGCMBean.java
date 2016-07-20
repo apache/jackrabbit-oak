@@ -46,6 +46,22 @@ public interface BlobGCMBean {
                      "This mode is to be used when the underlying BlobStore is shared between multiple " +
                      "different repositories. For all other cases set it to false to perform full garbage collection")
                                 boolean markOnly);
+
+    /**
+     * Initiate a data store garbage collection operation.
+     *
+     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
+     * @param forceBlobIdRetrieve whether to force retrieve blob ids from datastore
+     * @return  the status of the operation right after it was initiated
+     */
+    CompositeData startBlobGC(@Name("markOnly")
+    @Description("Set to true to only mark references and not sweep in the mark and sweep operation. " +
+        "This mode is to be used when the underlying BlobStore is shared between multiple " +
+        "different repositories. For all other cases set it to false to perform full garbage collection")
+        boolean markOnly, @Name("forceBlobIdRetrieve")
+    @Description("Set to true to force retrieve all ids from the datastore bypassing any local tracking")
+        boolean forceBlobIdRetrieve);
+
     /**
      * Data store garbage collection status
      *

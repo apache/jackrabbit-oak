@@ -31,7 +31,18 @@ public interface BlobGarbageCollector {
      * @throws Exception the exception
      */
     void collectGarbage(boolean markOnly) throws Exception;
-    
+
+    /**
+     * Marks garbage blobs from the passed node store instance.
+     * Collects them only if markOnly is false. Also forces retrieval of
+     * blob ids from the blob store rather than using any local tracking.
+     *
+     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
+     * @param forceBlobRetrieve whether to force retrieve of blob ids from datastore
+     * @throws Exception
+     */
+    void collectGarbage(boolean markOnly, boolean forceBlobRetrieve) throws Exception;
+
     /**
      * Retuns the list of stats
      * 

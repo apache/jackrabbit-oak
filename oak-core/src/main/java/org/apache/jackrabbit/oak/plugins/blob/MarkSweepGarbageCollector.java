@@ -170,7 +170,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     @Override
     public void collectGarbage(boolean markOnly) throws Exception {
-        markAndSweep(markOnly);
+        markAndSweep(markOnly, false);
+    }
+
+    @Override
+    public void collectGarbage(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
+        markAndSweep(markOnly, forceBlobRetrieve);
     }
 
     /**
@@ -245,9 +250,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * Mark and sweep. Main entry method for GC.
      *
      * @param markOnly whether to mark only
+     * @param forceBlobRetrieve force retrieve blob ids
      * @throws Exception the exception
      */
-    protected void markAndSweep(boolean markOnly) throws Exception {
+    protected void markAndSweep(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
         boolean threw = true;
         GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         try {
@@ -257,7 +263,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             long markStart = System.currentTimeMillis();
             mark(fs);
             if (!markOnly) {
-                long deleteCount = sweep(fs, markStart);
+                long deleteCount = sweep(fs, markStart, forceBlobRetrieve);
                 threw = false;
 
                 long maxTime = getLastMaxModifiedTime(markStart) > 0 ? getLastMaxModifiedTime(markStart) : markStart;
@@ -348,8 +354,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @throws Exception the exception
      * @param fs the garbage collector file state
      * @param markStart the start time of mark to take as reference for deletion
+     * @param forceBlobRetrieve
      */
-    protected long sweep(GarbageCollectorFileState fs, long markStart) throws Exception {
+    protected long sweep(GarbageCollectorFileState fs, long markStart, boolean forceBlobRetrieve) throws Exception {
         long earliestRefAvailTime;
         // Merge all the blob references available from all the reference files in the data store meta store
         // Only go ahead if merge succeeded
@@ -363,7 +370,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         // Find all blob references after iterating over the whole repository
-        (new BlobIdRetriever(fs)).call();
+        (new BlobIdRetriever(fs, forceBlobRetrieve)).call();
 
         // Calculate the references not used
         difference(fs);
@@ -513,7 +520,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.info("Starting blob consistency check");
     
             // Find all blobs available in the blob store
-            ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs));
+            ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
+                false));
             executor.execute(blobIdRetriever);
     
             // Mark all used blob references
@@ -552,23 +560,25 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     private class BlobIdRetriever implements Callable<Integer> {
         private final GarbageCollectorFileState fs;
-    
-        public BlobIdRetriever(GarbageCollectorFileState fs) {
+        private final boolean forceRetrieve;
+
+        public BlobIdRetriever(GarbageCollectorFileState fs, boolean forceBlobRetrieve) {
             this.fs = fs;
+            this.forceRetrieve = forceBlobRetrieve;
         }
     
         @Override
         public Integer call() throws Exception {
-            BlobCollectionType.get(blobStore).retrieve(blobStore, fs, getBatchCount());
-            long length = fs.getAvailableRefs().length();
-            LOG.info("Length of blob ids file retrieved {}", length);
+            if (!forceRetrieve) {
+                BlobCollectionType.get(blobStore).retrieve(blobStore, fs, getBatchCount());
+                LOG.info("Length of blob ids file retrieved from tracker {}", fs.getAvailableRefs().length());
+            }
 
             // If the length is 0 then references not available from the tracker
             // retrieve from the data store
             if (fs.getAvailableRefs().length() <= 0) {
                 BlobCollectionType.DEFAULT.retrieve(blobStore, fs, getBatchCount());
-                length = fs.getAvailableRefs().length();
-                LOG.info("Length of blob ids file retrieved {}", length);
+                LOG.info("Length of blob ids file retrieved {}", fs.getAvailableRefs().length());
 
                 BlobCollectionType.get(blobStore).track(blobStore, fs);
             }

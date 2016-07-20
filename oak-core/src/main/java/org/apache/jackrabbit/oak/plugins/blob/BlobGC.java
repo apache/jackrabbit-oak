@@ -93,6 +93,22 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return getBlobGCStatus();
     }
 
+    @Override
+    public CompositeData startBlobGC(final boolean markOnly, final boolean forceBlobIdRetrieve) {
+        if (gcOp.isDone()) {
+            gcOp = newManagementOperation(OP_NAME, new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    long t0 = nanoTime();
+                    blobGarbageCollector.collectGarbage(markOnly, forceBlobIdRetrieve);
+                    return "Blob gc completed in " + formatTime(nanoTime() - t0);
+                }
+            });
+            executor.execute(gcOp);
+        }
+        return getBlobGCStatus();
+    }
+
     @Nonnull
     @Override
     public CompositeData getBlobGCStatus() {

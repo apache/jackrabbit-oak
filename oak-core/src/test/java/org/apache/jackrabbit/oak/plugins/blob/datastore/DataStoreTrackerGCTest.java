@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -141,6 +142,69 @@ public class DataStoreTrackerGCTest {
         // Check the state of the blob store after gc
         assertEquals(state.blobsPresent, existingAfterGC);
         // Tracked blobs should reflect deletions after gc
+        assertEquals(state.blobsPresent, retrieveTracked(tracker));
+    }
+
+    private HashSet<String> addNodeSpecialChars(DocumentNodeStore ds) throws Exception {
+        List<String> specialCharSets =
+            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+        HashSet<String> set = new HashSet<String>();
+        NodeBuilder a = ds.getRoot().builder();
+        int toBeDeleted = 0;
+        for (int i = 0; i < specialCharSets.size(); i++) {
+            Blob b = ds.createBlob(randomStream(i, 18432));
+            NodeBuilder n = a.child("cspecial" + i);
+            n.child(specialCharSets.get(i)).setProperty("x", b);
+            Iterator<String> idIter =
+                ((GarbageCollectableBlobStore) ds.getBlobStore())
+                    .resolveChunks(b.toString());
+            List<String> ids = Lists.newArrayList(idIter);
+            if (toBeDeleted != i) {
+                set.addAll(ids);
+            }
+        }
+        ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Delete one node again
+        a = ds.getRoot().builder();
+        a.child("cspecial" + 0).remove();
+        ds.merge(a, INSTANCE, EMPTY);
+        long maxAge = 10; // hours
+        // 1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(clock.getTime() + MINUTES.toMillis(maxAge));
+
+        VersionGarbageCollector vGC = ds.getVersionGarbageCollector();
+        VersionGarbageCollector.VersionGCStats stats = vGC.gc(0, MILLISECONDS);
+        return set;
+    }
+
+    @Test
+    public void gcForcedRetrieve() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        DataStoreState state = init(cluster.nodeStore, 0);
+        ScheduledFuture<?> scheduledFuture = newSingleThreadScheduledExecutor()
+            .schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
+        scheduledFuture.get();
+        // All blobs added should be tracked now
+        assertEquals(state.blobsAdded, retrieveTracked(tracker));
+
+        // Do addition and deletion which would not have been tracked as yet
+        Set<String> newBlobs = addNodeSpecialChars(cluster.nodeStore);
+        state.blobsAdded.addAll(newBlobs);
+        state.blobsPresent.addAll(newBlobs);
+
+        // The new blobs should not be found now as new snapshot not done
+        assertEquals(Sets.difference(state.blobsAdded, retrieveTracked(tracker)), newBlobs);
+
+        //force gc to retrieve blob ids from datastore
+        cluster.gc.collectGarbage(false, true);
+        Set<String> existingAfterGC = iterate(s);
+
+        // Check the state of the blob store after gc
+        assertEquals(state.blobsPresent, existingAfterGC);
+        // Tracked blobs should reflect deletions after gc and also the additions after
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
     }
 
