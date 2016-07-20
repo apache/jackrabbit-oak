@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDRE
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.fillExternalChanges;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asStringValueIterable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 
@@ -49,7 +48,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
@@ -71,11 +69,9 @@ import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -101,7 +97,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
-import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -318,14 +313,6 @@ public final class DocumentNodeStore
     private final CacheStats nodeChildrenCacheStats;
 
     /**
-     * Child doc cache.
-     *
-     * Key: StringValue, value: Children
-     */
-    private final Cache<StringValue, NodeDocument.Children> docChildrenCache;
-    private final CacheStats docChildrenCacheStats;
-
-    /**
      * The change log to keep track of commits for diff operations.
      */
     private final DiffCache diffCache;
@@ -494,10 +481,6 @@ public final class DocumentNodeStore
         nodeChildrenCache = builder.buildChildrenCache();
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
-
-        docChildrenCache = builder.buildDocChildrenCache();
-        docChildrenCacheStats = new CacheStats(docChildrenCache, "Document-DocChildren",
-                builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         diffCache = builder.getDiffCache();
         checkpoints = new Checkpoints(this);
@@ -822,10 +805,6 @@ public final class DocumentNodeStore
         return nodeChildrenCacheStats;
     }
 
-    public CacheStats getDocChildrenCacheStats() {
-        return docChildrenCacheStats;
-    }
-
     @Nonnull
     public Iterable<CacheStats> getDiffCacheStats() {
         return diffCache.getStats();
@@ -839,10 +818,6 @@ public final class DocumentNodeStore
      */
     JournalEntry getCurrentJournalEntry() {
         return changes;
-    }
-
-    void invalidateDocChildrenCache() {
-        docChildrenCache.invalidateAll();
     }
 
     void invalidateNodeChildrenCache() {
@@ -940,6 +915,7 @@ public final class DocumentNodeStore
         }
     }
 
+    @Nonnull
     DocumentNodeState.Children getChildren(@Nonnull final AbstractDocumentNodeState parent,
                               @Nullable final String name,
                               final int limit)
@@ -1062,71 +1038,7 @@ public final class DocumentNodeStore
         } else {
             from = Utils.getKeyLowerLimit(path);
         }
-        if (name != null || limit > NUM_CHILDREN_CACHE_LIMIT) {
-            // do not use cache when there is a lower bound name
-            // or more than 16k child docs are requested
-            return store.query(Collection.NODES, from, to, limit);
-        }
-        final StringValue key = new StringValue(path);
-        // check cache
-        NodeDocument.Children c = docChildrenCache.getIfPresent(key);
-        if (c == null) {
-            c = new NodeDocument.Children();
-            List<NodeDocument> docs = store.query(Collection.NODES, from, to, limit);
-            for (NodeDocument doc : docs) {
-                String p = doc.getPath();
-                c.childNames.add(PathUtils.getName(p));
-            }
-            c.isComplete = docs.size() < limit;
-            docChildrenCache.put(key, c);
-            return docs;
-        } else if (c.childNames.size() < limit && !c.isComplete) {
-            // fetch more and update cache
-            String lastName = c.childNames.get(c.childNames.size() - 1);
-            String lastPath = concat(path, lastName);
-            String low = Utils.getIdFromPath(lastPath);
-            int remainingLimit = limit - c.childNames.size();
-            List<NodeDocument> docs = store.query(Collection.NODES,
-                    low, to, remainingLimit);
-            NodeDocument.Children clone = c.clone();
-            for (NodeDocument doc : docs) {
-                String p = doc.getPath();
-                clone.childNames.add(PathUtils.getName(p));
-            }
-            clone.isComplete = docs.size() < remainingLimit;
-            docChildrenCache.put(key, clone);
-            c = clone;
-        }
-        Iterable<NodeDocument> head = filter(transform(c.childNames,
-                new Function<String, NodeDocument>() {
-            @Override
-            public NodeDocument apply(String name) {
-                String p = concat(path, name);
-                NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(p));
-                if (doc == null) {
-                    docChildrenCache.invalidate(key);
-                }
-                return doc;
-            }
-        }), Predicates.notNull());
-        Iterable<NodeDocument> it;
-        if (c.isComplete) {
-            it = head;
-        } else {
-            // OAK-2420: 'head' may have null documents when documents are
-            // concurrently removed from the store. concat 'tail' to fetch
-            // more documents if necessary
-            final String last = getIdFromPath(concat(
-                    path, c.childNames.get(c.childNames.size() - 1)));
-            Iterable<NodeDocument> tail = new Iterable<NodeDocument>() {
-                @Override
-                public Iterator<NodeDocument> iterator() {
-                    return store.query(NODES, last, to, limit).iterator();
-                }
-            };
-            it = Iterables.concat(head, tail);
-        }
-        return Iterables.limit(it, limit);
+        return store.query(Collection.NODES, from, to, limit);
     }
 
     /**
@@ -1293,41 +1205,6 @@ public final class DocumentNodeStore
             w.tag('^').key(PathUtils.getName(p)).object().endObject();
         }
         cacheEntry.append(path, w.toString());
-
-        // update docChildrenCache
-        if (!added.isEmpty()) {
-            StringValue docChildrenKey = new StringValue(path);
-            NodeDocument.Children docChildren = docChildrenCache.getIfPresent(docChildrenKey);
-            if (docChildren != null) {
-                int currentSize = docChildren.childNames.size();
-                NavigableSet<String> names = Sets.newTreeSet(docChildren.childNames);
-                // incomplete cache entries must not be updated with
-                // names at the end of the list because there might be
-                // a next name in DocumentStore smaller than the one added
-                if (!docChildren.isComplete) {
-                    for (String childPath : added) {
-                        String name = PathUtils.getName(childPath);
-                        if (names.higher(name) != null) {
-                            names.add(Utils.unshareString(name));
-                        }
-                    }
-                } else {
-                    // add all
-                    for (String childPath : added) {
-                        names.add(Utils.unshareString(PathUtils.getName(childPath)));
-                    }
-                }
-                // any changes?
-                if (names.size() != currentSize) {
-                    // create new cache entry with updated names
-                    boolean complete = docChildren.isComplete;
-                    docChildren = new NodeDocument.Children();
-                    docChildren.isComplete = complete;
-                    docChildren.childNames.addAll(names);
-                    docChildrenCache.put(docChildrenKey, docChildren);
-                }
-            }
-        }
     }
 
     /**
@@ -2015,34 +1892,14 @@ public final class DocumentNodeStore
                 if (externalSort == null) {
                     // if no externalSort available, then invalidate the classic way: everything
                     stats.cacheStats = store.invalidateCache();
-                    docChildrenCache.invalidateAll();
                 } else {
                     try {
                         externalSort.sort();
                         stats.numExternalChanges = externalSort.getSize();
                         stats.cacheStats = store.invalidateCache(pathToId(externalSort));
-                        // OAK-3002: only invalidate affected items (using journal)
-                        long origSize = docChildrenCache.size();
-                        if (origSize == 0) {
-                            // if docChildrenCache is empty, don't bother
-                            // calling invalidateAll either way
-                            // (esp calling invalidateAll(Iterable) will
-                            // potentially iterate over all keys even though
-                            // there's nothing to be deleted)
-                            LOG.trace("backgroundRead: docChildrenCache nothing to invalidate");
-                        } else {
-                            // however, if the docChildrenCache is not empty,
-                            // use the invalidateAll(Iterable) variant,
-                            // passing it a Iterable<StringValue>, as that's
-                            // what is contained in the cache
-                            docChildrenCache.invalidateAll(asStringValueIterable(externalSort));
-                            long newSize = docChildrenCache.size();
-                            LOG.trace("backgroundRead: docChildrenCache invalidation result: orig: {}, new: {} ", origSize, newSize);
-                        }
                     } catch (Exception ioe) {
                         LOG.error("backgroundRead: got IOException during external sorting/cache invalidation (as a result, invalidating entire cache): "+ioe, ioe);
                         stats.cacheStats = store.invalidateCache();
-                        docChildrenCache.invalidateAll();
                     }
                 }
                 stats.cacheInvalidationTime = clock.getTime() - time;

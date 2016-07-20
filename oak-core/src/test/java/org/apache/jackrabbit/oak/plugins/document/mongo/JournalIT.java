@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class JournalIT extends AbstractJournalTest {
 
@@ -69,8 +68,7 @@ public class JournalIT extends AbstractJournalTest {
         final DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
         LOG.info("cache size 1: " + getCacheElementCount(ns1.getDocumentStore()));
 
-        // invalidate both caches under test first
-        invalidateDocChildrenCache(ns1);
+        // invalidate cache under test first
         ns1.getDocumentStore().invalidateCache();
 
         {
@@ -164,8 +162,7 @@ public class JournalIT extends AbstractJournalTest {
         final DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
         final DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
 
-        // invalidate both caches under test first
-        invalidateDocChildrenCache(ns1);
+        // invalidate cache under test first
         ns1.getDocumentStore().invalidateCache();
 
         // first create child node in instance 1

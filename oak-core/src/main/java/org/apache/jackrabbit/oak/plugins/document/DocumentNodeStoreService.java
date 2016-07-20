@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupFrameworkThenConfiguration;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
@@ -178,12 +177,6 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_DIFF_CACHE_PERCENTAGE = "diffCachePercentage";
     
-    @Property(intValue = DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE,
-            label = "Document Children Cache",
-            description = "Percentage of cache to be allocated towards Document children cache"
-    )
-    private static final String PROP_DOC_CHILDREN_CACHE_PERCENTAGE = "docChildrenCachePercentage";
-
     @Property(intValue = DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT,
             label = "LIRS Cache Segment Count",
             description = "The number of segments in the LIRS cache " + 
@@ -413,7 +406,6 @@ public class DocumentNodeStoreService {
         int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
         int prevDocCachePercentage = toInteger(prop(PROP_PREV_DOC_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
         int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
-        int docChildrenCachePercentage = toInteger(prop(PROP_DOC_CHILDREN_CACHE_PERCENTAGE), DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE);
         int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
@@ -427,7 +419,6 @@ public class DocumentNodeStoreService {
                         nodeCachePercentage,
                         prevDocCachePercentage,
                         childrenCachePercentage, 
-                        docChildrenCachePercentage, 
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
@@ -710,13 +701,6 @@ public class DocumentNodeStoreService {
                         store.getNodeChildrenCacheStats(),
                         CacheStatsMBean.TYPE,
                         store.getNodeChildrenCacheStats().getName())
-        );
-        registrations.add(
-                registerMBean(whiteboard,
-                        CacheStatsMBean.class,
-                        store.getDocChildrenCacheStats(),
-                        CacheStatsMBean.TYPE,
-                        store.getDocChildrenCacheStats().getName())
         );
         for (CacheStats cs : store.getDiffCacheStats()) {
             registrations.add(
