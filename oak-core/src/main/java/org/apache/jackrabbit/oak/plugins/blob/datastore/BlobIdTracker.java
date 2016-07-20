@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -81,7 +82,14 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Blo
 public class BlobIdTracker implements Closeable, BlobTracker {
     private static final Logger LOG = LoggerFactory.getLogger(BlobIdTracker.class);
 
-    private static final String datastoreMeta = "blobreferences";
+    /**
+     * System property to skip tracker. If set will skip:
+     *  * Snapshots (No-op)
+     *  * Retrieve (return empty)
+     */
+    private final boolean SKIP_TRACKER = Boolean.getBoolean("oak.datastore.skipTracker");
+
+    private static final String datastoreMeta = "blobids";
     private static final String fileNamePrefix = "blob";
     private static final String mergedFileSuffix = ".refs";
 
@@ -162,8 +170,11 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     @Override
     public Iterator<String> get() throws IOException {
         try {
-            globalMerge();
-            return store.getRecords();
+            if (!SKIP_TRACKER) {
+                globalMerge();
+                return store.getRecords();
+            }
+            return Iterators.emptyIterator();
         } catch (IOException e) {
             LOG.error("Error in retrieving blob records iterator", e);
             throw e;
@@ -172,8 +183,11 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     @Override
     public File get(String path) throws IOException {
-        globalMerge();
-        return store.getRecords(path);
+        if (!SKIP_TRACKER) {
+            globalMerge();
+            return store.getRecords(path);
+        }
+        return new File(path);
     }
 
     private void globalMerge() throws IOException {
@@ -225,12 +239,12 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     private void snapshot() throws IOException {
         InputStream inputStream = null;
         try {
-            store.snapshot();
+            if (!SKIP_TRACKER) {
+                store.snapshot();
 
-            inputStream =
-                asByteSource(store.getBlobRecordsFile()).openBufferedStream();
-            datastore.addMetadataRecord(inputStream,
-                (prefix + instanceId + mergedFileSuffix));
+                inputStream = asByteSource(store.getBlobRecordsFile()).openBufferedStream();
+                datastore.addMetadataRecord(inputStream, (prefix + instanceId + mergedFileSuffix));
+            }
         } catch (Exception e) {
             LOG.error("Error taking snapshot", e);
             throw new IOException("Snapshot error", e);
