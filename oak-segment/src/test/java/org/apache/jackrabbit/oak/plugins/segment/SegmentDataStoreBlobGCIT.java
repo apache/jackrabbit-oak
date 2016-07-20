@@ -436,7 +436,7 @@ public class SegmentDataStoreBlobGCIT {
         }
         
         @Override
-        protected void markAndSweep(boolean markOnly) throws Exception {
+        protected void markAndSweep(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
             boolean threw = true;
             GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
             try {
@@ -457,7 +457,7 @@ public class SegmentDataStoreBlobGCIT {
                     Thread.sleep(maxLastModifiedInterval + 100);
                     LOG.info("Slept {} to make additional blobs old", maxLastModifiedInterval + 100);
                     
-                    long deleteCount = sweep(fs, markStart);
+                    long deleteCount = sweep(fs, markStart, forceBlobRetrieve);
                     threw = false;
                     
                     LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}]", sw.toString(),
