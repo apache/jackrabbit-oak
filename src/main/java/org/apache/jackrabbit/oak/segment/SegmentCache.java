@@ -33,8 +33,19 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.RemovalCause;
 
+// FIXME OAK-4474: Finalise SegmentCache: document, add monitoring, management, tests, logging
 /**
- * FIXME OAK-4474: Finalise SegmentCache: document, add monitoring, management, tests, logging
+ * A cache for {@link Segment} instances by their {@link SegmentId}.
+ * <p>
+ * Conceptually this cache serves as a 2nd level cache for segments. The 1st level cache is
+ * implemented by memoising the segment in its id (see {@link SegmentId#segment}. Every time
+ * an segment is evicted from this cache the memoised segment is discarded (see
+ * {@link SegmentId#unloaded()}).
+ * <p>
+ * As a consequence this cache is actually only queried for segments it does not contain,
+ * which are then loaded through the loader passed to {@link #getSegment(SegmentId, Callable)}.
+ * This behaviour is eventually reflected in the cache statistics (see {@link #getCacheStats()}),
+ * which always reports a {@link CacheStats#getMissRate() miss rate} of 1.
  */
 public class SegmentCache {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCache.class);
@@ -52,6 +63,10 @@ public class SegmentCache {
     @Nonnull
     private final CacheLIRS<SegmentId, Segment> cache;
 
+    /**
+     * Create a new segment cache of the given size.
+     * @param cacheSizeMB  size of the cache in megabytes.
+     */
     public SegmentCache(long cacheSizeMB) {
         this.cache = CacheLIRS.<SegmentId, Segment>newBuilder()
             .module("SegmentCache")
@@ -68,21 +83,39 @@ public class SegmentCache {
             .build();
     }
 
+    /**
+     * Retrieve an segment from the cache or load it and cache it if not yet in the cache.
+     * @param id        the id of the segment
+     * @param loader    the loader to load the segment if not yet in the cache
+     * @return          the segment identified by {@code id}
+     * @throws ExecutionException  when {@code loader} failed to load an segment
+     */
     @Nonnull
     public Segment getSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader)
     throws ExecutionException {
         return cache.get(id, loader);
     }
 
+    /**
+     * Put a segment into the cache
+     * @param segment  the segment to cache
+     */
     public void putSegment(@Nonnull Segment segment) {
         cache.put(segment.getSegmentId(), segment);
         segment.getSegmentId().loaded(segment);
     }
 
+    /**
+     * Clear all segment from the cache
+     */
     public void clear() {
         cache.invalidateAll();
     }
 
+    /**
+     * See the class comment regarding some peculiarities of this cache's statistics
+     * @return  statistics for this cache.
+     */
     @Nonnull
     public CacheStats getCacheStats() {
         return new CacheStats(cache, "Segment Cache", weigher, cache.getMaxMemory());
