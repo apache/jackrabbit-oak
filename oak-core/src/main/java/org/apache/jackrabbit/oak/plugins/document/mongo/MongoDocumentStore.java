@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -132,6 +133,11 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     public static final int IN_CLAUSE_BATCH_SIZE = 500;
+
+    private static final ImmutableSet<String> SERVER_DETAIL_FIELD_NAMES
+            = ImmutableSet.<String>builder()
+            .add("host", "process", "connections", "repl", "storageEngine", "mem")
+            .build();
 
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
@@ -226,7 +232,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     private boolean hasModifiedIdCompoundIndex = true;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
-        String version = checkVersion(db);
+        CommandResult serverStatus = db.command("serverStatus");
+        String version = checkVersion(serverStatus);
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
                 .put("version", version)
@@ -284,14 +291,17 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         this.nodeLocks = new StripedNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
-        LOG.info("Configuration maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, {}",
-                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
-                disableIndexHint, db.getWriteConcern());
+        LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
+                "{}, serverStatus {}",
+                version, maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
+                disableIndexHint, db.getWriteConcern(),
+                serverDetails(serverStatus));
     }
 
-    private static String checkVersion(DB db) {
-        String version = db.command("buildInfo").getString("version");
+    @Nonnull
+    private static String checkVersion(CommandResult serverStatus) {
+        String version = serverStatus.getString("version");
         Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(version);
         if (!m.matches()) {
             throw new IllegalArgumentException("Malformed MongoDB version: " + version);
@@ -308,6 +318,18 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
 
         return version;
+    }
+
+    @Nonnull
+    private static String serverDetails(CommandResult serverStatus) {
+        Map<String, Object> details = Maps.newHashMap();
+        for (String key : SERVER_DETAIL_FIELD_NAMES) {
+            Object value = serverStatus.get(key);
+            if (value != null) {
+                details.put(key, value);
+            }
+        }
+        return details.toString();
     }
 
     @Override
