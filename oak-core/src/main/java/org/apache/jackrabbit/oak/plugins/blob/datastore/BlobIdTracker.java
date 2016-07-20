@@ -26,10 +26,12 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
@@ -73,10 +75,7 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Blo
 
 
 /**
- * Tracks the blob ids available or added in the blob store.
- *     - We can identify instance node where uploading/downloading not required
- *     - From other nodes we can only upload deltas since, last snapshot
- *     - If all nodes have the speificed flag then all nodes run partial gc
+ * Tracks the blob ids available or added in the blob store using the {@link BlobIdStore} .
  *
  */
 public class BlobIdTracker implements Closeable, BlobTracker {
@@ -165,9 +164,10 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     }
 
     /**
-     * Retrieves all the reference files available in the DataStore and merges them to a local
-     * and then returns an iterator over it. This way the ids returned are as recent as the
-     * snapshots taken on all instances/repositories connected to the DataStore.
+     * Retrieves all the reference files available in the DataStore and merges
+     * them to the local store and then returns an iterator over it.
+     * This way the ids returned are as recent as the snapshots taken on all
+     * instances/repositories connected to the DataStore.
      *
      * The iterator returned ia a Closeable instance and should be closed by calling #close().
      *
@@ -197,12 +197,20 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         return new File(path);
     }
 
+    /**
+     * Retrieves and merges all the blob id records available in the DataStore from different
+     * instances sharing the DataStore (cluster nodes/different repositories).
+     *
+     * @throws IOException
+     */
     private void globalMerge() throws IOException {
         try {
-            // Download all the blob reference files except the local one from the data store
+            Stopwatch watch = Stopwatch.createStarted();
+            LOG.trace("Retrieving all blob id files available form the DataStore");
+            // Download all the blob reference records from the data store
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
-            // Download all the corresponding reference files
+            // Download all the corresponding files for the records
             List<File> refFiles = newArrayList(
                 transform(refRecords,
                     new Function<DataRecord, File>() {
@@ -221,15 +229,22 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                             return null;
                         }
                     }));
+            LOG.info("Retrieved all blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Merge all the downloaded files in to the local store
+            watch = Stopwatch.createStarted();
             store.merge(refFiles, true);
+            LOG.info("Merged all retrieved blob id files in [{}]",
+                watch.elapsed(TimeUnit.MILLISECONDS));
 
-            // Remove all the data store records
+            // Remove all the data store records as they have been merged
+            watch = Stopwatch.createStarted();
             for (DataRecord rec : refRecords) {
                 datastore.deleteMetadataRecord(rec.getIdentifier().toString());
-                LOG.info("Deleted metadata record {}", rec.getIdentifier().toString());
+                LOG.debug("Deleted metadata record {}", rec.getIdentifier().toString());
             }
+            LOG.info("Deleted all blob id metadata files in [{}]",
+                watch.elapsed(TimeUnit.MILLISECONDS));
         } catch (IOException e) {
             LOG.error("Error in merging blob records iterator from the data store", e);
             throw e;
@@ -238,7 +253,6 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     /**
      * Takes a snapshot on the tracker.
-     * Uploads the latest snapshot to the DataStore so, that it's visible
      * to other cluster nodes/repositories connected to the DataStore.
      *
      * @throws IOException
@@ -247,10 +261,15 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         InputStream inputStream = null;
         try {
             if (!SKIP_TRACKER) {
+                Stopwatch watch = Stopwatch.createStarted();
                 store.snapshot();
+                LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
+                watch = Stopwatch.createStarted();
                 inputStream = asByteSource(store.getBlobRecordsFile()).openBufferedStream();
                 datastore.addMetadataRecord(inputStream, (prefix + instanceId + mergedFileSuffix));
+                LOG.info("Added blob id metadata record in DataStore in [{}]",
+                    watch.elapsed(TimeUnit.MILLISECONDS));
             }
         } catch (Exception e) {
             LOG.error("Error taking snapshot", e);
@@ -394,6 +413,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     File merged = new File(rootDir, prefix + REFS.getFileNameSuffix());
                     append(refFiles, merged, true);
                     LOG.debug("Merged files into references {}", refFiles);
+                    // Clear the references as not needed
                     refFiles.clear();
                 }
                 if (doSort) {
