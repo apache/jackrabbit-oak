@@ -53,7 +53,7 @@
  * jcr:content. The jcr:content node is used to hold the actual content of the
  * file. This child node is mandatory, but not auto-created. Its node type will be
  * application-dependent and therefore it must be added by the user. A common
- * approach is to make the jcr:content a node of type nt:resource. The
+ * approach is to make the jcr:content a node of type nt:resource or oak:Resource. The
  * jcr:content child node is also designated as the primary child item of its parent.
  *
  * @since 1.0
@@ -94,6 +94,16 @@
  * @since 1.0
  */
 [nt:resource] > mix:mimeType, mix:lastModified, mix:referenceable
+  primaryitem jcr:data
+  - jcr:data (BINARY) mandatory
+
+/**
+ * This node type may be used to represent the content of a file. This should be
+ * preferred over nt:resource if non referenceable nt:file nodes are required
+ *
+ * @since 1.5.6
+ */
+[oak:Resource] > mix:mimeType, mix:lastModified
   primaryitem jcr:data
   - jcr:data (BINARY) mandatory
 

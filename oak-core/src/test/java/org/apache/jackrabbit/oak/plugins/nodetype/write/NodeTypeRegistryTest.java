@@ -23,7 +23,16 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.JcrConstants.NT_RESOURCE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_LASTMODIFIEDBY;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_RESOURCE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_INDEXABLE;
 
 import java.io.Closeable;
@@ -34,7 +43,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.JcrConstants;
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,15 +51,16 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class NodeTypeRegistryTest {
     private ContentRepository repository = null;
@@ -112,5 +122,34 @@ public class NodeTypeRegistryTest {
         test.setProperty(JCR_MIXINTYPES, of(MIX_INDEXABLE), Type.NAMES);
         test.addChild("oak:index").setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
         root.commit();
+    }
+
+    @Test
+    public void oakResource() throws Exception{
+        registerNodeType(root, "builtin_nodetypes.cnd");
+        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
+        Tree test1 = TreeUtil.addChild(root.getTree("/"), "test1", NT_FILE, typeRoot, "admin");
+        Tree content1 = TreeUtil.addChild(test1, JCR_CONTENT, NT_OAK_RESOURCE, typeRoot, "admin");
+        content1.setProperty(JCR_DATA, "hello".getBytes());
+
+        Tree test2 = TreeUtil.addChild(root.getTree("/"), "test2", NT_FILE, typeRoot, "admin");
+        Tree content2 = TreeUtil.addChild(test2, JCR_CONTENT, NT_RESOURCE, typeRoot, "admin");
+        content2.setProperty(JCR_DATA, "hello".getBytes());
+        root.commit();
+
+        test1 = root.getTree("/").addChild("test1");
+
+        assertTrue(test1.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIEDBY));
+        assertTrue(test1.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIED));
+
+        //For oak:Resource the uuid property should not get generated
+        assertFalse(test1.getChild(JCR_CONTENT).hasProperty(JCR_UUID));
+
+        test2 = root.getTree("/").addChild("test2");
+
+        assertTrue(test2.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIEDBY));
+        assertTrue(test2.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIED));
+        assertTrue(test2.getChild(JCR_CONTENT).hasProperty(JCR_UUID));
+
     }
 }
