@@ -135,10 +135,24 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     @Property(
             intValue = 256,
-            label = "Cache size (MB)",
-            description = "Cache size for storing most recently used Segments"
+            label = "Segment cache size (MB)",
+            description = "Cache size for storing most recently used segments"
     )
-    public static final String CACHE = "cache";
+    public static final String SEGMENT_CACHE_SIZE = "segmentCache.size";
+
+    @Property(
+            intValue = 256,
+            label = "String cache size (MB)",
+            description = "Cache size for storing most recently used strings"
+    )
+    public static final String STRING_CACHE_SIZE = "stringCache.size";
+
+    @Property(
+            intValue = 64,
+            label = "Template cache size (MB)",
+            description = "Cache size for storing most recently used templates"
+    )
+    public static final String TEMPLATE_CACHE_SIZE = "templateCache.size";
 
     @Property(
             byteValue = MEMORY_THRESHOLD_DEFAULT,
@@ -335,7 +349,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         // Build the FileStore
         FileStoreBuilder builder = fileStoreBuilder(getDirectory())
-                .withCacheSize(getCacheSize())
+                .withSegmentCacheSize(getSegmentCacheSize())
+                .withStringCacheSize(getStringCacheSize())
+                .withTemplateCacheSize(getTemplateCacheSize())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
                 .withGCMonitor(gcMonitor)
@@ -608,18 +624,26 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         return System.getProperty(MODE, System.getProperty("sun.arch.data.model", "32"));
     }
 
-    private String getCacheSizeProperty() {
-        String cache = property(CACHE);
+    private String getCacheSize(String propertyName) {
+        String cacheSize = property(propertyName);
 
-        if (cache != null) {
-            return cache;
+        if (cacheSize != null) {
+            return cacheSize;
         }
 
-        return System.getProperty(CACHE);
+        return System.getProperty(propertyName);
     }
 
-    private int getCacheSize() {
-        return Integer.parseInt(getCacheSizeProperty());
+    private int getSegmentCacheSize() {
+        return Integer.parseInt(getCacheSize(SEGMENT_CACHE_SIZE));
+    }
+
+    private int getStringCacheSize() {
+        return Integer.parseInt(getCacheSize(STRING_CACHE_SIZE));
+    }
+
+    private int getTemplateCacheSize() {
+        return Integer.parseInt(getCacheSize(TEMPLATE_CACHE_SIZE));
     }
 
     private String getMaxFileSizeProperty() {
