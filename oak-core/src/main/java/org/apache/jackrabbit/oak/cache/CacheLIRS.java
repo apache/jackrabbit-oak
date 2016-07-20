@@ -251,10 +251,11 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Add an entry to the cache. The entry may or may not exist in the
-     * cache yet. This method will usually mark unknown entries as cold and
-     * known entries as hot.
-     *
+     * Add an entry to the cache. This method is an explicit memory size
+     * (weight), and not using the weigher even if configured. The entry may or
+     * may not exist in the cache yet. This method will usually mark unknown
+     * entries as cold and known entries as hot.
+     * 
      * @param key the key (may not be null)
      * @param value the value (may not be null)
      * @param memory the memory used for the given entry
@@ -266,8 +267,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Add an entry to the cache using the average memory size.
-     *
+     * Add an entry to the cache. If a weigher is specified, it is used,
+     * otherwise the average memory size is used.
+     * 
      * @param key the key (may not be null)
      * @param value the value (may not be null)
      */
@@ -1519,21 +1521,55 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             return this;
         }
 
+        /**
+         * Set the weigher which is used if memory usage of an entry is not
+         * explicitly set (when adding entries).
+         * 
+         * @param weigher the weigher
+         * @return this
+         */
         public Builder<K, V> weigher(Weigher<K, V> weigher) {
             this.weigher = weigher;
             return this;
         }
 
+        /**
+         * Set the total maximum weight. If the cache is heavier, then entries
+         * are evicted.
+         * 
+         * @param maxWeight the maximum weight
+         * @return this
+         */
         public Builder<K, V> maximumWeight(long maxWeight) {
             this.maxWeight = maxWeight;
             return this;
         }
 
+        /**
+         * Set the average weight of an entry. This is used, together with the
+         * maximum weight, to calculate the length of the internal array of the
+         * cache.
+         * 
+         * For higher performance, the weight should be set relatively low, at
+         * the cost of some space. To save space, the average weight should be
+         * set high, at the cost of some performance.
+         * 
+         * @param averageWeight the average weight
+         * @return this
+         */
         public Builder<K, V> averageWeight(int averageWeight) {
             this.averageWeight = averageWeight;
             return this;
         }
 
+        /**
+         * Set the maximum size (in number of entries). This is the same as
+         * setting the average weight of an entry to 1, and the maximum weight
+         * to the maximum size.
+         * 
+         * @param maxSize the maximum size
+         * @return this
+         */
         public Builder<K, V> maximumSize(long maxSize) {
             this.maxWeight = maxSize;
             this.averageWeight = 1;
