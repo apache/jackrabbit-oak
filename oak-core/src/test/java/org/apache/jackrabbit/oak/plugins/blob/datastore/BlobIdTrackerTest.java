@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -123,6 +124,32 @@ public class BlobIdTrackerTest {
         assertEquals("Extra elements after remove", initAdd, retrieve(tracker));
     }
 
+    @Test
+    public void snapshotRetrieveIgnored() throws Exception {
+        System.setProperty("oak.datastore.skipTracker", "true");
+        this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
+        this.scheduler = newSingleThreadScheduledExecutor();
+
+        try {
+            Set<String> initAdd = add(tracker, range(0, 10000));
+            ScheduledFuture<?> scheduledFuture =
+                scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
+            scheduledFuture.get();
+            assertEquals("References file not empty", 0, tracker.store.getBlobRecordsFile().length());
+
+            Set<String> retrieved = retrieveFile(tracker, folder);
+            assertTrue(retrieved.isEmpty());
+
+            retrieved = retrieve(tracker);
+            assertTrue(retrieved.isEmpty());
+        } finally {
+            //reset the skip tracker system prop
+            System.clearProperty("oak.datastore.skipTracker");
+            this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
+            this.scheduler = newSingleThreadScheduledExecutor();
+        }
+    }
+
     private static Set<String> read(List<DataRecord> recs)
         throws IOException, DataStoreException {
         Set<String> ids = newHashSet();
@@ -150,6 +177,13 @@ public class BlobIdTrackerTest {
         if (iter instanceof Closeable) {
             closeQuietly((Closeable)iter);
         }
+        return retrieved;
+    }
+
+    private static Set<String> retrieveFile(BlobIdTracker tracker, TemporaryFolder folder) throws IOException {
+        File f = folder.newFile();
+        Set<String> retrieved = readStringsAsSet(
+            new FileInputStream(tracker.get(f.getAbsolutePath())), false);
         return retrieved;
     }
 
