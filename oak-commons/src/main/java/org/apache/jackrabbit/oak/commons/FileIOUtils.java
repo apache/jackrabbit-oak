@@ -299,7 +299,8 @@ public final class FileIOUtils {
 
         public FileLineDifferenceIterator(File marked, File available,
             @Nullable Function<String, String> transformer) throws IOException {
-            this(FileUtils.lineIterator(marked), FileUtils.lineIterator(available), transformer);
+            this(FileUtils.lineIterator(marked, UTF_8.toString()),
+                FileUtils.lineIterator(available, UTF_8.toString()), transformer);
         }
 
         public FileLineDifferenceIterator(LineIterator marked, LineIterator available,
@@ -369,21 +370,27 @@ public final class FileIOUtils {
      * Also has a transformer to transform the output. If the underlying file is
      * provide then it deletes the file on {@link #close()}.
      *
+     * If there is a scope for lines in the file containing line break characters it should be
+     * ensured that the files is written with
+     * {@link #writeAsLine(BufferedWriter, String, boolean)} with true to escape line break
+     * characters and should be properly unescaped on read.
+     * A custom transformer can also be provided to unescape.
+     *
      * @param <T> the type of elements in the iterator
      */
-    public static class CloseableFileIterator<T> extends AbstractIterator<T> implements Closeable {
+    public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
         private final Logger log = LoggerFactory.getLogger(getClass());
 
         private final LineIterator iterator;
         private final Function<String, T> transformer;
         private File backingFile;
 
-        public CloseableFileIterator(LineIterator iterator, Function<String, T> transformer) {
+        public BurnOnCloseFileIterator(LineIterator iterator, Function<String, T> transformer) {
             this.iterator = iterator;
             this.transformer = transformer;
         }
 
-        public CloseableFileIterator(LineIterator iterator, File backingFile,
+        public BurnOnCloseFileIterator(LineIterator iterator, File backingFile,
             Function<String, T> transformer) {
             this.iterator = iterator;
             this.transformer = transformer;
@@ -412,16 +419,16 @@ public final class FileIOUtils {
             }
         }
 
-        public static CloseableFileIterator<String> wrap(LineIterator iter) {
-            return new CloseableFileIterator<String>(iter, new Function<String, String>() {
+        public static BurnOnCloseFileIterator<String> wrap(LineIterator iter) {
+            return new BurnOnCloseFileIterator<String>(iter, new Function<String, String>() {
                 public String apply(String s) {
                     return s;
                 }
             });
         }
 
-        public static CloseableFileIterator<String> wrap(LineIterator iter, File backingFile) {
-            return new CloseableFileIterator<String>(iter, backingFile,
+        public static BurnOnCloseFileIterator<String> wrap(LineIterator iter, File backingFile) {
+            return new BurnOnCloseFileIterator<String>(iter, backingFile,
                 new Function<String, String>() {
                     public String apply(String s) {
                         return s;
