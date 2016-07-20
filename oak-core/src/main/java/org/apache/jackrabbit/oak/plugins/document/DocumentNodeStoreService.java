@@ -614,7 +614,8 @@ public class DocumentNodeStoreService {
             }
         };
         registrations.add(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                recoverJob, TimeUnit.MILLISECONDS.toSeconds(leaseTime)));
+                recoverJob, TimeUnit.MILLISECONDS.toSeconds(leaseTime),
+                false/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerJournalGC(final DocumentNodeStore nodeStore) {
@@ -631,7 +632,8 @@ public class DocumentNodeStoreService {
 
         };
         registrations.add(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                journalGCJob, TimeUnit.MILLISECONDS.toSeconds(journalGCInterval), true/*runOnSingleClusterNode*/));
+                journalGCJob, TimeUnit.MILLISECONDS.toSeconds(journalGCInterval),
+                true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private Object prop(String propName) {
