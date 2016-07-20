@@ -102,7 +102,6 @@ public class SegmentDataStoreBlobGCIT {
             FileStoreBuilder builder = fileStoreBuilder(getWorkDir())
                     .withBlobStore(blobStore)
                     .withMaxFileSize(256)
-                    .withCacheSize(64)
                     .withMemoryMapping(false)
                     .withGCOptions(gcOptions);
             store = builder.build();
