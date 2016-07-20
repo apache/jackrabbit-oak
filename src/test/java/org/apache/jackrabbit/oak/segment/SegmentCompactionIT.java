@@ -235,8 +235,6 @@ public class SegmentCompactionIT {
                 .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
-        CacheStats segmentCacheStats = fileStore.getSegmentCacheStats();
-        CacheStats stringCacheStats = fileStore.getStringCacheStats();
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
@@ -244,11 +242,15 @@ public class SegmentCompactionIT {
                 new ObjectName("IT:TYPE=Segment Revision GC")));
         registrations.add(registerMBean(fileStoreGCMonitor,
                 new ObjectName("IT:TYPE=GC Monitor")));
-        registrations.add(registerMBean(segmentCacheStats, new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
-        if (stringCacheStats != null) {
-            registrations.add(registerMBean(stringCacheStats,
-                    new ObjectName("IT:TYPE=" + stringCacheStats.getName())));
-        }
+        CacheStats segmentCacheStats = fileStore.getSegmentCacheStats();
+        registrations.add(registerMBean(segmentCacheStats,
+                new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
+        CacheStats stringCacheStats = fileStore.getStringCacheStats();
+        registrations.add(registerMBean(stringCacheStats,
+                new ObjectName("IT:TYPE=" + stringCacheStats.getName())));
+        CacheStats templateCacheStats = fileStore.getTemplateCacheStats();
+        registrations.add(registerMBean(templateCacheStats,
+                new ObjectName("IT:TYPE=" + templateCacheStats.getName())));
         mBeanRegistration = new CompositeRegistration(registrations);
     }
 

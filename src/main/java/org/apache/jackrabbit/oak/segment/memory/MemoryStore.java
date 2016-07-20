@@ -81,7 +81,7 @@ public class MemoryStore implements SegmentStore {
                 return getWriter();
             }
         };
-        this.segmentReader = new CachingSegmentReader(getWriter, null, 16);
+        this.segmentReader = new CachingSegmentReader(getWriter, null, 16, 2);
         this.segmentWriter = segmentWriterBuilder("sys").withWriterPool().build(this);
         revisions.bind(this);
         segmentWriter.flush();
