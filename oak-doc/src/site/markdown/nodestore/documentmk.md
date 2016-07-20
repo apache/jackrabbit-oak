@@ -486,7 +486,7 @@ can be backed by [persistent cache](persistent-cache.html).
     
 3. `docChildrenCache` - Document Children cache is used to cache the children 
     state for a given parent node. This is invalidated completely upon every 
-    background read
+    background read. This cache was removed in 1.5.6.
     
 4. `nodeCache` - Node cache is used to cache the `DocumentNodeState` instances.
     These are **immutable** view of `NodeDocument` as seen at a given revision
@@ -542,7 +542,7 @@ various caches above in following way
 1. `nodeCache` - 25%
 2. `prevDocCache` - 4% 
 3. `childrenCache` - 10% 
-4. `docChildrenCache` - 3% 
+4. `docChildrenCache` - 3% (removed in 1.5.6)
 5. `diffCache` - 5% 
 6. `documentCache` - Is given the rest i.e. 57%
 

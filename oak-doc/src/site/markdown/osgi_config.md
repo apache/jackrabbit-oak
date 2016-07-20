@@ -135,6 +135,7 @@ diffCachePercentage
 docChildrenCachePercentage
 : Default 3
 : Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache]
+: Removed since 1.5.6
 
 cacheSegmentCount
 : Default 16
