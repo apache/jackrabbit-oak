@@ -53,6 +53,7 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUt
     .SharedStoreRecordType.BLOBREFERENCES;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
@@ -106,8 +107,7 @@ public class BlobIdTrackerTest {
         Set<String> retrieved = retrieve(tracker);
 
         assertEquals("Extra elements after add", initAdd, retrieved);
-        assertEquals("Different ids from the datastore",
-            initAdd, read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
+        assertTrue(read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())).isEmpty());
     }
 
     @Test
@@ -116,11 +116,11 @@ public class BlobIdTrackerTest {
         ScheduledFuture<?> scheduledFuture =
             scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
         scheduledFuture.get();
+        assertEquals("Extra elements after add", initAdd, retrieve(tracker));
+
         remove(tracker, folder.newFile(), initAdd, range(1, 2));
 
-        Set<String> retrieved = retrieve(tracker);
-
-        assertEquals("Extra elements after add", initAdd, retrieved);
+        assertEquals("Extra elements after remove", initAdd, retrieve(tracker));
     }
 
     private static Set<String> read(List<DataRecord> recs)
