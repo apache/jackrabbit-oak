@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.commons;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -36,21 +37,27 @@ import java.util.Random;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -130,7 +137,7 @@ public class FileIOUtilsTest {
         while ((line = reader.readLine()) != null) {
             retrieved.add(line);
         }
-        IOUtils.closeQuietly(reader);
+        closeQuietly(reader);
         Collections.sort(list);
         assertArrayEquals(Arrays.toString(list.toArray()), list.toArray(), retrieved.toArray());
     }
@@ -149,10 +156,99 @@ public class FileIOUtilsTest {
         while ((line = reader.readLine()) != null) {
             retrieved.add(unescapeLineBreaks(line));
         }
-        IOUtils.closeQuietly(reader);
+        closeQuietly(reader);
         Collections.sort(list);
         assertArrayEquals(Arrays.toString(list.toArray()), list.toArray(), retrieved.toArray());
     }
+
+    @Test
+    public void testCopy() throws IOException{
+        File f = copy(randomStream(0, 256));
+        assertTrue("File does not exist", f.exists());
+        Assert.assertEquals("File length not equal to byte array from which copied",
+            256, f.length());
+        assertTrue("Could not delete file", f.delete());
+    }
+
+    @Test
+    public void appendTest() throws IOException {
+        Set<String> added1 = newHashSet("a", "z", "e", "b");
+        File f1 = folder.newFile();
+        writeStrings(added1.iterator(), f1, false);
+
+        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        File f2 = folder.newFile();
+        writeStrings(added2.iterator(), f2, false);
+
+        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        File f3 = folder.newFile();
+        writeStrings(added3.iterator(), f3, false);
+
+        append(newArrayList(f2, f3), f1, true);
+        assertEquals(union(union(added1, added2), added3),
+            readStringsAsSet(new FileInputStream(f1), false));
+        assertTrue(!f2.exists());
+        assertTrue(!f3.exists());
+        assertTrue(f1.exists());
+    }
+
+    @Test
+    public void appendTestNoDelete() throws IOException {
+        Set<String> added1 = newHashSet("a", "z", "e", "b");
+        File f1 = folder.newFile();
+        writeStrings(added1.iterator(), f1, false);
+
+        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        File f2 = folder.newFile();
+        writeStrings(added2.iterator(), f2, false);
+
+        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        File f3 = folder.newFile();
+        writeStrings(added3.iterator(), f3, false);
+
+        append(newArrayList(f2, f3), f1, false);
+        assertEquals(union(union(added1, added2), added3),
+            readStringsAsSet(new FileInputStream(f1), false));
+        assertTrue(f2.exists());
+        assertTrue(f3.exists());
+        assertTrue(f1.exists());
+    }
+
+    @Test
+    public void appendRandomizedTest() throws Exception {
+        Set<String> added1 = newHashSet();
+        File f1 = folder.newFile();
+
+        for (int i = 0; i < 100; i++) {
+            added1.add(getRandomTestString());
+        }
+        int count = writeStrings(added1.iterator(), f1, true);
+        assertEquals(added1.size(), count);
+
+        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        File f2 = folder.newFile();
+        writeStrings(added2.iterator(), f2, true);
+
+        append(newArrayList(f2), f1, true);
+        assertEquals(union(added1, added2),
+            readStringsAsSet(new FileInputStream(f1), true));
+    }
+
+    @Test
+    public void appendWithLineBreaksTest() throws IOException {
+        Set<String> added1 = newHashSet(getLineBreakStrings());
+        File f1 = folder.newFile();
+        int count = writeStrings(added1.iterator(), f1, true);
+        assertEquals(added1.size(), count);
+
+        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        File f2 = folder.newFile();
+        writeStrings(added2.iterator(), f2, true);
+
+        append(newArrayList(f1), f2, true);
+        assertEquals(union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
+    }
+
 
     private static List<String> getLineBreakStrings() {
         return newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
@@ -193,5 +289,12 @@ public class FileIOUtilsTest {
             }
         }
         return buffer.toString();
+    }
+
+    static InputStream randomStream(int seed, int size) {
+        Random r = new Random(seed);
+        byte[] data = new byte[size];
+        r.nextBytes(data);
+        return new ByteArrayInputStream(data);
     }
 }

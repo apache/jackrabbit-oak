@@ -20,9 +20,11 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -37,13 +39,22 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.io.Closeables.close;
+import static com.google.common.io.FileWriteMode.APPEND;
+import static com.google.common.io.Files.asByteSink;
 import static com.google.common.io.Files.move;
 import static com.google.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.copyLarge;
+import static org.apache.commons.io.LineIterator.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
@@ -69,7 +80,7 @@ public final class FileIOUtils {
      * @param file file whose contents needs to be sorted
      */
     public static void sort(File file) throws IOException {
-        File sorted = createTempFile("temp", null);
+        File sorted = createTempFile("fleioutilssort", null);
         merge(sortInBatch(file, lexComparator, true), sorted);
         move(sorted, file);
     }
@@ -82,7 +93,7 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static void sort(File file, Comparator<String> comparator) throws IOException {
-        File sorted = createTempFile("temp", null);
+        File sorted = createTempFile("fleioutilssort", null);
         merge(sortInBatch(file, comparator, true), sorted);
         move(sorted, file);
     }
@@ -98,6 +109,57 @@ public final class FileIOUtils {
         mergeSortedFiles(
             files,
             output, lexComparator, true);
+    }
+
+    /**
+
+     * Copies an input stream to a file.
+     *
+     * @param stream steam to copy
+     * @return
+     * @throws IOException
+     */
+    public static File copy(InputStream stream) throws IOException {
+        File file = createTempFile("fleioutilscopy", null);
+        copyInputStreamToFile(stream, file);
+        return file;
+    }
+
+    /**
+     * Appends the contents of the list of files to the given file and deletes the files
+     * if the delete flag is enabled.
+     *
+     * If there is a scope for lines in the files containing line break characters it should be
+     * ensured that the files are written with {@link #writeAsLine(BufferedWriter, String, boolean)}
+     * with true to escape line break characters.
+     * @param files
+     * @param appendTo
+     * @throws IOException
+     */
+    public static void append(List<File> files, File appendTo, boolean delete) throws IOException {
+        OutputStream appendStream = null;
+        boolean threw = true;
+
+        try {
+            appendStream = asByteSink(appendTo, APPEND).openBufferedStream();
+
+            for (File f : files) {
+                InputStream iStream = new FileInputStream(f);
+                try {
+                    copyLarge(iStream, appendStream);
+                } finally {
+                    closeQuietly(iStream);
+                }
+            }
+            if (delete) {
+                for (File f : files) {
+                    f.delete();
+                }
+            }
+            threw = false;
+        } finally {
+            close(appendStream, threw);
+        }
     }
 
     /**
@@ -215,8 +277,8 @@ public final class FileIOUtils {
     /**
      * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.
      *
-     * If there is a scope for lines in files containing line break characters it should be
-     * ensured that both the file are written with
+     * If there is a scope for lines in the files containing line break characters it should be
+     * ensured that both the files are written with
      * {@link #writeAsLine(BufferedWriter, String, boolean)} with true to escape line break
      * characters.
      */
@@ -299,6 +361,72 @@ public final class FileIOUtils {
                 }
             }
             return diff;
+        }
+    }
+
+    /**
+     * Implements a {@link java.io.Closeable} wrapper over a {@link LineIterator}.
+     * Also has a transformer to transform the output. If the underlying file is
+     * provide then it deletes the file on {@link #close()}.
+     *
+     * @param <T> the type of elements in the iterator
+     */
+    public static class CloseableFileIterator<T> extends AbstractIterator<T> implements Closeable {
+        private final Logger log = LoggerFactory.getLogger(getClass());
+
+        private final LineIterator iterator;
+        private final Function<String, T> transformer;
+        private File backingFile;
+
+        public CloseableFileIterator(LineIterator iterator, Function<String, T> transformer) {
+            this.iterator = iterator;
+            this.transformer = transformer;
+        }
+
+        public CloseableFileIterator(LineIterator iterator, File backingFile,
+            Function<String, T> transformer) {
+            this.iterator = iterator;
+            this.transformer = transformer;
+            this.backingFile = backingFile;
+        }
+
+        @Override
+        protected T computeNext() {
+            if (iterator.hasNext()) {
+                return transformer.apply(iterator.next());
+            }
+
+            try {
+                close();
+            } catch (IOException e) {
+                log.warn("Error closing iterator", e);
+            }
+            return endOfData();
+        }
+
+        @Override
+        public void close() throws IOException {
+            closeQuietly(iterator);
+            if (backingFile != null && backingFile.exists()) {
+                forceDelete(backingFile);
+            }
+        }
+
+        public static CloseableFileIterator<String> wrap(LineIterator iter) {
+            return new CloseableFileIterator<String>(iter, new Function<String, String>() {
+                public String apply(String s) {
+                    return s;
+                }
+            });
+        }
+
+        public static CloseableFileIterator<String> wrap(LineIterator iter, File backingFile) {
+            return new CloseableFileIterator<String>(iter, backingFile,
+                new Function<String, String>() {
+                    public String apply(String s) {
+                        return s;
+                    }
+                });
         }
     }
 }
