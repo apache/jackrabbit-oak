@@ -43,7 +43,6 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.junit.After;
 import org.junit.Before;
@@ -55,6 +54,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -200,6 +200,24 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         assertTrue(BlobId.isEncoded("abc"+BlobId.SEP+"123"));
         assertFalse(BlobId.isEncoded("abc"));
+    }
+
+    @Test
+    public void testAddOnTrackError() throws Exception {
+        int maxInlineSize = 300;
+        byte[] data = new byte[maxInlineSize];
+        new Random().nextBytes(data);
+
+        DataStore mockedDS = mock(DataStore.class);
+        when(mockedDS.getMinRecordLength()).thenReturn(maxInlineSize);
+        DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
+
+        BlobIdTracker mockedTracker = mock(BlobIdTracker.class);
+        doThrow(new IOException("Mocking tracking error")).when(mockedTracker).add(any(String.class));
+        ds.addTracker(mockedTracker);
+
+        String id = ds.writeBlob(new ByteArrayInputStream(data));
+        assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data), ds.getInputStream(id)));
     }
 
     @Override
