@@ -252,15 +252,17 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                 connection = super.rdbDataSource.getConnection();
                 connection.setAutoCommit(false);
                 PreparedStatement stmt = connection.prepareStatement("select DATA, MODCOUNT from " + table + " where ID = ?");
+                ResultSet rs = null;
                 try {
                     setIdInStatement(stmt, 1, key);
-                    ResultSet rs = stmt.executeQuery();
+                    rs = stmt.executeQuery();
                     assertTrue("test record " + key + " not found in " + super.dsname, rs.next());
                     String got = rs.getString(1);
                     long modc = rs.getLong(2);
                     LOG.info("column reset " + modc + " times");
                     assertEquals(expect.toString(), got);
                 } finally {
+                    rs = close(rs);
                     stmt = close(stmt);
                 }
             } finally {
@@ -300,6 +302,17 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
         if (s != null) {
             try {
                 s.close();
+            } catch (SQLException ex) {
+                // ignored
+            }
+        }
+        return null;
+    }
+
+    private static ResultSet close(ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
             } catch (SQLException ex) {
                 // ignored
             }
