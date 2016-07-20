@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Predicates.alwaysTrue;
-import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.io.Files.asByteSource;
@@ -51,6 +50,7 @@ import static com.google.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.synchronizedList;
+import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -86,7 +86,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     private static final String mergedFileSuffix = ".refs";
 
     /* Local instance identifier */
-    private final String instanceId = String.valueOf(currentTimeMillis());
+    private final String instanceId = randomUUID().toString();
 
     private final SharedDataStore datastore;
 
@@ -179,13 +179,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     private void globalMerge() throws IOException {
         try {
             // Download all the blob reference files except the local one from the data store
-            Iterable<DataRecord> refRecords = filter(
-                datastore.getAllMetadataRecords(fileNamePrefix), new Predicate<DataRecord>() {
-                    @Override
-                    public boolean apply(DataRecord input) {
-                        return !input.getIdentifier().toString().contains(instanceId);
-                    }
-                });
+            Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
+
             // Download all the corresponding reference files
             List<File> refFiles = newArrayList(
                 transform(refRecords,
