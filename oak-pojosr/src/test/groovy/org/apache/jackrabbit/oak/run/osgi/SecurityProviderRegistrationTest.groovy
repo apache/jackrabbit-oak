@@ -50,7 +50,7 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
     protected PojoServiceRegistry getRegistry() {
         return registry
     }
-/**
+    /**
      * Test that, without any additional configuration, a SecurityProvider
      * service is registered by default.
      */
