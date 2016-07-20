@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -192,6 +193,23 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape)
         throws IOException {
+        return writeStrings(iterator, f, escape, null, "");
+    }
+
+    /**
+     * Writes string from the given iterator to the given file and optionally
+     * escape the written strings for line breaks.
+     *
+     * @param iterator the source of the strings
+     * @param f file to write to
+     * @param escape escape whether to escape for line breaks
+     * @param logger logger to log progress
+     * @param message message to log
+     * @return
+     * @throws IOException
+     */
+    public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
+        @Nullable Logger logger, @Nullable String message) throws IOException {
         BufferedWriter writer =  newWriter(f, UTF_8);
         boolean threw = true;
 
@@ -200,6 +218,11 @@ public final class FileIOUtils {
             while (iterator.hasNext()) {
                 writeAsLine(writer, iterator.next(), escape);
                 count++;
+                if (logger != null) {
+                    if (count % 1000 == 0) {
+                        logger.info(Strings.nullToEmpty(message) + count);
+                    }
+                }
             }
             threw = false;
         } finally {
