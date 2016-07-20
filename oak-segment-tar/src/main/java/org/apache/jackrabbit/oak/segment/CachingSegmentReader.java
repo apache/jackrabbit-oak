@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.Long.getLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -38,10 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
-    public static final String STRING_CACHE_MB = "oak.segment.stringCacheMB";
-
     public static final int DEFAULT_TEMPLATE_CACHE_MB = 64;
-    public static final String TEMPLATE_CACHE_MB = "oak.segment.templateCacheMB";
 
     @Nonnull
     private final Supplier<SegmentWriter> writer;
@@ -78,8 +74,8 @@ public class CachingSegmentReader implements SegmentReader {
             long templateCacheMB) {
         this.writer = checkNotNull(writer);
         this.blobStore = blobStore;
-        stringCache = new StringCache(getLong(STRING_CACHE_MB, stringCacheMB) * 1024 * 1024);
-        templateCache = new TemplateCache(getLong(TEMPLATE_CACHE_MB, templateCacheMB * 1024 * 1024));
+        stringCache = new StringCache(stringCacheMB * 1024 * 1024);
+        templateCache = new TemplateCache(templateCacheMB * 1024 * 1024);
     }
 
     /**
