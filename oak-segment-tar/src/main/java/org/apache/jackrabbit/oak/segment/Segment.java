@@ -23,8 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newConcurrentMap;
-import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
@@ -38,7 +36,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -146,16 +143,6 @@ public class Segment {
     private final SegmentId[] refids;
 
     /**
-     * Template records read from segment. Used to avoid duplicate
-     * copies and repeated parsing of the same templates.
-     * FIXME OAK-4451 move the template cache to the segment reader along side with the string cache
-     */
-    @CheckForNull
-    final ConcurrentMap<Integer, Template> templates;
-
-    private static final boolean DISABLE_TEMPLATE_CACHE = getBoolean("oak.segment.disableTemplateCache");
-
-    /**
      * Unpacks a 4 byte aligned segment offset.
      * @param offset  4 byte aligned segment offset
      * @return unpacked segment offset
@@ -192,12 +179,6 @@ public class Segment {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
-
-        if (DISABLE_TEMPLATE_CACHE) {
-            templates = null;
-        } else {
-            templates = newConcurrentMap();
-        }
         this.data = checkNotNull(data);
         if (id.isDataSegmentId()) {
             byte segmentVersion = data.get(3);
@@ -241,12 +222,6 @@ public class Segment {
         this.reader = checkNotNull(reader);
         this.id = store.newDataSegmentId();
         this.info = checkNotNull(info);
-        if (DISABLE_TEMPLATE_CACHE) {
-            templates = null;
-        } else {
-            templates = newConcurrentMap();
-        }
-
         this.data = ByteBuffer.wrap(checkNotNull(buffer));
         this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
         this.refids[0] = id;

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.http;
 
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 
 import java.io.IOException;
@@ -65,7 +66,7 @@ public class HttpStore implements SegmentStore {
     };
     @Nonnull
     private final SegmentReader segmentReader = new CachingSegmentReader(
-            getWriter, null, DEFAULT_STRING_CACHE_MB);
+            getWriter, null, DEFAULT_STRING_CACHE_MB, DEFAULT_TEMPLATE_CACHE_MB);
 
     private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
 
