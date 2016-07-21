@@ -144,6 +144,9 @@ The garbage collection can be triggered by calling:
 
 * `MarkSweepGarbageCollector#collectGarbage()` (Oak 1.0.x)
 * `MarkSweepGarbageCollector#collectGarbage(false)` (Oak 1.2.x)
+* If the MBeans are registered in the MBeanServer then the following can also be used to trigger GC:
+    * `BlobGC#startBlobGC()` which takes in a `markOnly` boolean parameter to indicate mark only or complete gc
+
  
 #### Shared DataStore Blob Garbage Collection (Since 1.2.0)
 
@@ -175,6 +178,105 @@ The shared DataStore garbage collection is applicable for the following DataStor
 * SharedS3DataStore - Extends the S3DataStore to enable sharing of the data store with
                         multiple repositories                        
  
+##### Checking GC status for Shared DataStore Garbage Collection
+
+The status of the GC operations on all the repositories connected to the DataStore can be checked by calling:
+
+* `MarkSweepGarbageCollector#getStats()` which returns a list of `GarbageCollectionRepoStats` objects having the following fields:
+    * repositoryId - The repositoryId of the repository
+    * local - Indicates whether the repositoryId is of local instance where the operation ran
+    * startTime - Start time of the mark operation on the repository
+    * endTime - End time of the mark operation on the repository
+    * length - Size of the references file created
+    * numLines - Number of references available
+* If the MBeans are registered in the MBeanServer then the following can also be used to retrieve the status:
+    * `BlobGC#getBlobGCStatus()` which returns a CompositeData with the above fields.
+    
+This operation can also be used to ascertain when the 'Mark' phase has executed successfully on all the repositories, as part of the steps to automate the GC in the Shared DataStore configuration.
+It should be a sufficient condition to check that the references file is available on all repositories.
+If the server running Oak has remote JMX connection enabled the following code example can be used to connect remotely and check if the mark phase has concluded on all repository instances.
+
+
+```java
+import java.util.Hashtable;
+
+import javax.management.openmbean.TabularData;
+import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerInvocationHandler;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import javax.management.openmbean.CompositeData;
+
+
+/**
+ * Checks the status of the mark operation on all instances sharing the DataStore.
+ */
+public class GetGCStats {
+
+    public static void main(String[] args) throws Exception {
+        String userid = "<user>";
+        String password = "<password>";
+        String serverUrl = "service:jmx:rmi:///jndi/rmi://<host:port>/jmxrmi";
+        String OBJECT_NAME = "org.apache.jackrabbit.oak:name=Document node store blob garbage collection,type=BlobGarbageCollection";
+        String[] buffer = new String[] {userid, password};
+        Hashtable<String, String[]> attributes = new Hashtable<String, String[]>();
+        attributes.put("jmx.remote.credentials", buffer);
+        MBeanServerConnection server = JMXConnectorFactory
+            .connect(new JMXServiceURL(serverUrl), attributes).getMBeanServerConnection();
+        ObjectName name = new ObjectName(OBJECT_NAME);
+        BlobGCMBean gcBean = MBeanServerInvocationHandler
+            .newProxyInstance(server, name, BlobGCMBean.class, false);
+
+        boolean markDone = checkMarkDone("GlobalMarkStats", gcBean.getGlobalMarkStats());
+        System.out.println("Mark done on all instances - " + markDone);
+    }
+
+    public static boolean checkMarkDone(String operation, TabularData data) {
+        System.out.println("-----Operation " + operation + "--------------");
+
+        boolean markDoneOnOthers = true;
+        try {
+            System.out.println("Number of instances " + data.size());
+
+            for (Object o : data.values()) {
+                CompositeData row = (CompositeData) o;
+                String repositoryId = row.get("repositoryId").toString();
+                System.out.println("Repository  " + repositoryId);
+
+                if ((!row.containsKey("markEndTime")
+                        || row.get("markEndTime") == null
+                        || row.get("markEndTime").toString().length() == 0)) {
+                    markDoneOnOthers = false;
+                    System.out.println("Mark not done on repository : " + repositoryId);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(
+                "-----Error during operation " + operation + "--------------" + e.getMessage());
+        }
+        System.out.println("-----Completed " + operation + "--------------");
+
+        return markDoneOnOthers;
+    }
+}
+```
+
+#### Consistency Check
+The data store consistency check will report any data store binaries that are missing but are still referenced. The consistency check can be triggered by:
+
+* `MarkSweepGarbageCollector#checkConsistency` 
+* If the MBeans are registered in the MBeanServer then the following can also be used:
+    * `BlobGCMbean#checkConsistency`
+
+After the consistency check is complete, a message will show the number of binaries reported as missing. If the number is greater than 0, check the logs configured for `org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector` for more details on the missing binaries. 
+
+Below is an example of how the missing binaries are reported in the logs:
+>
+> 11:32:39.673 INFO [main] MarkSweepGarbageCollector.java:600 Consistency check found [1] missing blobs
+> 11:32:39.673 WARN [main] MarkSweepGarbageCollector.java:602 Consistency check failure in the the blob store : DataStore backed BlobStore [org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore], check missing candidates in file /tmp/gcworkdir-1467352959243/gccand-1467352959243
+
+
 
 [1]: http://serverfault.com/questions/52861/how-does-dropbox-version-upload-large-files
 [2]: http://wiki.apache.org/jackrabbit/DataStore
