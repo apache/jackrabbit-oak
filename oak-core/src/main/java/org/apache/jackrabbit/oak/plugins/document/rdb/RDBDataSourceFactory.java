@@ -77,10 +77,9 @@ public class RDBDataSourceFactory {
                 dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
                 dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
                 dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
-                // SHOULD also contain StatementCache, but see OAK-4559 
                 String interceptors = System.getProperty(
                         "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
-                        "SlowQueryReport(threshold=10000);ConnectionState");
+                        "SlowQueryReport(threshold=10000);ConnectionState;StatementCache");
                 if (!interceptors.isEmpty()) {
                     dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds, interceptors);
                 }
