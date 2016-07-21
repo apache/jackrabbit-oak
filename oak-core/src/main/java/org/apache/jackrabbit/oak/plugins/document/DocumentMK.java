@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -242,7 +243,7 @@ public class DocumentMK {
             boolean includeId = filter != null && filter.contains(":id");
             includeId |= filter != null && filter.contains(":hash");
             json.object();
-            n.append(json, includeId);
+            append(n, json, includeId);
             int max;
             if (maxChildNodes == -1) {
                 max = Integer.MAX_VALUE;
@@ -514,6 +515,17 @@ public class DocumentMK {
             String childName = PathUtils.getName(child.getPath());
             String destChildPath = concat(targetPath, childName);
             moveOrCopyNode(move, child, destChildPath, commit);
+        }
+    }
+
+    private static void append(DocumentNodeState node,
+                               JsopWriter json,
+                               boolean includeId) {
+        if (includeId) {
+            json.key(":id").value(node.getId());
+        }
+        for (String name : node.getPropertyNames()) {
+            json.key(name).encodedValue(node.getPropertyAsString(name));
         }
     }
 
