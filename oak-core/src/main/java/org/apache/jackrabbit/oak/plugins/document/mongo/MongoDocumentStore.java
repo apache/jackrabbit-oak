@@ -957,7 +957,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         Map<String, NodeDocument> nodes = new HashMap<String, NodeDocument>();
         for (String key : keys) {
             NodeDocument cached = nodesCache.getIfPresent(key);
-            if (cached != null && cached != NodeDocument.NULL) {
+            if (cached != null) {
                 nodes.put(key, cached);
             }
         }
@@ -989,7 +989,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
                 for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
-                    if (oldDoc != null) {
+                    if (oldDoc != null && oldDoc != NodeDocument.NULL) {
                         NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
                         docsToCache.add(newDoc);
                     }
@@ -1061,7 +1061,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             QueryBuilder query = createQueryForUpdate(id, updateOp.getConditions());
             T oldDoc = oldDocs.get(id);
             DBObject update;
-            if (oldDoc == null) {
+            if (oldDoc == null || oldDoc == NodeDocument.NULL) {
                 query.and(Document.MOD_COUNT).exists(false);
                 update = createUpdate(updateOp, true);
             } else {
