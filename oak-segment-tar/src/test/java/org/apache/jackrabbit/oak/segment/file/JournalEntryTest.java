@@ -46,8 +46,13 @@ public class JournalEntryTest {
 
     @Test
     public void timestampInJournalEntry() throws Exception{
-        FileStore fileStore = fileStoreBuilder(tempFolder.getRoot()).withMaxFileSize(5)
-                .withNoCache().withMemoryMapping(true).build();
+        FileStore fileStore = fileStoreBuilder(tempFolder.getRoot())
+                .withMaxFileSize(5)
+                .withSegmentCacheSize(0)
+                .withStringCacheSize(0)
+                .withTemplateCacheSize(0)
+                .withMemoryMapping(true)
+                .build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 

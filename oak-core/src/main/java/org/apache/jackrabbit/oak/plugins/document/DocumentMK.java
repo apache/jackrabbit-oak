@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.InputStream;
 import java.net.UnknownHostException;
@@ -52,6 +53,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -197,7 +199,6 @@ public class DocumentMK {
         final DocumentNodeState before = nodeStore.getNode(path, fromRev);
         final DocumentNodeState after = nodeStore.getNode(path, toRev);
         if (before == null || after == null) {
-            // TODO implement correct behavior if the node doesn't/didn't exist
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
                             "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
                     path, fromRev, before != null, toRev, after != null);
@@ -242,7 +243,7 @@ public class DocumentMK {
             boolean includeId = filter != null && filter.contains(":id");
             includeId |= filter != null && filter.contains(":hash");
             json.object();
-            n.append(json, includeId);
+            append(n, json, includeId);
             int max;
             if (maxChildNodes == -1) {
                 max = Integer.MAX_VALUE;
@@ -261,7 +262,6 @@ public class DocumentMK {
                 json.key(name).object().endObject();
             }
             if (c.hasMore) {
-                // TODO use a better way to notify there are more children
                 json.key(":childNodeCount").value(Long.MAX_VALUE);
             } else {
                 json.key(":childNodeCount").value(c.children.size());
@@ -306,7 +306,6 @@ public class DocumentMK {
 
     public String merge(String branchRevisionId, String message)
             throws DocumentStoreException {
-        // TODO improve implementation if needed
         RevisionVector revision = RevisionVector.fromString(branchRevisionId);
         if (!revision.isBranch()) {
             throw new DocumentStoreException("Not a branch: " + branchRevisionId);
@@ -408,7 +407,7 @@ public class DocumentMK {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     }
                     commit.removeNode(path, toRemove);
-                    nodeStore.markAsDeleted(toRemove, commit, true);
+                    markAsDeleted(toRemove, commit, true);
                     break;
                 case '^':
                     t.read(':');
@@ -426,7 +425,6 @@ public class DocumentMK {
                     commit.updateProperty(p, propertyName, value);
                     break;
                 case '>': {
-                    // TODO support moving nodes that were modified within this commit
                     t.read(':');
                     String targetPath = t.readString();
                     if (!PathUtils.isAbsolute(targetPath)) {
@@ -438,11 +436,10 @@ public class DocumentMK {
                     } else if (nodeExists(targetPath, baseRevId)) {
                         throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
-                    nodeStore.moveNode(source, targetPath, commit);
+                    moveNode(source, targetPath, commit);
                     break;
                 }
                 case '*': {
-                    // TODO support copying nodes that were modified within this commit
                     t.read(':');
                     String targetPath = t.readString();
                     if (!PathUtils.isAbsolute(targetPath)) {
@@ -454,7 +451,7 @@ public class DocumentMK {
                     } else if (nodeExists(targetPath, baseRevId)) {
                         throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
-                    nodeStore.copyNode(source, targetPath, commit);
+                    copyNode(source, targetPath, commit);
                     break;
                 }
                 default:
@@ -481,6 +478,55 @@ public class DocumentMK {
             t.read('}');
         }
         commit.addNode(n);
+    }
+
+    private void copyNode(DocumentNodeState source, String targetPath, Commit commit) {
+        moveOrCopyNode(false, source, targetPath, commit);
+    }
+
+    private void moveNode(DocumentNodeState source, String targetPath, Commit commit) {
+        moveOrCopyNode(true, source, targetPath, commit);
+    }
+
+    private void markAsDeleted(DocumentNodeState node, Commit commit, boolean subTreeAlso) {
+        commit.removeNode(node.getPath(), node);
+
+        if (subTreeAlso) {
+            // recurse down the tree
+            for (DocumentNodeState child : nodeStore.getChildNodes(node, null, Integer.MAX_VALUE)) {
+                markAsDeleted(child, commit, true);
+            }
+        }
+    }
+
+    private void moveOrCopyNode(boolean move,
+                                DocumentNodeState source,
+                                String targetPath,
+                                Commit commit) {
+        RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
+        DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision);
+        source.copyTo(newNode);
+
+        commit.addNode(newNode);
+        if (move) {
+            markAsDeleted(source, commit, false);
+        }
+        for (DocumentNodeState child : nodeStore.getChildNodes(source, null, Integer.MAX_VALUE)) {
+            String childName = PathUtils.getName(child.getPath());
+            String destChildPath = concat(targetPath, childName);
+            moveOrCopyNode(move, child, destChildPath, commit);
+        }
+    }
+
+    private static void append(DocumentNodeState node,
+                               JsopWriter json,
+                               boolean includeId) {
+        if (includeId) {
+            json.key(":id").value(node.getId());
+        }
+        for (String name : node.getPropertyNames()) {
+            json.key(name).encodedValue(node.getPropertyAsString(name));
+        }
     }
 
     //----------------------------< Builder >-----------------------------------

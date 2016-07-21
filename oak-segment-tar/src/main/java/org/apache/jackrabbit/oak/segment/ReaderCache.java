@@ -70,24 +70,13 @@ public abstract class ReaderCache<T> {
      */
     protected ReaderCache(long maxWeight, int averageWeight, @Nonnull String name) {
         this.name = checkNotNull(name);
-        if (maxWeight >= 0) {
-            fastCache = new FastCache<>();
-            cache = CacheLIRS.<CacheKey<T>, T>newBuilder()
-                    .module(name)
-                    .maximumWeight(maxWeight)
-                    .averageWeight(averageWeight)
-                    .weigher(weigher)
-                    .build();
-        } else {
-            fastCache = null;
-            // dummy cache to prevent NPE on the getStats() call
-            cache = CacheLIRS.<CacheKey<T>, T> newBuilder()
-                    .module(name)
-                    .maximumWeight(1)
-                    .averageWeight(averageWeight)
-                    .weigher(weigher)
-                    .build();
-        }
+        fastCache = new FastCache<>();
+        cache = CacheLIRS.<CacheKey<T>, T>newBuilder()
+                .module(name)
+                .maximumWeight(maxWeight)
+                .averageWeight(averageWeight)
+                .weigher(weigher)
+                .build();
     }
 
     @Nonnull

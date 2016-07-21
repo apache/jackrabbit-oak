@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
@@ -56,7 +58,11 @@ public class FileStoreBuilder {
 
     private int maxFileSize = 256;
 
-    private int cacheSize;   // 0 -> DEFAULT_MEMORY_CACHE_SIZE
+    private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
+    private int stringCacheSize = DEFAULT_STRING_CACHE_MB;
+
+    private int templateCacheSize = DEFAULT_TEMPLATE_CACHE_MB;
 
     private boolean memoryMapping;
 
@@ -176,23 +182,35 @@ public class FileStoreBuilder {
     }
 
     /**
-     * Size of the cache in MB.
-     * @param cacheSize
+     * Size of the segment cache in MB.
+     * @param segmentCacheSize  None negative cache size
      * @return this instance
      */
     @Nonnull
-    public FileStoreBuilder withCacheSize(int cacheSize) {
-        this.cacheSize = cacheSize;
+    public FileStoreBuilder withSegmentCacheSize(int segmentCacheSize) {
+        this.segmentCacheSize = segmentCacheSize;
         return this;
     }
 
     /**
-     * Turn caching off
+     * Size of the string cache in MB.
+     * @param stringCacheSize  None negative cache size
      * @return this instance
      */
     @Nonnull
-    public FileStoreBuilder withNoCache() {
-        this.cacheSize = -1;
+    public FileStoreBuilder withStringCacheSize(int stringCacheSize) {
+        this.stringCacheSize = stringCacheSize;
+        return this;
+    }
+
+    /**
+     * Size of the template cache in MB.
+     * @param templateCacheSize  None negative cache size
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withTemplateCacheSize(int templateCacheSize) {
+        this.templateCacheSize = templateCacheSize;
         return this;
     }
 
@@ -314,8 +332,16 @@ public class FileStoreBuilder {
         return maxFileSize;
     }
 
-    int getCacheSize() {
-        return cacheSize;
+    int getSegmentCacheSize() {
+        return segmentCacheSize;
+    }
+
+    int getStringCacheSize() {
+        return stringCacheSize;
+    }
+
+    int getTemplateCacheSize() {
+        return templateCacheSize;
     }
 
     boolean getMemoryMapping() {
@@ -354,7 +380,9 @@ public class FileStoreBuilder {
                 "directory=" + directory +
                 ", blobStore=" + blobStore +
                 ", maxFileSize=" + maxFileSize +
-                ", cacheSize=" + cacheSize +
+                ", segmentCacheSize=" + segmentCacheSize +
+                ", stringCacheSize=" + stringCacheSize +
+                ", templateCacheSize=" + templateCacheSize +
                 ", memoryMapping=" + memoryMapping +
                 ", gcOptions=" + gcOptions +
                 '}';
