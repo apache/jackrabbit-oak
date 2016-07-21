@@ -45,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.PerfLogger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -390,15 +388,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     String getId() {
         return path + "@" + lastRevision;
-    }
-
-    void append(JsopWriter json, boolean includeId) {
-        if (includeId) {
-            json.key(":id").value(getId());
-        }
-        for (String p : properties.keySet()) {
-            json.key(p).encodedValue(getPropertyAsString(p));
-        }
     }
 
     void setLastRevision(RevisionVector lastRevision) {
