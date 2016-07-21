@@ -106,7 +106,6 @@ public enum RDBDocumentStoreDB {
                     result.put("pg_encoding_to_char(encoding)", rs.getString(1));
                     result.put("datcollate", rs.getString(2));
                 }
-                stmt.close();
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
@@ -302,6 +301,7 @@ public enum RDBDocumentStoreDB {
                 while (rs.next()) {
                     result.put(rs.getString(1), rs.getString(2));
                 }
+                rs.close();
                 stmt.close();
                 con.commit();
             } catch (SQLException ex) {
@@ -372,6 +372,7 @@ public enum RDBDocumentStoreDB {
                 while (rs.next()) {
                     result.put("collation_name", rs.getString(1));
                 }
+                rs.close();
                 stmt.close();
                 con.commit();
             } catch (SQLException ex) {
