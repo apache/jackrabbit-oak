@@ -845,26 +845,6 @@ public final class DocumentNodeStore
         splitCandidates.put(id, id);
     }
 
-    void copyNode(DocumentNodeState source, String targetPath, Commit commit) {
-        moveOrCopyNode(false, source, targetPath, commit);
-    }
-
-    void moveNode(DocumentNodeState source, String targetPath, Commit commit) {
-        moveOrCopyNode(true, source, targetPath, commit);
-    }
-
-    void markAsDeleted(DocumentNodeState node, Commit commit, boolean subTreeAlso) {
-        commit.removeNode(node.getPath(), node);
-
-        if (subTreeAlso) {
-            // recurse down the tree
-            // TODO causes issue with large number of children
-            for (DocumentNodeState child : getChildNodes(node, null, Integer.MAX_VALUE)) {
-                markAsDeleted(child, commit, true);
-            }
-        }
-    }
-
     @CheckForNull
     AbstractDocumentNodeState getSecondaryNodeState(@Nonnull final String path,
                               @Nonnull final RevisionVector rootRevision,
@@ -2376,33 +2356,6 @@ public final class DocumentNodeStore
 
     private static long now(){
         return System.currentTimeMillis();
-    }
-
-    private void moveOrCopyNode(boolean move,
-                                DocumentNodeState source,
-                                String targetPath,
-                                Commit commit) {
-        // TODO Optimize - Move logic would not work well with very move of very large subtrees
-        // At minimum we can optimize by traversing breadth wise and collect node id
-        // and fetch them via '$in' queries
-
-        // TODO Transient Node - Current logic does not account for operations which are part
-        // of this commit i.e. transient nodes. If its required it would need to be looked
-        // into
-
-        RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
-        DocumentNodeState newNode = new DocumentNodeState(this, targetPath, destRevision);
-        source.copyTo(newNode);
-
-        commit.addNode(newNode);
-        if (move) {
-            markAsDeleted(source, commit, false);
-        }
-        for (DocumentNodeState child : getChildNodes(source, null, Integer.MAX_VALUE)) {
-            String childName = PathUtils.getName(child.getPath());
-            String destChildPath = concat(targetPath, childName);
-            moveOrCopyNode(move, child, destChildPath, commit);
-        }
     }
 
     /**
