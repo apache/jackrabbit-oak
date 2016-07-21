@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.BitSet;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Splitter;
@@ -38,7 +36,6 @@ import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 
 /**
@@ -118,7 +115,9 @@ public class SimpleExcerptProvider {
             FullTextSearchImpl f = (FullTextSearchImpl) c;
             if (f.getFullTextSearchExpression() instanceof LiteralImpl) {
                 LiteralImpl l = (LiteralImpl) f.getFullTextSearchExpression();
-                tokens.add(l.getLiteralValue().getValue(Type.STRING));
+                String token = l.getLiteralValue().getValue(Type.STRING);
+                token = FullTextSearchImpl.replaceIdeographicSpace(token);
+                tokens.add(token);
             }
         }
         if (c instanceof AndImpl) {

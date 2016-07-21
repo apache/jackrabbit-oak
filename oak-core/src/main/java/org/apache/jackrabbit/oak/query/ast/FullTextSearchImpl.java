@@ -50,6 +50,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
      */
     public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
 
+    private static final boolean REPLACE_IDEOGRAPHIC_SPACE = 
+            Boolean.parseBoolean(System.getProperty("oak.queryReplaceIdeographicSpace", "true"));
+
     private final String selectorName;
     private final String relativePath;
     private final String propertyName;
@@ -83,6 +86,12 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     public StaticOperandImpl getFullTextSearchExpression() {
         return fullTextSearchExpression;
+    }
+    
+    private String getFullTextSearchCurrentString() {
+        String text = fullTextSearchExpression.currentValue().getValue(Type.STRING);
+        text = replaceIdeographicSpace(text);
+        return text;
     }
 
     @Override
@@ -129,7 +138,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         if (!s.equals(selector)) {
             return null;
         }
-        PropertyValue v = fullTextSearchExpression.currentValue();
+        String text = getFullTextSearchCurrentString();
         try {
             String p = propertyName;
             if (relativePath != null) {
@@ -139,7 +148,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 p = PathUtils.concat(relativePath, p);
             }
             String p2 = normalizePropertyName(p);
-            return FullTextParser.parse(p2, v.getValue(Type.STRING));
+            return FullTextParser.parse(p2, text);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
         }
@@ -249,7 +258,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 f.restrictProperty(p, Operator.NOT_EQUAL, null);
             }
         }
-        f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));
+        f.restrictFulltextCondition(getFullTextSearchCurrentString());
     }
 
     @Override
@@ -257,6 +266,20 @@ public class FullTextSearchImpl extends ConstraintImpl {
         if (s.equals(selector)) {
             selector.restrictSelector(this);
         }
+    }
+
+    /**
+     * Replace the ideographic space character (U+3000) with a simple space.
+     * See OAK-4575 for details.
+     * 
+     * @param text the original text
+     * @return the text, with U+3000 replaced
+     */
+    public static String replaceIdeographicSpace(String text) {
+        if (text == null || !REPLACE_IDEOGRAPHIC_SPACE) {
+            return text;
+        }
+        return text.replace('\u3000', ' ');
     }
 
 }
