@@ -17,12 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
@@ -30,14 +34,14 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
-import static junit.framework.Assert.assertEquals;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -351,6 +355,26 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
         assertQuery("//*[jcr:contains(., '美女')]", "xpath",
                 ImmutableList.of(one.getPath()));
+    }
+    
+    @Test
+    public void ideographicSpace() throws Exception {
+        Tree t = root.getTree("/").addChild("ideographicSpace");
+        Tree one = t.addChild("one");
+        one.setProperty("a", "エア");
+        one.setProperty("b", "添付文書");
+        root.commit();
+        String explain = explainXpath("//*[jcr:contains(., 'エア　添付文書')]");
+        System.out.println(explain);
+        assertQuery("//*[jcr:contains(., 'エア　添付文書')]", "xpath",
+                ImmutableList.of(one.getPath()));
+    }    
+    
+    private String explainXpath(String query) throws ParseException {
+        String explain = "explain " + query;
+        Result result = executeQuery(explain, "xpath", NO_BINDINGS);
+        ResultRow row = Iterables.getOnlyElement(result.getRows());
+        return row.getValue("plan").getValue(Type.STRING);
     }
     
     @Test
