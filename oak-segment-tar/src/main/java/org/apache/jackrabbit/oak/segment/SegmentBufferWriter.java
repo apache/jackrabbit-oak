@@ -68,9 +68,40 @@ import org.slf4j.LoggerFactory;
  * {@link SegmentWriter}.
  */
 public class SegmentBufferWriter implements WriteOperationHandler {
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);
 
     private static final boolean DISABLE_GENERATION_CHECK = Boolean.getBoolean("disable-generation-check");
+
+    private static final class Statistics {
+
+        int segmentIdCount;
+
+        int recordIdCount;
+
+        int recordCount;
+
+        int size;
+
+        SegmentId id;
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+
+            builder.append("id=").append(id);
+            builder.append(",");
+            builder.append("size=").append(size);
+            builder.append(",");
+            builder.append("segmentIdCount=").append(segmentIdCount);
+            builder.append(",");
+            builder.append("recordIdCount=").append(recordIdCount);
+            builder.append(",");
+            builder.append("recordCount=").append(recordCount);
+
+            return builder.toString();
+        }
+    }
 
     /**
      * The set of root records (i.e. ones not referenced by other records)
@@ -115,6 +146,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private int position;
 
+    private Statistics statistics;
+
     public SegmentBufferWriter(@Nonnull SegmentStore store,
                                @Nonnull SegmentTracker tracker,
                                @Nonnull SegmentReader reader,
@@ -128,6 +161,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 : wid);
 
         this.generation = generation;
+        this.statistics = new Statistics();
         newSegment();
     }
 
@@ -175,6 +209,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             ",\"t\":" + currentTimeMillis() + "}";
         try {
             segment = new Segment(store, reader, buffer, metaInfo);
+
+            statistics = new Statistics();
+            statistics.id = segment.getSegmentId();
+
             byte[] data = metaInfo.getBytes(UTF_8);
             RecordWriters.newValueWriter(data.length, data).write(this);
         } catch (IOException e) {
@@ -236,6 +274,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[position++] = (byte) getSegmentRef(recordId.getSegmentId());
         buffer[position++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
+
+        statistics.recordIdCount++;
     }
 
     // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGeneration
@@ -299,12 +339,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public void flush() throws IOException {
         if (length > 0) {
             int refcount = segment.getRefCount();
+            statistics.segmentIdCount = refcount;
 
             int rootcount = roots.size();
             buffer[Segment.ROOT_COUNT_OFFSET] = (byte) (rootcount >> 8);
             buffer[Segment.ROOT_COUNT_OFFSET + 1] = (byte) rootcount;
 
             length = align(refcount * 16 + rootcount * 3 + length, 16);
+            statistics.size = length;
 
             checkState(length <= buffer.length);
 
@@ -332,7 +374,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             }
 
             SegmentId segmentId = segment.getSegmentId();
-            LOG.debug("Writing data segment {} ({} bytes)", segmentId, length);
+            LOG.debug("Writing data segment: {} ", statistics);
             store.writeSegment(segmentId, buffer, buffer.length - length, length);
             newSegment();
         }
@@ -410,6 +452,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
+
+        statistics.recordCount++;
 
         length += recordSize;
         position = buffer.length - length;
