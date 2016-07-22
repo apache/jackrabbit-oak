@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 
-public class MongoToMongoFds extends AbstractOak2OakTest {
+public class MongoToMongoFdsTest extends AbstractOak2OakTest {
 
     private final BlobStoreContainer destinationBlob;
 
@@ -34,7 +34,7 @@ public class MongoToMongoFds extends AbstractOak2OakTest {
 
     private final NodeStoreContainer destination;
 
-    public MongoToMongoFds() throws IOException {
+    public MongoToMongoFdsTest() throws IOException {
         assumeTrue(isMongoAvailable());
         destinationBlob = new FileDataStoreContainer();
         source = new MongoNodeStoreContainer();
@@ -53,7 +53,7 @@ public class MongoToMongoFds extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--fileblobstore", destinationBlob.getDescription(),
+        return new String[] { "--copy-binaries", "--datastore", destinationBlob.getDescription(),
                 source.getDescription(), destination.getDescription() };
     }
 }
