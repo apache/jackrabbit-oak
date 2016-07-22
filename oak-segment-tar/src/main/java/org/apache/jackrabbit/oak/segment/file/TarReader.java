@@ -761,7 +761,7 @@ class TarReader implements Closeable {
      * Collect reclaimable segments.
      * A data segment is reclaimable iff its generation is in the {@code reclaimGeneration}
      * predicate.
-     * A bulk segment is reclaimable if it is in {@code bulkRefs} or if it is transitively
+     * A bulk segment is reclaimable if it is not in {@code bulkRefs} or if it is transitively
      * reachable through a non reclaimable data segment.
      *
      * @param bulkRefs  bulk segment gc roots
@@ -774,6 +774,11 @@ class TarReader implements Closeable {
         Map<UUID, List<UUID>> graph = getGraph(true);
         TarEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
+            // A bulk segments is *always* written before any data segment referencing it.
+            // Backward iteration ensures we see all references to bulk segments before
+            // we see the bulk segment itself. Therefore we can remove a bulk reference
+            // from the bulkRefs set once we encounter it, which save us some memory and
+            // CPU on subsequent look-ups.
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
             if ((!isDataSegmentId(entry.lsb()) && !bulkRefs.remove(id)) ||
@@ -785,11 +790,9 @@ class TarReader implements Closeable {
                     for (UUID refId : getReferences(entry, id, graph)) {
                         if (!isDataSegmentId(refId.getLeastSignificantBits())) {
                             // keep the extra check for bulk segments for the case where a
-                            // pre-compiled graph is not available and getReferences also
-                            // includes data references
-                            if (!reclaim.remove(id)) {
-                                bulkRefs.add(refId);
-                            }
+                            // pre-compiled graph is not available (graph == null) and
+                            // getReferences also includes data references
+                            bulkRefs.add(refId);
                         }
                     }
                 }
