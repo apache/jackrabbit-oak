@@ -117,9 +117,9 @@ public class Commit {
 
     /**
      * Returns the base revision for this commit. That is, the revision passed
-     * to {@link DocumentMK#commit(String, String, String, String)}. The base
-     * revision may be <code>null</code>, e.g. for the initial commit of the
-     * root node, when there is no base revision.
+     * to {@link DocumentNodeStore#newCommit}. The base revision may be
+     * <code>null</code>, e.g. for the initial commit of the root node, when
+     * there is no base revision.
      *
      * @return the base revision of this commit or <code>null</code>.
      */
