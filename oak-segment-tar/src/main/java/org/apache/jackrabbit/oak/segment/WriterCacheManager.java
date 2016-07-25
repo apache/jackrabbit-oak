@@ -156,7 +156,7 @@ public abstract class WriterCacheManager {
             return nodeCaches.getGeneration(generation);
         }
 
-        protected void evictCaches(Predicate<Integer> generations) {
+        protected final void evictCaches(Predicate<Integer> generations) {
             stringCaches.evictGenerations(generations);
             templateCaches.evictGenerations(generations);
             nodeCaches.evictGenerations(generations);
