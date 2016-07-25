@@ -44,6 +44,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -505,7 +506,9 @@ public class DocumentMK {
                                 Commit commit) {
         RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
         DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision);
-        source.copyTo(newNode);
+        for (PropertyState p : source.getProperties()) {
+            newNode.setProperty(p);
+        }
 
         commit.addNode(newNode);
         if (move) {
