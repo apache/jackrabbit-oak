@@ -235,35 +235,19 @@ public class FileStore implements SegmentStore, Closeable {
         this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
-
-        // FIXME OAK-4277: Finalise de-duplication caches: inject caches
-        // from the outside so we can get rid of the cache stat accessors
         this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
-        Supplier<SegmentWriter> getWriter = new Supplier<SegmentWriter>() {
+        this.segmentReader = new CachingSegmentReader(new Supplier<SegmentWriter>() {
             @Override
             public SegmentWriter get() {
-                return getWriter();
+                return segmentWriter;
             }
-        };
+        }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
 
-        // FIXME OAK-4451: Implement a proper template cache: inject caches
-        // from the outside so we can get rid of the cache stat accessors
-        this.segmentReader = new CachingSegmentReader(getWriter, blobStore,
-                builder.getStringCacheSize(), builder.getTemplateCacheSize());
-
-        Supplier<Integer> getGeneration = new Supplier<Integer>() {
-            @Override
-            public Integer get() {
-                return getGcGeneration();
-            }
-        };
-
-        binaryReferenceConsumer = new BinaryReferenceConsumer() {
+        this.binaryReferenceConsumer = new BinaryReferenceConsumer() {
 
             @Override
             public void consume(int generation, String binaryReference) {
                 fileStoreLock.writeLock().lock();
-
                 try {
                     tarWriter.addBinaryReference(generation, binaryReference);
                 } finally {
@@ -274,7 +258,12 @@ public class FileStore implements SegmentStore, Closeable {
         };
 
         this.segmentWriter = segmentWriterBuilder("sys")
-                .withGeneration(getGeneration)
+                .withGeneration(new Supplier<Integer>() {
+                    @Override
+                    public Integer get() {
+                        return getGcGeneration();
+                    }
+                })
                 .withWriterPool()
                 .with(builder.getCacheManager())
                 .build(this);
