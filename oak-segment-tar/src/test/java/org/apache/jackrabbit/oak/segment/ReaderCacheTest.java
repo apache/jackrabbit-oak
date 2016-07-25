@@ -34,7 +34,7 @@ import org.junit.Test;
 
 import com.google.common.base.Function;
 
-public class RecordCacheTest {
+public class ReaderCacheTest {
 
     @Test
     public void empty() {
