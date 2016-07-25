@@ -42,9 +42,11 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -53,8 +55,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * 
  */
 class ReferenceEditor extends DefaultEditor implements IndexEditor {
-
-    private static final ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final ReferenceEditor parent;
@@ -101,13 +101,15 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
      */
     private final Set<String> newIds;
 
+    private final MountInfoProvider mountInfoProvider;
+
     /**
      * flag marking a reindex, case in which we don't need to keep track of the
      * newIds set
      */
     private boolean isReindex;
 
-    public ReferenceEditor(NodeBuilder definition, NodeState root) {
+    public ReferenceEditor(NodeBuilder definition, NodeState root,MountInfoProvider mountInfoProvider) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -119,6 +121,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.rmWeakRefs = newHashMap();
         this.rmIds = newHashSet();
         this.newIds = newHashSet();
+        this.mountInfoProvider = mountInfoProvider;
     }
 
     private ReferenceEditor(ReferenceEditor parent, String name) {
@@ -134,6 +137,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.rmIds = parent.rmIds;
         this.newIds = parent.newIds;
         this.isReindex = parent.isReindex;
+        this.mountInfoProvider = parent.mountInfoProvider;
     }
 
     /**
@@ -158,6 +162,8 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
         if (parent == null) {
+            Set<IndexStoreStrategy> refStores = getStrategies(false, REF_NAME);
+            Set<IndexStoreStrategy> weakRefStores = getStrategies(false, WEAK_REF_NAME);
             // update references
             for (Entry<String, Set<String>> ref : rmRefs.entrySet()) {
                 String uuid = ref.getKey();
@@ -166,7 +172,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
                 if (newRefs.containsKey(uuid)) {
                     add = newRefs.remove(uuid);
                 }
-                update(definition, REF_NAME, uuid, add, rm);
+                update(refStores, definition, REF_NAME, uuid, add, rm);
             }
             for (Entry<String, Set<String>> ref : newRefs.entrySet()) {
                 String uuid = ref.getKey();
@@ -175,10 +181,10 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
                 }
                 Set<String> add = ref.getValue();
                 Set<String> rm = emptySet();
-                update(definition, REF_NAME, uuid, add, rm);
+                update(refStores, definition, REF_NAME, uuid, add, rm);
             }
 
-            checkReferentialIntegrity(root, definition.getNodeState(),
+            checkReferentialIntegrity(refStores, root, definition.getNodeState(),
                     Sets.difference(rmIds, newIds));
 
             // update weak references
@@ -189,15 +195,20 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
                 if (newWeakRefs.containsKey(uuid)) {
                     add = newWeakRefs.remove(uuid);
                 }
-                update(definition, WEAK_REF_NAME, uuid, add, rm);
+                update(weakRefStores, definition, WEAK_REF_NAME, uuid, add, rm);
             }
             for (Entry<String, Set<String>> ref : newWeakRefs.entrySet()) {
                 String uuid = ref.getKey();
                 Set<String> add = ref.getValue();
                 Set<String> rm = emptySet();
-                update(definition, WEAK_REF_NAME, uuid, add, rm);
+                update(weakRefStores, definition, WEAK_REF_NAME, uuid, add, rm);
             }
         }
+    }
+
+    Set<IndexStoreStrategy> getStrategies(boolean unique, String index) {
+        return Multiplexers.getStrategies(unique, mountInfoProvider,
+                definition, index);
     }
 
     @Override
@@ -292,35 +303,43 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         }
     }
 
-    private static void update(NodeBuilder child, String name, String key,
-            Set<String> add, Set<String> rm) {
-        NodeBuilder index = child.child(name);
-        Set<String> empty = of();
-        for (String p : rm) {
-            STORE.update(index, p, name, child, of(key), empty);
-        }
-        for (String p : add) {
-            // TODO do we still need to encode the values?
-            STORE.update(index, p, name, child, empty, of(key));
+    private void update(Set<IndexStoreStrategy> refStores,
+            NodeBuilder definition, String name, String key, Set<String> add,
+            Set<String> rm) throws CommitFailedException {
+        for (IndexStoreStrategy store : refStores) {
+            Set<String> empty = of();
+            for (String p : rm) {
+                NodeBuilder index = definition.child(store.getIndexNodeName());
+                store.update(index, p, name, definition, of(key), empty);
+            }
+            for (String p : add) {
+                // TODO do we still need to encode the values?
+                NodeBuilder index = definition.child(store.getIndexNodeName());
+                store.update(index, p, name, definition, empty, of(key));
+            }
         }
     }
 
-    private static boolean hasReferences(NodeState root,
-                                         NodeState definition,
-                                         String name,
-                                         String key) {
+    private static boolean hasReferences(IndexStoreStrategy refStore,
+                                  NodeState root,
+                                  NodeState definition,
+                                  String name,
+                                  String key) {
         return definition.hasChildNode(name)
-                && STORE.count(root, definition, name, of(key), 1) > 0;
+                && refStore.count(root, definition, of(key), 1) > 0;
     }
 
-    private static void checkReferentialIntegrity(NodeState root,
-                                                  NodeState definition,
-                                                  Set<String> idsOfRemovedNodes)
+    private static void checkReferentialIntegrity(Set<IndexStoreStrategy> refStores,
+                                           NodeState root,
+                                           NodeState definition,
+                                           Set<String> idsOfRemovedNodes)
             throws CommitFailedException {
-        for (String id : idsOfRemovedNodes) {
-            if (hasReferences(root, definition, REF_NAME, id)) {
-                throw new CommitFailedException(INTEGRITY, 1,
-                        "Unable to delete referenced node");
+        for (IndexStoreStrategy store : refStores) {
+            for (String id : idsOfRemovedNodes) {
+                if (hasReferences(store, root, definition, REF_NAME, id)) {
+                    throw new CommitFailedException(INTEGRITY, 1,
+                            "Unable to delete referenced node");
+                }
             }
         }
     }

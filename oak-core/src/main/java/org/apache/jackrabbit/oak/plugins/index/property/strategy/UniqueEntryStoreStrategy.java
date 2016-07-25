@@ -47,6 +47,16 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(UniqueEntryStoreStrategy.class);
 
+    private final String indexName;
+
+    public UniqueEntryStoreStrategy() {
+        this(INDEX_CONTENT_NODE_NAME);
+    }
+
+    public UniqueEntryStoreStrategy(String indexName) {
+        this.indexName = indexName;
+    }
+
     @Override
     public void update(
             NodeBuilder index, String path,
@@ -108,7 +118,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     @Override
     public Iterable<String> query(final Filter filter, final String indexName, 
             final NodeState indexMeta, final Iterable<String> values) {
-        final NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
+        final NodeState index = indexMeta.getChildNode(getIndexNodeName());
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
@@ -157,7 +167,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
 
     @Override
     public long count(NodeState root, NodeState indexMeta, Set<String> values, int max) {
-        NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
+        NodeState index = indexMeta.getChildNode(getIndexNodeName());
         long count = 0;
         if (values == null) {
             PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);
@@ -193,5 +203,9 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     public long count(final Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max) {
         return count(root, indexMeta, values, max);
     }
-    
+
+    @Override
+    public String getIndexNodeName() {
+        return indexName;
+    }
 }
