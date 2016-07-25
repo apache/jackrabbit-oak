@@ -226,7 +226,7 @@ public class NodeStoreDiffTest {
     private void prRev(NodeState ns){
         if(ns instanceof DocumentNodeState){
             DocumentNodeState dns = ((DocumentNodeState) ns);
-            LOG.info("Root at {} ({})", dns.getRevision(), dns.getLastRevision());
+            LOG.info("Root at {} ({})", dns.getRootRevision(), dns.getLastRevision());
         }
     }
 

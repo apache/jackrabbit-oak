@@ -141,7 +141,7 @@ public class SecondaryStoreObserverTest {
     }
 
     private static void assertMetaState(AbstractDocumentNodeState a, AbstractDocumentNodeState b){
-        assertEquals(a.getRevision(), b.getRevision());
+        assertEquals(a.getLastRevision(), b.getLastRevision());
         assertEquals(a.getRootRevision(), b.getRootRevision());
         assertEquals(a.getPath(), b.getPath());
     }

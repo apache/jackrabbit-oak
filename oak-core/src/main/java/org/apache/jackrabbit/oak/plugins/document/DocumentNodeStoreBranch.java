@@ -286,7 +286,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             DocumentNodeState base,
             CommitInfo info) {
         boolean success = false;
-        Commit c = store.newCommit(base.getRevision(), this);
+        Commit c = store.newCommit(base.getRootRevision(), this);
         RevisionVector rev;
         try {
             op.with(c);
@@ -296,7 +296,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 return base;
             }
             c.apply();
-            rev = store.done(c, base.getRevision().isBranch(), info);
+            rev = store.done(c, base.getRootRevision().isBranch(), info);
             success = true;
         } finally {
             if (!success) {
@@ -561,7 +561,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          * @return the branch state.
          */
         final DocumentNodeState createBranch(DocumentNodeState state) {
-            return store.getRoot(state.getRevision().asBranchRevision(store.getClusterId()));
+            return store.getRoot(state.getRootRevision().asBranchRevision(store.getClusterId()));
         }
 
         @Override
@@ -581,7 +581,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         void rebase() {
             DocumentNodeState root = store.getRoot();
             // perform rebase in store
-            head = store.getRoot(store.rebase(head.getRevision(), root.getRevision()));
+            head = store.getRoot(store.rebase(head.getRootRevision(), root.getRootRevision()));
             base = root;
         }
 
@@ -603,7 +603,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         checkForConflicts();
                         NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
                         head = DocumentNodeStoreBranch.this.persist(toCommit, head, info);
-                        return store.getRoot(store.merge(head.getRevision(), info));
+                        return store.getRoot(store.merge(head.getRootRevision(), info));
                     }
                 });
                 branchState = new Merged(base);
@@ -633,8 +633,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {
             try {
                 head = store.getRoot(
-                        store.reset(branchHead.getRevision(), 
-                                ancestor.getRevision()));
+                        store.reset(branchHead.getRootRevision(),
+                                ancestor.getRootRevision()));
             } catch (Exception e) {
                 CommitFailedException ex = new CommitFailedException(
                         OAK, 100, "Branch reset failed", e);
@@ -650,7 +650,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          *          of the commits on this branch.
          */
         private void checkForConflicts() throws CommitFailedException {
-            Branch b = store.getBranches().getBranch(head.getRevision());
+            Branch b = store.getBranches().getBranch(head.getRootRevision());
             if (b == null) {
                 return;
             }

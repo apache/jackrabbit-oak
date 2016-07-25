@@ -76,7 +76,7 @@ public class CommitQueueTest {
             @Override
             public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
                 DocumentNodeState after = (DocumentNodeState) root;
-                RevisionVector r = after.getRevision();
+                RevisionVector r = after.getRootRevision();
                 LOG.debug("seen: {}", r);
                 if (r.compareTo(before) < 0) {
                     exceptions.add(new Exception(

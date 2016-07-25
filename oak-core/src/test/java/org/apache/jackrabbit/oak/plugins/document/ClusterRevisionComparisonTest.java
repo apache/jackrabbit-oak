@@ -145,7 +145,7 @@ public class ClusterRevisionComparisonTest {
         // read again starting at root node with a invalidated cache
         // and purged revision comparator
         c1ns1 = c1.getRoot();
-        c1.invalidateNodeCache("/", c1ns1.getRevision());
+        c1.invalidateNodeCache("/", c1ns1.getRootRevision());
         c1ns1 = c1.getRoot();
         c1.invalidateNodeCache("/a", c1ns1.getLastRevision());
         assertTrue("/a missing", c1ns1.hasChildNode("a"));

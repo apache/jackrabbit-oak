@@ -477,7 +477,7 @@ public class VersionGarbageCollectorIT {
         }
         // invalidate cached DocumentNodeState
         DocumentNodeState state = (DocumentNodeState) store.getRoot().getChildNode(name);
-        store.invalidateNodeCache(state.getPath(), state.getRevision());
+        store.invalidateNodeCache(state.getPath(), store.getRoot().getLastRevision());
 
         while (!f.isDone()) {
             docs.poll();

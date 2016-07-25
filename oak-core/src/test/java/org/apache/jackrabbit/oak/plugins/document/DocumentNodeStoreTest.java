@@ -1670,14 +1670,10 @@ public class DocumentNodeStoreTest {
         merge(ns2, b2);
 
         // on cluster node 2, remove of child-0 is not yet visible
-        List<ChildNodeEntry> children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
+        DocumentNodeState bar = asDocumentNodeState(ns2.getRoot().getChildNode("foo").getChildNode("bar"));
+        List<ChildNodeEntry> children = Lists.newArrayList(bar.getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
-        RevisionVector invalidate = null;
-        for (ChildNodeEntry entry : children) {
-            if (entry.getName().equals("child-0")) {
-                invalidate = asDocumentNodeState(entry.getNodeState()).getRevision();
-            }
-        }
+        RevisionVector invalidate = bar.getLastRevision();
         assertNotNull(invalidate);
 
         // this will make changes from cluster node 1 visible
@@ -2227,7 +2223,7 @@ public class DocumentNodeStoreTest {
         afterTest.compareAgainstBaseState(beforeTest, new DefaultNodeStateDiff());
 
         assertEquals(1, startValues.size());
-        Revision localHead = before.getRevision().getRevision(ns.getClusterId());
+        Revision localHead = before.getRootRevision().getRevision(ns.getClusterId());
         assertNotNull(localHead);
         long beforeModified = getModifiedInSecs(localHead.getTimestamp());
         // startValue must be based on the revision of the before state
