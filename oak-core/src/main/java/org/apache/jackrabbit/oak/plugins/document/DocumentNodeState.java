@@ -71,7 +71,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     static final int MAX_FETCH_SIZE = INITIAL_FETCH_SIZE << 4;
 
     final String path;
-    final RevisionVector readRevision;
     RevisionVector lastRevision;
     final RevisionVector rootRevision;
     final boolean fromExternalChange;
@@ -84,29 +83,27 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     DocumentNodeState(@Nonnull DocumentNodeStore store,
                       @Nonnull String path,
-                      @Nonnull RevisionVector readRevision) {
-        this(store, path, readRevision, false);
+                      @Nonnull RevisionVector rootRevision) {
+        this(store, path, rootRevision, false);
     }
 
     DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
-                      @Nonnull RevisionVector readRevision, boolean hasChildren) {
-        this(store, path, readRevision, new HashMap<String, PropertyState>(),
-                hasChildren, null, null, false);
+                      @Nonnull RevisionVector rootRevision, boolean hasChildren) {
+        this(store, path, rootRevision, new HashMap<String, PropertyState>(),
+                hasChildren, null, false);
     }
 
     private DocumentNodeState(@Nonnull DocumentNodeStore store,
                               @Nonnull String path,
-                              @Nonnull RevisionVector readRevision,
+                              @Nonnull RevisionVector rootRevision,
                               @Nonnull Map<String, PropertyState> properties,
                               boolean hasChildren,
                               @Nullable RevisionVector lastRevision,
-                              @Nullable RevisionVector rootRevision,
                               boolean fromExternalChange) {
         this.store = checkNotNull(store);
         this.path = checkNotNull(path);
-        this.readRevision = checkNotNull(readRevision);
+        this.rootRevision = checkNotNull(rootRevision);
         this.lastRevision = lastRevision;
-        this.rootRevision = rootRevision != null ? rootRevision : readRevision;
         this.fromExternalChange = fromExternalChange;
         this.hasChildren = hasChildren;
         this.properties = checkNotNull(properties);
@@ -131,8 +128,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
         } else {
-            return new DocumentNodeState(store, path, readRevision, properties,
-                    hasChildren, lastRevision, root, externalChange);
+            return new DocumentNodeState(store, path, root, properties,
+                    hasChildren, lastRevision, externalChange);
         }
     }
 
@@ -142,8 +139,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      */
     @Nonnull
     DocumentNodeState fromExternalChange() {
-        return new DocumentNodeState(store, path, readRevision, properties, hasChildren,
-                lastRevision, rootRevision, true);
+        return new DocumentNodeState(store, path, rootRevision, properties, hasChildren,
+                lastRevision, true);
     }
 
     /**
@@ -157,22 +154,13 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     //--------------------------< AbstractDocumentNodeState >-----------------------------------
 
-    @Override
-    @Nonnull
-    public RevisionVector getRevision() {
-        return readRevision;
-    }
-
     /**
-     * Returns the root revision for this node state. This is the read revision
+     * Returns the root revision for this node state. This is the root revision
      * passed from the parent node state. This revision therefore reflects the
      * revision of the root node state where the traversal down the tree
-     * started. The returned revision is only maintained on a best effort basis
-     * and may be the same as {@link #getRevision()} if this node state is
-     * retrieved directly from the {@code DocumentNodeStore}.
+     * started.
      *
-     * @return the revision of the root node state is available, otherwise the
-     *          same value as returned by {@link #getRevision()}.
+     * @return the revision of the root node state.
      */
     @Nonnull
     public RevisionVector getRootRevision() {
@@ -285,9 +273,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Override
     public NodeBuilder builder() {
         if ("/".equals(getPath())) {
-            if (readRevision.isBranch()) {
+            if (getRootRevision().isBranch()) {
                 // check if this node state is head of a branch
-                Branch b = store.getBranches().getBranch(readRevision);
+                Branch b = store.getBranches().getBranch(getRootRevision());
                 if (b == null) {
                     if (store.isDisableBranches()) {
                         if (DocumentNodeStoreBranch.getCurrentBranch() != null) {
@@ -296,10 +284,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                             return new MemoryNodeBuilder(this);
                         }
                     } else {
-                        throw new IllegalStateException("No branch for revision: " + readRevision);
+                        throw new IllegalStateException("No branch for revision: " + getRootRevision());
                     }
                 }
-                if (b.isHead(readRevision.getBranchRevision())
+                if (b.isHead(getRootRevision().getBranchRevision())
                         && DocumentNodeStoreBranch.getCurrentBranch() != null) {
                     return new DocumentRootBuilder(this, store);
                 } else {
@@ -356,7 +344,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("{ path: '").append(path).append("', ");
-        buff.append("readRevision: '").append(readRevision).append("', ");
+        buff.append("rootRevision: '").append(rootRevision).append("', ");
+        buff.append("lastRevision: '").append(lastRevision).append("', ");
         buff.append("properties: '").append(properties.values()).append("' }");
         return buff.toString();
     }
@@ -393,7 +382,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Override
     public int getMemory() {
         int size = 40 // shallow
-                + readRevision.getMemory()
                 + (lastRevision != null ? lastRevision.getMemory() : 0)
                 + rootRevision.getMemory()
                 + estimateMemoryUsage(path);
@@ -486,7 +474,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     public String asString() {
         JsopWriter json = new JsopBuilder();
         json.key("path").value(path);
-        json.key("rev").value(readRevision.toString());
+        json.key("rev").value(rootRevision.toString());
         if (lastRevision != null) {
             json.key("lastRev").value(lastRevision.toString());
         }
@@ -506,10 +494,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     public static DocumentNodeState fromString(DocumentNodeStore store, String s) {
         JsopTokenizer json = new JsopTokenizer(s);
         String path = null;
-        RevisionVector rev = null;
+        RevisionVector rootRev = null;
         RevisionVector lastRev = null;
         boolean hasChildren = false;
-        DocumentNodeState state = null;
+        DocumentNodeState state;
         HashMap<String, String> map = new HashMap<String, String>();
         while (true) {
             String k = json.readString();
@@ -517,7 +505,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             if ("path".equals(k)) {
                 path = json.readString();
             } else if ("rev".equals(k)) {
-                rev = RevisionVector.fromString(json.readString());
+                rootRev = RevisionVector.fromString(json.readString());
             } else if ("lastRev".equals(k)) {
                 lastRev = RevisionVector.fromString(json.readString());
             } else if ("hasChildren".equals(k)) {
@@ -540,7 +528,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             }
             json.read(',');
         }
-        state = new DocumentNodeState(store, path, rev, hasChildren);
+        state = new DocumentNodeState(store, path, rootRev, hasChildren);
         state.setLastRevision(lastRev);
         for (Entry<String, String> e : map.entrySet()) {
             state.setProperty(e.getKey(), e.getValue());

@@ -511,7 +511,7 @@ public final class DocumentNodeStore
             initializeRootState(rootDoc);
             // check if _lastRev for our clusterId exists
             if (!rootDoc.getLastRev().containsKey(clusterId)) {
-                unsavedLastRevisions.put("/", getRoot().getRevision().getRevision(clusterId));
+                unsavedLastRevisions.put("/", getRoot().getRootRevision().getRevision(clusterId));
                 if (!readOnlyMode) {
                     backgroundWrite();
                 }
@@ -1653,7 +1653,7 @@ public final class DocumentNodeStore
 
     @Nonnull
     public RevisionVector getHeadRevision() {
-        return root.getRevision();
+        return root.getRootRevision();
     }
 
     @Nonnull
@@ -2425,7 +2425,7 @@ public final class DocumentNodeStore
 
         @Override
         public String getHead(){
-            return getRoot().getRevision().toString();
+            return getRoot().getRootRevision().toString();
         }
 
         @Override

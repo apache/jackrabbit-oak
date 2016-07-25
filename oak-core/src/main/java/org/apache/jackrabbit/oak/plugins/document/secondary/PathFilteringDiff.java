@@ -101,7 +101,7 @@ class PathFilteringDiff extends ApplyDiff {
     }
 
     static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder) {
-        builder.setProperty(asPropertyState(PROP_REVISION, state.getRevision()));
+        builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
         builder.setProperty(asPropertyState(PROP_LAST_REV, state.getLastRevision()));
         builder.setProperty(createProperty(PROP_PATH, state.getPath()));
     }

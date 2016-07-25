@@ -63,7 +63,6 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     private final RevisionVector rootRevision;
     private final boolean fromExternalChange;
     private RevisionVector lastRevision;
-    private RevisionVector readRevision;
     private String path;
 
     /**
@@ -105,7 +104,6 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         this.rootRevision = rootRevision;
         this.fromExternalChange = fromExternalChange;
         this.path = original.path;
-        this.readRevision = original.readRevision;
         this.lastRevision = original.lastRevision;
     }
 
@@ -117,14 +115,6 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
             this.path = getRequiredProp(PROP_PATH);
         }
         return path;
-    }
-
-    @Override
-    public RevisionVector getRevision() {
-        if (readRevision == null){
-            this.readRevision = RevisionVector.fromString(getRequiredProp(PROP_REVISION));
-        }
-        return readRevision;
     }
 
     @Override

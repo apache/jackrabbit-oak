@@ -52,7 +52,6 @@ public class DelegatingDocumentNodeStateTest {
         builder.setProperty(createProperty(PROP_PATH, "foo"));
         AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
 
-        assertEquals(rv1, state.getRevision());
         assertEquals(rv1, state.getRootRevision());
         assertEquals(rv2, state.getLastRevision());
         assertEquals("foo", state.getPath());

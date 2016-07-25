@@ -39,8 +39,6 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
 
     public abstract String getPath();
 
-    public abstract RevisionVector getRevision();
-
     public abstract RevisionVector getLastRevision();
 
     public abstract RevisionVector getRootRevision();
@@ -119,10 +117,9 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
                             perfLogger
                                     .end(start,
                                             1,
-                                            "compareAgainstBaseState, path={}, readRevision={}, lastRevision={}, base.path={}, base.readRevision={}, base.lastRevision={}",
-                                            getPath(), getRevision(), getLastRevision(),
-                                            mBase.getPath(), mBase.getRevision(),
-                                            mBase.getLastRevision());
+                                            "compareAgainstBaseState, path={}, lastRevision={}, base.path={}, base.lastRevision={}",
+                                            getPath(), getLastRevision(),
+                                            mBase.getPath(), mBase.getLastRevision());
                         }
                     }
                 }
@@ -135,15 +132,14 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
     //------------------------------< internal >--------------------------------
 
     /**
-     * Returns {@code true} if this state has the same revision as the
-     * {@code other} state. This method first compares the {@link #readRevision}
-     * and then the {@link #lastRevision}.
+     * Returns {@code true} if this state has the same last revision as the
+     * {@code other} state.
      *
      * @param other the other state to compare with.
-     * @return {@code true} if the revisions are equal, {@code false} otherwise.
+     * @return {@code true} if the last revisions are equal, {@code false} otherwise.
      */
     private boolean revisionEquals(AbstractDocumentNodeState other) {
-        return this.getRevision().equals(other.getRevision())
-                || this.getLastRevision().equals(other.getLastRevision());
+        return this.getLastRevision() != null
+                && this.getLastRevision().equals(other.getLastRevision());
     }
 }
