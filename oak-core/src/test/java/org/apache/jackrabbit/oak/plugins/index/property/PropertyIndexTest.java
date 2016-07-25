@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
@@ -31,7 +30,6 @@ import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -45,7 +43,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -56,8 +53,6 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.mount.Mount;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -749,107 +744,6 @@ public class PropertyIndexTest {
         NodeState indexed = HOOK.processCommit(root, after, CommitInfo.EMPTY);
         NodeState idxDefn = NodeStateUtils.getNode(indexed, "/oak:index/foo");
         assertEquals("/oak:index/foo", idxDefn.getString(INDEX_PATH));
-    }
-
-    @Test
-    public void singleMount() throws Exception {
-        NodeState root = INITIAL_CONTENT;
-
-        // Add index definition
-        NodeBuilder builder = root.builder();
-        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        index.setProperty("entryCount", -1);
-        NodeState before = builder.getNodeState();
-
-        // Add some content and process it through the property index hook
-        builder.child("a").setProperty("foo", "abc");
-        builder.child("b").child("x").setProperty("foo", "abc");
-        builder.child("a").child("x").setProperty("foo", "abc");
-        builder.child("m").child("n").setProperty("foo", "abc");
-        builder.child("m").child("n").child("o").setProperty("foo", "abc");
-        builder.child("m").setProperty("foo", "abc");
-
-        NodeState after = builder.getNodeState();
-
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
-                .mount("foo", "/a", "/m/n")
-                .build();
-
-        Mount fooMount = mip.getMountByName("foo");
-        Mount defMount = mip.getDefaultMount();
-
-        EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
-
-        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
-
-        FilterImpl f = createFilter(indexed, NT_BASE);
-
-        // Query the index
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed,mip);
-        assertEquals(ImmutableSet.of("a", "b/x", "a/x", "m", "m/n", "m/n/o"), find(lookup, "foo", "abc", f));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
-
-        assertTrue(getNode(indexed, "/oak:index/foo/:index").exists());
-
-        //Separate node for mount
-        assertTrue(getNode(indexed, "/oak:index/foo/"+ getNodeForMount(fooMount)).exists());
-
-        //Index entries for paths in foo mount should go to :oak:foo-index
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/a", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/a/x", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/m/n", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/m/n/o", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/a", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/a/x", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m/n", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m/n/o", "abc")).exists());
-
-        //All other index entries should go to :index
-        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/b", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/b/x", "abc")).exists());
-        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/m", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/b", "abc")).exists());
-        assertFalse(getNode(indexed, pathInIndex(fooMount, "/oak:index/foo", "/b/x", "abc")).exists());
-
-        //System.out.println(NodeStateUtils.toString(getNode(indexed, "/oak:index/foo")));
-
-    }
-
-    @Test(expected = CommitFailedException.class)
-    public void mountAndUniqueIndexes() throws Exception {
-        NodeState root = INITIAL_CONTENT;
-
-        // Add index definition
-        NodeBuilder builder = root.builder();
-        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
-        index.setProperty("entryCount", -1);
-        NodeState before = builder.getNodeState();
-
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
-                .mount("foo", "/a")
-                .build();
-
-        builder.child("a").setProperty("foo", "abc");
-        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
-                Type.STRINGS);
-        NodeState after = builder.getNodeState();
-
-        EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
-        // should throw
-        hook.processCommit(before, after, CommitInfo.EMPTY);
-    }
-
-    private static String pathInIndex(Mount mount,
-                                      String indexPath, String indexedPath, String indexedValue){
-        return indexPath + "/" + getNodeForMount(mount) + "/" + indexedValue + indexedPath;
-    }
-
-    private static String getNodeForMount(Mount mount) {
-        return Multiplexers.getNodeForMount(mount, INDEX_CONTENT_NODE_NAME);
     }
 
     private int getResultSize(NodeState indexed, String name, String value){

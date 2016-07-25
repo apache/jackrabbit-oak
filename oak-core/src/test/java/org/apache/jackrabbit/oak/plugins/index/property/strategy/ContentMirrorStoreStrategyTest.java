@@ -63,7 +63,7 @@ public class ContentMirrorStoreStrategyTest {
      * </ul>
      */
     @Test
-    public void testIndexPruning() throws CommitFailedException {
+    public void testIndexPruning() {
         IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
         NodeState root = EMPTY_NODE;

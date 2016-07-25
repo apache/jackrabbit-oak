@@ -28,7 +28,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -99,16 +98,10 @@ class PropertyIndex implements QueryIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(PropertyIndex.class);
 
-    private final MountInfoProvider mountInfoProvider;
-
     /**
      * Cached property index plan
      */
     private PropertyIndexPlan plan;
-
-    PropertyIndex(MountInfoProvider mountInfoProvider) {
-        this.mountInfoProvider = mountInfoProvider;
-    }
 
     static Set<String> encode(PropertyValue value) {
         if (value == null) {
@@ -142,14 +135,13 @@ class PropertyIndex implements QueryIndex {
         if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
             return plan;
         } else {
-            plan = createPlan(root, filter, mountInfoProvider);
+            plan = createPlan(root, filter);
             this.plan = plan;
             return plan;
         }
     }
 
-    private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
-                                                MountInfoProvider mountInfoProvider) {
+    private static PropertyIndexPlan createPlan(NodeState root, Filter filter) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path
@@ -160,7 +152,7 @@ class PropertyIndex implements QueryIndex {
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), root, definition, filter, mountInfoProvider);
+                        entry.getName(), root, definition, filter);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
                             plan.getName(), plan.getCost());
