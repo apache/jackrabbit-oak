@@ -284,7 +284,7 @@ public class DocumentNodeStoreService {
             policy = ReferencePolicy.DYNAMIC)
     private volatile DocumentNodeStateCache nodeStateCache;
 
-    private DocumentMK mk;
+    private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private ComponentContext context;
     private Whiteboard whiteboard;
@@ -361,8 +361,6 @@ public class DocumentNodeStoreService {
     private StatisticsProvider statisticsProvider;
 
     private boolean customBlobStore;
-
-    private DocumentNodeStore documentNodeStore;
 
     private ServiceRegistration blobStoreReg;
 
@@ -503,21 +501,21 @@ public class DocumentNodeStoreService {
         }
 
         mkBuilder.setExecutor(executor);
-        mk = mkBuilder.open();
+        nodeStore = mkBuilder.getNodeStore();
 
         // ensure a clusterId is initialized 
         // and expose it as 'oak.clusterid' repository descriptor
         GenericDescriptors clusterIdDesc = new GenericDescriptors();
         clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY, 
                 new SimpleValueFactory().createValue(
-                        ClusterRepositoryInfo.getOrCreateId(mk.getNodeStore())), true, false);
+                        ClusterRepositoryInfo.getOrCreateId(nodeStore)), true, false);
         whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
         
         // If a shared data store register the repo id in the data store
         if (SharedDataStoreUtils.isShared(blobStore)) {
             String repoId = null;
             try {
-                repoId = ClusterRepositoryInfo.getOrCreateId(mk.getNodeStore());
+                repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
                 ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                     SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
             } catch (Exception e) {
@@ -540,18 +538,14 @@ public class DocumentNodeStoreService {
         }
 
 
-        registerJMXBeans(mk.getNodeStore(), mkBuilder);
-        registerLastRevRecoveryJob(mk.getNodeStore());
-        registerJournalGC(mk.getNodeStore());
+        registerJMXBeans(nodeStore, mkBuilder);
+        registerLastRevRecoveryJob(nodeStore);
+        registerJournalGC(nodeStore);
 
-        NodeStore store;
-        documentNodeStore = mk.getNodeStore();
-        store = documentNodeStore;
-        observerTracker = new ObserverTracker(documentNodeStore);
-
+        observerTracker = new ObserverTracker(nodeStore);
         observerTracker.start(context.getBundleContext());
 
-        DocumentStore ds = mk.getDocumentStore();
+        DocumentStore ds = nodeStore.getDocumentStore();
 
         // OAK-2682: time difference detection applied at startup with a default
         // max time diff of 2000 millis (2sec)
@@ -582,7 +576,7 @@ public class DocumentNodeStoreService {
                  DocumentNodeStore.class.getName(), 
                  Clusterable.class.getName()
             }, 
-            store, props);
+            nodeStore, props);
     }
 
     @Deactivate
@@ -641,16 +635,16 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindNodeStateCache(DocumentNodeStateCache nodeStateCache) throws IOException {
-       if (documentNodeStore != null){
+       if (nodeStore != null){
            log.info("Registered DocumentNodeStateCache [{}] with DocumentNodeStore", nodeStateCache);
-           documentNodeStore.setNodeStateCache(nodeStateCache);
+           nodeStore.setNodeStateCache(nodeStateCache);
        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindNodeStateCache(DocumentNodeStateCache nodeStateCache) {
-        if (documentNodeStore != null){
-            documentNodeStore.setNodeStateCache(DocumentNodeStateCache.NOOP);
+        if (nodeStore != null){
+            nodeStore.setNodeStateCache(DocumentNodeStateCache.NOOP);
         }
     }
 
@@ -676,9 +670,9 @@ public class DocumentNodeStoreService {
             blobStoreReg = null;
         }
 
-        if (mk != null) {
-            mk.dispose();
-            mk = null;
+        if (nodeStore != null) {
+            nodeStore.dispose();
+            nodeStore = null;
         }
 
         if (executor != null) {
@@ -775,7 +769,7 @@ public class DocumentNodeStoreService {
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
-                                                        ClusterRepositoryInfo.getOrCreateId(mk.getNodeStore()));
+                                                        ClusterRepositoryInfo.getOrCreateId(nodeStore));
             registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
