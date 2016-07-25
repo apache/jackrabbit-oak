@@ -50,14 +50,14 @@ public abstract class RecordCache<T> {
     @Nonnull
     public static <T> Supplier<RecordCache<T>> factory(int size) {
         if (size <= 0) {
-            return Empty.supplier();
+            return Empty.emptyFactory();
         } else {
-            return Default.supplier(size);
+            return Default.defaultFactory(size);
         }
     }
 
     private static class Empty<T> extends RecordCache<T> {
-        static final <T> Supplier<RecordCache<T>> supplier() {
+        static final <T> Supplier<RecordCache<T>> emptyFactory() {
             return  new Supplier<RecordCache<T>>() {
                 @Override
                 public RecordCache<T> get() {
@@ -76,7 +76,7 @@ public abstract class RecordCache<T> {
     private static class Default<T> extends RecordCache<T> {
         private final Map<T, RecordId> records;
 
-        static final <T> Supplier<RecordCache<T>> supplier(final int size) {
+        static final <T> Supplier<RecordCache<T>> defaultFactory(final int size) {
             return new Supplier<RecordCache<T>>() {
                 @Override
                 public RecordCache<T> get() {
@@ -89,7 +89,7 @@ public abstract class RecordCache<T> {
             records = new LinkedHashMap<T, RecordId>(size * 4 / 3, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<T, RecordId> eldest) {
-                    return size() >= size;
+                    return size() > size;
                 }
             };
         }
