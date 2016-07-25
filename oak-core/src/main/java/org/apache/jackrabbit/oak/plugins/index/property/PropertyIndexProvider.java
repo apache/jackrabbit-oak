@@ -21,10 +21,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -43,16 +40,8 @@ import com.google.common.collect.ImmutableList;
 @Service(QueryIndexProvider.class)
 public class PropertyIndexProvider implements QueryIndexProvider {
 
-    @Reference
-    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
-
     @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
-        return ImmutableList.<QueryIndex>of(new PropertyIndex(mountInfoProvider));
-    }
-
-    public PropertyIndexProvider with(MountInfoProvider mountInfoProvider) {
-        this.mountInfoProvider = mountInfoProvider;
-        return this;
+        return ImmutableList.<QueryIndex>of(new PropertyIndex());
     }
 }

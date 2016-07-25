@@ -41,10 +41,11 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -58,6 +59,14 @@ import com.google.common.base.Predicate;
  * @see PropertyIndexLookup
  */
 class PropertyIndexEditor implements IndexEditor {
+
+    /** Index storage strategy */
+    private static final IndexStoreStrategy MIRROR =
+            new ContentMirrorStoreStrategy();
+
+    /** Index storage strategy */
+    private static final IndexStoreStrategy UNIQUE =
+            new UniqueEntryStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final PropertyIndexEditor parent;
@@ -106,10 +115,8 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final PathFilter.Result pathFilterResult;
 
-    private final MountInfoProvider mountInfoProvider;
-
     public PropertyIndexEditor(NodeBuilder definition, NodeState root,
-                               IndexUpdateCallback updateCallback, MountInfoProvider mountInfoProvider) {
+            IndexUpdateCallback updateCallback) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -145,7 +152,6 @@ class PropertyIndexEditor implements IndexEditor {
             this.keysToCheckForUniqueness = null;
         }
         this.updateCallback = updateCallback;
-        this.mountInfoProvider = mountInfoProvider;
     }
     
     PropertyIndexEditor(PropertyIndexEditor parent, String name, PathFilter.Result pathFilterResult) {
@@ -160,7 +166,6 @@ class PropertyIndexEditor implements IndexEditor {
         this.updateCallback = parent.updateCallback;
         this.pathFilter = parent.pathFilter;
         this.pathFilterResult = pathFilterResult;
-        this.mountInfoProvider = parent.mountInfoProvider;
     }
     
     /**
@@ -216,9 +221,8 @@ class PropertyIndexEditor implements IndexEditor {
         return keys;
     }
 
-    Set<IndexStoreStrategy> getStrategies(boolean unique) {
-        return Multiplexers.getStrategies(unique, mountInfoProvider,
-                definition, INDEX_CONTENT_NODE_NAME);
+    IndexStoreStrategy getStrategy(boolean unique) {
+        return unique ? UNIQUE : MIRROR;
     }
 
     @Override
@@ -281,18 +285,15 @@ class PropertyIndexEditor implements IndexEditor {
 
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
                 updateCallback.indexUpdate();
+                NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
                 String properties = definition.getString(PROPERTY_NAMES);
                 boolean uniqueIndex = keysToCheckForUniqueness != null;
-                for (IndexStoreStrategy strategy : getStrategies(uniqueIndex)) {
-                    NodeBuilder index = definition.child(strategy
-                            .getIndexNodeName());
-                    if (uniqueIndex) {
-                        keysToCheckForUniqueness.addAll(getExistingKeys(
-                                afterKeys, index, strategy));
-                    }
-                    strategy.update(index, getPath(), properties, definition,
-                            beforeKeys, afterKeys);
+                if (uniqueIndex) {
+                    keysToCheckForUniqueness.addAll(
+                            getExistingKeys(afterKeys, index));
                 }
+                getStrategy(uniqueIndex).update(
+                        index, getPath(), properties, definition, beforeKeys, afterKeys);
             }
         }
 
@@ -327,11 +328,11 @@ class PropertyIndexEditor implements IndexEditor {
      * 
      * @param keys the keys
      * @param index the index
-     * @param s the index store strategy
      * @return the set of keys that already exist in this unique index
      */
-    private Set<String> getExistingKeys(Set<String> keys, NodeBuilder index, IndexStoreStrategy s) {
+    private Set<String> getExistingKeys(Set<String> keys, NodeBuilder index) {
         Set<String> existing = null;
+        IndexStoreStrategy s = getStrategy(true);
         for (String key : keys) {
             if (s.exists(index, key)) {
                 if (existing == null) {
@@ -345,7 +346,7 @@ class PropertyIndexEditor implements IndexEditor {
         }
         return existing;
     }
-
+        
     /**
      * From a set of keys, get the first that has multiple entries, if any.
      * 
@@ -354,13 +355,10 @@ class PropertyIndexEditor implements IndexEditor {
      * @return the first duplicate, or null if none was found
      */
     private String getFirstDuplicate(Set<String> keys, NodeState indexMeta) {
+        IndexStoreStrategy s = getStrategy(true);
         for (String key : keys) {
-            long count = 0;
-            for (IndexStoreStrategy s : getStrategies(true)) {
-                count += s.count(root, indexMeta, singleton(key), 2);
-                if (count > 1) {
-                    return key;
-                }
+            if (s.count(root, indexMeta, singleton(key), 2) > 1) {
+                return key;
             }
         }
         return null;

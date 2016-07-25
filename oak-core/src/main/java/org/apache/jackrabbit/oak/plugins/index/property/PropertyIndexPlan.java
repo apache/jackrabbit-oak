@@ -22,29 +22,24 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
-import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 /**
  * Plan for querying a given property index using a given filter.
@@ -61,13 +56,21 @@ public class PropertyIndexPlan {
      */
     static final int MAX_COST = 100;
 
+    /** Index storage strategy */
+    private static final IndexStoreStrategy MIRROR =
+            new ContentMirrorStoreStrategy();
+
+    /** Index storage strategy */
+    private static final IndexStoreStrategy UNIQUE =
+            new UniqueEntryStoreStrategy();
+
     private final NodeState definition;
 
     private final String name;
 
     private final Set<String> properties;
 
-    private final Set<IndexStoreStrategy> strategies;
+    private final IndexStoreStrategy strategy;
 
     private final Filter filter;
 
@@ -83,18 +86,18 @@ public class PropertyIndexPlan {
 
     private final PathFilter pathFilter;
 
-    PropertyIndexPlan(String name, NodeState root, NodeState definition,
-                      Filter filter){
-        this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
-    }
-
-    PropertyIndexPlan(String name, NodeState root, NodeState definition,
-                      Filter filter, MountInfoProvider mountInfoProvider) {
+    PropertyIndexPlan(String name, NodeState root, NodeState definition, Filter filter) {
         this.name = name;
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
         pathFilter = PathFilter.from(definition.builder());
-        this.strategies = getStrategies(definition, mountInfoProvider);
+
+        if (definition.getBoolean(UNIQUE_PROPERTY_NAME)) {
+            this.strategy = UNIQUE;
+        } else {
+            this.strategy = MIRROR;
+        }
+
         this.filter = filter;
 
         Iterable<String> types = definition.getNames(DECLARING_NODE_TYPES);
@@ -140,11 +143,7 @@ public class PropertyIndexPlan {
                         continue;
                     }
                     Set<String> values = getValues(restriction);
-                    double cost = strategies.isEmpty() ? MAX_COST : 0;
-                    for (IndexStoreStrategy strategy : strategies) {
-                        cost += strategy.count(filter, root, definition,
-                                values, MAX_COST);
-                    }
+                    double cost = strategy.count(filter, root, definition, values, MAX_COST);
                     if (cost < bestCost) {
                         bestDepth = depth;
                         bestValues = values;
@@ -189,11 +188,8 @@ public class PropertyIndexPlan {
 
     Cursor execute() {
         QueryEngineSettings settings = filter.getQueryEngineSettings();
-        List<Iterable<String>> iterables = Lists.newArrayList();
-        for (IndexStoreStrategy s : strategies) {
-            iterables.add(s.query(filter, name, definition, values));
-        }
-        Cursor cursor = Cursors.newPathCursor(Iterables.concat(iterables),
+        Cursor cursor = Cursors.newPathCursor(
+                strategy.query(filter, name, definition, values),
                 settings);
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
@@ -203,14 +199,6 @@ public class PropertyIndexPlan {
 
     Filter getFilter() {
         return filter;
-    }
-
-    Set<IndexStoreStrategy> getStrategies(NodeState definition,
-            MountInfoProvider mountInfoProvider) {
-        boolean unique = definition
-                .getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
-        return Multiplexers.getStrategies(unique, mountInfoProvider,
-                definition, INDEX_CONTENT_NODE_NAME);
     }
 
     //------------------------------------------------------------< Object >--

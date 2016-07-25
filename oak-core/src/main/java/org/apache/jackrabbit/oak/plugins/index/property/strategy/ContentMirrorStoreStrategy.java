@@ -80,16 +80,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      */
     public static final int TRAVERSING_WARN = Integer.getInteger("oak.traversing.warn", 10000);
 
-    private final String indexName;
-
-    public ContentMirrorStoreStrategy() {
-        this(INDEX_CONTENT_NODE_NAME);
-    }
-
-    public ContentMirrorStoreStrategy(String indexName) {
-        this.indexName = indexName;
-    }
-
     @Override
     public void update(
             NodeBuilder index, String path,
@@ -173,22 +163,27 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public Iterable<String> query(final Filter filter, final String name,
+    public Iterable<String> query(final Filter filter, final String indexName,
             final NodeState indexMeta, final Iterable<String> values) {
-        return query(filter, name, indexMeta, this.indexName, values);
+        return query(filter, indexName, indexMeta, INDEX_CONTENT_NODE_NAME, values);
     }
 
     @Override
     public long count(NodeState root, NodeState indexMeta, Set<String> values, int max) {
-        return count(null, root, indexMeta, this.indexName, values, max);
+        return count(root, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
     @Override
     public long count(final Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max) {
-        return count(filter, root, indexMeta, this.indexName, values, max);
+        return count(filter, root, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
-    long count(Filter filter, NodeState root, NodeState indexMeta, final String indexStorageNodeName,
+    public long count(NodeState root, NodeState indexMeta, final String indexStorageNodeName,
+            Set<String> values, int max) {
+        return count(null, root, indexMeta, indexStorageNodeName, values, max);
+    }
+
+    public long count(Filter filter, NodeState root, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         long count = -1;
@@ -591,8 +586,4 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         throw new UnsupportedOperationException();
    }
 
-    @Override
-    public String getIndexNodeName() {
-        return indexName;
-    }
 }

@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -36,15 +35,12 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 /**
  * Is responsible for querying the property index content.
@@ -72,17 +68,18 @@ public class PropertyIndexLookup {
      */
     static final int MAX_COST = 100;
 
+    /** Index storage strategy */
+    private static final IndexStoreStrategy MIRROR =
+            new ContentMirrorStoreStrategy();
+
+    /** Index storage strategy */
+    private static final IndexStoreStrategy UNIQUE =
+            new UniqueEntryStoreStrategy();
+
     private final NodeState root;
 
-    private final MountInfoProvider mountInfoProvider;
-
     public PropertyIndexLookup(NodeState root) {
-        this(root, Mounts.defaultMountInfoProvider());
-    }
-
-    public PropertyIndexLookup(NodeState root, MountInfoProvider mountInfoProvider) {
         this.root = root;
-        this.mountInfoProvider = mountInfoProvider;
     }
 
     /**
@@ -110,25 +107,19 @@ public class PropertyIndexLookup {
         return false;
     }
 
-    public Iterable<String> query(Filter filter, String propertyName,
-            PropertyValue value) {
+    public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
         NodeState indexMeta = getIndexNode(root, propertyName, filter);
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
-        for (IndexStoreStrategy s : getStrategies(indexMeta)) {
-            iterables.add(s.query(filter, propertyName, indexMeta,
-                    encode(value)));
-        }
-        return Iterables.concat(iterables);
+        return getStrategy(indexMeta).query(filter, propertyName, indexMeta, encode(value));
     }
 
-    Set<IndexStoreStrategy> getStrategies(NodeState definition) {
-        boolean unique = definition
-                .getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
-        return Multiplexers.getStrategies(unique, mountInfoProvider,
-                definition, INDEX_CONTENT_NODE_NAME);
+    IndexStoreStrategy getStrategy(NodeState indexMeta) {
+        if (indexMeta.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
+            return UNIQUE;
+        }
+        return MIRROR;
     }
 
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
@@ -136,12 +127,8 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
-        double cost = strategies.isEmpty() ? MAX_COST : COST_OVERHEAD;
-        for (IndexStoreStrategy s : strategies) {
-            cost += s.count(filter, root, indexMeta, encode(value), MAX_COST);
-        }
-        return cost;
+        return COST_OVERHEAD +
+                getStrategy(indexMeta).count(filter, root, indexMeta, encode(value), MAX_COST);
     }
 
     /**
