@@ -29,15 +29,33 @@ import com.google.common.base.Supplier;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration, monitoring and management
-// add unit tests
-// document, nullability
+/**
+ * Partial mapping of keys of type {@code T} to values of type {@link RecordId}. This is
+ * typically used for de-duplicating values that have already been persisted and thus
+ * already have a {@code RecordId}.
+ * @param <T>
+ */
 public abstract class RecordCache<T> {
 
+    /**
+     * Add a mapping from {@code key} to {@code value}. Any existing mapping is replaced.
+     */
     public abstract void put(T key, RecordId value);
 
+    /**
+     * @return  The mapping for {@code key}, or {@code null} if none.
+     */
     @CheckForNull
     public abstract RecordId get(T key);
 
+    /**
+     * Factory method for creating {@code RecordCache} instances. The returned
+     * instances are all thread safe. They implement a simple LRU behaviour where
+     * the least recently accessed mapping would be replaced when inserting a
+     * new mapping would exceed {@code size}.
+     *
+     * @return  A new {@code RecordCache} instance of the given {@code size}.
+     */
     @Nonnull
     public static <T> RecordCache<T> newRecordCache(int size) {
         if (size <= 0) {
@@ -47,6 +65,10 @@ public abstract class RecordCache<T> {
         }
     }
 
+    /**
+     * @return  A factory returning {@code RecordCache} instances of the given size when invoked.
+     * @see #newRecordCache(int)
+     */
     @Nonnull
     public static <T> Supplier<RecordCache<T>> factory(int size) {
         if (size <= 0) {
