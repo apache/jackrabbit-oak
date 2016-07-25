@@ -342,10 +342,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return properties.keySet();
     }
 
-    void copyTo(DocumentNodeState newNode) {
-        newNode.properties.putAll(properties);
-    }
-
     @Override
     public boolean hasNoChildren() {
         return !hasChildren;
