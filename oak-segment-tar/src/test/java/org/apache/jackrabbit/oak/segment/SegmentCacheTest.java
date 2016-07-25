@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.Callable;
 
@@ -27,6 +28,36 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.junit.Test;
 
 public class SegmentCacheTest {
+    @Test
+    public void putTest() {
+        SegmentId id = new SegmentId(mock(SegmentStore.class), -1, -1);
+        Segment segment = mock(Segment.class);
+        when(segment.getSegmentId()).thenReturn(id);
+        SegmentCache cache = new SegmentCache(1);
+
+        cache.putSegment(segment);
+        assertEquals(segment, id.getSegment());
+    }
+
+    @Test
+    public void invalidateTests() {
+        Segment segment1 = mock(Segment.class);
+        Segment segment2 = mock(Segment.class);
+        SegmentStore store = mock(SegmentStore.class);
+        SegmentId id = new SegmentId(store, -1, -1);
+        when(segment1.getSegmentId()).thenReturn(id);
+        SegmentCache cache = new SegmentCache(1);
+
+        cache.putSegment(segment1);
+        assertEquals(segment1, id.getSegment());
+
+        // Clearing the cache should cause an eviction call back for id
+        cache.clear();
+
+        // Check that this was the case by loading a different segment
+        when(store.readSegment(id)).thenReturn(segment2);
+        assertEquals(segment2, id.getSegment());
+    }
 
     @Test
     public void statsTest() throws Exception {

@@ -29,10 +29,7 @@ import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-// FIXME OAK-4474: Finalise SegmentCache: document, add monitoring, management, tests, logging
 /**
  * A cache for {@link Segment} instances by their {@link SegmentId}.
  * <p>
@@ -47,8 +44,6 @@ import org.slf4j.LoggerFactory;
  * which always reports a {@link CacheStats#getMissRate() miss rate} of 1.
  */
 public class SegmentCache {
-    private static final Logger LOG = LoggerFactory.getLogger(SegmentCache.class);
-
     public static final int DEFAULT_SEGMENT_CACHE_MB = 256;
 
     private final Weigher<SegmentId, Segment> weigher = new Weigher<SegmentId, Segment>() {
