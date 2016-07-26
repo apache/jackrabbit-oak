@@ -84,10 +84,14 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     public DataStoreState setUp(boolean deleteDirect) throws Exception {
+        return setUp(deleteDirect, 10);
+    }
+
+    public DataStoreState setUp(boolean deleteDirect, int count) throws Exception {
         DocumentNodeStore s = mk.getNodeStore();
         NodeBuilder a = s.getRoot().builder();
 
-        int number = 10;
+        int number = count;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
         List<Integer> processed = Lists.newArrayList();
@@ -191,6 +195,27 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(0);
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    }
+
+
+    @Test
+    public void checkMark() throws Exception {
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .enable(Level.TRACE)
+            .filter(Level.TRACE)
+            .create();
+
+        DataStoreState state = setUp(true, 1000);
+        log.info("{} blobs available : {}", state.blobsPresent.size(), state.blobsPresent);
+        customLogs.starting();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        String rootFolder = folder.newFolder().getAbsolutePath();
+        MarkSweepGarbageCollector gcObj = init(0, executor, rootFolder);
+        gcObj.collectGarbage(true);
+        customLogs.finished();
+
+        assertBlobReferences(state.blobsPresent, rootFolder);
     }
 
     @Test
@@ -358,7 +383,31 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertBlobReferenceRecords(2, rootFolder);
     }
 
+    private static void assertBlobReferences(Set<String> expected, String rootFolder) throws IOException {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(getMarkedFile(rootFolder));
+            Set<String> records = FileIOUtils.readStringsAsSet(is, true);
+            assertEquals(expected, records);
+        } finally {
+            Closeables.close(is, false);
+        }
+    }
+
     private static void assertBlobReferenceRecords(int expected, String rootFolder) throws IOException {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(getMarkedFile(rootFolder));
+            Set<String> records = FileIOUtils.readStringsAsSet(is, true);
+            for (String rec : records) {
+                assertEquals(expected, Splitter.on(",").omitEmptyStrings().splitToList(rec).size());
+            }
+        } finally {
+            Closeables.close(is, false);
+        }
+    }
+
+    private static File getMarkedFile(String rootFolder) {
         // Read the marked files to check if paths logged or not
         File root = new File(rootFolder);
         List<File> rootFile = FileFilterUtils.filterList(
@@ -367,17 +416,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         List<File> markedFiles = FileFilterUtils.filterList(
             FileFilterUtils.prefixFileFilter("marked-"),
             rootFile.get(0).listFiles());
-        InputStream is = null;
-        try {
-            is = new FileInputStream(markedFiles.get(0));
-            Set<String> records = FileIOUtils.readStringsAsSet(is, true);
-            for (String rec : records) {
-                assertEquals(expected, Splitter.on(",").omitEmptyStrings().splitToList(rec).size());
-            }
-        } finally {
-            Closeables.close(is, false);
-            FileUtils.forceDelete(rootFile.get(0));
-        }
+        return markedFiles.get(0);
     }
 
     private Set<String> gc(int blobGcMaxAgeInSecs) throws Exception {
