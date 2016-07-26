@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -248,6 +249,25 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             updateAndLogTimes("createOrUpdate", start, 0, size(result));
             if (logCommonCall()) {
                 logCommonCall(start, "createOrUpdate " + collection + " " + update.getId());
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        try {
+            long start = now();
+            List<T> result = base.createOrUpdate(collection, updateOps);
+            updateAndLogTimes("createOrUpdate", start, 0, size(result));
+            if (logCommonCall()) {
+                List<String> ids = new ArrayList<String>();
+                for (UpdateOp op : updateOps) {
+                    ids.add(op.getId());
+                }
+                logCommonCall(start, "createOrUpdate " + collection + " " + updateOps + " " + ids);
             }
             return result;
         } catch (Exception e) {

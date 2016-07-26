@@ -107,6 +107,12 @@ public class DocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                       List<UpdateOp> updateOps) {
+        return store.createOrUpdate(collection, updateOps);
+    }
+
+    @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                 UpdateOp update) {
         return store.findAndUpdate(collection, update);

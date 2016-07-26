@@ -225,6 +225,23 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(final Collection<T> collection,
+                                                       final List<UpdateOp> updateOps) {
+        try {
+            logMethod("createOrUpdate", collection, updateOps);
+            return logResult(new Callable<List<T>>() {
+                @Override
+                public List<T> call() throws Exception {
+                    return store.createOrUpdate(collection, updateOps);
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
     public <T extends Document> T findAndUpdate(final Collection<T> collection,
                                                 final UpdateOp update) {
         try {
