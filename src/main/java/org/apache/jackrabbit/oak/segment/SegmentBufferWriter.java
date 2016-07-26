@@ -148,6 +148,12 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     private Statistics statistics;
 
+    /**
+     * Mark this buffer as dirty. A dirty buffer needs to be flushed to disk
+     * regularly to avoid data loss.
+     */
+    private boolean dirty;
+
     public SegmentBufferWriter(@Nonnull SegmentStore store,
                                @Nonnull SegmentTracker tracker,
                                @Nonnull SegmentReader reader,
@@ -218,15 +224,19 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         } catch (IOException e) {
             LOG.error("Unable to write meta info to segment {} {}", segment.getSegmentId(), metaInfo, e);
         }
+
+        dirty = false;
     }
 
     public void writeByte(byte value) {
         buffer[position++] = value;
+        dirty = true;
     }
 
     public void writeShort(short value) {
         buffer[position++] = (byte) (value >> 8);
         buffer[position++] = (byte) value;
+        dirty = true;
     }
 
     public void writeInt(int value) {
@@ -234,6 +244,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[position++] = (byte) (value >> 16);
         buffer[position++] = (byte) (value >> 8);
         buffer[position++] = (byte) value;
+        dirty = true;
     }
 
     public void writeLong(long value) {
@@ -276,6 +287,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
 
         statistics.recordIdCount++;
+
+        dirty = true;
     }
 
     // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGeneration
@@ -328,6 +341,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public void writeBytes(byte[] data, int offset, int length) {
         arraycopy(data, offset, buffer, position, length);
         position += length;
+        dirty = true;
     }
 
     /**
@@ -337,7 +351,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     @Override
     public void flush() throws IOException {
-        if (length > 0) {
+        if (dirty) {
             int refcount = segment.getRefCount();
             statistics.segmentIdCount = refcount;
 
