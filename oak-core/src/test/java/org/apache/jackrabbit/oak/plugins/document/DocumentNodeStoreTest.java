@@ -2580,6 +2580,28 @@ public class DocumentNodeStoreTest {
         assertTrue(diff.modified.contains("/parent/node-x/child"));
     }
 
+    // OAK-4601
+    @Test
+    public void nodeCacheForBranchCommit() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+
+        NodeBuilder b1 = ns.getRoot().builder();
+
+        final int NUM_CHILDREN = 3*DocumentRootBuilder.UPDATE_LIMIT + 1;
+        //this would push cache entries -> #nodes=3*
+        for (int i = 0; i < NUM_CHILDREN; i++) {
+            b1.child("child" + i);
+        }
+
+        //this would push cache entries
+        for (int i = 0; i < NUM_CHILDREN; i++) {
+            b1.getChildNode("child" + i);
+        }
+
+        //must not have duplicated cache entries
+        assertTrue(ns.getNodeCacheStats().getElementCount() < 2*NUM_CHILDREN);
+    }
+
     @Test
     public void lastRevWithRevisionVector() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
