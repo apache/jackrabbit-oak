@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -123,6 +125,42 @@ public class TarFileTest {
 
         try (TarReader reader = TarReader.open(file, false)) {
             assertEquals(expected, reader.getBinaryReferences());
+        }
+    }
+
+    @Test
+    public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
+        try (TarWriter writer = new TarWriter(file)) {
+            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, 1);
+            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, 1);
+            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, 2);
+            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, 2);
+
+            writer.addBinaryReference(1, new UUID(1, 1), "a");
+            writer.addBinaryReference(1, new UUID(1, 2), "b");
+
+            writer.addBinaryReference(2, new UUID(2, 1), "c");
+            writer.addBinaryReference(2, new UUID(2, 2), "d");
+        }
+
+        Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
+
+        try (TarReader reader = TarReader.open(file, false)) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
+                assertNotNull(swept);
+
+                Map<UUID, Set<String>> one = newHashMap();
+                one.put(new UUID(1, 2), newSet("b"));
+
+                Map<UUID, Set<String>> two = newHashMap();
+                two.put(new UUID(2, 1), newSet("c"));
+
+                Map<Integer, Map<UUID, Set<String>>> references = newHashMap();
+                references.put(1, one);
+                references.put(2, two);
+
+                assertEquals(references, swept.getBinaryReferences());
+            }
         }
     }
 
