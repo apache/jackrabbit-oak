@@ -391,6 +391,7 @@ public class RDBDocumentStoreJDBC {
         }
 
         PreparedStatement stmt = connection.prepareStatement(query.toString());
+        ResultSet rs = null;
         List<RDBRow> result = new ArrayList<RDBRow>();
         long dataTotal = 0, bdataTotal = 0;
         try {
@@ -410,7 +411,7 @@ public class RDBDocumentStoreJDBC {
             if (limit != Integer.MAX_VALUE) {
                 stmt.setFetchSize(limit);
             }
-            ResultSet rs = stmt.executeQuery();
+            rs = stmt.executeQuery();
             while (rs.next() && result.size() < limit) {
                 String id = getIdFromRS(tmd, rs, 1);
 
@@ -430,7 +431,8 @@ public class RDBDocumentStoreJDBC {
                 bdataTotal += bdata == null ? 0 : bdata.length;
             }
         } finally {
-            stmt.close();
+            closeResultSet(rs);
+            closeStatement(stmt);
         }
 
         long elapsed = System.currentTimeMillis() - start;
@@ -469,6 +471,7 @@ public class RDBDocumentStoreJDBC {
         }
         sql.append("from " + tmd.getName() + " where ID = ?");
         PreparedStatement stmt = connection.prepareStatement(sql.toString());
+        ResultSet rs = null;
 
         try {
             int si = 1;
@@ -480,7 +483,7 @@ public class RDBDocumentStoreJDBC {
             }
             setIdInStatement(tmd, stmt, si, id);
 
-            ResultSet rs = stmt.executeQuery();
+            rs = stmt.executeQuery();
             if (rs.next()) {
                 long modified = readLongFromResultSet(rs, 1);
                 long modcount = readLongFromResultSet(rs, 2);
@@ -508,7 +511,8 @@ public class RDBDocumentStoreJDBC {
                 throw (ex);
             }
         } finally {
-            stmt.close();
+            closeResultSet(rs);
+            closeStatement(stmt);
         }
     }
 
