@@ -97,14 +97,7 @@ public class SegmentDataStoreBlobGCIT {
     SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target")) {
-
-        @Override
-        public void delete() {
-            // Do nothing
-        }
-
-    };
+    public TemporaryFolder folder;
 
     @BeforeClass
     public static void assumptions() {

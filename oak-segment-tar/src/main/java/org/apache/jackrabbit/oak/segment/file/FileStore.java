@@ -1335,7 +1335,6 @@ public class FileStore implements SegmentStore, Closeable {
                     directory,
                     String.format(FILE_NAME_FORMAT, writeNumber, "a"));
             tarWriter = new TarWriter(writeFile, stats);
-            log.info("New TAR writer {}", tarWriter);
         }
     }
 
