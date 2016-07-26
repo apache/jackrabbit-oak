@@ -41,7 +41,13 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration, monitoring and management
-// document
+/**
+ * Instances of this class manage the deduplication caches used
+ * by the {@link SegmentWriter} to avoid writing multiple copies
+ * of the same record. The caches are striped into generations
+ * with one generation per gc cycle. This avoids records old
+ * generations being reused.
+ */
 public abstract class WriterCacheManager {
     private static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
             "oak.tar.stringsCacheSize", 15000);
@@ -49,12 +55,24 @@ public abstract class WriterCacheManager {
     private static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
             "oak.tar.templatesCacheSize", 3000);
 
+    /**
+     * @param generation
+     * @return  cache for string records of the given {@code generation}.
+     */
     @Nonnull
     public abstract RecordCache<String> getStringCache(int generation);
 
+    /**
+     * @param generation
+     * @return  cache for template records of the given {@code generation}.
+     */
     @Nonnull
     public abstract RecordCache<Template> getTemplateCache(int generation);
 
+    /**
+     * @param generation
+     * @return  cache for node records of the given {@code generation}.
+     */
     @Nonnull
     public abstract NodeCache getNodeCache(int generation);
 
@@ -74,7 +92,16 @@ public abstract class WriterCacheManager {
         return null;
     }
 
+    /**
+     * This implementation of {@link WriterCacheManager} returns empty caches
+     * of size 0.
+     * @see #INSTANCE
+     */
     public static class Empty extends WriterCacheManager {
+
+        /**
+         * Singleton instance of {@link Empty}
+         */
         public static final WriterCacheManager INSTANCE = new Empty();
 
         private final RecordCache<String> stringCache = newRecordCache(0);
@@ -83,22 +110,36 @@ public abstract class WriterCacheManager {
 
         private Empty() {}
 
+        /**
+         * @return  empty cache of size 0
+         */
         @Override
         public RecordCache<String> getStringCache(int generation) {
             return stringCache;
         }
 
+        /**
+         * @return  empty cache of size 0
+         */
         @Override
         public RecordCache<Template> getTemplateCache(int generation) {
             return templateCache;
         }
 
+        /**
+         * @return  empty cache of size 0
+         */
         @Override
         public NodeCache getNodeCache(int generation) {
             return nodeCache;
         }
     }
 
+    /**
+     * This implementation of {@link WriterCacheManager} returns
+     * {@link RecordCache} instances for the string and template cache
+     * and {@link NodeCache} instances for the node cache.
+     */
     public static class Default extends WriterCacheManager {
         /**
          * Cache of recently stored string records, used to avoid storing duplicates
@@ -118,6 +159,15 @@ public abstract class WriterCacheManager {
          */
         private final Generations<NodeCache> nodeCaches;
 
+        /**
+         * New instance using the passed factories for creating cache instances.
+         * The factories will be invoked exactly once when a generation of a
+         * cache is requested that has not been requested before.
+         *
+         * @param stringCacheFactory       factory for the string cache
+         * @param templateCacheFactory     factory for the template cache
+         * @param nodeCacheFactory         factory for the node cache
+         */
         public Default(
                 @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
                 @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
@@ -127,6 +177,10 @@ public abstract class WriterCacheManager {
             this.nodeCaches = new Generations<>(nodeCacheFactory);
         }
 
+        /**
+         * New instance using the default factories {@link RecordCache#factory(int)}
+         * and {@link NodeCache#factory(int, int)}.
+         */
         public Default() {
             this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
                  RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
@@ -229,6 +283,10 @@ public abstract class WriterCacheManager {
             };
         }
 
+        /**
+         * Remove all cache generations matching the passed {@code generations} predicate.
+         * @param generations
+         */
         protected final void evictCaches(Predicate<Integer> generations) {
             stringCaches.evictGenerations(generations);
             templateCaches.evictGenerations(generations);
