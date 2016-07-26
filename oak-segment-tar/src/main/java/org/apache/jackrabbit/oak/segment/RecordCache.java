@@ -26,9 +26,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
+import com.google.common.cache.CacheStats;
 
 // FIXME OAK-4277: Finalise de-duplication caches
-// implement configuration, monitoring and management
+// implement configuration
 /**
  * Partial mapping of keys of type {@code T} to values of type {@link RecordId}. This is
  * typically used for de-duplicating values that have already been persisted and thus
@@ -36,17 +37,33 @@ import com.google.common.base.Supplier;
  * @param <T>
  */
 public abstract class RecordCache<T> {
+    private long hitCount;
+    private long missCount;
+    private long loadCount;
+    private long evictionCount;
 
     /**
      * Add a mapping from {@code key} to {@code value}. Any existing mapping is replaced.
      */
-    public abstract void put(T key, RecordId value);
+    public abstract void put(@Nonnull T key, @Nonnull RecordId value);
 
     /**
      * @return  The mapping for {@code key}, or {@code null} if none.
      */
     @CheckForNull
-    public abstract RecordId get(T key);
+    public abstract RecordId get(@Nonnull T key);
+
+    /**
+     * @return number of mappings
+     */
+    public abstract long size();
+
+    /**
+     * @return  access statistics for this cache
+     */
+    public CacheStats getStats() {
+        return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
+    }
 
     /**
      * Factory method for creating {@code RecordCache} instances. The returned
@@ -89,10 +106,18 @@ public abstract class RecordCache<T> {
         }
 
         @Override
-        public synchronized void put(T key, RecordId value) { }
+        public synchronized void put(@Nonnull T key, @Nonnull RecordId value) { }
 
         @Override
-        public synchronized RecordId get(T key) { return null; }
+        public synchronized RecordId get(@Nonnull T key) {
+            super.missCount++;
+            return null;
+        }
+
+        @Override
+        public long size() {
+            return 0;
+        }
     }
 
     private static class Default<T> extends RecordCache<T> {
@@ -111,19 +136,35 @@ public abstract class RecordCache<T> {
             records = new LinkedHashMap<T, RecordId>(size * 4 / 3, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<T, RecordId> eldest) {
-                    return size() > size;
+                    boolean remove = super.size() > size;
+                    if (remove) {
+                        Default.super.evictionCount++;
+                    }
+                    return remove;
                 }
             };
         }
 
         @Override
-        public synchronized void put(T key, RecordId value) {
+        public synchronized void put(@Nonnull T key, @Nonnull RecordId value) {
+            super.loadCount++;
             records.put(key, value);
         }
 
         @Override
-        public synchronized RecordId get(T key) {
-            return records.get(key);
+        public synchronized RecordId get(@Nonnull T key) {
+            RecordId value = records.get(key);
+            if (value == null) {
+                super.missCount++;
+            } else {
+                super.hitCount++;
+            }
+            return value;
+        }
+
+        @Override
+        public synchronized long size() {
+            return records.size();
         }
     }
 }
