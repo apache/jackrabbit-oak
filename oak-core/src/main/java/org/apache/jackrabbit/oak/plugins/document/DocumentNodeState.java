@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -29,6 +30,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -70,12 +73,12 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      */
     static final int MAX_FETCH_SIZE = INITIAL_FETCH_SIZE << 4;
 
-    final String path;
-    RevisionVector lastRevision;
-    final RevisionVector rootRevision;
-    final boolean fromExternalChange;
-    final Map<String, PropertyState> properties;
-    final boolean hasChildren;
+    private final String path;
+    private final RevisionVector lastRevision;
+    private final RevisionVector rootRevision;
+    private final boolean fromExternalChange;
+    private final Map<String, PropertyState> properties;
+    private final boolean hasChildren;
 
     private final DocumentNodeStore store;
 
@@ -84,13 +87,16 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     DocumentNodeState(@Nonnull DocumentNodeStore store,
                       @Nonnull String path,
                       @Nonnull RevisionVector rootRevision) {
-        this(store, path, rootRevision, false);
+        this(store, path, rootRevision, Collections.<PropertyState>emptyList(), false, null);
     }
 
     DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
-                      @Nonnull RevisionVector rootRevision, boolean hasChildren) {
-        this(store, path, rootRevision, new HashMap<String, PropertyState>(),
-                hasChildren, null, false);
+                      @Nonnull RevisionVector rootRevision,
+                      Iterable<? extends PropertyState> properties,
+                      boolean hasChildren,
+                      @Nullable RevisionVector lastRevision) {
+        this(store, path, rootRevision, asMap(properties),
+                hasChildren, lastRevision, false);
     }
 
     private DocumentNodeState(@Nonnull DocumentNodeStore store,
@@ -301,19 +307,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
     }
 
-    void setProperty(String propertyName, String value) {
-        if (value == null) {
-            properties.remove(propertyName);
-        } else {
-            properties.put(propertyName,
-                    new DocumentPropertyState(store, propertyName, value));
-        }
-    }
-
-    void setProperty(PropertyState property) {
-        properties.put(property.getName(), property);
-    }
-
     String getPropertyAsString(String propertyName) {
         PropertyState prop = properties.get(propertyName);
         if (prop == null) {
@@ -373,10 +366,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     String getId() {
         return path + "@" + lastRevision;
-    }
-
-    void setLastRevision(RevisionVector lastRevision) {
-        this.lastRevision = lastRevision;
     }
 
     @Override
@@ -471,6 +460,14 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         });
     }
 
+    private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
+        ImmutableMap.Builder<String, PropertyState> builder = ImmutableMap.builder();
+        for (PropertyState ps : props){
+            builder.put(ps.getName(), ps);
+        }
+        return builder.build();
+    }
+
     public String asString() {
         JsopWriter json = new JsopBuilder();
         json.key("path").value(path);
@@ -497,7 +494,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         RevisionVector rootRev = null;
         RevisionVector lastRev = null;
         boolean hasChildren = false;
-        DocumentNodeState state;
         HashMap<String, String> map = new HashMap<String, String>();
         while (true) {
             String k = json.readString();
@@ -528,12 +524,14 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             }
             json.read(',');
         }
-        state = new DocumentNodeState(store, path, rootRev, hasChildren);
-        state.setLastRevision(lastRev);
+        List<PropertyState> props = Lists.newArrayListWithCapacity(map.size());
         for (Entry<String, String> e : map.entrySet()) {
-            state.setProperty(e.getKey(), e.getValue());
+            String value = e.getValue();
+            if (value != null) {
+                props.add(store.createPropertyState(e.getKey(), value));
+            }
         }
-        return state;
+        return new DocumentNodeState(store, path, rootRev, props, hasChildren, lastRev);
     }
 
     /**

@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -79,8 +80,8 @@ public class SimpleTest {
         DocumentStore s = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
         RevisionVector rev = RevisionVector.fromString(mk.getHeadRevision());
-        DocumentNodeState n = new DocumentNodeState(ns, "/test", rev);
-        n.setProperty("name", "\"Hello\"");
+        DocumentNodeState n = new DocumentNodeState(ns, "/test", rev,
+                Collections.singleton(ns.createPropertyState("name", "\"Hello\"")), false, null);
         UpdateOp op = n.asOperation(rev.getRevision(ns.getClusterId()));
         // mark as commit root
         NodeDocument.setRevision(op, rev.getRevision(ns.getClusterId()), "c");

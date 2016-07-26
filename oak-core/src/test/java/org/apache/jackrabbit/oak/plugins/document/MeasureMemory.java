@@ -19,12 +19,16 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
+import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
@@ -238,21 +242,26 @@ public class MeasureMemory {
     }
 
     static DocumentNodeState generateNode(int propertyCount) {
-        DocumentNodeState n = new DocumentNodeState(STORE, new String("/hello/world"),
-                new RevisionVector(new Revision(1, 2, 3)));
+        return generateNode(propertyCount, Collections.<PropertyState>emptyList());
+    }
+
+    static DocumentNodeState generateNode(int propertyCount, List<PropertyState> extraProps) {
+        List<PropertyState> props = Lists.newArrayList();
+        props.addAll(extraProps);
         for (int i = 0; i < propertyCount; i++) {
-            n.setProperty("property" + i, "\"values " + i + "\"");
+            String key = "property" + i;
+            props.add(STORE.createPropertyState(key, "\"values " + i + "\""));
         }
-        n.setLastRevision(new RevisionVector(new Revision(1, 2, 3)));
-        return n;
+        return new DocumentNodeState(STORE, new String("/hello/world"),
+                new RevisionVector(new Revision(1, 2, 3)), props, false, new RevisionVector(new Revision(1, 2, 3)));
     }
 
     static DocumentNodeState generateNodeWithBinaryProperties(int propertyCount) {
-        DocumentNodeState n = generateNode(0);
+        List<PropertyState> props = Lists.newArrayList();
         for (int i = 0; i < propertyCount; i++) {
-            n.setProperty("binary" + i, new String(BLOB_VALUE));
+            props.add(STORE.createPropertyState("binary" + i, new String(BLOB_VALUE)));
         }
-        return n;
+        return generateNode(0, props);
     }
 
     static BasicDBObject generateBasicObject(int propertyCount) {
