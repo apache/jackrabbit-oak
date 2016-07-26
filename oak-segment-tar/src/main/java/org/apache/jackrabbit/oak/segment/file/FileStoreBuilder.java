@@ -24,6 +24,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_STRING_CACHE_SIZE;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_TEMPLATE_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
@@ -33,6 +35,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.segment.NodeCache;
+import org.apache.jackrabbit.oak.segment.RecordCache;
+import org.apache.jackrabbit.oak.segment.Template;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -64,10 +69,11 @@ public class FileStoreBuilder {
 
     private int templateCacheSize = DEFAULT_TEMPLATE_CACHE_MB;
 
-    private boolean memoryMapping;
+    private int stringDeduplicationCacheSize = DEFAULT_STRING_CACHE_SIZE;
 
-    @Nonnull
-    private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
+    private int templateDeduplicationCacheSize = DEFAULT_TEMPLATE_CACHE_SIZE;
+
+    private boolean memoryMapping;
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
@@ -76,70 +82,61 @@ public class FileStoreBuilder {
     private SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Nonnull
-    private GCListener gcListener;
+    private final EvictingWriteCacheManager cacheManager = new EvictingWriteCacheManager(
+            stringDeduplicationCacheSize, templateDeduplicationCacheSize);
 
     @Nonnull
-    private final WriterCacheManager cacheManager = new WriterCacheManager.Default() {{
-        gcListener = new GCListener() {
-            @Override
-            public void info(String message, Object... arguments) {
-                gcMonitor.info(message, arguments);
-            }
+    private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
 
-            @Override
-            public void warn(String message, Object... arguments) {
-                gcMonitor.warn(message, arguments);
-            }
+    @Nonnull
+    private final GCListener gcListener = new GCListener() {
+        @Override
+        public void info(String message, Object... arguments) {
+            gcMonitor.info(message, arguments);
+        }
 
-            @Override
-            public void error(String message, Exception exception) {
-                gcMonitor.error(message, exception);
-            }
+        @Override
+        public void warn(String message, Object... arguments) {
+            gcMonitor.warn(message, arguments);
+        }
 
-            @Override
-            public void skipped(String reason, Object... arguments) {
-                gcMonitor.skipped(reason, arguments);
-            }
+        @Override
+        public void error(String message, Exception exception) {
+            gcMonitor.error(message, exception);
+        }
 
-            @Override
-            public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
-                gcMonitor.compacted(segmentCounts, recordCounts, compactionMapWeights);
-            }
+        @Override
+        public void skipped(String reason, Object... arguments) {
+            gcMonitor.skipped(reason, arguments);
+        }
 
-            @Override
-            public void cleaned(long reclaimedSize, long currentSize) {
-                gcMonitor.cleaned(reclaimedSize, currentSize);
-            }
+        @Override
+        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
+            gcMonitor.compacted(segmentCounts, recordCounts, compactionMapWeights);
+        }
 
-            @Override
-            public void compacted(@Nonnull Status status, final int newGeneration) {
-                switch (status) {
-                    case SUCCESS:
-                        // FIXME OAK-4283: Align GCMonitor API with implementation
-                        // This call is still needed to ensure upstream consumers
-                        // of GCMonitor callback get properly notified. See
-                        // RepositoryImpl.RefreshOnGC and
-                        // LuceneIndexProviderService.registerGCMonitor().
-                        gcMonitor.compacted(new long[0], new long[0], new long[0]);
-                        evictCaches(new Predicate<Integer>() {
-                            @Override
-                            public boolean apply(Integer generation) {
-                                return generation < newGeneration;
-                            }
-                        });
-                        break;
-                    case FAILURE:
-                        evictCaches(new Predicate<Integer>() {
-                            @Override
-                            public boolean apply(Integer generation) {
-                                return generation == newGeneration;
-                            }
-                        });
-                        break;
-                }
+        @Override
+        public void cleaned(long reclaimedSize, long currentSize) {
+            gcMonitor.cleaned(reclaimedSize, currentSize);
+        }
+
+        @Override
+        public void compacted(@Nonnull Status status, final int newGeneration) {
+            switch (status) {
+                case SUCCESS:
+                    // FIXME OAK-4283: Align GCMonitor API with implementation
+                    // This call is still needed to ensure upstream consumers
+                    // of GCMonitor callback get properly notified. See
+                    // RepositoryImpl.RefreshOnGC and
+                    // LuceneIndexProviderService.registerGCMonitor().
+                    gcMonitor.compacted(new long[0], new long[0], new long[0]);
+                    cacheManager.evictOldGeneration(newGeneration);
+                    break;
+                case FAILURE:
+                    cacheManager.evictGeneration(newGeneration);
             }
-        };
-    }};
+        }
+    };
 
     @CheckForNull
     private TarRevisions revisions;
@@ -211,6 +208,28 @@ public class FileStoreBuilder {
     @Nonnull
     public FileStoreBuilder withTemplateCacheSize(int templateCacheSize) {
         this.templateCacheSize = templateCacheSize;
+        return this;
+    }
+
+    /**
+     * Number of items to keep in the string deduplication cache
+     * @param stringDeduplicationCacheSize  None negative cache size
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withStringDeduplicationCacheSize(int stringDeduplicationCacheSize) {
+        this.stringDeduplicationCacheSize = stringDeduplicationCacheSize;
+        return this;
+    }
+
+    /**
+     * Number of items to keep in the template deduplication cache
+     * @param templateDeduplicationCacheSize  None negative cache size
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withTemplateDeduplicationCacheSize(int templateDeduplicationCacheSize) {
+        this.templateDeduplicationCacheSize = templateDeduplicationCacheSize;
         return this;
     }
 
@@ -287,6 +306,7 @@ public class FileStoreBuilder {
      */
     @Nonnull
     public FileStore build() throws IOException {
+        checkState(revisions == null, "Cannot re-use builder");
         directory.mkdir();
         revisions = new TarRevisions(false, directory);
         LOG.info("Creating file store {}", this);
@@ -312,6 +332,7 @@ public class FileStoreBuilder {
      */
     @Nonnull
     public ReadOnlyStore buildReadOnly() throws IOException {
+        checkState(revisions == null, "Cannot re-use builder");
         checkState(directory.exists() && directory.isDirectory());
         revisions = new TarRevisions(true, directory);
         LOG.info("Creating file store {}", this);
@@ -386,5 +407,31 @@ public class FileStoreBuilder {
                 ", memoryMapping=" + memoryMapping +
                 ", gcOptions=" + gcOptions +
                 '}';
+    }
+
+    private static class EvictingWriteCacheManager extends WriterCacheManager.Default {
+        public EvictingWriteCacheManager( int stringCacheSize, int templateCacheSize) {
+            super(RecordCache.<String>factory(stringCacheSize),
+                RecordCache.<Template>factory(templateCacheSize),
+                NodeCache.factory(1000000, 20));
+        }
+
+        void evictOldGeneration(final int newGeneration) {
+            evictCaches(new Predicate<Integer>() {
+                @Override
+                public boolean apply(Integer generation) {
+                    return generation < newGeneration;
+                }
+            });
+        }
+
+        void evictGeneration(final int newGeneration) {
+            evictCaches(new Predicate<Integer>() {
+                @Override
+                public boolean apply(Integer generation) {
+                    return generation == newGeneration;
+                }
+            });
+        }
     }
 }

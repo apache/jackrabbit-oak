@@ -157,6 +157,20 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String TEMPLATE_CACHE_SIZE = "templateCache.size";
 
     @Property(
+            intValue = 15000,
+            label = "String deduplication cache size",
+            description = "Maximum number of strings to keep in the deduplication cache"
+    )
+    public static final String STRING_DEDUPLICATION_CACHE_SIZE = "stringDeduplicationCache.size";
+
+    @Property(
+            intValue = 3000,
+            label = "Template deduplication cache size",
+            description = "Maximum number of templates to keep in the deduplication cache"
+    )
+    public static final String TEMPLATE_DEDUPLICATION_CACHE_SIZE = "templateDeduplicationCache.size";
+
+    @Property(
             byteValue = MEMORY_THRESHOLD_DEFAULT,
             label = "Memory Multiplier",
             description = "TarMK compaction available memory multiplier needed to run compaction"
@@ -344,6 +358,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .withSegmentCacheSize(getSegmentCacheSize())
                 .withStringCacheSize(getStringCacheSize())
                 .withTemplateCacheSize(getTemplateCacheSize())
+                .withStringDeduplicationCacheSize(getStringDeduplicationCacheSize())
+                .withTemplateDeduplicationCacheSize(getTemplateDeduplicationCacheSize())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
                 .withGCMonitor(gcMonitor)
@@ -617,6 +633,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private int getTemplateCacheSize() {
         return Integer.parseInt(getCacheSize(TEMPLATE_CACHE_SIZE));
+    }
+
+    private int getStringDeduplicationCacheSize() {
+        return Integer.parseInt(getCacheSize(STRING_DEDUPLICATION_CACHE_SIZE));
+    }
+
+    private int getTemplateDeduplicationCacheSize() {
+        return Integer.parseInt(getCacheSize(TEMPLATE_DEDUPLICATION_CACHE_SIZE));
     }
 
     private String getMaxFileSizeProperty() {

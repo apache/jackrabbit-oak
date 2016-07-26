@@ -49,10 +49,19 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
  * generations being reused.
  */
 public abstract class WriterCacheManager {
-    private static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
+
+    /**
+     * Default size of the string cache.
+     * @see #getStringCache(int)
+     */
+    public static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
             "oak.tar.stringsCacheSize", 15000);
 
-    private static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
+    /**
+     * Default size of the template cache.
+     * @see #getTemplateCache(int)
+     */
+    public static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
             "oak.tar.templatesCacheSize", 3000);
 
     /**
@@ -179,7 +188,8 @@ public abstract class WriterCacheManager {
 
         /**
          * New instance using the default factories {@link RecordCache#factory(int)}
-         * and {@link NodeCache#factory(int, int)}.
+         * and {@link NodeCache#factory(int, int)} with the sizes
+         * {@link #DEFAULT_STRING_CACHE_SIZE} and {@link #DEFAULT_TEMPLATE_CACHE_SIZE}.
          */
         public Default() {
             this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
