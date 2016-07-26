@@ -28,8 +28,6 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 
-// FIXME OAK-4277: Finalise de-duplication caches
-// implement configuration
 /**
  * Partial mapping of keys of type {@code T} to values of type {@link RecordId}. This is
  * typically used for de-duplicating values that have already been persisted and thus
