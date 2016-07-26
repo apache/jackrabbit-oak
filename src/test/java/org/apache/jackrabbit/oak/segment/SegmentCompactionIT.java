@@ -34,6 +34,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 import static org.slf4j.helpers.MessageFormatter.format;
@@ -71,7 +72,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
@@ -242,15 +243,23 @@ public class SegmentCompactionIT {
                 new ObjectName("IT:TYPE=Segment Revision GC")));
         registrations.add(registerMBean(fileStoreGCMonitor,
                 new ObjectName("IT:TYPE=GC Monitor")));
-        CacheStats segmentCacheStats = fileStore.getSegmentCacheStats();
+        CacheStatsMBean segmentCacheStats = fileStore.getSegmentCacheStats();
         registrations.add(registerMBean(segmentCacheStats,
                 new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
-        CacheStats stringCacheStats = fileStore.getStringCacheStats();
+        CacheStatsMBean stringCacheStats = fileStore.getStringCacheStats();
         registrations.add(registerMBean(stringCacheStats,
                 new ObjectName("IT:TYPE=" + stringCacheStats.getName())));
-        CacheStats templateCacheStats = fileStore.getTemplateCacheStats();
+        CacheStatsMBean templateCacheStats = fileStore.getTemplateCacheStats();
         registrations.add(registerMBean(templateCacheStats,
                 new ObjectName("IT:TYPE=" + templateCacheStats.getName())));
+        CacheStatsMBean stringDeduplicationCacheStats = fileStore.getStringDeduplicationCacheStats();
+        assertNotNull(stringDeduplicationCacheStats);
+        registrations.add(registerMBean(stringDeduplicationCacheStats,
+                new ObjectName("IT:TYPE=" + stringDeduplicationCacheStats.getName())));
+        CacheStatsMBean templateDeduplicationCacheStats = fileStore.getTemplateDeduplicationCacheStats();
+        assertNotNull(templateDeduplicationCacheStats);
+        registrations.add(registerMBean(templateDeduplicationCacheStats,
+                new ObjectName("IT:TYPE=" + templateDeduplicationCacheStats.getName())));
         mBeanRegistration = new CompositeRegistration(registrations);
     }
 

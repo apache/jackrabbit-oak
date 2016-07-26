@@ -73,7 +73,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.BinaryReferenceConsumer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -400,18 +400,28 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     @Nonnull
-    public CacheStats getSegmentCacheStats() {
+    public CacheStatsMBean getSegmentCacheStats() {
         return segmentCache.getCacheStats();
     }
 
     @Nonnull
-    public CacheStats getStringCacheStats() {
+    public CacheStatsMBean getStringCacheStats() {
         return segmentReader.getStringCacheStats();
     }
 
     @Nonnull
-    public CacheStats getTemplateCacheStats() {
+    public CacheStatsMBean getTemplateCacheStats() {
         return segmentReader.getTemplateCacheStats();
+    }
+
+    @CheckForNull
+    public CacheStatsMBean getStringDeduplicationCacheStats() {
+        return segmentWriter.getStringCacheStats();
+    }
+
+    @CheckForNull
+    public CacheStatsMBean getTemplateDeduplicationCacheStats() {
+        return segmentWriter.getTemplateCacheStats();
     }
 
     public void maybeCompact(boolean cleanup) throws IOException {

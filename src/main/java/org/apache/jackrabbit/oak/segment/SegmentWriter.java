@@ -64,6 +64,7 @@ import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatisti
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -129,6 +130,22 @@ public class SegmentWriter {
 
     public void flush() throws IOException {
         writeOperationHandler.flush();
+    }
+
+    /**
+     * @return  Statistics for the string deduplication cache or {@code null} if not available.
+     */
+    @CheckForNull
+    public CacheStatsMBean getStringCacheStats() {
+        return cacheManager.getStringCacheStats();
+    }
+
+    /**
+     * @return  Statistics for the template deduplication cache or {@code null} if not available.
+     */
+    @CheckForNull
+    public CacheStatsMBean getTemplateCacheStats() {
+        return cacheManager.getTemplateCacheStats();
     }
 
     /**
