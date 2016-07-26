@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.memoize;
+import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
@@ -28,15 +29,20 @@ import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
+import com.google.common.cache.CacheStats;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration, monitoring and management
 // add unit tests
-// document, nullability
+// document
 public abstract class WriterCacheManager {
     private static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
             "oak.tar.stringsCacheSize", 15000);
@@ -52,6 +58,22 @@ public abstract class WriterCacheManager {
 
     @Nonnull
     public abstract NodeCache getNodeCache(int generation);
+
+    /**
+     * @return  statistics for the string cache or {@code null} if not available.
+     */
+    @CheckForNull
+    public CacheStatsMBean getStringCacheStats() {
+        return null;
+    }
+
+    /**
+     * @return  statistics for the template cache or {@code null} if not available.
+     */
+    @CheckForNull
+    public CacheStatsMBean getTemplateCacheStats() {
+        return null;
+    }
 
     public static class Empty extends WriterCacheManager {
         public static final WriterCacheManager INSTANCE = new Empty();
@@ -83,27 +105,27 @@ public abstract class WriterCacheManager {
          * Cache of recently stored string records, used to avoid storing duplicates
          * of frequently occurring data.
          */
-        private final Generation<RecordCache<String>> stringCaches;
+        private final Generations<RecordCache<String>> stringCaches;
 
         /**
          * Cache of recently stored template records, used to avoid storing
          * duplicates of frequently occurring data.
          */
-        private final Generation<RecordCache<Template>> templateCaches;
+        private final Generations<RecordCache<Template>> templateCaches;
 
         /**
          * Cache of recently stored nodes to avoid duplicating linked nodes (i.e. checkpoints)
          * during compaction.
          */
-        private final Generation<NodeCache> nodeCaches;
+        private final Generations<NodeCache> nodeCaches;
 
         public Default(
                 @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
                 @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
                 @Nonnull Supplier<NodeCache> nodeCacheFactory) {
-            this.stringCaches = new Generation<>(stringCacheFactory);
-            this.templateCaches = new Generation<>(templateCacheFactory);
-            this.nodeCaches = new Generation<>(nodeCacheFactory);
+            this.stringCaches = new Generations<>(stringCacheFactory);
+            this.templateCaches = new Generations<>(templateCacheFactory);
+            this.nodeCaches = new Generations<>(nodeCacheFactory);
         }
 
         public Default() {
@@ -112,11 +134,11 @@ public abstract class WriterCacheManager {
                  NodeCache.factory(1000000, 20));
         }
 
-        private static class Generation<T> {
+        private static class Generations<T> implements Iterable<T> {
             private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
             private final Supplier<T> cacheFactory;
 
-            Generation(@Nonnull Supplier<T> cacheFactory) {
+            Generations(@Nonnull Supplier<T> cacheFactory) {
                 this.cacheFactory = checkNotNull(cacheFactory);
             }
 
@@ -126,6 +148,16 @@ public abstract class WriterCacheManager {
                     generations.putIfAbsent(generation, memoize(cacheFactory));
                 }
                 return generations.get(generation).get();
+            }
+
+            @Override
+            public Iterator<T> iterator() {
+                return transform(generations.values().iterator(), new Function<Supplier<T>, T>() {
+                    @Nullable @Override
+                    public T apply(Supplier<T> cacheFactory) {
+                        return cacheFactory.get();
+                    }
+                });
             }
 
             void evictGenerations(@Nonnull Predicate<Integer> evict) {
@@ -154,6 +186,48 @@ public abstract class WriterCacheManager {
         @Override
         public NodeCache getNodeCache(int generation) {
             return nodeCaches.getGeneration(generation);
+        }
+
+        @CheckForNull
+        @Override
+        public CacheStatsMBean getStringCacheStats() {
+            return new RecordCacheStats("String deduplication cache stats",
+                    accumulateStats(stringCaches), accumulateSizes(stringCaches));
+        }
+
+        @CheckForNull
+        @Override
+        public CacheStatsMBean getTemplateCacheStats() {
+            return new RecordCacheStats("Template deduplication cache stats",
+                    accumulateStats(templateCaches), accumulateSizes(templateCaches));
+        }
+
+        @Nonnull
+        private static <T> Supplier<CacheStats> accumulateStats(final Iterable<RecordCache<T>> caches) {
+            return new Supplier<CacheStats>() {
+                @Override
+                public CacheStats get() {
+                    CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
+                    for (RecordCache<?> cache : caches) {
+                        stats = stats.plus(cache.getStats());
+                    }
+                    return stats;
+                }
+            };
+        }
+
+        @Nonnull
+        public static <T> Supplier<Long> accumulateSizes(final Generations<RecordCache<T>> caches) {
+            return new Supplier<Long>() {
+                @Override
+                public Long get() {
+                    long size = 0;
+                    for (RecordCache<?> cache : caches) {
+                        size += cache.size();
+                    }
+                    return size;
+                }
+            };
         }
 
         protected final void evictCaches(Predicate<Integer> generations) {
