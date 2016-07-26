@@ -246,10 +246,10 @@ public class FileStore implements SegmentStore, Closeable {
         this.binaryReferenceConsumer = new BinaryReferenceConsumer() {
 
             @Override
-            public void consume(int generation, String binaryReference) {
+            public void consume(int generation, UUID segmentId, String binaryReference) {
                 fileStoreLock.writeLock().lock();
                 try {
-                    tarWriter.addBinaryReference(generation, binaryReference);
+                    tarWriter.addBinaryReference(generation, segmentId, binaryReference);
                 } finally {
                     fileStoreLock.writeLock().unlock();
                 }
@@ -1335,6 +1335,7 @@ public class FileStore implements SegmentStore, Closeable {
                     directory,
                     String.format(FILE_NAME_FORMAT, writeNumber, "a"));
             tarWriter = new TarWriter(writeFile, stats);
+            log.info("New TAR writer {}", tarWriter);
         }
     }
 

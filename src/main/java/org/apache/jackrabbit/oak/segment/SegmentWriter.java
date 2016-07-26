@@ -808,7 +808,7 @@ public class SegmentWriter {
                 recordId = RecordWriters.newBlobIdWriter(writeString(blobId)).write(writer);
             }
 
-            binaryReferenceConsumer.consume(writer.getGeneration(), blobId);
+            binaryReferenceConsumer.consume(writer.getGeneration(), recordId.asUUID(), blobId);
 
             return recordId;
         }

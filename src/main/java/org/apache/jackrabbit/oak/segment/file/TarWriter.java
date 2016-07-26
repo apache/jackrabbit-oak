@@ -162,7 +162,7 @@ class TarWriter implements Closeable {
     /**
      * List of binary references contained in this TAR file.
      */
-    private final Map<Integer, Set<String>> binaryReferences = newHashMap();
+    private final Map<Integer, Map<UUID, Set<String>>> binaryReferences = newHashMap();
 
     TarWriter(File file) {
         this(file, FileStoreMonitor.DEFAULT);
@@ -282,12 +282,19 @@ class TarWriter implements Closeable {
         return currentLength;
     }
 
-    void addBinaryReference(int generation, String reference) {
-        Set<String> references = binaryReferences.get(generation);
+    void addBinaryReference(int generation, UUID segmentId, String reference) {
+        Map<UUID, Set<String>> segmentToReferences = binaryReferences.get(generation);
+
+        if (segmentToReferences == null) {
+            segmentToReferences = newHashMap();
+            binaryReferences.put(generation, segmentToReferences);
+        }
+
+        Set<String> references = segmentToReferences.get(segmentId);
 
         if (references == null) {
             references = newHashSet();
-            binaryReferences.put(generation, references);
+            segmentToReferences.put(segmentId, references);
         }
 
         references.add(reference);
@@ -386,37 +393,53 @@ class TarWriter implements Closeable {
         // The following information are stored as part of the main content of
         // this entry, after the optional padding.
 
-        for (Set<String> references : binaryReferences.values()) {
+        for (Map<UUID, Set<String>> segmentToReferences : binaryReferences.values()) {
             // 4 bytes per generation to store the generation number itself.
             binaryReferenceSize += 4;
 
-            // 4 bytes per generation to store the amount of binary references
-            // associated to the generation.
+            // 4 bytes per generation to store the number of segments.
             binaryReferenceSize += 4;
 
-            for (String reference : references) {
-                // 4 bytes for each reference to store the length of the reference.
+            for (Set<String> references : segmentToReferences.values()) {
+                // 16 bytes per segment identifier.
+                binaryReferenceSize += 16;
+
+                // 4 bytes to store the number of references for this segment.
                 binaryReferenceSize += 4;
 
-                // A variable amount of bytes, depending on the reference itself.
-                binaryReferenceSize += reference.getBytes(Charsets.UTF_8).length;
+                for (String reference : references) {
+                    // 4 bytes for each reference to store the length of the reference.
+                    binaryReferenceSize += 4;
+
+                    // A variable amount of bytes, depending on the reference itself.
+                    binaryReferenceSize += reference.getBytes(Charsets.UTF_8).length;
+                }
             }
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(binaryReferenceSize);
 
-        for (Entry<Integer, Set<String>> entry : binaryReferences.entrySet()) {
-            int generation = entry.getKey();
-            Set<String> references = entry.getValue();
+        for (Entry<Integer, Map<UUID, Set<String>>> be : binaryReferences.entrySet()) {
+            int generation = be.getKey();
+            Map<UUID, Set<String>> segmentToReferences = be.getValue();
 
             buffer.putInt(generation);
-            buffer.putInt(references.size());
+            buffer.putInt(segmentToReferences.size());
 
-            for (String reference : references) {
-                byte[] bytes = reference.getBytes(Charsets.UTF_8);
+            for (Entry<UUID, Set<String>> se : segmentToReferences.entrySet()) {
+                UUID segmentId = se.getKey();
+                Set<String> references = se.getValue();
 
-                buffer.putInt(bytes.length);
-                buffer.put(bytes);
+                buffer.putLong(segmentId.getMostSignificantBits());
+                buffer.putLong(segmentId.getLeastSignificantBits());
+                buffer.putInt(references.size());
+
+                for (String reference : references) {
+                    byte[] bytes = reference.getBytes(Charsets.UTF_8);
+
+                    buffer.putInt(bytes.length);
+                    buffer.put(bytes);
+                }
             }
         }
 
