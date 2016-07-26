@@ -171,6 +171,13 @@ public class CountingDocumentStore implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                       List<UpdateOp> updateOps) {
+        getStats(collection).numCreateOrUpdateCalls++;
+        return delegate.createOrUpdate(collection, updateOps);
+    }
+
+    @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                 UpdateOp update) {
         getStats(collection).numCreateOrUpdateCalls++;
