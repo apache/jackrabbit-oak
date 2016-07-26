@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,29 +84,45 @@ public class TarFileTest {
         try (TarWriter writer = new TarWriter(file)) {
             writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, 0);
 
-            writer.addBinaryReference(1, "r0");
-            writer.addBinaryReference(1, "r1");
-            writer.addBinaryReference(1, "r2");
-            writer.addBinaryReference(1, "r3");
+            writer.addBinaryReference(1, new UUID(1, 0), "r0");
+            writer.addBinaryReference(1, new UUID(1, 1), "r1");
+            writer.addBinaryReference(1, new UUID(1, 2), "r2");
+            writer.addBinaryReference(1, new UUID(1, 3), "r3");
 
-            writer.addBinaryReference(2, "r4");
-            writer.addBinaryReference(2, "r5");
-            writer.addBinaryReference(2, "r6");
+            writer.addBinaryReference(2, new UUID(2, 0), "r4");
+            writer.addBinaryReference(2, new UUID(2, 1), "r5");
+            writer.addBinaryReference(2, new UUID(2, 2), "r6");
 
-            writer.addBinaryReference(3, "r7");
-            writer.addBinaryReference(3, "r8");
+            writer.addBinaryReference(3, new UUID(3, 0), "r7");
+            writer.addBinaryReference(3, new UUID(3, 1), "r8");
         }
 
+        Map<UUID, Set<String>> one = newHashMap();
+
+        one.put(new UUID(1, 0), newSet("r0"));
+        one.put(new UUID(1, 1), newSet("r1"));
+        one.put(new UUID(1, 2), newSet("r2"));
+        one.put(new UUID(1, 3), newSet("r3"));
+
+        Map<UUID, Set<String>> two = newHashMap();
+
+        two.put(new UUID(2, 0), newSet("r4"));
+        two.put(new UUID(2, 1), newSet("r5"));
+        two.put(new UUID(2, 2), newSet("r6"));
+
+        Map<UUID, Set<String>> three = newHashMap();
+
+        three.put(new UUID(3, 0), newSet("r7"));
+        three.put(new UUID(3, 1), newSet("r8"));
+
+        Map<Integer, Map<UUID, Set<String>>> expected = newHashMap();
+
+        expected.put(1, one);
+        expected.put(2, two);
+        expected.put(3, three);
+
         try (TarReader reader = TarReader.open(file, false)) {
-            Map<Integer, Set<String>> brf = reader.getBinaryReferences();
-
-            assertNotNull(brf);
-
-            assertEquals(newHashSet(1, 2, 3), brf.keySet());
-
-            assertEquals(newHashSet("r0", "r1", "r2", "r3"), brf.get(1));
-            assertEquals(newHashSet("r4", "r5", "r6"), brf.get(2));
-            assertEquals(newHashSet("r7", "r8"), brf.get(3));
+            assertEquals(expected, reader.getBinaryReferences());
         }
     }
 

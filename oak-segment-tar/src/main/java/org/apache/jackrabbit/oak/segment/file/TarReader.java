@@ -58,6 +58,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
@@ -740,19 +741,21 @@ class TarReader implements Closeable {
      * @param minGeneration
      */
     void collectBlobReferences(ReferenceCollector collector, int minGeneration) {
-        Map<Integer, Set<String>> references = getBinaryReferences();
+        Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
-        if (references == null) {
+        if (generations == null) {
             return;
         }
 
-        for (Entry<Integer, Set<String>> entry : references.entrySet()) {
+        for (Entry<Integer, Map<UUID, Set<String>>> entry : generations.entrySet()) {
             if (entry.getKey() < minGeneration) {
                 continue;
             }
 
-            for (String reference : entry.getValue()) {
-                collector.addReference(reference, null);
+            for (Set<String> references : entry.getValue().values()) {
+                for (String reference : references) {
+                    collector.addReference(reference, null);
+                }
             }
         }
     }
@@ -961,7 +964,7 @@ class TarReader implements Closeable {
         return getEntrySize(buffer.getInt(buffer.limit() - 8));
     }
 
-    Map<Integer, Set<String>> getBinaryReferences() {
+    Map<Integer, Map<UUID, Set<String>>> getBinaryReferences() {
         ByteBuffer buffer;
 
         try {
@@ -1015,27 +1018,37 @@ class TarReader implements Closeable {
         return buffer;
     }
 
-    private Map<Integer, Set<String>> parseBinaryReferences(ByteBuffer buffer) {
+    private Map<Integer, Map<UUID, Set<String>>> parseBinaryReferences(ByteBuffer buffer) {
         int nGenerations = buffer.getInt(buffer.limit() - 12);
 
-        Map<Integer, Set<String>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
+        Map<Integer, Map<UUID, Set<String>>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
 
         for (int i = 0; i < nGenerations; i++) {
             int generation = buffer.getInt();
-            int nReferences = buffer.getInt();
+            int segmentCount = buffer.getInt();
 
-            Set<String> references = newHashSetWithExpectedSize(nReferences);
+            Map<UUID, Set<String>> segments = newHashMapWithExpectedSize(segmentCount);
 
-            for (int j = 0; j < nReferences; j++) {
-                int length = buffer.getInt();
+            for (int j = 0; j < segmentCount; j++) {
+                long msb = buffer.getLong();
+                long lsb = buffer.getLong();
+                int referenceCount = buffer.getInt();
 
-                byte[] data = new byte[length];
-                buffer.get(data);
+                Set<String> references = Sets.newHashSetWithExpectedSize(referenceCount);
 
-                references.add(new String(data, Charsets.UTF_8));
+                for (int k = 0; k < referenceCount; k++) {
+                    int length = buffer.getInt();
+
+                    byte[] data = new byte[length];
+                    buffer.get(data);
+
+                    references.add(new String(data, Charsets.UTF_8));
+                }
+
+                segments.put(new UUID(msb, lsb), references);
             }
 
-            binaryReferences.put(generation, references);
+            binaryReferences.put(generation, segments);
         }
 
         return binaryReferences;
