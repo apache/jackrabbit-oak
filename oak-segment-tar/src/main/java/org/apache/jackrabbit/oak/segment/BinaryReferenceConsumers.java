@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.util.UUID;
+
 /**
  * Utility methods to work with {@link BinaryReferenceConsumer} instances.
  */
@@ -32,7 +34,7 @@ public class BinaryReferenceConsumers {
         return new BinaryReferenceConsumer() {
 
             @Override
-            public void consume(int generation, String binaryReference) {
+            public void consume(int generation, UUID segmentId, String binaryReference) {
                 // Discard the binary reference
             }
 

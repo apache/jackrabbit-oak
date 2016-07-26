@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.util.UUID;
+
 /**
  * A consumer for references to external binaries. An implementor of this
  * interface is called every time an external binary reference is written in the
@@ -29,9 +31,10 @@ public interface BinaryReferenceConsumer {
      *
      * @param generation      The generation of the record referencing the
      *                        binary.
+     * @param segmentId       The ID of the segment this reference belongs to.
      * @param binaryReference The opaque string representation of the binary
      *                        reference.
      */
-    void consume(int generation, String binaryReference);
+    void consume(int generation, UUID segmentId, String binaryReference);
 
 }

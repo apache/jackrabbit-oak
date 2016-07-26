@@ -97,7 +97,14 @@ public class SegmentDataStoreBlobGCIT {
     SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    public TemporaryFolder folder = new TemporaryFolder(new File("target")) {
+
+        @Override
+        public void delete() {
+            // Do nothing
+        }
+
+    };
 
     @BeforeClass
     public static void assumptions() {
@@ -395,6 +402,7 @@ public class SegmentDataStoreBlobGCIT {
         try {
             is = new FileInputStream(markedFiles.get(0));
             Set<String> records = FileIOUtils.readStringsAsSet(is, true);
+            assertEquals(expected.size(), records.size());
             assertEquals(expected, records);
         } finally {
             Closeables.close(is, false);
