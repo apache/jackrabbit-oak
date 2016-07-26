@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -97,7 +96,7 @@ public class SegmentDataStoreBlobGCIT {
     SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Rule
-    public TemporaryFolder folder;
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @BeforeClass
     public static void assumptions() {
@@ -255,7 +254,6 @@ public class SegmentDataStoreBlobGCIT {
     }
 
     @Test
-    @Ignore("OAK-4598")
     public void checkMark() throws Exception {
         LogCustomizer customLogs = LogCustomizer
             .forLogger(MarkSweepGarbageCollector.class.getName())

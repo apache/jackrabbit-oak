@@ -871,6 +871,23 @@ class TarReader implements Closeable {
                         entry.msb(), entry.lsb(), data, 0, entry.size(), entry.generation());
             }
         }
+
+        // Reconstruct the binary reference index for non-cleaned segments.
+
+        Map<Integer, Map<UUID, Set<String>>> references = getBinaryReferences();
+
+        for (Entry<Integer, Map<UUID, Set<String>>> ge : references.entrySet()) {
+            for (Entry<UUID, Set<String>> se : ge.getValue().entrySet()) {
+                if (cleaned.contains(se.getKey())) {
+                    continue;
+                }
+                for (String reference : se.getValue()) {
+                    writer.addBinaryReference(ge.getKey(), se.getKey(), reference);
+                }
+            }
+
+        }
+
         writer.close();
 
         TarReader reader = openFirstFileWithValidIndex(
