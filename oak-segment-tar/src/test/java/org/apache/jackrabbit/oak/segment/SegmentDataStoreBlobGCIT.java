@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
@@ -31,6 +31,7 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
@@ -46,13 +47,18 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closeables;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -71,6 +77,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -94,7 +101,7 @@ public class SegmentDataStoreBlobGCIT {
 
     @BeforeClass
     public static void assumptions() {
-        assumeTrue(getFixtures().contains(SEGMENT_MK));
+        assumeTrue(getFixtures().contains(SEGMENT_TAR));
     }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
@@ -115,6 +122,10 @@ public class SegmentDataStoreBlobGCIT {
     }
 
     public DataStoreState setUp() throws Exception {
+        return setUp(10);
+    }
+
+    public DataStoreState setUp(int count) throws Exception {
         if (blobStore == null) {
             blobStore = DataStoreUtils.getBlobStore(folder.newFolder());
         }
@@ -149,7 +160,7 @@ public class SegmentDataStoreBlobGCIT {
 
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = 5;
-        int numBlobs = 10;
+        int numBlobs = count;
         List<Integer> processed = Lists.newArrayList();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
@@ -242,7 +253,28 @@ public class SegmentDataStoreBlobGCIT {
         Set<String> existingAfterGC = gcInternal(0);
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
-    
+
+    @Test
+    @Ignore("OAK-4598")
+    public void checkMark() throws Exception {
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .enable(Level.TRACE)
+            .filter(Level.TRACE)
+            .create();
+
+        DataStoreState state = setUp(30000);
+        log.info("{} blobs available : {}", state.blobsPresent.size(), state.blobsPresent);
+        customLogs.starting();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        String rootFolder = folder.newFolder().getAbsolutePath();
+        MarkSweepGarbageCollector gcObj = init(0, executor, rootFolder);
+        gcObj.collectGarbage(true);
+        customLogs.finished();
+
+        assertBlobReferenceRecords(state.blobsPresent, rootFolder);
+    }
+
     @Test
     public void noGc() throws Exception {
         DataStoreState state = setUp();
@@ -350,6 +382,26 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(0, candidates);
     }
 
+    private static void assertBlobReferenceRecords(Set<String> expected, String rootFolder) throws IOException {
+        // Read the marked files to check if paths logged or not
+        File root = new File(rootFolder);
+        List<File> rootFile = FileFilterUtils.filterList(
+            FileFilterUtils.prefixFileFilter("gcworkdir-"),
+            root.listFiles());
+        List<File> markedFiles = FileFilterUtils.filterList(
+            FileFilterUtils.prefixFileFilter("marked-"),
+            rootFile.get(0).listFiles());
+        InputStream is = null;
+        try {
+            is = new FileInputStream(markedFiles.get(0));
+            Set<String> records = FileIOUtils.readStringsAsSet(is, true);
+            assertEquals(expected, records);
+        } finally {
+            Closeables.close(is, false);
+            FileUtils.forceDelete(rootFile.get(0));
+        }
+    }
+
     private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = init(maxBlobGcInSecs, executor);
@@ -360,8 +412,12 @@ public class SegmentDataStoreBlobGCIT {
         log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
         return existingAfterGC;
     }
-    
+
     private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor) throws Exception {
+        return init(blobGcMaxAgeInSecs, executor, folder.newFolder().getAbsolutePath());
+    }
+
+    private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor, String root) throws Exception {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
@@ -371,7 +427,7 @@ public class SegmentDataStoreBlobGCIT {
         }
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
             new SegmentBlobReferenceRetriever(store),
-            (GarbageCollectableBlobStore) store.getBlobStore(), executor, folder.newFolder().getAbsolutePath(), 2048, blobGcMaxAgeInSecs,
+            (GarbageCollectableBlobStore) store.getBlobStore(), executor, root, 2048, blobGcMaxAgeInSecs,
             repoId);
         return gc;
     }    
