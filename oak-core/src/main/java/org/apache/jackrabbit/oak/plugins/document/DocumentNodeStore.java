@@ -77,6 +77,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -851,6 +852,10 @@ public final class DocumentNodeStore
                               @Nonnull final RevisionVector rev) {
         //Check secondary cache first
         return nodeStateCache.getDocumentNodeState(path, rootRevision, rev);
+    }
+
+    PropertyState createPropertyState(String name, String value){
+        return new DocumentPropertyState(this, name, checkNotNull(value));
     }
 
     /**

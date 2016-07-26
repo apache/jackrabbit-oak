@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.UnknownHostException;
 import java.util.EnumMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -40,6 +41,7 @@ import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
@@ -462,8 +464,7 @@ public class DocumentMK {
     }
 
     private void parseAddNode(Commit commit, JsopReader t, String path) {
-        DocumentNodeState n = new DocumentNodeState(nodeStore, path,
-                new RevisionVector(commit.getRevision()));
+        List<PropertyState> props = Lists.newArrayList();
         if (!t.matches('}')) {
             do {
                 String key = t.readString();
@@ -473,11 +474,13 @@ public class DocumentMK {
                     parseAddNode(commit, t, childPath);
                 } else {
                     String value = t.readRawValue().trim();
-                    n.setProperty(key, value);
+                    props.add(nodeStore.createPropertyState(key, value));
                 }
             } while (t.matches(','));
             t.read('}');
         }
+        DocumentNodeState n = new DocumentNodeState(nodeStore, path,
+                new RevisionVector(commit.getRevision()), props, false, null);
         commit.addNode(n);
     }
 
@@ -505,10 +508,8 @@ public class DocumentMK {
                                 String targetPath,
                                 Commit commit) {
         RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
-        DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision);
-        for (PropertyState p : source.getProperties()) {
-            newNode.setProperty(p);
-        }
+        DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision,
+                source.getProperties(), false, null);
 
         commit.addNode(newNode);
         if (move) {

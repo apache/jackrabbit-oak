@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -955,7 +956,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return null;
         }
         String path = getPath();
-        DocumentNodeState n = new DocumentNodeState(nodeStore, path, readRevision, hasChildren());
+        List<PropertyState> props = Lists.newArrayList();
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -990,7 +991,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             String propertyName = Utils.unescapePropertyName(key);
             String v = value != null ? value.value : null;
-            n.setProperty(propertyName, v);
+            if (v != null){
+                props.add(nodeStore.createPropertyState(propertyName, v));
+            }
         }
 
         // when was this node last modified?
@@ -1041,13 +1044,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 lastRevision = lastRevision.update(r);
             }
         }
-        n.setLastRevision(lastRevision);
 
         if (store instanceof RevisionListener) {
             ((RevisionListener) store).updateAccessedRevision(lastRevision);
         }
 
-        return n;
+        return new DocumentNodeState(nodeStore, path, readRevision, props, hasChildren(), lastRevision);
     }
 
     /**
