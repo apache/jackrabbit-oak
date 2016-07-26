@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration, monitoring and management
-// add unit tests
 // document
 public abstract class WriterCacheManager {
     private static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
