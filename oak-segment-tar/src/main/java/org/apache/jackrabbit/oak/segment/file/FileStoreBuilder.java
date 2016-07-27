@@ -404,6 +404,8 @@ public class FileStoreBuilder {
                 ", segmentCacheSize=" + segmentCacheSize +
                 ", stringCacheSize=" + stringCacheSize +
                 ", templateCacheSize=" + templateCacheSize +
+                ", stringDeduplicationCacheSize=" + stringDeduplicationCacheSize +
+                ", templateDeduplicationCacheSize=" + templateDeduplicationCacheSize +
                 ", memoryMapping=" + memoryMapping +
                 ", gcOptions=" + gcOptions +
                 '}';
