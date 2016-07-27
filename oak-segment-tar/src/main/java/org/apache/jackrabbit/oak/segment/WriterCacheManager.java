@@ -39,8 +39,6 @@ import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
-// FIXME OAK-4277: Finalise de-duplication caches
-// implement configuration
 /**
  * Instances of this class manage the deduplication caches used
  * by the {@link SegmentWriter} to avoid writing multiple copies
@@ -63,6 +61,20 @@ public abstract class WriterCacheManager {
      */
     public static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
             "oak.tar.templatesCacheSize", 3000);
+
+    /**
+     * Default capacity of the node cache.
+     * @see #getNodeCache(int)
+     */
+    public static final int DEFAULT_NODE_CACHE_CAPACITY = getInteger(
+            "oak.tar.nodeCacheCapacity", 1000000);
+
+    /**
+     * Default maximal depth of the node cache.
+     * @see #getNodeCache(int)
+     */
+    public static final int DEFAULT_NODE_CACHE_DEPTH = getInteger(
+            "oak.tar.nodeCacheDepth", 20);
 
     /**
      * @param generation
@@ -202,7 +214,7 @@ public abstract class WriterCacheManager {
         public Default() {
             this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
                  RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
-                 NodeCache.factory(1000000, 20));
+                 NodeCache.factory(DEFAULT_NODE_CACHE_CAPACITY, DEFAULT_NODE_CACHE_DEPTH));
         }
 
         private static class Generations<T> implements Iterable<T> {
