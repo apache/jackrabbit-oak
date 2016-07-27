@@ -403,6 +403,8 @@ public final class DocumentNodeStore
 
     private PersistentCache persistentCache;
 
+    private PersistentCache journalCache;
+
     private final DocumentNodeStoreMBean mbean;
 
     private final boolean readOnlyMode;
@@ -554,11 +556,12 @@ public final class DocumentNodeStore
             leaseUpdateThread.start();
         }
         
-        PersistentCache pc = builder.getPersistentCache();
-        if (!readOnlyMode && pc != null) {
+        persistentCache = builder.getPersistentCache();
+        if (!readOnlyMode && persistentCache != null) {
             DynamicBroadcastConfig broadcastConfig = new DocumentBroadcastConfig(this);
-            pc.setBroadcastConfig(broadcastConfig);
+            persistentCache.setBroadcastConfig(broadcastConfig);
         }
+        journalCache = builder.getJournalCache();
 
         this.mbean = createMBean();
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
@@ -2694,10 +2697,6 @@ public final class DocumentNodeStore
     @Nonnull
     public LastRevRecoveryAgent getLastRevRecoveryAgent() {
         return lastRevRecoveryAgent;
-    }
-
-    public void setPersistentCache(PersistentCache persistentCache) {
-        this.persistentCache = persistentCache;
     }
 
     @Override

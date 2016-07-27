@@ -572,6 +572,8 @@ public class DocumentMK {
         private Executor executor;
         private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
         private PersistentCache persistentCache;
+        private String journalCacheURI;
+        private PersistentCache journalCache;
         private LeaseFailureHandler leaseFailureHandler;
         private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
         private BlobStoreStats blobStoreStats;
@@ -708,6 +710,16 @@ public class DocumentMK {
          */
         public Builder setPersistentCache(String persistentCache) {
             this.persistentCacheURI = persistentCache;
+            return this;
+        }
+
+        /**
+         * Sets the journal cache option.
+         *
+         * @return this
+         */
+        public Builder setJournalCache(String journalCache) {
+            this.journalCacheURI = journalCache;
             return this;
         }
 
@@ -1100,11 +1112,16 @@ public class DocumentMK {
                 ) {
             Set<EvictionListener<K, V>> listeners = new CopyOnWriteArraySet<EvictionListener<K,V>>();
             Cache<K, V> cache = buildCache(cacheType.name(), maxWeight, listeners);
-            PersistentCache p = getPersistentCache();
+            PersistentCache p = null;
+            if (cacheType == CacheType.DIFF || cacheType == CacheType.LOCAL_DIFF) {
+                // use separate journal cache if configured
+                p = getJournalCache();
+            }
+            if (p == null) {
+                // otherwise fall back to single persistent cache
+                p = getPersistentCache();
+            }
             if (p != null) {
-                if (docNodeStore != null) {
-                    docNodeStore.setPersistentCache(p);
-                }
                 cache = p.wrap(docNodeStore, docStore, cache, cacheType, statisticsProvider);
                 if (cache instanceof EvictionListener) {
                     listeners.add((EvictionListener<K, V>) cache);
@@ -1130,6 +1147,21 @@ public class DocumentMK {
                 }
             }
             return persistentCache;
+        }
+
+        PersistentCache getJournalCache() {
+            if (journalCacheURI == null) {
+                return null;
+            }
+            if (journalCache == null) {
+                try {
+                    journalCache = new PersistentCache(journalCacheURI);
+                } catch (Throwable e) {
+                    LOG.warn("Journal cache not available; please disable the configuration", e);
+                    throw new IllegalArgumentException(e);
+                }
+            }
+            return journalCache;
         }
 
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
