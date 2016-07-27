@@ -38,17 +38,28 @@ import org.slf4j.LoggerFactory;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration
-// document, nullability
+/**
+ * Partial mapping of string keys to values of type {@link RecordId}. This is
+ * typically used for de-duplicating nodes that have already been persisted and thus
+ * already have a {@code RecordId}.
+ */
 public abstract class NodeCache {
     private long hitCount;
     private long missCount;
     private long loadCount;
     private long evictionCount;
 
-    public abstract void put(String key, RecordId value, int depth);
+    /**
+     * Add a mapping from {@code key} to {@code value} where {@code value} is the
+     * id of a node at the given {@code depth}. Any existing mapping is replaced.
+     */
+    public abstract void put(@Nonnull String key, @Nonnull RecordId value, int depth);
 
+    /**
+     * @return  The mapping for {@code key}, or {@code null} if none.
+     */
     @CheckForNull
-    public abstract RecordId get(String key);
+    public abstract RecordId get(@Nonnull String key);
 
     /**
      * @return number of mappings
@@ -58,9 +69,25 @@ public abstract class NodeCache {
     /**
      * @return  access statistics for this cache
      */
+    @Nonnull
     public CacheStats getStats() {
         return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
     }
+
+    /**
+     * Factory method for creating {@code NodeCache} instances with a given
+     * {@code capacity} and maximal depth. The returned instances are all
+     * thread safe.
+     *
+     * Mappings with a depth exceeding {@code maxDepth} will not be added.
+     *
+     * If the number of mappings exceed {@code capacity} the maximal depth
+     * is decreased and all mappings exceeding that new value are removed.
+     *
+     * @param capacity   maximal number of mappings
+     * @param maxDepth   maximal depth
+     * @return  A new {@code RecordCache} instance of the given {@code size}.
+     */
 
     @Nonnull
     public static NodeCache newNodeCache(int capacity, int maxDepth) {
@@ -71,6 +98,11 @@ public abstract class NodeCache {
         }
     }
 
+    /**
+     * @return  A factory returning {@code Node} instances of the given
+     *          {@code capacity} and {@code maxDepth} when invoked.
+     * @see #newNodeCache(int, int)
+     */
     @Nonnull
     public static Supplier<NodeCache> factory(int capacity, int maxDepth) {
         if (capacity <= 0) {
@@ -91,10 +123,10 @@ public abstract class NodeCache {
         }
 
         @Override
-        public synchronized void put(String key, RecordId value, int depth) { }
+        public synchronized void put(@Nonnull String key, @Nonnull RecordId value, int depth) { }
 
         @Override
-        public synchronized RecordId get(String key) {
+        public synchronized RecordId get(@Nonnull String key) {
             super.missCount++;
             return null;
         }
@@ -135,7 +167,7 @@ public abstract class NodeCache {
         }
 
         @Override
-        public synchronized void put(String key, RecordId value, int depth) {
+        public synchronized void put(@Nonnull String key, @Nonnull RecordId value, int depth) {
             while (size >= capacity) {
                 int d = caches.size() - 1;
                 int removed = caches.remove(d).size();
@@ -161,7 +193,7 @@ public abstract class NodeCache {
         }
 
         @Override
-        public synchronized RecordId get(String key) {
+        public synchronized RecordId get(@Nonnull String key) {
             for (Map<String, RecordId> cache : caches) {
                 if (!cache.isEmpty()) {
                     RecordId recordId = cache.get(key);
