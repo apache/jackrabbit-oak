@@ -94,7 +94,7 @@ public final class Mounts {
 
         @Override
         public String getPathFragmentName() {
-            return "oak:";
+            return "";
         }
 
         @Override
@@ -116,7 +116,7 @@ public final class Mounts {
             }
             return true;
         }
-    };
+    }
 
     public static MountInfoProvider defaultMountInfoProvider() {
         return DEFAULT_PROVIDER;

@@ -55,7 +55,7 @@ final class MountInfo implements Mount {
         this.name = checkNotNull(name, "Mount name must not be null");
         this.readOnly = readOnly;
         this.defaultMount = defaultMount;
-        this.pathFragmentName = "oak:" + name;
+        this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
     }
 
