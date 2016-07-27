@@ -40,7 +40,7 @@ import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
 // FIXME OAK-4277: Finalise de-duplication caches
-// implement configuration, monitoring and management
+// implement configuration
 /**
  * Instances of this class manage the deduplication caches used
  * by the {@link SegmentWriter} to avoid writing multiple copies
@@ -98,6 +98,14 @@ public abstract class WriterCacheManager {
      */
     @CheckForNull
     public CacheStatsMBean getTemplateCacheStats() {
+        return null;
+    }
+
+    /**
+     * @return  statistics for the node cache or {@code null} if not available.
+     */
+    @CheckForNull
+    public CacheStatsMBean getNodeCacheStats() {
         return null;
     }
 
@@ -255,18 +263,19 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getStringCacheStats() {
             return new RecordCacheStats("String deduplication cache stats",
-                    accumulateStats(stringCaches), accumulateSizes(stringCaches));
+                    accumulateRecordCacheStats(stringCaches), accumulateRecordCacheSizes(stringCaches));
         }
 
         @CheckForNull
         @Override
         public CacheStatsMBean getTemplateCacheStats() {
             return new RecordCacheStats("Template deduplication cache stats",
-                    accumulateStats(templateCaches), accumulateSizes(templateCaches));
+                    accumulateRecordCacheStats(templateCaches), accumulateRecordCacheSizes(templateCaches));
         }
 
         @Nonnull
-        private static <T> Supplier<CacheStats> accumulateStats(final Iterable<RecordCache<T>> caches) {
+        private static <T> Supplier<CacheStats> accumulateRecordCacheStats(
+                final Iterable<RecordCache<T>> caches) {
             return new Supplier<CacheStats>() {
                 @Override
                 public CacheStats get() {
@@ -280,12 +289,50 @@ public abstract class WriterCacheManager {
         }
 
         @Nonnull
-        public static <T> Supplier<Long> accumulateSizes(final Generations<RecordCache<T>> caches) {
+        public static <T> Supplier<Long> accumulateRecordCacheSizes(
+                final Iterable<RecordCache<T>> caches) {
             return new Supplier<Long>() {
                 @Override
                 public Long get() {
                     long size = 0;
                     for (RecordCache<?> cache : caches) {
+                        size += cache.size();
+                    }
+                    return size;
+                }
+            };
+        }
+
+        @CheckForNull
+        @Override
+        public CacheStatsMBean getNodeCacheStats() {
+            return new RecordCacheStats("Node deduplication cache stats",
+                    accumulateNodeCacheStats(nodeCaches), accumulateNodeCacheSizes(nodeCaches));
+        }
+
+        @Nonnull
+        private static <T> Supplier<CacheStats> accumulateNodeCacheStats(
+                final Iterable<NodeCache> caches) {
+            return new Supplier<CacheStats>() {
+                @Override
+                public CacheStats get() {
+                    CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
+                    for (NodeCache cache : caches) {
+                        stats = stats.plus(cache.getStats());
+                    }
+                    return stats;
+                }
+            };
+        }
+
+        @Nonnull
+        public static <T> Supplier<Long> accumulateNodeCacheSizes(
+                final Iterable<NodeCache> caches) {
+            return new Supplier<Long>() {
+                @Override
+                public Long get() {
+                    long size = 0;
+                    for (NodeCache cache : caches) {
                         size += cache.size();
                     }
                     return size;

@@ -260,6 +260,10 @@ public class SegmentCompactionIT {
         assertNotNull(templateDeduplicationCacheStats);
         registrations.add(registerMBean(templateDeduplicationCacheStats,
                 new ObjectName("IT:TYPE=" + templateDeduplicationCacheStats.getName())));
+        CacheStatsMBean nodeDeduplicationCacheStats = fileStore.getNodeDeduplicationCacheStats();
+        assertNotNull(nodeDeduplicationCacheStats);
+        registrations.add(registerMBean(nodeDeduplicationCacheStats,
+                new ObjectName("IT:TYPE=" + nodeDeduplicationCacheStats.getName())));
         mBeanRegistration = new CompositeRegistration(registrations);
     }
 
