@@ -116,6 +116,7 @@ public class DocumentNodeStoreService {
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
+    private static final String DEFAULT_JOURNAL_CACHE = "";
     private static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
     private static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
     private static final String PREFIX = "oak.documentstore.";
@@ -207,6 +208,13 @@ public class DocumentNodeStoreService {
                     "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
     )
     private static final String PROP_PERSISTENT_CACHE = "persistentCache";
+
+    @Property(value = DEFAULT_JOURNAL_CACHE,
+            label = "Journal Cache Config",
+            description = "Configuration for enabling journal cache. By default it is not enabled. Refer to " +
+                    "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
+    )
+    private static final String PROP_JOURNAL_CACHE = "journalCache";
 
     @Property(boolValue = false,
             label = "Custom BlobStore",
@@ -407,6 +415,7 @@ public class DocumentNodeStoreService {
         int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
+        String journalCache = PropertiesUtil.toString(prop(PROP_JOURNAL_CACHE), DEFAULT_JOURNAL_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
         int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
         DocumentMK.Builder mkBuilder =
@@ -446,6 +455,9 @@ public class DocumentNodeStoreService {
         if (persistentCache != null && persistentCache.length() > 0) {
             mkBuilder.setPersistentCache(persistentCache);
         }
+        if (journalCache != null && journalCache.length() > 0) {
+            mkBuilder.setJournalCache(journalCache);
+        }
 
         boolean wrappingCustomBlobStore = customBlobStore && blobStore instanceof BlobStoreWrapper;
 
@@ -476,8 +488,9 @@ public class DocumentNodeStoreService {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                                "blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        mongoURI.getHosts(), db, cacheSize, persistentCache, blobCacheSize, maxReplicationLagInSecs);
+                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                        mongoURI.getHosts(), db, cacheSize, persistentCache,
+                        journalCache, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
