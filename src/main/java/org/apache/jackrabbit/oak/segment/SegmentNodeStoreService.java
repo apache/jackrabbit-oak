@@ -158,17 +158,31 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     @Property(
             intValue = 15000,
-            label = "String deduplication cache size",
+            label = "String deduplication cache size (#items)",
             description = "Maximum number of strings to keep in the deduplication cache"
     )
     public static final String STRING_DEDUPLICATION_CACHE_SIZE = "stringDeduplicationCache.size";
 
     @Property(
             intValue = 3000,
-            label = "Template deduplication cache size",
+            label = "Template deduplication cache size (#items)",
             description = "Maximum number of templates to keep in the deduplication cache"
     )
     public static final String TEMPLATE_DEDUPLICATION_CACHE_SIZE = "templateDeduplicationCache.size";
+
+    @Property(
+            intValue = 10000000,
+            label = "Node deduplication cache size  (#items)",
+            description = "Maximum number of nodes to keep in the deduplication cache"
+    )
+    public static final String NODE_DEDUPLICATION_CACHE_SIZE = "nodeDeduplicationCache.size";
+
+    @Property(
+            intValue = 20,
+            label = "Node deduplication cache depth  (#levels)",
+            description = "Maximum number of levels to keep in the node deduplication cache"
+    )
+    public static final String NODE_DEDUPLICATION_CACHE_DEPTH = "nodeDeduplicationCache.depth";
 
     @Property(
             byteValue = MEMORY_THRESHOLD_DEFAULT,
@@ -360,6 +374,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .withTemplateCacheSize(getTemplateCacheSize())
                 .withStringDeduplicationCacheSize(getStringDeduplicationCacheSize())
                 .withTemplateDeduplicationCacheSize(getTemplateDeduplicationCacheSize())
+                .withNodeDeduplicationCacheSize(getNodeDeduplicationCacheSize())
+                .withNodeDeduplicationDepth(getNodeDeduplicationDepth())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
                 .withGCMonitor(gcMonitor)
@@ -648,6 +664,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private int getTemplateDeduplicationCacheSize() {
         return Integer.parseInt(getCacheSize(TEMPLATE_DEDUPLICATION_CACHE_SIZE));
+    }
+
+    private int getNodeDeduplicationCacheSize() {
+        return Integer.parseInt(getCacheSize(NODE_DEDUPLICATION_CACHE_SIZE));
+    }
+
+    private int getNodeDeduplicationDepth() {
+        return Integer.parseInt(getCacheSize(NODE_DEDUPLICATION_CACHE_DEPTH));
     }
 
     private String getMaxFileSizeProperty() {

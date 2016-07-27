@@ -24,6 +24,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_CAPACITY;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_DEPTH;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_STRING_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_TEMPLATE_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
@@ -73,6 +75,10 @@ public class FileStoreBuilder {
 
     private int templateDeduplicationCacheSize = DEFAULT_TEMPLATE_CACHE_SIZE;
 
+    private int nodeDeduplicationCacheSize = DEFAULT_NODE_CACHE_CAPACITY;
+
+    private int nodeDeduplicationCacheDepth = DEFAULT_NODE_CACHE_DEPTH;
+
     private boolean memoryMapping;
 
     @Nonnull
@@ -83,7 +89,8 @@ public class FileStoreBuilder {
 
     @Nonnull
     private final EvictingWriteCacheManager cacheManager = new EvictingWriteCacheManager(
-            stringDeduplicationCacheSize, templateDeduplicationCacheSize);
+            stringDeduplicationCacheSize, templateDeduplicationCacheSize,
+            nodeDeduplicationCacheSize, nodeDeduplicationCacheDepth);
 
     @Nonnull
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
@@ -230,6 +237,28 @@ public class FileStoreBuilder {
     @Nonnull
     public FileStoreBuilder withTemplateDeduplicationCacheSize(int templateDeduplicationCacheSize) {
         this.templateDeduplicationCacheSize = templateDeduplicationCacheSize;
+        return this;
+    }
+
+    /**
+     * Number of items to keep in the node deduplication cache
+     * @param nodeDeduplicationCacheSize  None negative cache size
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withNodeDeduplicationCacheSize(int nodeDeduplicationCacheSize) {
+        this.nodeDeduplicationCacheSize = nodeDeduplicationCacheSize;
+        return this;
+    }
+
+    /**
+     * Maximal depth of the node deduplication cache
+     * @param nodeDeduplicationCacheDepth
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withNodeDeduplicationDepth(int nodeDeduplicationCacheDepth) {
+        this.nodeDeduplicationCacheDepth = nodeDeduplicationCacheDepth;
         return this;
     }
 
@@ -406,16 +435,19 @@ public class FileStoreBuilder {
                 ", templateCacheSize=" + templateCacheSize +
                 ", stringDeduplicationCacheSize=" + stringDeduplicationCacheSize +
                 ", templateDeduplicationCacheSize=" + templateDeduplicationCacheSize +
+                ", nodeDeduplicationCacheSize=" + nodeDeduplicationCacheSize +
+                ", nodeDeduplicationCacheDepth=" + nodeDeduplicationCacheDepth +
                 ", memoryMapping=" + memoryMapping +
                 ", gcOptions=" + gcOptions +
                 '}';
     }
 
     private static class EvictingWriteCacheManager extends WriterCacheManager.Default {
-        public EvictingWriteCacheManager( int stringCacheSize, int templateCacheSize) {
+        public EvictingWriteCacheManager(int stringCacheSize, int templateCacheSize,
+                                         int nodeCacheCapacity, int nodeCacheDepth) {
             super(RecordCache.<String>factory(stringCacheSize),
                 RecordCache.<Template>factory(templateCacheSize),
-                NodeCache.factory(1000000, 20));
+                NodeCache.factory(nodeCacheCapacity, nodeCacheDepth));
         }
 
         void evictOldGeneration(final int newGeneration) {
