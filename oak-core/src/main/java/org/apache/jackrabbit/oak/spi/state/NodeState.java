@@ -57,7 +57,7 @@ import com.google.common.base.Predicate;
  * order of properties or child nodes may be different for two instances
  * of the same state.
  * <p>
- * In addition to being immutable, a specific state instance guaranteed to
+ * In addition to being immutable, a specific state instance is guaranteed to
  * be fully thread-safe. Possible caching or other internal changes need to
  * be properly synchronized so that any number of concurrent clients can
  * safely access a state instance.
