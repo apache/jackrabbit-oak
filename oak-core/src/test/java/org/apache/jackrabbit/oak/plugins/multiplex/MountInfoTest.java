@@ -33,7 +33,7 @@ public class MountInfoTest {
         assertTrue(md.isMounted("/a"));
         assertTrue(md.isMounted("/b"));
         assertTrue(md.isMounted("/b/c/d"));
-        assertTrue("dynamic mount path not recognized", md.isMounted("/x/y/oak:foo/a"));
+        assertTrue("dynamic mount path not recognized", md.isMounted("/x/y/oak:mount-foo/a"));
         assertFalse(md.isMounted("/x/y"));
         assertFalse(md.isMounted("/x/y/foo"));
     }
