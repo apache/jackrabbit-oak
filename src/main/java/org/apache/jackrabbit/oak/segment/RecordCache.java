@@ -81,7 +81,8 @@ public abstract class RecordCache<T> {
     }
 
     /**
-     * @return  A factory returning {@code RecordCache} instances of the given size when invoked.
+     * @return  A factory returning {@code RecordCache} instances of the given {@code size}
+     *          when invoked.
      * @see #newRecordCache(int)
      */
     @Nonnull
