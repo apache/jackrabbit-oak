@@ -132,13 +132,13 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     }
 
     public Directory wrapForRead(String indexPath, IndexDefinition definition,
-            Directory remote) throws IOException {
-        Directory local = createLocalDirForIndexReader(indexPath, definition);
+                                 Directory remote, String dirName) throws IOException {
+        Directory local = createLocalDirForIndexReader(indexPath, definition, dirName);
         return new CopyOnReadDirectory(remote, local, prefetchEnabled, indexPath, getSharedWorkingSet(indexPath));
     }
 
-    public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode) throws IOException {
-        Directory local = createLocalDirForIndexWriter(definition);
+    public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
+        Directory local = createLocalDirForIndexWriter(definition, dirName);
         return new CopyOnWriteDirectory(remote, local, reindexMode,
                 getIndexPathForLogging(definition), getSharedWorkingSet(definition.getIndexPathFromConfig()));
     }
@@ -156,9 +156,9 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return indexRootDirectory;
     }
 
-    protected Directory createLocalDirForIndexWriter(IndexDefinition definition) throws IOException {
+    protected Directory createLocalDirForIndexWriter(IndexDefinition definition, String dirName) throws IOException {
         String indexPath = definition.getIndexPathFromConfig();
-        File indexWriterDir = getIndexDir(definition, indexPath);
+        File indexWriterDir = getIndexDir(definition, indexPath, dirName);
 
         //By design indexing in Oak is single threaded so Lucene locking
         //can be disabled
@@ -168,8 +168,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return dir;
     }
 
-    protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition) throws IOException {
-        File indexDir = getIndexDir(definition, indexPath);
+    protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition, String dirName) throws IOException {
+        File indexDir = getIndexDir(definition, indexPath, dirName);
         Directory result = FSDirectory.open(indexDir);
 
         String newPath = indexDir.getAbsolutePath();
@@ -181,8 +181,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return result;
     }
 
-    public File getIndexDir(IndexDefinition definition, String indexPath) throws IOException {
-        return indexRootDirectory.getIndexDir(definition, indexPath);
+    public File getIndexDir(IndexDefinition definition, String indexPath, String dirName) throws IOException {
+        return indexRootDirectory.getIndexDir(definition, indexPath, dirName);
     }
 
     Map<String, LocalIndexFile> getFailedToDeleteFiles() {

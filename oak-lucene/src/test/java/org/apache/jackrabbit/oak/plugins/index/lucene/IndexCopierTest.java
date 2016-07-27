@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.TabularData;
 
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ForwardingListeningExecutorService;
@@ -69,6 +68,7 @@ import org.junit.rules.TemporaryFolder;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -107,7 +107,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
         Directory remote = new RAMDirectory();
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote , "t1");
         byte[] t2 = writeFile(remote , "t2");
@@ -144,7 +144,7 @@ public class IndexCopierTest {
         byte[] t1 = writeFile(remote, "t1");
         byte[] t2 = writeFile(remote , "t2");
 
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
         assertEquals(2, wrapped.listAll().length);
         assertThat(syncedFiles, containsInAnyOrder("t1", "t2"));
 
@@ -169,7 +169,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir(), true);
 
         Directory remote = new RAMDirectory();
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         try {
             wrapped.openInput("foo.txt", IOContext.DEFAULT);
@@ -187,7 +187,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
         Directory remote = new RAMDirectory();
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote, "t1");
         byte[] t2 = writeFile(remote , "t2");
@@ -203,7 +203,7 @@ public class IndexCopierTest {
         readAndAssert(wrapped, "t1", t1);
 
         //t1 should now be added to testDir
-        File indexDir = c1.getIndexDir(defn, "/foo");
+        File indexDir = c1.getIndexDir(defn, "/foo", INDEX_DATA_CHILD_NAME);
         assertTrue(new File(indexDir, "t1").exists());
 
         TabularData td = c1.getIndexPathMapping();
@@ -216,7 +216,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
         Directory remote = new CloseSafeDir();
-        Directory w1 = c1.wrapForRead(indexPath, defn, remote);
+        Directory w1 = c1.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote, "t1");
         byte[] t2 = writeFile(remote , "t2");
@@ -225,7 +225,7 @@ public class IndexCopierTest {
         readAndAssert(w1, "t2", t2);
 
         //t1 should now be added to testDir
-        File indexDir = c1.getIndexDir(defn, indexPath);
+        File indexDir = c1.getIndexDir(defn, indexPath, INDEX_DATA_CHILD_NAME);
         assertTrue(new File(indexDir, "t1").exists());
 
         doReindex(builder);
@@ -234,7 +234,7 @@ public class IndexCopierTest {
         //Close old version
         w1.close();
         //Get a new one with updated reindexCount
-        Directory w2 = c1.wrapForRead(indexPath, defn, remote);
+        Directory w2 = c1.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
 
         readAndAssert(w2, "t1", t1);
 
@@ -242,7 +242,7 @@ public class IndexCopierTest {
         assertFalse("Old index directory should have been removed", indexDir.exists());
 
         //Assert that new index file do exist and not get removed
-        File indexDir2 = c1.getIndexDir(defn, indexPath);
+        File indexDir2 = c1.getIndexDir(defn, indexPath, INDEX_DATA_CHILD_NAME);
         assertTrue(new File(indexDir2, "t1").exists());
 
         //Check if parent directory is also removed i.e.
@@ -259,7 +259,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir());
 
         TestRAMDirectory remote = new TestRAMDirectory();
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote , "t1");
 
@@ -322,7 +322,7 @@ public class IndexCopierTest {
                 super.copy(to, src, dest, context);
             }
         };
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote , "t1");
 
@@ -366,7 +366,7 @@ public class IndexCopierTest {
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
         TestRAMDirectory remote = new TestRAMDirectory();
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote, "t1");
 
@@ -375,7 +375,7 @@ public class IndexCopierTest {
         assertEquals(1, remote.openedFiles.size());
 
         //2. Reuse the testDir and read again
-        Directory wrapped2 = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped2 = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
         remote.reset();
 
         //3. Now read should be served from local
@@ -383,7 +383,7 @@ public class IndexCopierTest {
         assertEquals(0, remote.openedFiles.size());
 
         //Now check if local file gets corrupted then read from remote
-        Directory wrapped3 = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped3 = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
         remote.reset();
 
         //4. Corrupt the local copy
@@ -408,7 +408,7 @@ public class IndexCopierTest {
         };
 
         String fileName = "failed.txt";
-        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote , fileName);
 
@@ -439,7 +439,7 @@ public class IndexCopierTest {
         byte[] t1 = writeFile(r1, "t1");
         byte[] t2 = writeFile(r1 , "t2");
 
-        Directory w1 = c1.wrapForRead("/foo", defn, r1);
+        Directory w1 = c1.wrapForRead("/foo", defn, r1, INDEX_DATA_CHILD_NAME);
         readAndAssert(w1, "t1", t1);
         readAndAssert(w1, "t2", t2);
 
@@ -451,7 +451,7 @@ public class IndexCopierTest {
         copy(r1, r2);
         r2.deleteFile("t1");
 
-        Directory w2 = c1.wrapForRead("/foo", defn, r2);
+        Directory w2 = c1.wrapForRead("/foo", defn, r2, INDEX_DATA_CHILD_NAME);
 
         //Close would trigger removal of file which are not present in remote
         w2.close();
@@ -482,7 +482,7 @@ public class IndexCopierTest {
         byte[] t1 = writeFile(r1, "t1");
         byte[] t2 = writeFile(r1 , "t2");
 
-        Directory w1 = c1.wrapForRead("/foo", defn, r1);
+        Directory w1 = c1.wrapForRead("/foo", defn, r1, INDEX_DATA_CHILD_NAME);
         readAndAssert(w1, "t1", t1);
         readAndAssert(w1, "t2", t2);
 
@@ -494,7 +494,7 @@ public class IndexCopierTest {
         copy(r1, r2);
         r2.deleteFile("t1");
 
-        Directory w2 = c1.wrapForRead("/foo", defn, r2);
+        Directory w2 = c1.wrapForRead("/foo", defn, r2, INDEX_DATA_CHILD_NAME);
 
         //Close would trigger removal of file which are not present in remote
         testFiles.add("t1");
@@ -507,14 +507,14 @@ public class IndexCopierTest {
         assertEquals(IOUtils.humanReadableByteCount(t1.length), c1.getGarbageSize());
         assertEquals(1, c1.getGarbageDetails().length);
 
-        Directory w3 = c1.wrapForRead("/foo", defn, r2);
+        Directory w3 = c1.wrapForRead("/foo", defn, r2, INDEX_DATA_CHILD_NAME);
         w3.close();
         assertEquals(2, testFile.getDeleteAttemptCount());
 
         //Now let the file to be deleted
         testFiles.clear();
 
-        Directory w4 = c1.wrapForRead("/foo", defn, r2);
+        Directory w4 = c1.wrapForRead("/foo", defn, r2, INDEX_DATA_CHILD_NAME);
         w4.close();
 
         //No pending deletes left
@@ -532,14 +532,14 @@ public class IndexCopierTest {
         Directory remote1 = new RAMDirectory();
         byte[] t1 = writeFile(remote1, "t1");
 
-        Directory local1 = copier.wrapForRead("/foo", defn, remote1);
+        Directory local1 = copier.wrapForRead("/foo", defn, remote1, INDEX_DATA_CHILD_NAME);
         readAndAssert(local1, "t1", t1);
 
         //While local1 is open , open another local2 and read t2
         Directory remote2 = new RAMDirectory();
         byte[] t2 = writeFile(remote2, "t2");
 
-        Directory local2 = copier.wrapForRead("/foo", defn, remote2);
+        Directory local2 = copier.wrapForRead("/foo", defn, remote2, INDEX_DATA_CHILD_NAME);
         readAndAssert(local2, "t2", t2);
 
         //Close local1
@@ -556,7 +556,7 @@ public class IndexCopierTest {
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        Directory dir = copier.wrapForWrite(defn, remote, false);
+        Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(dir, "t1");
 
@@ -575,7 +575,7 @@ public class IndexCopierTest {
 
         builder.setProperty(IndexConstants.INDEX_PATH, "foo");
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        Directory dir = copier.wrapForWrite(defn, remote, false);
+        Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(dir, "t1");
 
@@ -583,7 +583,7 @@ public class IndexCopierTest {
 
         readAndAssert(remote, "t1", t1);
         //Work dir must be empty post close
-        File indexDir = copier.getIndexDir(defn, "foo");
+        File indexDir = copier.getIndexDir(defn, "foo", INDEX_DATA_CHILD_NAME);
         List<File> files = new ArrayList<File>(FileUtils.listFiles(indexDir, null, true));
         Set<String> fileNames = Sets.newHashSet();
         for (File f : files){
@@ -604,7 +604,7 @@ public class IndexCopierTest {
         //State of remote directory should set before wrapping as later
         //additions would not be picked up given COW assume remote directory
         //to be read only
-        Directory local = copier.wrapForWrite(defn, remote, false);
+        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
 
         assertEquals(newHashSet("t1"), newHashSet(local.listAll()));
         assertEquals(t1.length, local.fileLength("t1"));
@@ -661,13 +661,13 @@ public class IndexCopierTest {
         Directory remote = new CloseSafeDir();
         byte[] t1 = writeFile(remote, "t1");
         byte[] t2 = writeFile(remote, "t2");
-        Directory local = copier.wrapForWrite(defn, remote, false);
+        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
         assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
 
         byte[] t3 = writeFile(local, "t3");
 
         //Now pull in the file t1 via CopyOnRead in baseDir
-        Directory localForRead = copier.wrapForRead("/foo", defn, remote);
+        Directory localForRead = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
         readAndAssert(localForRead, "t1", t1);
 
         //File which was copied from remote should not be deleted from baseDir
@@ -711,7 +711,7 @@ public class IndexCopierTest {
             }
         };
         byte[] t1 = writeFile(remote, "t1");
-        Directory local = copier.wrapForWrite(defn, remote, false);
+        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
 
         //Read should be served from remote
         readRemotes.clear();readLocal.clear();
@@ -720,7 +720,7 @@ public class IndexCopierTest {
         assertEquals(newHashSet(), readLocal);
 
         //Now pull in the file t1 via CopyOnRead in baseDir
-        Directory localForRead = copier.wrapForRead("/foo", defn, remote);
+        Directory localForRead = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
         readAndAssert(localForRead, "t1", t1);
 
         //Read should be served from local
@@ -741,7 +741,7 @@ public class IndexCopierTest {
 
         Directory remote = new CloseSafeDir();
 
-        final Directory local = copier.wrapForWrite(defn, remote, false);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
         byte[] t1 = writeFile(local, "t1");
 
         assertTrue(local.fileExists("t1"));
@@ -803,7 +803,7 @@ public class IndexCopierTest {
 
         Directory remote = new CloseSafeDir();
 
-        final Directory local = copier.wrapForWrite(defn, remote, false);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
         byte[] t1 = writeFile(local, "t1");
 
         assertTrue(local.fileExists("t1"));
@@ -870,7 +870,7 @@ public class IndexCopierTest {
             }
         };
 
-        final Directory local = copier.wrapForWrite(defn, remote, false);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
         toFail.add("t2");
         byte[] t1 = writeFile(local, "t1");
         byte[] t2 = writeFile(local, "t2");
@@ -908,7 +908,7 @@ public class IndexCopierTest {
             }
         };
 
-        final Directory local = copier.wrapForWrite(defn, remote, false);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
         toPause.add("t2");
         byte[] t1 = writeFile(local, "t1");
         byte[] t2 = writeFile(local, "t2");
@@ -958,7 +958,7 @@ public class IndexCopierTest {
         Directory remote = new CloseSafeDir();
         byte[] f1 = writeFile(remote, "f1");
 
-        Directory cor1 = copier.wrapForRead(indexPath, defn, remote);
+        Directory cor1 = copier.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
         readAndAssert(cor1, "f1", f1);
         cor1.close();
 
@@ -976,13 +976,13 @@ public class IndexCopierTest {
         };
 
         //Start copying a file to remote via COW
-        Directory cow1 = copier.wrapForWrite(defn, remote2, false);
+        Directory cow1 = copier.wrapForWrite(defn, remote2, false, INDEX_DATA_CHILD_NAME);
         byte[] f2 = writeFile(cow1, "f2");
 
         //Before copy is done to remote lets delete f1 from remote and
         //open a COR and close it such that it triggers delete of f1
         remote.deleteFile("f1");
-        Directory cor2 = copier.wrapForRead(indexPath, defn, remote);
+        Directory cor2 = copier.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
 
         //Ensure that deletion task submitted to executor get processed immediately
         executor.enableImmediateExecution();
@@ -1051,12 +1051,12 @@ public class IndexCopierTest {
         }
 
         @Override
-        protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition) throws IOException {
+        protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition, String dirName) throws IOException {
             return baseDir;
         }
 
         @Override
-        protected Directory createLocalDirForIndexWriter(IndexDefinition definition) throws IOException {
+        protected Directory createLocalDirForIndexWriter(IndexDefinition definition, String dirName) throws IOException {
             return baseDir;
         }
     }

@@ -179,16 +179,16 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             return new IndexCopier(executorService, temporaryFolder.getRoot()) {
                 @Override
                 public Directory wrapForRead(String indexPath, IndexDefinition definition,
-                                             Directory remote) throws IOException {
-                    Directory ret = super.wrapForRead(indexPath, definition, remote);
+                                             Directory remote, String dirName) throws IOException {
+                    Directory ret = super.wrapForRead(indexPath, definition, remote, dirName);
                     corDir = getFSDirPath(ret);
                     return ret;
                 }
 
                 @Override
                 public Directory wrapForWrite(IndexDefinition definition,
-                                              Directory remote, boolean reindexMode) throws IOException {
-                    Directory ret = super.wrapForWrite(definition, remote, reindexMode);
+                                              Directory remote, boolean reindexMode, String dirName) throws IOException {
+                    Directory ret = super.wrapForWrite(definition, remote, reindexMode, dirName);
                     cowDir = getFSDirPath(ret);
                     return ret;
                 }

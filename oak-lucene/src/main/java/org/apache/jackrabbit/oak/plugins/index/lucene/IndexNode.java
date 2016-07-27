@@ -50,7 +50,7 @@ class IndexNode {
         if (data.exists()) {
             directory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), definition, true);
             if (cloner != null) {
-                directory = cloner.wrapForRead(indexPath, definition, directory);
+                directory = cloner.wrapForRead(indexPath, definition, directory, LuceneIndexConstants.INDEX_DATA_CHILD_NAME);
             }
         } else if (PERSISTENCE_FILE.equalsIgnoreCase(defnNodeState.getString(PERSISTENCE_NAME))) {
             String path = defnNodeState.getString(PERSISTENCE_PATH);
