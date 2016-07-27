@@ -424,6 +424,11 @@ public class FileStore implements SegmentStore, Closeable {
         return segmentWriter.getTemplateCacheStats();
     }
 
+    @CheckForNull
+    public CacheStatsMBean getNodeDeduplicationCacheStats() {
+        return segmentWriter.getNodeCacheStats();
+    }
+
     public void maybeCompact(boolean cleanup) throws IOException {
         gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
 

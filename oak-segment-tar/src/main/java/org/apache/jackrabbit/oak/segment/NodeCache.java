@@ -32,19 +32,36 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
+import com.google.common.cache.CacheStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // FIXME OAK-4277: Finalise de-duplication caches
-// implement configuration, monitoring and management
+// implement configuration
 // add unit tests
 // document, nullability
 public abstract class NodeCache {
+    private long hitCount;
+    private long missCount;
+    private long loadCount;
+    private long evictionCount;
 
     public abstract void put(String key, RecordId value, int depth);
 
     @CheckForNull
     public abstract RecordId get(String key);
+
+    /**
+     * @return number of mappings
+     */
+    public abstract long size();
+
+    /**
+     * @return  access statistics for this cache
+     */
+    public CacheStats getStats() {
+        return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
+    }
 
     @Nonnull
     public static NodeCache newNodeCache(int capacity, int maxDepth) {
@@ -78,14 +95,22 @@ public abstract class NodeCache {
         public synchronized void put(String key, RecordId value, int depth) { }
 
         @Override
-        public synchronized RecordId get(String key) { return null; }
+        public synchronized RecordId get(String key) {
+            super.missCount++;
+            return null;
+        }
+
+        @Override
+        public long size() {
+            return 0;
+        }
     }
 
     private static class Default extends NodeCache {
         private static final Logger LOG = LoggerFactory.getLogger(Default.class);
 
         private final int capacity;
-        private final List<Map<String, RecordId>> nodes;
+        private final List<Map<String, RecordId>> caches;
 
         private int size;
 
@@ -104,54 +129,61 @@ public abstract class NodeCache {
             checkArgument(capacity > 0);
             checkArgument(maxDepth > 0);
             this.capacity = capacity;
-            this.nodes = newArrayList();
+            this.caches = newArrayList();
             for (int k = 0; k < maxDepth; k++) {
-                nodes.add(new HashMap<String, RecordId>());
+                caches.add(new HashMap<String, RecordId>());
             }
         }
 
         @Override
         public synchronized void put(String key, RecordId value, int depth) {
-            // FIXME OAK-4277: Finalise de-duplication caches
-            // Validate and optimise the eviction strategy.
-            // Nodes with many children should probably get a boost to
-            // protecting them from preemptive eviction. Also it might be
-            // necessary to implement pinning (e.g. for checkpoints).
             while (size >= capacity) {
-                int d = nodes.size() - 1;
-                int removed = nodes.remove(d).size();
+                int d = caches.size() - 1;
+                int removed = caches.remove(d).size();
                 size -= removed;
+                super.evictionCount -= removed;
                 if (removed > 0) {
                     LOG.info("Evicted cache at depth {} as size {} reached capacity {}. " +
                             "New size is {}", d, size + removed, capacity, size);
                 }
             }
 
-            if (depth < nodes.size()) {
-                if (nodes.get(depth).put(key, value) == null) {
+            if (depth < caches.size()) {
+                if (caches.get(depth).put(key, value) == null) {
+                    super.loadCount++;
                     size++;
                 }
             } else {
                 if (muteDepths.add(depth)) {
                     LOG.info("Not caching {} -> {} as depth {} reaches or exceeds the maximum of {}",
-                            key, value, depth, nodes.size());
+                            key, value, depth, caches.size());
                 }
             }
         }
 
         @Override
         public synchronized RecordId get(String key) {
-            for (Map<String, RecordId> map : nodes) {
-                if (!map.isEmpty()) {
-                    RecordId recordId = map.get(key);
+            for (Map<String, RecordId> cache : caches) {
+                if (!cache.isEmpty()) {
+                    RecordId recordId = cache.get(key);
                     if (recordId != null) {
+                        super.hitCount++;
                         return recordId;
                     }
                 }
             }
+            super.missCount++;
             return null;
         }
 
+        @Override
+        public synchronized long size() {
+            long size = 0;
+            for (Map<String, RecordId> cache : caches) {
+                size += cache.size();
+            }
+            return size;
+        }
     }
 
 }

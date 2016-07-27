@@ -149,6 +149,14 @@ public class SegmentWriter {
     }
 
     /**
+     * @return  Statistics for the node deduplication cache or {@code null} if not available.
+     */
+    @CheckForNull
+    public CacheStatsMBean getNodeCacheStats() {
+        return cacheManager.getNodeCacheStats();
+    }
+
+    /**
      * Write a map record.
      * @param base      base map relative to which the {@code changes} are applied ot
      *                  {@code null} for the empty map.
