@@ -46,6 +46,8 @@ public class MigrationOptions {
 
     private final String[] mergePaths;
 
+    private final boolean includeIndex;
+
     private final boolean failOnError;
 
     private final boolean earlyShutdown;
@@ -78,6 +80,7 @@ public class MigrationOptions {
         this.includePaths = split(args.getOption(OptionParserFactory.INCLUDE_PATHS));
         this.excludePaths = split(args.getOption(OptionParserFactory.EXCLUDE_PATHS));
         this.mergePaths = split(args.getOption(OptionParserFactory.MERGE_PATHS));
+        this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
@@ -133,6 +136,10 @@ public class MigrationOptions {
         return skipNameCheck;
     }
 
+    public boolean isIncludeIndex() {
+        return includeIndex;
+    }
+
     private void logOptions() {
         if (copyBinariesByReference) {
             log.info("DataStore needs to be shared with new repository");
@@ -178,6 +185,10 @@ public class MigrationOptions {
 
         if (skipNameCheck) {
             log.info("Test for long-named nodes will be disabled");
+        }
+
+        if (includeIndex) {
+            log.info("Index data for the paths {} will be copied", (Object) includePaths);
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);

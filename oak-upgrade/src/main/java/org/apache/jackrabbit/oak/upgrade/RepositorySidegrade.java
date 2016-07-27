@@ -91,6 +91,8 @@ public class RepositorySidegrade {
      */
     private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
 
+    private boolean includeIndex = false;
+
     private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
@@ -187,6 +189,9 @@ public class RepositorySidegrade {
         this.excludePaths = copyOf(checkNotNull(excludes));
     }
 
+    public void setIncludeIndex(boolean includeIndex) {
+        this.includeIndex = includeIndex;
+    }
 
     /**
      * Sets the paths that should be merged when the source repository
@@ -273,8 +278,19 @@ public class RepositorySidegrade {
     private void copyState(NodeState sourceRoot, NodeBuilder targetRoot) throws CommitFailedException {
         copyWorkspace(sourceRoot, targetRoot);
 
+        if (includeIndex) {
+            IndexCopier.copy(sourceRoot, targetRoot, includePaths);
+        }
+
+        boolean isRemoveCheckpointReferences = false;
         if (!copyCheckpoints(targetRoot)) {
             LOG.info("Copying checkpoints is not supported for this combination of node stores");
+            isRemoveCheckpointReferences = true;
+        }
+        if (!DEFAULT_INCLUDE_PATHS.equals(includePaths)) {
+            isRemoveCheckpointReferences = true;
+        }
+        if (isRemoveCheckpointReferences) {
             removeCheckpointReferences(targetRoot);
         }
 
