@@ -84,6 +84,19 @@ An example configuration is:
 
     ./cache,size=2048,binary=0,-compact,-compress
 
+### Journal cache
+
+Diff cache entries can also be stored in a separate persistent cache and
+configured independently if needed. This can be enabled in the OSGi
+configuration like in the following example:
+
+    org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
+        persistentCache=./cache,size=2048
+        journalCache=./journal,size=1024
+
+The configuration options are the same as for the `persistentCache`, but options
+unrelated to the diff cache type are ignored.
+
 ### Dependencies
 
 Internally, the persistent cache uses a key-value store 
