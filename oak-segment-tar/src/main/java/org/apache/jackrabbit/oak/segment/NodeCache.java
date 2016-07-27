@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 // FIXME OAK-4277: Finalise de-duplication caches
 // implement configuration
-// add unit tests
 // document, nullability
 public abstract class NodeCache {
     private long hitCount;
