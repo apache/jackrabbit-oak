@@ -192,7 +192,7 @@ public class LuceneIndexEditorContext {
             directory = newIndexDirectory(definition, definitionBuilder);
             IndexWriterConfig config;
             if (indexCopier != null){
-                directory = indexCopier.wrapForWrite(definition, directory, reindex);
+                directory = indexCopier.wrapForWrite(definition, directory, reindex, LuceneIndexConstants.INDEX_DATA_CHILD_NAME);
                 config = getIndexWriterConfig(definition, false);
             } else {
                 config = getIndexWriterConfig(definition, true);

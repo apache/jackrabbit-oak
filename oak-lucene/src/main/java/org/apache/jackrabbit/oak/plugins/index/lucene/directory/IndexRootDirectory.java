@@ -83,7 +83,7 @@ public class IndexRootDirectory {
         return FileUtils.sizeOfDirectory(indexRootDir);
     }
 
-    public File getIndexDir(IndexDefinition definition, String indexPath) throws IOException {
+    public File getIndexDir(IndexDefinition definition, String indexPath, String dirName) throws IOException {
         String uid = definition.getUniqueId();
 
         if (uid == null) {
@@ -110,8 +110,7 @@ public class IndexRootDirectory {
             }
 
             //Create index folder under that
-            //TODO Add support for multiple folders depending on type of content
-            File indexFolder = new File(baseFolder, "default");
+            File indexFolder = new File(baseFolder, getFSSafeName(dirName));
             if (!indexFolder.exists()) {
                 checkState(indexFolder.mkdir(), "Not able to create folder [%s]", indexFolder);
             }
@@ -195,7 +194,7 @@ public class IndexRootDirectory {
                 continue;
             }
             //Strip of any char outside of a-zA-Z0-9-
-            result.add(e.replaceAll("\\W", ""));
+            result.add(getFSSafeName(e));
         }
 
         Collections.reverse(result);
@@ -293,6 +292,10 @@ public class IndexRootDirectory {
     private File getOldFormatDir(String indexPath) {
         String subDir = getPathHash(indexPath);
         return new File(indexRootDir, subDir);
+    }
+
+    private static String getFSSafeName(String e) {
+        return e.replaceAll("\\W", "");
     }
 
     private static long getTime() {

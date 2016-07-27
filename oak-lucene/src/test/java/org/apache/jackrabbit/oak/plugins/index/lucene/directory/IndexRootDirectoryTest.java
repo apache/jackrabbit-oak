@@ -55,12 +55,12 @@ public class IndexRootDirectoryTest {
 
     @Test
     public void getIndexDirOldFormat() throws Exception{
-        File f1 = dir.getIndexDir(getDefn(), "/a/b");
+        File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
         assertFalse(LocalIndexDir.isIndexDir(f1));
 
         builder.setProperty(IndexConstants.REINDEX_COUNT, 1);
-        File f2 = dir.getIndexDir(getDefn(), "/a/b");
-        File f3 = dir.getIndexDir(getDefn(), "/a/b");
+        File f2 = dir.getIndexDir(getDefn(), "/a/b", "default");
+        File f3 = dir.getIndexDir(getDefn(), "/a/b", "default");
         //Both should be same dir
         assertEquals(f2, f3);
 
@@ -70,18 +70,18 @@ public class IndexRootDirectoryTest {
     @Test
     public void newFormat() throws Exception{
         LuceneIndexEditorContext.configureUniqueId(builder);
-        File f1 = dir.getIndexDir(getDefn(), "/a/b");
-        File f2 = dir.getIndexDir(getDefn(), "/a/b");
+        File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
+        File f2 = dir.getIndexDir(getDefn(), "/a/b", "default");
         assertEquals(f1, f2);
     }
 
     @Test
     public void reindexCaseWithSamePath() throws Exception{
         LuceneIndexEditorContext.configureUniqueId(builder);
-        File f1 = dir.getIndexDir(getDefn(), "/a/b");
+        File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
 
         LuceneIndexEditorContext.configureUniqueId(resetBuilder());
-        File f2 = dir.getIndexDir(getDefn(), "/a/b");
+        File f2 = dir.getIndexDir(getDefn(), "/a/b", "default");
 
         assertNotEquals(f1, f2);
         List<LocalIndexDir> dirs = dir.getLocalIndexes("/a/b");
@@ -95,14 +95,14 @@ public class IndexRootDirectoryTest {
     @Test
     public void allLocalIndexes() throws Exception{
         LuceneIndexEditorContext.configureUniqueId(builder);
-        File fa1 = dir.getIndexDir(getDefn(), "/a");
+        File fa1 = dir.getIndexDir(getDefn(), "/a", "default");
         LuceneIndexEditorContext.configureUniqueId(resetBuilder());
-        File fa2 = dir.getIndexDir(getDefn(), "/a");
+        File fa2 = dir.getIndexDir(getDefn(), "/a", "default");
 
         LuceneIndexEditorContext.configureUniqueId(builder);
-        File fb1 = dir.getIndexDir(getDefn(), "/b");
+        File fb1 = dir.getIndexDir(getDefn(), "/b", "default");
         LuceneIndexEditorContext.configureUniqueId(resetBuilder());
-        File fb2 = dir.getIndexDir(getDefn(), "/b");
+        File fb2 = dir.getIndexDir(getDefn(), "/b", "default");
 
         List<LocalIndexDir> dirs = dir.getAllLocalIndexes();
         assertEquals(2, dirs.size());
@@ -136,12 +136,12 @@ public class IndexRootDirectoryTest {
     @Test
     public void gcIndexDirs() throws Exception{
         //Create an old format directory
-        File fa0 = dir.getIndexDir(getDefn(), "/a");
+        File fa0 = dir.getIndexDir(getDefn(), "/a", "default");
 
         configureUniqueId();
-        File fa1 = dir.getIndexDir(getDefn(), "/a");
+        File fa1 = dir.getIndexDir(getDefn(), "/a", "default");
         configureUniqueId();
-        File fa2 = dir.getIndexDir(getDefn(), "/a");
+        File fa2 = dir.getIndexDir(getDefn(), "/a", "default");
 
         List<LocalIndexDir> dirs = dir.getLocalIndexes("/a");
         assertEquals(2, dirs.size());
@@ -151,7 +151,7 @@ public class IndexRootDirectoryTest {
         assertEquals(2, dirs.size());
 
         configureUniqueId();
-        File fa3 = dir.getIndexDir(getDefn(), "/a");
+        File fa3 = dir.getIndexDir(getDefn(), "/a", "default");
 
         assertEquals(3, dir.getLocalIndexes("/a").size());
 
@@ -178,12 +178,12 @@ public class IndexRootDirectoryTest {
 
     @Test
     public void gcIndexDirsOnStart() throws Exception{
-        File fa0 = dir.getIndexDir(getDefn(), "/a");
+        File fa0 = dir.getIndexDir(getDefn(), "/a", "default");
 
         configureUniqueId();
-        File fa1 = dir.getIndexDir(getDefn(), "/a");
+        File fa1 = dir.getIndexDir(getDefn(), "/a", "default");
         configureUniqueId();
-        File fa2 = dir.getIndexDir(getDefn(), "/a");
+        File fa2 = dir.getIndexDir(getDefn(), "/a", "default");
         assertEquals(2, dir.getLocalIndexes("/a").size());
 
         //Now reinitialize
