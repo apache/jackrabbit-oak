@@ -659,6 +659,8 @@ public class Commit {
             }
             list.add(p);
         }
+        // the commit revision with branch flag if this is a branch commit
+        Revision rev = isBranchCommit ? revision.asBranchRevision() : revision;
         DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, revision, true);
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();
@@ -683,7 +685,7 @@ public class Commit {
             boolean isNew = op != null && op.isNew();
             boolean pendingLastRev = op == null
                     || !NodeDocument.hasLastRev(op, revision.getClusterId());
-            nodeStore.applyChanges(revision, path, isNew, pendingLastRev,
+            nodeStore.applyChanges(rev, path, isNew, pendingLastRev,
                     isBranchCommit, added, removed, changed, cacheEntry);
         }
         cacheEntry.done();

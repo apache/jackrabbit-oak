@@ -2284,6 +2284,49 @@ public class DocumentNodeStoreTest {
         assertTrue(diff.modified.contains("/parent/node-x/child"));
     }
 
+    // OAK-4600
+    @Test
+    public void nodeChildrenCacheForBranchCommit() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+
+        NodeBuilder b1 = ns.getRoot().builder();
+
+        //this would push children cache entries as childX->subChildX
+        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT + 1; i++) {
+            b1.child("child" + i).child("subChild" + i);
+        }
+
+        //The fetch would happen on "br" format of revision
+        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT + 1; i++) {
+            Iterables.size(b1.getChildNode("child" + i).getChildNodeNames());
+        }
+
+        //must not have duplicated cache entries
+        assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 2*DocumentRootBuilder.UPDATE_LIMIT);
+    }
+
+    // OAK-4601
+    @Test
+    public void nodeCacheForBranchCommit() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+
+        NodeBuilder b1 = ns.getRoot().builder();
+
+        final int NUM_CHILDREN = 3*DocumentRootBuilder.UPDATE_LIMIT + 1;
+        //this would push node cache entries for children
+        for (int i = 0; i < NUM_CHILDREN; i++) {
+            b1.child("child" + i);
+        }
+
+        //this would push cache entries
+        for (int i = 0; i < NUM_CHILDREN; i++) {
+            b1.getChildNode("child" + i);
+        }
+
+        //must not have duplicated cache entries
+        assertTrue(ns.getNodeCacheStats().getElementCount() < 2*NUM_CHILDREN);
+    }
+
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
         if (!(state instanceof DocumentNodeState)) {
             throw new IllegalArgumentException("Not a DocumentNodeState");
