@@ -418,8 +418,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             whiteboard,
             CacheStatsMBean.class,
             stringDeduplicationCacheStats,CacheStats.TYPE,
-            stringDeduplicationCacheStats.getName()
-            ));
+            stringDeduplicationCacheStats.getName()));
         }
 
         CacheStatsMBean templateDeduplicationCacheStats = store.getTemplateDeduplicationCacheStats();
@@ -428,8 +427,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             whiteboard,
             CacheStatsMBean.class,
             templateDeduplicationCacheStats,CacheStats.TYPE,
-            templateDeduplicationCacheStats.getName()
-            ));
+            templateDeduplicationCacheStats.getName()));
+        }
+
+        CacheStatsMBean nodeDeduplicationCacheStats = store.getNodeDeduplicationCacheStats();
+        if (nodeDeduplicationCacheStats != null) {
+            registrations.add(registerMBean(
+            whiteboard,
+            CacheStatsMBean.class,
+            nodeDeduplicationCacheStats,CacheStats.TYPE,
+            nodeDeduplicationCacheStats.getName()));
         }
 
         // Listen for Executor services on the whiteboard
