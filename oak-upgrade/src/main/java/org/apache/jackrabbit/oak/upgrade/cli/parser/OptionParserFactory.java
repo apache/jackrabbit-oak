@@ -74,6 +74,8 @@ public class OptionParserFactory {
 
     public static final String SKIP_NAME_CHECK = "skip-name-check";
 
+    public static final String INCLUDE_INDEX = "include-index";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);
@@ -122,6 +124,7 @@ public class OptionParserFactory {
                 .ofType(String.class);
         op.accepts(MERGE_PATHS, "Comma-separated list of paths to merge during copy.").withRequiredArg()
                 .ofType(String.class);
+        op.accepts(INCLUDE_INDEX, "Copy index data for paths specified in the " + INCLUDE_PATHS + " option");
     }
 
     private static void addVersioningOptions(OptionParser op) {

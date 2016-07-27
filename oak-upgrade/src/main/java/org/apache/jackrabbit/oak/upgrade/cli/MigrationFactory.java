@@ -117,6 +117,7 @@ public class MigrationFactory {
         }
         sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
         sidegrade.setSkipInitialization(options.isSkipInitialization());
+        sidegrade.setIncludeIndex(options.isIncludeIndex());
         return sidegrade;
     }
 

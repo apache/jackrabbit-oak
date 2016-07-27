@@ -115,7 +115,7 @@ public abstract class AbstractOak2OakTest {
         }
     }
 
-    private void initContent(NodeStore target) throws IOException, RepositoryException, CommitFailedException {
+    protected void initContent(NodeStore target) throws IOException, RepositoryException, CommitFailedException {
         NodeStore initialContent = testContent.open();
         try {
             RepositorySidegrade sidegrade = new RepositorySidegrade(initialContent, target);
