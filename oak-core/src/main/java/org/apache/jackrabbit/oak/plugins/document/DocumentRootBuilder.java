@@ -130,6 +130,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
         // Rebase in memory changes on top of the head of the rebased branch
         super.reset(branch.getHead());
+        updates = 0;
         head.compareAgainstBaseState(inMemBase, new ConflictAnnotatingRebaseDiff(this));
 
         // Set new base and return rebased head
