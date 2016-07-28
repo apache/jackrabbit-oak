@@ -63,7 +63,7 @@ class IndexNode {
             try {
                 OakDirectory suggestDirectory = null;
                 if (definition.isSuggestEnabled()) {
-                    suggestDirectory = new OakDirectory(defnNodeState.builder(), ":suggest-data", definition, false);
+                    suggestDirectory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), ":suggest-data", definition, true);
                 }
 
                 IndexNode index = new IndexNode(PathUtils.getName(indexPath), definition, directory, suggestDirectory);
