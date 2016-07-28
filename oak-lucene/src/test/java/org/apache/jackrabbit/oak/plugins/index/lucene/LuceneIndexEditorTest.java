@@ -36,6 +36,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,6 +48,7 @@ import java.util.concurrent.Executors;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.StandardSystemProperty;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -336,8 +338,8 @@ public class LuceneIndexEditorTest {
     }
 
     @Test
-    @Ignore("OAK-3072")
     public void copyOnWriteAndLocks() throws Exception {
+        assumeNotWindows();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         IndexCopier copier = new IndexCopier(executorService, temporaryFolder.getRoot());
 
@@ -505,6 +507,10 @@ public class LuceneIndexEditorTest {
                 }
             }
         }
+    }
+
+    private static void assumeNotWindows() {
+        assumeTrue(!StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows"));
     }
 
 }
