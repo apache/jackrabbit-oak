@@ -971,6 +971,7 @@ class TarReader implements Closeable {
         try {
             buffer = loadGraph();
         } catch (IOException e) {
+            log.warn("Exception while loading pre-compiled tar graph", e);
             return 0;
         }
 
@@ -987,6 +988,7 @@ class TarReader implements Closeable {
         try {
             buffer = loadBinaryReferences();
         } catch (IOException e) {
+            log.warn("Exception while loading binary reference", e);
             return null;
         }
 
