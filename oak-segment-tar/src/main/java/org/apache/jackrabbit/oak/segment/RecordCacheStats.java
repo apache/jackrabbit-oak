@@ -32,6 +32,7 @@ import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 
+// FIXME OAK-4619: Unify RecordCacheStats and CacheStats
 /**
  * Statistics for {@link RecordCache}.
  */
