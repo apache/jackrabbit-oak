@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+// FIXME OAK-4618: Align GCMonitorMBean MBean with new generation based GC
 /**
  * MBean for monitoring the revision garbage collection process of the
  * {@link FileStore}.

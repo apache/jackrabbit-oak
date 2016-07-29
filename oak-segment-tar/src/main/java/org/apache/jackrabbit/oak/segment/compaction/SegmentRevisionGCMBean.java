@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.compaction;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 
+// FIXME OAK-4617: Align SegmentRevisionGC MBean with new generation based GC
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
         implements SegmentRevisionGC {

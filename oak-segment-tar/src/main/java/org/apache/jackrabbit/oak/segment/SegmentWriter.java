@@ -408,6 +408,7 @@ public class SegmentWriter {
                 return op.with(writer).with(this).writeNode(state, 0);
             } finally {
                 if (isCompaction) {
+                    // FIXME OAK-4445: Collect write statistics. This logs and clears the statistic on each compaction cycle instead of each run
                     LOG.info("Write node stats: {}", writeNodeStats);
                     LOG.info("Compact node stats: {}", compactNodeStats);
                     writeNodeStats.clear();

@@ -312,7 +312,8 @@ public class FileStore implements SegmentStore, Closeable {
             lock = null;
         }
 
-        // FIXME The following background operations are historically part of
+        // FIXME OAK-4621: External invocation of background operations
+        // The following background operations are historically part of
         // the implementation of the FileStore, but they should better be
         // scheduled and invoked by an external agent. The code deploying the
         // FileStore might have better insights on when and how these background
@@ -660,6 +661,7 @@ public class FileStore implements SegmentStore, Closeable {
             pendingRemove.addAll(cleanup());
         }
 
+        // FIXME OAK-4138 Decouple revision cleanup from the flush thread: instead of synchronizing, skip flush if already in progress
         // remove all obsolete tar generations
         synchronized (pendingRemove) {
             Iterator<File> iterator = pendingRemove.iterator();
