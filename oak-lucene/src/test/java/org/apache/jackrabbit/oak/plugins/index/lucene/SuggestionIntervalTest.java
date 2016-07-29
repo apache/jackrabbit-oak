@@ -207,7 +207,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
     }
 
     private String getSuggestionLastUpdated(Tree indexDef) {
-        Tree suggStat = root.getTree(indexDef.getPath() + "/" + ":suggesterStatus");
+        Tree suggStat = root.getTree(indexDef.getPath() + "/" + LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME);
         if (!suggStat.hasProperty("lastUpdated")) {
             return null;
         }
