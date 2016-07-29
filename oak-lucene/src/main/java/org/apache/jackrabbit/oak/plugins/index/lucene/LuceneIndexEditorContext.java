@@ -61,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
@@ -296,9 +297,9 @@ public class LuceneIndexEditorContext {
      */
     private Calendar updateSuggester(Analyzer analyzer) throws IOException {
         Calendar ret = null;
-        NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
+        NodeBuilder suggesterStatus = definitionBuilder.child(SUGGEST_DATA_CHILD_NAME);
         DirectoryReader reader = DirectoryReader.open(writer, false);
-        final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, ":suggest-data", definition, false);
+        final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, SUGGEST_DATA_CHILD_NAME, definition, false);
         try {
             SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
             ret = getCalendar();
@@ -323,7 +324,7 @@ public class LuceneIndexEditorContext {
         boolean updateSuggestions = false;
 
         if (definition.isSuggestEnabled()) {
-            NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
+            NodeBuilder suggesterStatus = definitionBuilder.child(SUGGEST_DATA_CHILD_NAME);
 
             PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
 

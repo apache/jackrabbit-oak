@@ -28,6 +28,8 @@ public interface LuceneIndexConstants {
 
     String INDEX_DATA_CHILD_NAME = ":data";
 
+    String SUGGEST_DATA_CHILD_NAME = ":suggest-data";
+
     String TRASH_CHILD_NAME = ":trash";
 
     Version VERSION = Version.LUCENE_47;
