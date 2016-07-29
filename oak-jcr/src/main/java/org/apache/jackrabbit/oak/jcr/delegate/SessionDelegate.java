@@ -735,19 +735,19 @@ public class SessionDelegate {
             this.lock = lock;
         }
 
-        public void lock(boolean isUpdate, String opName) {
+        public void lock(boolean isUpdate, Object operation) {
             if (!lock.tryLock()) {
                 // Acquire the lock before logging the warnings. As otherwise race conditions
                 // on the involved fields might lead to wrong warnings.
                 lock.lock();
                 if (holderThread != null) {
                     if (this.isUpdate) {
-                        warn(log, "Attempted to perform " + opName + " while thread " + holderThread +
+                        warn(log, "Attempted to perform " + operation.toString() + " while thread " + holderThread +
                                 " was concurrently writing to this session. Blocked until the " +
                                 "other thread finished using this session. Please review your code " +
                                 "to avoid concurrent use of a session.", holderTrace);
                     } else if (log.isDebugEnabled()) {
-                        log.debug("Attempted to perform " + opName + " while thread " + holderThread +
+                        log.debug("Attempted to perform " + operation.toString() + " while thread " + holderThread +
                                 " was concurrently reading from this session. Blocked until the " +
                                 "other thread finished using this session. Please review your code " +
                                 "to avoid concurrent use of a session.", holderTrace);
@@ -770,7 +770,7 @@ public class SessionDelegate {
         }
 
         public void lock(SessionOperation<?> sessionOperation) {
-            lock(sessionOperation.isUpdate(), sessionOperation.toString());
+            lock(sessionOperation.isUpdate(), sessionOperation);
         }
 
         @Override
