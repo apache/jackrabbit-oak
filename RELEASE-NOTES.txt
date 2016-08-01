@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.6
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.7
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.6 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.7 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,71 +15,47 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.6
+Changes in Oak 1.5.7
 ---------------------
 
 Technical task
 
-    [OAK-4200] - [BlobGC] Improve collection times of blobs available
-    [OAK-4477] - RDBDatasourceFactory should use pool config similar
-    to sling datasource defaults
-    [OAK-4539] - Calculate children cache entry on commit
-    [OAK-4554] - RDBBlobStoreTest should use RDBDatasourceWrapper
-    [OAK-4557] - RDBPreparedStatementWrapper: do not hide
-    implementation bugs
-    [OAK-4559] - RDB*Store: failures with Tomcat JDBC pool's
-    StatementCache interceptor
-    [OAK-4562] - BasicDocumentStore max id test might return
-    misleading results
+    [OAK-3403] - Multiplexing store support in Property indexes
+    [OAK-3758] - Multiplexing store support in Reference index
+    [OAK-4593] - Remove usage of DocumentMK in
+    DocumentNodeStoreService
 
 Bug
 
-    [OAK-4518] - ConcurrentAddReferenceTest fails occasionally
-    [OAK-4532] - race-condition in commit-rate-limiter
-    [OAK-4544] - Fix failing test
-    DataStoreCheckTest.testMissingOpParams()
-    [OAK-4548] - SegmentDataStoreBlobGCIT failures
-    [OAK-4552] - Checkpoints.getOldestRevisionToKeep() returns newest
-    valid revision
-    [OAK-4565] - S3Backend fails to upload large metadata records
-    [OAK-4568] - JournalEntry.applyTo() creates complete change tree
-    in memory
-    [OAK-4571] - consolidated listener stats confuses
-    cluster-external/local flags
-    [OAK-4572] - Overflow to disk threshold too high
+    [OAK-3072] - LuceneIndexEditorTest#copyOnWriteAndLocks failing on
+    windows
+    [OAK-4595] - OSGiIT failure LuceneIndexProviderService exception
 
 Improvement
 
-    [OAK-4512] - Detect and log commits to the read-only stores
-    [OAK-4528] - diff calculation in DocumentNodeStore should try to
-    re-use journal info on diff cache miss
-    [OAK-4533] - make DELAY_THRESHOLD & MAX_DELAY of ChangeProcessor
-    configurable
-    [OAK-4534] - add trace logging to CommitRateLimiter
-    [OAK-4540] - Cache update blocks new commits
-    [OAK-4542] - PerfLogger should also allow a threshold to log at
-    INFO
-    [OAK-4545] - Configurable maxBackOffMillis
-    [OAK-4553] - Retain journal entries for valid checkpoints
-    [OAK-4556] - Track branch on newBranchCommit()
-    [OAK-4563] - Specify thread pool name which should be used by
-    Async Indexing task
-    [OAK-4564] - Use Lucene index to look for long-named nodes in JCR2
-    upgrade
-    [OAK-4567] - Define oak:Resource nodetype as non referenceable
-    alternative to nt:resource
-    [OAK-4569] - Clean-up the oak-upgrade dependencies
-    [OAK-4573] - S3 fetching record leads to multiple calls and
-    background download
-    [OAK-4574] - [BlobGC] Remove adding of paths in file maintained
-    for blob references
-    [OAK-4578] - Clarify weight related methods/parameters/arguments
-    of the LIRS cache
+    [OAK-4344] - LdapIdentityProvider always retrieves all attributes
+    when looking up an LDAP entity.
+    [OAK-4500] - Create tooling for reducing a document-based
+    repository to a list of paths
+    [OAK-4587] - Don't ignore the cached NULLs in bulk createOrUpdate
+    for Mongo
+    [OAK-4594] - Remove DocumentNodeState.copyTo()
+    [OAK-4605] - Separate persistent cache for diff and local_diff
+    [OAK-4613] - Suggest directory should be opened in read only mode
+    [OAK-4616] - Record suggestor status in suggest-data node
+    [OAK-4622] - SessionDelegate.lock speedup
+    [OAK-4624] - Optionally ignore missing blobs during sidegrade
+
+New Feature
+
+    [OAK-4180] - Use another NodeStore as a local cache for a remote
+    Document store
 
 Task
 
-    [OAK-3211] - Document External Identity Management
-    [OAK-4551] - Update Oak to Jackrabbit 2.13.1
+    [OAK-4470] - Remove read revision method from DocumentNodeState
+    [OAK-4592] - Make DocumentNodeState immutable
+    [OAK-4607] - Add support for multiple directory in IndexCopier
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
