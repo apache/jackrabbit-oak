@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.IGNORE_MISSING_BINARIES;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FBS;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FDS;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_S3;
@@ -87,12 +88,13 @@ public class StoreArguments {
 
     public BlobStoreFactory getSrcBlobStore() throws IOException {
         BlobStoreFactory factory;
+        boolean ignoreMissingBinaries = parser.hasOption(IGNORE_MISSING_BINARIES);
         if (parser.hasOption(SRC_FBS)) {
             factory = new FileBlobStoreFactory(parser.getOption(SRC_FBS));
         } else if (parser.hasOption(SRC_S3_CONFIG) && parser.hasOption(SRC_S3)) {
-            factory = new S3DataStoreFactory(parser.getOption(SRC_S3_CONFIG), parser.getOption(SRC_S3));
+            factory = new S3DataStoreFactory(parser.getOption(SRC_S3_CONFIG), parser.getOption(SRC_S3), ignoreMissingBinaries);
         } else if (parser.hasOption(SRC_FDS)) {
-            factory = new FileDataStoreFactory(parser.getOption(SRC_FDS));
+            factory = new FileDataStoreFactory(parser.getOption(SRC_FDS), ignoreMissingBinaries);
         } else {
             factory = new DummyBlobStoreFactory();
         }
@@ -105,9 +107,9 @@ public class StoreArguments {
         if (parser.hasOption(DST_FBS)) {
             factory = new FileBlobStoreFactory(parser.getOption(DST_FBS));
         } else if (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) {
-            factory = new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3));
+            factory = new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3), false);
         } else if (parser.hasOption(DST_FDS)) {
-            factory = new FileDataStoreFactory(parser.getOption(DST_FDS));
+            factory = new FileDataStoreFactory(parser.getOption(DST_FDS), false);
         } else {
             factory = new DummyBlobStoreFactory();
         }

@@ -52,6 +52,8 @@ public class MigrationOptions {
 
     private final boolean skipInitialization;
 
+    private final boolean ignoreMissingBinaries;
+
     public MigrationOptions(MigrationCliArguments args) {
         this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
         this.mmap = args.hasOption(OptionParserFactory.MMAP);
@@ -79,6 +81,7 @@ public class MigrationOptions {
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
+        this.ignoreMissingBinaries = args.hasOption(OptionParserFactory.IGNORE_MISSING_BINARIES);
         logOptions();
     }
 
@@ -126,6 +129,10 @@ public class MigrationOptions {
         return skipInitialization;
     }
 
+    public boolean isIgnoreMissingBinaries() {
+        return ignoreMissingBinaries;
+    }
+
     private void logOptions() {
         if (copyBinariesByReference) {
             log.info("DataStore needs to be shared with new repository");
@@ -167,6 +174,10 @@ public class MigrationOptions {
 
         if (skipInitialization) {
             log.info("The repository initialization will be skipped");
+        }
+
+        if (ignoreMissingBinaries) {
+            log.info("Missing binaries won't break the migration");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);
