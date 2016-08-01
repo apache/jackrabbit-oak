@@ -64,7 +64,7 @@ public abstract class AbstractOak2OakTest {
 
     private NodeStore destination;
 
-    private Session session;
+    protected Session session;
 
     private RepositoryImpl repository;
 
@@ -97,7 +97,10 @@ public abstract class AbstractOak2OakTest {
         String[] args = getArgs();
         log.info("oak2oak {}", Joiner.on(' ').join(args));
         OakUpgrade.main(args);
+        createSession();
+    }
 
+    protected void createSession() throws RepositoryException, IOException {
         destination = getDestinationContainer().open();
         repository = (RepositoryImpl) new Jcr(destination).with("oak.sling").with(new ReferenceIndexProvider()).createRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -145,7 +148,7 @@ public abstract class AbstractOak2OakTest {
         }
     }
 
-    static void verifyContent(Session session) throws RepositoryException {
+    public static void verifyContent(Session session) throws RepositoryException {
         Node root = session.getRootNode();
         assertEquals("rep:root", root.getPrimaryNodeType().getName());
         assertEquals(1, root.getMixinNodeTypes().length);
@@ -162,7 +165,7 @@ public abstract class AbstractOak2OakTest {
         assertEquals("false", nodeType.getProperty("jcr:isAbstract").getString());
     }
 
-    static void verifyBlob(Session session) throws IOException, RepositoryException {
+    public static void verifyBlob(Session session) throws IOException, RepositoryException {
         Property p = session.getProperty("/sling-logo.png/jcr:content/jcr:data");
         InputStream is = p.getValue().getBinary().getStream();
         String expectedMD5 = "35504d8c59455ab12a31f3d06f139a05";

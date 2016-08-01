@@ -56,6 +56,8 @@ public class MigrationOptions {
 
     private final boolean skipNameCheck;
 
+    private final boolean ignoreMissingBinaries;
+
     public MigrationOptions(MigrationCliArguments args) {
         this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
         this.mmap = args.hasOption(OptionParserFactory.MMAP);
@@ -85,6 +87,7 @@ public class MigrationOptions {
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
         this.skipNameCheck = args.hasOption(OptionParserFactory.SKIP_NAME_CHECK);
+        this.ignoreMissingBinaries = args.hasOption(OptionParserFactory.IGNORE_MISSING_BINARIES);
         logOptions();
     }
 
@@ -140,6 +143,10 @@ public class MigrationOptions {
         return includeIndex;
     }
 
+    public boolean isIgnoreMissingBinaries() {
+        return ignoreMissingBinaries;
+    }
+
     private void logOptions() {
         if (copyBinariesByReference) {
             log.info("DataStore needs to be shared with new repository");
@@ -189,6 +196,10 @@ public class MigrationOptions {
 
         if (includeIndex) {
             log.info("Index data for the paths {} will be copied", (Object) includePaths);
+        }
+
+        if (ignoreMissingBinaries) {
+            log.info("Missing binaries won't break the migration");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);
