@@ -57,6 +57,8 @@ An descriptor of the Oak node store. Possible options:
                             copied and before the commit hooks are applied
 --fail-on-error           Fail completely if nodes can't be read from the
                             source repo
+--ignore-missing-binaries Proceed with the migration even if the binaries
+                            are missing
 
 # version store options
 

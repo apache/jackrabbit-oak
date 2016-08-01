@@ -40,7 +40,7 @@ public class S3DataStoreContainer implements BlobStoreContainer {
 
     public S3DataStoreContainer(String configFile) throws IOException {
         this.directory = Files.createTempDir();
-        this.factory = new S3DataStoreFactory(configFile, directory.getPath());
+        this.factory = new S3DataStoreFactory(configFile, directory.getPath(), false);
         this.closer = Closer.create();
     }
 

@@ -52,7 +52,9 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     private final File tempHomeDir;
 
-    public S3DataStoreFactory(String configuration, String directory) throws IOException {
+    private final boolean ignoreMissingBlobs;
+
+    public S3DataStoreFactory(String configuration, String directory, boolean ignoreMissingBlobs) throws IOException {
         this.props = new Properties();
         FileReader reader = new FileReader(new File(configuration));
         try {
@@ -68,6 +70,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
         this.directory = directory;
         this.tempHomeDir = Files.createTempDir();
+        this.ignoreMissingBlobs = ignoreMissingBlobs;
     }
 
     @Override
@@ -81,7 +84,11 @@ public class S3DataStoreFactory implements BlobStoreFactory {
             throw new IOException(e);
         }
         closer.register(asCloseable(delegate, tempHomeDir));
-        return new DataStoreBlobStore(delegate);
+        if (ignoreMissingBlobs) {
+            return new SafeDataStoreBlobStore(delegate);
+        } else {
+            return new DataStoreBlobStore(delegate);
+        }
     }
 
     private static Closeable asCloseable(final CachingDataStore store, final File tempHomeDir) {
