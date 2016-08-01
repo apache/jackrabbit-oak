@@ -39,7 +39,7 @@ public class FileDataStoreContainer implements BlobStoreContainer {
 
     @Override
     public BlobStore open() throws IOException {
-        return new FileDataStoreFactory(directory.getPath()).create(closer);
+        return new FileDataStoreFactory(directory.getPath(), false).create(closer);
     }
 
     @Override
@@ -55,6 +55,10 @@ public class FileDataStoreContainer implements BlobStoreContainer {
     @Override
     public String getDescription() {
         return directory.getPath();
+    }
+
+    public File getDirectory() {
+        return directory;
     }
 
 }

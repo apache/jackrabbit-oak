@@ -28,6 +28,8 @@ public class OptionParserFactory {
 
     public static final String FAIL_ON_ERROR = "fail-on-error";
 
+    public static final String IGNORE_MISSING_BINARIES = "ignore-missing-binaries";
+
     public static final String EARLY_SHUTDOWN = "early-shutdown";
 
     public static final String CACHE_SIZE = "cache";
@@ -101,6 +103,7 @@ public class OptionParserFactory {
         op.accepts(DST_S3, "Datastore directory to be used for the target S3").withRequiredArg().ofType(String.class);
         op.accepts(DST_S3_CONFIG, "Configuration file for the target S3DataStore").withRequiredArg()
                 .ofType(String.class);
+        op.accepts(IGNORE_MISSING_BINARIES, "Don't break the migration if some binaries are missing");
     }
 
     private static void addRdbOptions(OptionParser op) {

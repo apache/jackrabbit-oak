@@ -30,8 +30,11 @@ public class FileDataStoreFactory implements BlobStoreFactory {
 
     private final String directory;
 
-    public FileDataStoreFactory(String directory) {
+    private final boolean ignoreMissingBlobs;
+
+    public FileDataStoreFactory(String directory, boolean ignoreMissingBlobs) {
         this.directory = directory;
+        this.ignoreMissingBlobs = ignoreMissingBlobs;
     }
 
     @Override
@@ -40,7 +43,12 @@ public class FileDataStoreFactory implements BlobStoreFactory {
         delegate.setPath(directory);
         delegate.init(null);
         closer.register(asCloseable(delegate));
-        return new DataStoreBlobStore(delegate);
+
+        if (ignoreMissingBlobs) {
+            return new SafeDataStoreBlobStore(delegate);
+        } else {
+            return new DataStoreBlobStore(delegate);
+        }
     }
 
     private static Closeable asCloseable(final FileDataStore store) {
