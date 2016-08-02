@@ -38,6 +38,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -150,8 +151,20 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
                 Closeables.close(input, true);
             }
         } catch (IOException e) {
-            LOG.error("Exception while adding root record with name {}, {}",
+            LOG.error("Exception while adding metadata record with name {}, {}",
                     new Object[] {name, e});
+            throw new DataStoreException("Could not add root record", e);
+        }
+    }
+
+    @Override
+    public void addMetadataRecord(File input, String name) throws DataStoreException {
+        try {
+            File file = new File(getPath(), name);
+            FileUtils.copyFile(input, file);
+        } catch (IOException e) {
+            LOG.error("Exception while adding metadata record file {} with name {}, {}",
+                new Object[] {input, name, e});
             throw new DataStoreException("Could not add root record", e);
         }
     }
