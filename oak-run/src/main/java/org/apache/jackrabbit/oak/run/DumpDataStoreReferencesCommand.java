@@ -35,8 +35,8 @@ import com.google.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
@@ -107,8 +107,7 @@ class DumpDataStoreReferencesCommand implements Command {
                                         count.getAndIncrement();
                                         if (idBatch.size() >= 1024) {
                                             for (String rec : idBatch) {
-                                                ExternalSort.writeLine(writer, rec);
-                                                writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                                                FileIOUtils.writeAsLine(writer, rec, true);
                                                 writer.flush();
                                             }
                                             idBatch.clear();
@@ -122,8 +121,7 @@ class DumpDataStoreReferencesCommand implements Command {
                 );
                 if (!idBatch.isEmpty()) {
                     for (String rec : idBatch) {
-                        ExternalSort.writeLine(writer, rec);
-                        writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                        FileIOUtils.writeAsLine(writer, rec, true);
                         writer.flush();
                     }
                     idBatch.clear();
