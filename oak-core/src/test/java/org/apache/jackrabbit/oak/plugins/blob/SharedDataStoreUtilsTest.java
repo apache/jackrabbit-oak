@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.cleanup;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -30,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -39,11 +41,15 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import junit.framework.Assert;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
@@ -215,6 +221,55 @@ public class SharedDataStoreUtilsTest {
                 }
             }));
         assertEquals(added, retrieved);
+    }
+
+    @Test
+    public void testStreamFromGetAllRecords() throws Exception {
+        dataStore = getBlobStore();
+        int number = 10;
+        Set<DataRecord> added = newHashSet();
+        for (int i = 0; i < number; i++) {
+            added.add(dataStore.addRecord(randomStream(i, 16516)));
+        }
+
+        Set<DataRecord> retrieved = newHashSet((dataStore.getAllRecords()));
+        assertRecords(added, retrieved);
+    }
+
+    @Test
+    public void testGetRecordForId() throws Exception {
+        dataStore = getBlobStore();
+        int number = 10;
+        Set<DataRecord> added = newHashSet();
+        for (int i = 0; i < number; i++) {
+            added.add(dataStore.addRecord(randomStream(i, 16516)));
+        }
+
+        Set<DataRecord> retrieved = newHashSet();
+        for (DataRecord rec : added) {
+            retrieved.add(dataStore.getRecordForId(rec.getIdentifier()));
+        }
+        assertRecords(added, retrieved);
+    }
+
+    private static void assertRecords(Set<DataRecord> expected, Set<DataRecord> retrieved)
+        throws DataStoreException, IOException {
+        //assert streams
+        Map<DataIdentifier, DataRecord> retMap = Maps.newHashMap();
+        for (DataRecord ret : retrieved) {
+            retMap.put(ret.getIdentifier(), ret);
+        }
+
+        for (DataRecord rec : expected) {
+            assertEquals("Record id different for " + rec.getIdentifier(),
+                rec.getIdentifier(), retMap.get(rec.getIdentifier()).getIdentifier());
+            assertEquals("Record length different for " + rec.getIdentifier(),
+                rec.getLength(), retMap.get(rec.getIdentifier()).getLength());
+            assertEquals("Record lastModified different for " + rec.getIdentifier(),
+                rec.getLastModified(), retMap.get(rec.getIdentifier()).getLastModified());
+            assertTrue("Record steam different for " + rec.getIdentifier(),
+                IOUtils.contentEquals(rec.getStream(), retMap.get(rec.getIdentifier()).getStream()));
+        }
     }
 
     static InputStream randomStream(int seed, int size) {
