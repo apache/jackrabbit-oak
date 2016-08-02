@@ -201,7 +201,7 @@ public class ExternalSort {
                     // in bytes
                     long currentblocksize = 0;
                     while ((currentblocksize < blocksize)
-                            && ((line = readLine(fbr)) != null)) {
+                            && ((line = fbr.readLine()) != null)) {
                         // as long as you have enough memory
                         if (counter < numHeader) {
                             counter++;
@@ -296,7 +296,7 @@ public class ExternalSort {
             for (String r : tmplist) {
                 // Skip duplicate lines
                 if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
-                    writeLine(fbw, r);
+                    fbw.write(r);
                     fbw.newLine();
                     lastLine = r;
                 }
@@ -454,7 +454,7 @@ public class ExternalSort {
                 String r = bfb.pop();
                 // Skip duplicate lines
                 if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
-                    writeLine(fbw, r);
+                    fbw.write(r);
                     fbw.newLine();
                     lastLine = r;
                 }
@@ -628,15 +628,6 @@ public class ExternalSort {
             return r1.compareTo(r2);
         }
     };
-
-    public static String readLine(BufferedReader br) throws IOException {
-        return EscapeUtils.unescapeLineBreaks(br.readLine());
-    }
-
-    public static void writeLine(BufferedWriter wr, String line) throws IOException {
-        wr.write(EscapeUtils.escapeLineBreak(line));
-    }
-
 }
 
 class BinaryFileBuffer {
@@ -656,7 +647,7 @@ class BinaryFileBuffer {
 
     private void reload() throws IOException {
         try {
-            if ((this.cache = ExternalSort.readLine(fbr)) == null) {
+            if ((this.cache = fbr.readLine()) == null) {
                 this.empty = true;
                 this.cache = null;
             } else {

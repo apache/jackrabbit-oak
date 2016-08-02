@@ -82,9 +82,11 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.console.Console;
 import org.apache.jackrabbit.oak.explorer.Explorer;
@@ -1227,7 +1229,7 @@ public final class Main {
                                     count.getAndIncrement();
                                     if (idBatch.size() >= 1024) {
                                         for (String rec : idBatch) {
-                                            ExternalSort.writeLine(writer, rec);
+                                            FileIOUtils.writeAsLine(writer, rec, true);
                                             writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
                                             writer.flush();
                                         }
@@ -1242,7 +1244,7 @@ public final class Main {
                 );
                 if (!idBatch.isEmpty()) {
                     for (String rec : idBatch) {
-                        ExternalSort.writeLine(writer, rec);
+                        FileIOUtils.writeAsLine(writer, rec, true);
                         writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
                         writer.flush();
                     }
