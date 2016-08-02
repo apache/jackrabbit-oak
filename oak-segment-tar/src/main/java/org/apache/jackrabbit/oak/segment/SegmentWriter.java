@@ -32,6 +32,8 @@ import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.io.ByteStreams.read;
+import static java.lang.Integer.getInteger;
+import static java.lang.System.nanoTime;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -60,6 +62,7 @@ import javax.jcr.PropertyType;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closeables;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -83,6 +86,14 @@ import org.slf4j.LoggerFactory;
 public class SegmentWriter {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
 
+    /**
+     * Size of the window for collecting statistics about the time it takes to
+     * write / compact nodes.
+     * @see DescriptiveStatistics#setWindowSize(int)
+     */
+    private static final int NODE_WRITER_STATS_WINDOW = getInteger(
+            "oak.tar.nodeWriterStatsWindow", 10000);
+
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
     @Nonnull
@@ -102,6 +113,14 @@ public class SegmentWriter {
 
     @Nonnull
     private final BinaryReferenceConsumer binaryReferenceConsumer;
+
+    @Nonnull
+    private final SynchronizedDescriptiveStatistics nodeCompactTimeStats =
+            new SynchronizedDescriptiveStatistics(NODE_WRITER_STATS_WINDOW);
+
+    @Nonnull
+    private final SynchronizedDescriptiveStatistics nodeWriteTimeStats =
+            new SynchronizedDescriptiveStatistics(NODE_WRITER_STATS_WINDOW);
 
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
@@ -126,6 +145,28 @@ public class SegmentWriter {
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
         this.binaryReferenceConsumer = checkNotNull(binaryReferenceConsumer);
+    }
+
+    /**
+     * @return  Statistics for node compaction times (in ns). These statistics
+     * include explicit compactions triggered by the file store and implicit
+     * compactions triggered by references to older generations.
+     * The statistics are collected with a window size defined by {@link #NODE_WRITER_STATS_WINDOW}
+     * @see #getNodeWriteTimeStats()
+     */
+    @Nonnull
+    public DescriptiveStatistics getNodeCompactTimeStats() {
+        return nodeCompactTimeStats;
+    }
+
+    /**
+     * @return  Statistics for node write times (in ns).
+     * The statistics are collected with a window size defined by {@link #NODE_WRITER_STATS_WINDOW}
+     * @see #getNodeCompactTimeStats()
+     */
+    @Nonnull
+    public DescriptiveStatistics getNodeWriteTimeStats() {
+        return nodeWriteTimeStats;
     }
 
     public void flush() throws IOException {
@@ -293,8 +334,7 @@ public class SegmentWriter {
         RecordId nodeId = writeOperationHandler.execute(new SegmentWriteOperation() {
             @Override
             public RecordId execute(SegmentBufferWriter writer) throws IOException {
-                return new CompactionStats(writeNodeStats, compactNodeStats, false)
-                        .writeNode(this, writer, state);
+                return with(writer).writeNode(state);
             }
         });
         return new SegmentNodeState(reader, this, nodeId);
@@ -320,121 +360,13 @@ public class SegmentWriter {
             RecordId nodeId = writeOperationHandler.execute(new SegmentWriteOperation(cancel) {
                 @Override
                 public RecordId execute(SegmentBufferWriter writer) throws IOException {
-                    return new CompactionStats(writeNodeStats, compactNodeStats, true)
-                            .writeNode(this, writer, state);
+                    return with(writer).writeNode(state);
                 }
             });
             writeOperationHandler.flush();
             return new SegmentNodeState(reader, this, nodeId);
         } catch (SegmentWriteOperation.CancelledWriteException ignore) {
             return null;
-        }
-    }
-
-    private final SynchronizedDescriptiveStatistics writeNodeStats = new SynchronizedDescriptiveStatistics();
-    private final SynchronizedDescriptiveStatistics compactNodeStats = new SynchronizedDescriptiveStatistics();
-
-    // FIXME OAK-4445: Collect write statistics: clean this up:
-    // - It should be possible to switch the statistics on/off. There should be no
-    // performance penalty when off.
-    // - Expose via logging and/or MBean?
-    // - What metrics should we collect? Use the Metrics API!?
-    // - Decouple this from the SegmentWriter
-    private static class CompactionStats {
-        @Nonnull
-        private final SynchronizedDescriptiveStatistics writeNodeStats;
-        @Nonnull
-        private final SynchronizedDescriptiveStatistics compactNodeStats;
-
-        /*
-         * {@code true} iff this is an explicit compaction (vs. an implicit
-         * and deferred one triggered by a commit referring to an "old" base
-         * state.
-         */
-        private final boolean isCompaction;
-
-        /*
-         * Total number of nodes in the subtree rooted at the node passed
-         * to {@link #writeNode(SegmentWriteOperation, SegmentBufferWriter, NodeState)}
-         */
-        public int nodeCount;
-
-        /*
-         * Number of cache hits for a deferred compacted node
-         */
-        public int cacheHits;
-
-        /*
-         * Number of cache misses for a deferred compacted node
-         */
-        public int cacheMiss;
-
-        /*
-         * Number of nodes that where de-duplicated as the store already contained
-         * them.
-         */
-        public int deDupNodes;
-
-        /*
-         * Number of nodes that actually had to be written as there was no de-duplication
-         * and a cache miss (in case of a deferred compaction).
-         */
-        public int writesOps;
-
-        public CompactionStats(
-                @Nonnull SynchronizedDescriptiveStatistics writeNodeStats,
-                @Nonnull SynchronizedDescriptiveStatistics compactNodeStats,
-                boolean isCompaction) {
-            this.writeNodeStats = writeNodeStats;
-            this.compactNodeStats = compactNodeStats;
-            this.isCompaction = isCompaction;
-        }
-
-        /*
-         * The operation caused a deferred compaction iff it accessed the cache.
-         */
-        public boolean isDeferredCompactionOp() {
-            return cacheHits + cacheMiss > 0;
-        }
-
-        @Nonnull
-        public RecordId writeNode(
-                @Nonnull SegmentWriteOperation op,
-                @Nonnull SegmentBufferWriter writer,
-                @Nonnull NodeState state)
-        throws IOException {
-            long t = System.nanoTime();
-            try {
-                return op.with(writer).with(this).writeNode(state, 0);
-            } finally {
-                if (isCompaction) {
-                    // FIXME OAK-4445: Collect write statistics. This logs and clears the statistic on each compaction cycle instead of each run
-                    LOG.info("Write node stats: {}", writeNodeStats);
-                    LOG.info("Compact node stats: {}", compactNodeStats);
-                    writeNodeStats.clear();
-                    compactNodeStats.clear();
-                } else {
-                    if (isDeferredCompactionOp()) {
-                        compactNodeStats.addValue(System.nanoTime() - t);
-                        LOG.info(toString());
-                    } else {
-                        writeNodeStats.addValue(System.nanoTime() - t);
-                    }
-                }
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "NodeStats{" +
-                "op=" + (isDeferredCompactionOp() ? "compact" : "write") +
-                ", nodeCount=" + nodeCount +
-                ", writeOps=" + writesOps +
-                ", deDupNodes=" + deDupNodes +
-                ", cacheHits=" + cacheHits +
-                ", cacheMiss=" + cacheMiss +
-                ", hitRate=" + (100*(double) cacheHits / ((double) cacheHits + (double) cacheMiss)) +
-                '}';
         }
     }
 
@@ -445,6 +377,55 @@ public class SegmentWriter {
      * <em>not thread safe</em>.
      */
     private abstract class SegmentWriteOperation implements WriteOperation {
+        private class NodeWriteStats {
+            private final long startTime = nanoTime();
+
+            /*
+             * Total number of nodes in the subtree rooted at the node passed
+             * to {@link #writeNode(SegmentWriteOperation, SegmentBufferWriter, NodeState)}
+             */
+            public int nodeCount;
+
+            /*
+             * Number of cache hits for a deferred compacted node
+             */
+            public int cacheHits;
+
+            /*
+             * Number of cache misses for a deferred compacted node
+             */
+            public int cacheMiss;
+
+            /*
+             * Number of nodes that where de-duplicated as the store already contained
+             * them.
+             */
+            public int deDupNodes;
+
+            /*
+             * Number of nodes that actually had to be written as there was no de-duplication
+             * and a cache miss (in case of a deferred compaction).
+             */
+            public int writesOps;
+
+            /*
+             * {@code true} for if the node written was a compaction operation, false otherwise
+             */
+            boolean isCompactOp;
+
+            @Override
+            public String toString() {
+                return "NodeStats{" +
+                        "op=" + (isCompactOp ? "compact" : "write") +
+                        ", nodeCount=" + nodeCount +
+                        ", writeOps=" + writesOps +
+                        ", deDupNodes=" + deDupNodes +
+                        ", cacheHits=" + cacheHits +
+                        ", cacheMiss=" + cacheMiss +
+                        ", hitRate=" + (100*(double) cacheHits / ((double) cacheHits + (double) cacheMiss)) +
+                        '}';
+            }
+        }
 
         /**
          * This exception is used internally to signal cancellation of a (recursive)
@@ -460,7 +441,7 @@ public class SegmentWriter {
         private final Supplier<Boolean> cancel;
 
         @CheckForNull
-        private CompactionStats compactionStats;
+        private NodeWriteStats nodeWriteStats;
 
         private SegmentBufferWriter writer;
         private RecordCache<String> stringCache;
@@ -486,12 +467,6 @@ public class SegmentWriter {
             this.stringCache = cacheManager.getStringCache(generation);
             this.templateCache = cacheManager.getTemplateCache(generation);
             this.nodeCache = cacheManager.getNodeCache(generation);
-            return this;
-        }
-
-        @Nonnull
-        SegmentWriteOperation with(@Nonnull CompactionStats compactionStats) {
-            this.compactionStats = compactionStats;
             return this;
         }
 
@@ -1006,13 +981,27 @@ public class SegmentWriter {
             return tid;
         }
 
+        private RecordId writeNode(@Nonnull NodeState state) throws IOException {
+            this.nodeWriteStats = new NodeWriteStats();
+            try {
+                return writeNode(state, 0);
+            } finally {
+                if (nodeWriteStats.isCompactOp) {
+                    nodeCompactTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
+                    LOG.info(nodeWriteStats.toString());
+                } else {
+                    nodeWriteTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
+                }
+            }
+        }
+
         private RecordId writeNode(@Nonnull NodeState state, int depth) throws IOException {
             if (cancel.get()) {
                 // Poor man's Either Monad
                 throw new CancelledWriteException();
             }
-            assert compactionStats != null;
-            compactionStats.nodeCount++;
+            checkState(nodeWriteStats != null);
+            nodeWriteStats.nodeCount++;
 
             RecordId compactedId = deduplicateNode(state);
 
@@ -1020,7 +1009,7 @@ public class SegmentWriter {
                 return compactedId;
             }
 
-            compactionStats.writesOps++;
+            nodeWriteStats.writesOps++;
             RecordId recordId = writeNodeUncached(state, depth);
             if (state instanceof SegmentNodeState) {
                 // This node state has been rewritten because it is from an older
@@ -1028,6 +1017,7 @@ public class SegmentWriter {
                 // deduplication of hard links to it (e.g. checkpoints).
                 SegmentNodeState sns = (SegmentNodeState) state;
                 nodeCache.put(sns.getStableId(), recordId, depth);
+                nodeWriteStats.isCompactOp = true;
             }
             return recordId;
         }
@@ -1151,7 +1141,7 @@ public class SegmentWriter {
          * @return the id of the de-duplicated node or {@code null} if none.
          */
         private RecordId deduplicateNode(NodeState node) {
-            assert compactionStats != null;
+            checkState(nodeWriteStats != null);
 
             if (!(node instanceof SegmentNodeState)) {
                 // De-duplication only for persisted node states
@@ -1168,7 +1158,7 @@ public class SegmentWriter {
             if (!isOldGeneration(sns.getRecordId())) {
                 // This segment node state is already in this store, no need to
                 // write it again
-                compactionStats.deDupNodes++;
+                nodeWriteStats.deDupNodes++;
                 return sns.getRecordId();
             }
 
@@ -1178,11 +1168,11 @@ public class SegmentWriter {
             RecordId compacted = nodeCache.get(sns.getStableId());
 
             if (compacted == null) {
-                compactionStats.cacheMiss++;
+                nodeWriteStats.cacheMiss++;
                 return null;
             }
 
-            compactionStats.cacheHits++;
+            nodeWriteStats.cacheHits++;
             return compacted;
         }
 

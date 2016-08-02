@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -73,6 +75,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.BinaryReferenceConsumer;
@@ -299,7 +302,7 @@ public class FileStore implements SegmentStore, Closeable {
             } else {
                 this.writeNumber = 0;
             }
-            this.writeFile = new File(directory, String.format(
+            this.writeFile = new File(directory, format(
                     FILE_NAME_FORMAT, writeNumber, "a"));
             this.tarWriter = new TarWriter(writeFile, stats);
         }
@@ -319,7 +322,7 @@ public class FileStore implements SegmentStore, Closeable {
         // FileStore might have better insights on when and how these background
         // operations should be invoked. See also OAK-3468.
 
-        flushOperation = new PeriodicOperation(String.format("TarMK flush thread [%s]", directory), 5, SECONDS, new Runnable() {
+        flushOperation = new PeriodicOperation(format("TarMK flush thread [%s]", directory), 5, SECONDS, new Runnable() {
 
             @Override
             public void run() {
@@ -332,7 +335,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         });
 
-        compactionOperation = new TriggeredOperation(String.format("TarMK compaction thread [%s]", directory), new Runnable() {
+        compactionOperation = new TriggeredOperation(format("TarMK compaction thread [%s]", directory), new Runnable() {
 
             @Override
             public void run() {
@@ -345,7 +348,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         });
 
-        diskSpaceOperation = new PeriodicOperation(String.format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
+        diskSpaceOperation = new PeriodicOperation(format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
 
             @Override
             public void run() {
@@ -497,13 +500,40 @@ public class FileStore implements SegmentStore, Closeable {
 
         if (sufficientEstimatedGain) {
             if (!gcOptions.isPaused()) {
+                logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                 if (compact()) {
                     cleanupNeeded.set(cleanup);
                 }
+                logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
             } else {
                 gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
             }
         }
+    }
+
+    private static void logAndClear(
+            @Nonnull DescriptiveStatistics nodeWriteTimeStats,
+            @Nonnull DescriptiveStatistics nodeCompactTimeStats) {
+        log.info("Node write time statistics (ns) {}", toString(nodeWriteTimeStats));
+        log.info("Node compact time statistics (ns) {}", toString(nodeCompactTimeStats));
+        nodeWriteTimeStats.clear();
+        nodeCompactTimeStats.clear();
+    }
+
+    private static String toString(DescriptiveStatistics statistics) {
+        DecimalFormat sci = new DecimalFormat("##0.0E0");
+        DecimalFormatSymbols symbols = sci.getDecimalFormatSymbols();
+        symbols.setNaN("NaN");
+        symbols.setInfinity("Inf");
+        sci.setDecimalFormatSymbols(symbols);
+        return "min=" + sci.format(statistics.getMin()) +
+                ", 10%=" + sci.format(statistics.getPercentile(10.0)) +
+                ", 50%=" + sci.format(statistics.getPercentile(50.0)) +
+                ", 90%=" + sci.format(statistics.getPercentile(90.0)) +
+                ", max=" + sci.format(statistics.getMax()) +
+                ", mean=" + sci.format(statistics.getMean()) +
+                ", stdev=" + sci.format(statistics.getStandardDeviation()) +
+                ", N=" + sci.format(statistics.getN());
     }
 
     static Map<Integer, Map<Character, File>> collectFiles(File directory) {
@@ -1340,7 +1370,7 @@ public class FileStore implements SegmentStore, Closeable {
             writeNumber++;
             writeFile = new File(
                     directory,
-                    String.format(FILE_NAME_FORMAT, writeNumber, "a"));
+                    format(FILE_NAME_FORMAT, writeNumber, "a"));
             tarWriter = new TarWriter(writeFile, stats);
         }
     }
