@@ -32,10 +32,12 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.apache.commons.io.LineIterator;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.FileLineDifferenceIterator;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -98,7 +100,51 @@ public class FileLineDifferenceIteratorTest {
         assertReverseDiff("a,0xb,d,e,f", "a,d", asList("0xb", "e", "f"));
         assertReverseDiff("a,0xb,d,e,f", "a,d,e,f,g", asList("0xb"));
     }
-    
+
+    @Test
+    public void testDiffLineBreakChars() throws IOException {
+        List<String> all = getLineBreakStrings();
+        List<String> marked = getLineBreakStrings();
+        List<String> diff = remove(marked, 3, 2);
+
+        // without escaping, the line breaks will be resolved
+        assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all),
+            asList("/a", "c", "/a/b"));
+    }
+
+    @Test
+    public void testDiffEscapedLineBreakChars() throws IOException {
+        // Escaped characters
+        List<String> all = escape(getLineBreakStrings());
+        List<String> marked = escape(getLineBreakStrings());
+        List<String> diff = remove(marked, 3, 2);
+
+        assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all), diff);
+    }
+
+    private static List<String> getLineBreakStrings() {
+        return Lists.newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
+            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
+    }
+
+    private static List<String> remove(List<String> list, int idx, int count) {
+        List<String> diff = Lists.newArrayList();
+        int i = 0;
+        while (i < count) {
+            diff.add(list.remove(idx));
+            i++;
+        }
+        return diff;
+    }
+
+    private static List<String> escape(List<String> list) {
+        List<String> escaped = Lists.newArrayList();
+        for (String s : list) {
+            escaped.add(escapeLineBreak(s));
+        }
+        return escaped;
+    }
+
     private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(all, marked);
         assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
