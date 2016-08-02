@@ -210,6 +210,26 @@ public class IndexCopierTest {
         assertEquals(1, td.size());
     }
 
+
+    @Test
+    public void multiDirNames() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
+
+        Directory remote = new CloseSafeDir();
+        byte[] t1 = writeFile(remote, "t1");
+        byte[] t2 = writeFile(remote , "t2");
+
+        Directory w1 = c1.wrapForRead(indexPath, defn, remote, ":data");
+
+        readAndAssert(w1, "t1", t1);
+
+        Directory w2 = c1.wrapForRead(indexPath, defn, remote, ":private-data");
+        w2.close();
+
+        readAndAssert(w1, "t1", t1);
+    }
+
     @Test
     public void deleteOldPostReindex() throws Exception{
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());

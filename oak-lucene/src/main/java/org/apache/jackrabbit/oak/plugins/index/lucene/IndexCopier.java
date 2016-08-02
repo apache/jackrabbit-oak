@@ -173,8 +173,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         Directory result = FSDirectory.open(indexDir);
 
         String newPath = indexDir.getAbsolutePath();
-        //TODO Account for type of path also
-        String oldPath = indexPathVersionMapping.put(indexPath, newPath);
+        String oldPath = indexPathVersionMapping.put(createIndexPathKey(indexPath, dirName), newPath);
         if (!newPath.equals(oldPath) && oldPath != null) {
             result = new DeleteOldDirOnClose(result, new File(oldPath));
         }
@@ -254,6 +253,13 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             return "UNKNOWN";
         }
         return indexPath;
+    }
+
+    /**
+     * Create a unique key based on indexPath and dirName used under that path
+     */
+    private static String createIndexPathKey(String indexPath, String dirName){
+        return indexPath.concat(dirName);
     }
 
     /**
