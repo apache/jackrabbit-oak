@@ -44,7 +44,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
  * so as to expose it as an {@link AbstractDocumentNodeState} by extracting
  * the meta properties which are stored as hidden properties
  */
-class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
+public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     //Hidden props holding DocumentNodeState meta properties
     static final String PROP_PATH = ":doc-path";
     static final String PROP_REVISION = ":doc-rev";
