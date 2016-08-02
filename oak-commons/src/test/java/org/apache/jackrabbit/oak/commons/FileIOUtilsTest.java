@@ -132,7 +132,7 @@ public class FileIOUtilsTest {
 
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
-        String line = null;
+        String line;
         List<String> retrieved = newArrayList();
         while ((line = reader.readLine()) != null) {
             retrieved.add(line);
@@ -151,7 +151,7 @@ public class FileIOUtilsTest {
 
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
-        String line = null;
+        String line;
         List<String> retrieved = newArrayList();
         while ((line = reader.readLine()) != null) {
             retrieved.add(unescapeLineBreaks(line));
@@ -245,7 +245,7 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), false, added.size());
 
         BurnOnCloseFileIterator iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f));
+            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(f.exists());
@@ -257,7 +257,7 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), false, added.size());
 
         BurnOnCloseFileIterator iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f), f);
+            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -269,7 +269,7 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), true, added.size());
 
         BurnOnCloseFileIterator iterator =
-            new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f),
+            new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()), f,
                 new Function<String, String>() {
                     @Nullable @Override public String apply(@Nullable String input) {
                         return unescapeLineBreaks(input);
@@ -277,6 +277,7 @@ public class FileIOUtilsTest {
                 });
 
         assertEquals(added, Sets.newHashSet(iterator));
+        assertTrue(!f.exists());
     }
 
     @Test
@@ -285,10 +286,18 @@ public class FileIOUtilsTest {
         for (int i = 0; i < 100; i++) {
             added.add(getRandomTestString());
         }
-        File f = assertWrite(added.iterator(), false, added.size());
+        File f = assertWrite(added.iterator(), true, added.size());
 
         BurnOnCloseFileIterator iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
+            new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()),
+                f,
+                new Function<String, String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable String input) {
+                        return unescapeLineBreaks(input);
+                    }
+                });
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -343,7 +352,7 @@ public class FileIOUtilsTest {
         return buffer.toString();
     }
 
-    static InputStream randomStream(int seed, int size) {
+    private static InputStream randomStream(int seed, int size) {
         Random r = new Random(seed);
         byte[] data = new byte[size];
         r.nextBytes(data);
