@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import org.apache.jackrabbit.core.data.Backend;
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3Backend;
@@ -78,6 +79,11 @@ public class SharedS3DataStore extends S3DataStore implements SharedDataStore {
     @Override
     public Iterator<DataRecord> getAllRecords() {
         return backend.getAllRecords();
+    }
+
+    @Override
+    public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
+        return backend.getRecord(identifier);
     }
 
     @Override
