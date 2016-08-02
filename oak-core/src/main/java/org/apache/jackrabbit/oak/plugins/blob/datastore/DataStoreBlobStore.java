@@ -76,9 +76,9 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
         GarbageCollectableBlobStore, BlobTrackingStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final DataStore delegate;
+    protected final DataStore delegate;
 
-    private BlobStatsCollector stats = BlobStatsCollector.NOOP;
+    protected BlobStatsCollector stats = BlobStatsCollector.NOOP;
 
     private BlobTracker tracker;
 
@@ -549,7 +549,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
 
     //~---------------------------------------------< Internal >
 
-    private InputStream getStream(String blobId) throws IOException {
+    protected InputStream getStream(String blobId) throws IOException {
         try {
             InputStream in = getDataRecord(blobId).getStream();
             if (!(in instanceof BufferedInputStream)){
@@ -561,7 +561,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
         }
     }
 
-    private DataRecord getDataRecord(String blobId) throws DataStoreException {
+    protected DataRecord getDataRecord(String blobId) throws DataStoreException {
         DataRecord id;
         if (InMemoryDataRecord.isInstance(blobId)) {
             id = InMemoryDataRecord.getInstance(blobId);
@@ -616,7 +616,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
         return dr.getIdentifier().toString();
     }
 
-    private String extractBlobId(String encodedBlobId) {
+    protected String extractBlobId(String encodedBlobId) {
         if (encodeLengthInId) {
             return BlobId.of(encodedBlobId).blobId;
         }
