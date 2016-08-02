@@ -396,7 +396,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
             for (String chunkId : chunkIds) {
                 String blobId = extractBlobId(chunkId);
                 DataIdentifier identifier = new DataIdentifier(blobId);
-                DataRecord dataRecord = delegate.getRecord(identifier);
+                DataRecord dataRecord = getRecordForId(identifier);
                 boolean success = (maxLastModifiedTime <= 0)
                         || dataRecord.getLastModified() <= maxLastModifiedTime;
                 log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
@@ -478,6 +478,14 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
                     }
             });
         }
+    }
+
+    @Override
+    public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
+        if (delegate instanceof SharedDataStore) {
+            return ((SharedDataStore) delegate).getRecordForId(identifier);
+        }
+        return delegate.getRecord(identifier);
     }
 
     @Override
