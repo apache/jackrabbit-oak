@@ -23,6 +23,7 @@ import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -40,6 +41,15 @@ public interface SharedS3Backend extends Backend {
      * @throws org.apache.jackrabbit.core.data.DataStoreException
      */
     void addMetadataRecord(final InputStream input, final String name) throws DataStoreException;
+
+    /**
+     * Adds a metadata record with the specified name
+     *
+     * @param input the record file
+     * @param name the name
+     * @throws org.apache.jackrabbit.core.data.DataStoreException
+     */
+    void addMetadataRecord(final File input, final String name) throws DataStoreException;
 
     /**
      * Gets the metadata of the specified name.
