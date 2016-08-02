@@ -251,6 +251,11 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     }
 
     @Override
+    public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
+        return getRecord(id);
+    }
+
+    @Override
     public Type getType() {
         return Type.SHARED;
     }
