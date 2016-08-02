@@ -70,7 +70,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         GarbageCollectableBlobStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final DataStore delegate;
+    protected final DataStore delegate;
 
     /**
      * If set to true then the blob length information would be encoded as part of blobId
@@ -497,7 +497,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     //~---------------------------------------------< Internal >
 
-    private InputStream getStream(String blobId) throws IOException {
+    protected InputStream getStream(String blobId) throws IOException {
         try {
             InputStream in = getDataRecord(blobId).getStream();
             if (!(in instanceof BufferedInputStream)){
@@ -509,7 +509,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         }
     }
 
-    private DataRecord getDataRecord(String blobId) throws DataStoreException {
+    protected DataRecord getDataRecord(String blobId) throws DataStoreException {
         DataRecord id;
         if (InMemoryDataRecord.isInstance(blobId)) {
             id = InMemoryDataRecord.getInstance(blobId);
@@ -564,7 +564,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         return dr.getIdentifier().toString();
     }
 
-    private String extractBlobId(String encodedBlobId) {
+    protected String extractBlobId(String encodedBlobId) {
         if (encodeLengthInId) {
             return BlobId.of(encodedBlobId).blobId;
         }
