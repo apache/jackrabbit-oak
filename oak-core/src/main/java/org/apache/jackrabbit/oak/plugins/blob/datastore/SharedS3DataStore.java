@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3Backend;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +48,11 @@ public class SharedS3DataStore extends S3DataStore implements SharedDataStore {
     @Override
     public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
         backend.addMetadataRecord(stream, name);
+    }
+
+    @Override
+    public void addMetadataRecord(File f, String name) throws DataStoreException {
+        backend.addMetadataRecord(f, name);
     }
 
     @Override
