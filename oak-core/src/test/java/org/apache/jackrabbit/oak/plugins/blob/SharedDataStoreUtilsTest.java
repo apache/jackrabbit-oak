@@ -26,6 +26,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
@@ -38,10 +39,12 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import junit.framework.Assert;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
@@ -49,7 +52,9 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +63,9 @@ import org.slf4j.LoggerFactory;
  */
 public class SharedDataStoreUtilsTest {
     private static final Logger log = LoggerFactory.getLogger(SharedDataStoreUtilsTest.class);
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     DataStoreBlobStore dataStore;
 
@@ -147,6 +155,32 @@ public class SharedDataStoreUtilsTest {
         // Repository ids should still be available
         assertEquals(2,
             dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()).size());
+    }
+
+    @Test
+    public void testAddMetadata() throws Exception {
+        dataStore = getBlobStore();
+        String repoId = UUID.randomUUID().toString();
+        Set<String> refs = Sets.newHashSet("1_1", "1_2");
+        File f = folder.newFile();
+        FileIOUtils.writeStrings(refs.iterator(), f, false);
+
+        dataStore.addMetadataRecord(new FileInputStream(f),
+            SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+        DataRecord rec = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+        Set<String> refsReturned = FileIOUtils.readStringsAsSet(rec.getStream(), false);
+        Assert.assertEquals(refs, refsReturned);
+        dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+
+        dataStore.addMetadataRecord(f,
+            SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+        rec = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+        refsReturned = FileIOUtils.readStringsAsSet(rec.getStream(), false);
+        Assert.assertEquals(refs, refsReturned);
+        assertEquals(
+            SharedStoreRecordType.REFERENCES.getIdFromName(rec.getIdentifier().toString()),
+            repoId);
+        dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
     }
 
     @Test
