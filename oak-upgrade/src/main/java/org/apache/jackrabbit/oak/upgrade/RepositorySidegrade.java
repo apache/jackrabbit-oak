@@ -30,11 +30,19 @@ import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
+import org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.secondary.PathFilteringDiff;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -96,6 +104,8 @@ public class RepositorySidegrade {
     private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
+
+    private boolean addSecondaryMetadata = false;
 
     private List<CommitHook> customCommitHooks = null;
 
@@ -221,6 +231,10 @@ public class RepositorySidegrade {
         this.skipInitialization = skipInitialization;
     }
 
+    public void setAddSecondaryMetadata(boolean addSecondaryMetadata) {
+        this.addSecondaryMetadata = addSecondaryMetadata;
+    }
+
     /**
      * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer. 
      */
@@ -264,9 +278,31 @@ public class RepositorySidegrade {
             }
             copyState(sourceRoot, targetRoot);
 
+            if (addSecondaryMetadata && source instanceof DocumentNodeStore) {
+                doAddSecondaryMetadata();
+            }
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
+    }
+
+    private void doAddSecondaryMetadata() throws CommitFailedException {
+        LOG.info("Copying secondary metadata");
+
+        AbstractDocumentNodeState sourceRoot = (AbstractDocumentNodeState) source.getRoot();
+        NodeState secondaryRoot = target.getRoot();
+
+        NodeState base = DelegatingDocumentNodeState.wrapIfPossible(secondaryRoot, NodeStateDiffer.DEFAULT_DIFFER);
+        NodeBuilder builder = secondaryRoot.builder();
+
+        // Copy the root node meta properties
+        PathFilteringDiff.copyMetaProperties(sourceRoot, builder);
+
+        // Apply the rest of properties
+        ApplyDiff diff = new PathFilteringDiff(builder, new PathFilter(includePaths, excludePaths), sourceRoot);
+        sourceRoot.compareAgainstBaseState(base, diff);
+
+        target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void removeCheckpointReferences(NodeBuilder builder) throws CommitFailedException {

@@ -30,6 +30,8 @@ public class MigrationOptions {
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
+    private static final boolean ADD_SECONDARY_METADATA = Boolean.getBoolean("oak.upgrade.addSecondaryMetadata");
+
     private final boolean copyBinariesByReference;
 
     private final boolean mmap;
@@ -147,6 +149,10 @@ public class MigrationOptions {
         return ignoreMissingBinaries;
     }
 
+    public boolean isAddSecondaryMetadata() {
+        return ADD_SECONDARY_METADATA;
+    }
+
     private void logOptions() {
         if (copyBinariesByReference) {
             log.info("DataStore needs to be shared with new repository");
@@ -200,6 +206,10 @@ public class MigrationOptions {
 
         if (ignoreMissingBinaries) {
             log.info("Missing binaries won't break the migration");
+        }
+
+        if (ADD_SECONDARY_METADATA) {
+            log.info("Secondary metadata will be added");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);
