@@ -78,4 +78,8 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
         return SEGMENT_OLD_PREFIX + directory.getPath();
     }
 
+    public File getDirectory() {
+        return directory;
+    }
+
 }

@@ -56,7 +56,6 @@ public class UpgradeOldSegmentTest {
         File oldRepo = new File(testFolder, "test-repo-1.0");
         File newRepo = new File(testFolder, "test-repo-new");
         oldRepo.mkdirs();
-        newRepo.mkdirs();
         try (InputStream in = UpgradeOldSegmentTest.class.getResourceAsStream("/test-repo-1.0.zip")) {
             Util.unzip(in, oldRepo);
         }
