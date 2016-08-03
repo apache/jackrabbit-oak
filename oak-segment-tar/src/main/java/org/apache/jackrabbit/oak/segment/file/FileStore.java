@@ -75,6 +75,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -201,11 +202,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final GCListener gcListener;
 
     /**
-     * Represents the approximate size on disk of the repository.
-     */
-    private final AtomicLong approximateSize;
-
-    /**
      * This flag is periodically updated by calling the {@code SegmentGCOptions}
      * at regular intervals.
      */
@@ -291,10 +287,7 @@ public class FileStore implements SegmentStore, Closeable {
                         memoryMapping, recover));
             }
         }
-
-        long initialSize = size();
-        this.approximateSize = new AtomicLong(initialSize);
-        this.stats = new FileStoreStats(builder.getStatsProvider(), this, initialSize);
+        this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
 
         if (!readOnly) {
             if (indices.length > 0) {
@@ -607,17 +600,28 @@ public class FileStore implements SegmentStore, Closeable {
         return dataFiles;
     }
 
-    public final long size() {
+    /**
+     * @return the size of this store. This method shouldn't be called from
+     * a very tight loop as it contents with the {@link #fileStoreLock}.
+     */
+    private long size() {
+        List<TarReader> readersSnapshot = null;
+        long writeFileSnapshotSize = 0;
+
         fileStoreLock.readLock().lock();
         try {
-            long size = writeFile != null ? writeFile.length() : 0;
-            for (TarReader reader : readers) {
-                size += reader.size();
-            }
-            return size;
+            readersSnapshot = ImmutableList.copyOf(readers);
+            writeFileSnapshotSize = writeFile != null ? writeFile.length() : 0;
         } finally {
             fileStoreLock.readLock().unlock();
         }
+
+        long size = writeFileSnapshotSize;
+        for (TarReader reader : readersSnapshot) {
+            size += reader.size();
+        }
+
+        return size;
     }
 
     public int readerCount(){
@@ -820,7 +824,6 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         long finalSize = size();
-        approximateSize.set(finalSize);
         stats.reclaimed(initialSize - finalSize);
         // FIXME OAK-4106: Reclaimed size reported by FileStore.cleanup is off
         gcListener.cleaned(initialSize - finalSize, finalSize);
@@ -1315,7 +1318,6 @@ public class FileStore implements SegmentStore, Closeable {
             if (size >= maxFileSize) {
                 newWriter();
             }
-            approximateSize.addAndGet(TarWriter.BLOCK_SIZE + length + TarWriter.getPaddingSize(length));
         } finally {
             fileStoreLock.writeLock().unlock();
         }
@@ -1416,7 +1418,7 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     private void checkDiskSpace() {
-        long repositoryDiskSpace = approximateSize.get();
+        long repositoryDiskSpace = size();
         long availableDiskSpace = directory.getFreeSpace();
         boolean updated = gcOptions.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
         boolean previous = sufficientDiskSpace.getAndSet(updated);

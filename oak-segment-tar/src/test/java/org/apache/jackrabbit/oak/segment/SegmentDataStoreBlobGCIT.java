@@ -42,6 +42,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -75,6 +76,7 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -105,10 +107,12 @@ public class SegmentDataStoreBlobGCIT {
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
+            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
             FileStoreBuilder builder = fileStoreBuilder(getWorkDir())
                     .withBlobStore(blobStore)
                     .withMaxFileSize(256)
                     .withMemoryMapping(false)
+                    .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                     .withGCOptions(gcOptions);
             store = builder.build();
             nodeStore = SegmentNodeStoreBuilders.builder(store).build();
@@ -144,7 +148,7 @@ public class SegmentDataStoreBlobGCIT {
         }
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        final long dataSize = store.size();
+        final long dataSize = store.getStats().getApproximateSize();
         log.info("File store dataSize {}", byteCountToDisplaySize(dataSize));
 
         // 2. Now remove the nodes to generate garbage
