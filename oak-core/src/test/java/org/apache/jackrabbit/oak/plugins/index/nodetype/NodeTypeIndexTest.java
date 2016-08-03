@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -86,7 +87,8 @@ public class NodeTypeIndexTest {
                 new PropertyIndexEditorProvider())), CommitInfo.EMPTY);
 
         NodeState rootState = store.getRoot();
-        NodeTypeIndex index = new NodeTypeIndex();
+        NodeTypeIndex index = new NodeTypeIndex(
+                Mounts.defaultMountInfoProvider());
         FilterImpl filter;
 
         filter = createFilter(rootState, JcrConstants.NT_FOLDER);
