@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -34,6 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * for queries on {@code jcr:primaryType} and {@code jcr:mixinTypes}.
  */
 class NodeTypeIndex implements QueryIndex, JcrConstants {
+
+    private final MountInfoProvider mountInfoProvider;
+
+    public NodeTypeIndex(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
 
     @Override
     public double getMinimumCost() {
@@ -56,7 +63,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             // doesn't have a node type restriction
             return Double.POSITIVE_INFINITY;
         }
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
         if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
         } else {
@@ -66,7 +73,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath(), filter)) {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);
