@@ -88,12 +88,10 @@ public class FileStoreBuilder {
     private SegmentGCOptions gcOptions = defaultGCOptions();
 
     @Nonnull
-    private final EvictingWriteCacheManager cacheManager = new EvictingWriteCacheManager(
-            stringDeduplicationCacheSize, templateDeduplicationCacheSize,
-            nodeDeduplicationCacheSize, nodeDeduplicationCacheDepth);
-
-    @Nonnull
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
+
+    @CheckForNull
+    private EvictingWriteCacheManager cacheManager;
 
     @Nonnull
     private final GCListener gcListener = new GCListener() {
@@ -129,6 +127,7 @@ public class FileStoreBuilder {
 
         @Override
         public void compacted(@Nonnull Status status, final int newGeneration) {
+            checkNotNull(cacheManager);
             switch (status) {
                 case SUCCESS:
                     // FIXME OAK-4283: Align GCMonitor API with implementation
@@ -421,6 +420,11 @@ public class FileStoreBuilder {
 
     @Nonnull
     WriterCacheManager getCacheManager() {
+        if (cacheManager == null) {
+            cacheManager = new EvictingWriteCacheManager(
+                    stringDeduplicationCacheSize, templateDeduplicationCacheSize,
+                    nodeDeduplicationCacheSize, nodeDeduplicationCacheDepth);
+        }
         return cacheManager;
     }
 
