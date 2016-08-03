@@ -52,6 +52,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -92,6 +94,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -229,10 +232,12 @@ public class SegmentCompactionIT {
         }, 1, 1, SECONDS);
 
         SegmentGCOptions gcOptions = defaultGCOptions().setLockWaitTime(lockWaitTime);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         fileStore = fileStoreBuilder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                 .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
@@ -299,7 +304,7 @@ public class SegmentCompactionIT {
         scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                fileStoreSize = fileStore.size();
+                fileStoreSize = fileStore.getStats().getApproximateSize();
             }
         }, 1, 1, MINUTES);
     }
