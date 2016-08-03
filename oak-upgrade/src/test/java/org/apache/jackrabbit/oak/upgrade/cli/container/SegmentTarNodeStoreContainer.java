@@ -78,4 +78,8 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
         return directory.getPath();
     }
 
+    public File getDirectory() {
+        return directory;
+    }
+
 }

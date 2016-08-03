@@ -43,8 +43,15 @@ public class SegmentFactory implements NodeStoreFactory {
     public SegmentFactory(String directory, boolean mmap) {
         this.dir = new File(directory);
         this.mmap = mmap;
+        createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + dir.getPath());
+        }
+    }
+
+    private void createDirectoryIfMissing(File directory) {
+        if (!directory.exists()) {
+            directory.mkdirs();
         }
     }
 
