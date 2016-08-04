@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 public class DefaultIndexWriterTest {
     private NodeState root = INITIAL_CONTENT;
 
-    private NodeBuilder builder = root.builder();
+    private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
     public void lazyInit() throws Exception {

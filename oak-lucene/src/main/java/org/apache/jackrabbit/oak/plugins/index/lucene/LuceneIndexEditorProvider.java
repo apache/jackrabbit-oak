@@ -24,10 +24,14 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 /**
@@ -41,6 +45,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
+    private final LuceneIndexWriterFactory indexWriterFactory;
 
     public LuceneIndexEditorProvider() {
         this(null);
@@ -53,15 +58,17 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      ExtractedTextCache extractedTextCache) {
-        this(indexCopier, extractedTextCache, null);
+        this(indexCopier, extractedTextCache, null, Mounts.defaultMountInfoProvider());
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      ExtractedTextCache extractedTextCache,
-                                     IndexAugmentorFactory augmentorFactory) {
+                                     @Nullable IndexAugmentorFactory augmentorFactory,
+                                     MountInfoProvider mountInfoProvider) {
         this.indexCopier = indexCopier;
-        this.extractedTextCache = extractedTextCache;
+        this.extractedTextCache = checkNotNull(extractedTextCache);
         this.augmentorFactory = augmentorFactory;
+        this.indexWriterFactory = new DefaultIndexWriterFactory(checkNotNull(mountInfoProvider), indexCopier);
     }
 
     @Override
@@ -70,8 +77,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, callback, new
-                    DefaultIndexWriterFactory(indexCopier), extractedTextCache, augmentorFactory);
+            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, callback,
+                    indexWriterFactory, extractedTextCache, augmentorFactory);
             return new LuceneIndexEditor(context);
         }
         return null;

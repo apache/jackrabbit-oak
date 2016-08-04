@@ -57,15 +57,20 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.test.ISO8601;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -382,6 +387,38 @@ public class LuceneIndexEditorTest {
         executorService.shutdown();
     }
 
+    @Test
+    public void multiplexingWriter() throws Exception{
+        newLucenePropertyIndex("lucene", "foo");
+        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+                .mount("foo", "/libs", "/apps").build();
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(
+                        new LuceneIndexEditorProvider(null, new ExtractedTextCache(0, 0), null, mip)));
+
+        NodeState indexed = hook.processCommit(EMPTY_NODE, builder.getNodeState(), CommitInfo.EMPTY);
+        builder = indexed.builder();
+        NodeState before = indexed;
+        builder.child("content").child("en").setProperty("foo", "bar");
+        builder.child("libs").child("install").setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        builder = indexed.builder();
+
+        assertEquals(1, numDocs(mip.getMountByName("foo")));
+        assertEquals(1, numDocs(mip.getDefaultMount()));
+    }
+
+    private int numDocs(Mount m) throws IOException {
+        String indexDirName = MultiplexersLucene.getIndexDirName(m);
+        NodeBuilder defnBuilder = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
+        Directory d = new OakDirectory(defnBuilder, indexDirName, new IndexDefinition(root, defnBuilder), true);
+        IndexReader r = DirectoryReader.open(d);
+        return r.numDocs();
+    }
+
+
     //@Test
     public void checkLuceneIndexFileUpdates() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
@@ -420,6 +457,15 @@ public class LuceneIndexEditorTest {
             indexNode.release();
         }
         indexNode = null;
+    }
+
+    private NodeState newLucenePropertyIndex(String indexName, String propName){
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, indexName,
+                of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of(propName), STRINGS));
+        return builder.getNodeState();
     }
 
     private String query(String query, IndexDefinition defn) throws IOException, ParseException {

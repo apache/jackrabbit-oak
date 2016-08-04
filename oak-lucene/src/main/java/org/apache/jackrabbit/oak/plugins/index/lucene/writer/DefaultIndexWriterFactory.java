@@ -24,18 +24,24 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
+    private final MountInfoProvider mountInfoProvider;
     private final IndexCopier indexCopier;
 
-    public DefaultIndexWriterFactory(@Nullable IndexCopier indexCopier) {
+    public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider, @Nullable IndexCopier indexCopier) {
+        this.mountInfoProvider = mountInfoProvider;
         this.indexCopier = indexCopier;
     }
 
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition definition,
                                          NodeBuilder definitionBuilder, boolean reindex) {
+        if (mountInfoProvider.hasNonDefaultMounts()){
+            return new MultiplexingIndexWriter(indexCopier, mountInfoProvider, definition, definitionBuilder, reindex);
+        }
         return new DefaultIndexWriter(definition, definitionBuilder, indexCopier,
                 LuceneIndexConstants.INDEX_DATA_CHILD_NAME, reindex);
     }

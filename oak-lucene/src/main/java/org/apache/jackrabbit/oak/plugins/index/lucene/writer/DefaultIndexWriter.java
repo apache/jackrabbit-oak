@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -82,6 +81,10 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     public void deleteDocuments(String path) throws IOException {
         getWriter().deleteDocuments(newPathTerm(path));
         getWriter().deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
+    }
+
+    void deleteAll() throws IOException {
+        getWriter().deleteAll();
     }
 
     @Override
