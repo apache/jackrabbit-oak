@@ -62,8 +62,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Objects;
-
 public class IndexUpdate implements Editor {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
@@ -190,7 +188,7 @@ public class IndexUpdate implements Editor {
             NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
-            if (Objects.equal(rootState.async, definition.getString(ASYNC_PROPERTY_NAME))) {
+            if (isIncluded(rootState.async, definition)) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
                 if (type == null) {
                     // probably not an index def
@@ -226,6 +224,21 @@ public class IndexUpdate implements Editor {
                     editors.add(editor);
                 }
             }
+        }
+    }
+
+    static boolean isIncluded(String asyncRef, NodeBuilder definition) {
+        if (definition.hasProperty(ASYNC_PROPERTY_NAME)) {
+            PropertyState p = definition.getProperty(ASYNC_PROPERTY_NAME);
+            List<String> opt = newArrayList(p.getValue(Type.STRINGS));
+            if (asyncRef == null) {
+                // sync index job, accept synonyms
+                return opt.contains("") || opt.contains("sync");
+            } else {
+                return opt.contains(asyncRef);
+            }
+        } else {
+            return asyncRef == null;
         }
     }
 

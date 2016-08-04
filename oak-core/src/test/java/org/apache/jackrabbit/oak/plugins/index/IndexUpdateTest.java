@@ -492,6 +492,44 @@ public class IndexUpdateTest {
         return c;
     }
 
+    @Test
+    public void testAsyncMVPDefinition() throws Exception {
+        NodeBuilder base;
 
+        // async null
+        base = EmptyNodeState.EMPTY_NODE.builder();
+        assertTrue(IndexUpdate.isIncluded(null, base));
+        assertFalse(IndexUpdate.isIncluded("async", base));
+
+        // async single value
+        base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
+                ASYNC_PROPERTY_NAME, "async");
+        assertFalse(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+
+        // async multiple values: "" for sync
+        base = EmptyNodeState.EMPTY_NODE.builder()
+                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet("", "async"),
+                        Type.STRINGS);
+        assertTrue(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+        assertFalse(IndexUpdate.isIncluded("async-other", base));
+
+        // async multiple values: "sync" for sync
+        base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
+                ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
+                Type.STRINGS);
+        assertTrue(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+        assertFalse(IndexUpdate.isIncluded("async-other", base));
+
+        // async multiple values: no sync present
+        base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
+                ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
+                Type.STRINGS);
+        assertFalse(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+        assertTrue(IndexUpdate.isIncluded("async-other", base));
+    }
 
 }
