@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nonnull;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -32,7 +38,6 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -59,13 +64,6 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nonnull;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
@@ -482,25 +480,25 @@ public class SecurityProviderRegistration {
 
         // Static, mandatory references
 
-        securityProvider.setAuthenticationConfiguration(initializeConfiguration(securityProvider, authenticationConfiguration));
-        securityProvider.setPrivilegeConfiguration(initializeConfiguration(securityProvider, privilegeConfiguration));
+        securityProvider.setAuthenticationConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, authenticationConfiguration));
+        securityProvider.setPrivilegeConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, privilegeConfiguration));
 
         ConfigurationParameters userParams = ConfigurationParameters.of(
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createWhiteboardAuthorizableActionProvider()),
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createWhiteboardAuthorizableNodeName()),
                 ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, createWhiteboardUserAuthenticationFactory()));
-        securityProvider.setUserConfiguration(initializeConfiguration(securityProvider, userConfiguration, userParams));
+        securityProvider.setUserConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, userConfiguration, userParams));
 
         // Multiple, dynamic references
 
         ConfigurationParameters restrictionParams = ConfigurationParameters.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, createWhiteboardRestrictionProvider());
-        initializeConfigurations(securityProvider, authorizationConfiguration, restrictionParams);
+        ConfigurationInitializer.initializeConfigurations(securityProvider, authorizationConfiguration, restrictionParams);
         securityProvider.setAuthorizationConfiguration(authorizationConfiguration);
 
-        initializeConfigurations(securityProvider, principalConfiguration, ConfigurationParameters.EMPTY);
+        ConfigurationInitializer.initializeConfigurations(securityProvider, principalConfiguration, ConfigurationParameters.EMPTY);
         securityProvider.setPrincipalConfiguration(principalConfiguration);
 
-        initializeConfigurations(securityProvider, tokenConfiguration, ConfigurationParameters.EMPTY);
+        ConfigurationInitializer.initializeConfigurations(securityProvider, tokenConfiguration, ConfigurationParameters.EMPTY);
         securityProvider.setTokenConfiguration(tokenConfiguration);
 
         // Whiteboard
@@ -508,30 +506,6 @@ public class SecurityProviderRegistration {
         securityProvider.setWhiteboard(new OsgiWhiteboard(context));
 
         return securityProvider;
-    }
-
-    private static <T extends SecurityConfiguration> T initializeConfiguration(@Nonnull SecurityProvider securityProvider, @Nonnull T configuration) {
-        return initializeConfiguration(securityProvider, configuration, ConfigurationParameters.EMPTY);
-    }
-
-    private static <T extends SecurityConfiguration> T initializeConfiguration(@Nonnull SecurityProvider securityProvider, @Nonnull T configuration, @Nonnull ConfigurationParameters parameters) {
-        if (configuration instanceof ConfigurationBase) {
-            ConfigurationBase base = (ConfigurationBase) configuration;
-            base.setSecurityProvider(securityProvider);
-            base.setParameters(ConfigurationParameters.of(parameters, base.getParameters()));
-        }
-
-        return configuration;
-    }
-
-    private static void initializeConfigurations(@Nonnull SecurityProvider securityProvider,
-                                                 @Nonnull CompositeConfiguration configuration,
-                                                 @Nonnull ConfigurationParameters parameters) {
-        configuration.setSecurityProvider(securityProvider);
-        List<? extends SecurityConfiguration> configs = configuration.getConfigurations();
-        for (SecurityConfiguration config : configs) {
-            initializeConfiguration(securityProvider, config, parameters);
-        }
     }
 
     private RestrictionProvider createWhiteboardRestrictionProvider() {
