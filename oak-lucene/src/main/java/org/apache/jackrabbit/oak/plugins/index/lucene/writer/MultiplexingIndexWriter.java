@@ -93,6 +93,7 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
 
     private DefaultIndexWriter createWriter(Mount m) {
         String dirName = MultiplexersLucene.getIndexDirName(m);
-        return new DefaultIndexWriter(definition, definitionBuilder, indexCopier, dirName, reindex);
+        String suggestDirName = MultiplexersLucene.getSuggestDirName(m);
+        return new DefaultIndexWriter(definition, definitionBuilder, indexCopier, dirName, suggestDirName, reindex);
     }
 }

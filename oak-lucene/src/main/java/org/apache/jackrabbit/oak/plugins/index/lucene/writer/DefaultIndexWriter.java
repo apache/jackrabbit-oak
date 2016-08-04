@@ -59,16 +59,18 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private final NodeBuilder definitionBuilder;
     private final IndexCopier indexCopier;
     private final String dirName;
+    private final String suggestDirName;
     private final boolean reindex;
     private IndexWriter writer;
     private Directory directory;
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-                              @Nullable IndexCopier indexCopier, String dirName, boolean reindex){
+                              @Nullable IndexCopier indexCopier, String dirName, String suggestDirName, boolean reindex){
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.indexCopier = indexCopier;
         this.dirName = dirName;
+        this.suggestDirName = suggestDirName;
         this.reindex = reindex;
     }
 
@@ -153,9 +155,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * @param analyzer the analyzer used to update the suggester
      */
     private void updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
-        NodeBuilder suggesterStatus = definitionBuilder.child(SUGGEST_DATA_CHILD_NAME);
+        NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
         DirectoryReader reader = DirectoryReader.open(writer, false);
-        final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, SUGGEST_DATA_CHILD_NAME, definition, false);
+        final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, suggestDirName, definition, false);
         try {
             SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
@@ -177,7 +179,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         boolean updateSuggestions = false;
 
         if (definition.isSuggestEnabled()) {
-            NodeBuilder suggesterStatus = definitionBuilder.child(SUGGEST_DATA_CHILD_NAME);
+            NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
 
             PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
 

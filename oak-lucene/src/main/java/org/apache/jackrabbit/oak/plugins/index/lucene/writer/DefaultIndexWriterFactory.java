@@ -43,6 +43,6 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
             return new MultiplexingIndexWriter(indexCopier, mountInfoProvider, definition, definitionBuilder, reindex);
         }
         return new DefaultIndexWriter(definition, definitionBuilder, indexCopier,
-                LuceneIndexConstants.INDEX_DATA_CHILD_NAME, reindex);
+                LuceneIndexConstants.INDEX_DATA_CHILD_NAME, LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex);
     }
 }
