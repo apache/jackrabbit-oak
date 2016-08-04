@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 
@@ -36,13 +35,11 @@ public class DefaultIndexReader implements LuceneIndexReader {
     private final Directory directory;
     private final Directory suggestDirectory;
     private final IndexReader reader;
-    private final IndexSearcher searcher;
     private final AnalyzingInfixSuggester lookup;
 
     public DefaultIndexReader(Directory directory, @Nullable Directory suggestDirectory, Analyzer analyzer) throws IOException {
         this.directory = directory;
         this.reader = DirectoryReader.open(directory);
-        this.searcher = new IndexSearcher(reader);
         this.suggestDirectory = suggestDirectory;
         if (suggestDirectory != null) {
             this.lookup = SuggestHelper.getLookup(suggestDirectory, analyzer);
@@ -52,8 +49,8 @@ public class DefaultIndexReader implements LuceneIndexReader {
     }
 
     @Override
-    public IndexSearcher getSearcher() {
-        return searcher;
+    public IndexReader getReader() {
+        return reader;
     }
 
     @Override

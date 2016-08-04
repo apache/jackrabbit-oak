@@ -23,13 +23,13 @@ import java.io.Closeable;
 
 import javax.annotation.CheckForNull;
 
-import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 
 public interface LuceneIndexReader extends Closeable{
 
-    IndexSearcher getSearcher();
+    IndexReader getReader();
 
     @CheckForNull
     AnalyzingInfixSuggester getLookup();
