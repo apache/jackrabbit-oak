@@ -70,8 +70,9 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, callback, new DefaultIndexWriterFactory(indexCopier),
-                    extractedTextCache, augmentorFactory);
+            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, callback, new
+                    DefaultIndexWriterFactory(indexCopier), extractedTextCache, augmentorFactory);
+            return new LuceneIndexEditor(context);
         }
         return null;
     }
