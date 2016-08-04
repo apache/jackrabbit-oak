@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
@@ -335,7 +336,7 @@ public class LuceneIndexProviderService {
         if (enableCopyOnRead){
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
-            return new IndexTracker(indexCopier);
+            return new IndexTracker(new DefaultIndexReaderFactory(indexCopier));
         }
 
         return new IndexTracker();

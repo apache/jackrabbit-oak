@@ -181,7 +181,7 @@ public class MultiplexingIndexWriterTest {
         return MultiplexersLucene.getIndexDirName(m);
     }
 
-    private static Document newDoc(String path){
+    public static Document newDoc(String path){
         Document doc = new Document();
         doc.add(newPathField(path));
         return doc;

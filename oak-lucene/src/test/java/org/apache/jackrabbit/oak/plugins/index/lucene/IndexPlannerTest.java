@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.NT_TEST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.registerTestNodeType;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -43,13 +44,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -586,11 +592,11 @@ public class IndexPlannerTest {
     //------ END - Suggestion/spellcheck plan tests
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {
-        return new IndexNode("foo", defn, createSampleDirectory(numOfDocs), null);
+        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"));
     }
 
     private IndexNode createIndexNode(IndexDefinition defn) throws IOException {
-        return new IndexNode("foo", defn, createSampleDirectory(), null);
+        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"));
     }
 
     private FilterImpl createFilter(String nodeTypeName) {
@@ -628,5 +634,22 @@ public class IndexPlannerTest {
         }
         return node;
     }
+
+    private static class TestReaderFactory implements LuceneIndexReaderFactory {
+        final Directory directory;
+
+        private TestReaderFactory(Directory directory) {
+            this.directory = directory;
+        }
+
+        @Override
+        public List<LuceneIndexReader> createReaders(IndexDefinition definition, NodeState definitionState,
+                                                     String indexPath) throws IOException {
+            List<LuceneIndexReader> readers = new ArrayList<>();
+            readers.add(new DefaultIndexReader(directory, null, definition.getAnalyzer()));
+            return readers;
+        }
+    }
+
 
 }

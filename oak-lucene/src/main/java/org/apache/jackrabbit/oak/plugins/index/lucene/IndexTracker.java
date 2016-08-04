@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -55,7 +57,7 @@ class IndexTracker {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(IndexTracker.class.getName() + ".perf"));
 
-    private final IndexCopier cloner;
+    private final LuceneIndexReaderFactory readerFactory;
 
     private NodeState root = EMPTY_NODE;
 
@@ -64,11 +66,15 @@ class IndexTracker {
     private volatile boolean refresh;
 
     IndexTracker() {
-        this(null);
+        this((IndexCopier)null);
     }
 
     IndexTracker(IndexCopier cloner){
-        this.cloner = cloner;
+        this(new DefaultIndexReaderFactory(cloner));
+    }
+
+    IndexTracker(LuceneIndexReaderFactory readerFactory){
+        this.readerFactory = readerFactory;
     }
 
     synchronized void close() {
@@ -108,7 +114,7 @@ class IndexTracker {
                 public void leave(NodeState before, NodeState after) {
                     try {
                         long start = PERF_LOGGER.start();
-                        IndexNode index = IndexNode.open(path, root, after, cloner);
+                        IndexNode index = IndexNode.open(path, root, after, readerFactory);
                         PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
@@ -176,7 +182,7 @@ class IndexTracker {
 
         try {
             if (isLuceneIndexNode(node)) {
-                index = IndexNode.open(path, root, node, cloner);
+                index = IndexNode.open(path, root, node, readerFactory);
                 if (index != null) {
                     checkState(index.acquire());
                     indices = ImmutableMap.<String, IndexNode>builder()

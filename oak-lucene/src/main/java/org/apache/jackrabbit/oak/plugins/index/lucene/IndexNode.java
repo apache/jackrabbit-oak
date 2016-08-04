@@ -16,100 +16,52 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.Nullable;
 
+import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 
 class IndexNode {
 
-    static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState, @Nullable IndexCopier cloner)
+    static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState, LuceneIndexReaderFactory readerFactory)
             throws IOException {
-        Directory directory = null;
         IndexDefinition definition = new IndexDefinition(root, defnNodeState);
-        NodeState data = defnNodeState.getChildNode(INDEX_DATA_CHILD_NAME);
-        if (data.exists()) {
-            directory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), definition, true);
-            if (cloner != null) {
-                directory = cloner.wrapForRead(indexPath, definition, directory, LuceneIndexConstants.INDEX_DATA_CHILD_NAME);
-            }
-        } else if (PERSISTENCE_FILE.equalsIgnoreCase(defnNodeState.getString(PERSISTENCE_NAME))) {
-            String path = defnNodeState.getString(PERSISTENCE_PATH);
-            if (path != null && new File(path).exists()) {
-                directory = FSDirectory.open(new File(path));
-            }
+        List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState, indexPath);
+        if (!readers.isEmpty()){
+            return new IndexNode(PathUtils.getName(indexPath), definition, readers);
         }
-
-        if (directory != null) {
-            try {
-                OakDirectory suggestDirectory = null;
-                if (definition.isSuggestEnabled()) {
-                    suggestDirectory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), ":suggest-data", definition, true);
-                }
-
-                IndexNode index = new IndexNode(PathUtils.getName(indexPath), definition, directory, suggestDirectory);
-                directory = null; // closed in Index.close()
-                return index;
-            } finally {
-                if (directory != null) {
-                    directory.close();
-                }
-            }
-        }
-
         return null;
     }
+
+    private final List<LuceneIndexReader> readers;
 
     private final String name;
 
     private final IndexDefinition definition;
 
-    private final Directory directory;
-
-    private final Directory suggestDirectory;
-
-    private final IndexReader reader;
-
-    private final IndexSearcher searcher;
-
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-
-    private final AnalyzingInfixSuggester lookup;
 
     private boolean closed = false;
 
-    IndexNode(String name, IndexDefinition definition, Directory directory, final OakDirectory suggestDirectory)
+    IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers)
             throws IOException {
+        checkArgument(!readers.isEmpty());
         this.name = name;
         this.definition = definition;
-        this.directory = directory;
-        this.reader = DirectoryReader.open(directory);
-        this.searcher = new IndexSearcher(reader);
-        this.suggestDirectory = suggestDirectory;
-        if (suggestDirectory != null) {
-            this.lookup = SuggestHelper.getLookup(suggestDirectory, definition.getAnalyzer());
-        } else {
-            this.lookup = null;
-        }
+        this.readers = readers;
     }
 
     String getName() {
@@ -121,15 +73,15 @@ class IndexNode {
     }
 
     IndexSearcher getSearcher() {
-        return searcher;
+        return getDefaultReader().getSearcher();
     }
 
     Directory getSuggestDirectory() {
-        return suggestDirectory;
+        return getDefaultReader().getSuggestDirectory();
     }
 
     AnalyzingInfixSuggester getLookup() {
-        return lookup;
+        return getDefaultReader().getLookup();
     }
 
     boolean acquire() {
@@ -155,11 +107,15 @@ class IndexNode {
             lock.writeLock().unlock();
         }
 
-        try {
-            reader.close();
-        } finally {
-            directory.close();
-        }
+       for (LuceneIndexReader reader : readers){
+           reader.close();
+       }
+    }
+
+    private LuceneIndexReader getDefaultReader(){
+        Preconditions.checkArgument(readers.size() == 1, "Multiple readers provided. Default reader cannot be " +
+                "determined %s", readers);
+        return readers.get(0);
     }
 
 }
