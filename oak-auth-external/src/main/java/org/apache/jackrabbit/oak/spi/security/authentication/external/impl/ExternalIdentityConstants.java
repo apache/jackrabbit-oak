@@ -67,4 +67,15 @@ public interface ExternalIdentityConstants {
      */
     Set<String> RESERVED_PROPERTY_NAMES = ImmutableSet.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
 
+    /**
+     * Configuration parameter to enable special protection of external IDs
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4301">OAK-4301</a>
+     */
+    String PARAM_PROTECT_EXTERNAL_IDS = "protectExternalId";
+
+    /**
+     * Default value for {@link #PARAM_PROTECT_EXTERNAL_IDS}.
+     */
+    boolean DEFAULT_PROTECT_EXTERNAL_IDS = true;
 }
