@@ -118,9 +118,7 @@ class IndexNode {
     }
 
     private LuceneIndexReader getDefaultReader(){
-        //TODO This is still required to support Suggester, Spellcheck etc
-        Preconditions.checkArgument(readers.size() == 1, "Multiple readers provided. Default reader cannot be " +
-                "determined %s", readers);
+        //TODO This is still required to support Suggester, Spellcheck etc OAK-4643
         return readers.get(0);
     }
 
