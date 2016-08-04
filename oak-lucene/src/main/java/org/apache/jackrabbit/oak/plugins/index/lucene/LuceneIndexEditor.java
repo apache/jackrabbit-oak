@@ -85,6 +85,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private static final Logger log =
             LoggerFactory.getLogger(LuceneIndexEditor.class);
+
+    private static final long SMALL_BINARY = Long.getLong("oak.lucene.smallBinary", 16 * 1024);
+
     static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
 
     private final LuceneIndexEditorContext context;
@@ -948,6 +951,16 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         WriteOutContentHandler handler = new WriteOutContentHandler(context.getDefinition().getMaxExtractLength());
         long start = System.currentTimeMillis();
         long bytesRead = 0;
+        long length = v.length();
+        if (log.isDebugEnabled()) {
+            log.debug("Extracting {}, {} bytes, id {}", path, length, v.getContentIdentity());
+        }
+        String oldThreadName = null;
+        if (length > SMALL_BINARY) {
+            Thread t = Thread.currentThread();
+            oldThreadName = t.getName();
+            t.setName(oldThreadName + ": Extracting " + path + ", " + length + " bytes");
+        }
         try {
             CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
             try {
@@ -974,10 +987,20 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 context.getExtractedTextCache().put(v, ExtractedText.ERROR);
                 return TEXT_EXTRACTION_ERROR;
             }
+        } finally {
+            if (oldThreadName != null) {
+                Thread.currentThread().setName(oldThreadName);
+            }
         }
         String result = handler.toString();
         if (bytesRead > 0) {
-            context.recordTextExtractionStats(System.currentTimeMillis() - start, bytesRead, result.length());
+            long time = System.currentTimeMillis() - start;
+            int len = result.length();
+            context.recordTextExtractionStats(time, bytesRead, len);
+            if (log.isDebugEnabled()) {
+                log.debug("Extracting {} took {} ms, {} bytes read, {} text size", 
+                        path, time, bytesRead, len);
+            }
         }
         context.getExtractedTextCache().put(v,  new ExtractedText(ExtractionResult.SUCCESS, result));
         return result;
