@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,19 +36,15 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.BlobByteSource;
 import org.apache.lucene.document.Document;
@@ -104,8 +99,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private List<PropertyState> propertiesModified = Lists.newArrayList();
 
-    private final NodeState root;
-
     /**
      * Flag indicating if the current tree being traversed has a deleted parent.
      */
@@ -123,20 +116,14 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private final PathFilter.Result pathFilterResult;
 
-    LuceneIndexEditor(NodeState root, NodeBuilder definition,
-                        IndexUpdateCallback updateCallback,
-                        LuceneIndexWriterFactory writerFactory,
-                        ExtractedTextCache extractedTextCache,
-                      IndexAugmentorFactory augmentorFactory) throws CommitFailedException {
+    LuceneIndexEditor(LuceneIndexEditorContext context) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.context = new LuceneIndexEditorContext(root, definition,
-                updateCallback, writerFactory, extractedTextCache, augmentorFactory);
-        this.root = root;
+        this.context = context;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
-        this.pathFilterResult = context.getDefinition().getPathFilter().filter(getPath());
+        this.pathFilterResult = context.getDefinition().getPathFilter().filter(PathUtils.ROOT_PATH);
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
@@ -147,7 +134,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         this.name = name;
         this.path = null;
         this.context = parent.context;
-        this.root = parent.root;
         this.isDeleted = isDeleted;
         this.matcherState = matcherState;
         this.pathFilterResult = pathFilterResult;
