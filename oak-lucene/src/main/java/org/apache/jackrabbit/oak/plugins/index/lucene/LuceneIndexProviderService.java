@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactor
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -205,6 +206,9 @@ public class LuceneIndexProviderService {
     )
     private volatile PreExtractedTextProvider extractedTextProvider;
 
+    @Reference
+    private MountInfoProvider mountInfoProvider;
+
     private IndexCopier indexCopier;
 
     private File indexDir;
@@ -313,10 +317,10 @@ public class LuceneIndexProviderService {
         LuceneIndexEditorProvider editorProvider;
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
-            editorProvider = new LuceneIndexEditorProvider(indexCopier, extractedTextCache, augmentorFactory);
+            editorProvider = new LuceneIndexEditorProvider(indexCopier, extractedTextCache, augmentorFactory, mountInfoProvider);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
-            editorProvider = new LuceneIndexEditorProvider(null, extractedTextCache, augmentorFactory);
+            editorProvider = new LuceneIndexEditorProvider(null, extractedTextCache, augmentorFactory, mountInfoProvider);
         }
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, null));
         oakRegs.add(registerMBean(whiteboard,
