@@ -70,11 +70,11 @@ public class IndexWriterUtils {
         }
     }
 
-    public static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
+    public static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition, String dirName)
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition, indexDefinition, false);
+            return new OakDirectory(definition, dirName, indexDefinition, false);
         } else {
             // try {
             File file = new File(path);

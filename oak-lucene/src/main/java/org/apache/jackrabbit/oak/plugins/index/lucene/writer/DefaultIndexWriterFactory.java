@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
@@ -35,6 +36,7 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition definition,
                                          NodeBuilder definitionBuilder, boolean reindex) {
-        return new DefaultIndexWriter(definition, definitionBuilder, indexCopier, reindex);
+        return new DefaultIndexWriter(definition, definitionBuilder, indexCopier,
+                LuceneIndexConstants.INDEX_DATA_CHILD_NAME, reindex);
     }
 }

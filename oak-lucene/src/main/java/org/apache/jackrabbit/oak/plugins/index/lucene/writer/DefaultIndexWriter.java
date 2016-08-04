@@ -59,15 +59,17 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private final IndexDefinition definition;
     private final NodeBuilder definitionBuilder;
     private final IndexCopier indexCopier;
+    private final String dirName;
     private final boolean reindex;
     private IndexWriter writer;
     private Directory directory;
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-                              @Nullable IndexCopier indexCopier, boolean reindex){
+                              @Nullable IndexCopier indexCopier, String dirName, boolean reindex){
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.indexCopier = indexCopier;
+        this.dirName = dirName;
         this.reindex = reindex;
     }
 
@@ -128,10 +130,10 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder);
+            directory = newIndexDirectory(definition, definitionBuilder, dirName);
             IndexWriterConfig config;
             if (indexCopier != null){
-                directory = indexCopier.wrapForWrite(definition, directory, reindex, LuceneIndexConstants.INDEX_DATA_CHILD_NAME);
+                directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
                 config = getIndexWriterConfig(definition, false);
             } else {
                 config = getIndexWriterConfig(definition, true);
