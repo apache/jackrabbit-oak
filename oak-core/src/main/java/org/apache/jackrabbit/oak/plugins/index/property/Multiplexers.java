@@ -41,8 +41,9 @@ public class Multiplexers {
     static boolean RO_PRIVATE_UNIQUE_INDEX;
 
     static {
+        // TODO OAK-4645 set default to true once the code is stable
         String ro = System.getProperty(
-                "oak.multiplexing.readOnlyPrivateUniqueIndex", "true");
+                "oak.multiplexing.readOnlyPrivateUniqueIndex", "false");
         RO_PRIVATE_UNIQUE_INDEX = Boolean.parseBoolean(ro);
     }
 
