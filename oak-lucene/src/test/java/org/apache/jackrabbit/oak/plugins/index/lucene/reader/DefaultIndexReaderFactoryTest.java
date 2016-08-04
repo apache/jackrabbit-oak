@@ -69,14 +69,14 @@ public class DefaultIndexReaderFactoryTest {
         assertEquals(1, readers.size());
 
         LuceneIndexReader reader = readers.get(0);
-        assertNotNull(reader.getSearcher());
+        assertNotNull(reader.getReader());
         assertNull(reader.getSuggestDirectory());
         assertNull(reader.getLookup());
 
-        assertEquals(1, reader.getSearcher().getIndexReader().numDocs());
+        assertEquals(1, reader.getReader().numDocs());
 
         final AtomicBoolean closed = new AtomicBoolean();
-        reader.getSearcher().getIndexReader().addReaderClosedListener(new IndexReader.ReaderClosedListener() {
+        reader.getReader().addReaderClosedListener(new IndexReader.ReaderClosedListener() {
             @Override
             public void onClose(IndexReader reader) {
                 closed.set(true);
@@ -103,7 +103,7 @@ public class DefaultIndexReaderFactoryTest {
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
         LuceneIndexReader reader = readers.get(0);
-        assertNotNull(reader.getSearcher());
+        assertNotNull(reader.getReader());
         assertNotNull(reader.getSuggestDirectory());
         assertNotNull(reader.getLookup());
     }
@@ -142,7 +142,7 @@ public class DefaultIndexReaderFactoryTest {
 
         //Suggester should be present for all though it may be empty
         for (LuceneIndexReader reader : readers){
-            assertNotNull(reader.getSearcher());
+            assertNotNull(reader.getReader());
             assertNotNull(reader.getSuggestDirectory());
             assertNotNull(reader.getLookup());
         }

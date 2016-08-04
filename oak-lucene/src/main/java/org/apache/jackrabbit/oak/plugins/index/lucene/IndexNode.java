@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
@@ -54,6 +56,8 @@ class IndexNode {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
+    private final IndexSearcher indexSearcher;
+
     private boolean closed = false;
 
     IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers)
@@ -62,6 +66,7 @@ class IndexNode {
         this.name = name;
         this.definition = definition;
         this.readers = readers;
+        this.indexSearcher = new IndexSearcher(createReader(readers));
     }
 
     String getName() {
@@ -73,7 +78,7 @@ class IndexNode {
     }
 
     IndexSearcher getSearcher() {
-        return getDefaultReader().getSearcher();
+        return indexSearcher;
     }
 
     Directory getSuggestDirectory() {
@@ -113,9 +118,20 @@ class IndexNode {
     }
 
     private LuceneIndexReader getDefaultReader(){
+        //TODO This is still required to support Suggester, Spellcheck etc
         Preconditions.checkArgument(readers.size() == 1, "Multiple readers provided. Default reader cannot be " +
                 "determined %s", readers);
         return readers.get(0);
     }
 
+    private IndexReader createReader(List<LuceneIndexReader> readers) {
+        if (readers.size() == 1){
+            return readers.get(0).getReader();
+        }
+        IndexReader[] readerArr = new IndexReader[readers.size()];
+        for (int i = 0; i < readerArr.length; i++) {
+            readerArr[i] = readers.get(i).getReader();
+        }
+        return new MultiReader(readerArr, true);
+    }
 }

@@ -84,6 +84,7 @@ import java.util.concurrent.Executors;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1363,6 +1364,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithStringAndLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar", "baz"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, ImmutableSet.of("foo", "baz"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("baz");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
@@ -2394,7 +2396,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return createIndex(index, name, propNames);
     }
 
-    private Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
+    static Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
@@ -2444,7 +2446,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return paths;
     }
 
-    private static List<String> getSortedPaths(List<Tuple2> tuples) {
+    static List<String> getSortedPaths(List<Tuple2> tuples) {
         Collections.sort(tuples);
         List<String> paths = Lists.newArrayListWithCapacity(tuples.size());
         for (Tuple2 t : tuples) {
@@ -2453,7 +2455,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return paths;
     }
 
-    private static List<Long> createLongs(int n){
+    static List<Long> createLongs(int n){
         List<Long> values = Lists.newArrayListWithCapacity(n);
         for (long i = 0; i < n; i++){
             values.add(i);
@@ -2472,7 +2474,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return values;
     }
 
-    private static List<String> createStrings(int n){
+    static List<String> createStrings(int n){
         List<String> values = Lists.newArrayListWithCapacity(n);
         for (long i = 0; i < n; i++){
             values.add(String.format("value%04d",i));
@@ -2514,12 +2516,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
     }
 
-    private static class Tuple2 implements Comparable<Tuple2>{
+    static class Tuple2 implements Comparable<Tuple2>{
         final Comparable value;
         final Comparable value2;
         final String path;
 
-        private Tuple2(Comparable value, Comparable value2, String path) {
+        public Tuple2(Comparable value, Comparable value2, String path) {
             this.value = value;
             this.value2 = value2;
             this.path = path;
