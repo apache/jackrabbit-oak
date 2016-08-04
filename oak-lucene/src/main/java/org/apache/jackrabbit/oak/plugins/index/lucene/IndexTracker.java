@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
@@ -70,7 +71,7 @@ class IndexTracker {
     }
 
     IndexTracker(IndexCopier cloner){
-        this(new DefaultIndexReaderFactory(cloner));
+        this(new DefaultIndexReaderFactory(Mounts.defaultMountInfoProvider(), cloner));
     }
 
     IndexTracker(LuceneIndexReaderFactory readerFactory){

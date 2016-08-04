@@ -336,7 +336,7 @@ public class LuceneIndexProviderService {
         if (enableCopyOnRead){
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
-            return new IndexTracker(new DefaultIndexReaderFactory(indexCopier));
+            return new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier));
         }
 
         return new IndexTracker();

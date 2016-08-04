@@ -51,7 +51,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void emptyDir() throws Exception{
-        LuceneIndexReaderFactory factory = new DefaultIndexReaderFactory(null);
+        LuceneIndexReaderFactory factory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = factory.createReaders(defn, EMPTY_NODE,"/foo");
         assertTrue(readers.isEmpty());
     }
@@ -64,7 +64,7 @@ public class DefaultIndexReaderFactoryTest {
         writer.updateDocument("/content/en", newDoc("/content/en"));
         writer.close(0);
 
-        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(null);
+        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
         assertEquals(1, readers.size());
 
@@ -100,12 +100,52 @@ public class DefaultIndexReaderFactoryTest {
         writer.updateDocument("/content/en", doc);
         writer.close(0);
 
-        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(null);
+        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
         LuceneIndexReader reader = readers.get(0);
         assertNotNull(reader.getSearcher());
         assertNotNull(reader.getSuggestDirectory());
         assertNotNull(reader.getLookup());
+    }
+
+    @Test
+    public void multipleReaders() throws Exception{
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+
+        writer.updateDocument("/content/en", newDoc("/content/en"));
+        writer.updateDocument("/libs/config", newDoc("/libs/config"));
+        writer.close(0);
+
+        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        assertEquals(2, readers.size());
+    }
+
+    @Test
+    public void multipleReaders_SingleSuggester() throws Exception{
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        enabledSuggestorForSomeProp();
+        defn = new IndexDefinition(root, builder.getNodeState());
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+
+        //Suggester field is only present for document in default mount
+        Document doc = newDoc("/content/en");
+        doc.add(new StringField(FieldNames.SUGGEST, "test", null));
+        writer.updateDocument("/content/en", doc);
+
+        writer.updateDocument("/libs/config", newDoc("/libs/config"));
+        writer.close(0);
+
+        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+
+        //Suggester should be present for all though it may be empty
+        for (LuceneIndexReader reader : readers){
+            assertNotNull(reader.getSearcher());
+            assertNotNull(reader.getSuggestDirectory());
+            assertNotNull(reader.getLookup());
+        }
     }
 
     private void enabledSuggestorForSomeProp(){

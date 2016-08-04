@@ -31,6 +31,9 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.store.Directory;
@@ -44,17 +47,46 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 
 public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
     private final IndexCopier cloner;
+    private final MountInfoProvider mountInfoProvider;
 
-    public DefaultIndexReaderFactory(@Nullable IndexCopier cloner) {
+    public DefaultIndexReaderFactory(MountInfoProvider mountInfoProvider, @Nullable IndexCopier cloner) {
         this.cloner = cloner;
+        this.mountInfoProvider = mountInfoProvider;
     }
 
     @Override
     public List<LuceneIndexReader> createReaders(IndexDefinition definition, NodeState defnState,
                                                  String indexPath) throws IOException {
-        LuceneIndexReader reader = createReader(definition, defnState, indexPath,
-                INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME);
-        return reader != null ? ImmutableList.of(reader) : Collections.<LuceneIndexReader>emptyList();
+        if (!mountInfoProvider.hasNonDefaultMounts()) {
+            LuceneIndexReader reader = createReader(definition, defnState, indexPath,
+                    INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME);
+            return reader != null ? ImmutableList.of(reader) : Collections.<LuceneIndexReader>emptyList();
+        } else {
+            return createMountedReaders(definition, defnState, indexPath);
+        }
+    }
+
+    private List<LuceneIndexReader> createMountedReaders(IndexDefinition definition, NodeState defnState, String
+            indexPath) throws IOException {
+        ImmutableList.Builder<LuceneIndexReader> readers = ImmutableList.builder();
+        LuceneIndexReader reader = createReader(mountInfoProvider.getDefaultMount(), definition, defnState, indexPath);
+        if (reader != null) {
+            readers.add(reader);
+        }
+        for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
+            reader = createReader(m, definition, defnState, indexPath);
+            if (reader != null) {
+                readers.add(reader);
+            }
+        }
+        return readers.build();
+    }
+
+    @CheckForNull
+    private LuceneIndexReader createReader(Mount mount, IndexDefinition definition, NodeState defnNodeState,
+                                           String indexPath) throws IOException {
+        return createReader(definition, defnNodeState, indexPath, MultiplexersLucene.getIndexDirName(mount),
+                MultiplexersLucene.getSuggestDirName(mount));
     }
 
     @CheckForNull
