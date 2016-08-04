@@ -372,13 +372,13 @@ public class LuceneIndexTest {
     }
 
     private void purgeDeletedDocs(NodeBuilder idx, IndexDefinition definition) throws IOException {
-        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx), getIndexWriterConfig(definition, true));
+        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx, LuceneIndexConstants.INDEX_DATA_CHILD_NAME), getIndexWriterConfig(definition, true));
         writer.forceMergeDeletes();
         writer.close();
     }
 
     public int getDeletedDocCount(NodeBuilder idx, IndexDefinition definition) throws IOException {
-        IndexReader reader = DirectoryReader.open(newIndexDirectory(definition, idx));
+        IndexReader reader = DirectoryReader.open(newIndexDirectory(definition, idx, LuceneIndexConstants.INDEX_DATA_CHILD_NAME));
         int numDeletes = reader.numDeletedDocs();
         reader.close();
         return numDeletes;
