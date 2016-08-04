@@ -50,6 +50,16 @@ import static org.junit.Assert.assertTrue;
  */
 public class ExternalIdentityImporterTest {
 
+    public static final String XML_EXTERNAL_USER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+            "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+            "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+            "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+            "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>tPrinc</sv:value></sv:property>" +
+            "   <sv:property sv:name=\"rep:externalId\" sv:type=\"String\"><sv:value>idp;ext-t</sv:value></sv:property>" +
+            "   <sv:property sv:name=\"rep:lastSynced\" sv:type=\"Date\"><sv:value>2016-05-03T10:03:08.061+02:00</sv:value></sv:property>" +
+            "</sv:node>";
+
     public static final String XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
             "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
             "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
@@ -130,6 +140,20 @@ public class ExternalIdentityImporterTest {
         for (String pN : propertyNames) {
             assertFalse(node.hasProperty(pN));
         }
+    }
+
+    @Test
+    public void importExternalUser() throws Exception {
+        Node parent = doImport(createSession(false), UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
+        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID, ExternalIdentityConstants.REP_LAST_SYNCED);
+        assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    }
+
+    @Test
+    public void importExternalUserAsSystem() throws Exception {
+        Node parent = doImport(createSession(true), UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
+        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID, ExternalIdentityConstants.REP_LAST_SYNCED);
+        assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
     }
 
     @Test

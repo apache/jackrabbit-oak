@@ -32,7 +32,16 @@ import static org.junit.Assert.assertTrue;
 public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalAuthTest {
 
     @Test
-    public void testIndexDefinitions() throws Exception {
+    public void testExternalIdIndexDefinition() throws Exception {
+        Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
+        assertTrue(oakIndex.exists());
+
+        Tree externalIdIndex = oakIndex.getChild("externalId");
+        assertIndexDefinition(externalIdIndex, ExternalIdentityConstants.REP_EXTERNAL_ID, true);
+    }
+
+    @Test
+    public void testPrincipalNamesIndexDefinition() throws Exception {
         Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertTrue(oakIndex.exists());
 

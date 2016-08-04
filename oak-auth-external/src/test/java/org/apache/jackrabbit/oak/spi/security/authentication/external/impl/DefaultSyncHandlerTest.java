@@ -26,6 +26,7 @@ import javax.jcr.Value;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
@@ -145,10 +146,12 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     public void testFindIdentityWithRemovedExternalId() throws Exception {
         sync(USER_ID, false);
 
-        // NOTE: this is only possible as long the rep:externalId property is not protected
+        // NOTE: use system-root to remove the protected rep:externalId property (since Oak 1.5.8)
         Authorizable authorizable = userManager.getAuthorizable(USER_ID);
-        authorizable.removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
-        root.commit();
+        Root systemRoot = getSystemRoot();
+        systemRoot.getTree(authorizable.getPath()).removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
+        systemRoot.commit();
+        root.refresh();
 
         SyncedIdentity si = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull(si);

@@ -34,6 +34,8 @@ import com.google.common.collect.Iterables;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -48,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
@@ -78,6 +81,12 @@ import org.slf4j.LoggerFactory;
         immediate = true
 )
 @Service({PrincipalConfiguration.class, SecurityConfiguration.class})
+@Properties({
+        @Property(name = ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS,
+                label = "External Identity Protection",
+                description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
+                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS)
+})
 public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalPrincipalConfiguration.class);
@@ -122,13 +131,13 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @Nonnull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new ExternalIdentityRepositoryInitializer();
+        return new ExternalIdentityRepositoryInitializer(protectedExternalIds());
     }
 
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
-        return ImmutableList.of(new ExternalIdentityValidatorProvider(principals));
+        return ImmutableList.of(new ExternalIdentityValidatorProvider(principals, protectedExternalIds()));
     }
 
     @Nonnull
@@ -166,6 +175,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
     private boolean dynamicMembershipEnabled() {
         return syncConfigTracker != null && syncConfigTracker.isEnabled;
+    }
+
+    private boolean protectedExternalIds() {
+        return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS);
     }
 
     /**
