@@ -23,12 +23,15 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 
 public final class MultiplexersLucene {
     /**
      * Prefix used to decorate mount names to represent index directory
      */
     private static final String INDEX_DIR_SUFFIX = "-index-data";
+
+    private static final String SUGGEST_DIR_SUFFIX = "-suggest-data";
 
     public static String getIndexDirName(Mount mount) {
         if (mount.isDefault()){
@@ -49,5 +52,18 @@ public final class MultiplexersLucene {
     public static boolean isIndexDirName(String name) {
         return name.endsWith(INDEX_DIR_SUFFIX)
                 || name.equals(INDEX_DATA_CHILD_NAME);
+    }
+
+    public static String getSuggestDirName(Mount mount) {
+        if (mount.isDefault()){
+            return SUGGEST_DATA_CHILD_NAME;
+        }
+        String name = mount.getPathFragmentName();
+        return ":" + name + SUGGEST_DIR_SUFFIX;
+    }
+
+    public static boolean isSuggestIndexDirName(String name) {
+        return name.endsWith(SUGGEST_DIR_SUFFIX)
+                || name.equals(SUGGEST_DATA_CHILD_NAME);
     }
 }

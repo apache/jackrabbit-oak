@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertFalse;
@@ -40,21 +41,21 @@ public class DefaultIndexWriterTest {
     @Test
     public void lazyInit() throws Exception {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, false);
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
         assertFalse(writer.close(0));
     }
 
     @Test
     public void writeInitializedUponReindex() throws Exception {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, true);
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
         assertTrue(writer.close(0));
     }
 
     @Test
     public void indexUpdated() throws Exception {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, false);
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
 
         Document document = new Document();
         document.add(newPathField("/a/b"));
