@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
@@ -59,8 +61,6 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
@@ -72,7 +72,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.*;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 /**
@@ -126,14 +125,14 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
                         IndexUpdateCallback updateCallback,
-                        @Nullable IndexCopier indexCopier,
+                        LuceneIndexWriterFactory writerFactory,
                         ExtractedTextCache extractedTextCache,
                       IndexAugmentorFactory augmentorFactory) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
         this.context = new LuceneIndexEditorContext(root, definition,
-                updateCallback, indexCopier, extractedTextCache, augmentorFactory);
+                updateCallback, writerFactory, extractedTextCache, augmentorFactory);
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
@@ -272,10 +271,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             // tree deletion is handled on the parent node
             String path = concat(getPath(), name);
             try {
-                IndexWriter writer = context.getWriter();
+                LuceneIndexWriter writer = context.getWriter();
                 // Remove all index entries in the removed subtree
-                writer.deleteDocuments(newPathTerm(path));
-                writer.deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
+                writer.deleteDocuments(path);
                 this.context.indexUpdate();
             } catch (IOException e) {
                 throw new CommitFailedException("Lucene", 5,
@@ -300,7 +298,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     log.trace("[{}] Indexed document for {} is {}", getIndexName(), path, d);
                 }
                 context.indexUpdate();
-                context.getWriter().updateDocument(newPathTerm(path), d);
+                context.getWriter().updateDocument(path, d);
                 return true;
             }
         } catch (IOException e) {
