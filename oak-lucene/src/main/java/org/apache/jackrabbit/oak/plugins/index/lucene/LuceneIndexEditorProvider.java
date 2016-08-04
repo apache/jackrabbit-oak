@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -69,7 +70,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, callback, indexCopier, extractedTextCache, augmentorFactory);
+            return new LuceneIndexEditor(root, definition, callback, new DefaultIndexWriterFactory(indexCopier),
+                    extractedTextCache, augmentorFactory);
         }
         return null;
     }
