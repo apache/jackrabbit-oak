@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -30,9 +36,7 @@ import org.apache.felix.scr.annotations.References;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
@@ -57,12 +61,6 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
@@ -474,10 +472,10 @@ public class SecurityProviderRegistration {
 
         // Static, mandatory references
 
-        securityProvider.setAuthenticationConfiguration(initializeConfiguration(securityProvider, authenticationConfiguration));
+        securityProvider.setAuthenticationConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, authenticationConfiguration));
         securityProvider.setAuthorizationConfiguration(initializeConfiguration(securityProvider, authorizationConfiguration));
         securityProvider.setUserConfiguration(initializeConfiguration(securityProvider, userConfiguration));
-        securityProvider.setPrivilegeConfiguration(initializeConfiguration(securityProvider, privilegeConfiguration));
+        securityProvider.setPrivilegeConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, privilegeConfiguration));
 
         // Multiple, dynamic references
 
@@ -499,7 +497,7 @@ public class SecurityProviderRegistration {
                 ArrayList<PrincipalConfiguration> configurations = newArrayList(principalConfigurations);
 
                 for (PrincipalConfiguration configuration : configurations) {
-                    initializeConfiguration(getSecurityProvider(), configuration);
+                    ConfigurationInitializer.initializeConfiguration(getSecurityProvider(), configuration);
                 }
 
                 return configurations;
@@ -516,7 +514,7 @@ public class SecurityProviderRegistration {
                 List<TokenConfiguration> configurations = newArrayList(tokenConfigurations);
 
                 for (TokenConfiguration configuration : configurations) {
-                    initializeConfiguration(getSecurityProvider(), configuration);
+                    ConfigurationInitializer.initializeConfiguration(getSecurityProvider(), configuration);
                 }
 
                 return configurations;
@@ -526,31 +524,17 @@ public class SecurityProviderRegistration {
     }
 
     private AuthorizationConfiguration initializeConfiguration(SecurityProvider securityProvider, AuthorizationConfiguration authorizationConfiguration) {
-        return initializeConfiguration(securityProvider, authorizationConfiguration, ConfigurationParameters.of(
+        return ConfigurationInitializer.initializeConfiguration(securityProvider, authorizationConfiguration, ConfigurationParameters.of(
                 AccessControlConstants.PARAM_RESTRICTION_PROVIDER, createCompositeRestrictionProvider()
         ));
     }
 
     private UserConfiguration initializeConfiguration(SecurityProvider securityProvider, UserConfiguration userConfiguration) {
-        return initializeConfiguration(securityProvider, userConfiguration, ConfigurationParameters.of(
+        return ConfigurationInitializer.initializeConfiguration(securityProvider, userConfiguration, ConfigurationParameters.of(
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createCompositeAuthorizableActionProvider()),
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createCompositeAuthorizableNodeName()),
                 ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, createCompositeUserAuthenticationFactory())
         ));
-    }
-
-    private <T extends SecurityConfiguration> T initializeConfiguration(SecurityProvider securityProvider, T configuration) {
-        return initializeConfiguration(securityProvider, configuration, ConfigurationParameters.EMPTY);
-    }
-
-    private <T extends SecurityConfiguration> T initializeConfiguration(SecurityProvider securityProvider, T configuration, ConfigurationParameters parameters) {
-        if (configuration instanceof ConfigurationBase) {
-            ConfigurationBase base = (ConfigurationBase) configuration;
-            base.setSecurityProvider(securityProvider);
-            base.setParameters(ConfigurationParameters.of(parameters, base.getParameters()));
-        }
-
-        return configuration;
     }
 
     private RestrictionProvider createCompositeRestrictionProvider() {
