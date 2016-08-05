@@ -83,6 +83,17 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
         }
         return mounts;
     }
+    
+    @Override
+    public Collection<Mount> getMountsPlacedDirectlyUnder(String path) {
+        Collection<Mount> mounts = Lists.newArrayList();
+        for ( Mount mount : this.mounts.values()) {
+            if ( mount.isDirectlyUnder(path) ) {
+                mounts.add(mount);
+            }
+        }
+        return mounts;
+    }    
 
     @Override
     public Mount getDefaultMount() {

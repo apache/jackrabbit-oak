@@ -95,4 +95,6 @@ public interface Mount {
      * @return true if this Mount is rooted under given path
      */
     boolean isUnder(String path);
+
+    boolean isDirectlyUnder(String path);
 }

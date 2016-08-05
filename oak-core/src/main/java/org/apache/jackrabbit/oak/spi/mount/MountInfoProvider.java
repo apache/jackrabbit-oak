@@ -68,6 +68,9 @@ public interface MountInfoProvider {
      */
     @Nonnull
     Collection<Mount> getMountsPlacedUnder(String path);
+    
+    @Nonnull
+    Collection<Mount> getMountsPlacedDirectlyUnder(String path);
 
     /**
      * Returns the default mount

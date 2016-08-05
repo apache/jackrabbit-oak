@@ -52,6 +52,10 @@ public final class Mounts {
         public Collection<Mount> getMountsPlacedUnder(String path) {
             return Collections.emptySet();
         }
+        
+        public Collection<Mount> getMountsPlacedDirectlyUnder(String path) {
+            return Collections.emptySet();
+        }
 
         @Override
         public Mount getDefaultMount() {
@@ -111,6 +115,16 @@ public final class Mounts {
         public boolean isUnder(String path) {
             for (Mount m : mounts) {
                 if (m.isMounted(path)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        @Override
+        public boolean isDirectlyUnder(String path) {
+            for (Mount m : mounts) {
+                if (m.isDirectlyUnder(path)) {
                     return false;
                 }
             }
