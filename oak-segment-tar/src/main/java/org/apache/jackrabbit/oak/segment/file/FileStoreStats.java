@@ -34,16 +34,20 @@ import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     public static final String SEGMENT_REPO_SIZE = "SEGMENT_REPO_SIZE";
     public static final String SEGMENT_WRITES = "SEGMENT_WRITES";
+    public static final String JOURNAL_WRITES = "JOURNAL_WRITES";
+    
     private final StatisticsProvider statisticsProvider;
     private final FileStore store;
     private final MeterStats writeStats;
     private final CounterStats repoSize;
-
+    private final MeterStats journalWriteStats;
+    
     public FileStoreStats(StatisticsProvider statisticsProvider, FileStore store, long initialSize) {
         this.statisticsProvider = statisticsProvider;
         this.store = store;
         this.writeStats = statisticsProvider.getMeter(SEGMENT_WRITES, StatsOptions.DEFAULT);
         this.repoSize = statisticsProvider.getCounterStats(SEGMENT_REPO_SIZE, StatsOptions.DEFAULT);
+        this.journalWriteStats = statisticsProvider.getMeter(JOURNAL_WRITES, StatsOptions.DEFAULT);
         repoSize.inc(initialSize);
     }
 
@@ -58,6 +62,11 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     @Override
     public void reclaimed(long size) {
         repoSize.dec(size);
+    }
+    
+    @Override
+    public void flushed() {
+        journalWriteStats.mark();
     }
 
     //~--------------------------------< FileStoreStatsMBean >
@@ -90,6 +99,11 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
                 "Number of tar files : %d",
                 IOUtils.humanReadableByteCount(getApproximateSize()),
                 getTarFileCount());
+    }
+    
+    @Override
+    public CompositeData getJournalWriteStats() {
+        return asCompositeData(getTimeSeries(JOURNAL_WRITES), JOURNAL_WRITES);
     }
 
     private TimeSeries getTimeSeries(String name) {
