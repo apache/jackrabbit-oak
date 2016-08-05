@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
@@ -25,10 +26,13 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASY
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -453,6 +457,71 @@ public class IndexUpdateTest {
         long t2 = getReindexCount(indexed);
 
         assertTrue(t2 > t1);
+    }
+
+    @Test
+    public void contextAwareCallback() throws Exception{
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        CommitInfo info = new CommitInfo("foo", "bar");
+        NodeState indexed = hook.processCommit(before, after, info);
+
+        assertNotNull(provider.callback);
+        assertThat(provider.callback, instanceOf(ContextAwareCallback.class));
+        ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
+        IndexingContext context = contextualCallback.getIndexingContext();
+
+        assertNotNull(context);
+        assertEquals("/oak:index/rootIndex", context.getIndexPath());
+        assertTrue(context.isReindexing());
+        assertFalse(context.isAsync());
+        assertSame(info, context.getCommitInfo());
+
+        before = indexed;
+        builder = indexed.builder();
+        builder.child("a").setProperty("foo", "bar");
+        after = builder.getNodeState();
+
+        hook.processCommit(before, after, info);
+        assertFalse(((ContextAwareCallback)provider.callback).getIndexingContext().isReindexing());
+    }
+
+    @Test
+    public void contextAwareCallback_async() throws Exception{
+        NodeState before = builder.getNodeState();
+        NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        idx.setProperty("async", asList("sync", "async"), Type.STRINGS);
+
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider, "async", false));
+
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        assertTrue(((ContextAwareCallback)provider.callback).getIndexingContext().isAsync());
+    }
+
+    private static class CallbackCapturingProvider extends PropertyIndexEditorProvider {
+        IndexUpdateCallback callback;
+
+        @Override
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+            Editor editor = super.getIndexEditor(type, definition, root, callback);
+            if (editor != null){
+                this.callback = callback;
+            }
+            return editor;
+        }
     }
 
 
