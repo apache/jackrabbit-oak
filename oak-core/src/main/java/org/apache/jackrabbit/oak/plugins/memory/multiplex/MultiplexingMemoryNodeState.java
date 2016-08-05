@@ -25,12 +25,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-public class MultiplexingMemoryNodeState implements NodeState {
+public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
     // TODO - decide whether we need to handle here extraneous content in mounted stores
     // 
@@ -62,7 +62,6 @@ public class MultiplexingMemoryNodeState implements NodeState {
     }
     
     // delegate all property access to wrapped node
-
     @Override
     public boolean hasProperty(String name) {
         return wrapped.hasProperty(name);
@@ -71,36 +70,6 @@ public class MultiplexingMemoryNodeState implements NodeState {
     @Override
     public PropertyState getProperty(String name) {
         return wrapped.getProperty(name);
-    }
-
-    @Override
-    public boolean getBoolean(String name) {
-        return wrapped.getBoolean(name);
-    }
-
-    @Override
-    public long getLong(String name) {
-        return wrapped.getLong(name);
-    }
-
-    @Override
-    public String getString(String name) {
-        return wrapped.getString(name);
-    }
-
-    @Override
-    public Iterable<String> getStrings(String name) {
-        return wrapped.getStrings(name);
-    }
-
-    @Override
-    public String getName(String name) {
-        return wrapped.getName(name);
-    }
-
-    @Override
-    public Iterable<String> getNames(String name) {
-        return wrapped.getNames(name);
     }
 
     @Override
@@ -209,28 +178,6 @@ public class MultiplexingMemoryNodeState implements NodeState {
         return count;
     }
 
-    private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
-        NodeState match = mountedNodeStore.getNodeStore().getRoot();
-        
-        match = getChildNode(match, nodePath);
-        return match;
-    }
-
-    private NodeState getChildNode(NodeState root, String path) {
-        
-        // TODO - do we need to call 'exists()' at any point?
-        for ( String element : PathUtils.elements(path) ) {
-            root = root.getChildNode(element);
-        }
-        return root;
-    }
-
-    @Override
-    public Iterable<String> getChildNodeNames() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         // TODO Auto-generated method stub
@@ -245,10 +192,21 @@ public class MultiplexingMemoryNodeState implements NodeState {
         return null;
     }
 
-    @Override
-    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        // TODO Auto-generated method stub
-        return false;
+    // helper methods
+
+    private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
+        NodeState match = mountedNodeStore.getNodeStore().getRoot();
+        match = getChildNode(match, nodePath);
+        return match;
     }
+
+    private NodeState getChildNode(NodeState root, String path) {
+        
+        // TODO - do we need to call 'exists()' at any point?
+        for ( String element : PathUtils.elements(path) ) {
+            root = root.getChildNode(element);
+        }
+        return root;
+    }    
 
 }
