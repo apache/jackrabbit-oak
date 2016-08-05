@@ -34,6 +34,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWr
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -243,7 +245,7 @@ class MutableRoot implements Root {
         checkLive();
         ContentSession session = getContentSession();
         CommitInfo commitInfo = new CommitInfo(
-                session.toString(), session.getAuthInfo().getUserID(), info);
+                session.toString(), session.getAuthInfo().getUserID(), newInfoWithCommitContext(info));
         store.merge(builder, getCommitHook(), commitInfo);
         secureBuilder.baseChanged();
         modCount = 0;
@@ -267,7 +269,7 @@ class MutableRoot implements Root {
      */
     private CommitHook getCommitHook() {
         List<CommitHook> hooks = newArrayList();
-
+        hooks.add(ResetCommitAttributeHook.INSTANCE);
         hooks.add(hook);
 
         List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
@@ -363,6 +365,13 @@ class MutableRoot implements Root {
     @Nonnull
     private AuthorizationConfiguration getAcConfig() {
         return securityProvider.getConfiguration(AuthorizationConfiguration.class);
+    }
+
+    private static Map<String, Object> newInfoWithCommitContext(Map<String, Object> info){
+        return ImmutableMap.<String, Object>builder()
+                .putAll(info)
+                .put(CommitContext.NAME, new SimpleCommitContext())
+                .build();
     }
 
     //---------------------------------------------------------< MoveRecord >---
