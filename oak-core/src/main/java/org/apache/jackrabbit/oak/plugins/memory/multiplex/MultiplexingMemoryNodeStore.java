@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -43,6 +47,12 @@ import com.google.common.collect.Lists;
  *
  */
 public class MultiplexingMemoryNodeStore implements NodeStore {
+    
+    private static final char CHECKPOINT_MARKER = '|';
+
+    private static final Splitter CHECKPOINT_SPLITTER = Splitter.on(CHECKPOINT_MARKER);
+
+    private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
     
     private final MountInfoProvider mip;
     private MountedNodeStore globalStore;
@@ -93,26 +103,48 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
 
     @Override
     public String checkpoint(long lifetime, Map<String, String> properties) {
-        // TODO Auto-generated method stub
-        return null;
+        
+        // This implementation does a best-effort attempt to join all the returned checkpoints
+        // In case of failure it bails out
+        List<String> checkpoints = Lists.newArrayList();
+        addCheckpoint(globalStore, lifetime, properties, checkpoints);
+        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
+            addCheckpoint(mountedNodeStore, lifetime, properties, checkpoints);
+        }
+        
+        return CHECKPOINT_JOINER.join(checkpoints);
+    }
+    
+    private void addCheckpoint(MountedNodeStore store, long lifetime, Map<String, String> properties, List<String> accumulator) {
+        
+        MemoryNodeStore nodeStore = store.getNodeStore();
+        String checkpoint = nodeStore.checkpoint(lifetime, properties);
+        Preconditions.checkArgument(checkpoint.indexOf(CHECKPOINT_MARKER) == -1, 
+                "Checkpoint %s created by NodeStore %s mounted at %s contains the invalid entry %s. Unable to add checkpoint.", 
+                checkpoint, nodeStore, store.getMount().getName(), CHECKPOINT_MARKER );
+        
+        accumulator.add(checkpoint);
     }
 
     @Override
     public String checkpoint(long lifetime) {
-        // TODO Auto-generated method stub
-        return null;
+        return checkpoint(lifetime, Collections. <String, String> emptyMap());
     }
 
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
+        
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public NodeState retrieve(String checkpoint) {
-        // TODO Auto-generated method stub
-        return null;
+        
+        // TODO - proper validation of checkpoints size
+        List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
+        // global store is always first
+        return new MultiplexingMemoryNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), mip, globalStore, nonDefaultStores, checkpoints);
     }
 
     @Override

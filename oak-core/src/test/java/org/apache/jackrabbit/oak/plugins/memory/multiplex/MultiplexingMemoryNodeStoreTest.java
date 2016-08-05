@@ -20,8 +20,11 @@ package org.apache.jackrabbit.oak.plugins.memory.multiplex;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -170,5 +173,32 @@ public class MultiplexingMemoryNodeStoreTest {
         assertTrue(globalStore.getRoot().getChildNode("tmp").hasChildNode("oops"));
 
         assertFalse(store.getRoot().getChildNode("tmp").hasChildNode("oops"));
+    }
+    
+    @Test
+    public void checkpoint() throws Exception {
+        
+        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(1));
+        
+        assertNotNull("checkpoint reference is null", checkpoint);
+        
+        // create a new child /new in the root store
+        NodeBuilder globalBuilder = globalStore.getRoot().builder();
+        globalBuilder.child("new");
+        globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        // create a new child /tmp/new in the mounted store
+        NodeBuilder mountedBuilder = mountedStore.getRoot().builder();
+        mountedBuilder.getChildNode("tmp").child("new");
+        mountedStore.merge(mountedBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        // create a new child /libs/mount/new in the deeply mounted store
+        NodeBuilder deepMountBuilder = deepMountedStore.getRoot().builder();
+        deepMountBuilder.getChildNode("libs").getChildNode("mount").child("new");
+        deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertFalse("store incorrectly exposes child at /new", store.retrieve(checkpoint).hasChildNode("new"));
+        assertFalse("store incorrectly exposes child at /tmp/new", store.retrieve(checkpoint).getChildNode("tmp").hasChildNode("new"));
+        assertFalse("store incorrectly exposes child at /libs/mount/new", store.retrieve(checkpoint).getChildNode("libs").getChildNode("mount").hasChildNode("new"));
     }
 }

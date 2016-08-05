@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -53,14 +54,22 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     private final MountInfoProvider mip;
     private final MountedNodeStore globalStore;
     private final List<MountedNodeStore> nonDefaultStores;
-    
-    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
+    private final List<String> checkpoints;
+
+    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores, List<String> checkpoints) {
         
         this.path = path;
         this.wrapped = wrapped;
         this.mip = mip;
         this.globalStore = globalStore;
         this.nonDefaultStores = nonDefaultStores;
+        this.checkpoints = checkpoints;
+    }
+
+    
+    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
+        
+        this(path, wrapped, mip, globalStore, nonDefaultStores, Collections.<String> emptyList());
     }
 
     @Override
@@ -181,13 +190,38 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     
     private MultiplexingMemoryNodeState wrap(NodeState nodeState, String path) {
         
-        return new MultiplexingMemoryNodeState(path, nodeState, mip, globalStore, nonDefaultStores);
+        return new MultiplexingMemoryNodeState(path, nodeState, mip, globalStore, nonDefaultStores, checkpoints);
     }
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
         
-        return getChildNode(mountedNodeStore.getNodeStore().getRoot(), nodePath);
+        MemoryNodeStore nodeStore = mountedNodeStore.getNodeStore();
+        
+        NodeState root;
+        if ( checkpoints.isEmpty() ) {
+            root = nodeStore.getRoot();
+        } else {
+            root = nodeStore.retrieve(checkpoint(nodeStore));
+        }
+        
+        return getChildNode(root, nodePath);
     }
+
+    private String checkpoint(MemoryNodeStore nodeStore) {
+        if ( nodeStore == globalStore.getNodeStore() ) {
+            return checkpoints.get(0);
+        }
+        
+        for ( int i = 1 ; i < checkpoints.size(); i++ ) {
+            if (nonDefaultStores.get( i -1 ).getNodeStore() == nodeStore ) {
+                return checkpoints.get(i);
+            }
+        }
+        
+        // 'never' happens
+        throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + nodeStore);
+    }
+
 
     private NodeState getChildNode(NodeState root, String path) {
         
@@ -228,7 +262,8 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
         // scenario 2 - multiple mounts participate
         
         List<NodeState> nodes = Lists.newArrayList();
-        nodes.add(getChildNode(globalStore.getNodeStore().getRoot(), path));
+        
+        nodes.add(getNodeState(globalStore, path));
 
         // we need mounts placed exactly one level beneath this path
         Collection<Mount> mounts = mip.getMountsPlacedDirectlyUnder(path);
