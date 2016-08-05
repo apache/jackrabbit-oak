@@ -58,7 +58,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     @Override
     public NodeState getRoot() {
 
-        return new MultiplexingMemoryNodeState("/", globalStore.getNodeStore().getRoot(), mip, nonDefaultStores);
+        return new MultiplexingMemoryNodeState("/", globalStore.getNodeStore().getRoot(), mip, globalStore, nonDefaultStores);
     }
 
     @Override

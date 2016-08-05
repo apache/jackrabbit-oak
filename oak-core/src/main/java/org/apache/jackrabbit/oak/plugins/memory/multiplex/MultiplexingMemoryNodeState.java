@@ -49,13 +49,15 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     private final String path;
     private final NodeState wrapped;
     private final MountInfoProvider mip;
+    private final MountedNodeStore globalStore;
     private final List<MountedNodeStore> nonDefaultStores;
     
-    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, List<MountedNodeStore> nonDefaultStores) {
+    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
         
         this.path = path;
         this.wrapped = wrapped;
         this.mip = mip;
+        this.globalStore = globalStore;
         this.nonDefaultStores = nonDefaultStores;
     }
 
@@ -118,21 +120,21 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
         
         if ( childMount == ourMount ) {
             // same mount, no need to query other stores
-            return wrapped.getChildNode(name);
+            return wrap(wrapped.getChildNode(name), childPath);
         }
         
         Mount mount = mip.getMountByPath(childPath);
         
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
             if ( mountedNodeStore.getMount() == mount ) {
-                return getNodeState(mountedNodeStore, childPath);
+                return wrap(getNodeState(mountedNodeStore, childPath), childPath);
             }
         }
         
         // 'never' happens
         throw new IllegalArgumentException("Could not find a mounted node store for path " + childPath);
     }
-
+    
     @Override
     public long getChildNodeCount(long max) {
         
@@ -157,7 +159,8 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
         for ( NodeState parent : getNodesForPath(path) ) {
             for ( ChildNodeEntry entry : parent.getChildNodeEntries() ) {
-                entries.add(entry);
+                MultiplexingMemoryNodeState wrappedChild = wrap(entry.getNodeState(), PathUtils.concat(path, entry.getName()));
+                entries.add(new MemoryMultiplexingChildNodeEntry(entry.getName(), wrappedChild));
             }
         }
         
@@ -173,11 +176,15 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     }
 
     // helper methods
+    
+    private MultiplexingMemoryNodeState wrap(NodeState nodeState, String path) {
+        
+        return new MultiplexingMemoryNodeState(path, nodeState, mip, globalStore, nonDefaultStores);
+    }
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
-        NodeState match = mountedNodeStore.getNodeStore().getRoot();
-        match = getChildNode(match, nodePath);
-        return match;
+        
+        return getChildNode(mountedNodeStore.getNodeStore().getRoot(), nodePath);
     }
 
     private NodeState getChildNode(NodeState root, String path) {
@@ -219,9 +226,10 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
         // scenario 2 - multiple mounts participate
         
         List<NodeState> nodes = Lists.newArrayList();
+        nodes.add(getChildNode(globalStore.getNodeStore().getRoot(), path));
 
         // we need mounts placed exactly one level beneath this path
-        Collection<Mount> mounts = mip.getMountsPlacedUnder(path);
+        Collection<Mount> mounts = mip.getMountsPlacedDirectlyUnder(path);
         
         // query the mounts next
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {

@@ -29,9 +29,13 @@ import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 public class MultiplexedMemoryNodeStoreTest {
 
@@ -113,7 +117,11 @@ public class MultiplexedMemoryNodeStoreTest {
     public void nonMountedChildIsFound() {
         
         assertThat("root.libs", store.getRoot().hasChildNode("libs"), equalTo(true));
-        assertThat("root.libs(childCount)", store.getRoot().getChildNode("libs").getChildNodeCount(10), equalTo(2l));
+    }
+    
+    @Test
+    public void nestedMountNodeIsVisible() {
+        assertThat("root.libs(childCount)", store.getRoot().getChildNode("libs").getChildNodeCount(10), equalTo(3l));
     }
     
     @Test
@@ -132,5 +140,19 @@ public class MultiplexedMemoryNodeStoreTest {
     public void childrenUnderMountAreFound() {
         
         assertThat("root.tmp(childCount)", store.getRoot().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
+    }
+    
+    @Test
+    public void childNodeEntryForMountIsMultiplexed() {
+        
+        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
+
+            @Override
+            public boolean apply(ChildNodeEntry input) {
+                return input.getName().equals("libs");
+            }
+        });
+        
+        assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));
     }
 }
