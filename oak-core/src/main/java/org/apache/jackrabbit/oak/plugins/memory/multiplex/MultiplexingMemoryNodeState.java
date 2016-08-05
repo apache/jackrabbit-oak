@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory.multiplex;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.Lists;
 
 public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
@@ -135,53 +138,30 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
         
         long count = 0;
         
-        Collection<Mount> mounts = mip.getMountsPlacedUnder(path);
-        
-        // scenario 1 - owned exclusively by a non-root mount
-        boolean ownedByMount = mip.getMountByPath(path) != null;
-        if ( ownedByMount ) {
-            Mount mount = mip.getMountByPath(path);
+        for ( NodeState parent : getNodesForPath(path) ) {
+            long mountCount = parent.getChildNodeCount(max);
+            if ( mountCount == Long.MAX_VALUE ) {
+                return mountCount;
+            }
             
-            for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-                if ( mountedNodeStore.getMount() == mount ) {
-                    return getNodeState(mountedNodeStore, path).getChildNodeCount(max);
-                }
-            }
-        }
-
-        // scenario 2 - multiple mounts participate
-        
-        // query the root mount first
-        // it's safe to assume that we're working with the root mount since no other 
-        // mounts 'claim' this path so the wrapped node belongs to the root mount
-        count = getChildNode(wrapped, path).getChildNodeCount(max);
-        
-        if ( count == Long.MAX_VALUE ) {
-            return count;
+            count += mountCount;
         }
         
-        // query the mounts next
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mounts.contains(mountedNodeStore.getMount()) ) {
-                
-                NodeState match = getNodeState(mountedNodeStore, path);
-                
-                long mountCount = match.getChildNodeCount( max - count );
-                if ( mountCount == Long.MAX_VALUE ) {
-                    return mountCount;
-                }
-                
-                count += mountCount;
-                
-            }
-        }
         return count;
     }
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        // TODO Auto-generated method stub
-        return null;
+        
+        List<ChildNodeEntry> entries = Lists.newArrayList();
+
+        for ( NodeState parent : getNodesForPath(path) ) {
+            for ( ChildNodeEntry entry : parent.getChildNodeEntries() ) {
+                entries.add(entry);
+            }
+        }
+        
+        return entries;
     }
 
     // write operations
@@ -207,6 +187,51 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
             root = root.getChildNode(element);
         }
         return root;
-    }    
+    }
+    
+    /**
+     * Returns one or more nodes, from multiple NodeStores, which are located at the specific path
+     * 
+     * <p>This method is chiefly useful when looking for child nodes at a given path, since multiple
+     * node stores may contribute.</p>
+     *   
+     * @param path the path 
+     * @return one more multiple nodes
+     */
+    private Iterable<NodeState> getNodesForPath(String path) {
+        
+        // TODO - there is some performance optimisation to be done here
+        // 
+        // By lazily adding the elements in the collection on-access we can 
+        // delay accessing various node stores. The gain would happen when
+        // the collection would not be fully iterated.
+        
+        // scenario 1 - owned exclusively by a non-root mount
+        Mount owningMount = mip.getMountByPath(path);
+        if ( owningMount != null && !owningMount.isDefault() ) {
+            for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
+                if ( mountedNodeStore.getMount() == owningMount ) {
+                    return Collections.singletonList(getNodeState(mountedNodeStore, path));
+                }
+            }
+        }
+
+        // scenario 2 - multiple mounts participate
+        
+        List<NodeState> nodes = Lists.newArrayList();
+
+        // we need mounts placed exactly one level beneath this path
+        Collection<Mount> mounts = mip.getMountsPlacedUnder(path);
+        
+        // query the mounts next
+        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
+            if ( mounts.contains(mountedNodeStore.getMount()) ) {
+                nodes.add(getNodeState(mountedNodeStore, path));
+                
+            }
+        }
+        
+        return nodes;
+    }
 
 }

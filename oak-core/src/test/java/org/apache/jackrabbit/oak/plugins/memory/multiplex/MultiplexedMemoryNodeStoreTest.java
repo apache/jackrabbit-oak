@@ -38,13 +38,19 @@ public class MultiplexedMemoryNodeStoreTest {
     private MultiplexingMemoryNodeStore store;
     private MemoryNodeStore globalStore;
     private MemoryNodeStore mountedStore;
+    private MemoryNodeStore deepMountedStore;
 
     @Before
     public void initStore() throws CommitFailedException {
         
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("temp", "/tmp").build();
+        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+                .mount("temp", "/tmp")
+                .mount("deep", "/libs/mount")
+                .build();
+        
         globalStore = new MemoryNodeStore();
         mountedStore = new MemoryNodeStore();
+        deepMountedStore = new MemoryNodeStore();
 
         // create a property on the root node
         NodeBuilder builder = globalStore.getRoot().builder();
@@ -61,14 +67,33 @@ public class MultiplexedMemoryNodeStoreTest {
         
         globalStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
+        assertThat(globalStore.getRoot().getChildNodeCount(10), equalTo(1l));
+        
         // create a /tmp child on the mounted store and set a property
         builder = mountedStore.getRoot().builder();
-        builder.child("tmp").setProperty("prop1", "val1");
+        NodeBuilder tmpBuilder = builder.child("tmp");
+        tmpBuilder.setProperty("prop1", "val1");
+        tmpBuilder.child("child1");
+        tmpBuilder.child("child2");
+
         mountedStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
         assertTrue(mountedStore.getRoot().hasChildNode("tmp"));
+        assertThat(mountedStore.getRoot().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
         
-        store = new MultiplexingMemoryNodeStore.Builder(mip, globalStore).addMount("temp", mountedStore).build();
+        // populate /libs/mount/third in the deep mount, and include a property
+        
+        builder = deepMountedStore.getRoot().builder();
+        builder.child("libs").child("mount").child("third").setProperty("mounted", "true");
+        
+        deepMountedStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue(deepMountedStore.getRoot().getChildNode("libs").getChildNode("mount").getChildNode("third").hasProperty("mounted"));
+        
+        store = new MultiplexingMemoryNodeStore.Builder(mip, globalStore)
+                .addMount("temp", mountedStore)
+                .addMount("deep", deepMountedStore)
+                .build();
     }
     
     @Test
@@ -92,7 +117,7 @@ public class MultiplexedMemoryNodeStoreTest {
     }
     
     @Test
-    public void mixedMountsChildNodeCount() {
+    public void mixedMountsChildNodes() {
         
         assertThat("root(childCount)", store.getRoot().getChildNodeCount(100), equalTo(2l));
     }
@@ -101,5 +126,11 @@ public class MultiplexedMemoryNodeStoreTest {
     public void mountedChildIsFound() {
         
         assertThat("root.tmp", store.getRoot().hasChildNode("tmp"), equalTo(true));
+    }
+    
+    @Test
+    public void childrenUnderMountAreFound() {
+        
+        assertThat("root.tmp(childCount)", store.getRoot().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
     }
 }
