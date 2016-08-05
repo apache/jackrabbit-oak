@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
@@ -70,11 +69,6 @@ import static org.junit.Assert.fail;
 public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProviderTest {
 
     private String userId;
-    private String groupId;
-    private Group testGroup;
-
-    private String groupId2;
-    private Group testGroup2;
 
     private ContentSession systemSession;
     private Root systemRoot;
@@ -85,16 +79,6 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         userId = getTestUser().getID();
 
-        groupId = "testGroup" + UUID.randomUUID();
-        testGroup = getUserManager(root).createGroup(groupId);
-        testGroup.addMember(getTestUser());
-
-        groupId2 = "testGroup2" + UUID.randomUUID();
-        testGroup2 = getUserManager(root).createGroup(groupId2);
-        testGroup.addMember(testGroup2);
-
-        root.commit();
-
         systemSession = getSystemSession();
         systemRoot = systemSession.getLatestRoot();
     }
@@ -104,19 +88,6 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         try {
             if (systemSession != null) {
                 systemSession.close();
-            }
-
-            root.refresh();
-            Group gr = getUserManager(root).getAuthorizable(groupId, Group.class);
-            if (gr != null) {
-                gr.remove();
-                root.commit();
-            }
-
-            gr = getUserManager(root).getAuthorizable(groupId2, Group.class);
-            if (gr != null) {
-                gr.remove();
-                root.commit();
             }
         } finally {
             super.after();
