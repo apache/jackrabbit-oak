@@ -35,16 +35,18 @@ import com.google.common.collect.Lists;
 
 public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
-    // TODO - decide whether we need to handle here extraneous content in mounted stores
-    // 
-    // As a matter of design, mounted stores will definitely hold information _below_ 
-    // their mounted, path, e.g. a store mounted at /a/b/c will definitely have nodes
-    // /a and /a/b, which will not be visible
+    // A note on content held by node stores which is outside the mount boundries
     //
-    // Complications can arise when mounts overlap, e.g. mounts at /c and /c/d/e. But the
-    // simplest overlap is between the root mount and any other mount. Do we expect the
-    // stores to only hold content which is not mounted? If we mount a repository at
-    // /libs, do we expect to root mount to not have any content at or under /libs?
+    // As a matter of design, mounted stores will definitely hold information _above_ 
+    // their mounted, path, e.g. a store mounted at /a/b/c will definitely have nodes
+    // /a and /a/b, which will not be visible through the multiplexing node store.
+    //
+    // If a node store holds information _below_ a path which belongs to another 
+    // repository, the multiplexing node store will not consider that information. 
+    // 
+    // For instance, with a node store mounted at /libs and the root store
+    // having a node at /libs/food, both the /libs and /libs/foo nodes from
+    // the root store will be ignored
     
     private final String path;
     private final NodeState wrapped;

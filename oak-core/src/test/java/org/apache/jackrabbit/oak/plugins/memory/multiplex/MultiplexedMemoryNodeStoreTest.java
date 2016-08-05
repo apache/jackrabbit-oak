@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory.multiplex;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -154,5 +155,20 @@ public class MultiplexedMemoryNodeStoreTest {
         });
         
         assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));
+    }
+    
+    @Test
+    public void contentBelongingToAnotherMountIsIgnored() throws Exception {
+        
+        // create a /tmp/oops child on the root store
+        // these two nodes must be ignored
+        NodeBuilder builder = globalStore.getRoot().builder();
+        builder.child("tmp").child("oops");
+        
+        globalStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue(globalStore.getRoot().getChildNode("tmp").hasChildNode("oops"));
+
+        assertFalse(store.getRoot().getChildNode("tmp").hasChildNode("oops"));
     }
 }
