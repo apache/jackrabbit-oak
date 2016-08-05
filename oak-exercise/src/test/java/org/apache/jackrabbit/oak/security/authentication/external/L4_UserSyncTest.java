@@ -17,24 +17,37 @@
 package org.apache.jackrabbit.oak.security.authentication.external;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
  * Module: External Authentication
  * =============================================================================
  *
- * Title: Introduction
+ * Title: User and Group Synchronization
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * Understand the fundamental concepts of the oak-auth-external module.
+ * Understand the aim and usage of the user/group sync and learn to use the
+ * different configuration options that come with the default implementation.
+ * Advanced exercises deal with custom extensions and implementations.
  *
  * Exercises:
  *
  * - {@link #TODO}
  *
+ *
+ * Additional Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * TODO
+ *
+ * </pre>
+ *
+ * @see TODO
  */
-public class L1_IntroductionTest extends AbstractSecurityTest {
+public class L4_UserSyncTest extends AbstractSecurityTest {
 
 
 }
