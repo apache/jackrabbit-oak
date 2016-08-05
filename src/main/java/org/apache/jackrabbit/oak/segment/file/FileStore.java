@@ -710,6 +710,8 @@ public class FileStore implements SegmentStore, Closeable {
                 }
             }
         }
+        
+        stats.flushed();
     }
 
     /**

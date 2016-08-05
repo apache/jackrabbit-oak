@@ -34,6 +34,11 @@ interface FileStoreMonitor {
         public void reclaimed(long bytes) {
 
         }
+        
+        @Override
+        public void flushed() {
+            
+        }
     };
 
     /**
@@ -49,4 +54,9 @@ interface FileStoreMonitor {
      * @param bytes number of bytes reclaimed
      */
     void reclaimed(long bytes);
+    
+    /**
+     * Notifies the monitor when journal data is flushed to disk.
+     */
+    void flushed();
 }
