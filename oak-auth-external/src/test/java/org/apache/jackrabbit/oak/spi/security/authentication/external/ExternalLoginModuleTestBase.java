@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Defau
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
@@ -89,10 +87,6 @@ public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTe
         whiteboard.register(ExternalIdentityProviderManager.class, idpManager, Collections.emptyMap());
 
         return oak;
-    }
-
-    protected SynchronizationMBean createMBean() {
-        return new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, syncConfig.getName(), idpManager, idp.getName());
     }
 
     protected void setSyncConfig(DefaultSyncConfig cfg) {
