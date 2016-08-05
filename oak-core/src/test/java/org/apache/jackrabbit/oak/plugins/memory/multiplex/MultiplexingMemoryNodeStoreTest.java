@@ -38,7 +38,7 @@ import org.junit.Test;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
-public class MultiplexedMemoryNodeStoreTest {
+public class MultiplexingMemoryNodeStoreTest {
 
     private MultiplexingMemoryNodeStore store;
     private MemoryNodeStore globalStore;
