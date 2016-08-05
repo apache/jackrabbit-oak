@@ -134,23 +134,38 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
         
-        // TODO Auto-generated method stub
-        return null;
+        // TODO - proper validation of checkpoints size compared to mounts
+        Iterable<String> checkpoints = CHECKPOINT_SPLITTER.split(checkpoint);
+        
+        // since checkpoints are by design kept in sync between the stores
+        // it's enough to query one. The root one is the most convenient
+        return globalStore.getNodeStore().checkpointInfo(checkpoints.iterator().next());
     }
 
     @Override
     public NodeState retrieve(String checkpoint) {
         
-        // TODO - proper validation of checkpoints size
+        // TODO - proper validation of checkpoints size compared to mounts
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
+        
         // global store is always first
         return new MultiplexingMemoryNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), mip, globalStore, nonDefaultStores, checkpoints);
     }
 
     @Override
     public boolean release(String checkpoint) {
-        // TODO Auto-generated method stub
-        return false;
+        
+        boolean result = true;
+        // TODO - proper validation of checkpoints size compared to mounts
+        List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
+
+        result &= globalStore.getNodeStore().release(checkpoints.get(0));
+        
+        for ( int i = 0 ; i < nonDefaultStores.size(); i++ ) {
+            result &= nonDefaultStores.get(i).getNodeStore().release(checkpoints.get(i + 1));
+        }
+        
+        return result;
     }
     
     public static class Builder {

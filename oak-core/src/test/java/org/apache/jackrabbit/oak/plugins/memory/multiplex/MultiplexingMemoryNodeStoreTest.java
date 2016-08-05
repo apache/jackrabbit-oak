@@ -24,6 +24,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -200,5 +202,22 @@ public class MultiplexingMemoryNodeStoreTest {
         assertFalse("store incorrectly exposes child at /new", store.retrieve(checkpoint).hasChildNode("new"));
         assertFalse("store incorrectly exposes child at /tmp/new", store.retrieve(checkpoint).getChildNode("tmp").hasChildNode("new"));
         assertFalse("store incorrectly exposes child at /libs/mount/new", store.retrieve(checkpoint).getChildNode("libs").getChildNode("mount").hasChildNode("new"));
+    }
+    
+    @Test
+    public void checkpointInfo() throws Exception {
+        
+        Map<String, String> info = Collections.singletonMap("key", "value");
+        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(1), info);
+        
+        assertThat(store.checkpointInfo(checkpoint), equalTo(info));
+    }
+    
+    @Test
+    public void release() {
+        
+        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(1));
+        
+        assertTrue(store.release(checkpoint));
     }
 }
