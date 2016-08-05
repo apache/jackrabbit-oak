@@ -17,24 +17,28 @@
 package org.apache.jackrabbit.oak.security.authentication.external;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
  * Module: External Authentication
  * =============================================================================
  *
- * Title: Introduction
+ * Title: ExternalLoginModule
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * Understand the fundamental concepts of the oak-auth-external module.
+ * Understand how to include and configure {@link org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule}
+ * in the Oak authentication setup.
  *
  * Exercises:
  *
  * - {@link #TODO}
  *
+ *
  */
-public class L1_IntroductionTest extends AbstractSecurityTest {
+public class L2_ExternalLoginModuleTest extends AbstractSecurityTest {
 
 
 }
