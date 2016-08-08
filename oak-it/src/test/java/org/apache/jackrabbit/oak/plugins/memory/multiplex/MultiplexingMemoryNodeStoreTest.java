@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -366,10 +367,20 @@ public class MultiplexingMemoryNodeStoreTest {
         
         assertTrue("Node must be added to multiplexed store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
         assertTrue("Node must be added to owning (mounted) store", mountedStore.getRoot().getChildNode("tmp").hasChildNode("newNode"));        
-
     }
     
-
+    @Test
+    @Ignore("Not implemented")
+    public void readOnlyMountRejectsChanges() {
+        
+    }
+    
+    @Test
+    @Ignore("Not implemented")
+    public void builderBasedOnCheckpoint() {
+        
+    }
+    
     private static enum NodeStoreKind {
         MEMORY {
             @Override
