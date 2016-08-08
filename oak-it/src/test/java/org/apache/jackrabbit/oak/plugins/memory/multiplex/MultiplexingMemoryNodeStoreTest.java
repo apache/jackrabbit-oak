@@ -26,10 +26,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
+import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -72,8 +73,6 @@ import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
 public class MultiplexingMemoryNodeStoreTest {
-
-    private static final InputStream SMALL_BLOB = new ByteArrayInputStream("hello, world".getBytes());
     
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
@@ -285,10 +284,10 @@ public class MultiplexingMemoryNodeStoreTest {
         
         assumeTrue(root.supportsBlobCreation());
         
-        Blob createdBlob = globalStore.createBlob(SMALL_BLOB);
+        Blob createdBlob = globalStore.createBlob(createLargeBlob());
         Blob retrievedBlob = store.getBlob(createdBlob.getReference());
         
-        assertThat(retrievedBlob, equalTo(createdBlob));
+        assertThat(retrievedBlob.getContentIdentity(), equalTo(createdBlob.getContentIdentity()));
     }
     
     
@@ -297,10 +296,10 @@ public class MultiplexingMemoryNodeStoreTest {
         
         assumeTrue(mounts.supportsBlobCreation());
         
-        Blob createdBlob = mountedStore.createBlob(SMALL_BLOB);
+        Blob createdBlob = mountedStore.createBlob(createLargeBlob());
         Blob retrievedBlob = store.getBlob(createdBlob.getReference());
         
-        assertThat(retrievedBlob, equalTo(createdBlob));
+        assertThat(retrievedBlob.getContentIdentity(), equalTo(createdBlob.getContentIdentity()));
     }    
     
     @Test
@@ -308,10 +307,10 @@ public class MultiplexingMemoryNodeStoreTest {
         
         assumeTrue(root.supportsBlobCreation());
         
-        Blob createdBlob = store.createBlob(SMALL_BLOB);
+        Blob createdBlob = store.createBlob(createLargeBlob());
         Blob retrievedBlob = store.getBlob(createdBlob.getReference());
         
-        assertThat(retrievedBlob, equalTo(createdBlob));
+        assertThat(retrievedBlob.getContentIdentity(), equalTo(createdBlob.getContentIdentity()));
     }    
     
 
@@ -449,4 +448,17 @@ public class MultiplexingMemoryNodeStoreTest {
         
         return reg.get();
     }
+    
+    // ensure blobs don't get inlined by the SegmentBlobStore
+    private ByteArrayInputStream createLargeBlob() {
+        
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        
+        for ( int i = 0 ; i <= Segment.MEDIUM_LIMIT; i++) {
+            out.write('a');
+        }
+        
+        return new ByteArrayInputStream(out.toByteArray());
+    }
+    
 }
