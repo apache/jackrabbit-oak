@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalCause;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -96,8 +97,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * 
          * @param key the evicted item's key
          * @param value the evicted item's value or {@code null} if non-resident
+         * @param cause the cause of the eviction
          */
-        void evicted(@Nonnull K key, @Nullable V value);
+        void evicted(@Nonnull K key, @Nullable V value, @Nonnull RemovalCause cause);
     }
 
     /**
@@ -202,17 +204,17 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         Segment<K, V> old = segments[index];
         segments[index] = s;
         if (evicted != null && old != null && old != s) {
-            old.evictedAll();
+            old.evictedAll(RemovalCause.EXPLICIT);
         }
     }
 
-    void evicted(Entry<K, V> entry) {
+    void evicted(Entry<K, V> entry, RemovalCause cause) {
         if (evicted == null) {
             return;
         }
         K key = entry.key;
         if (key != null) {
-            evicted.evicted(key, entry.value);
+            evicted.evicted(key, entry.value, cause);
         }
     }
 
@@ -384,7 +386,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     @Override
     public void invalidate(Object key) {
         int hash = getHash(key);
-        getSegment(hash).invalidate(key, hash);
+        getSegment(hash).invalidate(key, hash, RemovalCause.EXPLICIT);
     }
     
     /**
@@ -618,7 +620,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         for (Segment<K, V> s : segments) {
             synchronized (s) {
                 if (evicted != null) {
-                    s.evictedAll();
+                    s.evictedAll(RemovalCause.EXPLICIT);
                 }
                 s.clear();
             }
@@ -775,19 +777,19 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             clear();
         }
 
-        public void evictedAll() {
+        public void evictedAll(RemovalCause cause) {
             for (Entry<K, V> e = stack.stackNext; e != stack; e = e.stackNext) {
                 if (e.value != null) {
-                    cache.evicted(e);
+                    cache.evicted(e, cause);
                 }
             }
             for (Entry<K, V> e = queue.queueNext; e != queue; e = e.queueNext) {
                 if (e.stackNext == null) {
-                    cache.evicted(e);
+                    cache.evicted(e, cause);
                 }
             }
             for (Entry<K, V> e = queue2.queueNext; e != queue2; e = e.queueNext) {
-                cache.evicted(e);
+                cache.evicted(e, cause);
             }
         }
 
@@ -1043,7 +1045,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         synchronized boolean remove(Object key, int hash, Object value) {
             V old = get(key, hash);
             if (old != null && old.equals(value)) {
-                invalidate(key, hash);
+                invalidate(key, hash, RemovalCause.EXPLICIT);
                 return true;
             }
             return false;
@@ -1052,7 +1054,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         synchronized V remove(Object key, int hash) {
             V old = get(key, hash);
             // even if old is null, there might still be a cold entry
-            invalidate(key, hash);
+            invalidate(key, hash, RemovalCause.EXPLICIT);
             return old;
         }
 
@@ -1112,7 +1114,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 old = null;
             } else {
                 old = e.value;
-                invalidate(key, hash);
+                invalidate(key, hash, RemovalCause.REPLACED);
             }
             e = new Entry<K, V>();
             e.key = key;
@@ -1141,7 +1143,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * @param key the key (may not be null)
          * @param hash the hash
          */
-        synchronized void invalidate(Object key, int hash) {
+        synchronized void invalidate(Object key, int hash, RemovalCause cause) {
             Entry<K, V>[] array = entries;
             int mask = array.length - 1;            
             int index = hash & mask;
@@ -1181,7 +1183,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 removeFromQueue(e);
             }
             pruneStack();
-            cache.evicted(e);
+            cache.evicted(e, cause);
         }
 
         /**
@@ -1209,7 +1211,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 usedMemory -= e.memory;
                 evictionCount++;
                 removeFromQueue(e);
-                cache.evicted(e);
+                cache.evicted(e, RemovalCause.SIZE);
                 e.value = null;
                 e.memory = 0;
                 addToQueue(queue2, e);
@@ -1217,7 +1219,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 while (queue2Size + queue2Size > stackSize) {
                     e = queue2.queuePrev;
                     int hash = getHash(e.key);
-                    invalidate(e.key, hash);
+                    invalidate(e.key, hash, RemovalCause.SIZE);
                 }
             }
         }

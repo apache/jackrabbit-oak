@@ -26,9 +26,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
@@ -40,6 +42,7 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.junit.Test;
 
 import com.google.common.cache.CacheLoader;
+import com.google.common.cache.RemovalCause;
 import com.google.common.cache.Weigher;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -693,12 +696,13 @@ public class CacheTest {
                 .maximumSize(100)
                 .evictionCallback(new EvictionCallback<String, Integer>() {
                     @Override
-                    public void evicted(String key, Integer value) {
+                    public void evicted(String key, Integer value, RemovalCause cause) {
                         evictedKeys.add(key);
                         if (value != null) {
                             assertEquals(key, valueOf(value));
                             evictedValues.add(value);
                         }
+                        assertTrue(cause == RemovalCause.SIZE || cause == RemovalCause.EXPLICIT);
                     }
                 })
                 .build();
@@ -718,6 +722,69 @@ public class CacheTest {
     }
     
     @Test
+    public void evictionCallbackCause() {
+        final Map<String, RemovalCause> causes = new HashMap<String, RemovalCause>();
+
+        CacheLIRS<String, Integer> cache = CacheLIRS.<String, Integer> newBuilder().maximumSize(100)
+                .evictionCallback(new EvictionCallback<String, Integer>() {
+                    @Override
+                    public void evicted(String key, Integer value, RemovalCause cause) {
+                        if (key.startsWith("ignore-")) {
+                            return;
+                        }
+                        causes.put(key, cause);
+                    }
+                }).build();
+
+        cache.put("k1", 1);
+        cache.remove("k1");
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k1"));
+
+        cache.put("k6", 1);
+        cache.remove("k6", 1);
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k6"));
+
+        cache.put("k2", 1);
+        cache.invalidate("k2");
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k2"));
+
+        cache.put("k3", 1);
+        cache.invalidateAll();
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k3"));
+
+        cache.put("k4", 1);
+        cache.put("k5", 1);
+        cache.invalidateAll(Arrays.asList("k4", "k5"));
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k4"));
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k5"));
+
+        cache.put("k7", 1);
+        cache.clear();
+        assertEquals(RemovalCause.EXPLICIT, causes.remove("k7"));
+
+        cache.put("k8", 1);
+        cache.put("k8", 2);
+        assertEquals(RemovalCause.REPLACED, causes.remove("k8"));
+
+        for (int i = 0; i < 50; i++) {
+            cache.put("kk" + i, 1);
+        }
+        for (int i = 0; i < 200; i++) {
+            cache.put("ignore-" + i, Integer.MAX_VALUE);
+        }
+
+        int checkedCount = 0;
+        for (int i = 0; i < 50; i++) {
+            String key = "kk" + i;
+            if (!cache.containsKey(key)) {
+                assertEquals("Callback hasn't been called for " + key, RemovalCause.SIZE, causes.get(key));
+                checkedCount++;
+            }
+        }
+        assertTrue(checkedCount > 10);
+    }
+
+    @Test
     public void evictionCallbackRandomized() throws ExecutionException {
         final HashMap<Integer, Integer> evictedMap = new HashMap<Integer, Integer>();
         final HashSet<Integer> evictedNonResidentSet = new HashSet<Integer>();
@@ -725,7 +792,7 @@ public class CacheTest {
                 .maximumSize(10)
                 .evictionCallback(new EvictionCallback<Integer, Integer>() {
                     @Override
-                    public void evicted(Integer key, Integer value) {
+                    public void evicted(Integer key, Integer value, RemovalCause cause) {
                         if (value == null) {
                             assertTrue(evictedNonResidentSet.add(key));
                         } else {
