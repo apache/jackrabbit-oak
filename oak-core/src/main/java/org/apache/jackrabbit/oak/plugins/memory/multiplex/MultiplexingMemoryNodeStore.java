@@ -72,8 +72,23 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
 
     @Override
     public NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info) throws CommitFailedException {
-        // TODO Auto-generated method stub
-        return null;
+        
+        checkArgument(builder instanceof MultiplexingNodeBuilder);
+        
+        MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
+        
+        NodeBuilder globalBuilder = nodeBuilder.builderFor(globalStore);
+        
+        for ( MountedNodeStore mountedNodeStore : nonDefaultStores ) {
+            
+            NodeBuilder mountBuilder = nodeBuilder.builderFor(mountedNodeStore);
+            if ( mountBuilder != null ) {
+                mountedNodeStore.getNodeStore().merge(mountBuilder, commitHook, info);
+            }
+        }
+        
+        // TODO - incorrect, must return a wrapped multiplexed node state
+        return globalStore.getNodeStore().merge(globalBuilder, commitHook, info);
     }
 
     @Override

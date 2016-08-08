@@ -182,8 +182,7 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     
     @Override
     public NodeBuilder builder() {
-        // TODO Auto-generated method stub
-        return null;
+        return new MultiplexingNodeBuilder(path, wrapped.builder(), mip, globalStore, nonDefaultStores);
     }
 
     // helper methods

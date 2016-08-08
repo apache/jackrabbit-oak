@@ -311,7 +311,63 @@ public class MultiplexingMemoryNodeStoreTest {
         Blob retrievedBlob = store.getBlob(createdBlob.getReference());
         
         assertThat(retrievedBlob.getContentIdentity(), equalTo(createdBlob.getContentIdentity()));
-    }    
+    }
+    
+    @Test
+    public void setPropertyOnRootStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.setProperty("newProp", "newValue");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertThat("Property must be visible in multiplexed store", 
+                store.getRoot().getProperty("newProp").getValue(Type.STRING), equalTo("newValue"));
+        
+        assertThat("Property must be visible in owning (root) store", 
+                globalStore.getRoot().getProperty("newProp").getValue(Type.STRING), equalTo("newValue"));
+    }
+    
+    @Test
+    public void removePropertyFromRootStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.removeProperty("prop");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertFalse("Property must be removed from multiplexed store", store.getRoot().hasProperty("prop"));
+        assertFalse("Property must be removed from owning (root) store", globalStore.getRoot().hasProperty("prop"));
+    }
+    
+    @Test
+    public void createNodeInRootStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.child("newNode");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue("Node must be added to multiplexed store", store.getRoot().hasChildNode("newNode"));
+        assertTrue("Node must be added to owning (root) store", globalStore.getRoot().hasChildNode("newNode"));        
+    }
+    
+    @Test
+    public void createNodeInMountedStore() throws Exception {
+
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.getChildNode("tmp").child("newNode");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue("Node must be added to multiplexed store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
+        assertTrue("Node must be added to owning (mounted) store", mountedStore.getRoot().getChildNode("tmp").hasChildNode("newNode"));        
+
+    }
     
 
     private static enum NodeStoreKind {
