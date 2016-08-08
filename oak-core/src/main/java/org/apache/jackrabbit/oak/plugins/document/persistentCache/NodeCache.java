@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static com.google.common.cache.RemovalCause.COLLECTED;
+import static com.google.common.cache.RemovalCause.EXPIRED;
+import static com.google.common.cache.RemovalCause.SIZE;
+import static java.util.Collections.singleton;
+
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -26,27 +32,36 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWriteQueue;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.type.DataType;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheStats;
+import com.google.common.cache.RemovalCause;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
-class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
-    
+class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
+
+    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
+
     private final PersistentCache cache;
     private final Cache<K, V> memCache;
     private final MultiGenerationMap<K, V> map;
     private final CacheType type;
     private final DocumentNodeStore docNodeStore;
     private final DocumentStore docStore;
-    
+    private final CacheWriteQueue<K, V> writerQueue;
+
     NodeCache(
             PersistentCache cache,
             Cache<K, V> memCache,
             DocumentNodeStore docNodeStore, 
-            DocumentStore docStore, CacheType type) {
+            DocumentStore docStore,
+            CacheType type,
+            CacheActionDispatcher dispatcher) {
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
@@ -54,6 +69,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
         this.docStore = docStore;
         PersistentCache.LOG.info("wrapping map " + this.type);
         map = new MultiGenerationMap<K, V>();
+        this.writerQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
     }
     
     @Override
@@ -76,20 +92,14 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     }
     
     private V readIfPresent(K key) {
+        if (writerQueue.waitsForInvalidation(key)) {
+            return null;
+        }
         cache.switchGenerationIfNeeded();
         V v = map.get(key);
         return v;
     }
-    
-    public void write(K key, V value) {
-        cache.switchGenerationIfNeeded();
-        if (value == null) {
-            map.remove(key);
-        } else {
-            map.put(key, value);
-        }
-    }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
@@ -114,7 +124,6 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
             return value;
         }
         value = memCache.get(key, valueLoader);
-        write(key, value);
         return value;
     }
 
@@ -127,14 +136,13 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     @Override
     public void put(K key, V value) {
         memCache.put(key, value);
-        write(key, value);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void invalidate(Object key) {
         memCache.invalidate(key);
-        write((K) key, (V) null);
+        writerQueue.addInvalidate(singleton((K) key));
     }
 
     @Override
@@ -173,4 +181,14 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
         memCache.cleanUp();
     }
 
+    /**
+     * Invoked on the eviction from the {@link #memCache}
+     */
+    @Override
+    public void evicted(K key, V value, RemovalCause cause) {
+        if (EVICTION_CAUSES.contains(cause) && value != null) { 
+            // invalidations are handled separately
+            writerQueue.addPut(key, value);
+        }
+    }
 }
