@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.memory.multiplex;
+package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
  * A <tt>NodeStore</tt> implementation that multiplexes multiple <tt>MemoryNodeStore</tt> instances
  *
  */
-public class MultiplexingMemoryNodeStore implements NodeStore {
+public class MultiplexingNodeStore implements NodeStore {
     
     private static final char CHECKPOINT_MARKER = '|';
 
@@ -57,7 +57,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     private MountedNodeStore globalStore;
     private List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
     
-    private MultiplexingMemoryNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
+    private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
 
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
@@ -67,7 +67,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     @Override
     public NodeState getRoot() {
 
-        return new MultiplexingMemoryNodeState("/", globalStore.getNodeStore().getRoot(), mip, globalStore, nonDefaultStores);
+        return new MultiplexingNodeState("/", globalStore.getNodeStore().getRoot(), mip, globalStore, nonDefaultStores);
     }
 
     @Override
@@ -176,7 +176,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
         
         // global store is always first
-        return new MultiplexingMemoryNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), mip, globalStore, nonDefaultStores, checkpoints);
+        return new MultiplexingNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), mip, globalStore, nonDefaultStores, checkpoints);
     }
 
     @Override
@@ -219,7 +219,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
             return this;
         }
         
-        public MultiplexingMemoryNodeStore build() {
+        public MultiplexingNodeStore build() {
             
             int buildMountCount = nonDefaultStores.size();
             int mipMountCount = mip.getNonDefaultMounts().size();
@@ -227,7 +227,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
             
-            return new MultiplexingMemoryNodeStore(mip, globalStore, nonDefaultStores);
+            return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);
         }
     }
 }

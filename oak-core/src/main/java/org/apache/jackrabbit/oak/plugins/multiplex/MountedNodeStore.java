@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.memory.multiplex;
+package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;

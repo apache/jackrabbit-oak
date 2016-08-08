@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.memory.multiplex;
+package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.Lists;
 
-public class MultiplexingMemoryNodeState extends AbstractNodeState {
+public class MultiplexingNodeState extends AbstractNodeState {
 
     // A note on content held by node stores which is outside the mount boundries
     //
@@ -56,7 +56,7 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     private final List<MountedNodeStore> nonDefaultStores;
     private final List<String> checkpoints;
 
-    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores, List<String> checkpoints) {
+    public MultiplexingNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores, List<String> checkpoints) {
         
         this.path = path;
         this.wrapped = wrapped;
@@ -67,7 +67,7 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
     }
 
     
-    public MultiplexingMemoryNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
+    public MultiplexingNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
         
         this(path, wrapped, mip, globalStore, nonDefaultStores, Collections.<String> emptyList());
     }
@@ -170,8 +170,8 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
         for ( NodeState parent : getNodesForPath(path) ) {
             for ( ChildNodeEntry entry : parent.getChildNodeEntries() ) {
-                MultiplexingMemoryNodeState wrappedChild = wrap(entry.getNodeState(), PathUtils.concat(path, entry.getName()));
-                entries.add(new MemoryMultiplexingChildNodeEntry(entry.getName(), wrappedChild));
+                MultiplexingNodeState wrappedChild = wrap(entry.getNodeState(), PathUtils.concat(path, entry.getName()));
+                entries.add(new MultiplexingChildNodeEntry(entry.getName(), wrappedChild));
             }
         }
         
@@ -187,9 +187,9 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
     // helper methods
     
-    private MultiplexingMemoryNodeState wrap(NodeState nodeState, String path) {
+    private MultiplexingNodeState wrap(NodeState nodeState, String path) {
         
-        return new MultiplexingMemoryNodeState(path, nodeState, mip, globalStore, nonDefaultStores, checkpoints);
+        return new MultiplexingNodeState(path, nodeState, mip, globalStore, nonDefaultStores, checkpoints);
     }
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.memory.multiplex;
+package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -73,14 +74,14 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
-public class MultiplexingMemoryNodeStoreTest {
+public class MultiplexingNodeStoreTest {
     
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
     
     private final List<NodeStoreRegistration> registrations = Lists.newArrayList();
     
-    private MultiplexingMemoryNodeStore store;
+    private MultiplexingNodeStore store;
     private NodeStore globalStore;
     private NodeStore mountedStore;
     private NodeStore deepMountedStore;
@@ -96,7 +97,7 @@ public class MultiplexingMemoryNodeStoreTest {
         });
     }
     
-    public MultiplexingMemoryNodeStoreTest(NodeStoreKind root, NodeStoreKind mounts) {
+    public MultiplexingNodeStoreTest(NodeStoreKind root, NodeStoreKind mounts) {
         
         this.root = root;
         this.mounts = mounts;
@@ -152,7 +153,7 @@ public class MultiplexingMemoryNodeStoreTest {
 
         assertTrue(deepMountedStore.getRoot().getChildNode("libs").getChildNode("mount").getChildNode("third").hasProperty("mounted"));
         
-        store = new MultiplexingMemoryNodeStore.Builder(mip, globalStore)
+        store = new MultiplexingNodeStore.Builder(mip, globalStore)
                 .addMount("temp", mountedStore)
                 .addMount("deep", deepMountedStore)
                 .build();

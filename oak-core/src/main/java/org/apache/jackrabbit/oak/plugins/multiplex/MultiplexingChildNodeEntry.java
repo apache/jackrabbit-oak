@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.memory.multiplex;
+package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class MemoryMultiplexingChildNodeEntry extends AbstractChildNodeEntry {
+public class MultiplexingChildNodeEntry extends AbstractChildNodeEntry {
 
     private final String name;
-    private final MultiplexingMemoryNodeState nodeState;
+    private final MultiplexingNodeState nodeState;
     
-    public MemoryMultiplexingChildNodeEntry(String name, MultiplexingMemoryNodeState nodeState) {
+    public MultiplexingChildNodeEntry(String name, MultiplexingNodeState nodeState) {
         this.name = name;
         this.nodeState = nodeState;
     }

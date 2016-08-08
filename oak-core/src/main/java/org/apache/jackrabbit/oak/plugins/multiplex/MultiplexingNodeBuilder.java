@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.oak.plugins.memory.multiplex;
+package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.io.IOException;
 import java.io.InputStream;
