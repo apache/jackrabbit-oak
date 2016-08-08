@@ -17,8 +17,6 @@
  * under the License.
  */
 @Version("2.0.0")
-@Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.spi.mount;
 
-import aQute.bnd.annotation.Export;
 import aQute.bnd.annotation.Version;
