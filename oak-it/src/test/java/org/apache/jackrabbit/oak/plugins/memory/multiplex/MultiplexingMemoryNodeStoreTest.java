@@ -24,22 +24,29 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import javax.annotation.Nullable;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +55,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
 public class MultiplexingMemoryNodeStoreTest {
@@ -55,20 +63,19 @@ public class MultiplexingMemoryNodeStoreTest {
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
     
+    private final List<NodeStoreRegistration> registrations = Lists.newArrayList();
+    
     private MultiplexingMemoryNodeStore store;
     private NodeStore globalStore;
     private NodeStore mountedStore;
     private NodeStore deepMountedStore;
 
-    private static enum NodeStoreKind {
-        MEMORY, SEGMENT;
-    }
-    
     @Parameters(name="Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
         
         return Arrays.asList(new Object[][] { 
-            { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY }
+            { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
+            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT}
         });
     }
     
@@ -79,16 +86,16 @@ public class MultiplexingMemoryNodeStoreTest {
     }
     
     @Before
-    public void initStore() throws CommitFailedException {
+    public void initStore() throws Exception {
         
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
                 .mount("temp", "/tmp")
                 .mount("deep", "/libs/mount")
                 .build();
         
-        globalStore = createRootStore();
-        mountedStore = createMountStore("temp");
-        deepMountedStore = createMountStore("deep");
+        globalStore = register(root.create(null));
+        mountedStore = register(mounts.create("temp"));
+        deepMountedStore = register(mounts.create("deep"));
 
         // create a property on the root node
         NodeBuilder builder = globalStore.getRoot().builder();
@@ -132,6 +139,13 @@ public class MultiplexingMemoryNodeStoreTest {
                 .addMount("temp", mountedStore)
                 .addMount("deep", deepMountedStore)
                 .build();
+    }
+    
+    @After
+    public void closeRepositories() throws Exception {
+        for ( NodeStoreRegistration reg : registrations ) {
+            reg.close();
+        }
     }
     
     @Test
@@ -248,28 +262,84 @@ public class MultiplexingMemoryNodeStoreTest {
         
         assertTrue(store.release(checkpoint));
     }
+    
+    private static enum NodeStoreKind {
+        MEMORY {
+            @Override
+            public NodeStoreRegistration create(String name) {
+                return new NodeStoreRegistration() {
 
-    private NodeStore createRootStore() {
+                    private MemoryNodeStore instance;
+
+                    @Override
+                    public NodeStore get() {
+
+                        if (instance != null) {
+                            throw new IllegalStateException("instance already created");
+                        }
+
+                        instance = new MemoryNodeStore();
+
+                        return instance;
+                    }
+
+                    @Override
+                    public void close() throws Exception {
+                        // does nothing
+
+                    }
+                };
+            }
+        },
+        SEGMENT {
+            @Override
+            public NodeStoreRegistration create(final String name) {
+                return new NodeStoreRegistration() {
+
+                    private SegmentNodeStore instance;
+                    private FileStore store;
+                    private File storePath;
+
+                    @Override
+                    public NodeStore get() throws Exception {
+
+                        if (instance != null) {
+                            throw new IllegalStateException("instance already created");
+                        }
+
+                        String directoryName = name != null ? "segment-" + name : "segment";
+                        storePath = new File("target/classes/" + directoryName);
+                        
+                        store = FileStore.builder(storePath).build();
+                        instance = SegmentNodeStore.builder(store).build();
+
+                        return instance;
+                    }
+
+                    @Override
+                    public void close() throws Exception {
+                        store.close();
+                        
+                        FileUtils.deleteQuietly(storePath);
+                    }
+                };
+            }
+        };
         
-        switch ( root ) {
-            case MEMORY:
-                return new MemoryNodeStore();
-                
-            default:
-                throw new IllegalArgumentException("Dont know how to build a store for kind " + root);
-        }
+        public abstract NodeStoreRegistration create(@Nullable String name);
     }
     
-    private NodeStore createMountStore(String string) {
+    private interface NodeStoreRegistration {
         
-        switch ( mounts ) {
-            case MEMORY:
-                return new MemoryNodeStore();
-                
-            default:
-                throw new IllegalArgumentException("Dont know how to build a store for kind " + mounts);
-    }
+        NodeStore get() throws Exception;
         
-    }
+        void close() throws Exception;
+    }    
     
+    private NodeStore register(NodeStoreRegistration reg) throws Exception {
+        
+        registrations.add(reg);
+        
+        return reg.get();
+    }
 }
