@@ -1026,11 +1026,12 @@ public class QueryImpl implements Query {
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
                     if (c < cost) {
                         cost = c;
-                        if (p.getPlanName() != null) {
-                            indexName += "[" + p.getPlanName() + "]";
-                        }
                         indexPlan = p;
                     }
+                }
+
+                if (indexPlan != null && indexPlan.getPlanName() != null) {
+                    indexName += "[" + indexPlan.getPlanName() + "]";
                 }
             } else {
                 cost = index.getCost(filter, rootState);

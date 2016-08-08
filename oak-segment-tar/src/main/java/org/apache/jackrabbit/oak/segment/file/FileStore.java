@@ -686,6 +686,8 @@ public class FileStore implements SegmentStore, Closeable {
             public Void call() throws Exception {
                 segmentWriter.flush();
                 tarWriter.flush();
+                stats.flushed();
+                
                 return null;
             }
         });

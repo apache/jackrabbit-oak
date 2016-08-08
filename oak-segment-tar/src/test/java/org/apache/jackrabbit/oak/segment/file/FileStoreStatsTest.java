@@ -71,8 +71,10 @@ public class FileStoreStatsTest {
         FileStore store = fileStoreBuilder(segmentFolder.newFolder())
                 .withStatisticsProvider(statsProvider)
                 .build();
+        
+        FileStoreStats stats = new FileStoreStats(statsProvider, store, 0);
+        
         try {
-            FileStoreStats stats = new FileStoreStats(statsProvider, store, 0);
             long initialSize = stats.getApproximateSize();
 
             UUID id = UUID.randomUUID();
@@ -86,9 +88,12 @@ public class FileStoreStatsTest {
             }
 
             assertEquals(stats.getApproximateSize() - initialSize, file.length());
+            
         } finally {
             store.close();
         }
+        
+        assertEquals(1, stats.getJournalWriteStatsAsCount());
     }
 
 }

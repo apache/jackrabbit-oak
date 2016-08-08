@@ -40,4 +40,14 @@ public interface FileStoreStatsMBean {
     CompositeData getRepositorySize();
 
     String fileStoreInfoAsString();
+    
+    /**
+     * @return  count of the writes to journal
+     */
+    long getJournalWriteStatsAsCount();
+    
+    /**
+     * @return  time series of the writes to journal
+     */
+    CompositeData getJournalWriteStatsAsCompositeData();
 }
