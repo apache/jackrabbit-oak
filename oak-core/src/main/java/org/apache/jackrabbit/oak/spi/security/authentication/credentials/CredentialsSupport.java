@@ -21,10 +21,16 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 
 /**
  * Simple helper interface that allows to easily plug support for additional or
- * custom{@link Credentials} implementations during external authentication.
+ * custom {@link Credentials} implementations during authentication.
+ *
+ * @see AbstractLoginModule#getSupportedCredentials()
+ * @see SimpleCredentialsSupport
  */
 public interface CredentialsSupport {
 
