@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.String.valueOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -29,10 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.junit.Test;
 
 import com.google.common.cache.CacheLoader;
@@ -573,7 +577,7 @@ public class CacheTest {
     }
 
     private static <K, V> CacheLIRS<K, V> createCache(int maxSize, int averageSize) {
-        return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null);
+        return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null, null);
     }
     
     @Test
@@ -680,5 +684,95 @@ public class CacheTest {
         // expected to log a warning, but not fail
         cache.refresh(-1);
     }
+
+    @Test
+    public void evictionCallback() throws ExecutionException {
+        final Set<String> evictedKeys = newHashSet();
+        final Set<Integer> evictedValues = newHashSet();
+        CacheLIRS<String, Integer> cache = CacheLIRS.newBuilder()
+                .maximumSize(100)
+                .evictionCallback(new EvictionCallback<String, Integer>() {
+                    @Override
+                    public void evicted(String key, Integer value) {
+                        evictedKeys.add(key);
+                        if (value != null) {
+                            assertEquals(key, valueOf(value));
+                            evictedValues.add(value);
+                        }
+                    }
+                })
+                .build();
+
+        for (int k = 0; k < 200; k++) {
+            cache.put(valueOf(k), k);
+        }
+
+        assertTrue(evictedKeys.size() <= evictedValues.size());
+        for (String key : evictedKeys) {
+            assertFalse(cache.containsKey(key));
+        }
+
+        cache.invalidateAll();
+        assertEquals(200, evictedKeys.size());
+        assertEquals(200, evictedValues.size());
+    }
     
+    @Test
+    public void evictionCallbackRandomized() throws ExecutionException {
+        final HashMap<Integer, Integer> evictedMap = new HashMap<Integer, Integer>();
+        final HashSet<Integer> evictedNonResidentSet = new HashSet<Integer>();
+        CacheLIRS<Integer, Integer> cache = CacheLIRS.newBuilder()
+                .maximumSize(10)
+                .evictionCallback(new EvictionCallback<Integer, Integer>() {
+                    @Override
+                    public void evicted(Integer key, Integer value) {
+                        if (value == null) {
+                            assertTrue(evictedNonResidentSet.add(key));
+                        } else {
+                            assertEquals(null, evictedMap.put(key, value));
+                        }
+                    }
+                })
+                .build();
+        Random r = new Random(1);
+        for (int k = 0; k < 10000; k++) {
+            if (r.nextInt(20) == 0) {
+                evictedMap.clear();
+                evictedNonResidentSet.clear();
+                long size = cache.size();
+                long sizeNonResident = cache.sizeNonResident();
+                cache.invalidateAll();
+                assertEquals(evictedMap.size(), size);
+                assertEquals(evictedNonResidentSet.size(), sizeNonResident);
+            }
+            evictedMap.clear();
+            evictedNonResidentSet.clear();
+            int key = r.nextInt(20);
+            if (r.nextBoolean()) {
+                cache.put(key, k);
+            } else {
+                cache.get(key);
+            }
+            for (Entry<Integer, Integer> ev : evictedMap.entrySet()) {
+                int ek = ev.getKey();
+                if (ek == key) {
+                    // the same key was inserted just now
+                } else {
+                    assertFalse(cache.containsKey(ek));
+                }
+            }
+            for (Entry<Integer, Integer> ev : evictedMap.entrySet()) {
+                int ek = ev.getKey();
+                Integer v = ev.getValue();
+                // an old value
+                assertTrue(v < k);
+                if (ek == key) {
+                    // the same key was inserted just now
+                } else {
+                    assertFalse(cache.containsKey(ek));
+                }
+            }
+        }
+    }
+
 }
