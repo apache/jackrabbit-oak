@@ -61,7 +61,7 @@ Result:
 
 Result:
 
-- everyone is cannot read the complete tree defined by /content _except_ for properties named 'prop1' or 'prop2' which are explicitly denied by the restricting entry.
+- everyone is can read the complete tree defined by /content _except_ for properties named 'prop1' or 'prop2' which are explicitly denied by the restricting entry.
 
 ###### Inheritance with Allow and Deny
 
