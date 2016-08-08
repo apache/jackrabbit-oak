@@ -27,7 +27,6 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -58,7 +57,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     private MountedNodeStore globalStore;
     private List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
     
-    private MultiplexingMemoryNodeStore(MountInfoProvider mip, MemoryNodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
+    private MultiplexingMemoryNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
 
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
@@ -117,7 +116,7 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     
     private void addCheckpoint(MountedNodeStore store, long lifetime, Map<String, String> properties, List<String> accumulator) {
         
-        MemoryNodeStore nodeStore = store.getNodeStore();
+        NodeStore nodeStore = store.getNodeStore();
         String checkpoint = nodeStore.checkpoint(lifetime, properties);
         Preconditions.checkArgument(checkpoint.indexOf(CHECKPOINT_MARKER) == -1, 
                 "Checkpoint %s created by NodeStore %s mounted at %s contains the invalid entry %s. Unable to add checkpoint.", 
@@ -171,16 +170,16 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
     public static class Builder {
         
         private final MountInfoProvider mip;
-        private final MemoryNodeStore globalStore;
+        private final NodeStore globalStore;
         
         private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
 
-        public Builder(MountInfoProvider mip, MemoryNodeStore globalStore) {
+        public Builder(MountInfoProvider mip, NodeStore globalStore) {
             this.mip = checkNotNull(mip, "mountInfoProvider");
             this.globalStore = checkNotNull(globalStore, "globalStore");
         }
         
-        public Builder addMount(String mountName, MemoryNodeStore store) {
+        public Builder addMount(String mountName, NodeStore store) {
             
             checkNotNull(store, "store");
             checkNotNull(mountName, "mountName");

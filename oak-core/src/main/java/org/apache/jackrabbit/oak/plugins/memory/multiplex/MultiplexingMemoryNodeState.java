@@ -24,13 +24,13 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.Lists;
 
@@ -195,7 +195,7 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
         
-        MemoryNodeStore nodeStore = mountedNodeStore.getNodeStore();
+        NodeStore nodeStore = mountedNodeStore.getNodeStore();
         
         NodeState root;
         if ( checkpoints.isEmpty() ) {
@@ -207,7 +207,7 @@ public class MultiplexingMemoryNodeState extends AbstractNodeState {
         return getChildNode(root, nodePath);
     }
 
-    private String checkpoint(MemoryNodeStore nodeStore) {
+    private String checkpoint(NodeStore nodeStore) {
         if ( nodeStore == globalStore.getNodeStore() ) {
             return checkpoints.get(0);
         }

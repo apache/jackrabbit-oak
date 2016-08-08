@@ -18,15 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory.multiplex;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class MountedNodeStore {
     
     private final Mount mount;
-    private final MemoryNodeStore nodeStore;
+    private final NodeStore nodeStore;
     
-    public MountedNodeStore(Mount mount, MemoryNodeStore nodeStore) {
+    public MountedNodeStore(Mount mount, NodeStore nodeStore) {
         this.mount = mount;
         this.nodeStore = nodeStore;
     }
@@ -35,7 +35,7 @@ class MountedNodeStore {
         return mount;
     }
     
-    public MemoryNodeStore getNodeStore() {
+    public NodeStore getNodeStore() {
         return nodeStore;
     }
 }

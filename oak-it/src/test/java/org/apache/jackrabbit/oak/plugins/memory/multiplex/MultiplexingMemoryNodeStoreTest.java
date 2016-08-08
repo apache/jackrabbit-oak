@@ -24,6 +24,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -37,19 +39,45 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
+@RunWith(Parameterized.class)
 public class MultiplexingMemoryNodeStoreTest {
 
+    private final NodeStoreKind root;
+    private final NodeStoreKind mounts;
+    
     private MultiplexingMemoryNodeStore store;
-    private MemoryNodeStore globalStore;
-    private MemoryNodeStore mountedStore;
-    private MemoryNodeStore deepMountedStore;
+    private NodeStore globalStore;
+    private NodeStore mountedStore;
+    private NodeStore deepMountedStore;
 
+    private static enum NodeStoreKind {
+        MEMORY, SEGMENT;
+    }
+    
+    @Parameters(name="Root: {0}, Mounts: {1}")
+    public static Collection<Object[]> data() {
+        
+        return Arrays.asList(new Object[][] { 
+            { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY }
+        });
+    }
+    
+    public MultiplexingMemoryNodeStoreTest(NodeStoreKind root, NodeStoreKind mounts) {
+        
+        this.root = root;
+        this.mounts = mounts;
+    }
+    
     @Before
     public void initStore() throws CommitFailedException {
         
@@ -58,9 +86,9 @@ public class MultiplexingMemoryNodeStoreTest {
                 .mount("deep", "/libs/mount")
                 .build();
         
-        globalStore = new MemoryNodeStore();
-        mountedStore = new MemoryNodeStore();
-        deepMountedStore = new MemoryNodeStore();
+        globalStore = createRootStore();
+        mountedStore = createMountStore("temp");
+        deepMountedStore = createMountStore("deep");
 
         // create a property on the root node
         NodeBuilder builder = globalStore.getRoot().builder();
@@ -220,4 +248,28 @@ public class MultiplexingMemoryNodeStoreTest {
         
         assertTrue(store.release(checkpoint));
     }
+
+    private NodeStore createRootStore() {
+        
+        switch ( root ) {
+            case MEMORY:
+                return new MemoryNodeStore();
+                
+            default:
+                throw new IllegalArgumentException("Dont know how to build a store for kind " + root);
+        }
+    }
+    
+    private NodeStore createMountStore(String string) {
+        
+        switch ( mounts ) {
+            case MEMORY:
+                return new MemoryNodeStore();
+                
+            default:
+                throw new IllegalArgumentException("Dont know how to build a store for kind " + mounts);
+    }
+        
+    }
+    
 }
