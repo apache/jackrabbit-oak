@@ -90,13 +90,26 @@ public class MultiplexingMemoryNodeStore implements NodeStore {
 
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        
+        // since there is no way to infer a path for a blob, we create all blobs in the root store
+        return globalStore.getNodeStore().createBlob(inputStream);
     }
 
     @Override
     public Blob getBlob(String reference) {
-        // TODO Auto-generated method stub
+        // blobs are searched in all stores
+        Blob found = globalStore.getNodeStore().getBlob(reference);
+        if ( found != null ) {
+            return found;
+        }
+        
+        for ( MountedNodeStore nodeStore : nonDefaultStores ) {
+            found = nodeStore.getNodeStore().getBlob(reference);
+            if ( found != null ) {
+                return found;
+            }
+        }
+        
         return null;
     }
 

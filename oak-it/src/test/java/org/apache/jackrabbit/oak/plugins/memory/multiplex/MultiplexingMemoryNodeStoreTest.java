@@ -23,8 +23,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,13 +38,21 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -60,6 +73,8 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class MultiplexingMemoryNodeStoreTest {
 
+    private static final InputStream SMALL_BLOB = new ByteArrayInputStream("hello, world".getBytes());
+    
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
     
@@ -75,7 +90,8 @@ public class MultiplexingMemoryNodeStoreTest {
         
         return Arrays.asList(new Object[][] { 
             { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT}
+            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2}
         });
     }
     
@@ -263,6 +279,41 @@ public class MultiplexingMemoryNodeStoreTest {
         assertTrue(store.release(checkpoint));
     }
     
+    @Test
+    public void existingBlobsInRootStoreAreRetrieved() throws Exception, IOException {
+        
+        assumeTrue(root.supportsBlobCreation());
+        
+        Blob createdBlob = globalStore.createBlob(SMALL_BLOB);
+        Blob retrievedBlob = store.getBlob(createdBlob.getReference());
+        
+        assertThat(retrievedBlob, equalTo(createdBlob));
+    }
+    
+    
+    @Test
+    public void existingBlobsInMountedStoreAreRetrieved() throws Exception, IOException {
+        
+        assumeTrue(mounts.supportsBlobCreation());
+        
+        Blob createdBlob = mountedStore.createBlob(SMALL_BLOB);
+        Blob retrievedBlob = store.getBlob(createdBlob.getReference());
+        
+        assertThat(retrievedBlob, equalTo(createdBlob));
+    }    
+    
+    @Test
+    public void blobCreation() throws Exception, IOException {
+        
+        assumeTrue(root.supportsBlobCreation());
+        
+        Blob createdBlob = store.createBlob(SMALL_BLOB);
+        Blob retrievedBlob = store.getBlob(createdBlob.getReference());
+        
+        assertThat(retrievedBlob, equalTo(createdBlob));
+    }    
+    
+
     private static enum NodeStoreKind {
         MEMORY {
             @Override
@@ -290,6 +341,10 @@ public class MultiplexingMemoryNodeStoreTest {
                     }
                 };
             }
+            
+            public boolean supportsBlobCreation() {
+                return false;
+            }
         },
         SEGMENT {
             @Override
@@ -299,6 +354,7 @@ public class MultiplexingMemoryNodeStoreTest {
                     private SegmentNodeStore instance;
                     private FileStore store;
                     private File storePath;
+                    private String blobStorePath;
 
                     @Override
                     public NodeStore get() throws Exception {
@@ -307,10 +363,16 @@ public class MultiplexingMemoryNodeStoreTest {
                             throw new IllegalStateException("instance already created");
                         }
 
+                        // TODO - don't use Unix directory separators
                         String directoryName = name != null ? "segment-" + name : "segment";
                         storePath = new File("target/classes/" + directoryName);
                         
-                        store = FileStore.builder(storePath).build();
+                        String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
+                        blobStorePath = "target/classes/" + blobStoreDirectoryName;
+                        
+                        BlobStore blobStore = new FileBlobStore(blobStorePath);
+                        
+                        store = FileStore.builder(storePath).withBlobStore(blobStore).build();
                         instance = SegmentNodeStore.builder(store).build();
 
                         return instance;
@@ -321,12 +383,56 @@ public class MultiplexingMemoryNodeStoreTest {
                         store.close();
                         
                         FileUtils.deleteQuietly(storePath);
+                        FileUtils.deleteQuietly(new File(blobStorePath));
                     }
                 };
+            }
+        }, DOCUMENT_H2 {
+            
+            // TODO - copied from DocumentRdbFixture
+
+            private DataSource ds;
+            
+            @Override
+            public NodeStoreRegistration create(final String name) {
+                
+                return new NodeStoreRegistration() {
+
+                    private DocumentNodeStore instance;
+
+                    @Override
+                    public NodeStore get() throws Exception {
+                        RDBOptions options = new RDBOptions().dropTablesOnClose(true);
+                        String jdbcUrl = "jdbc:h2:file:./target/classes/document";
+                        if ( name != null ) {
+                            jdbcUrl += "-" + name;
+                        }
+                        ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, "sa", "");
+
+                        instance = new DocumentMK.Builder().setRDBConnection(ds, options).getNodeStore();
+                        
+                        return instance;
+
+                    }
+
+                    @Override
+                    public void close() throws Exception {
+                        instance.dispose();
+                        if ( ds instanceof Closeable ) {
+                            ((Closeable) ds).close();
+                        }
+                    }
+                    
+                };
+                
             }
         };
         
         public abstract NodeStoreRegistration create(@Nullable String name);
+        
+        public boolean supportsBlobCreation() {
+            return true;
+        }
     }
     
     private interface NodeStoreRegistration {
