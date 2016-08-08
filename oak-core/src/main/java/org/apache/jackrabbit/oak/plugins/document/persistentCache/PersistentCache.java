@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.h2.mvstore.FileStore;
 import org.h2.mvstore.MVMap;
@@ -69,6 +70,9 @@ public class PersistentCache {
     private boolean manualCommit;
     
     private int exceptionCount;
+
+    private CacheActionDispatcher writeDispatcher;
+    private Thread writeDispatcherThread;
 
     public PersistentCache(String url) {
         LOG.info("start version 1");
@@ -163,6 +167,11 @@ public class PersistentCache {
             readStore = createMapFactory(readGeneration, true);
         }
         writeStore = createMapFactory(writeGeneration, false);
+
+        writeDispatcher = new CacheActionDispatcher();
+        writeDispatcherThread = new Thread(writeDispatcher, "Oak CacheWriteQueue");
+        writeDispatcherThread.setDaemon(true);
+        writeDispatcherThread.start();
     }
     
     private String getFileName(int generation) {
@@ -289,6 +298,13 @@ public class PersistentCache {
     }
     
     public void close() {
+        writeDispatcher.stop();
+        try {
+            writeDispatcherThread.join();
+        } catch (InterruptedException e) {
+            LOG.error("Can't join the {}", writeDispatcherThread.getName(), e);
+        }
+
         if (writeStore != null) {
             writeStore.closeStore();
         }
@@ -333,7 +349,7 @@ public class PersistentCache {
             break;
         }
         if (wrap) {
-            NodeCache<K, V> c = new NodeCache<K, V>(this, base, docNodeStore, docStore, type);
+            NodeCache<K, V> c = new NodeCache<K, V>(this, base, docNodeStore, docStore, type, writeDispatcher);
             initGenerationCache(c);
             return c;
         }
