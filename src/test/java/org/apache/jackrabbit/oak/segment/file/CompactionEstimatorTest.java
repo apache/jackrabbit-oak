@@ -80,9 +80,14 @@ public class CompactionEstimatorTest {
 
         fileStore.flush();
         try {
-            // should be at 66%
-            assertTrue(fileStore.estimateCompactionGain(Suppliers.ofInstance(false))
-                    .estimateCompactionGain() > 60);
+            GCEstimation est = fileStore.estimateCompactionGain(Suppliers
+                    .ofInstance(false));
+            assertTrue(est.gcNeeded());
+            if (est instanceof CompactionGainEstimate) {
+                // should be at 66%
+                assertTrue(((CompactionGainEstimate) est)
+                        .estimateCompactionGain() > 60);
+            }
         } finally {
             fileStore.close();
         }

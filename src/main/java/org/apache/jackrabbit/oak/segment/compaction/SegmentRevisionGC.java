@@ -119,4 +119,8 @@ public interface SegmentRevisionGC {
      */
     void setRetainedGenerations(int retainedGenerations);
 
+    long getGcSizeDeltaEstimation();
+
+    void setGcSizeDeltaEstimation(long gcSizeDeltaEstimation);
+
 }
