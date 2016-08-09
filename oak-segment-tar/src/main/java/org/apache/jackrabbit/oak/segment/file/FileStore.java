@@ -184,6 +184,8 @@ public class FileStore implements SegmentStore, Closeable {
 
     private final SegmentGCOptions gcOptions;
 
+    private final GCJournal gcJournal;
+
     /**
      * Flag to request revision cleanup during the next flush.
      */
@@ -271,7 +273,7 @@ public class FileStore implements SegmentStore, Closeable {
         this.memoryMapping = builder.getMemoryMapping();
         this.gcListener = builder.getGcListener();
         this.gcOptions = builder.getGcOptions();
-
+        this.gcJournal = new GCJournal(directory);
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
@@ -460,34 +462,21 @@ public class FileStore implements SegmentStore, Closeable {
         } else {
             gcListener.info("TarMK GC #{}: estimation started", GC_COUNT);
             Supplier<Boolean> shutdown = newShutdownSignal();
-            CompactionGainEstimate estimate = estimateCompactionGain(shutdown);
+            GCEstimation estimate = estimateCompactionGain(shutdown);
             if (shutdown.get()) {
                 gcListener.info("TarMK GC #{}: estimation interrupted. Skipping compaction.", GC_COUNT);
             }
 
-            long gain = estimate.estimateCompactionGain();
-            sufficientEstimatedGain = gain >= gainThreshold;
+            sufficientEstimatedGain = estimate.gcNeeded();
+            String gcLog = estimate.gcLog();
             if (sufficientEstimatedGain) {
                 gcListener.info(
-                    "TarMK GC #{}: estimation completed in {} ({} ms). " +
-                    "Gain is {}% or {}/{} ({}/{} bytes), so running compaction",
-                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), gain,
-                        humanReadableByteCount(estimate.getReachableSize()), humanReadableByteCount(estimate.getTotalSize()),
-                        estimate.getReachableSize(), estimate.getTotalSize());
+                        "TarMK GC #{}: estimation completed in {} ({} ms). {}",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), gcLog);
             } else {
-                if (estimate.getTotalSize() == 0) {
-                    gcListener.skipped(
-                            "TarMK GC #{}: estimation completed in {} ({} ms). " +
-                            "Skipping compaction for now as repository consists of a single tar file only",
-                            GC_COUNT, watch, watch.elapsed(MILLISECONDS));
-                } else {
-                    gcListener.skipped(
-                        "TarMK GC #{}: estimation completed in {} ({} ms). " +
-                        "Gain is {}% or {}/{} ({}/{} bytes), so skipping compaction for now",
-                            GC_COUNT, watch, watch.elapsed(MILLISECONDS), gain,
-                            humanReadableByteCount(estimate.getReachableSize()), humanReadableByteCount(estimate.getTotalSize()),
-                            estimate.getReachableSize(), estimate.getTotalSize());
-                }
+                gcListener.skipped(
+                        "TarMK GC #{}: estimation completed in {} ({} ms). {}",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), gcLog);
             }
         }
 
@@ -660,8 +649,15 @@ public class FileStore implements SegmentStore, Closeable {
      * @param stop  signal for stopping the estimation process.
      * @return compaction gain estimate
      */
-    CompactionGainEstimate estimateCompactionGain(Supplier<Boolean> stop) {
-        CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(), count(), stop);
+    GCEstimation estimateCompactionGain(Supplier<Boolean> stop) {
+        if (gcOptions.isGcSizeDeltaEstimation()) {
+            SizeDeltaGcEstimation e = new SizeDeltaGcEstimation(gcOptions,
+                    gcJournal, stats.getApproximateSize());
+            return e;
+        }
+
+        CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(),
+                count(), stop, gcOptions.getGainThreshold());
         fileStoreLock.readLock().lock();
         try {
             for (TarReader reader : readers) {
@@ -827,6 +823,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         long finalSize = size();
         stats.reclaimed(initialSize - finalSize);
+        gcJournal.persist(finalSize);
         // FIXME OAK-4106: Reclaimed size reported by FileStore.cleanup is off
         gcListener.cleaned(initialSize - finalSize, finalSize);
         gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
