@@ -229,6 +229,21 @@ regular JCR write permissions. This affects:
     permission `USER_MANAGEMENT` to be granted for the editing subject. This permission (including a corresponding privilege)
     has been introduced with Oak 1.0. See below for configuration parameters to obtain backwards compatible behavior.
 
+##### Observation
+
+Permission evaluation is also applied when delivering observation events
+respecting the effective permission setup of the `Session` that registered
+the `EventListener`.
+
+However, it is important to understand that events are only delivered once
+the modifications have been successfully persisted and permissions will
+be evaluated against the persisted state.
+
+In other words: Changing the permission setup along with the modifications 
+to be reported to the `EventListener` will result in events being included
+or excluded according to the modified permissions. See [OAK-4196] for an example.
+
+
 <a name="api_extensions"/>
 ### API Extensions
 
@@ -304,3 +319,4 @@ The supported configuration options of the default implementation are described 
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963
 [OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268
+[OAK-4196]: https://issues.apache.org/jira/browse/OAK-4196
