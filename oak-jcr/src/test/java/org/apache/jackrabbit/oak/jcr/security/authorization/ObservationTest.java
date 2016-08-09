@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.ObservationManager;
 
@@ -60,9 +62,11 @@ public class ObservationTest extends AbstractEvaluationTest {
         }
     }
 
-    // OAK-4196
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4196">OAK-4196</a>
+     */
     @Test
-    public void testEventDeniedNode() throws Exception {
+    public void testEventRemovedNodeWhenDenyEntryIsRemoved() throws Exception {
         // withdraw the READ privilege on childNPath
         deny(childNPath, readPrivileges);
 
@@ -81,22 +85,29 @@ public class ObservationTest extends AbstractEvaluationTest {
             superuser.getItem(childNPath2).remove();
             superuser.save();
 
-            // since the testUser does not have read-permission on the removed
-            // childNPath, no corresponding event must be generated.
+            // since the events are generated _after_ persisting all the changes
+            // and the removal also removes the permission entries denying access
+            // testUser will be notified about the removal because the remaining
+            // permission setup after the removal grants read access.
             Event[] evts = listener.getEvents(DEFAULT_WAIT_TIMEOUT);
+            List<String> eventPaths = new ArrayList<String>();
             for (Event evt : evts) {
-                if (evt.getType() == Event.NODE_REMOVED &&
-                        evt.getPath().equals(childNPath)) {
-                    fail("TestUser does not have READ permission on " + childNPath);
+                if (evt.getType() == Event.NODE_REMOVED) {
+                    eventPaths.add(evt.getPath());
                 }
             }
+            assertTrue(eventPaths.contains(childNPath));
+            assertTrue(eventPaths.contains(childNPath2));
         } finally {
             obsMgr.removeEventListener(listener);
         }
     }
 
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-4196">OAK-4196</a>
+     */
     @Test
-    public void testEventDeniedNode2() throws Exception {
+    public void testEventRemovedNode() throws Exception {
         // withdraw the READ privilege on childNPath
         deny(path, readPrivileges);
 
@@ -108,8 +119,7 @@ public class ObservationTest extends AbstractEvaluationTest {
         try {
             obsMgr.addEventListener(listener, Event.NODE_REMOVED, testRoot, true, null, null, true);
 
-            // superuser removes the node with childNPath & childNPath2 in
-            // order to provoke events being generated
+            // superuser removes the node with childNPath order to provoke events being generated
             superuser.getItem(childNPath).remove();
             superuser.save();
 
