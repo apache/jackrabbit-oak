@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.6
 
 Introduction
 ------------
@@ -7,36 +7,62 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.5 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.6 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.5
+Changes in Oak 1.4.6
 ---------------------
 
 Technical task
 
-    [OAK-4509] - RDBDocumentStore: low-level read method should also support condition on MODIFIED value
-    [OAK-4510] - RDBDocumentStore: can't persist _modified value of null
+    [OAK-4477] - RDBDatasourceFactory should use pool config similar
+    to sling datasource defaults
+    [OAK-4554] - RDBBlobStoreTest should use RDBDatasourceWrapper
+    [OAK-4557] - RDBPreparedStatementWrapper: do not hide
+    implementation bugs
+    [OAK-4559] - RDB*Store: failures with Tomcat JDBC pool's
+    StatementCache interceptor
+    [OAK-4562] - BasicDocumentStore max id test might return
+    misleading results
+    [OAK-4629] - Make it possible to override blob accessing methods
+    in DataStoreBlobStore
 
 Bug
 
-    [OAK-4494] - Stale documents after revision GC in cluster
-    [OAK-4502] - LucenePropertyIndex doesn't use filter's path for ACL checks of suggest queries
-    [OAK-4515] - Catch NPE and log serverResult in MongoDocumentStore.determineServerTimeDifferenceMillis
-    [OAK-4538] - IndexDefinition.createCodec class loading deadlock
-    [OAK-4548] - SegmentDataStoreBlobGCIT failures
+    [OAK-4345] - Bulk update constructs malformed query
+    [OAK-4503] - Update count increases with rebase
+    [OAK-4527] - [oak-blob-cloud] Access parameters configured leak
+    out in the exception message
+    [OAK-4565] - S3Backend fails to upload large metadata records
+    [OAK-4588] - Upgrade from JCR2 with S3DataStore doesn't work
+    [OAK-4599] - SecurityProviderRegistration fails to update config
+    param of SecurityConfiguration(s)
 
 Improvement
 
-    [OAK-3797] - SegmentTracker#collectBlobReferences should retain fewer SegmentId instances
-    [OAK-4514] - ResurrectNodeAfterRevisionGCTest's cleanup may interfere with DS disposal
-    [OAK-4542] - PerfLogger should also allow a threshold to log at INFO
-    [OAK-4545] - Configurable maxBackOffMillis
-
+    [OAK-4112] - Replace the query exclusive lock with a cache tracker
+    [OAK-4168] - Replace the massive lock acquire with cache tracker
+    in bulk createOrUpdate()
+    [OAK-4169] - Make the bulk createOrUpdate retry count configurable
+    in Mongo
+    [OAK-4454] - Create consistent API in ExternalSort to write and
+    read escaped line breaks
+    [OAK-4563] - Specify thread pool name which should be used by
+    Async Indexing task
+    [OAK-4569] - Clean-up the oak-upgrade dependencies
+    [OAK-4573] - S3 fetching record leads to multiple calls and
+    background download
+    [OAK-4574] - [BlobGC] Remove adding of paths in file maintained
+    for blob references
+    [OAK-4587] - Don't ignore the cached NULLs in bulk createOrUpdate
+    for Mongo
+    [OAK-4624] - Optionally ignore missing blobs during sidegrade
+    [OAK-4636] - PropertyIndexLookup#getIndexNode should be more
+    tolerant towards property types
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
