@@ -25,8 +25,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
+import java.util.Collections;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -41,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Is responsible for querying the property index content.
  * <br>
@@ -58,6 +62,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * </pre>
  */
 public class PropertyIndexLookup {
+
+    static final Logger LOG = LoggerFactory.getLogger(PropertyIndexLookup.class);
 
     /**
      * The cost overhead to use the index in number of read operations.
@@ -156,7 +162,7 @@ public class PropertyIndexLookup {
             if (type == null || type.isArray() || !getType().equals(type.getValue(Type.STRING))) {
                 continue;
             }
-            if (contains(index.getNames(PROPERTY_NAMES), propertyName)) {
+            if (contains(getNames(index, PROPERTY_NAMES), propertyName)) {
                 NodeState indexContent = index.getChildNode(INDEX_CONTENT_NODE_NAME);
                 if (!indexContent.exists()) {
                     continue;
@@ -164,7 +170,7 @@ public class PropertyIndexLookup {
                 Set<String> supertypes = getSuperTypes(filter);
                 if (index.hasProperty(DECLARING_NODE_TYPES)) {
                     if (supertypes != null) {
-                        for (String typeName : index.getNames(DECLARING_NODE_TYPES)) {
+                        for (String typeName : getNames(index, DECLARING_NODE_TYPES)) {
                             if (supertypes.contains(typeName)) {
                                 // TODO: prefer the most specific type restriction
                                 return index;
@@ -198,4 +204,22 @@ public class PropertyIndexLookup {
         return null;
     }
 
+    @Nonnull
+    private static Iterable<String> getNames(@Nonnull NodeState state, @Nonnull String propertyName) {
+        Iterable<String> ret = state.getNames(propertyName);
+        if (ret.iterator().hasNext()) {
+            return ret;
+        }
+
+        PropertyState property = state.getProperty(propertyName);
+        if (property != null) {
+            LOG.warn("Expected '{}' as type of property '{}' but found '{}'. Node - '{}'",
+                    Type.NAMES, propertyName, property.getType(), state);
+            ret = property.getValue(Type.STRINGS);
+        } else {
+            ret = Collections.emptyList();
+        }
+
+        return ret;
+    }
 }
