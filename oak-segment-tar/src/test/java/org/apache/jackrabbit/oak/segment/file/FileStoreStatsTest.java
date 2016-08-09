@@ -30,6 +30,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -96,4 +101,22 @@ public class FileStoreStatsTest {
         assertEquals(1, stats.getJournalWriteStatsAsCount());
     }
 
+    @Test
+    public void testJournalWriteStats() throws Exception {
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
+        FileStore fileStore = fileStoreBuilder(segmentFolder.newFolder()).withStatisticsProvider(statsProvider).build();
+        FileStoreStats stats = new FileStoreStats(statsProvider, fileStore, 0);
+
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+        for (int i = 0; i < 10; i++) {
+            NodeBuilder root = nodeStore.getRoot().builder();
+            root.setProperty("count", i);
+            nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            fileStore.flush();
+        }
+
+        assertEquals(10, stats.getJournalWriteStatsAsCount());
+    }
 }
