@@ -239,14 +239,40 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(String name) throws IllegalArgumentException {
-        // TODO Auto-generated method stub
-        return null;
+        
+        return setChildNode(name, null);
     }
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState nodeState) throws IllegalArgumentException {
-        // TODO Auto-generated method stub
-        return null;
+        String childPath = PathUtils.concat(path, name);
+        
+        Mount childMount = mip.getMountByPath(childPath);
+        Mount ourMount = mip.getMountByPath(path);
+        
+        if ( childMount == ourMount ) {
+            // same mount, no need to ask other stores
+            NodeBuilder ret = nodeState != null ? wrappedBuilder.setChildNode(name, nodeState) : wrappedBuilder.setChildNode(name);
+            return wrap(childPath, ret);
+        }
+        
+        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
+            if ( mountedNodeStore.getMount() == childMount ) {
+                NodeBuilder mountBuilder = mountedNodeStore.getNodeStore().getRoot().builder();
+                nonDefaultBuilders.put(mountedNodeStore, mountBuilder);
+                
+                for ( String segment : PathUtils.elements(path)) {
+                    mountBuilder = mountBuilder.child(segment);
+                }
+                
+                NodeBuilder ret = nodeState != null ? mountBuilder.setChildNode(name, nodeState) : mountBuilder.setChildNode(name);
+                
+                return wrap(childPath, ret);
+            }
+        }
+
+        // 'never' happens
+        throw new IllegalArgumentException("Could not find a mount for path " + childPath);
     }
     
     // operations potentially affecting other mounts

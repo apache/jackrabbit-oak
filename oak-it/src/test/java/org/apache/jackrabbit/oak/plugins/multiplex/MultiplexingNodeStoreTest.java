@@ -49,8 +49,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeStore;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -140,7 +138,7 @@ public class MultiplexingNodeStoreTest {
         builder = mountedStore.getRoot().builder();
         NodeBuilder tmpBuilder = builder.child("tmp");
         tmpBuilder.setProperty("prop1", "val1");
-        tmpBuilder.child("child1");
+        tmpBuilder.child("child1").setProperty("prop1", "val1");
         tmpBuilder.child("child2");
 
         mountedStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -449,6 +447,37 @@ public class MultiplexingNodeStoreTest {
         assertFalse("Node 'nope' does not exist", store.getRoot().builder().getChildNode("tmp").hasChildNode("nope"));
         assertTrue("Node 'child1' should exist", store.getRoot().builder().getChildNode("tmp").hasChildNode("child1"));
     }
+  
+    @Test
+    public void setChildNodeInRootStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder = store.getRoot().builder();
+        
+        builder.setChildNode("apps");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue("Node apps must still exist", store.getRoot().hasChildNode("apps"));
+        assertThat("Node apps must not have any properties", store.getRoot().getChildNode("apps").getPropertyCount(), equalTo(0l));
+    }
+    
+    
+    @Test
+    public void setChildNodeInMountStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder = store.getRoot().builder();
+        
+        builder.getChildNode("tmp").setChildNode("child1");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue("Node child1 must still exist", store.getRoot().getChildNode("tmp").hasChildNode("child1"));
+        assertThat("Node child1 must not have any properties", store.getRoot().getChildNode("tmp").getChildNode("child1").getPropertyCount(), equalTo(0l));
+    }    
     
     @Test
     @Ignore("Not implemented")
