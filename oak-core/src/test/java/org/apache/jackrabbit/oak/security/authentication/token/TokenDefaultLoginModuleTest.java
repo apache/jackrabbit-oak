@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -28,11 +28,10 @@ import javax.security.auth.login.LoginException;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.Jackrabbit2ConfigurationTest;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -57,7 +56,7 @@ import static org.junit.Assert.fail;
  *     };
  * </pre>
  */
-public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
+public class TokenDefaultLoginModuleTest extends Jackrabbit2ConfigurationTest {
 
     @Override
     protected Configuration getConfiguration() {
