@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 
+import javax.annotation.Nullable;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
@@ -80,31 +83,58 @@ public final class IndexCopier {
     }
 
     private static void copyUniqueIndex(NodeState indexDef, NodeBuilder targetIndexDef, Set<String> includes) {
-        NodeState indexNode = indexDef.getChildNode(INDEX_CONTENT_NODE_NAME);
-        NodeBuilder targetIndexNode = copySingleNode(indexNode, targetIndexDef, INDEX_CONTENT_NODE_NAME);
+        for (ChildNodeEntry childIndexNode : getIndexNodes(indexDef)) {
+            NodeState indexNode = childIndexNode.getNodeState();
+            NodeBuilder targetIndexNode = copySingleNode(indexNode, targetIndexDef, childIndexNode.getName());
 
-        for (ChildNodeEntry attr : indexNode.getChildNodeEntries()) {
-            Iterable<String> entries = attr.getNodeState().getStrings("entry");
-            if (entries != null) {
-                for (String e : entries) {
-                    if (startsWithAny(e, includes)) {
-                        copySingleNode(attr, targetIndexNode);
+            boolean anyAttrCopied = false;
+            for (ChildNodeEntry attr : indexNode.getChildNodeEntries()) {
+                Iterable<String> entries = attr.getNodeState().getStrings("entry");
+                if (entries != null) {
+                    for (String e : entries) {
+                        if (startsWithAny(e, includes)) {
+                            copySingleNode(attr, targetIndexNode);
+                            anyAttrCopied = true;
+                        }
                     }
                 }
+            }
+            if (!anyAttrCopied) {
+                targetIndexNode.remove();
             }
         }
     }
 
     private static void copyMirrorIndex(NodeState indexDef, NodeBuilder targetIndexDef, Set<String> includes) {
-        NodeState indexNode = indexDef.getChildNode(INDEX_CONTENT_NODE_NAME);
-        NodeBuilder targetIndexNode = copySingleNode(indexNode, targetIndexDef, INDEX_CONTENT_NODE_NAME);
+        for (ChildNodeEntry childIndexNode : getIndexNodes(indexDef)) {
+            NodeState indexNode = childIndexNode.getNodeState();
+            NodeBuilder targetIndexNode = copySingleNode(indexNode, targetIndexDef, childIndexNode.getName());
 
-        for (ChildNodeEntry attr : indexNode.getChildNodeEntries()) {
-            NodeBuilder targetAttr = copySingleNode(attr, targetIndexNode);
-            NodeStateCopier.builder()
-                    .include(includes)
-                    .copy(attr.getNodeState(), targetAttr);
+            boolean anyAttrCopied = false;
+            for (ChildNodeEntry attr : indexNode.getChildNodeEntries()) {
+                NodeBuilder targetAttr = copySingleNode(attr, targetIndexNode);
+                boolean copied = NodeStateCopier.builder()
+                        .include(includes)
+                        .copy(attr.getNodeState(), targetAttr);
+                if (!copied) {
+                    targetAttr.remove();
+                }
+                anyAttrCopied = copied || anyAttrCopied;
+            }
+            if (!anyAttrCopied) {
+                targetIndexNode.remove();
+            }
         }
+    }
+
+    private static Iterable<? extends ChildNodeEntry> getIndexNodes(NodeState indexDef) {
+        return Iterables.filter(indexDef.getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
+            @Override
+            public boolean apply(@Nullable ChildNodeEntry input) {
+                String name = input.getName();
+                return name.equals(INDEX_CONTENT_NODE_NAME) || name.startsWith(":oak:mount-");
+            }
+        });
     }
 
     private static void copyLuceneIndex(NodeState indexDef, NodeBuilder targetIndexDef, Set<String> includes) {
