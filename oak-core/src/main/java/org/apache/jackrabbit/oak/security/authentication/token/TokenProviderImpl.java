@@ -385,6 +385,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             Tree parentTree = root.getTree(parentPath);
             if (parentTree.exists()) {
                 tokenParent = new NodeUtil(parentTree);
+            } else {
+                tokenParent = null;
             }
         }
         return tokenParent;
