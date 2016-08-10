@@ -97,8 +97,9 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     /**
      * Default expiration time in ms for login tokens is 2 hours.
      */
-    private static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
-    private static final int DEFAULT_KEY_SIZE = 8;
+    static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
+    static final int DEFAULT_KEY_SIZE = 8;
+
     private static final char DELIM = '_';
 
     private final Root root;
