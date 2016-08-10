@@ -129,9 +129,12 @@ public class MultiplexingNodeStoreTest {
         libsBuilder.child("first");
         libsBuilder.child("second");
         
+        // create an empty /apps node with a property
+        builder.child("apps").setProperty("prop", "val");
+        
         globalStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
-        assertThat(globalStore.getRoot().getChildNodeCount(10), equalTo(1l));
+        assertThat(globalStore.getRoot().getChildNodeCount(10), equalTo(2l));
         
         // create a /tmp child on the mounted store and set a property
         builder = mountedStore.getRoot().builder();
@@ -194,7 +197,7 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void mixedMountsChildNodes() {
         
-        assertThat("root(childCount)", store.getRoot().getChildNodeCount(100), equalTo(2l));
+        assertThat("root(childCount)", store.getRoot().getChildNodeCount(100), equalTo(3l));
     }
     
     @Test
@@ -376,20 +379,14 @@ public class MultiplexingNodeStoreTest {
 
         NodeBuilder builder = store.getRoot().builder();
         
-        builder.child("newNode");
-        
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
-        assertTrue("Node must be added to multiplexed store", store.getRoot().hasChildNode("newNode"));
-        
         builder = store.getRoot().builder();
         
-        builder.getChildNode("newNode").remove();
+        builder.getChildNode("apps").remove();
         
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse("Node must be removed from the multiplexed store", store.getRoot().hasChildNode("newNode"));
-        assertFalse("Node must be removed from the owning (root) store", globalStore.getRoot().hasChildNode("newNode"));
+        assertFalse("Node must be removed from the multiplexed store", store.getRoot().hasChildNode("apps"));
+        assertFalse("Node must be removed from the owning (root) store", globalStore.getRoot().hasChildNode("apps"));
     }
     
     
@@ -417,7 +414,7 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void builderChildrenCountInRootStore() throws Exception {
         
-        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100), equalTo(2l));
+        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100), equalTo(3l));
     }
     
     @Test
@@ -429,7 +426,7 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void builderChildNodeNamesInRootStore() throws Exception {
         
-        assertChildNodeNames(store.getRoot().builder(), "libs", "tmp");
+        assertChildNodeNames(store.getRoot().builder(), "libs", "apps", "tmp");
     }
     
     @Test
