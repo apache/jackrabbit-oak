@@ -16,13 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import java.security.Principal;
+import java.util.List;
+
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TokenConfigurationImplTest extends AbstractSecurityTest {
@@ -46,6 +53,11 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testGetName() {
+        assertEquals(TokenConfiguration.NAME, tc.getName());
+    }
+
+    @Test
     public void testConfigOptions() {
         int exp = tc.getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, DEFAULT_EXPIRATION);
         assertEquals(60, exp);
@@ -61,5 +73,19 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
     public void testRefresh() {
         boolean refresh = getConfig(TokenConfiguration.class).getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_REFRESH, false);
         assertTrue(refresh);
+    }
+
+    @Test
+    public void testGetValidators() {
+        List<? extends ValidatorProvider> validators = tc.getValidators(root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(), new MoveTracker());
+        assertNotNull(validators);
+        assertEquals(1, validators.size());
+        assertTrue(validators.get(0) instanceof TokenValidatorProvider);
+    }
+
+    @Test
+    public void testGetTokenProvider() {
+        TokenProvider tp = tc.getTokenProvider(root);
+        assertTrue(tp instanceof TokenProviderImpl);
     }
 }
