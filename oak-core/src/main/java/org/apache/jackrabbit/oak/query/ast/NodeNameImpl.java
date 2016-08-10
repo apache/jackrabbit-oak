@@ -78,6 +78,9 @@ public class NodeNameImpl extends DynamicOperandImpl {
     @Override
     public PropertyValue currentProperty() {
         String path = selector.currentPath();
+        if (path == null) {
+            return null;
+        }
         String name = PathUtils.getName(path);
         // TODO reverse namespace remapping?
         return PropertyValues.newName(name);
