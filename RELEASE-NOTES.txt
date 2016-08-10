@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.17
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.18
 
 Introduction
 ------------
@@ -7,70 +7,58 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.17 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.18 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.17
+Changes in Oak 1.2.18
 ---------------------
-
-Sub-task
-    [OAK-3306] - Create a copy of MemoryDocumentStore
-
 
 Technical task
 
-    [OAK-4409] - RDB*Store: bump up recommended DB2 version to 10.5
-    [OAK-4482] - RDB*Store: update tomcat-jdbc test dependency
-    [OAK-4495] - RDBDocumentStore: consistent handling of invalidate methods
-    [OAK-4497] - RDBDocumentStore: potential race condition between update and invalidate can cause stale cache entries
-    [OAK-4509] - RDBDocumentStore: low-level read method should also support condition on MODIFIED value
-    [OAK-4510] - RDBDocumentStore: can't persist _modified value of null
+    [OAK-4477] - RDBDatasourceFactory should use pool config similar to sling datasource defaults
+    [OAK-4554] - RDBBlobStoreTest should use RDBDatasourceWrapper
+    [OAK-4557] - RDBPreparedStatementWrapper: do not hide implementation bugs
+    [OAK-4559] - RDB*Store: failures with Tomcat JDBC pool's StatementCache interceptor
+    [OAK-4562] - BasicDocumentStore max id test might return misleading results
+    [OAK-4629] - Make it possible to override blob accessing methods in DataStoreBlobStore
 
 
 Bug
 
-    [OAK-3079] - LastRevRecoveryAgent can update _lastRev of children but not the root
-    [OAK-3305] - Self recovering instance may not see all changes
-    [OAK-3903] - Commit fails even though change made it to the DocumentStore
-    [OAK-3988] - Offline compaction should avoid loading external binaries
-    [OAK-4429] - [oak-blob-cloud] S3Backend#getAllIdentifiers should not store all elements in memory
-    [OAK-4430] - DataStoreBlobStore#getAllChunkIds fetches DataRecord when not needed
-    [OAK-4493] - Offline compaction persisted mode
-    [OAK-4494] - Stale documents after revision GC in cluster
-    [OAK-4496] - Enable DataStoreBlobStore#getAllRecords to support non-shared DataStore
-    [OAK-4499] - LucenePropertyIndexTest#longRepExcerpt is too aggressive
-    [OAK-4501] - Avoid reading segment when reading strings and the string is in the cache
-    [OAK-4502] - LucenePropertyIndex doesn't use filter's path for ACL checks of suggest queries
+    [OAK-4503] - Update count increases with rebase
+    [OAK-4527] - [oak-blob-cloud] Access parameters configured leak out in the exception message
+    [OAK-4565] - S3Backend fails to upload large metadata records
+    [OAK-4599] - SecurityProviderRegistration fails to update config param of SecurityConfiguration(s)
 
 
 Improvement
 
-    [OAK-3702] - More resilient BackgroundThread implementation
-    [OAK-3797] - SegmentTracker#collectBlobReferences should retain fewer SegmentId instances
-    [OAK-3904] - Compaction Map predicate should use cached state for evaluation
-    [OAK-4368] - Excerpt extraction from the Lucene index should be more selective
-    [OAK-4505] - Offline compaction clearer output values
-    [OAK-4514] - ResurrectNodeAfterRevisionGCTest's cleanup may interfere with DS disposal
-    [OAK-4545] - Configurable maxBackOffMillis
+    [OAK-2761] - Persistent cache: add data in a different thread
+    [OAK-3997] - Include eviction cause to the LIRS removal callback
+    [OAK-4123] - Persistent cache: allow to configure the add data concurrency
+    [OAK-4454] - Create consistent API in ExternalSort to write and read escaped line breaks
+    [OAK-4563] - Specify thread pool name which should be used by Async Indexing task
+    [OAK-4573] - S3 fetching record leads to multiple calls and background download
+    [OAK-4574] - [BlobGC] Remove adding of paths in file maintained for blob references
+    [OAK-4636] - PropertyIndexLookup#getIndexNode should be more tolerant towards property types
+
+
+New Feature
+
+    [OAK-3095] - Add eviction listener to LIRS cache
 
 
 Task
 
-    [OAK-2575] - Improve documentation for DocumentStore.invalidateCache
-
-
-Test
-
-    [OAK-4489] - Improve test coverage on DocumentStore for concurrent query and invalidate
-    [OAK-4546] - Long running DocumentNodeStoreTest
+    [OAK-3611] - upgrade H2DB dependency to 1.4.190
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.16 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.17 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
