@@ -34,6 +34,7 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipException;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -160,6 +161,9 @@ public class ThreadDumpCommand implements Command {
                     s = in.readLine();
                 } catch (EOFException e) {
                     // EOFException: Unexpected end of ZLIB input stream
+                    break;
+                } catch (ZipException e) {
+                    // java.util.zip.ZipException: invalid block type
                     break;
                 }
                 if (s == null) {
