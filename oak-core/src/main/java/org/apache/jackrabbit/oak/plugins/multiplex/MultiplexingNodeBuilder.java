@@ -224,7 +224,6 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
             return wrap(childPath, wrappedBuilder.child(name));
         }
         
-        // TODO - track this as an 'affected' builder for purposes of merge
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
             if ( mountedNodeStore.getMount() == childMount ) {
                 NodeBuilder mountBuilder = mountedNodeStore.getNodeStore().getRoot().builder();
