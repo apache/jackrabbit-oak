@@ -28,11 +28,11 @@ public class TokenProviderCallback implements Callback {
     private TokenProvider tokenProvider;
 
     /**
-     * Returns the principal provider as set using
+     * Returns the token provider as set using
      * {@link #setTokenProvider(TokenProvider)}
      * or {@code null}.
      *
-     * @return an instance of {@code PrincipalProvider} or {@code null} if no
+     * @return an instance of {@code TokenProvider} or {@code null} if no
      * provider has been set before.
      */
     public TokenProvider getTokenProvider() {
