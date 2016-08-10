@@ -53,21 +53,23 @@ public class MultiplexingNodeStore implements NodeStore {
 
     private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
     
-    private final MountInfoProvider mip;
-    private MountedNodeStore globalStore;
-    private List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+    private final MountedNodeStore globalStore;
+    private final List<MountedNodeStore> nonDefaultStores;
+
+    private final MultiplexingContext ctx;
     
     private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
 
-        this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
         this.nonDefaultStores = ImmutableList.copyOf(nonDefaultStore);
+        
+        this.ctx = new MultiplexingContext(this, mip, this.globalStore, nonDefaultStores);
     }
 
     @Override
     public NodeState getRoot() {
 
-        return new MultiplexingNodeState("/", globalStore.getNodeStore().getRoot(), mip, globalStore, nonDefaultStores);
+        return new MultiplexingNodeState("/", globalStore.getNodeStore().getRoot(), ctx);
     }
 
     @Override
@@ -77,19 +79,17 @@ public class MultiplexingNodeStore implements NodeStore {
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         
-        NodeBuilder globalBuilder = nodeBuilder.builderFor(globalStore);
-        
-        for ( MountedNodeStore mountedNodeStore : nonDefaultStores ) {
+        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
             
-            NodeBuilder mountBuilder = nodeBuilder.builderFor(mountedNodeStore);
-            if ( mountBuilder != null ) {
-                mountedNodeStore.getNodeStore().merge(mountBuilder, commitHook, info);
-            }
+            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
+            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
+            
+            nodeStore.merge(affectedBuilder, commitHook, info);
         }
         
-        // TODO - incorrect, must return a wrapped multiplexed node state
-        return globalStore.getNodeStore().merge(globalBuilder, commitHook, info);
-    }
+        // TODO - is this correct or do we need a specific path?
+        return getRoot();
+   }
 
     @Override
     public NodeState rebase(NodeBuilder builder) {
@@ -176,7 +176,8 @@ public class MultiplexingNodeStore implements NodeStore {
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
         
         // global store is always first
-        return new MultiplexingNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), mip, globalStore, nonDefaultStores, checkpoints);
+        return new MultiplexingNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), 
+                ctx, checkpoints);
     }
 
     @Override

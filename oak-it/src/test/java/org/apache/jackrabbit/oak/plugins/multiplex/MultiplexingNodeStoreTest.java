@@ -488,9 +488,21 @@ public class MultiplexingNodeStoreTest {
     @Test
     @Ignore("Not implemented")
     public void builderBasedOnCheckpoint() {
-        
+
     }
     
+    @Test
+    @Ignore("Not implemented")
+    public void builderBaseOnRootStoreChildNode() {
+        
+    }
+
+    @Test
+    @Ignore("Not implemented")
+    public void builderBaseOnMountStoreChildNode() {
+        
+    }
+
     private static enum NodeStoreKind {
         MEMORY {
             @Override

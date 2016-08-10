@@ -2,7 +2,6 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -11,40 +10,35 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.mount.Mount;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Maps;
 
 public class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final String path;
     private final NodeBuilder wrappedBuilder;
-    private final MountInfoProvider mip;
-    private final MountedNodeStore globalStore;
-    private final List<MountedNodeStore> nonDefaultStores;
-    private final Map<MountedNodeStore, NodeBuilder> nonDefaultBuilders = Maps.newHashMap();
+    private final MultiplexingContext ctx;
+    private final Map<MountedNodeStore, NodeBuilder> affectedBuilders;
 
-    public MultiplexingNodeBuilder(String path, NodeBuilder builder, MountInfoProvider mip, MountedNodeStore globalStore,
-            List<MountedNodeStore> nonDefaultStores) {
+    public MultiplexingNodeBuilder(String path, NodeBuilder builder, MultiplexingContext ctx, Map<MountedNodeStore, NodeBuilder> affectedBuilders) {
         
         this.path = path;
         this.wrappedBuilder = builder;
-        this.mip = mip;
-        this.globalStore = globalStore;
-        this.nonDefaultStores = nonDefaultStores;
+        this.ctx = ctx;
+        this.affectedBuilders = affectedBuilders;
     }
     
     // multiplexing-specific APIs
 
     public @Nullable NodeBuilder builderFor(MountedNodeStore mountedNodeStore) {
         
-        if ( mountedNodeStore == globalStore )
-            return wrappedBuilder;
-
-        return nonDefaultBuilders.get(mountedNodeStore);
+        return affectedBuilders.get(mountedNodeStore);
+    }
+    
+    public Map<MountedNodeStore, NodeBuilder> getAffectedBuilders() {
+        
+        return affectedBuilders;
     }
     
     // state methods
@@ -52,13 +46,13 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     @Override
     public NodeState getNodeState() {
         // TODO - cache?
-        return new MultiplexingNodeState(path, wrappedBuilder.getNodeState(), mip, globalStore, nonDefaultStores);
+        return new MultiplexingNodeState(path, wrappedBuilder.getNodeState(), ctx);
     }
 
     @Override
     public NodeState getBaseState() {
         // TODO - cache?
-        return new MultiplexingNodeState(path, wrappedBuilder.getBaseState(), mip, globalStore, nonDefaultStores);
+        return new MultiplexingNodeState(path, wrappedBuilder.getBaseState(), ctx);
     }
     
     // node or property-related methods ; directly delegate to wrapped builder
@@ -183,96 +177,53 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         
         String childPath = PathUtils.concat(path, name);
         
-        Mount childMount = mip.getMountByPath(childPath);
-        Mount ourMount = mip.getMountByPath(path);
+        MountedNodeStore owningStore = ctx.getOwningStore(childPath);
         
-        if ( childMount == ourMount ) {
-            // same mount, no need to ask other stores
-            return wrap(childPath, wrappedBuilder.child(name));
+        NodeBuilder builder = getOrCreateNodeBuilder(owningStore);
+        
+        for ( String segment : PathUtils.elements(path) ) {
+            builder = builder.child(segment);
         }
         
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mountedNodeStore.getMount() == childMount ) {
-                NodeBuilder mountBuilder = mountedNodeStore.getNodeStore().getRoot().builder();
-
-                nonDefaultBuilders.put(mountedNodeStore, mountBuilder);
-                
-                for ( String segment : PathUtils.elements(childPath )) {
-                    mountBuilder = mountBuilder.child(segment);
-                }
-                
-                return wrap(childPath, mountBuilder);
-            }
-        }
-
-        // 'never' happens
-        throw new IllegalArgumentException("Could not find a mount for path " + childPath);
+        return wrap(childPath, builder.child(name));
     }
 
     @Override
     public NodeBuilder getChildNode(String name) throws IllegalArgumentException {
+
         String childPath = PathUtils.concat(path, name);
         
-        Mount childMount = mip.getMountByPath(childPath);
-        Mount ourMount = mip.getMountByPath(path);
-        
-        if ( childMount == ourMount ) {
-            // same mount, no need to ask other stores
-            return wrap(childPath, wrappedBuilder.child(name));
-        }
-        
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mountedNodeStore.getMount() == childMount ) {
-                NodeBuilder mountBuilder = mountedNodeStore.getNodeStore().getRoot().builder();
-                nonDefaultBuilders.put(mountedNodeStore, mountBuilder);
-                for ( String segment : PathUtils.elements(childPath )) {
-                    mountBuilder = mountBuilder.child(segment);
-                }
-                
-                return wrap(childPath, mountBuilder);
-            }
-        }
+        MountedNodeStore owningStore = ctx.getOwningStore(childPath);
 
-        // 'never' happens
-        throw new IllegalArgumentException("Could not find a mount for path " + childPath);      
+        NodeBuilder builder = getOrCreateNodeBuilder(owningStore);
+        
+        for ( String segment : PathUtils.elements(path) ) {
+            builder = builder.child(segment);
+        }
+        
+        return wrap(childPath, builder.getChildNode(name));
     }
 
     @Override
     public NodeBuilder setChildNode(String name) throws IllegalArgumentException {
         
-        return setChildNode(name, null);
+        return setChildNode(name, EmptyNodeState.EMPTY_NODE);
     }
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState nodeState) throws IllegalArgumentException {
+        
         String childPath = PathUtils.concat(path, name);
         
-        Mount childMount = mip.getMountByPath(childPath);
-        Mount ourMount = mip.getMountByPath(path);
-        
-        if ( childMount == ourMount ) {
-            // same mount, no need to ask other stores
-            NodeBuilder ret = nodeState != null ? wrappedBuilder.setChildNode(name, nodeState) : wrappedBuilder.setChildNode(name);
-            return wrap(childPath, ret);
-        }
-        
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mountedNodeStore.getMount() == childMount ) {
-                NodeBuilder mountBuilder = mountedNodeStore.getNodeStore().getRoot().builder();
-                nonDefaultBuilders.put(mountedNodeStore, mountBuilder);
-                
-                for ( String segment : PathUtils.elements(path)) {
-                    mountBuilder = mountBuilder.child(segment);
-                }
-                
-                NodeBuilder ret = nodeState != null ? mountBuilder.setChildNode(name, nodeState) : mountBuilder.setChildNode(name);
-                
-                return wrap(childPath, ret);
-            }
-        }
+        MountedNodeStore owningStore = ctx.getOwningStore(childPath);
 
-        // 'never' happens
-        throw new IllegalArgumentException("Could not find a mount for path " + childPath);
+        NodeBuilder builder = getOrCreateNodeBuilder(owningStore);
+        
+        for ( String segment : PathUtils.elements(path) ) {
+            builder = builder.child(segment);
+        }
+        
+        return wrap(childPath, builder.setChildNode(name, nodeState));
     }
     
     // operations potentially affecting other mounts
@@ -293,13 +244,23 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        // TODO - delegate to the multiplexing store instance 
-        return globalStore.getNodeStore().createBlob(stream);
+        return ctx.getMultiplexingNodeStore().createBlob(stream);
     }
     
     // utility methods
     private NodeBuilder wrap(String childPath, NodeBuilder wrappedBuilder) {
-        return new MultiplexingNodeBuilder(childPath, wrappedBuilder, mip, globalStore, nonDefaultStores);
+        return new MultiplexingNodeBuilder(childPath, wrappedBuilder, ctx, affectedBuilders);
+    }
+    
+    private NodeBuilder getOrCreateNodeBuilder(MountedNodeStore nodeStore) {
+        
+        NodeBuilder builder = affectedBuilders.get(nodeStore);
+        if ( builder == null ) {
+            builder = nodeStore.getNodeStore().getRoot().builder();
+            affectedBuilders.put(nodeStore, builder);
+        }
+        
+        return builder;
     }
 
 }

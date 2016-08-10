@@ -18,14 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.mount.Mount;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class MultiplexingNodeState extends AbstractNodeState {
 
@@ -51,25 +50,21 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     private final String path;
     private final NodeState wrapped;
-    private final MountInfoProvider mip;
-    private final MountedNodeStore globalStore;
-    private final List<MountedNodeStore> nonDefaultStores;
+    private final MultiplexingContext ctx;
     private final List<String> checkpoints;
 
-    public MultiplexingNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores, List<String> checkpoints) {
+    public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, List<String> checkpoints) {
         
         this.path = path;
         this.wrapped = wrapped;
-        this.mip = mip;
-        this.globalStore = globalStore;
-        this.nonDefaultStores = nonDefaultStores;
+        this.ctx = ctx;
         this.checkpoints = checkpoints;
     }
 
     
-    public MultiplexingNodeState(String path, NodeState wrapped, MountInfoProvider mip, MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
+    public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx) {
         
-        this(path, wrapped, mip, globalStore, nonDefaultStores, Collections.<String> emptyList());
+        this(path, wrapped, ctx, Collections.<String> emptyList());
     }
 
     @Override
@@ -105,45 +100,19 @@ public class MultiplexingNodeState extends AbstractNodeState {
 
         String childPath = PathUtils.concat(path, name);
         
-        Mount childMount = mip.getMountByPath(childPath);
-        Mount ourMount = mip.getMountByPath(path);
+        MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
         
-        if ( childMount == ourMount ) {
-            // same mount, no need to query other stores
-            return wrapped.hasChildNode(name);
-        }
-        
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mountedNodeStore.getMount() == childMount ) {
-                return getNodeState(mountedNodeStore, path).hasChildNode(name);
-            }
-        }
-        return false;
+        return getNodeState(mountedStore, path).hasChildNode(name);
     }
 
     @Override
     public NodeState getChildNode(String name) throws IllegalArgumentException {
-        
+
         String childPath = PathUtils.concat(path, name);
         
-        Mount childMount = mip.getMountByPath(childPath);
-        Mount ourMount = mip.getMountByPath(path);
+        MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
         
-        if ( childMount == ourMount ) {
-            // same mount, no need to query other stores
-            return wrap(wrapped.getChildNode(name), childPath);
-        }
-        
-        Mount mount = mip.getMountByPath(childPath);
-        
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mountedNodeStore.getMount() == mount ) {
-                return wrap(getNodeState(mountedNodeStore, childPath), childPath);
-            }
-        }
-        
-        // 'never' happens
-        throw new IllegalArgumentException("Could not find a mounted node store for path " + childPath);
+        return wrap(getNodeState(mountedStore, childPath), childPath);
     }
     
     @Override
@@ -182,14 +151,21 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     @Override
     public NodeBuilder builder() {
-        return new MultiplexingNodeBuilder(path, wrapped.builder(), mip, globalStore, nonDefaultStores);
+        
+        // register the initial builder as affected as it's already instantiated
+        Map<MountedNodeStore, NodeBuilder> affectedBuilders = Maps.newHashMap();
+        MountedNodeStore owningStore = ctx.getOwningStore(path);
+        NodeBuilder builder = wrapped.builder();
+        affectedBuilders.put(owningStore, builder);
+        
+        return new MultiplexingNodeBuilder(path, builder, ctx, affectedBuilders);
     }
 
     // helper methods
     
     private MultiplexingNodeState wrap(NodeState nodeState, String path) {
         
-        return new MultiplexingNodeState(path, nodeState, mip, globalStore, nonDefaultStores, checkpoints);
+        return new MultiplexingNodeState(path, nodeState, ctx, checkpoints);
     }
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
@@ -200,27 +176,11 @@ public class MultiplexingNodeState extends AbstractNodeState {
         if ( checkpoints.isEmpty() ) {
             root = nodeStore.getRoot();
         } else {
-            root = nodeStore.retrieve(checkpoint(nodeStore));
+            root = nodeStore.retrieve(ctx.getCheckpoint(nodeStore, checkpoints));
         }
         
         return getChildNode(root, nodePath);
     }
-
-    private String checkpoint(NodeStore nodeStore) {
-        if ( nodeStore == globalStore.getNodeStore() ) {
-            return checkpoints.get(0);
-        }
-        
-        for ( int i = 1 ; i < checkpoints.size(); i++ ) {
-            if (nonDefaultStores.get( i -1 ).getNodeStore() == nodeStore ) {
-                return checkpoints.get(i);
-            }
-        }
-        
-        // 'never' happens
-        throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + nodeStore);
-    }
-
 
     private NodeState getChildNode(NodeState root, String path) {
         
@@ -247,32 +207,11 @@ public class MultiplexingNodeState extends AbstractNodeState {
         // By lazily adding the elements in the collection on-access we can 
         // delay accessing various node stores. The gain would happen when
         // the collection would not be fully iterated.
-        
-        // scenario 1 - owned exclusively by a non-root mount
-        Mount owningMount = mip.getMountByPath(path);
-        if ( owningMount != null && !owningMount.isDefault() ) {
-            for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-                if ( mountedNodeStore.getMount() == owningMount ) {
-                    return Collections.singletonList(getNodeState(mountedNodeStore, path));
-                }
-            }
-        }
-
-        // scenario 2 - multiple mounts participate
-        
         List<NodeState> nodes = Lists.newArrayList();
         
-        nodes.add(getNodeState(globalStore, path));
-
-        // we need mounts placed exactly one level beneath this path
-        Collection<Mount> mounts = mip.getMountsPlacedDirectlyUnder(path);
-        
         // query the mounts next
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mounts.contains(mountedNodeStore.getMount()) ) {
+        for (MountedNodeStore mountedNodeStore : ctx.getContributingStores(path)) {
                 nodes.add(getNodeState(mountedNodeStore, path));
-                
-            }
         }
         
         return nodes;
