@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -30,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Test login with {@link ConfigurationUtil#getJackrabbit2Configuration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}
  */
-public class Jackrabbit2ConfigurationTest extends TokenDefaultLoginModuleTest {
+public class Jackrabbit2ConfigurationTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {
