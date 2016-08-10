@@ -739,14 +739,12 @@ public class FileStore implements SegmentStore, Closeable {
             @Nonnull String gcInfo)
     throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
-        long initialSize = size();
         Set<UUID> bulkRefs = newHashSet();
         Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
         fileStoreLock.writeLock().lock();
         try {
-            gcListener.info("TarMK GC #{}: cleanup started. Current repository size is {} ({} bytes)",
-                    GC_COUNT, humanReadableByteCount(initialSize), initialSize);
+            gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
 
             newWriter();
             segmentCache.clear();
@@ -766,7 +764,12 @@ public class FileStore implements SegmentStore, Closeable {
         } finally {
             fileStoreLock.writeLock().unlock();
         }
-
+        
+        // compute initial size here to better reflect repository size after the previous tar writer was closed
+        long initialSize = size();
+        gcListener.info("TarMK GC #{}: current repository size is {} ({} bytes)",
+                GC_COUNT, humanReadableByteCount(initialSize), initialSize);
+        
         Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
             reader.mark(bulkRefs, reclaim, reclaimGeneration);
@@ -786,26 +789,31 @@ public class FileStore implements SegmentStore, Closeable {
             }
         }
 
+        // it doesn't account for concurrent commits that might have happened
+        long afterCleanupSize = 0;
+        
         List<TarReader> oldReaders = newArrayList();
         fileStoreLock.writeLock().lock();
         try {
             // Replace current list of reader with the cleaned readers taking care not to lose
             // any new reader that might have come in through concurrent calls to newWriter()
-            List<TarReader> newReaders = newArrayList();
+            List<TarReader> sweptReaders = newArrayList();
             for (TarReader reader : readers) {
                 if (cleaned.containsKey(reader)) {
                     TarReader newReader = cleaned.get(reader);
                     if (newReader != null) {
-                        newReaders.add(newReader);
+                        sweptReaders.add(newReader);
+                        afterCleanupSize += newReader.size();
                     }
+                    // if these two differ, the former represents the swept version of the latter
                     if (newReader != reader) {
                         oldReaders.add(reader);
                     }
                 } else {
-                    newReaders.add(reader);
+                    sweptReaders.add(reader);
                 }
             }
-            readers = newReaders;
+            readers = sweptReaders;
         } finally {
             fileStoreLock.writeLock().unlock();
         }
@@ -822,15 +830,16 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         long finalSize = size();
-        stats.reclaimed(initialSize - finalSize);
+        long reclaimedSize = initialSize - afterCleanupSize; 
+        stats.reclaimed(reclaimedSize);
+        
         gcJournal.persist(finalSize);
-        // FIXME OAK-4106: Reclaimed size reported by FileStore.cleanup is off
-        gcListener.cleaned(initialSize - finalSize, finalSize);
+        gcListener.cleaned(reclaimedSize, finalSize);
         gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                 " and space reclaimed {} ({} bytes).",
                 GC_COUNT, watch, watch.elapsed(MILLISECONDS),
                 humanReadableByteCount(finalSize), finalSize,
-                humanReadableByteCount(initialSize - finalSize), initialSize - finalSize);
+                humanReadableByteCount(reclaimedSize), reclaimedSize);
         return toRemove;
     }
 
