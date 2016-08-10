@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -413,6 +414,44 @@ public class MultiplexingNodeStoreTest {
         assertFalse("Node must be removed from the owning (multiplexed) store", globalStore.getRoot().getChildNode("tmp").hasChildNode("newNode"));
     }
     
+    @Test
+    public void builderChildrenCountInRootStore() throws Exception {
+        
+        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100), equalTo(2l));
+    }
+    
+    @Test
+    public void builderChildrenCountInMountedStore() {
+        
+        assertThat("root.tmp(childCount)", store.getRoot().builder().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
+    }
+    
+    @Test
+    public void builderChildNodeNamesInRootStore() throws Exception {
+        
+        assertChildNodeNames(store.getRoot().builder(), "libs", "tmp");
+    }
+    
+    @Test
+    public void builderChildNodeNamesInMountedStore() throws Exception {
+        
+        assertChildNodeNames(store.getRoot().builder().getChildNode("tmp"), "child1", "child2");
+    }
+    
+    @Test
+    public void builderHasPropertyNameInRootStore() {
+        
+        assertFalse("Node 'nope' does not exist", store.getRoot().builder().hasChildNode("nope"));
+        assertTrue("Node 'tmp' should exist (contributed by mount)", store.getRoot().builder().hasChildNode("tmp"));
+        assertTrue("Node 'libs' should exist (contributed by root)", store.getRoot().builder().hasChildNode("libs"));
+    }
+    
+    @Test
+    public void builderHasPropertyNameInMountedStore() {
+        
+        assertFalse("Node 'nope' does not exist", store.getRoot().builder().getChildNode("tmp").hasChildNode("nope"));
+        assertTrue("Node 'child1' should exist", store.getRoot().builder().getChildNode("tmp").hasChildNode("child1"));
+    }
     
     @Test
     @Ignore("Not implemented")
@@ -552,7 +591,7 @@ public class MultiplexingNodeStoreTest {
         NodeStore get() throws Exception;
         
         void close() throws Exception;
-    }    
+    }
     
     private NodeStore register(NodeStoreRegistration reg) throws Exception {
         
@@ -573,4 +612,13 @@ public class MultiplexingNodeStoreTest {
         return new ByteArrayInputStream(out.toByteArray());
     }
     
+    private void assertChildNodeNames(NodeBuilder builder, String... names) {
+        
+        Iterable<String> childNodeNames = builder.getChildNodeNames();
+        
+        assertNotNull("childNodeNames must not be empty", childNodeNames);
+        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Mismatched elements", childNodeNames, hasItems(names));
+    }
+
 }

@@ -51,14 +51,14 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO - cache?
+        return new MultiplexingNodeState(path, wrappedBuilder.getNodeState(), mip, globalStore, nonDefaultStores);
     }
 
     @Override
     public NodeState getBaseState() {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO - cache?
+        return new MultiplexingNodeState(path, wrappedBuilder.getBaseState(), mip, globalStore, nonDefaultStores);
     }
     
     // node or property-related methods ; directly delegate to wrapped builder
@@ -165,20 +165,17 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     
     @Override
     public long getChildNodeCount(long max) {
-        // TODO Auto-generated method stub
-        return 0;
+        return getNodeState().getChildNodeCount(max);
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        // TODO Auto-generated method stub
-        return null;
+        return getNodeState().getChildNodeNames();
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        // TODO Auto-generated method stub
-        return false;
+        return getNodeState().hasChildNode(name);
     }
 
     @Override
