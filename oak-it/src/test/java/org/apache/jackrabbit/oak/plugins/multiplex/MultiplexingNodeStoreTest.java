@@ -371,6 +371,50 @@ public class MultiplexingNodeStoreTest {
     }
     
     @Test
+    public void removeNodeInRootStore() throws Exception {
+
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.child("newNode");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue("Node must be added to multiplexed store", store.getRoot().hasChildNode("newNode"));
+        
+        builder = store.getRoot().builder();
+        
+        builder.getChildNode("newNode").remove();
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertFalse("Node must be removed from the multiplexed store", store.getRoot().hasChildNode("newNode"));
+        assertFalse("Node must be removed from the owning (root) store", globalStore.getRoot().hasChildNode("newNode"));
+    }
+    
+    
+    @Test
+    public void removeNodeInMountedStore() throws Exception {
+
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.getChildNode("tmp").child("newNode");
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertTrue("Node must be added to multiplexed store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
+        
+        builder = store.getRoot().builder();
+        
+        builder.getChildNode("tmp").getChildNode("newNode").remove();
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertFalse("Node must be removed from the multiplexed store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
+        assertFalse("Node must be removed from the owning (multiplexed) store", globalStore.getRoot().getChildNode("tmp").hasChildNode("newNode"));
+    }
+    
+    
+    @Test
     @Ignore("Not implemented")
     public void readOnlyMountRejectsChanges() {
         
