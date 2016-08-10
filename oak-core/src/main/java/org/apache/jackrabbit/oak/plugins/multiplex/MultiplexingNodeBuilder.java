@@ -293,8 +293,8 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO - delegate to the multiplexing store instance 
+        return globalStore.getNodeStore().createBlob(stream);
     }
     
     // utility methods
