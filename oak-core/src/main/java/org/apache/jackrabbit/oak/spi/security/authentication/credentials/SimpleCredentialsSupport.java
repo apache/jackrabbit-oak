@@ -74,4 +74,17 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
             return Collections.emptyMap();
         }
     }
+
+    @Override
+    public boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes) {
+        if (credentials instanceof SimpleCredentials) {
+            SimpleCredentials sc = (SimpleCredentials) credentials;
+            for (Map.Entry<String, ?> entry : attributes.entrySet()) {
+                sc.setAttribute(entry.getKey(), entry.getValue());
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

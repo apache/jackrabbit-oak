@@ -33,8 +33,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -49,6 +49,8 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -104,14 +106,20 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
     private final Root root;
     private final ConfigurationParameters options;
+    private final CredentialsSupport credentialsSupport;
 
     private final long tokenExpiration;
     private final UserManager userManager;
     private final IdentifierManager identifierManager;
 
-    TokenProviderImpl(Root root, ConfigurationParameters options, UserConfiguration userConfiguration) {
+    TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration) {
+        this(root, options, userConfiguration, SimpleCredentialsSupport.getInstance());
+    }
+
+    TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration, @Nonnull CredentialsSupport credentialsSupport) {
         this.root = root;
         this.options = options;
+        this.credentialsSupport = credentialsSupport;
 
         this.tokenExpiration = options.getConfigValue(PARAM_TOKEN_EXPIRATION, DEFAULT_TOKEN_EXPIRATION);
         this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
@@ -126,18 +134,18 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * a {@link #TOKEN_ATTRIBUTE} attribute with an empty value.
      *
      * @param credentials The current credentials.
-     * @return {@code true} if the specified credentials are {@link SimpleCredentials}
-     *         or {@link ImpersonationCredentials} and if the (extracted) simple credentials
-     *         object contain a {@link #TOKEN_ATTRIBUTE} attribute with an empty value;
-     *         {@code false} otherwise.
+     * @return {@code true} if the specified credentials or those extracted from
+     * {@link ImpersonationCredentials} are supported and and if the (extracted)
+     * credentials object contain a {@link #TOKEN_ATTRIBUTE} attribute with an
+     * empty value; {@code false} otherwise.
      */
     @Override
     public boolean doCreateToken(@Nonnull Credentials credentials) {
-        SimpleCredentials sc = extractSimpleCredentials(credentials);
-        if (sc == null) {
+        Credentials creds = extractCredentials(credentials);
+        if (creds == null) {
             return false;
         } else {
-            Object attr = sc.getAttribute(TOKEN_ATTRIBUTE);
+            Object attr = credentialsSupport.getAttributes(creds).get(TOKEN_ATTRIBUTE);
             return (attr != null && "".equals(attr.toString()));
         }
     }
@@ -155,18 +163,18 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     @CheckForNull
     @Override
     public TokenInfo createToken(@Nonnull Credentials credentials) {
-        SimpleCredentials sc = extractSimpleCredentials(credentials);
+        Credentials creds = extractCredentials(credentials);
+        String uid = (creds != null) ? credentialsSupport.getUserId(creds) : null;
+
         TokenInfo tokenInfo = null;
-        if (sc != null) {
-            String[] attrNames = sc.getAttributeNames();
-            Map<String, String> attributes = new HashMap<String, String>(attrNames.length);
-            for (String attrName : sc.getAttributeNames()) {
-                attributes.put(attrName, sc.getAttribute(attrName).toString());
-            }
-            tokenInfo = createToken(sc.getUserID(), attributes);
+        if (uid != null) {
+            Map<String, ?> attributes = credentialsSupport.getAttributes(creds);
+            tokenInfo = createToken(uid, attributes);
             if (tokenInfo != null) {
-                // also set the new token to the simple credentials.
-                sc.setAttribute(TOKEN_ATTRIBUTE, tokenInfo.getToken());
+                // also set the new token to the credentials.
+                if (!credentialsSupport.setAttributes(creds, ImmutableMap.of(TOKEN_ATTRIBUTE, tokenInfo.getToken()))) {
+                    log.debug("Cannot set token attribute to " + creds);
+                }
             }
         }
 
@@ -267,20 +275,17 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     }
 
     @CheckForNull
-    private static SimpleCredentials extractSimpleCredentials(Credentials credentials) {
-        if (credentials instanceof SimpleCredentials) {
-            return (SimpleCredentials) credentials;
-        }
-
+    private Credentials extractCredentials(@Nonnull Credentials credentials) {
+        Credentials creds = credentials;
         if (credentials instanceof ImpersonationCredentials) {
-            Credentials base = ((ImpersonationCredentials) credentials).getBaseCredentials();
-            if (base instanceof SimpleCredentials) {
-                return (SimpleCredentials) base;
-            }
+            creds = ((ImpersonationCredentials) credentials).getBaseCredentials();
         }
 
-        // cannot extract SimpleCredentials
-        return null;
+        if (credentialsSupport.getCredentialClasses().contains(creds.getClass())) {
+            return creds;
+        } else {
+            return null;
+        }
     }
 
     @Nonnull
