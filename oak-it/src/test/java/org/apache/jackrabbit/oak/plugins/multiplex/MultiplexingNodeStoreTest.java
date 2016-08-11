@@ -555,12 +555,23 @@ public class MultiplexingNodeStoreTest {
         
         assertFalse("/src must no longer exist", store.getRoot().hasChildNode("src"));
         assertTrue("/dst/src must exist (multiplexed store)", store.getRoot().getChildNode("dst").hasChildNode("src"));
-        
     }
     
     @Test
-    @Ignore("Not implemented")
-    public void moveNodeBetweenStores() {
+    public void moveNodeBetweenStores() throws Exception {
+
+        NodeBuilder builder = store.getRoot().builder();
+
+        NodeBuilder src = builder.child("src");
+        NodeBuilder dst = builder.child("tmp");
+        
+        boolean result = src.moveTo(dst, "src");
+        assertTrue("move result should be success", result);
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertFalse("/src must no longer exist", store.getRoot().hasChildNode("src"));
+        assertTrue("/tmp/src must exist (multiplexed store)", store.getRoot().getChildNode("tmp").hasChildNode("src"));
         
     }
     

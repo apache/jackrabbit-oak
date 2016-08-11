@@ -1,7 +1,5 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -243,27 +241,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) throws IllegalArgumentException {
         
-        checkArgument(newParent instanceof MultiplexingNodeBuilder, 
-            "Expected a %s instance, but instead got %s", MultiplexingNodeBuilder.class.getName(), newParent);
-        
-        MultiplexingNodeBuilder newPar = (MultiplexingNodeBuilder) newParent;
-        
-        String newPath = PathUtils.concat(newPar.getPath(), newName);
-        
-        if ( ctx.getOwningStore(path) == ctx.getOwningStore(newPath)) {
-            NodeBuilder nativeNewParent = getOrCreateNodeBuilder(ctx.getOwningStore(newPath));
-            for ( String element : PathUtils.elements(newPar.getPath())) {
-                nativeNewParent = nativeNewParent.getChildNode(element);
-            }
-                
-            
-            wrappedBuilder.moveTo(nativeNewParent, newName);
-            
-            return true;
-        }
-        
-        // TODO handle cross-store moves
-        return false;
+        return wrappedBuilder.moveTo(newParent, newName);
     }
     
     // blobs
