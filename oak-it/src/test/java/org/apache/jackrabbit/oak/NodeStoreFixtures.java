@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexedSegmentFixture;
 import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
 import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 
@@ -44,6 +45,8 @@ public class NodeStoreFixtures {
     public static final NodeStoreFixture DOCUMENT_RDB = new DocumentRdbFixture();
 
     public static final NodeStoreFixture DOCUMENT_MEM = new DocumentMemoryFixture();
+    
+    public static final NodeStoreFixture MULTIPLEXED_SEGMENT = new MultiplexedSegmentFixture();
 
     public static Collection<Object[]> asJunitParameters(Set<FixturesHelper.Fixture> fixtures) {
         List<NodeStoreFixture> configuredFixtures = new ArrayList<NodeStoreFixture>();
@@ -65,6 +68,12 @@ public class NodeStoreFixtures {
         if (fixtures.contains(FixturesHelper.Fixture.SEGMENT_TAR)) {
             configuredFixtures.add(SEGMENT_TAR);
         }
+
+        /* TODO - enable once tests are working
+        if ( fixtures.contains(FixturesHelper.Fixture.MULTIPLEXED_SEGMENT)) {
+            configuredFixtures.add(MULTIPLEXED_SEGMENT);
+        }
+        */
 
         Collection<Object[]> result = new ArrayList<Object[]>();
         for (NodeStoreFixture f : configuredFixtures) {
