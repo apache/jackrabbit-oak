@@ -502,6 +502,18 @@ public class MultiplexingNodeStoreTest {
     public void builderBaseOnMountStoreChildNode() {
         
     }
+    
+    @Test
+    @Ignore("Not implemented")
+    public void readNodeBasedOnPathFragmentFromRootStore() {
+        
+    }
+    
+    @Test
+    @Ignore("Not implemented")
+    public void readNodeBasedOnPathFragmentFromMountedStore() {
+        
+    }    
 
     private static enum NodeStoreKind {
         MEMORY {
