@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-public class MultiplexedSegmentFixture extends NodeStoreFixture {
+public class MultiplexingSegmentFixture extends NodeStoreFixture {
 
     private static final String MOUNT_PATH = "/tmp";
     
@@ -40,7 +40,6 @@ public class MultiplexedSegmentFixture extends NodeStoreFixture {
         if ( store != null ) {
             return store;
         }
-        
         
         try {
             MountInfoProvider mip = new SimpleMountInfoProvider.Builder()

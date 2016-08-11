@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexedSegmentFixture;
+import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingSegmentFixture;
 import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
 import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 
@@ -46,7 +46,7 @@ public class NodeStoreFixtures {
 
     public static final NodeStoreFixture DOCUMENT_MEM = new DocumentMemoryFixture();
     
-    public static final NodeStoreFixture MULTIPLEXED_SEGMENT = new MultiplexedSegmentFixture();
+    public static final NodeStoreFixture MULTIPLEXING_SEGMENT = new MultiplexingSegmentFixture();
 
     public static Collection<Object[]> asJunitParameters(Set<FixturesHelper.Fixture> fixtures) {
         List<NodeStoreFixture> configuredFixtures = new ArrayList<NodeStoreFixture>();
