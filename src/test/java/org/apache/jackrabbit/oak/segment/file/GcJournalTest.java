@@ -44,20 +44,27 @@ public class GcJournalTest {
         File directory = segmentFolder.newFolder();
         GCJournal gc = new GCJournal(directory);
 
-        gc.persist(100);
+        gc.persist(0, 100);
         GCJournalEntry e0 = gc.read();
-        assertEquals(100, e0.getSize());
+        assertEquals(100, e0.getRepoSize());
+        assertEquals(0, e0.getReclaimedSize());
 
-        gc.persist(250);
+        gc.persist(0, 250);
         GCJournalEntry e1 = gc.read();
-        assertEquals(250, e1.getSize());
+        assertEquals(250, e1.getRepoSize());
+        assertEquals(0, e1.getReclaimedSize());
+        
+        gc.persist(50, 200);
+        GCJournalEntry e2 = gc.read();
+        assertEquals(200, e2.getRepoSize());
+        assertEquals(50, e2.getReclaimedSize());
 
         Collection<GCJournalEntry> all = gc.readAll();
-        assertEquals(all.size(), 2);
+        assertEquals(all.size(), 3);
 
         File file = new File(directory, GCJournal.GC_JOURNAL);
         assertTrue(file.exists());
         List<String> allLines = Files.readAllLines(file.toPath(), UTF_8);
-        assertEquals(allLines.size(), 2);
+        assertEquals(allLines.size(), 3);
     }
 }

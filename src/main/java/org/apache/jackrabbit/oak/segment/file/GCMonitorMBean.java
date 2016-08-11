@@ -44,6 +44,16 @@ public interface GCMonitorMBean {
     String getLastCleanup();
 
     /**
+     * @return  repository size after the last cleanup.
+     */
+    long getLastRepositorySize();
+
+    /**
+     * @return  reclaimed size during the last cleanup.
+     */
+    long getLastReclaimedSize();
+
+    /**
      * @return  last error or {@code null} if none.
      */
     @CheckForNull

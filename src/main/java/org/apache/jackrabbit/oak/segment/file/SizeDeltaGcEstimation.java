@@ -97,6 +97,6 @@ public class SizeDeltaGcEstimation implements GCEstimation {
     }
 
     private long getPreviousCleanupSize() {
-        return gcJournal.read().getSize();
+        return gcJournal.read().getRepoSize();
     }
 }
