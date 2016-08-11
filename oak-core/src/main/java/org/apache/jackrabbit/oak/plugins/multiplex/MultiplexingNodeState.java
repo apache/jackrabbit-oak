@@ -216,7 +216,7 @@ public class MultiplexingNodeState extends AbstractNodeState {
         List<NodeState> nodes = Lists.newArrayList();
         
         // query the mounts next
-        for (MountedNodeStore mountedNodeStore : ctx.getContributingStores(path)) {
+        for (MountedNodeStore mountedNodeStore : ctx.getContributingStores(path, checkpoints)) {
                 nodes.add(getNodeState(mountedNodeStore, path));
         }
         

@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -513,7 +514,31 @@ public class MultiplexingNodeStoreTest {
         assertTrue("Node /tmp/build3 must exist (multiplexed store)", store.getRoot().getChildNode("tmp").hasChildNode("child3"));
         assertTrue("Node /tmp/child3 must exist (mounted store)", mountedStore.getRoot().getChildNode("tmp").hasChildNode("child3"));
 
-    }    
+    }
+    
+    @Test
+    public void readChildNodeBasedOnPathFragment() throws Exception {
+     
+        NodeBuilder builder = globalStore.getRoot().builder();
+        
+        builder.child("multi-holder");
+        
+        globalStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        builder = mountedStore.getRoot().builder();
+        
+        builder.child("multi-holder").child("oak:mount-temp").setProperty("prop", "val");
+        
+        mountedStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        NodeState holderNode = store.getRoot().getChildNode("multi-holder");
+        assertTrue("/multi-holder/oak:mount-temp should be visible from the multiplexed store", 
+                holderNode.hasChildNode("oak:mount-temp"));
+        
+        assertChildNodeNames(holderNode, "oak:mount-temp");
+        
+        assertThat("/multi-holder/ must have 1 child entry", holderNode.getChildNodeCount(10), equalTo(1l));
+    }
     
     @Test
     @Ignore("Not implemented")
@@ -526,18 +551,6 @@ public class MultiplexingNodeStoreTest {
     public void builderBasedOnCheckpoint() {
 
     }
-    
-    @Test
-    @Ignore("Not implemented")
-    public void readNodeBasedOnPathFragmentFromRootStore() {
-        
-    }
-    
-    @Test
-    @Ignore("Not implemented")
-    public void readNodeBasedOnPathFragmentFromMountedStore() {
-        
-    }    
 
     private static enum NodeStoreKind {
         MEMORY {
@@ -694,5 +707,15 @@ public class MultiplexingNodeStoreTest {
         assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
+    
+    private void assertChildNodeNames(NodeState state, String... names) {
+        
+        Iterable<String> childNodeNames = state.getChildNodeNames();
+        
+        assertNotNull("childNodeNames must not be empty", childNodeNames);
+        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Mismatched elements", childNodeNames, hasItems(names));
+    }
+    
 
 }

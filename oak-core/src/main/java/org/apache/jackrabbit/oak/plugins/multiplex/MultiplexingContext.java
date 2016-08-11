@@ -20,8 +20,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.Lists;
@@ -74,7 +76,7 @@ class MultiplexingContext {
         throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + nodeStore);
     }
     
-    public List<MountedNodeStore> getContributingStores(String path) {
+    public List<MountedNodeStore> getContributingStores(String path, List<String> checkpoints) {
         
         Mount owningMount = mip.getMountByPath(path);
         if ( owningMount != null && !owningMount.isDefault() ) {
@@ -96,9 +98,29 @@ class MultiplexingContext {
         
         // query the mounts next
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
+            
             if ( mounts.contains(mountedNodeStore.getMount()) ) {
                 mountedStores.add(mountedNodeStore);
+            } else {
+                // TODO - suboptimal and also breaks encapsulation
+                //
+                // since we can't possibly know if a node matching the
+                // 'oak:mount-*' pattern exists below a given path
+                // we are forced to iterate for each node store 
                 
+                NodeStore mounted = mountedNodeStore.getNodeStore();
+                NodeState mountedRoot = checkpoints.isEmpty() ? 
+                        mounted.getRoot() : mounted.retrieve(getCheckpoint(mounted, checkpoints));
+                        
+                for ( String segment : PathUtils.elements(path) ) {
+                    mountedRoot = mountedRoot.getChildNode(segment);
+                }
+                
+                for ( String childNodeName : mountedRoot.getChildNodeNames() ) {
+                    if ( childNodeName.startsWith(mountedNodeStore.getMount().getPathFragmentName())) {
+                        mountedStores.add(mountedNodeStore);
+                    }
+                }
             }
         }
         
