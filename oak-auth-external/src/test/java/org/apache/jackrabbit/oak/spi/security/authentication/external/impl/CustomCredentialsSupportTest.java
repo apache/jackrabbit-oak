@@ -31,6 +31,7 @@ import javax.security.auth.login.LoginException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -67,7 +68,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         try {
             AuthInfo info = cs.getAuthInfo();
             assertEquals("testUser", info.getUserID());
-            assertAttributes(((IDP) idp).getAttributes(creds), info);
+            assertAttributes(getCredentialsSupport().getAttributes(creds), info);
         } finally {
             cs.close();
         }
@@ -94,6 +95,14 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         return new IDP();
     }
 
+    static Credentials createTestCredentials() {
+        return new TestCredentials(USER_ID);
+    }
+
+    protected CredentialsSupport getCredentialsSupport() {
+        return (IDP) idp;
+    }
+
     private static final class TestCredentials implements Credentials {
 
         private final String uid;
@@ -103,7 +112,10 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         }
     }
 
-    private static final class IDP implements ExternalIdentityProvider, CredentialsSupport {
+    static final class IDP implements ExternalIdentityProvider, CredentialsSupport {
+
+        private final Map attributes = Maps.newHashMap(ImmutableMap.of("a", "a"));
+
         @Nonnull
         @Override
         public String getName() {
@@ -207,9 +219,19 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         @Override
         public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
             if (credentials instanceof TestCredentials) {
-                return ImmutableMap.of("a", "a");
+                return attributes;
             } else {
                 return ImmutableMap.of();
+            }
+        }
+
+        @Override
+        public boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes) {
+            if (credentials instanceof TestCredentials) {
+                this.attributes.putAll(attributes);
+                return true;
+            } else {
+                return false;
             }
         }
     }

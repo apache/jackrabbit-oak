@@ -71,5 +71,26 @@ public class SimpleCredentialsSupportTest {
         assertEquals(expected, attributes);
     }
 
+    @Test
+    public void testSetAttributes() {
+        Map<String, ?> attributes = credentialsSupport.getAttributes(new TestCredentials());
+        assertNotNull(attributes);
+        assertTrue(attributes.isEmpty());
+
+        SimpleCredentials sc = new SimpleCredentials("uid", new char[0]);
+
+        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        credentialsSupport.setAttributes(sc, expected);
+
+        for (Map.Entry<String, ?> entry : expected.entrySet()) {
+            assertEquals(entry.getValue(), sc.getAttribute(entry.getKey()));
+        }
+
+        attributes = credentialsSupport.getAttributes(sc);
+        assertNotNull(attributes);
+        assertEquals(3, attributes.size());
+        assertEquals(expected, attributes);
+    }
+
     private static final class TestCredentials implements Credentials {}
 }

@@ -59,7 +59,16 @@ authentication phases behave as follows:
   create a new instance of `TokenCredentials`, push the public attributes to the
   shared stated and update the subject with the new credentials;
   finally the commit call **returns `false`**
+  
+##### Example JAAS Configuration
 
+  jackrabbit.oak {
+       org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
+       org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
+   };
+
+
+<a name="api_extensions"/>
 ### Token Management API
 
 Oak 1.0 defines the following interfaces used to manage login tokens:
@@ -71,174 +80,32 @@ Oak 1.0 defines the following interfaces used to manage login tokens:
 In addition Oak comes with a default implementation of the provider interface
 that is able to aggregate multiple `TokenProvider`s:
 
-- [CompositeTokenProvider]
+- [CompositeTokenConfiguration]: Extension of the `CompositeConfiguration` to combined different token management implementations.
+- [CompositeTokenProvider]: Aggregation of the `TokenProvider` implementations defined by the configurations contained the `CompositeTokenConfiguration`
 
+See section [Pluggability](#pluggability) for an example.
 
-### Characteristics of the TokenProvider Implementation
+<a href="default_implementation"/>
+### Characteristics of the Default Implementation
 
-The default implementation of the token management API stores login tokens along
-with the user's home directory in the repository. Along with the hash of the
-login token separated properties defining the expiration time of the token
-as well as as additional properties associated with the login tokens. This
-additional information may be mandatory (thus validated during the login) or
-optional. The optional properties are meant to have informative value only and
-will be transferred to public attributes as exposed by the [AuthInfo] present
-with each [ContentSession].
+The characteristics of the default token management implementation is
+described in section [Token Management : The Default Implementation](token/default.html). 
 
-#### Token Creation
-
-The creation of a new token is triggered by valid `SimpleCredentials` passed
-to the login module chain that contain an additional, empty `.token` attribute.
-The default `TokenProvider` implementation will consequently generate a new
-token and store it's hash along with all mandatory and informative attributes
-to the new content node representing the new token.
-
-#### Token Removal
-
-In the default implementation a given login token (and the node associated with it)
-will be removed if the authentication fails due to an expired token.
-
-#### Resetting Expiration Time
-
-The default `TokenProvider` implementation will automatically reset the expiration
-time of a given token upon successful authentication.
-
-This behavior can be disabled by setting the `tokenRefresh` configuration parameter
-to `false` (see `PARAM_TOKEN_REFRESH` below). In this case expiration time will
-not be reset and an attempt to do so using the API (e.g. calling `
-TokenInfo.resetExpiration(long loginTime)`) will return `false` indicating
-that the expiration time has not been reset. The token will consequently expire
-and the user will need to login again using the configured default login
-mechanism (e.g. using `SimpleCredentials`).
-
-#### Token Representation in the Repository
-
-##### Content Structure
-
-The login tokens issued for a given user are all located underneath a node
-named `.tokens` that will be created by the `TokenProvider` once the first token
-is created. The default implementation creates a distinct node for each login
-token as described below
-
-    testUser {
-        "jcr:primaryType": "rep:User",
-        ...
-        ".tokens" {
-            "jcr:primaryType": "rep:Unstructured",
-            "2014-04-10T16.09.07.159+02.00" {
-                "jcr:primaryType": "rep:Token",
-                ...
-            "2014-05-07T12.08.57.683+02.00" {
-                "jcr:primaryType": "rep:Token",
-                ...
-            }
-            "2014-06-25T16.00.13.018+02.00" {
-                "jcr:primaryType": "rep:Token",
-                ...
-            }
-        }
-    }
-
-##### Token Nodes
-
-As of Oak 1.0 the login token are represented in the repository as follows:
-
-- the token node is referenceable with the dedicated node type `rep:Token` (used to be unstructured in Jackrabbit 2.x)
-- expiration and key properties are defined to be mandatory and protected
-- expiration time is obtained from `PARAM_TOKEN_EXPIRATION` specified in the
-  login attributes and falls back to the configuration parameter with the same
-  name as specified in the configuration options of the `TokenConfiguration`.
-
-The definition of the new built-in node type `rep:Token`:
-
-    [rep:Token] > mix:referenceable
-    - rep:token.key (STRING) protected mandatory
-    - rep:token.exp (DATE) protected mandatory
-    - * (UNDEFINED) protected
-    - * (UNDEFINED) multiple protected
-
-The following example illustrates the token nodes resulting from this node type
-definition:
-
-    testUser {
-            "jcr:primaryType": "rep:User",
-            ...
-            ".tokens" {
-                "2014-04-10T16.09.07.159+02.00" {
-                    "jcr:primaryType": "rep:Token",
-                    "jcr:uuid": "30c1f361-35a2-421a-9ebc-c781eb8a08f0",
-                    "rep:token.key": "{SHA-256}afaf64dba5d862f9-1000-3e2d4e58ac16189b9f2ac95d8d5b692e61cb06db437bcd9be5c10bdf3792356a",
-                    "rep:token.exp": "2014-04-11T04:09:07.159+02:00",
-                    ".token.ip": "0:0:0:0:0:0:0:1%0"
-                    ".token.otherMandatoryProperty": "expectedValue",
-                    "referer": "http://localhost:4502/crx/explorer/login.jsp"
-                    "otherInformalProperty": "somevalue"
-                },
-                "2014-05-07T12.08.57.683+02.00" {
-                    "jcr:primaryType": "rep:Token",
-                    "jcr:uuid": "c95c91e2-2e08-48ab-93db-6e7c8cdd6469",
-                    "rep:token.key": "{SHA-256}b1d268c55abda258-1000-62e4c368972260576d37e6ba14a10f9f02897e42992624890e22c522220f7e54",
-                    "rep:token.exp": "2014-05-08T00:08:57.683+02:00"
-                },
-                ...
-            }
-        }
-    }
-
-<a name="validation"/>
-##### Validation
-
-The consistency of this content structure both on creation and modification is
-asserted by a dedicated `TokenValidator`. The corresponding errors are
-all of type `Constraint` with the following codes:
-
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0060              | Attempt to create reserved token property in other ctx   |
-| 0061              | Attempt to change existing token key                     |
-| 0062              | Change primary type of existing node to rep:Token        |
-| 0063              | Creation/Manipulation of tokens without using provider   |
-| 0064              | Create a token outside of configured scope               |
-| 0065              | Invalid location of token node                           |
-| 0066              | Invalid token key                                        |
-| 0067              | Mandatory token expiration missing                       |
-| 0068              | Invalid location of .tokens node                         |
-| 0069              | Change type of .tokens parent node                       |
-
+<a name="configuration"/>
 ### Configuration
 
-The Oak token management comes with it's own [TokenConfiguration] which allows
-to obtain a new `TokenProvider` instance with the specified configuration options.
-
-Apart from the default configuration implementation Oak provides a public
-[CompositeTokenConfiguration], which is used to combined different implementations
-plugged at runtime.
-
-#### Configuration Parameters
-
-| Parameter                           | Type    | Default                  |
-|-------------------------------------|---------|--------------------------|
-| PARAM_TOKEN_EXPIRATION              | long    | 2 * 3600 * 1000 (2 hours)|
-| PARAM_TOKEN_LENGTH                  | int     | 8                        |
-| PARAM_TOKEN_REFRESH                 | boolean | true                     |
-| | | |
+The configuration options of the default implementation are described in
+the [Configuration](token/default.html#configuration) section.
 
 
-#### Examples
-
-##### Example JAAS Configuration
-
-    jackrabbit.oak {
-         org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
-         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
-     };
-
-
+<a name="pluggability"/>
 ### Pluggability
 
-The default security setup as present with Oak 1.0 is able to provide custom
-`TokenProvider` implementations and will automatically combine the
-different implementations using the `CompositeTokenProvider`.
+The default security setup as present with Oak 1.0 is able to deal with 
+custom token management implementations and will collect multiple
+implementations within `CompositeTokenConfiguration` present with the
+`SecurityProvider`. The `CompositeTokenConfiguration` itself will 
+combine the different `TokenProvider` implementations using the `CompositeTokenProvider`.
 
 In an OSGi setup the following steps are required in order to add a custom
 token provider implementation:
@@ -291,4 +158,5 @@ token provider implementation:
 [ContentSession]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentSession.html
 [TokenProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenProvider.html
 [TokenInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenInfo.html
+[CompositeTokenConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/CompositeTokenConfiguration.html
 [CompositeTokenProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/CompositeTokenProvider.html
