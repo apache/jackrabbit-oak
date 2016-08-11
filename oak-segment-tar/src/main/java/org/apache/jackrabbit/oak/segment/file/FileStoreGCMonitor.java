@@ -54,6 +54,8 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
 
     private long lastCompaction;
     private long lastCleanup;
+    private long lastRepositorySize;
+    private long lastReclaimedSize;
     private String lastError;
     private String status = "NA";
 
@@ -104,6 +106,8 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     @Override
     public void cleaned(long reclaimed, long current) {
         lastCleanup = clock.getTime();
+        lastReclaimedSize = reclaimed;
+        lastRepositorySize = current;
         gcCount.getCounter().addAndGet(1);
         repositorySize.getCounter().set(current);
         reclaimedSize.getCounter().addAndGet(reclaimed);
@@ -119,6 +123,16 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     @Override
     public String getLastCleanup() {
         return toString(lastCleanup);
+    }
+
+    @Override
+    public long getLastRepositorySize() {
+        return lastRepositorySize;
+    }
+
+    @Override
+    public long getLastReclaimedSize() {
+        return lastReclaimedSize;
     }
 
     private static String toString(long timestamp) {

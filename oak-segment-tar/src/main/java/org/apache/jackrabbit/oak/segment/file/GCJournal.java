@@ -41,8 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Persists the repository size following a cleanup operation in the
- * {@link #GC_JOURNAL gc journal} file with the format: 'size, timestamp'.
+ * Persists the repository size and the reclaimed size following a cleanup operation in the
+ * {@link #GC_JOURNAL gc journal} file with the format: 'repoSize, reclaimedSize, timestamp'.
  */
 public class GCJournal {
 
@@ -59,8 +59,8 @@ public class GCJournal {
         this.directory = checkNotNull(directory);
     }
 
-    public synchronized void persist(long size) {
-        latest = new GCJournalEntry(size, System.currentTimeMillis());
+    public synchronized void persist(long reclaimedSize, long repoSize) {
+        latest = new GCJournalEntry(repoSize, reclaimedSize, System.currentTimeMillis());
         Path path = new File(directory, GC_JOURNAL).toPath();
         try {
             try (BufferedWriter w = newBufferedWriter(path, UTF_8, WRITE,
@@ -108,27 +108,30 @@ public class GCJournal {
 
     static class GCJournalEntry {
 
-        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1);
+        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1);
 
-        private final long size;
+        private final long repoSize;
+        private final long reclaimedSize;
         private final long ts;
 
-        public GCJournalEntry(long size, long ts) {
+        public GCJournalEntry(long repoSize, long reclaimedSize, long ts) {
+            this.repoSize = repoSize;
+            this.reclaimedSize = reclaimedSize;
             this.ts = ts;
-            this.size = size;
         }
 
         @Override
         public String toString() {
-            return size + "," + ts;
+            return  repoSize + "," + reclaimedSize + "," + ts;
         }
 
         static GCJournalEntry fromString(String in) {
             String[] items = in.split(",");
-            if (items.length == 2) {
-                long size = safeParse(items[0]);
-                long ts = safeParse(items[1]);
-                return new GCJournalEntry(size, ts);
+            if (items.length == 3) {
+                long repoSize = safeParse(items[0]);
+                long reclaimedSize = safeParse(items[1]);
+                long ts = safeParse(items[2]);
+                return new GCJournalEntry(repoSize, reclaimedSize, ts);
             }
             return GCJournalEntry.EMPTY;
         }
@@ -142,8 +145,12 @@ public class GCJournal {
             return -1;
         }
 
-        public long getSize() {
-            return size;
+        public long getRepoSize() {
+            return repoSize;
+        }
+
+        public long getReclaimedSize() {
+            return reclaimedSize;
         }
 
         public long getTs() {
@@ -154,7 +161,8 @@ public class GCJournal {
         public int hashCode() {
             final int prime = 31;
             int result = 1;
-            result = prime * result + (int) (size ^ (size >>> 32));
+            result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
+            result = prime * result + (int) (repoSize ^ (repoSize >>> 32));
             result = prime * result + (int) (ts ^ (ts >>> 32));
             return result;
         }
@@ -168,7 +176,9 @@ public class GCJournal {
             if (getClass() != obj.getClass())
                 return false;
             GCJournalEntry other = (GCJournalEntry) obj;
-            if (size != other.size)
+            if (reclaimedSize != other.reclaimedSize)
+                return false;
+            if (repoSize != other.repoSize)
                 return false;
             if (ts != other.ts)
                 return false;

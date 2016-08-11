@@ -832,8 +832,7 @@ public class FileStore implements SegmentStore, Closeable {
         long finalSize = size();
         long reclaimedSize = initialSize - afterCleanupSize; 
         stats.reclaimed(reclaimedSize);
-        
-        gcJournal.persist(finalSize);
+        gcJournal.persist(reclaimedSize, finalSize);
         gcListener.cleaned(reclaimedSize, finalSize);
         gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                 " and space reclaimed {} ({} bytes).",
