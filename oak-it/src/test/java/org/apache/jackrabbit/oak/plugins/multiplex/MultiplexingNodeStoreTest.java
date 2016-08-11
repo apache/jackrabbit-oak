@@ -477,6 +477,42 @@ public class MultiplexingNodeStoreTest {
         
         assertTrue("Node child1 must still exist", store.getRoot().getChildNode("tmp").hasChildNode("child1"));
         assertThat("Node child1 must not have any properties", store.getRoot().getChildNode("tmp").getChildNode("child1").getPropertyCount(), equalTo(0l));
+    }
+    
+    
+    @Test
+    public void builderBasedOnRootStoreChildNode() throws Exception {
+        
+        NodeBuilder appsBuilder = store.getRoot().getChildNode("apps").builder();
+        
+        appsBuilder.removeProperty("prop");
+        appsBuilder.setChildNode("child1");
+        
+        store.merge(appsBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertFalse("Node apps must have no properties (multiplexed store)", store.getRoot().getChildNode("apps").hasProperty("prop"));
+        assertFalse("Node apps must have no properties (root store)", globalStore.getRoot().getChildNode("apps").hasProperty("prop"));
+        
+        assertTrue("Node /apps/child1 must exist (multiplexed store)", store.getRoot().getChildNode("apps").hasChildNode("child1"));
+        assertTrue("Node /apps/child1 must exist (root store)", globalStore.getRoot().getChildNode("apps").hasChildNode("child1"));
+    }
+
+    @Test
+    public void builderBasedOnMountStoreChildNode() throws Exception {
+
+        NodeBuilder tmpBuilder = store.getRoot().getChildNode("tmp").builder();
+        
+        tmpBuilder.removeProperty("prop1");
+        tmpBuilder.setChildNode("child3");
+        
+        store.merge(tmpBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        assertFalse("Node tmp must have no properties (multiplexed store)", store.getRoot().getChildNode("tmp").hasProperty("prop1"));
+        assertFalse("Node tmp must have no properties (mounted store)", mountedStore.getRoot().getChildNode("tmp").hasProperty("prop1"));
+
+        assertTrue("Node /tmp/build3 must exist (multiplexed store)", store.getRoot().getChildNode("tmp").hasChildNode("child3"));
+        assertTrue("Node /tmp/child3 must exist (mounted store)", mountedStore.getRoot().getChildNode("tmp").hasChildNode("child3"));
+
     }    
     
     @Test
@@ -489,18 +525,6 @@ public class MultiplexingNodeStoreTest {
     @Ignore("Not implemented")
     public void builderBasedOnCheckpoint() {
 
-    }
-    
-    @Test
-    @Ignore("Not implemented")
-    public void builderBaseOnRootStoreChildNode() {
-        
-    }
-
-    @Test
-    @Ignore("Not implemented")
-    public void builderBaseOnMountStoreChildNode() {
-        
     }
     
     @Test

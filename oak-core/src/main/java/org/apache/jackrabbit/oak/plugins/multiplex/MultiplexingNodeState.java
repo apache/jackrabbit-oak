@@ -155,8 +155,14 @@ public class MultiplexingNodeState extends AbstractNodeState {
         // register the initial builder as affected as it's already instantiated
         Map<MountedNodeStore, NodeBuilder> affectedBuilders = Maps.newHashMap();
         MountedNodeStore owningStore = ctx.getOwningStore(path);
-        NodeBuilder builder = wrapped.builder();
+        NodeBuilder builder = owningStore.getNodeStore().getRoot().builder();
         affectedBuilders.put(owningStore, builder);
+        
+        // make sure the wrapped builder references the path for this NodeState
+        // so we can easily call methods which update properties or otherwise
+        // don't require reaching out to multiple NodeStore instances
+        for ( String segment : PathUtils.elements(path))
+            builder = builder.getChildNode(segment);
         
         return new MultiplexingNodeBuilder(path, builder, ctx, affectedBuilders);
     }
