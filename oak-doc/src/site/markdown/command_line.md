@@ -64,6 +64,13 @@ Example:
 
     java -Dtar.memoryMapped=true -mx4g -jar oak-run-*.jar checkpoint <repository>
 
+#### Analyzing Thread Dumps ####
+
+To analyze thread dumps, filter out idle threads, and get profiling data, use the following, there the directory contains thread dump files:
+
+    java -jar oak-run-*.jar threaddump --filter --profile <directory>
+
+
 ### MongoDB Shell with oak-mongo.js
 
 MongoDB comes with a command line shell that can be extended with custom
