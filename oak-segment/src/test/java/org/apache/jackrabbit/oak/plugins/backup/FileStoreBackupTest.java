@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -108,8 +109,7 @@ public class FileStoreBackupTest {
         return nodeStore.createBlob(new ByteArrayInputStream(data));
     }
 
-    private static void compare(FileStore store, File destination)
-            throws IOException {
+    private static void compare(FileStore store, File destination) throws IOException, InvalidFileStoreVersionException {
         FileStore backup = FileStore.builder(destination).withMaxFileSize(8).build();
         assertEquals(store.getHead(), backup.getHead());
         backup.close();

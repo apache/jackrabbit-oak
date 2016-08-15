@@ -49,12 +49,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class Utils {
 
-    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException {
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException, InvalidFileStoreVersionException {
         //TODO add support for other NodeStore flags
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser

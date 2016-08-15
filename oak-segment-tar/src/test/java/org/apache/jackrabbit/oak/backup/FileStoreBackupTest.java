@@ -122,15 +122,14 @@ public class FileStoreBackupTest {
         return nodeStore.createBlob(new ByteArrayInputStream(data));
     }
 
-    private static FileStore newFileStore(File fs) throws IOException {
+    private static FileStore newFileStore(File fs) throws Exception {
         return fileStoreBuilder(fs)
                 .withMaxFileSize(1)
                 .withGCOptions(SegmentGCOptions.defaultGCOptions().setOffline())
                 .build();
     }
 
-    private static void compare(FileStore store, File destination)
-            throws IOException {
+    private static void compare(FileStore store, File destination) throws Exception {
         FileStore backup = fileStoreBuilder(destination).build();
         assertEquals(store.getHead(), backup.getHead());
         backup.close();

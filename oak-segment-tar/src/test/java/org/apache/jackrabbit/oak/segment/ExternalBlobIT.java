@@ -160,7 +160,7 @@ public class ExternalBlobIT {
         nodeStore = null;
     }
 
-    protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
+    protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws Exception {
         if (nodeStore == null) {
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
             

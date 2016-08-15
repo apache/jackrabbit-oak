@@ -93,7 +93,7 @@ public class SegmentOverflowExceptionIT {
     };
 
     @Test
-    public void run() throws IOException, CommitFailedException, InterruptedException {
+    public void run() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withGCMonitor(gcMonitor).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();

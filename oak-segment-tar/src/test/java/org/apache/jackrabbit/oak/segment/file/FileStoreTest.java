@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment.file;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.junit.Rule;
@@ -39,7 +38,7 @@ public class FileStoreTest {
     }
 
     @Test
-    public void containsSegment() throws IOException {
+    public void containsSegment() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         try {
             SegmentId id = new SegmentId(fileStore, 0, 0);

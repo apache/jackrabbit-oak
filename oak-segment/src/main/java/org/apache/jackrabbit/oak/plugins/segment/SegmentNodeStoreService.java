@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -435,7 +436,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             builder.withBlobStore(blobStore);
         }
 
-        store = builder.build();
+        try {
+            store = builder.build();
+        } catch (InvalidFileStoreVersionException e) {
+            log.error("The segment store data is not compatible with the current version. Please use oak-segment-tar or a different version of oak-segment.");
+            return false;
+        }
 
         // Create a compaction strategy
 

@@ -104,6 +104,8 @@ public class FileStore implements SegmentStore {
 
     private static final String LOCK_FILE_NAME = "repo.lock";
 
+    private static final String MANIFEST_FILE_NAME = "manifest";
+
     /**
      * GC counter for logging purposes
      */
@@ -368,17 +370,17 @@ public class FileStore implements SegmentStore {
          * @throws IOException
          */
         @Nonnull
-        public FileStore build() throws IOException {
+        public FileStore build() throws IOException, InvalidFileStoreVersionException {
             return new FileStore(this, false);
         }
 
-        public ReadOnlyStore buildReadOnly() throws IOException {
+        public ReadOnlyStore buildReadOnly() throws IOException, InvalidFileStoreVersionException {
             return new ReadOnlyStore(this);
         }
 
     }
 
-    private FileStore(Builder builder, boolean readOnly) throws IOException {
+    private FileStore(Builder builder, boolean readOnly) throws IOException, InvalidFileStoreVersionException {
         this.version = builder.version;
 
         if (readOnly) {
@@ -401,15 +403,18 @@ public class FileStore implements SegmentStore {
         this.memoryMapping = builder.memoryMapping;
         this.gcMonitor = builder.gcMonitor;
 
-        if (readOnly) {
-            journalFile = new RandomAccessFile(new File(directory,
-                    JOURNAL_FILE_NAME), "r");
-        } else {
-            journalFile = new RandomAccessFile(new File(directory,
-                    JOURNAL_FILE_NAME), "rw");
+        Map<Integer, Map<Character, File>> map = collectFiles(directory);
+
+        File manifest = new File(directory, MANIFEST_FILE_NAME);
+
+        if (map.size() > 0) {
+            if (manifest.exists()) {
+                throw new InvalidFileStoreVersionException();
+            } else {
+                log.debug("The store folder is non empty and does not have manifest file");
+            }
         }
 
-        Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
@@ -438,6 +443,14 @@ public class FileStore implements SegmentStore {
             this.writeFile = new File(directory, String.format(
                     FILE_NAME_FORMAT, writeNumber, "a"));
             this.writer = new TarWriter(writeFile, stats);
+        }
+
+        if (readOnly) {
+            journalFile = new RandomAccessFile(new File(directory,
+                    JOURNAL_FILE_NAME), "r");
+        } else {
+            journalFile = new RandomAccessFile(new File(directory,
+                    JOURNAL_FILE_NAME), "rw");
         }
 
         RecordId id = null;
@@ -1394,7 +1407,7 @@ public class FileStore implements SegmentStore {
      */
     public static class ReadOnlyStore extends FileStore {
 
-        private ReadOnlyStore(Builder builder) throws IOException {
+        private ReadOnlyStore(Builder builder) throws IOException, InvalidFileStoreVersionException {
             super(builder, true);
         }
 

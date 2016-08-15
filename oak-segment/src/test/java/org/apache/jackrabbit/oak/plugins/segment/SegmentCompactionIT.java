@@ -217,8 +217,7 @@ public class SegmentCompactionIT {
     }
 
     @Before
-    public void setUp() throws IOException, MalformedObjectNameException, NotCompliantMBeanException,
-            InstanceAlreadyExistsException, MBeanRegistrationException {
+    public void setUp() throws Exception {
         assumeTrue(ENABLED);
 
         scheduler.scheduleAtFixedRate(new Runnable() {

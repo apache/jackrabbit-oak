@@ -91,7 +91,7 @@ public class RefreshOnGCTest {
         this.fixture = fixtures;
     }
 
-    private NodeStore createSegmentStore(File directory, GCMonitor gcMonitor) throws IOException {
+    private NodeStore createSegmentStore(File directory, GCMonitor gcMonitor) throws Exception {
         CompactionStrategy strategy = new CompactionStrategy(
                 false, false, CLEAN_NONE, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
             @Override
@@ -130,7 +130,7 @@ public class RefreshOnGCTest {
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         File directory = createTempFile(getClass().getSimpleName(), "test", new File("target"));
         directory.delete();
         directory.mkdir();

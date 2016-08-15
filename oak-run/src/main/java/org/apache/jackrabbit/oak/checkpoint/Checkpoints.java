@@ -26,6 +26,7 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public abstract class Checkpoints {
 
-    public static Checkpoints onSegment(File path, Closer closer) throws IOException {
+    public static Checkpoints onSegment(File path, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return SegmentCheckpoints.create(path, closer);
     }
 

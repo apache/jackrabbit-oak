@@ -97,7 +97,7 @@ public class PartialCompactionMapTest {
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         segmentStore = FileStore.builder(folder.getRoot()).build();
     }
 

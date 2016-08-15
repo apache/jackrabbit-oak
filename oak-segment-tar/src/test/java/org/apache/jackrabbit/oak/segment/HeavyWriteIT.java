@@ -62,7 +62,7 @@ public class HeavyWriteIT {
     }
 
     @Test
-    public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
+    public void heavyWrite() throws Exception {
         final FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 

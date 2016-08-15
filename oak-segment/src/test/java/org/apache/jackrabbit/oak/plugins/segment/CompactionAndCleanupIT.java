@@ -375,7 +375,7 @@ public class CompactionAndCleanupIT {
      * This is a regression introduced with OAK-1828.
      */
     @Test
-    public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
+    public void cleanupCyclicGraph() throws Exception {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).build();
         final SegmentWriter writer = fileStore.getTracker().getWriter();
         final SegmentNodeState oldHead = fileStore.getHead();
@@ -428,7 +428,7 @@ public class CompactionAndCleanupIT {
      */
     @Test
     @Ignore("OAK-3348")  // FIXME OAK-3348
-    public void preCompactionReferences() throws IOException, CommitFailedException, InterruptedException {
+    public void preCompactionReferences() throws Exception {
         for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
             File repoDir = new File(getFileStoreFolder(), ref);
             FileStore fileStore = FileStore.builder(repoDir).withMaxFileSize(2).build();
@@ -590,7 +590,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    public void propertyRetention() throws IOException, CommitFailedException {
+    public void propertyRetention() throws Exception {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();

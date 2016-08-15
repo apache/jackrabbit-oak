@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SegmentExplorerBackend implements ExplorerBackend {
@@ -55,7 +56,12 @@ class SegmentExplorerBackend implements ExplorerBackend {
 
     @Override
     public void open() throws IOException {
-        store = FileStore.builder(path).buildReadOnly();
+        try {
+            store = FileStore.builder(path).buildReadOnly();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
+
         index = store.getTarReaderIndex();
     }
 

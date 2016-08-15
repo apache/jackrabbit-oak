@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -286,7 +287,7 @@ public class TextExtractorMain {
         return props;
     }
 
-    private static NodeStore bootStrapNodeStore(String src, boolean segmentTar, BlobStore blobStore, Closer closer) throws IOException {
+    private static NodeStore bootStrapNodeStore(String src, boolean segmentTar, BlobStore blobStore, Closer closer) throws IOException, InvalidFileStoreVersionException {
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {

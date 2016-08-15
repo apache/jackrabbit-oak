@@ -89,8 +89,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    public void compactionNoBinaryClone()
-    throws IOException, CommitFailedException {
+    public void compactionNoBinaryClone() throws Exception {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
@@ -176,8 +175,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    public void offlineCompaction()
-    throws IOException, CommitFailedException {
+    public void offlineCompaction() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
@@ -269,8 +267,7 @@ public class CompactionAndCleanupIT {
      * that compacting checkpoints will not cause the size to explode
      */
     @Test
-    public void offlineCompactionCps() throws IOException,
-            CommitFailedException {
+    public void offlineCompactionCps() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
@@ -322,8 +319,7 @@ public class CompactionAndCleanupIT {
      * de-duplication capabilities of compaction.
      */
     @Test
-    public void offlineCompactionBinC1() throws IOException,
-            CommitFailedException {
+    public void offlineCompactionBinC1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
                 .withBinaryDeduplication();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
@@ -378,8 +374,7 @@ public class CompactionAndCleanupIT {
      * de-duplication capabilities of compaction.
      */
     @Test
-    public void offlineCompactionBinC2() throws IOException,
-            CommitFailedException {
+    public void offlineCompactionBinC2() throws Exception {
         int blobSize = 5 * 1024 * 1024;
 
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
@@ -439,8 +434,7 @@ public class CompactionAndCleanupIT {
      * de-duplication capabilities of compaction
      */
     @Test
-    public void offlineCompactionBinR1() throws IOException,
-            CommitFailedException {
+    public void offlineCompactionBinR1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
@@ -629,7 +623,7 @@ public class CompactionAndCleanupIT {
      * This is a regression introduced with OAK-1828.
      */
     @Test
-    public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
+    public void cleanupCyclicGraph() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         final SegmentWriter writer = fileStore.getWriter();
         final SegmentNodeState oldHead = fileStore.getHead();
@@ -687,7 +681,7 @@ public class CompactionAndCleanupIT {
      * Test asserting OAK-3348: Cross gc sessions might introduce references to pre-compacted segments
      */
     @Test
-    public void preCompactionReferences() throws IOException, CommitFailedException, InterruptedException {
+    public void preCompactionReferences() throws Exception {
         for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
             File repoDir = new File(getFileStoreFolder(), ref);
             FileStore fileStore = fileStoreBuilder(repoDir)
@@ -846,7 +840,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    public void propertyRetention() throws IOException, CommitFailedException {
+    public void propertyRetention() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
@@ -895,7 +889,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    public void checkpointDeduplicationTest() throws IOException, CommitFailedException {
+    public void checkpointDeduplicationTest() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         try {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
