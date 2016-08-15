@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.8
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.7 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.8 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,47 +15,64 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.7
+Changes in Oak 1.5.8
 ---------------------
 
 Technical task
 
-    [OAK-3403] - Multiplexing store support in Property indexes
-    [OAK-3758] - Multiplexing store support in Reference index
-    [OAK-4593] - Remove usage of DocumentMK in
-    DocumentNodeStoreService
+    [OAK-4629] - Make it possible to override blob accessing methods
+    in DataStoreBlobStore
+    [OAK-4633] - Multiplexing store support for Node type indexes
 
 Bug
 
-    [OAK-3072] - LuceneIndexEditorTest#copyOnWriteAndLocks failing on
-    windows
-    [OAK-4595] - OSGiIT failure LuceneIndexProviderService exception
+    [OAK-4196] - EventListener gets removed event for denied node
+    [OAK-4301] - Missing protection for system-maintained
+    rep:externalId
+    [OAK-4599] - SecurityProviderRegistration fails to update config
+    param of SecurityConfiguration(s)
+    [OAK-4628] - Using non default dir name causes index directory to
+    be deleted
+    [OAK-4652] - indexName logged in QueryImpl is wrong in case of
+    multiple indexes satisfying the query
+    [OAK-4658] - Outer join: name(b) and localname(b) can throw a NPE
+    [OAK-4660] - TokenProviderImpl.getTokenParent may return
+    non-existing tree
+    [OAK-4662] - Include Commons Lang Math 3 as a dependency in
+    oak-run
+    [OAK-4663] - Include Commons Lang Math 3 as a dependency in
+    oak-upgrade
+
+Documentation
+
+    [OAK-4466] - Incorrect description for "Simple Inheritance with
+    Restrictions" inthe Permission Evaluation Page
 
 Improvement
 
-    [OAK-4344] - LdapIdentityProvider always retrieves all attributes
-    when looking up an LDAP entity.
     [OAK-4500] - Create tooling for reducing a document-based
     repository to a list of paths
-    [OAK-4587] - Don't ignore the cached NULLs in bulk createOrUpdate
-    for Mongo
-    [OAK-4594] - Remove DocumentNodeState.copyTo()
-    [OAK-4605] - Separate persistent cache for diff and local_diff
-    [OAK-4613] - Suggest directory should be opened in read only mode
-    [OAK-4616] - Record suggestor status in suggest-data node
-    [OAK-4622] - SessionDelegate.lock speedup
+    [OAK-4585] - Text extraction: runtime status monitoring
     [OAK-4624] - Optionally ignore missing blobs during sidegrade
+    [OAK-4630] - Create segment and segment tar directory only when
+    it's missing
+    [OAK-4636] - PropertyIndexLookup#getIndexNode should be more
+    tolerant towards property types
+    [OAK-4640] - Provide a way for commit hook to record meta data for
+    a given commit
+    [OAK-4641] - Using same index definition for both async and sync
+    indexing
+    [OAK-4642] - Provide a way to pass indexing related state to
+    IndexEditorProvider
+    [OAK-4661] - TokenLoginModule: improve log output
 
 New Feature
 
-    [OAK-4180] - Use another NodeStore as a local cache for a remote
-    Document store
-
-Task
-
-    [OAK-4470] - Remove read revision method from DocumentNodeState
-    [OAK-4592] - Make DocumentNodeState immutable
-    [OAK-4607] - Add support for multiple directory in IndexCopier
+    [OAK-4129] - Use CredentialsSupport in TokenConfigurationImpl and
+    TokenProviderImpl
+    [OAK-4566] - Multiplexing store support in Lucene Indexes
+    [OAK-4626] - Use oak-upgrade to initialize the DocumentMK local
+    cache nodestore
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
