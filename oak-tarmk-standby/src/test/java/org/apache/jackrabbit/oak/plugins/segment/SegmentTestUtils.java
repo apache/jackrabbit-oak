@@ -48,7 +48,7 @@ public final class SegmentTestUtils {
         return r;
     }
 
-    public static void assertEqualStores(File d1, File d2) throws IOException {
+    public static void assertEqualStores(File d1, File d2) throws Exception {
         FileStore f1 = FileStore.builder(d1).withMaxFileSize(1).withMemoryMapping(false).build();
         FileStore f2 = FileStore.builder(d2).withMaxFileSize(1).withMemoryMapping(false).build();
         try {

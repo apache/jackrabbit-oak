@@ -69,7 +69,7 @@ public class TestBase {
         assumeTrue(FIXTURES.contains(Fixture.SEGMENT_MK));
     }
 
-    public void setUpServerAndClient() throws IOException {
+    public void setUpServerAndClient() throws Exception {
         // server
         directoryS = createTmpTargetDir(getClass().getSimpleName()+"-Server");
         storeS = setupPrimary(directoryS);
@@ -79,7 +79,7 @@ public class TestBase {
         storeC = setupSecondary(directoryC);
     }
 
-    private static FileStore newFileStore(File directory) throws IOException {
+    private static FileStore newFileStore(File directory) throws Exception {
         return FileStore.builder(directory)
             .withMaxFileSize(1)
             .withMemoryMapping(false)
@@ -87,7 +87,7 @@ public class TestBase {
             .build();
     }
 
-    protected FileStore setupPrimary(File directory) throws IOException {
+    protected FileStore setupPrimary(File directory) throws Exception {
         return newFileStore(directory);
     }
 
@@ -95,7 +95,7 @@ public class TestBase {
         return storeS;
     }
 
-    protected FileStore setupSecondary(File directory) throws IOException {
+    protected FileStore setupSecondary(File directory) throws Exception {
         return newFileStore(directoryC);
     }
 

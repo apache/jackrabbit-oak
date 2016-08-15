@@ -53,7 +53,7 @@ public class SegmentSizeTest {
     private FileStore store;
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         store = fileStoreBuilder(folder.getRoot()).build();
     }
 

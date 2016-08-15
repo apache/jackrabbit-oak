@@ -25,7 +25,6 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-
 import org.junit.After;
 
 
@@ -45,13 +44,13 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
     }
 
     @Override
-    protected FileStore setupPrimary(File d) throws IOException {
+    protected FileStore setupPrimary(File d) throws Exception {
         primaryStore = createTmpTargetDir("ExternalStoreITPrimary");
         return setupFileDataStore(d, primaryStore.getAbsolutePath());
     }
 
     @Override
-    protected FileStore setupSecondary(File d) throws IOException {
+    protected FileStore setupSecondary(File d) throws Exception {
         secondaryStore = createTmpTargetDir("ExternalStoreITSecondary");
         return setupFileDataStore(d, secondaryStore.getAbsolutePath());
     }

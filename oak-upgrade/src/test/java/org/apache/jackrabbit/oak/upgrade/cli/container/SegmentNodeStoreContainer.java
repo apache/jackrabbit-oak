@@ -22,6 +22,7 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Files;
@@ -56,7 +57,13 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
         if (blob != null) {
             builder.withBlobStore(blob.open());
         }
-        fs = builder.build();
+
+        try {
+            fs = builder.build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
+
         return SegmentNodeStore.builder(fs).build();
     }
 

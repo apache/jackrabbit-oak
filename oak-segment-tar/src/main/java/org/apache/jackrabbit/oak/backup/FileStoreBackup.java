@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ public class FileStoreBackup {
     public static void backup(@Nonnull SegmentReader reader,
                               @Nonnull Revisions revisions,
                               @Nonnull File destination)
-            throws IOException {
+            throws IOException, InvalidFileStoreVersionException {
         Stopwatch watch = Stopwatch.createStarted();
         SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions()
                 .setOffline();

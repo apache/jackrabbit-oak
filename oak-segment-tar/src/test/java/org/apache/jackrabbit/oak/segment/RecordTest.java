@@ -79,7 +79,7 @@ public class RecordTest {
     private final Random random = new Random(0xcafefaceL);
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         store = fileStoreBuilder(folder.getRoot()).build();
         writer = store.getWriter();
     }

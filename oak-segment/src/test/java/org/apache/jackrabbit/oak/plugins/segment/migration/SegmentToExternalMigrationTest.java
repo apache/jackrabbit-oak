@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.blob.migration.AbstractMigratorTest;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -41,7 +42,13 @@ public class SegmentToExternalMigrationTest extends AbstractMigratorTest {
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
-        segmentStore = builder.build();
+
+        try {
+            segmentStore = builder.build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
+
         return SegmentNodeStore.builder(segmentStore).build();
     }
 

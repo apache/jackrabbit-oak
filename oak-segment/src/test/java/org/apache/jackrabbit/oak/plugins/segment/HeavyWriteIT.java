@@ -82,7 +82,7 @@ public class HeavyWriteIT {
     }
 
     @Test
-    public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
+    public void heavyWrite() throws Exception {
         final FileStore store = FileStore.builder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
         final SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
         CompactionStrategy custom = new CompactionStrategy(false, false,

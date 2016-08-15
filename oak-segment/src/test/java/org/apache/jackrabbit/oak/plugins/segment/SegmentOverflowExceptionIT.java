@@ -100,7 +100,7 @@ public class SegmentOverflowExceptionIT {
     };
 
     @Test
-    public void run() throws IOException, CommitFailedException, InterruptedException {
+    public void run() throws Exception {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withGCMonitor(gcMonitor).build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();

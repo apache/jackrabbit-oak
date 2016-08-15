@@ -66,16 +66,16 @@ public class FileStoreIT {
     }
 
     @Test
-    public void testRestartAndGCWithoutMM() throws IOException {
+    public void testRestartAndGCWithoutMM() throws Exception {
         testRestartAndGC(false);
     }
 
     @Test
-    public void testRestartAndGCWithMM() throws IOException {
+    public void testRestartAndGCWithMM() throws Exception {
         testRestartAndGC(true);
     }
 
-    public void testRestartAndGC(boolean memoryMapping) throws IOException {
+    public void testRestartAndGC(boolean memoryMapping) throws Exception {
         FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
         store.close();
 
@@ -101,7 +101,7 @@ public class FileStoreIT {
     }
 
     @Test
-    public void testRecovery() throws IOException {
+    public void testRecovery() throws Exception {
         FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         store.flush();
 
@@ -171,7 +171,7 @@ public class FileStoreIT {
     }
 
     @Test  // See OAK-2049
-    public void segmentOverflow() throws IOException {
+    public void segmentOverflow() throws Exception {
         for (int n = 1; n < 255; n++) {  // 255 = ListRecord.LEVEL_SIZE
             FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
             SegmentWriter writer = store.getWriter();
@@ -204,7 +204,7 @@ public class FileStoreIT {
     }
 
     @Test
-    public void nonBlockingROStore() throws IOException {
+    public void nonBlockingROStore() throws Exception {
         FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         store.flush(); // first 1kB
         SegmentNodeState base = store.getHead();
@@ -226,7 +226,7 @@ public class FileStoreIT {
     }
 
     @Test
-    public void setRevisionTest() throws IOException {
+    public void setRevisionTest() throws Exception {
         try (FileStore store = fileStoreBuilder(getFileStoreFolder()).build()) {
             RecordId id1 = store.getRevisions().getHead();
             SegmentNodeState base = store.getHead();

@@ -25,13 +25,14 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 final class SegmentCheckpoints extends Checkpoints {
 
-    static Checkpoints create(File path, Closer closer) throws IOException {
+    static Checkpoints create(File path, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return new SegmentCheckpoints(closer.register(FileStore.builder(path).build()));
     }
 

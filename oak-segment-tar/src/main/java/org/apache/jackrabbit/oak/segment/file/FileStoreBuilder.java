@@ -333,7 +333,7 @@ public class FileStoreBuilder {
      * @throws IOException
      */
     @Nonnull
-    public FileStore build() throws IOException {
+    public FileStore build() throws InvalidFileStoreVersionException, IOException {
         checkState(revisions == null, "Cannot re-use builder");
         directory.mkdir();
         revisions = new TarRevisions(false, directory);
@@ -359,7 +359,7 @@ public class FileStoreBuilder {
      * @throws IOException
      */
     @Nonnull
-    public ReadOnlyStore buildReadOnly() throws IOException {
+    public ReadOnlyStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
         checkState(revisions == null, "Cannot re-use builder");
         checkState(directory.exists() && directory.isDirectory());
         revisions = new TarRevisions(true, directory);

@@ -100,7 +100,7 @@ public class FileStoreRevisionRecovery {
 
     private static SortedMap<String, String> extractRoots(File dir,
             SortedMap<String, UUID> candidates, final SegmentVersion version)
-            throws IOException {
+            throws IOException, InvalidFileStoreVersionException {
 
         ReadOnlyStore store = FileStore.builder(dir).withSegmentVersion(version).buildReadOnly();
 

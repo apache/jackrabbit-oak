@@ -105,7 +105,7 @@ public class SegmentGraphTest {
     }
 
     @Test
-    public void testSegmentGraph() throws IOException {
+    public void testSegmentGraph() throws Exception {
         ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store, Predicates.<UUID>alwaysTrue());
@@ -121,7 +121,7 @@ public class SegmentGraphTest {
     }
 
     @Test
-    public void testSegmentGraphWithFilter() throws IOException {
+    public void testSegmentGraphWithFilter() throws Exception {
         ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
         try {
             Predicate<UUID> filter = createRegExpFilter(".*testWriter.*", store.getTracker());
@@ -138,7 +138,7 @@ public class SegmentGraphTest {
     }
 
     @Test
-    public void testGCGraph() throws IOException {
+    public void testGCGraph() throws Exception {
         ReadOnlyStore store = FileStore.builder(getStoreFolder()).buildReadOnly();
         try {
             Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
