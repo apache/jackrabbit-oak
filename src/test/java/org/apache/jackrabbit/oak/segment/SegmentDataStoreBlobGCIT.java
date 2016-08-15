@@ -105,7 +105,7 @@ public class SegmentDataStoreBlobGCIT {
         assumeTrue(getFixtures().contains(SEGMENT_TAR));
     }
 
-    protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
+    protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws Exception {
         if (nodeStore == null) {
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
             FileStoreBuilder builder = fileStoreBuilder(getWorkDir())

@@ -76,6 +76,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -108,6 +109,7 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore implements SegmentStore, Closeable {
+
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final int MB = 1024 * 1024;
@@ -118,6 +120,8 @@ public class FileStore implements SegmentStore, Closeable {
     private static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     private static final String LOCK_FILE_NAME = "repo.lock";
+
+    private static final String MANIFEST_FILE_NAME = "manifest";
 
     /**
      * GC counter for logging purposes
@@ -232,7 +236,7 @@ public class FileStore implements SegmentStore, Closeable {
     };
 
     // FIXME OAK-4450: Properly split the FileStore into read-only and r/w variants
-    FileStore(FileStoreBuilder builder, final boolean readOnly) throws IOException {
+    FileStore(FileStoreBuilder builder, final boolean readOnly) throws InvalidFileStoreVersionException, IOException {
         this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
@@ -274,7 +278,21 @@ public class FileStore implements SegmentStore, Closeable {
         this.gcListener = builder.getGcListener();
         this.gcOptions = builder.getGcOptions();
         this.gcJournal = new GCJournal(directory);
+
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
+
+        File manifest = new File(directory, MANIFEST_FILE_NAME);
+
+        if (map.size() > 0) {
+            if (manifest.exists()) {
+                log.debug("The store folder is non empty and has a valid manifest file");
+            } else {
+                throw new InvalidFileStoreVersionException();
+            }
+        }
+
+        Files.touch(manifest);
+
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
@@ -1452,7 +1470,7 @@ public class FileStore implements SegmentStore, Closeable {
     public static class ReadOnlyStore extends FileStore {
         private RecordId currentHead;
 
-        ReadOnlyStore(FileStoreBuilder builder) throws IOException {
+        ReadOnlyStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
             super(builder, true);
         }
 
