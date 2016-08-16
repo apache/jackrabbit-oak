@@ -2327,6 +2327,33 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", Collections.<String>emptyList());
     }
 
+    @Ignore("OAK-4676")
+    @Test
+    public void relativePropertyWithIndexOnNtBase() throws Exception {
+        Tree idx = createIndex("test1", of("propa"));
+        idx.setProperty(PROP_TYPE, "lucene");
+        useV2(idx);
+        //Do not provide type information
+        root.commit();
+
+        Tree propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propa");
+        propTree.setProperty(PROP_ANALYZED, true);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        Tree node1Tree = rootTree.addChild("node1");
+        node1Tree.setProperty("propa", "abcdef");
+        node1Tree.setProperty("propb", "abcdef");
+        Tree node2Tree = rootTree.addChild("node2");
+        node2Tree.setProperty("propa", "abc_def");
+        node2Tree.setProperty("propb", "abc_def");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where contains('propb', 'abc*')";
+        String explanation = explain(query);
+        assertThat(explanation, not(containsString("lucene:test1")));
+    }
+
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
         assertThat(explain(query), containsString(planExpectation));
         assertQuery(query, paths);
