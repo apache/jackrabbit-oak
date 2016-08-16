@@ -201,9 +201,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private final NodeStore store;
 
         /** The base checkpoint */
-        private final String checkpoint;
-
-        private final String afterCheckpoint;
+        private String checkpoint;
 
         /**
          * Property name which stores the temporary checkpoint that need to be released on the next run
@@ -223,21 +221,25 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         /** Expiration time of the last lease we committed */
         private long lease;
 
+        private boolean hasLease = false;
+
         public AsyncUpdateCallback(NodeStore store, String name,
-                long leaseTimeOut, String checkpoint, String afterCheckpoint,
+                long leaseTimeOut, String checkpoint,
                 AsyncIndexStats indexStats, AtomicBoolean forcedStop) {
             this.store = store;
             this.name = name;
             this.forcedStop = forcedStop;
             this.leaseTimeOut = leaseTimeOut;
             this.checkpoint = checkpoint;
-            this.afterCheckpoint = afterCheckpoint;
             this.tempCpName = getTempCpName(name);
             this.indexStats = indexStats;
             this.leaseName = leasify(name);
         }
 
-        protected void prepare() throws CommitFailedException {
+        protected void initLease() throws CommitFailedException {
+            if (hasLease) {
+                return;
+            }
             long now = System.currentTimeMillis();
             this.lease = now + 2 * leaseTimeOut;
 
@@ -251,6 +253,18 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             NodeBuilder async = builder.child(ASYNC);
             async.setProperty(leaseName, lease);
             mergeWithConcurrencyCheck(store, builder, checkpoint, beforeLease, name);
+            hasLease = true;
+        }
+
+        protected void prepare(String afterCheckpoint)
+                throws CommitFailedException {
+            if (!hasLease) {
+                initLease();
+            }
+            NodeState root = store.getRoot();
+            NodeBuilder builder = root.builder();
+            NodeBuilder async = builder.child(ASYNC);
+
             updateTempCheckpoints(async, checkpoint, afterCheckpoint);
             mergeWithConcurrencyCheck(store, builder, checkpoint, lease, name);
 
@@ -310,6 +324,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     lease = newLease;
                 }
             }
+        }
+
+        public void setCheckpoint(String checkpoint) {
+            this.checkpoint = checkpoint;
         }
     }
 
@@ -390,13 +408,34 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         // find the last indexed state, and check if there are recent changes
         NodeState before;
         String beforeCheckpoint = async.getString(name);
+        AsyncUpdateCallback callback = newAsyncUpdateCallback(store,
+                name, leaseTimeOut, beforeCheckpoint, indexStats,
+                forcedStopFlag);
         if (beforeCheckpoint != null) {
             NodeState state = store.retrieve(beforeCheckpoint);
+            if (state == null) {
+                // to make sure we're not reading a stale root rev, we're
+                // attempting a write+read via the lease-grab mechanics
+                try {
+                    callback.initLease();
+                } catch (CommitFailedException e) {
+                    indexStats.failed(e);
+                    return;
+                }
+                root = store.getRoot();
+                beforeCheckpoint = root.getChildNode(ASYNC).getString(name);
+                if (beforeCheckpoint != null) {
+                    state = store.retrieve(beforeCheckpoint);
+                    callback.setCheckpoint(beforeCheckpoint);
+                }
+            }
+
             if (state == null) {
                 log.warn(
                         "[{}] Failed to retrieve previously indexed checkpoint {}; re-running the initial index update",
                         name, beforeCheckpoint);
                 beforeCheckpoint = null;
+                callback.setCheckpoint(beforeCheckpoint);
                 before = MISSING_NODE;
             } else if (noVisibleChanges(state, root)) {
                 log.debug(
@@ -436,8 +475,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             log.trace("Switching thread name to {}", newThreadName);
             threadNameChanged = true;
             Thread.currentThread().setName(newThreadName);
-            updatePostRunStatus = updateIndex(before, beforeCheckpoint,
-                    after, afterCheckpoint, afterTime);
+            updatePostRunStatus = updateIndex(before, beforeCheckpoint, after,
+                    afterCheckpoint, afterTime, callback);
 
             // the update succeeded, i.e. it no longer fails
             if (indexStats.isFailing()) {
@@ -479,23 +518,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store,
                                                          String name, long leaseTimeOut, String beforeCheckpoint,
-                                                         String afterCheckpoint, AsyncIndexStats indexStats,
+                                                         AsyncIndexStats indexStats,
                                                          AtomicBoolean stopFlag) {
         return new AsyncUpdateCallback(store, name, leaseTimeOut,
-                beforeCheckpoint, afterCheckpoint, indexStats, stopFlag);
+                beforeCheckpoint, indexStats, stopFlag);
     }
 
-    private boolean updateIndex(NodeState before, String beforeCheckpoint,
-            NodeState after, String afterCheckpoint, String afterTime)
-            throws CommitFailedException {
+    protected boolean updateIndex(NodeState before, String beforeCheckpoint,
+            NodeState after, String afterCheckpoint, String afterTime,
+            AsyncUpdateCallback callback) throws CommitFailedException {
         Stopwatch watch = Stopwatch.createStarted();
         boolean updatePostRunStatus = true;
         boolean progressLogged = false;
-        // create an update callback for tracking index updates
+        // prepare the update callback for tracking index updates
         // and maintaining the update lease
-        AsyncUpdateCallback callback = newAsyncUpdateCallback(store, name,
-                leaseTimeOut, beforeCheckpoint, afterCheckpoint, indexStats, forcedStopFlag);
-        callback.prepare();
+        callback.prepare(afterCheckpoint);
 
         // check for index tasks split requests, if a split happened, make
         // sure to not delete the reference checkpoint, as the other index
@@ -567,7 +604,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return updatePostRunStatus;
     }
 
-    private static String leasify(String name) {
+    static String leasify(String name) {
         return name + "-lease";
     }
 
