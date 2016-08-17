@@ -56,7 +56,7 @@ public class LargeLdapProviderTest {
 
     protected static String[] TEST_MEMBERS;
 
-    protected static int NUM_USERS = 100;
+    protected static int NUM_USERS = 2222;
 
     protected static int SIZE_LIMIT = 50;
 
