@@ -99,6 +99,7 @@ import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_P
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_ANALYZED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_PROPERTY_INDEX;
@@ -1989,7 +1990,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(LuceneIndexConstants.PROP_NAME, "tag");
-        prop1.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        prop1.setProperty(PROP_ANALYZED, true);
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -2045,6 +2046,32 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     }
 
+    @Test
+    public void relativePropertyWithIndexOnNtBase() throws Exception {
+        Tree idx = createIndex("test1", of("propa"));
+        idx.setProperty(PROP_TYPE, "lucene");
+        useV2(idx);
+        //Do not provide type information
+        root.commit();
+
+        Tree propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propa");
+        propTree.setProperty(PROP_ANALYZED, true);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        Tree node1Tree = rootTree.addChild("node1");
+        node1Tree.setProperty("propa", "abcdef");
+        node1Tree.setProperty("propb", "abcdef");
+        Tree node2Tree = rootTree.addChild("node2");
+        node2Tree.setProperty("propa", "abc_def");
+        node2Tree.setProperty("propb", "abc_def");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where contains('propb', 'abc*')";
+        String explanation = explain(query);
+        assertThat(explanation, not(containsString("lucene:test1")));
+    }
+
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
         assertThat(explain(query), containsString(planExpectation));
         assertQuery(query, paths);
@@ -2080,7 +2107,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(LuceneIndexConstants.PROP_NAME, propName);
         prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
-        prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        prop.setProperty(PROP_ANALYZED, true);
         prop.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         prop.setProperty(LuceneIndexConstants.FIELD_BOOST, boost);
         return prop;
@@ -2139,7 +2166,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .addChild(LuceneIndexConstants.PROP_NODE)
                 .addChild("allProps");
 
-        props.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        props.setProperty(PROP_ANALYZED, true);
         props.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         props.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
         props.setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS);

@@ -372,10 +372,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         return evaluatePathRestrictions;
     }
 
-    public boolean indexesAllTypes() {
-        return indexesAllTypes;
-    }
-
     public Analyzer getAnalyzer(){
         return analyzer;
     }
