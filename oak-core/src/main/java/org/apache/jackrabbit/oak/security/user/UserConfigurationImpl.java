@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -181,5 +183,11 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         } else {
             return umgr;
         }
+    }
+
+    @Nullable
+    @Override
+    public PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+        return new UserPrincipalProvider(root, this, namePathMapper);
     }
 }

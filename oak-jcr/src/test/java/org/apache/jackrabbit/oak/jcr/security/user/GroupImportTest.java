@@ -23,13 +23,14 @@ import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -67,15 +68,17 @@ public class GroupImportTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
 
-        Authorizable newGroup = userMgr.getAuthorizable("g");
+        Session s = getImportSession();
+        assertTrue(s.hasPendingChanges());
+
+        Authorizable newGroup = getUserManager().getAuthorizable("g");
         assertNotNull(newGroup);
         assertTrue(newGroup.isGroup());
         assertEquals("g", newGroup.getPrincipal().getName());
         assertEquals("g", newGroup.getID());
 
-        Node n = adminSession.getNode(newGroup.getPath());
+        Node n = s.getNode(newGroup.getPath());
         assertTrue(n.isNew());
         assertTrue(n.getParent().isSame(target));
 
@@ -84,7 +87,7 @@ public class GroupImportTest extends AbstractImportTest {
 
         // saving changes of the import -> must succeed. add mandatory
         // props should have been created.
-        adminSession.save();
+        s.save();
     }
 
     @Test
@@ -108,7 +111,7 @@ public class GroupImportTest extends AbstractImportTest {
 
         try {
             doImport(getTargetPath(), xml);
-            adminSession.save();
+            getImportSession().save();
 
             fail("Import must detect conflicting principals.");
         } catch (RepositoryException e) {
@@ -124,6 +127,7 @@ public class GroupImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>b2f5ff47-4366-31b6-a533-d8dc3614845d</sv:value></sv:property>" +
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g</sv:value><sv:value>g2</sv:value><sv:value>g</sv:value></sv:property></sv:node>";
 
+        Session s = getImportSession();
         /*
          importing a group with a multi-valued rep:principalName property
          - nonProtected node rep:Group must be created.
@@ -135,9 +139,9 @@ public class GroupImportTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
+        assertTrue(s.hasPendingChanges());
 
-        Authorizable newGroup = userMgr.getAuthorizable("g");
+        Authorizable newGroup = getUserManager().getAuthorizable("g");
         assertNotNull(newGroup);
 
         assertTrue(target.hasNode("g"));
@@ -146,7 +150,7 @@ public class GroupImportTest extends AbstractImportTest {
 
         // saving changes of the import -> must fail as mandatory prop is missing
         try {
-            adminSession.save();
+            s.save();
             fail("Import must be incomplete. Saving changes must fail.");
         } catch (ConstraintViolationException e) {
             // success
@@ -168,7 +172,7 @@ public class GroupImportTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
         // saving changes of the import -> must fail as mandatory prop is missing
         try {
-            adminSession.save();
+            getImportSession().save();
             fail("Import must be incomplete. Saving changes must fail.");
         } catch (ConstraintViolationException e) {
             // success
@@ -197,16 +201,17 @@ public class GroupImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Group g = (Group) userMgr.getAuthorizable("g");
+        Group g = (Group) getUserManager().getAuthorizable("g");
         assertNotNull(g);
-        Group g1 = (Group) userMgr.getAuthorizable("g1");
+        Group g1 = (Group) getUserManager().getAuthorizable("g1");
         assertNotNull(g1);
 
-        Node n = adminSession.getNode(g1.getPath());
+        Session s = getImportSession();
+        Node n = s.getNode(g1.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_MEMBERS) || n.hasNode(UserConstants.NT_REP_MEMBERS));
 
         // getWeakReferences only works upon save.
-        adminSession.save();
+        s.save();
 
         assertTrue(g1.isMember(g));
     }
@@ -232,24 +237,26 @@ public class GroupImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Group g = (Group) userMgr.getAuthorizable("g");
+        Group g = (Group) getUserManager().getAuthorizable("g");
         assertNotNull(g);
-        Group g1 = (Group) userMgr.getAuthorizable("g1");
+        Group g1 = (Group) getUserManager().getAuthorizable("g1");
         assertNotNull(g1);
 
-        Node n = adminSession.getNode(g1.getPath());
+        Session s = getImportSession();
+        Node n = s.getNode(g1.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_MEMBERS) || n.hasNode(UserConstants.NT_REP_MEMBERS));
 
         // getWeakReferences only works upon save.
-        adminSession.save();
+        s.save();
 
         assertTrue(g1.isMember(g));
     }
 
     @Test
     public void testImportMembers() throws Exception {
-        Authorizable admin = checkNotNull(userMgr.getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
-        String uuid = adminSession.getNode(admin.getPath()).getUUID();
+        Session s = getImportSession();
+        Authorizable admin = checkNotNull(getUserManager().getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
+        String uuid = s.getNode(admin.getPath()).getUUID();
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
                 "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property>" +
@@ -263,11 +270,11 @@ public class GroupImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Group g1 = (Group) userMgr.getAuthorizable("g1");
+        Group g1 = (Group) getUserManager().getAuthorizable("g1");
         assertNotNull(g1);
 
         // getWeakReferences only works upon save.
-        adminSession.save();
+        s.save();
 
         assertTrue(g1.isMember(admin));
 
@@ -280,8 +287,9 @@ public class GroupImportTest extends AbstractImportTest {
 
     @Test
     public void testImportMembersWithIdDifferentFromNodeName() throws Exception {
-        Authorizable admin = checkNotNull(userMgr.getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
-        String uuid = adminSession.getNode(admin.getPath()).getUUID();
+        Session s = getImportSession();
+        Authorizable admin = checkNotNull(getUserManager().getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
+        String uuid = s.getNode(admin.getPath()).getUUID();
         // deliberately put the 'rep:members' before the 'rep:authorizableId' to cover OAK-2367
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -297,11 +305,11 @@ public class GroupImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Group g1 = (Group) userMgr.getAuthorizable("g1");
+        Group g1 = (Group) getUserManager().getAuthorizable("g1");
         assertNotNull(g1);
 
         // getWeakReferences only works upon save.
-        adminSession.save();
+        s.save();
 
         assertTrue(g1.isMember(admin));
 
@@ -315,48 +323,53 @@ public class GroupImportTest extends AbstractImportTest {
     @Test
     public void testImportGroupMembersFromNodes() throws Exception {
         List<String> createdUsers = new LinkedList<String>();
-        Node target = getTargetNode();
+
+        Session s = getImportSession();
+        UserManager uMgr = getUserManager();
+
         try {
             String[] users = {"angi", "adi", "hansi", "lisi", "luzi", "susi", "pipi", "hari", "gabi", "eddi",
                     "debbi", "cati", "admin", "anonymous"};
 
             for (String user : users) {
-                if (userMgr.getAuthorizable(user) == null) {
-                    userMgr.createUser(user, user);
+                if (uMgr.getAuthorizable(user) == null) {
+                    uMgr.createUser(user, user);
                     createdUsers.add(user);
                 }
             }
-            if (!userMgr.isAutoSave()) {
-                adminSession.save();
+            if (!uMgr.isAutoSave()) {
+                s.save();
             }
 
-            doImport(getTargetPath(), getClass().getSimpleName() + "-testImportGroupMembersFromNodes.xml");
-            if (!userMgr.isAutoSave()) {
-                adminSession.save();
+            doImport(getTargetPath(), "GroupImportTest-testImportGroupMembersFromNodes.xml");
+            if (!uMgr.isAutoSave()) {
+                s.save();
             }
 
-            Authorizable aShrimps = userMgr.getAuthorizable("shrimps");
+            Authorizable aShrimps = uMgr.getAuthorizable("shrimps");
             assertNotNull("Shrimps authorizable must exist", aShrimps);
             assertTrue("Shrimps authorizable must be a group", aShrimps.isGroup());
 
             Group gShrimps = (Group) aShrimps;
             for (String user : users) {
-                assertTrue(user + " should be member of " + gShrimps, gShrimps.isMember(userMgr.getAuthorizable(user)));
+                assertTrue(user + " should be member of " + gShrimps, gShrimps.isMember(uMgr.getAuthorizable(user)));
             }
 
 
         } finally {
-            adminSession.refresh(false);
             for (String user : createdUsers) {
-                Authorizable a = userMgr.getAuthorizable(user);
+                Authorizable a = uMgr.getAuthorizable(user);
                 if (a != null && !a.isGroup()) {
                     a.remove();
                 }
             }
-            for (NodeIterator it = target.getNodes(); it.hasNext(); ) {
-                it.nextNode().remove();
+            for (NodeIterator it = s.getNode(getTargetPath()).getNodes(); it.hasNext(); ) {
+                Node n = it.nextNode();
+                if (!n.getDefinition().isProtected()) {
+                    n.remove();
+                }
             }
-            adminSession.save();
+            s.save();
         }
     }
 
@@ -366,55 +379,60 @@ public class GroupImportTest extends AbstractImportTest {
     @Test
     public void testImportGroupMembersFromOakNodes() throws Exception {
         List<String> createdUsers = new LinkedList<String>();
-        Node target = getTargetNode();
+
+        Session s = getImportSession();
+        UserManager uMgr = getUserManager();
+
         try {
             for (int i=0; i<32; i++) {
                 String user = "testUser" + i;
-                if (userMgr.getAuthorizable(user) == null) {
-                    userMgr.createUser(user, user);
+                if (uMgr.getAuthorizable(user) == null) {
+                    uMgr.createUser(user, user);
                     createdUsers.add(user);
                 }
             }
-            if (!userMgr.isAutoSave()) {
-                adminSession.save();
+            if (!uMgr.isAutoSave()) {
+                s.save();
             }
 
-            doImport(getTargetPath(), getClass().getSimpleName() + "-testImportGroupMembersFromOakNodes.xml");
-            if (!userMgr.isAutoSave()) {
-                adminSession.save();
+            doImport(getTargetPath(), "GroupImportTest-testImportGroupMembersFromOakNodes.xml");
+            if (!uMgr.isAutoSave()) {
+                s.save();
             }
 
-            Authorizable authorizable = userMgr.getAuthorizable("testGroup");
+            Authorizable authorizable = uMgr.getAuthorizable("testGroup");
             assertNotNull("testGroup authorizable must exist", authorizable);
             assertTrue("testGroup authorizable must be a group", authorizable.isGroup());
             Group testGroup = (Group) authorizable;
             for (int i=0; i<32; i++) {
                 String user = "testUser" + i;
-                assertTrue(user + " should be member of " + testGroup, testGroup.isMember(userMgr.getAuthorizable(user)));
+                assertTrue(user + " should be member of " + testGroup, testGroup.isMember(uMgr.getAuthorizable(user)));
             }
 
-            authorizable = userMgr.getAuthorizable("shrimps");
+            authorizable = uMgr.getAuthorizable("shrimps");
             assertNotNull("shrimps authorizable must exist", authorizable);
             assertTrue("shrimps authorizable must be a group", authorizable.isGroup());
             testGroup = (Group) authorizable;
             for (int i=0; i<32; i++) {
                 String user = "testUser" + i;
-                assertTrue(user + " should be member of " + testGroup, testGroup.isMember(userMgr.getAuthorizable(user)));
+                assertTrue(user + " should be member of " + testGroup, testGroup.isMember(uMgr.getAuthorizable(user)));
             }
 
 
         } finally {
-            adminSession.refresh(false);
             for (String user : createdUsers) {
-                Authorizable a = userMgr.getAuthorizable(user);
+                Authorizable a = uMgr.getAuthorizable(user);
                 if (a != null && !a.isGroup()) {
                     a.remove();
                 }
             }
-            for (NodeIterator it = target.getNodes(); it.hasNext(); ) {
-                it.nextNode().remove();
+            for (NodeIterator it = s.getNode(getTargetPath()).getNodes(); it.hasNext(); ) {
+                Node n = it.nextNode();
+                if (!n.getDefinition().isProtected()) {
+                    n.remove();
+                }
             }
-            adminSession.save();
+            s.save();
         }
     }
 
@@ -433,14 +451,15 @@ public class GroupImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Authorizable newGroup = userMgr.getAuthorizable("g");
+        Session s = getImportSession();
+        Authorizable newGroup = getUserManager().getAuthorizable("g");
         assertNotNull(newGroup);
         assertTrue(newGroup.isGroup());
         assertEquals("g", newGroup.getID());
-        assertTrue(adminSession.propertyExists(newGroup.getPath() + "/rep:authorizableId"));
-        assertEquals("g", adminSession.getProperty(newGroup.getPath() + "/rep:authorizableId").getString());
+        assertTrue(s.propertyExists(newGroup.getPath() + "/rep:authorizableId"));
+        assertEquals("g", s.getProperty(newGroup.getPath() + "/rep:authorizableId").getString());
 
-        adminSession.save();
+        s.save();
     }
 
     @Test
@@ -459,10 +478,11 @@ public class GroupImportTest extends AbstractImportTest {
                 "</sv:node>";
 
         doImport(getTargetPath(), xml);
-        User user = userMgr.createUser("angi", "pw");
-        adminSession.save();
 
-        Group g1 = (Group) userMgr.getAuthorizable("g1");
+        User user = getUserManager().createUser("angi", "pw");
+        getImportSession().save();
+
+        Group g1 = (Group) getUserManager().getAuthorizable("g1");
 
         // not BEST_EFFORT -> member is not resolved
         assertFalse(g1.isMember(user));

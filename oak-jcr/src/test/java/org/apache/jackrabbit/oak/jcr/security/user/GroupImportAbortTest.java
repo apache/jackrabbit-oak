@@ -64,7 +64,7 @@ public class GroupImportAbortTest extends AbstractImportTest {
             } catch (RepositoryException e) {
                 // success as well
             } finally {
-                adminSession.refresh(false);
+                getImportSession().refresh(false);
             }
         }
     }

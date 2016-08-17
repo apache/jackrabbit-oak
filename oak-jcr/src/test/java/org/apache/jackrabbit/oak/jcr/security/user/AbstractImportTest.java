@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertFalse;
@@ -155,8 +153,16 @@ public abstract class AbstractImportTest {
 
     protected abstract String getTargetPath();
 
+    protected Session getImportSession() {
+        return adminSession;
+    }
+
+    protected UserManager getUserManager() throws RepositoryException {
+        return ((JackrabbitSession) getImportSession()).getUserManager();
+    }
+
     protected Node getTargetNode() throws RepositoryException {
-        return adminSession.getNode(getTargetPath());
+        return getImportSession().getNode(getTargetPath());
     }
 
     protected String getExistingUUID() throws RepositoryException {
@@ -171,6 +177,10 @@ public abstract class AbstractImportTest {
     }
 
     protected void doImport(String parentPath, String xml, int importUUIDBehavior) throws Exception {
+        doImport(getImportSession(), parentPath, xml, importUUIDBehavior);
+    }
+
+    protected void doImport(Session importSession, String parentPath, String xml, int importUUIDBehavior) throws Exception {
         InputStream in;
         if (xml.charAt(0) == '<') {
             in = new ByteArrayInputStream(xml.getBytes());
@@ -182,7 +192,7 @@ public abstract class AbstractImportTest {
             in = getClass().getResourceAsStream(xml);
         }
         try {
-            adminSession.importXML(parentPath, in, importUUIDBehavior);
+            importSession.importXML(parentPath, in, importUUIDBehavior);
         } finally {
             in.close();
         }
@@ -195,25 +205,5 @@ public abstract class AbstractImportTest {
             Authorizable member = it.next();
             assertFalse(potentialID.equals(session.getNode(member.getPath()).getIdentifier()));
         }
-    }
-
-    private String getTestXml() {
-        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stackTraceElements) {
-            try {
-                Class<?> clazz = Class.forName(element.getClassName());
-                for (Method method : clazz.getMethods()){
-                    if(method.getName().equals(element.getMethodName())){
-                        if (method.getAnnotation(Test.class) != null) {
-                            return clazz.getSimpleName() + "-" + method.getName() + ".xml";
-                        }
-                    }
-
-                }
-            } catch (Exception e) {
-                //  oops do something here
-            }
-        }
-        throw new IllegalArgumentException("no import xml given.");
     }
 }

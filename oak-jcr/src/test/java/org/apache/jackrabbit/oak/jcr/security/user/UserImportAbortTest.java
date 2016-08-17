@@ -61,7 +61,7 @@ public class UserImportAbortTest extends AbstractImportTest {
             } catch (RepositoryException e) {
                 // success
             } finally {
-                adminSession.refresh(false);
+                getImportSession().refresh(false);
             }
         }
     }
@@ -83,7 +83,7 @@ public class UserImportAbortTest extends AbstractImportTest {
         } catch (RepositoryException e) {
             // success
         } finally {
-            adminSession.refresh(false);
+            getImportSession().refresh(false);
         }
     }
 }

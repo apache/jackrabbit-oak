@@ -31,6 +31,8 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
@@ -600,8 +602,13 @@ public class GroupTest extends AbstractUserTest {
             superuser.save();
             assertTrue(group2.addMember(group3));
             superuser.save();
-            assertFalse(group3.addMember(group1));
-            superuser.save();
+
+            if (group3.addMember(group1)) {
+                superuser.save();
+                fail("Cyclic group membership must be detected.");
+            }
+        } catch (RepositoryException e) {
+            assertCyclicCommitFailed(e);
         } finally {
             if (group1 != null) group1.remove();
             if (group2 != null) group2.remove();
@@ -621,14 +628,24 @@ public class GroupTest extends AbstractUserTest {
 
             assertTrue(group1.addMember(group2));
             assertTrue(group2.addMember(group3));
-            assertFalse("Cyclic group membership must be detected.", group3.addMember(group1));
+            if (group3.addMember(group1)) {
+                // circular membership not detected => try save
+                superuser.save();
+                fail("Cyclic group membership must be detected.");
+            } // else: success, circular membership detected upon addMember
         } catch (RepositoryException e) {
-            // success
+            assertCyclicCommitFailed(e);
         } finally {
             if (group1 != null) group1.remove();
             if (group2 != null) group2.remove();
             if (group3 != null) group3.remove();
         }
+    }
+
+    private static void assertCyclicCommitFailed(RepositoryException e) {
+        Throwable th = e.getCause();
+        assertTrue(th instanceof CommitFailedException);
+        assertEquals(31, ((CommitFailedException) th).getCode());
     }
 
     @Test
@@ -764,6 +781,82 @@ public class GroupTest extends AbstractUserTest {
         checkDeclaredMembers(grp2, user1.getID());
         checkDeclaredMemberOf(user1, grp2.getID());
         checkDeclaredMemberOf(user2, grp1.getID());
+    }
+
+    public void testAddMembersById() throws Exception {
+        Group newGroup = null;
+        try {
+            newGroup = userMgr.createGroup(createGroupId());
+
+            Set<String> failed = group.addMembers("nonExistingMember", newGroup.getID());
+            assertFalse(failed.isEmpty());
+            assertTrue(group.isMember(newGroup));
+        } finally {
+            if (newGroup != null) {
+                newGroup.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    public void testAddSelfById() throws Exception {
+        Set<String> failed = group.addMembers(group.getID());
+        assertFalse(failed.isEmpty());
+        assertTrue(failed.contains(group.getID()));
+    }
+
+    public void testAddToEveryoneById() throws Exception {
+        Group everyone = null;
+        try {
+            everyone = userMgr.createGroup(EveryonePrincipal.getInstance());
+
+            Set<String> failed = everyone.addMembers(group.getID());
+            assertFalse(failed.isEmpty());
+            assertTrue(failed.contains(group.getID()));
+        } finally {
+            if (everyone != null) {
+                everyone.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    public void testRemoveMembersById() throws Exception {
+        Group newGroup = null;
+        try {
+            newGroup = userMgr.createGroup(createGroupId());
+
+            Set<String> failed = group.removeMembers("nonExistingMember", newGroup.getID(), user.getID());
+            assertFalse(failed.isEmpty());
+            assertFalse(group.isMember(user));
+        } finally {
+            if (newGroup != null) {
+                newGroup.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    public void testRemoveSelfById() throws Exception {
+        Set<String> failed = group.removeMembers(group.getID());
+        assertFalse(failed.isEmpty());
+        assertTrue(failed.contains(group.getID()));
+    }
+
+    public void testRemoveFromEveryoneById() throws Exception {
+        Group everyone = null;
+        try {
+            everyone = userMgr.createGroup(EveryonePrincipal.getInstance());
+
+            Set<String> failed = everyone.removeMembers(group.getID());
+            assertFalse(failed.isEmpty());
+            assertTrue(failed.contains(group.getID()));
+        } finally {
+            if (everyone != null) {
+                everyone.remove();
+                superuser.save();
+            }
+        }
     }
 
     private void checkDeclaredMembers(Group grp, String ... ids) throws RepositoryException {

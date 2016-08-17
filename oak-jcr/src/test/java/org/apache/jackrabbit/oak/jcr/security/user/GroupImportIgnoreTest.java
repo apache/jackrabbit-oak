@@ -56,9 +56,9 @@ public class GroupImportIgnoreTest extends AbstractImportTest {
                 "</sv:node>";
         doImport(getTargetPath(), xml);
         // no exception during import -> member must have been ignored though.
-        Authorizable a = userMgr.getAuthorizable("g1");
+        Authorizable a = getUserManager().getAuthorizable("g1");
         if (a.isGroup()) {
-            assertNotDeclaredMember((Group) a, invalidId, adminSession);
+            assertNotDeclaredMember((Group) a, invalidId, getImportSession());
         } else {
             fail("'g1' was not imported as Group.");
         }
@@ -84,14 +84,14 @@ public class GroupImportIgnoreTest extends AbstractImportTest {
                 // there should be no exception during import,
                 // but invalid members must be ignored.
                 doImport(getTargetPath(), xml);
-                Authorizable a = userMgr.getAuthorizable("g1");
+                Authorizable a = getUserManager().getAuthorizable("g1");
                 if (a.isGroup()) {
-                    assertNotDeclaredMember((Group) a, id, adminSession);
+                    assertNotDeclaredMember((Group) a, id, getImportSession());
                 } else {
                     fail("'g1' was not imported as Group.");
                 }
             } finally {
-                adminSession.refresh(false);
+                getImportSession().refresh(false);
             }
         }
     }

@@ -35,6 +35,9 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -54,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -160,8 +164,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     private Map<String, Principal> principals = new HashMap<String, Principal>();;
 
     UserImporter(ConfigurationParameters config) {
-        String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
-        importBehavior = ImportBehavior.valueFromString(importBehaviorStr);
+        importBehavior = UserUtil.getImportBehavior(config);
     }
 
     //----------------------------------------------< ProtectedItemImporter >---
@@ -570,8 +573,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 toRemove.put(dm.getID(), dm);
             }
 
-            List<Authorizable> toAdd = new ArrayList<Authorizable>();
-            Set<String> nonExisting = new HashSet<String>();
+            Map<String, Authorizable> toAdd = Maps.newHashMapWithExpectedSize(members.size());
+            Map<String, String> nonExisting = Maps.newHashMap();
 
             for (String contentId : members) {
                 String remapped = referenceTracker.get(contentId);
@@ -587,26 +590,32 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 }
                 if (member != null) {
                     if (toRemove.remove(member.getID()) == null) {
-                        toAdd.add(member);
+                        toAdd.put(member.getID(), member);
                     } // else: no need to remove from rep:members
                 } else {
                     handleFailure("New member of " + gr + ": No such authorizable (NodeID = " + memberContentId + ')');
                     if (importBehavior == ImportBehavior.BESTEFFORT) {
                         log.info("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
-                        nonExisting.add(contentId);
+                        /* since we ignore the set of failed ids later on and
+                           don't know the real memberId => use fake memberId as
+                           value in the map */
+                        nonExisting.put(contentId, "-");
                     }
                 }
             }
 
             // 2. adjust members of the group
-            for (Authorizable m : toRemove.values()) {
-                if (!gr.removeMember(m)) {
-                    handleFailure("Failed remove existing member (" + m + ") from " + gr);
+            if (!toRemove.isEmpty()) {
+                Set<String> failed = gr.removeMembers(toRemove.keySet().toArray(new String[toRemove.size()]));
+                if (!failed.isEmpty()) {
+                    handleFailure("Failed removing members " + Iterables.toString(failed) + " to " + gr);
                 }
             }
-            for (Authorizable m : toAdd) {
-                if (!gr.addMember(m)) {
-                    handleFailure("Failed add member (" + m + ") to " + gr);
+
+            if (!toAdd.isEmpty()) {
+                Set<String> failed = gr.addMembers(toAdd.keySet().toArray(new String[toAdd.size()]));
+                if (!failed.isEmpty()) {
+                    handleFailure("Failed add members " + Iterables.toString(failed) + " to " + gr);
                 }
             }
 
@@ -616,9 +625,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
-                for (String member : nonExisting) {
-                    membershipProvider.addMember(groupTree, member);
-                }
+
+                Set<String> memberContentIds = Sets.newHashSet(nonExisting.keySet());
+                Set<String> failedContentIds = membershipProvider.addMembers(groupTree, nonExisting);
+                memberContentIds.removeAll(failedContentIds);
+
+                userManager.onGroupUpdate(gr, false, true, memberContentIds, failedContentIds);
             }
         }
     }

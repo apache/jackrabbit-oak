@@ -103,13 +103,13 @@ public class IndexUtils {
      * @param propertyNames
      * @param declaringNodeTypeNames
      */
-    public static void createIndexDefinition(@Nonnull NodeUtil indexNode,
+    public static NodeUtil createIndexDefinition(@Nonnull NodeUtil indexNode,
                                              @Nonnull String indexDefName,
                                              boolean unique,
                                              @Nonnull String[] propertyNames,
                                              @Nullable String[] declaringNodeTypeNames) throws RepositoryException {
 
-        createIndexDefinition(indexNode, indexDefName, unique, propertyNames, declaringNodeTypeNames, PropertyIndexEditorProvider.TYPE);
+        return createIndexDefinition(indexNode, indexDefName, unique, propertyNames, declaringNodeTypeNames, PropertyIndexEditorProvider.TYPE);
     }
 
     /**
@@ -123,20 +123,21 @@ public class IndexUtils {
      * @param propertyIndexType
      * @throws RepositoryException
      */
-    public static void createIndexDefinition(@Nonnull NodeUtil indexNode, 
+    public static NodeUtil createIndexDefinition(@Nonnull NodeUtil indexNode, 
                                              @Nonnull String indexDefName, 
                                              boolean unique, 
                                              @Nonnull String[] propertyNames, 
                                              @Nullable String[] declaringNodeTypeNames, 
                                              @Nonnull String propertyIndexType) throws RepositoryException {
-        createIndexDefinition(indexNode, indexDefName, unique, propertyNames,
+        return createIndexDefinition(indexNode, indexDefName, unique, propertyNames,
             declaringNodeTypeNames, propertyIndexType, null);
     }
 
     public static void createReferenceIndex(@Nonnull NodeBuilder index) {
         index.child(NodeReferenceConstants.NAME)
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
+                .setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE)
+                .setProperty("info", "Oak index for reference lookup.");
     }
 
     public static boolean isIndexNodeType(NodeState state) {
@@ -167,7 +168,7 @@ public class IndexUtils {
      * @param properties any additional property to be added to the index definition.
      * @throws RepositoryException
      */
-    public static void createIndexDefinition(@Nonnull NodeUtil indexNode, 
+    public static NodeUtil createIndexDefinition(@Nonnull NodeUtil indexNode, 
                                              @Nonnull String indexDefName, 
                                              boolean unique, 
                                              @Nonnull String[] propertyNames, 
@@ -190,6 +191,7 @@ public class IndexUtils {
                 entry.setString(k, properties.get(k));
             }
         }
+        return entry;
     }
 
     /**
@@ -205,7 +207,7 @@ public class IndexUtils {
      * @param properties                any additional property to be added to the index definition.
      * @throws RepositoryException
      */
-    public static void createIndexDefinition(@Nonnull NodeBuilder indexNode, 
+    public static NodeBuilder createIndexDefinition(@Nonnull NodeBuilder indexNode, 
                                              @Nonnull String indexDefName, 
                                              boolean unique, 
                                              @Nonnull Iterable<String> propertyNames, 
@@ -231,5 +233,6 @@ public class IndexUtils {
                 entry.setProperty(k, properties.get(k));
             }
         }
+        return entry;
     }
 }

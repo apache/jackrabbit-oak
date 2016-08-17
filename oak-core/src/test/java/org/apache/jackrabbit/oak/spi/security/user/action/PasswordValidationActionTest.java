@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -199,6 +200,12 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
                     public ConfigurationParameters getParameters() {
                         return ConfigurationParameters.of(super.getParameters(),
                                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider));
+                    }
+
+                    @Nullable
+                    @Override
+                    public PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+                        return null;
                     }
                 };
             } else {
