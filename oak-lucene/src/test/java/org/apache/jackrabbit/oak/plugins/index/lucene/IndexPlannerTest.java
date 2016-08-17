@@ -45,6 +45,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,6 +63,9 @@ import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -559,6 +563,178 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
 
         assertNull(plan);
+    }
+
+    @Test
+    public void fullTextQuery_RelativePath1() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), FullTextParser.parse("bar", "mountain"));
+
+        //No plan for unindex property
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_IndexAllProps() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/allProps");
+        foob.setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS);
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        foob.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+
+        FullTextExpression exp = FullTextParser.parse("bar", "mountain OR valley");
+        exp = new FullTextContains("bar", "mountain OR valley", exp);
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), exp);
+
+        //No plan for unindex property
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_IndexAllProps_NodePathQuery() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/allProps");
+        foob.setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS);
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        foob.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+
+        //where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+        //on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),
+                FullTextParser.parse("jcr:content/*", "mountain OR valley"));
+
+        //No plan for unindex property
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_IndexAllProps_AggregatedNodePathQuery() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder agg = defn.child(LuceneIndexConstants.AGGREGATES).child("nt:base").child("include0");
+        agg.setProperty(LuceneIndexConstants.AGG_PATH, "jcr:content");
+        agg.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
+
+        //where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+        //on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),
+                FullTextParser.parse("jcr:content/*", "mountain OR valley"));
+
+        //No plan for unindex property
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_IndexAllProps_NodePathQuery_NoPlan() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NAME, "foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        //where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+        //on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),
+                FullTextParser.parse("jcr:content/*", "mountain OR valley"));
+
+        //No plan for unindex property
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_NonAnalyzedProp_NoPlan() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NAME, "foo");
+
+        NodeBuilder barb = getNode(defn, "indexRules/nt:base/properties/bar");
+        barb.setProperty(LuceneIndexConstants.PROP_NAME, "bar");
+        barb.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        //where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+        //on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),
+                FullTextParser.parse("foo", "mountain OR valley"));
+
+        //No plan for unindex property
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_RelativePropertyPaths() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NAME, "foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        NodeBuilder barb = getNode(defn, "indexRules/nt:base/properties/bar");
+        barb.setProperty(LuceneIndexConstants.PROP_NAME, "bar");
+        barb.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+
+        //where contains('jcr:content/bar', 'mountain OR valley') and contains('jcr:content/foo', 'mountain OR valley')
+        //above query can be evaluated by index which indexes foo and bar with restriction that both belong to same node
+        //by displacing the query path to evaluate on contains('bar', ...) and filter out those parents which do not
+        //have jcr:content as parent
+        FullTextExpression fooExp = FullTextParser.parse("jcr:content/bar", "mountain OR valley");
+        FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
+        FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),exp);
+
+        //No plan for unindex property
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQuery_DisjointPropertyPaths() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+
+        //Index all props and then perform fulltext
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NAME, "foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        NodeBuilder barb = getNode(defn, "indexRules/nt:base/properties/bar");
+        barb.setProperty(LuceneIndexConstants.PROP_NAME, "bar");
+        barb.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        FullTextExpression fooExp = FullTextParser.parse("metadata/bar", "mountain OR valley");
+        FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
+        FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
+        IndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),exp);
+
+        //No plan for unindex property
+        assertNull(planner.getPlan());
+    }
+
+    private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn));
+        FilterImpl filter = createFilter("nt:base");
+        filter.setFullTextConstraint(exp);
+        return new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
     }
 
     private IndexNode createSuggestionOrSpellcheckIndex(String nodeType,
