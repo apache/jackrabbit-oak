@@ -50,6 +50,8 @@ public class ThreadDumpCleaner {
 
         "   Locked ownable synchronizers:(?s).*?\n\n",
 
+        "   Locked synchronizers:(?s).*?\n\n",
+
         "\".*?\".*?\n   java.lang.Thread.State: (TIMED_)?WAITING(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
