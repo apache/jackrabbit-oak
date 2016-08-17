@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -40,6 +40,7 @@ import javax.jcr.RepositoryException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -62,8 +63,6 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
 
     @Test
     public void testImportMembersBestEffort() throws Exception {
-
-
         User user1 = getUserManager().createUser("user1", "");
         String uuid1 = getImportSession().getNode(user1.getPath()).getUUID();
         User user2 = getUserManager().createUser("user2", "");
@@ -80,7 +79,8 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
                         "   <sv:node sv:name=\"g1\">" +
                         "      <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>" +
                         "      <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>0120a4f9-196a-3f9e-b9f5-23f31f914da7</sv:value></sv:property>" +
-                        "      <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g1</sv:value></sv:property>" + "   <sv:property sv:name=\"rep:members\" sv:multiple=\"true\" sv:type=\"WeakReference\">" +
+                        "      <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g1</sv:value></sv:property>" +
+                        "      <sv:property sv:name=\"rep:members\" sv:multiple=\"true\" sv:type=\"WeakReference\">" +
                         "         <sv:value>" + uuid1 + "</sv:value>" +
                         "         <sv:value>" + uuid2 + "</sv:value>" +
                         "         <sv:value>" + nonExistingUUID + "</sv:value>" +
@@ -92,11 +92,11 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         Group g1 = (Group) getUserManager().getAuthorizable("g1");
-        assertTrue(groupAction.onMemberAddedCalled);
+        assertTrue(groupAction.onMembersAddedCalled);
         assertTrue(groupAction.onMembersAddedContentIdCalled);
         assertEquals(g1.getID(), groupAction.group.getID());
-        assertTrue(Iterables.elementsEqual(ImmutableList.of(user1.getID(), user2.getID()), groupAction.memberIds));
-        assertTrue(Iterables.elementsEqual(ImmutableList.of(nonExistingUUID), groupAction.memberContentIds));
+        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
+        assertEquals(ImmutableSet.of(nonExistingUUID), groupAction.memberContentIds);
         assertFalse(groupAction.failedIds.iterator().hasNext()); // duplicate uuids are swallowed by the set in userImporter: nonExisting#add
     }
 
@@ -121,25 +121,34 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
     private class TestGroupAction extends AbstractGroupAction {
 
         boolean onMemberAddedCalled = false;
+        boolean onMembersAddedCalled = false;
         boolean onMembersAddedContentIdCalled = false;
 
         Group group;
-        List<String> memberIds = Lists.newArrayList();
-        Iterable<String> memberContentIds = Lists.newArrayList();
-        Iterable<String> failedIds;
+        Set<String> memberIds = Sets.newHashSet();
+        Set<String> memberContentIds = Sets.newHashSet();
+        Set<String> failedIds = Sets.newHashSet();
 
         @Override
         public void onMemberAdded(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            memberIds.add(member.getID());
+            this.memberIds.add(member.getID());
             onMemberAddedCalled = true;
+        }
+
+        @Override
+        public void onMembersAdded(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+            this.group = group;
+            this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
+            this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
+            onMembersAddedCalled = true;
         }
 
         @Override
         public void onMembersAddedContentId(@Nonnull Group group, @Nonnull Iterable<String> memberContentIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberContentIds = memberContentIds;
-            this.failedIds = failedIds;
+            this.memberContentIds.addAll(ImmutableSet.copyOf(memberContentIds));
+            this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
             onMembersAddedContentIdCalled = true;
         }
     }
