@@ -124,6 +124,13 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
                         "to enforce uniqueness of rep:principalName property values, " +
                         "and to quickly search a principal by name if it was constructed manually.");
             }
+            if (!index.hasChild("repMembers")) {
+                NodeUtil members = IndexUtils.createIndexDefinition(index, "repMembers", false,
+                        new String[]{REP_MEMBERS},
+                        new String[]{NT_REP_MEMBER_REFERENCES});
+                members.setString("info",
+                        "Oak index used by the user management to lookup group membership.");
+            }
 
             ConfigurationParameters params = userConfiguration.getParameters();
             String adminId = params.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
@@ -149,5 +156,4 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
-
 }

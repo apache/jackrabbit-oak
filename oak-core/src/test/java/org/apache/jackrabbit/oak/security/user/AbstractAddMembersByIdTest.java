@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 import javax.annotation.Nonnull;
@@ -36,12 +37,14 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -185,7 +188,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         } catch (ConstraintViolationException e) {
             // expected
         }
-        assertTrue(root.hasPendingChanges());
+        // no modifications expected as testing for empty id is done before changes are made
+        assertFalse(root.hasPendingChanges());
     }
 
     @Test(expected = NullPointerException.class)
@@ -205,7 +209,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         } catch (ConstraintViolationException e) {
             // expected
         }
-        assertTrue(root.hasPendingChanges());
+        // no modifications expected as testing for null id is done before changes are made
+        assertFalse(root.hasPendingChanges());
     }
 
     @Test
@@ -251,5 +256,39 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
 
         Set<String> failed = testGroup.addMembers(getTestUser().getID(), memberGroup.getID());
         assertEquals(2, failed.size());
+    }
+
+    @Test
+    public void testEveryoneAsMember() throws Exception {
+        UserManagerImpl userManager = (UserManagerImpl) getUserManager(root);
+        Group everyone = userManager.createGroup(EveryonePrincipal.getInstance());
+        try {
+            Set<String> failed = testGroup.addMembers(everyone.getID());
+            assertFalse(failed.isEmpty());
+            assertTrue(failed.contains(everyone.getID()));
+            root.commit();
+
+            assertFalse(testGroup.isDeclaredMember(everyone));
+            assertFalse(testGroup.isMember(everyone));
+            for (Iterator<Group> it = everyone.memberOf(); it.hasNext(); ) {
+                assertNotEquals(testGroup.getID(), it.next().getID());
+            }
+            for (Iterator<Group> it = everyone.declaredMemberOf(); it.hasNext(); ) {
+                assertNotEquals(testGroup.getID(), it.next().getID());
+            }
+
+            boolean found = false;
+            MembershipProvider mp = userManager.getMembershipProvider();
+            for (Iterator<String> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+                String p = it.next();
+                if (testGroup.getPath().equals(p)) {
+                    found = true;
+                }
+            }
+            assertFalse(found);
+        } finally {
+            everyone.remove();
+            root.commit();
+        }
     }
 }

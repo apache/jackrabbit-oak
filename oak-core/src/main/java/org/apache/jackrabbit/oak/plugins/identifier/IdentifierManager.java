@@ -29,6 +29,8 @@ import javax.jcr.query.Query;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -41,6 +43,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -270,7 +273,7 @@ public class IdentifierManager {
                     }
 
                     // skip references from the version storage (OAK-1196)
-                    if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) { 
+                    if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
                         Tree tree = root.getTree(rowPath);
                         if (nodeTypeNames.length == 0 || containsNodeType(tree, nodeTypeNames)) {
                             if (propertyName == null) {
@@ -297,6 +300,58 @@ public class IdentifierManager {
                 }
             }
         };
+    }
+
+    /**
+     * Searches all reference properties to the specified {@code tree} that match
+     * the given {@code propertyName} and the specified, mandatory node type
+     * constraint ({@code ntName}). In contrast to {@link #getReferences} this
+     * method requires all parameters to be specified, which eases the handling
+     * of the result set and doesn't require the trees associated with the
+     * result set to be resolved.
+     *
+     * @param tree The tree for which references should be searched.
+     * @param propertyName The name of the reference properties.
+     * @param ntName The node type name to be used for the query.
+     * @param weak if {@code true} only weak references are returned. Otherwise on hard references are returned.
+     * @return A set of oak paths of those reference properties referring to the
+     *         specified {@code tree} and matching the constraints.
+     */
+    @Nonnull
+    public Iterable<String> getReferences(@Nonnull Tree tree, final @Nonnull String propertyName,
+                                          @Nonnull String ntName, boolean weak) {
+        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+            return Collections.emptySet(); // shortcut
+        }
+
+        final String uuid = getIdentifier(tree);
+        String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
+        Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
+
+        try {
+            String escapedPropName = QueryUtils.escapeForQuery(propertyName);
+            Result result = root.getQueryEngine().executeQuery(
+                    "SELECT * FROM [" + ntName + "] WHERE PROPERTY([" + escapedPropName + "], '" + reference + "') = $uuid" +
+                            QueryEngine.INTERNAL_SQL2_QUERY,
+                    Query.JCR_SQL2, bindings, NO_MAPPINGS);
+
+            Iterable<String> resultPaths = Iterables.transform(result.getRows(), new Function<ResultRow, String>() {
+                @Override
+                public String apply(ResultRow row) {
+                    return PathUtils.concat(row.getPath(), propertyName);
+                }
+            });
+            return Iterables.filter(resultPaths, new Predicate<String>() {
+                        @Override
+                        public boolean apply(String path) {
+                            return !path.startsWith(VersionConstants.VERSION_STORE_PATH);
+                        }
+                    }
+            );
+        } catch (ParseException e) {
+            log.error("query failed", e);
+            return Collections.emptySet();
+        }
     }
 
     @CheckForNull

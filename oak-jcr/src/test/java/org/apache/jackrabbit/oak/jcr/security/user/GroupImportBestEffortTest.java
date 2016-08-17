@@ -23,10 +23,12 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -170,18 +172,31 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         membership references.
         expected:
         - group is imported
-        - circular membership is ignored
+        - circular membership is ignored (OR fails upon save)
         - g is member of g1
-        - g1 isn't member of g
+        - g1 isn't member of g  (circular membership detected) OR saving changes fails
         */
         doImport(getTargetPath() + "/gFolder", xml2);
 
-        Authorizable g = getUserManager().getAuthorizable("g");
-        assertNotNull(g);
-        if (g.isGroup()) {
-            assertNotDeclaredMember((Group) g, g1Id, getImportSession());
+        Group g = getUserManager().getAuthorizable("g", Group.class);
+        Group g1 = getUserManager().getAuthorizable("g1", Group.class);
+
+        assertNotNull("'g' was not imported as Group.", g);
+        assertNotNull("'g1' was not imported as Group.", g1);
+
+        assertTrue(g1.isDeclaredMember(g));
+        if (g.isDeclaredMember(g1)) {
+            // circular membership created during import
+            try {
+                getImportSession().save();
+                fail("Circular membership must be detected upon save.");
+            } catch (ConstraintViolationException e) {
+                Throwable th = e.getCause();
+                assertTrue(th instanceof CommitFailedException);
+                assertEquals(31, ((CommitFailedException) th).getCode());
+            }
         } else {
-            fail("'g' was not imported as Group.");
+            assertNotDeclaredMember(g, g1Id, getImportSession());
         }
     }
 
