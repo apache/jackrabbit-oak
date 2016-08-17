@@ -196,6 +196,14 @@ public interface LuceneIndexConstants {
     String COST_PER_EXECUTION = "costPerExecution";
 
     /**
+     * Boolean property indicating if in-built analyzer should preserve original term
+     * (i.e. use
+     * {@link org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter#PRESERVE_ORIGINAL}
+     * flag)
+     */
+    String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
+
+    /**
      * Node name under which various analyzers are configured
      */
     String ANALYZERS = "analyzers";
