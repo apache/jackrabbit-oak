@@ -67,4 +67,10 @@ public interface IndexConstants {
      * queries. Defaults to ['/'].
      */
     String QUERY_PATHS = "queryPaths";
+
+    /**
+     * Hidden property which stores the indexPath which can be used by
+     * IndexEditors
+     */
+    String INDEX_PATH = ":indexPath";
 }

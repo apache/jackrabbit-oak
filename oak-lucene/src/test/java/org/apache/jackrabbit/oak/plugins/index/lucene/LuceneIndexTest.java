@@ -120,6 +120,7 @@ import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -879,6 +880,44 @@ public class LuceneIndexTest {
         }
     }
 
+    @Test
+    public void indexNameIsIndexPath() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), null);
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"));
+        assertEquals("/oak:index/lucene", defn.getIndexName());
+        assertEquals("/oak:index/lucene", defn.getIndexPathFromConfig());
+    }
+
+
+    @Test
+    public void luceneWithCopyOnReadDir_Compat() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2"), null);
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        builder = indexed.builder();
+        builder.getChildNode("oak:index").getChildNode("lucene").removeProperty(IndexConstants.INDEX_PATH);
+        indexed = builder.getNodeState();
+
+        File indexRootDir = new File(getIndexDir());
+        IndexTracker tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo", "bar");
+    }
 
     @After
     public void cleanUp(){
