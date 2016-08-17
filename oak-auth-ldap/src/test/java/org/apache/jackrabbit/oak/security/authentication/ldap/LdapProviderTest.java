@@ -29,7 +29,6 @@ import java.util.Map;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
@@ -44,7 +43,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
@@ -105,13 +103,19 @@ public class LdapProviderTest {
     }
 
     protected LdapIdentityProvider createIDP() {
+        //The attribute "mail" is excluded deliberately
+        return createIDP(new String[] { "objectclass", "uid", "givenname", "description", "sn"});
+    }
+
+    protected LdapIdentityProvider createIDP(String[] userProperties) {
         providerConfig = new LdapProviderConfig()
                 .setName(IDP_NAME)
                 .setHostname("127.0.0.1")
                 .setPort(LDAP_SERVER.getPort())
                 .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
                 .setBindPassword(InternalLdapServer.ADMIN_PW)
-                .setGroupMemberAttribute("uniquemember");
+                .setGroupMemberAttribute("uniquemember")
+                .setCustomAttributes(userProperties);
 
         providerConfig.getUserConfig()
                 .setBaseDN(ServerDNConstants.USERS_SYSTEM_DN)
@@ -205,10 +209,11 @@ public class LdapProviderTest {
                         Matchers.equalTo("objectclass"),
                         Matchers.containsInAnyOrder( "inetOrgPerson", "top", "person", "organizationalPerson")));
         assertThat(properties, Matchers.<String, Object>hasEntry("uid", "hhornblo"));
-        assertThat(properties, Matchers.<String, Object>hasEntry("mail", "hhornblo@royalnavy.mod.uk"));
         assertThat(properties, Matchers.<String, Object>hasEntry("givenname", "Horatio"));
         assertThat(properties, Matchers.<String, Object>hasEntry("description", "Capt. Horatio Hornblower, R.N"));
         assertThat(properties, Matchers.<String, Object>hasEntry("sn", "Hornblower"));
+
+        assertThat(properties, Matchers.not(Matchers.<String, Object>hasEntry("mail", "hhornblo@royalnavy.mod.uk")));
     }
 
     @Test
