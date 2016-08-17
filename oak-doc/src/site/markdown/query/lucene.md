@@ -587,7 +587,7 @@ defaults to 5
 
 #### Analyzers
 
-`@since Oak 1.5.5`
+`@since Oak 1.5.5, 1.4.7`
 Unless custom analyzer is configured (as documented below), in-built analyzer
 can be configured to include original term as well to be indexed. This is
 controlled by setting boolean property `indexOriginalTerm` on analyzers node.
