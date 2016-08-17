@@ -2327,7 +2327,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", Collections.<String>emptyList());
     }
 
-    @Ignore("OAK-4676")
     @Test
     public void relativePropertyWithIndexOnNtBase() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
