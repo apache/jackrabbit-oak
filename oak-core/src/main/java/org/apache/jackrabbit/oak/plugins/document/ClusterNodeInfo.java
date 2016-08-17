@@ -306,7 +306,7 @@ public class ClusterNodeInfo {
      * lease check - hence there's a system property that does that:
      * oak.documentMK.disableLeaseCheck
      */
-    private final boolean leaseCheckDisabled;
+    private boolean leaseCheckDisabled;
 
     /**
      * Tracks the fact whether the lease has *ever* been renewed by this instance
@@ -350,6 +350,10 @@ public class ClusterNodeInfo {
         this.leaseCheckDisabled = Boolean.valueOf(System.getProperty("oak.documentMK.disableLeaseCheck", "false"));
     }
 
+    public void setLeaseCheckDisabled(boolean leaseCheckDisabled) {
+        this.leaseCheckDisabled = leaseCheckDisabled;
+    }
+    
     public int getId() {
         return id;
     }

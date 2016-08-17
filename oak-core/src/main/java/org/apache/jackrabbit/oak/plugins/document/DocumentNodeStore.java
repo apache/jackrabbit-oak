@@ -454,6 +454,8 @@ public final class DocumentNodeStore
         if (builder.getLeaseCheck()) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
+        } else {
+            clusterNodeInfo.setLeaseCheckDisabled(true);
         }
 
         this.store = s;
