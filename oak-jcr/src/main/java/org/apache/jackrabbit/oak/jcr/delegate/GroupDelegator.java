@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.Iterator;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -134,12 +135,34 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     @Override
+    public Set<String> addMembers(@Nonnull final String... memberIds) throws RepositoryException {
+        return sessionDelegate.perform(new SessionOperation<Set<String>>("addMembers") {
+            @Nonnull
+            @Override
+            public Set<String> perform() throws RepositoryException {
+                return getDelegate().addMembers(memberIds);
+            }
+        });
+    }
+
+    @Override
     public boolean removeMember(final Authorizable authorizable) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("removeMember") {
             @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().removeMember(unwrap(authorizable));
+            }
+        });
+    }
+
+    @Override
+    public Set<String> removeMembers(@Nonnull final String... memberIds) throws RepositoryException {
+        return sessionDelegate.perform(new SessionOperation<Set<String>>("removeMembers") {
+            @Nonnull
+            @Override
+            public Set<String> perform() throws RepositoryException {
+                return getDelegate().removeMembers(memberIds);
             }
         });
     }

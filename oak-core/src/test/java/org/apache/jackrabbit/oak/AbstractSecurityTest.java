@@ -72,7 +72,6 @@ public abstract class AbstractSecurityTest {
     private ContentRepository contentRepository;
     private UserManager userManager;
     private User testUser;
-    private PrivilegeManager privMgr;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
     protected SecurityProvider securityProvider;
@@ -154,10 +153,14 @@ public abstract class AbstractSecurityTest {
     }
 
     protected UserManager getUserManager(Root root) {
-        if (userManager == null) {
-            userManager = getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
+        if (this.root == root) {
+            if (userManager == null) {
+                userManager = getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
+            }
+            return userManager;
+        } else {
+            return getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
         }
-        return userManager;
     }
 
     protected PrincipalManager getPrincipalManager(Root root) {
@@ -187,10 +190,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected PrivilegeManager getPrivilegeManager(Root root) {
-        if (privMgr == null) {
-            privMgr = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, getNamePathMapper());
-        }
-        return privMgr;
+        return getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, getNamePathMapper());
     }
 
     protected ValueFactory getValueFactory() {

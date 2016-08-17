@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
+import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -45,6 +46,16 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     private String randomNodeName = "f5aj6fp7q9834jof";
     private String intermediatePath = "foo/bar/test";
 
+    private Session importSession;
+
+    @Override
+    public void before() throws Exception {
+        super.before();
+
+        importSession = getImportSession();
+
+    }
+
     @Override
     protected String getTargetPath() {
         return USERPATH;
@@ -71,15 +82,15 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
         assertEquals(uid, newUser.getID());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(uid, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
         // saving changes of the import -> must succeed
-        adminSession.save();
+        importSession.save();
     }
 
     /**
@@ -88,9 +99,9 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorReplace() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl("t"), getTargetPath() + "/foo/bar/test");
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl("t"), getTargetPath() + "/foo/bar/test");
         String initialPath = u.getPath();
-        adminSession.save();
+        importSession.save();
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\""+uid+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -103,18 +114,18 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // replace should retain path
         assertEquals(initialPath, newUser.getPath());
         assertFalse(getTargetPath().equals(Text.getRelativeParent(newUser.getPath(), 1)));
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(uid, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
         // saving changes of the import -> must succeed
-        adminSession.save();
+        importSession.save();
     }
 
     /**
@@ -123,9 +134,9 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorRemove() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String initialPath = u.getPath();
-        adminSession.save();
+        importSession.save();
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -138,19 +149,19 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // IMPORT_UUID_COLLISION_REMOVE_EXISTING should result in the user to
         // be imported a the new path
         assertEquals(getTargetPath(), Text.getRelativeParent(newUser.getPath(), 1));
         assertFalse(initialPath.equals(newUser.getPath()));
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(uid, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
         // saving changes of the import -> must succeed
-        adminSession.save();
+        importSession.save();
     }
 
     /**
@@ -159,11 +170,11 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorReplaceFromRenamed() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String initialPath = u.getPath();
         String movedPath = Text.getRelativeParent(initialPath, 1) + '/' + randomNodeName;
-        adminSession.move(initialPath, movedPath);
-        adminSession.save();
+        importSession.move(initialPath, movedPath);
+        importSession.save();
 
         // import 'correct' jr2 package which contains the encoded ID in the node name
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -177,18 +188,18 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // replace should update the path
         assertEquals("user path", Text.getRelativeParent(initialPath, 1) + '/' + uid, newUser.getPath());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, uid, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, uid, newUser.getID());
 
         // saving changes of the import must succeed.
-        adminSession.save();
+        importSession.save();
     }
 
     /**
@@ -197,11 +208,11 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorReplaceFromRenamed2() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String initialPath = u.getPath();
         String movedPath = Text.getRelativeParent(initialPath, 1) + '/' + randomNodeName;
-        adminSession.move(initialPath, movedPath);
-        adminSession.save();
+        importSession.move(initialPath, movedPath);
+        importSession.save();
 
         // we need to include the new node name in the sysview import, so that the importer uses the correct name.
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -215,12 +226,12 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // replace should retain path
         assertEquals("user path", movedPath, newUser.getPath());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, randomNodeName, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
@@ -230,7 +241,7 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
         // correct ID as hashed in the jcr:uuid, the CommitHook will detect
         // the mismatch, which for the diff looks like a modified ID.
         try {
-            adminSession.save();
+            importSession.save();
             fail("Importing an authorizable with mismatch between authorizableId and uuid must fail.");
         } catch (ConstraintViolationException e) {
             // success
@@ -244,9 +255,9 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorReplaceFromRenamed3() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String originalPath = u.getPath();
-        adminSession.save();
+        importSession.save();
 
         // we need to include the new node name in the sysview import, so that the importer uses the correct name.
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -260,13 +271,13 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // replace should change the original path
         String expectedPath = Text.getRelativeParent(originalPath, 1) + '/' + randomNodeName;
         assertEquals("user path", expectedPath, newUser.getPath());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, randomNodeName, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
@@ -275,7 +286,7 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
         // modified node name in combination with the fact that in JR 2.x
         // the node name MUST contain the id as there is no rep:authorizableId.
         try {
-            adminSession.save();
+            importSession.save();
             fail("Importing an authorizable with mismatch between authorizableId and uuid must fail.");
         } catch (ConstraintViolationException e) {
             // success
@@ -289,11 +300,11 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorRemoveFromRenamed() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String initialPath = u.getPath();
         String movedPath = Text.getRelativeParent(initialPath, 1) + '/' + randomNodeName;
-        adminSession.move(initialPath, movedPath);
-        adminSession.save();
+        importSession.move(initialPath, movedPath);
+        importSession.save();
 
         // import 'correct' jr2 package which contains the encoded ID in the node name
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -307,18 +318,18 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // IMPORT_UUID_COLLISION_REMOVE_EXISTING should import the user at the new path
         assertEquals("user path", getTargetPath() + '/' + uid, newUser.getPath());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, uid, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, uid, newUser.getID());
 
         // saving changes of the import must succeed.
-        adminSession.save();
+        importSession.save();
     }
 
     /**
@@ -327,11 +338,11 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorRemoveFromRenamed2() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String initialPath = u.getPath();
         String movedPath = Text.getRelativeParent(initialPath, 1) + '/' + randomNodeName;
-        adminSession.move(initialPath, movedPath);
-        adminSession.save();
+        importSession.move(initialPath, movedPath);
+        importSession.save();
 
         // we need to include the new node name in the sysview import, so that the importer uses the correct name.
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -345,12 +356,12 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // IMPORT_UUID_COLLISION_REMOVE_EXISTING should import the user at the new path
         assertEquals("user path", getTargetPath() + '/' + randomNodeName, newUser.getPath());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, randomNodeName, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
@@ -358,7 +369,7 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
         // removed and the JR 2.x the node name doesn't contain the correct id,
         // which is detected during save as it looks like the id had been modified.
         try {
-            adminSession.save();
+            importSession.save();
             fail("Importing an authorizable with mismatch between authorizableId and uuid must fail.");
         } catch (ConstraintViolationException e) {
             // success
@@ -372,9 +383,9 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
     @Test
     public void testUUIDBehaviorRemoveFromRenamed3() throws Exception {
         // create authorizable
-        User u = userMgr.createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
+        User u = getUserManager().createUser(uid, null, new PrincipalImpl(uid), intermediatePath);
         String originalPath = u.getPath();
-        adminSession.save();
+        importSession.save();
 
         // we need to include the new node name in the sysview import, so that the importer uses the correct name.
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -388,14 +399,14 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
 
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
-        Authorizable newUser = userMgr.getAuthorizable(uid);
+        Authorizable newUser = getUserManager().getAuthorizable(uid);
 
         // replace should change the original path
         String expectedPath = getTargetPath() + '/' + randomNodeName;
         assertEquals("user path", expectedPath, newUser.getPath());
         assertFalse((Text.getRelativeParent(originalPath,1) + '/' + randomNodeName).equals(newUser.getPath()));
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = importSession.getNode(newUser.getPath());
         assertTrue(n.hasProperty(UserConstants.REP_AUTHORIZABLE_ID));
         assertEquals(UserConstants.REP_AUTHORIZABLE_ID, randomNodeName, n.getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString());
 
@@ -403,7 +414,7 @@ public class UserImportFromJackrabbit extends AbstractImportTest {
         // has been modified (it no longer represents the correct ID due to the
         // fact that in JR 2.x the node name MUST contain the id.
         try {
-            adminSession.save();
+            importSession.save();
             fail("Importing an authorizable with mismatch between authorizableId and uuid must fail.");
         } catch (ConstraintViolationException e) {
             // success

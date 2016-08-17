@@ -22,7 +22,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 
 /**
@@ -47,7 +46,7 @@ public class SystemUserImpl extends UserImpl {
         if (isAdmin()) {
             return new AdminPrincipalImpl(getPrincipalName(), getTree(), getUserManager().getNamePathMapper());
         } else {
-            return new SystemUserPrincipalImpl(getTree());
+            return new SystemUserPrincipalImpl(getPrincipalName(), getTree(), getUserManager().getNamePathMapper());
         }
     }
 
@@ -65,13 +64,5 @@ public class SystemUserImpl extends UserImpl {
     @Override
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("system user");
-    }
-
-    //--------------------------------------------------------------------------
-    private final class SystemUserPrincipalImpl extends TreeBasedPrincipal implements SystemUserPrincipal {
-
-        private SystemUserPrincipalImpl(Tree tree) throws RepositoryException {
-            super(getPrincipalName(), tree, getUserManager().getNamePathMapper());
-        }
     }
 }

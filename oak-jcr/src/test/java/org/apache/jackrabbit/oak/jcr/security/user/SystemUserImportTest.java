@@ -23,6 +23,7 @@ import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.security.auth.Subject;
 
@@ -90,10 +91,11 @@ public class SystemUserImportTest extends AbstractImportTest {
         Node target = getTargetNode();
         doImport(getTargetPath(), xml);
 
+        Session s = getImportSession();
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
+        assertTrue(s.hasPendingChanges());
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Authorizable newUser = getUserManager().getAuthorizable("t");
         assertNotNull(newUser);
         assertFalse(newUser.isGroup());
         assertTrue(((User) newUser).isSystemUser());
@@ -103,7 +105,7 @@ public class SystemUserImportTest extends AbstractImportTest {
         assertTrue(((User) newUser).isDisabled());
         assertEquals("disabledUser", ((User) newUser).getDisabledReason());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = s.getNode(newUser.getPath());
         assertTrue(n.isNew());
         assertTrue(n.getParent().isSame(target));
 
@@ -114,7 +116,7 @@ public class SystemUserImportTest extends AbstractImportTest {
         assertFalse(n.hasProperty(UserConstants.REP_PASSWORD));
 
         // saving changes of the import -> must succeed. all mandatory props should have been created.
-        adminSession.save();
+        s.save();
     }
 
     /**
@@ -134,25 +136,26 @@ public class SystemUserImportTest extends AbstractImportTest {
          importing a system user below the regular users-path:
          - saving changes must fail with ConstraintViolationEx.
          */
-        Node target = adminSession.getNode(USERPATH);
+        Session s = getImportSession();
+        Node target = s.getNode(USERPATH);
         doImport(USERPATH, xml);
 
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
+        assertTrue(s.hasPendingChanges());
 
-        Authorizable user = userMgr.getAuthorizable("t");
+        Authorizable user = getUserManager().getAuthorizable("t");
         assertNotNull(user);
         assertTrue(target.hasNode("t"));
         assertTrue(target.hasProperty("t/rep:principalName"));
 
         // saving changes of the import -> must fail
         try {
-            adminSession.save();
+            s.save();
             fail("Import must be incomplete. Saving changes must fail.");
         } catch (ConstraintViolationException e) {
             // success
         } finally {
-            adminSession.refresh(false);
+            s.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
                 target.save();
@@ -177,7 +180,7 @@ public class SystemUserImportTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
+        assertTrue(getImportSession().hasPendingChanges());
 
         // node must be present:
         assertTrue(target.hasNode("t"));
@@ -186,17 +189,19 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         // but UserManager.getAuthorizable(String) will not find the
         // authorizable
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Authorizable newUser = getUserManager().getAuthorizable("t");
         assertNull(newUser);
     }
 
     @Test
     public void testExistingPrincipal() throws Exception {
         Principal existing = null;
-        PrincipalIterator principalIterator = ((JackrabbitSession) adminSession).getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
+
+        Session s = getImportSession();
+        PrincipalIterator principalIterator = ((JackrabbitSession) s).getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         while (principalIterator.hasNext()) {
             Principal p = principalIterator.nextPrincipal();
-            if (userMgr.getAuthorizable(p) != null) {
+            if (getUserManager().getAuthorizable(p) != null) {
                 existing = p;
                 break;
             }
@@ -214,7 +219,7 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         try {
             doImport(getTargetPath(), xml);
-            adminSession.save();
+            s.save();
 
             fail("Import must detect conflicting principals.");
         } catch (RepositoryException e) {
@@ -237,12 +242,12 @@ public class SystemUserImportTest extends AbstractImportTest {
         Node target = getTargetNode();
         assertFalse(target.hasProperty(UserConstants.REP_PASSWORD));
 
-        Authorizable user = userMgr.getAuthorizable("t");
+        Authorizable user = getUserManager().getAuthorizable("t");
         assertNotNull(user);
         assertFalse(user.isGroup());
         assertTrue(((User)user).isSystemUser());
 
-        adminSession.save();
+        getImportSession().save();
     }
 
     /**
@@ -268,9 +273,9 @@ public class SystemUserImportTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
+        assertTrue(getImportSession().hasPendingChanges());
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Authorizable newUser = getUserManager().getAuthorizable("t");
         assertNotNull(newUser);
 
         assertTrue(target.hasNode("t"));
@@ -293,22 +298,23 @@ public class SystemUserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>");
 
+        Session s = getImportSession();
         for (String xml : incompleteXml) {
-            Node target = adminSession.getNode(getTargetPath());
+            Node target = s.getNode(getTargetPath());
             try {
                 doImport(getTargetPath(), xml);
                 // saving changes of the import -> must fail as mandatory prop is missing
                 try {
-                    adminSession.save();
+                    s.save();
                     fail("Import must be incomplete. Saving changes must fail.");
                 } catch (ConstraintViolationException e) {
                     // success
                 }
             } finally {
-                adminSession.refresh(false);
+                s.refresh(false);
                 if (target.hasNode("t")) {
                     target.getNode("t").remove();
-                    adminSession.save();
+                    s.save();
                 }
             }
         }
@@ -328,10 +334,10 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Authorizable user = userMgr.getAuthorizable("t");
+        Authorizable user = getUserManager().getAuthorizable("t");
         assertNotNull(user);
         assertFalse(user.isGroup());
-        assertFalse(adminSession.propertyExists(user.getPath() + "/rep:password"));
+        assertFalse(getImportSession().propertyExists(user.getPath() + "/rep:password"));
     }
 
     @Test
@@ -360,15 +366,15 @@ public class SystemUserImportTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         assertTrue(target.isModified());
-        assertTrue(adminSession.hasPendingChanges());
+        assertTrue(getImportSession().hasPendingChanges());
 
-        Authorizable newUser = userMgr.getAuthorizable("t3");
+        Authorizable newUser = getUserManager().getAuthorizable("t3");
         assertNotNull(newUser);
         assertFalse(newUser.isGroup());
         assertEquals("t3", newUser.getPrincipal().getName());
         assertEquals("t3", newUser.getID());
 
-        Node n = adminSession.getNode(newUser.getPath());
+        Node n = getImportSession().getNode(newUser.getPath());
         assertTrue(n.isNew());
 
         Node parent = n.getParent();
@@ -400,10 +406,10 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Authorizable newUser = getUserManager().getAuthorizable("t");
         assertNotNull(newUser);
 
-        Authorizable u2 = userMgr.getAuthorizable("g");
+        Authorizable u2 = getUserManager().getAuthorizable("g");
         assertNotNull(u2);
 
         Subject subj = new Subject();
@@ -429,7 +435,7 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         // saving changes of the import -> must succeed. add mandatory
         // props should have been created.
-        adminSession.save();
+        getImportSession().save();
     }
 
     /**
@@ -447,14 +453,14 @@ public class SystemUserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>";
         doImport(getTargetPath(), xml);
-        adminSession.save();
+        getImportSession().save();
 
         // re-import should succeed if UUID-behavior is set accordingly
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
         // saving changes of the import -> must succeed. add mandatory
         // props should have been created.
-        adminSession.save();
+        getImportSession().save();
     }
 
     @Test
@@ -491,13 +497,14 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Session s = getImportSession();
+        Authorizable newUser = getUserManager().getAuthorizable("t");
         assertNotNull(newUser);
         assertFalse(newUser.isGroup());
         assertEquals("t", newUser.getID());
-        assertTrue(adminSession.propertyExists(newUser.getPath() + "/rep:authorizableId"));
-        assertEquals("t", adminSession.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
-        adminSession.save();
+        assertTrue(s.propertyExists(newUser.getPath() + "/rep:authorizableId"));
+        assertEquals("t", s.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
+        s.save();
     }
 
     /**
@@ -516,14 +523,15 @@ public class SystemUserImportTest extends AbstractImportTest {
 
         doImport(getTargetPath(), xml);
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Session s = getImportSession();
+        Authorizable newUser = getUserManager().getAuthorizable("t");
 
         assertNotNull(newUser);
         assertFalse(newUser.isGroup());
         assertEquals("t", newUser.getID());
-        assertTrue(adminSession.propertyExists(newUser.getPath() + "/rep:authorizableId"));
-        assertEquals("t", adminSession.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
-        adminSession.save();
+        assertTrue(s.propertyExists(newUser.getPath() + "/rep:authorizableId"));
+        assertEquals("t", s.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
+        s.save();
     }
 
     /**
@@ -543,14 +551,15 @@ public class SystemUserImportTest extends AbstractImportTest {
                 "</sv:node>";
         doImport(getTargetPath(), xml);
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Authorizable newUser = getUserManager().getAuthorizable("t");
 
+        Session s = getImportSession();
         assertNotNull(newUser);
         assertFalse(newUser.isGroup());
         assertEquals("t", newUser.getID());
-        assertTrue(adminSession.propertyExists(newUser.getPath() + "/rep:authorizableId"));
-        assertEquals("t", adminSession.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
-        adminSession.save();
+        assertTrue(s.propertyExists(newUser.getPath() + "/rep:authorizableId"));
+        assertEquals("t", s.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
+        s.save();
     }
 
     /**

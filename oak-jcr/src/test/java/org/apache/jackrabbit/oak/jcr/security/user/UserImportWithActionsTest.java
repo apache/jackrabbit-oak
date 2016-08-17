@@ -128,11 +128,11 @@ public class UserImportWithActionsTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable a = userMgr.getAuthorizable("t");
+        Authorizable a = getUserManager().getAuthorizable("t");
         assertNotNull(a);
         assertFalse(a.isGroup());
 
-        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlManager acMgr = getImportSession().getAccessControlManager();
         AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
         assertNotNull(policies);
         assertEquals(1, policies.length);
@@ -159,11 +159,11 @@ public class UserImportWithActionsTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable a = userMgr.getAuthorizable("t");
+        Authorizable a = getUserManager().getAuthorizable("t");
         assertNotNull(a);
         assertFalse(a.isGroup());
 
-        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlManager acMgr = getImportSession().getAccessControlManager();
         AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
         assertNotNull(policies);
         assertEquals(1, policies.length);
@@ -189,11 +189,11 @@ public class UserImportWithActionsTest extends AbstractImportTest {
 
         doImport(GROUPPATH, xml);
 
-        Authorizable a = userMgr.getAuthorizable("g");
+        Authorizable a = getUserManager().getAuthorizable("g");
         assertNotNull(a);
         assertTrue(a.isGroup());
 
-        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlManager acMgr = getImportSession().getAccessControlManager();
         AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
         assertNotNull(policies);
         assertEquals(1, policies.length);

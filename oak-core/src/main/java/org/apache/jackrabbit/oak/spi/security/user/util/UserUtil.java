@@ -27,9 +27,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -131,6 +134,25 @@ public final class UserUtil implements UserConstants {
         return null;
     }
 
+    /**
+     * Retrieve the id from the given {@code authorizableTree}, which must have
+     * been verified for being a valid authorizable of the specified type upfront.
+     *
+     * @param authorizableTree The authorizable tree which must be of the given {@code type}/
+     * @param type The type of the authorizable tree.
+     * @return The id retrieved from the specified {@code AuthorizableTree}.
+     */
+    @Nonnull
+    public static String getAuthorizableId(@Nonnull Tree authorizableTree, @Nonnull AuthorizableType type) {
+        checkArgument(UserUtil.isType(authorizableTree, type));
+        PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
+        if (idProp != null) {
+            return idProp.getValue(STRING);
+        } else {
+            return Text.unescapeIllegalJcrChars(authorizableTree.getName());
+        }
+    }
+
     @CheckForNull
     public static <T extends Authorizable> T castAuthorizable(@Nullable Authorizable authorizable, Class<T> authorizableClass) throws AuthorizableTypeException {
         if (authorizable == null) {
@@ -142,5 +164,22 @@ public final class UserUtil implements UserConstants {
         } else {
             throw new AuthorizableTypeException("Invalid authorizable type '" + ((authorizableClass == null) ? "null" : authorizableClass) + '\'');
         }
+    }
+
+    /**
+     * Return the configured {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
+     * for the given {@code config}. The default behavior in case
+     * {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR}
+     * is not contained in the {@code config} object is
+     * {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE}
+     *
+     * @param config The configuration parameters.
+     * @return The import behavior as defined by {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR}
+     * or {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE} if this
+     * config parameter is missing.
+     */
+    public static int getImportBehavior(@Nonnull ConfigurationParameters config) {
+        String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
+        return ImportBehavior.valueFromString(importBehaviorStr);
     }
 }

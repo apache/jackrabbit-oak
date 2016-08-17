@@ -69,7 +69,7 @@ public class UserImportIgnoreTest extends AbstractImportTest {
                 doImport(getTargetPath(), xml);
                 // no exception during import: no impersonation must be granted
                 // for the invalid principal name
-                Authorizable a = userMgr.getAuthorizable("t");
+                Authorizable a = getUserManager().getAuthorizable("t");
                 if (!a.isGroup()) {
                     Impersonation imp = ((User)a).getImpersonation();
                     Subject s = new Subject();
@@ -82,7 +82,7 @@ public class UserImportIgnoreTest extends AbstractImportTest {
                     fail("Importing 't' didn't create a User.");
                 }
             } finally {
-                adminSession.refresh(false);
+                getImportSession().refresh(false);
             }
         }
     }

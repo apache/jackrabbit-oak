@@ -21,11 +21,14 @@ import java.util.List;
 import java.util.UUID;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
+import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -57,6 +60,7 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         invalid.add(UUID.randomUUID().toString()); // random uuid
         invalid.add(getExistingUUID()); // uuid of non-authorizable node
 
+        Session s = getImportSession();
         for (String id : invalid) {
             String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                     "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -70,11 +74,11 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
             try {
                 // BESTEFFORT behavior -> must import non-existing members.
                 doImport(getTargetPath(), xml);
-                Authorizable a = userMgr.getAuthorizable("g1");
+                Authorizable a = getUserManager().getAuthorizable("g1");
                 if (a.isGroup()) {
                     // the rep:members property must contain the invalid value
                     boolean found = false;
-                    Node grNode = adminSession.getNode(a.getPath());
+                    Node grNode = s.getNode(a.getPath());
                     for (Value memberValue : grNode.getProperty(UserConstants.REP_MEMBERS).getValues()) {
                         assertEquals(PropertyType.WEAKREFERENCE, memberValue.getType());
                         if (id.equals(memberValue.getString())) {
@@ -85,12 +89,12 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
                     assertTrue("ImportBehavior.BESTEFFORT must import non-existing members.",found);
 
                     // declared members must not list the invalid entry.
-                    assertNotDeclaredMember((Group) a, id, adminSession);
+                    assertNotDeclaredMember((Group) a, id, s);
                 } else {
                     fail("'g1' was not imported as Group.");
                 }
             } finally {
-                adminSession.refresh(false);
+                s.refresh(false);
             }
         }
     }
@@ -100,7 +104,7 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
 
         String g1Id = "0120a4f9-196a-3f9e-b9f5-23f31f914da7";
         String nonExistingId = "b2f5ff47-4366-31b6-a533-d8dc3614845d"; // groupId of 'g' group.
-        if (userMgr.getAuthorizable("g") != null) {
+        if (getUserManager().getAuthorizable("g") != null) {
             throw new NotExecutableException();
         }
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
@@ -115,11 +119,11 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
 
         // BESTEFFORT behavior -> must import non-existing members.
         doImport(getTargetPath(), xml);
-        Authorizable g1 = userMgr.getAuthorizable("g1");
+        Authorizable g1 = getUserManager().getAuthorizable("g1");
         if (g1.isGroup()) {
             // the rep:members property must contain the invalid value
             boolean found = false;
-            Node grNode = adminSession.getNode(g1.getPath());
+            Node grNode = getImportSession().getNode(g1.getPath());
             for (Value memberValue : grNode.getProperty(UserConstants.REP_MEMBERS).getValues()) {
                 assertEquals(PropertyType.WEAKREFERENCE, memberValue.getType());
                 if (nonExistingId.equals(memberValue.getString())) {
@@ -138,7 +142,7 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
 
         String g1Id = "0120a4f9-196a-3f9e-b9f5-23f31f914da7";
         String nonExistingId = "b2f5ff47-4366-31b6-a533-d8dc3614845d"; // groupId of 'g' group.
-        if (userMgr.getAuthorizable("g") != null) {
+        if (getUserManager().getAuthorizable("g") != null) {
             throw new NotExecutableException();
         }
 
@@ -168,18 +172,31 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         membership references.
         expected:
         - group is imported
-        - circular membership is ignored
+        - circular membership is ignored (OR fails upon save)
         - g is member of g1
-        - g1 isn't member of g
+        - g1 isn't member of g  (circular membership detected) OR saving changes fails
         */
         doImport(getTargetPath() + "/gFolder", xml2);
 
-        Authorizable g = userMgr.getAuthorizable("g");
-        assertNotNull(g);
-        if (g.isGroup()) {
-            assertNotDeclaredMember((Group) g, g1Id, adminSession);
+        Group g = getUserManager().getAuthorizable("g", Group.class);
+        Group g1 = getUserManager().getAuthorizable("g1", Group.class);
+
+        assertNotNull("'g' was not imported as Group.", g);
+        assertNotNull("'g1' was not imported as Group.", g1);
+
+        assertTrue(g1.isDeclaredMember(g));
+        if (g.isDeclaredMember(g1)) {
+            // circular membership created during import
+            try {
+                getImportSession().save();
+                fail("Circular membership must be detected upon save.");
+            } catch (ConstraintViolationException e) {
+                Throwable th = e.getCause();
+                assertTrue(th instanceof CommitFailedException);
+                assertEquals(31, ((CommitFailedException) th).getCode());
+            }
         } else {
-            fail("'g' was not imported as Group.");
+            assertNotDeclaredMember(g, g1Id, getImportSession());
         }
     }
 
@@ -199,10 +216,10 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
                 "</sv:node>";
 
         doImport(getTargetPath(), xml);
-        User user = userMgr.createUser("angi", "pw");
-        adminSession.save();
+        User user = getUserManager().createUser("angi", "pw");
+        getImportSession().save();
 
-        Group g1 = (Group) userMgr.getAuthorizable("g1");
+        Group g1 = (Group) getUserManager().getAuthorizable("g1");
         assertTrue(g1.isMember(user));
     }
 

@@ -30,6 +30,8 @@ member relationship of users and groups:
     - `isMember(Authorizable boolean`
     - `addMember(Authorizable) boolean`
     - `removeMember(Authorizable) boolen`
+    - `addMembers(String...) Set<String>`
+    - `removeMembers(String...) Set<String>`
 
 - [org.apache.jackrabbit.api.security.user.Authorizable]
     - `declaredMemberOf() Iterator<Group>`
@@ -139,6 +141,29 @@ internally processed using the normal user manager APIs. This implies that the
 node structure after the import might not be the same as the one represented in
 the input.
 
+#### Add and Remove Group Members by Id
+
+Since Oak 1.3.4 the default user management implementation also allows to modify
+group membership by specifying the member id(s) (see [JCR-3880] and [OAK-3170]).
+The following details are worth mentioning:
+
+- a `null` or empty String id will immediately fail the operation with `ConstraintViolationException`; changes already made will not be reverted,
+- an attemt to make the same group member of itself will list that id in the return value but will not fail the operation,
+- duplicate ids in the parameter list will be silently ignored,
+- cyclic membership validation is postponed to the validator called upon `Root.commit`
+  and will only fail at that point; the cyclic membership then needs to be manually
+  resolved by the application,
+- whether or not a non-existing (or not accessible) authorizable can be added or
+  removed depends on the configured `ImportBehavior`:
+    - ABORT: each id is resolved to the corresponding authorizable; if it doesn't
+      exist `ConstraintViolationException` is thrown immediately; changes already
+      made will not be reverted.
+    - BESTEFFORT: the specified ids are not resolved to the corresponding
+      authorizables and are silently added|removed to|from the set of members;
+      ids that were not successfully added|removed are listed in the return value.
+    - IGNORE: each id is resolved to the corresponding authorizable; if it doesn't
+      exist it will be returned as _failed_ in the return value.
+
 ### Configuration
 
 Note that as of Oak 1.0 the implementation is responsible for defining the
@@ -150,3 +175,5 @@ with Jackrabbit 2.x is not supported anymore.
 <!-- hidden references -->
 [org.apache.jackrabbit.api.security.user.Group]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Group.java
 [org.apache.jackrabbit.api.security.user.Authorizable]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Authorizable.java
+[JCR-3880]: https://issues.apache.org/jira/browse/JCR-3880
+[OAK-3170]: https://issues.apache.org/jira/browse/OAK-3170
