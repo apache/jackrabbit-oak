@@ -42,6 +42,7 @@ import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpCleaner;
+import org.apache.jackrabbit.oak.threadDump.ThreadDumpConverter;
 
 public class ThreadDumpCommand implements Command {
 
@@ -49,6 +50,8 @@ public class ThreadDumpCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
+        OptionSpec<Void> convertSpec = parser.accepts("convert", 
+                "convert the thread dumps to the standard format");
         OptionSpec<Void> filterSpec = parser.accepts("filter", 
                 "filter the thread dumps, only keep working threads");
         OptionSpec<Void> profileSpec = parser.accepts("profile", 
@@ -71,6 +74,7 @@ public class ThreadDumpCommand implements Command {
             parser.printHelpOn(System.out);
             return;
         }
+        boolean convert = options.has(convertSpec);
         boolean filter = options.has(filterSpec);
         boolean profile = options.has(profileSpec);
         boolean profileClasses = options.has(profileClassesSpec);
@@ -81,6 +85,11 @@ public class ThreadDumpCommand implements Command {
             if (file.isDirectory() || file.getName().endsWith(".gz")) {
                 file = combineAndExpandFiles(file);
                 System.out.println("Combined into " + file.getAbsolutePath());
+            }
+            if (convert) {
+                file = ThreadDumpConverter.process(file);
+                System.out.println("Converted to " + file.getAbsolutePath());
+                
             }
             if (filter) {
                 file = ThreadDumpCleaner.process(file);
@@ -169,7 +178,7 @@ public class ThreadDumpCommand implements Command {
                 if (s == null) {
                     break;
                 }          
-                if (s.startsWith("Full thread dump")) {
+                if (s.startsWith("Full thread dump") || s.startsWith("Full Java thread dump")) {
                     fullThreadDumps++;
                 }
                 writer.println(s);
