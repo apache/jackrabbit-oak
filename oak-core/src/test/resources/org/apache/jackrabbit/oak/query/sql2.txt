@@ -30,16 +30,16 @@
 commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
 
 # OAK-4658
-select a.[jcr:path] from [nt:base] as a 
+select a.[jcr:path] from [nt:base] as a
   left outer join [nt:base] as b on ischildnode(b, a)
   where name(b) = 'b'
-/test  
+/test
 
 # OAK-4658
-select a.[jcr:path] from [nt:base] as a 
+select a.[jcr:path] from [nt:base] as a
   left outer join [nt:base] as b on ischildnode(b, a)
   where localname(b) = 'b'
-/test  
+/test
 
 select * from [nt:base]
   where [a] = 1 and [b] = 2 and [b] = 3 or [c] = 4
