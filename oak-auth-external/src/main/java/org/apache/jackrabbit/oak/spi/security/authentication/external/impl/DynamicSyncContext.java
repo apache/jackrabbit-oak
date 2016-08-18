@@ -135,6 +135,11 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
     }
 
+    @Override
+    protected void applyMembership(@Nonnull Authorizable member, @Nonnull Set<String> groups) throws RepositoryException {
+        log.debug("Dynamic membership sync enabled => omit setting auto-membership for {} ", member.getID());
+    }
+
     /**
      * Recursively collect the principal names of the given declared group
      * references up to the given depth.

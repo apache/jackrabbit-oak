@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
+import java.util.List;
+import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -33,9 +35,10 @@ public class SyncExternalUsersTest extends AbstractExternalTest {
     private final int batchSize;
     private SynchronizationMBean bean;
 
-    public SyncExternalUsersTest(int numberofUsers, int membershipSize, long expTime,
-                                 boolean dynamicMembership, int batchSize) {
-        super(numberofUsers, membershipSize, expTime, dynamicMembership);
+    public SyncExternalUsersTest(int numberOfUsers, int membershipSize, long expTime,
+                                 boolean dynamicMembership, @Nonnull List<String> autoMembership,
+                                 int batchSize) {
+        super(numberOfUsers, membershipSize, expTime, dynamicMembership, autoMembership);
         this.batchSize = batchSize;
     }
 

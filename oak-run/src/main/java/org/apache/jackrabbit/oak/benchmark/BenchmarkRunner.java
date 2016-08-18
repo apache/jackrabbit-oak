@@ -120,6 +120,10 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> setScope = parser.accepts("setScope", "Whether to use include setScope in the user query.")
                         .withOptionalArg().ofType(Boolean.class)
                         .defaultsTo(Boolean.FALSE);
+        OptionSpec<Boolean> dynamicMembership = parser.accepts("dynamicMembership", "Enable dynamic membership handling during synchronisation of external users.")
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+        OptionSpec<String> autoMembership = parser.accepts("autoMembership", "Ids of those groups a given external identity automatically become member of.")
+                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -299,9 +303,9 @@ public class BenchmarkRunner {
             new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options)),
 
             // benchmarks for oak-auth-external
-            new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false),
-            new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false),
-            new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false, batchSize.value(options))
+            new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
+            new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
+            new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

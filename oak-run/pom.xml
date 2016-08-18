@@ -390,6 +390,12 @@
       <optional>true</optional>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
     <!-- Findbugs annotations -->
     <dependency>
       <groupId>com.google.code.findbugs</groupId>

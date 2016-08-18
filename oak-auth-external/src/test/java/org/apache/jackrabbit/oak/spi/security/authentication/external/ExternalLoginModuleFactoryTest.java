@@ -36,7 +36,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
@@ -158,7 +157,6 @@ public class ExternalLoginModuleFactoryTest extends AbstractSecurityTest {
     public void setUpJaasFactoryWithInjection() throws Exception{
         context.registerService(Repository.class, EasyMock.createMock(Repository.class));
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
-        context.registerService(SecurityProvider.class, EasyMock.createMock(SecurityProvider.class));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
 
         final LoginModuleFactory lmf = context.registerInjectActivateService(new ExternalLoginModuleFactory());
