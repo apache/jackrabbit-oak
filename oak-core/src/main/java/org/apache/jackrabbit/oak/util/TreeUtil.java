@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -304,16 +305,12 @@ public final class TreeUtil {
             String now = ISO8601.format(Calendar.getInstance());
             return PropertyStates.createProperty(name, now, DATE);
         } else if (JCR_CREATEDBY.equals(name)) {
-            if (userID != null) {
-                return PropertyStates.createProperty(name, userID, STRING);
-            }
+            return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
         } else if (JCR_LASTMODIFIED.equals(name)) {
             String now = ISO8601.format(Calendar.getInstance());
             return PropertyStates.createProperty(name, now, DATE);
         } else if (JCR_LASTMODIFIEDBY.equals(name)) {
-            if (userID != null) {
-                return PropertyStates.createProperty(name, userID, STRING);
-            }
+            return PropertyStates.createProperty(name, Strings.nullToEmpty(userID), STRING);
         }
 
         // does the definition have a default value?

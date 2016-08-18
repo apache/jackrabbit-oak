@@ -19,17 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
@@ -43,81 +35,43 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * ExternalLoginModuleTest...
+ * Abstract base test for external-authentication including proper OSGi service
+ * registrations required for repository login respecting the {@link ExternalLoginModule}.
  */
-public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
-
-    private Set<String> ids = new HashSet<String>();
+public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTest {
 
     private Registration testIdpReg;
-
     private Registration syncHandlerReg;
 
     protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
     protected Whiteboard whiteboard;
 
-    protected ExternalIdentityProvider idp;
-
     protected SyncManager syncManager;
 
     protected ExternalIdentityProviderManager idpManager;
 
-    protected DefaultSyncConfig syncConfig;
-
     @Before
     public void before() throws Exception {
         super.before();
-        UserManager userManager = getUserManager(root);
-        Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-        while (iter.hasNext()) {
-            ids.add(iter.next().getID());
-        }
-        idp = createIDP();
 
         testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
 
         options.put(ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, "default");
         options.put(ExternalLoginModule.PARAM_IDP_NAME, idp.getName());
 
-        // set default sync config
-        syncConfig = new DefaultSyncConfig();
-        Map<String, String> mapping = new HashMap<String, String>();
-        mapping.put("name", "name");
-        mapping.put("email", "email");
-        mapping.put("profile/name", "profile/name");
-        mapping.put("profile/age", "profile/age");
-        mapping.put("profile/constantProperty", "\"constant-value\"");
-        syncConfig.user().setPropertyMapping(mapping);
-        syncConfig.user().setMembershipNestingDepth(1);
         setSyncConfig(syncConfig);
     }
 
     @After
     public void after() throws Exception {
-        if (testIdpReg != null) {
-            testIdpReg.unregister();
-            testIdpReg = null;
-        }
-        destroyIDP(idp);
-        idp = null;
-        setSyncConfig(null);
-
         try {
-            UserManager userManager = getUserManager(root);
-            Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-            while (iter.hasNext()) {
-                ids.remove(iter.next().getID());
+            if (testIdpReg != null) {
+                testIdpReg.unregister();
+                testIdpReg = null;
             }
-            for (String id : ids) {
-                Authorizable a = userManager.getAuthorizable(id);
-                if (a != null) {
-                    a.remove();
-                }
-            }
-            root.commit();
+            setSyncConfig(null);
         } finally {
-            root.refresh();
             super.after();
         }
     }
@@ -136,12 +90,8 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         return oak;
     }
 
-    protected abstract ExternalIdentityProvider createIDP();
-
-    protected abstract void destroyIDP(ExternalIdentityProvider idp);
-
     protected SynchronizationMBean createMBean() {
-        // todo: how to retrieve JCR repository here? maybe we should base the sync mbean on oak directly.
+        // todo: how to retrieve JCR repository here? maybe we should base the sync mbean on oak directly (=> OAK-4218).
         // JackrabbitRepository repository =  null;
         // return new SyncMBeanImpl(repository, syncManager, "default", idpManager, idp.getName());
 
