@@ -815,35 +815,36 @@ class TarReader implements Closeable {
         log.debug("Cleaning up {}", name);
 
         Set<UUID> cleaned = newHashSet();
-        int size = 0;
-        int count = 0;
+        int afterSize = 0;
+        int beforeSize = 0;
+        int afterCount = 0;
+
         TarEntry[] entries = getEntries();
         for (int i = 0; i < entries.length; i++) {
             TarEntry entry = entries[i];
+            beforeSize += getEntrySize(entry.size());;
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (reclaim.contains(id)) {
                 cleaned.add(id);
                 entries[i] = null;
             } else {
-                size += getEntrySize(entry.size());
-                count += 1;
+                afterSize += getEntrySize(entry.size());
+                afterCount += 1;
             }
         }
-        size += getEntrySize(TarEntry.SIZE * count + 16);
-        size += 2 * BLOCK_SIZE;
-
-        if (count == 0) {
+      
+        if (afterCount == 0) {
             log.debug("None of the entries of {} are referenceable.", name);
             logCleanedSegments(cleaned);
             return null;
         }
-        if (size >= access.length() * 3 / 4 && hasGraph()) {
+        if (afterSize >= beforeSize * 3 / 4 && hasGraph()) {
             // the space savings are not worth it at less than 25%,
             // unless this tar file lacks a pre-compiled segment graph
             // in which case we'll always generate a new tar file with
             // the graph to speed up future garbage collection runs.
             log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
-                    access.length() - size, access.length(), name);
+                    access.length() - afterSize, access.length(), name);
             return this;
         }
         if (!hasGraph()) {
