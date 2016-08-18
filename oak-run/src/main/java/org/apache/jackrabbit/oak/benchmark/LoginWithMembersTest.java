@@ -39,8 +39,8 @@ public class LoginWithMembersTest extends AbstractLoginTest {
 
     private final int numberOfMembers;
 
-    public LoginWithMembersTest(boolean runWithToken, int noIterations, int numberOfMembers) {
-        super(USER, runWithToken, noIterations);
+    public LoginWithMembersTest(boolean runWithToken, int noIterations, int numberOfMembers, long expiration) {
+        super(USER, runWithToken, noIterations, expiration);
 
         this.numberOfMembers = numberOfMembers;
     }

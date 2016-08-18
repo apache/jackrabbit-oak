@@ -32,6 +32,9 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -90,10 +93,14 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
+        OptionSpec<Long> expiration = parser.accepts("expiration", "Expiration time (e.g. principal cache.")
+                        .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
         OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
                         .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<Integer> batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(1);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
@@ -172,11 +179,13 @@ public class BenchmarkRunner {
                     runWithToken.value(options),
                     noIterations.value(options),
                     numberOfGroups.value(options),
-                    nestedGroups.value(options)),
+                    nestedGroups.value(options),
+                    expiration.value(options)),
             new LoginWithMembersTest(
                     runWithToken.value(options),
                     noIterations.value(options),
-                    numberOfGroups.value(options)),
+                    numberOfGroups.value(options),
+                    expiration.value(options)),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),
@@ -287,7 +296,12 @@ public class BenchmarkRunner {
                     wikipedia.value(options),
                     flatStructure.value(options),
                     report.value(options), withStorage.value(options), withServer.value(options)),
-            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options))
+            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options)),
+
+            // benchmarks for oak-auth-external
+            new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false),
+            new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false),
+            new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), false, batchSize.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

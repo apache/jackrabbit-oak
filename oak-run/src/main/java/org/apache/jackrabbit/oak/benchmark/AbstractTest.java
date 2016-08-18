@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 /**
  * Abstract base class for individual performance benchmarks.
  */
-abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
+public abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
 
     /**
      * A random string to guarantee concurrently running tests don't overwrite

@@ -287,6 +287,17 @@
  - * (UNDEFINED) IGNORE
  + * (nt:base) = rep:Unstructured IGNORE
 
+/**
+ * Unstructured base node type for protected repository internal information
+ * that is protected and must not be copied to the version store OPV
+ *
+ * @since oak 1.4
+ */
+[rep:UnstructuredProtected] abstract
+- * (UNDEFINED) protected multiple IGNORE
+- * (UNDEFINED) protected IGNORE
++ * (rep:UnstructuredProtected) protected IGNORE
+
 //------------------------------------------------------------------------------
 // R E F E R E N C E A B L E
 //------------------------------------------------------------------------------
@@ -753,6 +764,12 @@
  */
 [rep:MemberReferencesList]
   + * (rep:MemberReferences) = rep:MemberReferences protected COPY
+
+/**
+ * @since oak 1.4
+ */
+[rep:Cache] > rep:UnstructuredProtected
+  - rep:expiration (LONG) protected IGNORE
 
 // -----------------------------------------------------------------------------
 // Privilege Management

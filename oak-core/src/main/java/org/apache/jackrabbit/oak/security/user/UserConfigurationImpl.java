@@ -25,6 +25,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -105,7 +106,13 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = UserConstants.PARAM_PASSWORD_INITIAL_CHANGE,
                 label = "Change Password On First Login",
                 description = "When enabled, forces users to change their password upon first login.",
-                boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE)
+                boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE),
+        @Property(name = UserPrincipalProvider.PARAM_CACHE_EXPIRATION,
+                label = "Principal Cache Expiration",
+                description = "Optional configuration defining the number of milliseconds " +
+                        "until the principal cache expires (NOTE: currently only respected for principal resolution with the internal system session such as used for login). " +
+                        "If not set or equal/lower than zero no caches are created/evaluated.",
+                longValue = UserPrincipalProvider.EXPIRATION_NO_CACHE)
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
 
@@ -158,7 +165,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
-        return Collections.singletonList(new UserValidatorProvider(getParameters()));
+        return ImmutableList.of(new UserValidatorProvider(getParameters()), new CacheValidatorProvider(principals));
     }
 
     @Nonnull

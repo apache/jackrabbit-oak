@@ -36,7 +36,8 @@ what it does not:
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
-### Structure
+<a name="details"/>
+### Implementation Details
 The external identity and login handling is split into 3 parts:
 
 - **External Login Module**: LoginModule implementation that represents the connection between JAAS login mechanism, the external identity provider and the synchronization handler.
@@ -62,14 +63,20 @@ If a user needs re-authentication (for example, if the cache validity expired or
 if the user is not yet present in the local system at all), the login module must
 check the credentials with the external system during the `login()` method.
 
-Note:
+The details of the default user/group synchronization mechanism are described in section
+[User and Group Synchronization : The Default Implementation](defaultusersync.html)
 
-* users (and groups) that are synced from the 3rd party system contain a `rep:externalId` property. This allows to identify the external users and distinguish them from others.
-* to reduce expensive syncing, the synced users and groups have sync timestamp `rep:lastSynced` and are considered valid for a configurable time. if they expire, they need to be validated against the 3rd party system again.
+##### Supported Credentials
 
-Current this login module supports the following credentials:
+As of Oak 1.5.1 the `ExternalLoginModule` can deal for any kind of `Credentials`
+implementations. By default (i.e. unless configured otherwise) the module supports
+`SimpleCredentials` and thus behaves backwards compatible to previous versions.
 
-- `SimpleCredentials`
+Additional/other credentials can be supported by providing an `ExternalIdentityProvider` 
+that additionally implements the [CredentialsSupport] interface.
+See section [Pluggability](#pluggability) for instructions and an example.
+
+##### Authentication in Detail 
 
 The details of the external authentication are as follows:
 
@@ -108,14 +115,32 @@ present on the IDP.
 See section [User Synchronization](usersync.html) for further details and a
 description of the default implementation.
 
+<a name="configuration"/>
 ### Configuration
+
+#### Configuration Parameters
+
+The external authentication module comes with the following configuration parameters
+for the [ExternalLoginModuleFactory]/[ExternalLoginModule].
+
+| Parameter                 | Type     | Default    | Description |
+|---------------------------|----------|------------|-------------|
+| `PARAM_IDP_NAME`          | String   | \-         | Name of the external IDP to be retrieved from the `ExternalIdentityProviderManager` |
+| `PARAM_SYNC_HANDLER_NAME` | String   | \-         | Name of the sync handler to be retrieved from the `SyncManager` |
+|                           |          |            |                          |
+| _Optional (OSGi-setup)_   |          |            |                          |
+| `JAAS_RANKING`            | int      | 50         | Ranking of the `ExternalLoginModule` in the JAAS configuration, see [LoginModuleFactory] |
+| `JAAS_CONTROL_FLAG`       | String   | SUFFICIENT | See [LoginModuleControlFlag] for supported values. |
+| `JAAS_REALM_NAME`         | String   | \-         | See [LoginModuleFactory] |
 
 ##### Examples
 
 ###### Example JAAS Configuration
 
 The following JAAS configuration shows how the `ExternalLoginModule` could be
-used in a setup that not solely uses third party login:
+used in a setup that not solely uses third party login (Note: JAAS configuration 
+equivalents of the parameters defined by `org.apache.felix.jaas.LoginModuleFactory` 
+are omitted):
 
     jackrabbit.oak {
          org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
@@ -125,7 +150,105 @@ used in a setup that not solely uses third party login:
             idp.name="ldap";
      };
 
-<!-- references -->
+<a name="pluggability"/>
+### Pluggability
 
-[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+The design of the `ExternalLoginModule` allows for customization of the key features
+associated with third party authentication. In an OSGi-based setup these are 
+covered by references within the `ExternalLoginModuleFactory`:
+
+ - [ExternalIdentityProviderManager]: Mandatory, unary reference for the `ExternalIdentityProvider` lookup; see [External Identity Management](identitymanagement.html) for details. 
+ - [SyncManager]: Mandatory, unary reference for the `SyncHandler` lookup; see [User/Group Synchronization](usersync.html) for details.
+
+The default implementations ([ExternalIDPManagerImpl] and [SyncManagerImpl]) 
+extend `AbstractServiceTracker` and will automatically keep track of 
+new [ExternalIdentityProvider] and [SyncHandler] services, respectively.
+
+Since Oak 1.5.1 support for different or multiple types of `Credentials` can easily
+be plugged by providing an [ExternalIdentityProvider] that additionally implements 
+[CredentialsSupport]. This is an optional extension point for each IDP; if 
+missing the `ExternalLoginModule` will fall back to a default implementation and 
+assume the IDP only supports `SimpleCredentials`. See details below.
+ 
+#### Supported Credentials
+ 
+The following steps are required in order to change or extend the set credential 
+classes supported by the `ExternalLoginModule`:
+
+- Extend your `ExternalIdentityProvider` to additionally implement the [CredentialsSupport] interface.
+
+Don't forget to make sure that `ExternalIdentityProvider.authenticate(Credentials)` 
+handles the same set of supported credentials!
+
+##### Examples
+ 
+###### Example CredentialsSupport
+
+      @Component()
+      @Service(ExternalIdentityProvider.class, CredentialsSupport.class)
+      public class MyIdentityProvider implements ExternalIdentityProvider, CredentialsSupport {
+    
+          public MyCredentialsSupport() {}
+    
+          //-----------------------------------------< CredentialsSupport >---
+          @Nonnull
+          @Override
+          public Set<Class> getCredentialClasses() {
+              return ImmutableSet.<Class>of(MyCredentials.class);
+          }
+  
+          @CheckForNull
+          @Override
+          public String getUserId(@Nonnull Credentials credentials) {
+              if (credentials instanceof MyCredentials) {
+                  return ((MyCredentials) credentials).getID();
+              } else {
+                  return null;
+              }
+          }
+  
+          @Nonnull
+          @Override
+          public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
+              // our credentials never contain additional attributes
+              return ImmutableMap.of();
+          }
+          
+          //-------------------------------------< ExternalIdentityProvider >---
+          
+          @CheckForNull
+          @Override
+          public ExternalUser authenticate(@Nonnull Credentials credentials) {
+              if (credentials instanceof MyCredentials) {
+                  MyCredentials mc = (MyCredentials) credentials;
+                  if (internalAuthenticate(mc)) {
+                      return new MyExternalUser(mc.getID());
+                  } else {
+                      throw new LoginException();
+                  }
+              } else {
+                  return null;
+              }
+          }
+    
+          [...]
+          
+          //----------------------------------------------< SCR Integration >---
+          @Activate
+          private void activate() {
+              // TODO
+          }
+      }
+
+<!-- references -->
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncConfig.html
+[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+[ExternalIdentityProviderManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProviderManager.html
+[ExternalIDPManagerImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalIDPManagerImpl.html
+[ExternalLoginModuleFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalLoginModuleFactory.html
+[LoginModuleFactory]: http://svn.apache.org/repos/asf/felix/trunk/jaas/src/main/java/org/apache/felix/jaas/LoginModuleFactory.java
+[LoginModuleControlFlag]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/AppConfigurationEntry.LoginModuleControlFlag.html
+[SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
+[SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
+[SyncManagerImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/SyncManagerImpl.html
+[CredentialsSupport]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/credentials/CredentialsSupport.html

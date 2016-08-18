@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
@@ -71,6 +72,11 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     public CompositeConfiguration(@Nonnull String name, @Nonnull SecurityProvider securityProvider) {
         this.name = name;
         this.securityProvider = securityProvider;
+    }
+
+    @CheckForNull
+    public T getDefaultConfig() {
+        return defaultConfig;
     }
 
     public void setDefaultConfig(@Nonnull T defaultConfig) {
