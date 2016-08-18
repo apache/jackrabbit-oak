@@ -282,6 +282,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-auth-external</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-jdbc</artifactId>
       <version>7.0.64</version>
@@ -405,6 +410,12 @@
       <artifactId>jackrabbit-aws-ext</artifactId>
       <version>${jackrabbit.version}</version>
       <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <scope>compile</scope>
     </dependency>
 
     <!-- Findbugs annotations -->

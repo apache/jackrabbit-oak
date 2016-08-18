@@ -92,7 +92,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     @Nonnull
     @Override
     public String getName() {
-        return "test";
+        return idpName;
     }
 
     @Override
