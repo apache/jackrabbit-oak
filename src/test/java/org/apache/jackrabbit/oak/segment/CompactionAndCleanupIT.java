@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
+import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -32,6 +34,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -46,10 +49,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.io.ByteStreams;
@@ -57,15 +62,19 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -90,7 +99,7 @@ public class CompactionAndCleanupIT {
 
     @Test
     public void compactionNoBinaryClone() throws Exception {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
                 .withStatisticsProvider(new DefaultStatisticsProvider(executor))
@@ -177,7 +186,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void offlineCompaction() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
@@ -269,7 +278,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void offlineCompactionCps() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
@@ -322,7 +331,7 @@ public class CompactionAndCleanupIT {
     public void offlineCompactionBinC1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
                 .withBinaryDeduplication();
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
@@ -380,7 +389,7 @@ public class CompactionAndCleanupIT {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
                 .withBinaryDeduplication()
                 .setBinaryDeduplicationMaxSize(blobSize / 2);
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
@@ -436,7 +445,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void offlineCompactionBinR1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(1)
                 .withGCOptions(gcOptions)
@@ -919,6 +928,118 @@ public class CompactionAndCleanupIT {
         }
     }
 
+    /**
+     * Test asserting OAK-4669: No new generation of tar should be created when the segments are the same 
+     * and when various indices are created. 
+     */
+    @Test
+    public void concurrentWritesCleanupNoNewGen() throws Exception {
+        ScheduledExecutorService scheduler = newSingleThreadScheduledExecutor();
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(scheduler);
+        final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
+        
+        File fileStoreFolder = getFileStoreFolder();
+
+        final FileStore fileStore = fileStoreBuilder(fileStoreFolder)
+                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+                .withGCMonitor(fileStoreGCMonitor)
+                .withStatisticsProvider(statsProvider)
+                .withMaxFileSize(1)
+                .build();
+        
+        final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        ExecutorService executorService = newFixedThreadPool(5);
+        final AtomicInteger counter = new AtomicInteger();
+
+        try {
+            Callable<Void> concurrentWriteTask = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    NodeBuilder builder = nodeStore.getRoot().builder();
+                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 512 * 512));
+                    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    fileStore.flush();
+                    return null;
+                }
+            };
+
+            List<Future<?>> results = newArrayList();
+            for (int i = 0; i < 5; i++) {
+                results.add(executorService.submit(concurrentWriteTask));
+            }
+
+            fileStore.cleanup();
+
+            for (Future<?> result : results) {
+                assertNull(result.get());
+            }
+
+            for (String fileName : fileStoreFolder.list()) {
+                if (fileName.endsWith(".tar")) {
+                    int pos = fileName.length() - "a.tar".length();
+                    char generation = fileName.charAt(pos);
+                    assertTrue("Expected generation is 'a', but instead was: '" + generation + "' for file " + fileName,
+                            generation == 'a');
+                }
+            }
+        } finally {
+            new ExecutorCloser(executorService).close();
+            fileStore.close();
+            new ExecutorCloser(scheduler).close();
+        }
+    }
+
+    @Test
+    public void concurrentWritesCleanupZeroReclaimedSize() throws Exception {
+        ScheduledExecutorService scheduler = newSingleThreadScheduledExecutor();
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(scheduler);
+        final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
+        
+        final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+                .withGCMonitor(fileStoreGCMonitor)
+                .withStatisticsProvider(statsProvider)
+                .withMaxFileSize(1)
+                .build();
+        
+        final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        ExecutorService executorService = newFixedThreadPool(100);
+        final AtomicInteger counter = new AtomicInteger();
+        
+        try {
+            Callable<Void> concurrentWriteTask = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    NodeBuilder builder = nodeStore.getRoot().builder();
+                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 25 * 25));
+                    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    fileStore.flush();
+                    return null;
+                }
+            };
+
+            List<Future<?>> results = newArrayList();
+            for (int i = 0; i < 100; i++) {
+                results.add(executorService.submit(concurrentWriteTask));
+            }
+
+            Thread.sleep(100);
+            fileStore.cleanup();
+
+            for (Future<?> result : results) {
+                assertNull(result.get());
+            }
+
+            long reclaimedSize = fileStoreGCMonitor.getLastReclaimedSize();
+            assertEquals("Reclaimed size expected is 0, but instead was: " + reclaimedSize,
+                    0, reclaimedSize);
+        } finally {
+            new ExecutorCloser(executorService).close();
+            fileStore.close();
+            new ExecutorCloser(scheduler).close();
+        }
+    }
+    
     private static void addContent(NodeBuilder builder) {
         for (int k = 0; k < 10000; k++) {
             builder.setProperty(UUID.randomUUID().toString(), UUID.randomUUID().toString());
