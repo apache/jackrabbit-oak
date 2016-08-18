@@ -57,10 +57,10 @@ public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTe
 
         testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
 
-        options.put(ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, "default");
-        options.put(ExternalLoginModule.PARAM_IDP_NAME, idp.getName());
-
         setSyncConfig(syncConfig);
+
+        options.put(ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName());
+        options.put(ExternalLoginModule.PARAM_IDP_NAME, idp.getName());
     }
 
     @After

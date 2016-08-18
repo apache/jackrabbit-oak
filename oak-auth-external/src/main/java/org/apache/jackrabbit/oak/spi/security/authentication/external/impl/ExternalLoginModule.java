@@ -69,12 +69,12 @@ public class ExternalLoginModule extends AbstractLoginModule {
     /**
      * Name of the parameter that configures the name of the external identity provider.
      */
-    public static final String PARAM_IDP_NAME = "idp.name";
+    public static final String PARAM_IDP_NAME = SyncHandlerMapping.PARAM_IDP_NAME;
 
     /**
      * Name of the parameter that configures the name of the synchronization handler.
      */
-    public static final String PARAM_SYNC_HANDLER_NAME = "sync.handlerName";
+    public static final String PARAM_SYNC_HANDLER_NAME = SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
 
     private ExternalIdentityProviderManager idpManager;
 

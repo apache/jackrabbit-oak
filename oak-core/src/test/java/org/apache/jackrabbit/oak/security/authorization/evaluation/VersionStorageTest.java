@@ -100,11 +100,6 @@ public class VersionStorageTest extends AbstractOakCoreTest {
         root.commit();
     }
 
-    @Override
-    protected Oak withEditors(Oak oak) {
-        return oak.with(new VersionEditorProvider());
-    }
-
     @Test
     public void testGetVersionStorage() throws Exception {
         Tree vs = getTestRoot().getTree(VersionConstants.VERSION_STORE_PATH);

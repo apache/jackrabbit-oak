@@ -56,6 +56,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     protected ExternalIdentityProvider idp;
 
     protected DefaultSyncConfig syncConfig;
+    protected ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
 
     private Set<String> ids;
 
@@ -125,7 +126,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new TestSecurityProvider(getSecurityConfigParameters(), new ExternalPrincipalConfiguration());
+            securityProvider = new TestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
         }
         return securityProvider;
     }
