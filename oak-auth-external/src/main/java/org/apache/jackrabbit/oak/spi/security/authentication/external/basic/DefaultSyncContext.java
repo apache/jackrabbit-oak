@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -95,7 +97,7 @@ public class DefaultSyncContext implements SyncContext {
 
     protected final Value nowValue;
 
-    public DefaultSyncContext(DefaultSyncConfig config, ExternalIdentityProvider idp, UserManager userManager, ValueFactory valueFactory) {
+    public DefaultSyncContext(@Nonnull DefaultSyncConfig config, @Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull ValueFactory valueFactory) {
         this.config = config;
         this.idp = idp;
         this.userManager = userManager;
@@ -149,28 +151,10 @@ public class DefaultSyncContext implements SyncContext {
      * Robust relative path concatenation.
      * @param paths relative paths
      * @return the concatenated path
+     * @deprecated Since Oak 1.3.10. Please use {@link PathUtils#concatRelativePaths(String...)} instead.
      */
     public static String joinPaths(String... paths) {
-        StringBuilder result = new StringBuilder();
-        for (String path: paths) {
-            if (path != null && !path.isEmpty()) {
-                int i0 = 0;
-                int i1 = path.length();
-                while (i0 < i1 && path.charAt(i0) == '/') {
-                    i0++;
-                }
-                while (i1 > i0 && path.charAt(i1-1) == '/') {
-                    i1--;
-                }
-                if (i1 > i0) {
-                    if (result.length() > 0) {
-                        result.append('/');
-                    }
-                    result.append(path.substring(i0, i1));
-                }
-            }
-        }
-        return result.length() == 0 ? null : result.toString();
+        return PathUtils.concatRelativePaths(paths);
     }
 
     /**
@@ -225,6 +209,7 @@ public class DefaultSyncContext implements SyncContext {
         return forceGroupSync;
     }
 
+    @Override
     @Nonnull
     public SyncContext setForceGroupSync(boolean forceGroupSync) {
         this.forceGroupSync = forceGroupSync;
@@ -237,6 +222,12 @@ public class DefaultSyncContext implements SyncContext {
     @Nonnull
     @Override
     public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
+        ExternalIdentityRef ref = identity.getExternalId();
+        if (!isSameIDP(ref)) {
+            // create result in accordance with sync(String) where status is FOREIGN
+            boolean isGroup = (identity instanceof ExternalGroup);
+            return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, isGroup, -1), SyncResult.Status.FOREIGN);
+        }
         try {
             DebugTimer timer = new DebugTimer();
             DefaultSyncResultImpl ret;
@@ -265,7 +256,7 @@ public class DefaultSyncContext implements SyncContext {
                 throw new IllegalArgumentException("identity must be user or group but was: " + identity);
             }
             if (log.isDebugEnabled()) {
-                log.debug("sync({}) -> {} {}", identity.getExternalId().getString(), identity.getId(), timer.getString());
+                log.debug("sync({}) -> {} {}", ref.getString(), identity.getId(), timer.getString());
             }
             if (created) {
                 ret.setStatus(SyncResult.Status.ADD);
@@ -291,47 +282,25 @@ public class DefaultSyncContext implements SyncContext {
                 return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, null, false, -1), SyncResult.Status.NO_SUCH_AUTHORIZABLE);
             }
             // check if we need to deal with this authorizable
-            ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(auth);
-            if (ref == null || !idp.getName().equals(ref.getProviderName())) {
-                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, null, false, -1), SyncResult.Status.FOREIGN);
+            ExternalIdentityRef ref = getIdentityRef(auth);
+            if (ref == null || !isSameIDP(ref)) {
+                return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, ref, auth.isGroup(), -1), SyncResult.Status.FOREIGN);
             }
 
-            if (auth instanceof Group) {
-                Group group = (Group) auth;
+            if (auth.isGroup()) {
                 ExternalGroup external = idp.getGroup(id);
                 timer.mark("retrieve");
                 if (external == null) {
-                    DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(auth);
-                    if (group.getDeclaredMembers().hasNext()) {
-                        log.info("won't remove local group with members: {}", id);
-                        ret = new DefaultSyncResultImpl(syncId, SyncResult.Status.NOP);
-                    } else if (!keepMissing) {
-                        auth.remove();
-                        log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
-                        timer.mark("remove");
-                        ret = new DefaultSyncResultImpl(syncId, SyncResult.Status.DELETE);
-                    } else {
-                        ret = new DefaultSyncResultImpl(syncId, SyncResult.Status.MISSING);
-                        log.info("external identity missing for {}, but purge == false.", id);
-                    }
+                    ret = handleMissingIdentity(id, auth, timer);
                 } else {
-                    ret = syncGroup(external, group);
+                    ret = syncGroup(external, (Group) auth);
                     timer.mark("sync");
                 }
             } else {
                 ExternalUser external = idp.getUser(id);
                 timer.mark("retrieve");
                 if (external == null) {
-                    DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(auth);
-                    if (!keepMissing) {
-                        auth.remove();
-                        log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
-                        timer.mark("remove");
-                        ret = new DefaultSyncResultImpl(syncId, SyncResult.Status.DELETE);
-                    } else {
-                        ret = new DefaultSyncResultImpl(syncId, SyncResult.Status.MISSING);
-                        log.info("external identity missing for {}, but purge == false.", id);
-                    }
+                    ret = handleMissingIdentity(id, auth, timer);
                 } else {
                     ret = syncUser(external, (User) auth);
                     timer.mark("sync");
@@ -348,6 +317,26 @@ public class DefaultSyncContext implements SyncContext {
         }
     }
 
+    private DefaultSyncResultImpl handleMissingIdentity(@Nonnull String id,
+                                                        @Nonnull Authorizable authorizable,
+                                                        @Nonnull DebugTimer timer) throws RepositoryException {
+        DefaultSyncedIdentity syncId = createSyncedIdentity(authorizable);
+        SyncResult.Status status;
+        if (authorizable.isGroup() && ((Group) authorizable).getDeclaredMembers().hasNext()) {
+            log.info("won't remove local group with members: {}", id);
+            status = SyncResult.Status.NOP;
+        } else if (!keepMissing) {
+            authorizable.remove();
+            log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
+            timer.mark("remove");
+            status = SyncResult.Status.DELETE;
+        } else {
+            status = SyncResult.Status.MISSING;
+            log.info("external identity missing for {}, but purge == false.", id);
+        }
+        return new DefaultSyncResultImpl(syncId, status);
+    }
+
     /**
      * Retrieves the repository authorizable that corresponds to the given external identity
      * @param external the external identity
@@ -357,7 +346,7 @@ public class DefaultSyncContext implements SyncContext {
      * @throws SyncException if the repository contains a colliding authorizable with the same name.
      */
     @CheckForNull
-    protected <T extends Authorizable> T getAuthorizable(@Nonnull ExternalIdentity external, Class<T> type)
+    protected <T extends Authorizable> T getAuthorizable(@Nonnull ExternalIdentity external, @Nonnull Class<T> type)
             throws RepositoryException, SyncException {
         Authorizable authorizable = userManager.getAuthorizable(external.getId());
         if (authorizable == null) {
@@ -389,9 +378,9 @@ public class DefaultSyncContext implements SyncContext {
                 externalUser.getId(),
                 null,
                 principal,
-                joinPaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
+                PathUtils.concatRelativePaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
         );
-        user.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalUser.getExternalId().getString()));
+        setExternalId(user, externalUser);
         return user;
     }
 
@@ -409,55 +398,75 @@ public class DefaultSyncContext implements SyncContext {
         Group group = userManager.createGroup(
                 externalGroup.getId(),
                 principal,
-                joinPaths(config.group().getPathPrefix(), externalGroup.getIntermediatePath())
+                PathUtils.concatRelativePaths(config.group().getPathPrefix(), externalGroup.getIntermediatePath())
         );
-        group.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalGroup.getExternalId().getString()));
+        setExternalId(group, externalGroup);
         return group;
+    }
+
+    /**
+     * Sets the {@link #REP_EXTERNAL_ID} as obtained from {@code externalIdentity}
+     * to the specified {@code authorizable} (user or group). The property is
+     * a single value of type {@link javax.jcr.PropertyType#STRING STRING}.
+     *
+     * @param authorizable The user or group that needs to get the {@link #REP_EXTERNAL_ID} property set.
+     * @param externalIdentity The {@link ExternalIdentity} from which to retrieve the value of the property.
+     * @throws RepositoryException If setting the property using {@link Authorizable#setProperty(String, Value)} fails.
+     */
+    private void setExternalId(@Nonnull Authorizable authorizable, @Nonnull ExternalIdentity externalIdentity) throws RepositoryException {
+        log.debug("Fallback: setting rep:externalId without adding the corresponding mixin type");
+        authorizable.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalIdentity.getExternalId().getString()));
     }
 
     @Nonnull
     protected DefaultSyncResultImpl syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
+        SyncResult.Status status;
         // first check if user is expired
-        if (!forceUserSync && !isExpired(user, config.user().getExpirationTime(), "Properties")) {
-            DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(user);
-            return new DefaultSyncResultImpl(syncId, SyncResult.Status.NOP);
+        if (!forceUserSync && !isExpired(user)) {
+            status = SyncResult.Status.NOP;
+        } else {
+            syncExternalIdentity(external, user, config.user());
+            if (isExpired(user, config.user().getMembershipExpirationTime(), "Membership")) {
+                // synchronize external memberships
+                syncMembership(external, user, config.user().getMembershipNestingDepth());
+            }
+            // finally "touch" the sync property
+            user.setProperty(REP_LAST_SYNCED, nowValue);
+            status = SyncResult.Status.UPDATE;
         }
-
-        // synchronize the properties
-        syncProperties(external, user, config.user().getPropertyMapping());
-
-        // synchronize auto-group membership
-        applyMembership(user, config.user().getAutoMembership());
-
-        if (isExpired(user, config.user().getMembershipExpirationTime(), "Membership")) {
-            // synchronize external memberships
-            syncMembership(external, user, config.user().getMembershipNestingDepth());
-        }
-
-        // finally "touch" the sync property
-        user.setProperty(REP_LAST_SYNCED, nowValue);
-        DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(user);
-        return new DefaultSyncResultImpl(syncId, SyncResult.Status.UPDATE);
+        return new DefaultSyncResultImpl(createSyncedIdentity(user), status);
     }
 
     @Nonnull
     protected DefaultSyncResultImpl syncGroup(@Nonnull ExternalGroup external, @Nonnull Group group) throws RepositoryException {
-        // first check if user is expired
-        if (!forceGroupSync && !isExpired(group, config.group().getExpirationTime(), "Properties")) {
-            DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(group);
-            return new DefaultSyncResultImpl(syncId, SyncResult.Status.NOP);
+        SyncResult.Status status;
+        // first check if group is expired
+        if (!forceGroupSync && !isExpired(group)) {
+            status = SyncResult.Status.NOP;
+        } else {
+            syncExternalIdentity(external, group, config.group());
+            // finally "touch" the sync property
+            group.setProperty(REP_LAST_SYNCED, nowValue);
+            status = SyncResult.Status.UPDATE;
         }
+        return new DefaultSyncResultImpl(createSyncedIdentity(group), status);
+    }
 
-        // synchronize the properties
-        syncProperties(external, group, config.group().getPropertyMapping());
-
-        // synchronize auto-group membership
-        applyMembership(group, config.group().getAutoMembership());
-
-        // finally "touch" the sync property
-        group.setProperty(REP_LAST_SYNCED, nowValue);
-        DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(group);
-        return new DefaultSyncResultImpl(syncId, SyncResult.Status.UPDATE);
+    /**
+     * Synchronize content common to both external users and external groups:
+     * - properties
+     * - auto-group membership
+     *
+     * @param external The external identity
+     * @param authorizable The corresponding repository user/group
+     * @param config The sync configuration
+     * @throws RepositoryException If an error occurs.
+     */
+    private void syncExternalIdentity(@Nonnull ExternalIdentity external,
+                                      @Nonnull Authorizable authorizable,
+                                      @Nonnull DefaultSyncConfig.Authorizable config) throws RepositoryException {
+        syncProperties(external, authorizable, config.getPropertyMapping());
+        applyMembership(authorizable, config.getAutoMembership());
     }
 
     /**
@@ -469,7 +478,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param depth recursion depth.
      * @throws RepositoryException
      */
-    protected void syncMembership(ExternalIdentity external, Authorizable auth, long depth)
+    protected void syncMembership(@Nonnull ExternalIdentity external, @Nonnull Authorizable auth, long depth)
             throws RepositoryException {
         if (depth <= 0) {
             return;
@@ -504,35 +513,32 @@ public class DefaultSyncContext implements SyncContext {
             // get group
             ExternalGroup extGroup;
             try {
-                extGroup = (ExternalGroup) idp.getIdentity(ref);
-            } catch (ClassCastException e) {
-                // this should really not be the case, so catching the CCE is ok here.
-                log.warn("External identity '{}' is not a group, but should be one.", ref.getString());
-                continue;
+                ExternalIdentity extId = idp.getIdentity(ref);
+                if (extId instanceof ExternalGroup) {
+                    extGroup = (ExternalGroup) extId;
+                } else {
+                    log.warn("No external group found for ref '{}'.", ref.getString());
+                    continue;
+                }
             } catch (ExternalIdentityException e) {
                 log.warn("Unable to retrieve external group '{}' from provider.", ref.getString(), e);
-                continue;
-            }
-            if (extGroup == null) {
-                log.warn("External group for ref '{}' could not be retrieved from provider.", ref);
                 continue;
             }
             log.debug("- idp returned '{}'", extGroup.getId());
 
             Group grp;
-            try {
-                grp = (Group) userManager.getAuthorizable(extGroup.getId());
-            } catch (ClassCastException e) {
-                // this should really not be the case, so catching the CCE is ok here.
+            Authorizable a = userManager.getAuthorizable(extGroup.getId());
+            if (a == null) {
+                grp = createGroup(extGroup);
+                log.debug("- created new group");
+            } else if (a.isGroup()) {
+                grp = (Group) a;
+            } else {
                 log.warn("Authorizable '{}' is not a group, but should be one.", extGroup.getId());
                 continue;
             }
             log.debug("- user manager returned '{}'", grp);
 
-            if (grp == null) {
-                grp = createGroup(extGroup);
-                log.debug("- created new group");
-            }
             syncGroup(extGroup, grp);
 
             // ensure membership
@@ -552,7 +558,7 @@ public class DefaultSyncContext implements SyncContext {
         }
         timer.mark("adding");
         // remove us from the lost membership groups
-        for (Group grp: declaredExternalGroups.values()) {
+        for (Group grp : declaredExternalGroups.values()) {
             grp.removeMember(auth);
             log.debug("- removing member '{}' for group '{}'", auth.getID(), grp.getID());
         }
@@ -568,8 +574,8 @@ public class DefaultSyncContext implements SyncContext {
      * @param member the authorizable
      * @param groups set of groups.
      */
-    protected void applyMembership(Authorizable member, Set<String> groups) throws RepositoryException {
-        for (String groupName: groups) {
+    protected void applyMembership(@Nonnull Authorizable member, @Nonnull Set<String> groups) throws RepositoryException {
+        for (String groupName : groups) {
             Authorizable group = userManager.getAuthorizable(groupName);
             if (group == null) {
                 log.warn("Unable to apply auto-membership to {}. No such group: {}", member.getID(), groupName);
@@ -590,10 +596,10 @@ public class DefaultSyncContext implements SyncContext {
      * @param mapping the property mapping
      * @throws RepositoryException if an error occurs
      */
-    protected void syncProperties(ExternalIdentity ext, Authorizable auth, Map<String, String> mapping)
+    protected void syncProperties(@Nonnull ExternalIdentity ext, @Nonnull Authorizable auth, @Nonnull Map<String, String> mapping)
             throws RepositoryException {
         Map<String, ?> properties = ext.getProperties();
-        for (Map.Entry<String, String> entry: mapping.entrySet()) {
+        for (Map.Entry<String, String> entry : mapping.entrySet()) {
             String relPath = entry.getKey();
             String name = entry.getValue();
             Object obj = properties.get(name);
@@ -620,12 +626,23 @@ public class DefaultSyncContext implements SyncContext {
 
     /**
      * Checks if the given authorizable needs syncing based on the {@link #REP_LAST_SYNCED} property.
+     *
+     * @param authorizable the authorizable to check
+     * @return {@code true} if the authorizable needs sync
+     */
+    private boolean isExpired(@Nonnull Authorizable authorizable) throws RepositoryException {
+        long expTime = (authorizable.isGroup()) ? config.group().getExpirationTime() : config.user().getExpirationTime();
+        return isExpired(authorizable, expTime, "Properties");
+    }
+
+    /**
+     * Checks if the given authorizable needs syncing based on the {@link #REP_LAST_SYNCED} property.
      * @param auth the authorizable to check
      * @param expirationTime the expiration time to compare to.
      * @param type debug message type
      * @return {@code true} if the authorizable needs sync
      */
-    protected boolean isExpired(Authorizable auth, long expirationTime, String type) throws RepositoryException {
+    protected boolean isExpired(@Nonnull Authorizable auth, long expirationTime, @Nonnull String type) throws RepositoryException {
         Value[] values = auth.getProperty(REP_LAST_SYNCED);
         if (values == null || values.length == 0) {
             if (log.isDebugEnabled()) {
@@ -674,6 +691,10 @@ public class DefaultSyncContext implements SyncContext {
         } else if (v instanceof byte[]) {
             Binary bin = valueFactory.createBinary(new ByteArrayInputStream((byte[])v));
             return valueFactory.createValue(bin);
+        } else if (v instanceof Binary) {
+            return valueFactory.createValue((Binary) v);
+        } else if (v instanceof InputStream) {
+            return valueFactory.createValue((InputStream) v);
         } else if (v instanceof char[]) {
             return valueFactory.createValue(new String((char[]) v));
         } else {
@@ -688,7 +709,7 @@ public class DefaultSyncContext implements SyncContext {
      * @throws RepositoryException if an error occurs
      */
     @CheckForNull
-    protected Value[] createValues(Collection<?> propValues) throws RepositoryException {
+    protected Value[] createValues(@Nonnull Collection<?> propValues) throws RepositoryException {
         List<Value> values = new ArrayList<Value>();
         for (Object obj : propValues) {
             Value v = createValue(obj);
@@ -709,7 +730,19 @@ public class DefaultSyncContext implements SyncContext {
      * @return {@code true} if same IDP.
      */
     protected boolean isSameIDP(@Nullable Authorizable auth) throws RepositoryException {
-        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(auth);
+        ExternalIdentityRef ref = getIdentityRef(auth);
         return ref != null && idp.getName().equals(ref.getProviderName());
+    }
+
+    /**
+     * Tests if the given {@link ExternalIdentityRef} refers to the same IDP
+     * as associated with this context instance.
+     *
+     * @param ref The {@link ExternalIdentityRef} to be tested.
+     * @return {@code true} if {@link ExternalIdentityRef#getProviderName()} refers
+     * to the IDP associated with this context instance.
+     */
+    protected boolean isSameIDP(@Nonnull ExternalIdentityRef ref) {
+        return idp.getName().equals(ref.getProviderName());
     }
 }

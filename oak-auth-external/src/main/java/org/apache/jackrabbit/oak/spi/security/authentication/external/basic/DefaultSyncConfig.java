@@ -50,6 +50,7 @@ public class DefaultSyncConfig {
      * @return {@code this}
      * @see #getName()
      */
+    @Nonnull
     public DefaultSyncConfig setName(@Nonnull String name) {
         this.name = name;
         return this;
@@ -117,16 +118,18 @@ public class DefaultSyncConfig {
         }
 
         /**
-         * Sets the auto membership
+         * Sets the auto membership. Note that the passed group names will be trimmed
+         * and empty string values will be ignored (along with {@code null} values).
+         *
          * @param autoMembership the membership
          * @return {@code this}
          * @see #getAutoMembership()
          */
         @Nonnull
-        public Authorizable setAutoMembership(String ... autoMembership) {
+        public Authorizable setAutoMembership(@Nonnull String ... autoMembership) {
             this.autoMembership = new HashSet<String>();
             for (String groupName: autoMembership) {
-                if (!groupName.trim().isEmpty()) {
+                if (groupName != null && !groupName.trim().isEmpty()) {
                     this.autoMembership.add(groupName.trim());
                 }
             }
@@ -164,7 +167,7 @@ public class DefaultSyncConfig {
          * @see #getPropertyMapping()
          */
         @Nonnull
-        public Authorizable setPropertyMapping(Map<String, String> propertyMapping) {
+        public Authorizable setPropertyMapping(@Nonnull Map<String, String> propertyMapping) {
             this.propertyMapping = propertyMapping;
             return this;
         }
@@ -186,7 +189,7 @@ public class DefaultSyncConfig {
          * @see #getPathPrefix()
          */
         @Nonnull
-        public Authorizable setPathPrefix(String pathPrefix) {
+        public Authorizable setPathPrefix(@Nonnull String pathPrefix) {
             this.pathPrefix = pathPrefix;
             return this;
         }
@@ -200,6 +203,8 @@ public class DefaultSyncConfig {
         private long membershipExpirationTime;
 
         private long membershipNestingDepth;
+
+        private boolean dynamicMembership;
 
         /**
          * Returns the duration in milliseconds until the group membership of a user is expired. If the
@@ -245,6 +250,40 @@ public class DefaultSyncConfig {
         @Nonnull
         public User setMembershipNestingDepth(long membershipNestingDepth) {
             this.membershipNestingDepth = membershipNestingDepth;
+            return this;
+        }
+
+        /**
+         * Returns {@code true} if a dynamic group membership is enabled.
+         *
+         * Turning this option on may alter the behavior of other configuration
+         * options dealing with synchronization of group accounts and group membership.
+         * In particular it's an implementation detail if external groups may
+         * no longer be synchronized into the repository.
+         *
+         * @return {@code true} if dynamic group membership for external
+         * user identities is turn on; {@code false} otherwise.
+         */
+        @Nonnull
+        public boolean getDynamicMembership() {
+            return dynamicMembership;
+        }
+
+        /**
+         * Enable or disable the dynamic group membership. If turned external
+         * identities and their group membership will be synchronized such that the
+         * membership information is generated dynamically. External groups may
+         * or may not be synchronized into the repository if this option is turned
+         * on.
+         *
+         * @param dynamicMembership Boolean flag to enable or disable a dedicated
+         *                      dynamic group management.
+         * @return {@code this}
+         * @see #getDynamicMembership() for details.
+         */
+        @Nonnull
+        public User setDynamicMembership(boolean dynamicMembership) {
+            this.dynamicMembership = dynamicMembership;
             return this;
         }
 

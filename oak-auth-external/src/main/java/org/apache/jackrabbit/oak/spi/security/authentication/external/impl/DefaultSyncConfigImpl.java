@@ -56,12 +56,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_NAME = "handler.name";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getExpirationTime()
+     * @see DefaultSyncConfig.User#getExpirationTime()
      */
     public static final String PARAM_USER_EXPIRATION_TIME_DEFAULT = "1h";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getExpirationTime()
+     * @see DefaultSyncConfig.User#getExpirationTime()
      */
     @Property(
             label = "User Expiration Time",
@@ -71,12 +71,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_EXPIRATION_TIME = "user.expirationTime";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getAutoMembership()
+     * @see DefaultSyncConfig.User#getAutoMembership()
      */
     public static final String[] PARAM_USER_AUTO_MEMBERSHIP_DEFAULT = {};
 
     /**
-     * @see DefaultSyncConfigImpl.User#getAutoMembership()
+     * @see DefaultSyncConfig.User#getAutoMembership()
      */
     @Property(
             label = "User auto membership",
@@ -87,12 +87,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_AUTO_MEMBERSHIP = "user.autoMembership";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getPropertyMapping()
+     * @see DefaultSyncConfig.User#getPropertyMapping()
      */
     public static final String[] PARAM_USER_PROPERTY_MAPPING_DEFAULT = {"rep:fullname=cn"};
 
     /**
-     * @see DefaultSyncConfigImpl.User#getPropertyMapping()
+     * @see DefaultSyncConfig.User#getPropertyMapping()
      */
     @Property(
             label = "User property mapping",
@@ -104,12 +104,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_PROPERTY_MAPPING = "user.propertyMapping";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getPathPrefix()
+     * @see DefaultSyncConfig.User#getPathPrefix()
      */
     public static final String PARAM_USER_PATH_PREFIX_DEFAULT = "";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getPathPrefix()
+     * @see DefaultSyncConfig.User#getPathPrefix()
      */
     @Property(
             label = "User Path Prefix",
@@ -119,27 +119,27 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_PATH_PREFIX = "user.pathPrefix";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getMembershipExpirationTime()
+     * @see DefaultSyncConfig.User#getMembershipExpirationTime()
      */
     public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT = "1h";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getMembershipExpirationTime()
+     * @see DefaultSyncConfig.User#getMembershipExpirationTime()
      */
     @Property(
             label = "User Membership Expiration",
-            description = "Time after which membership expires (eg. '1h 30m' or '1d').",
+            description = "Time after which membership expires (eg. '1h 30m' or '1d'). Note however, that a membership sync is aways bound to a sync of the user.",
             value = PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT
     )
     public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME = "user.membershipExpTime";
 
     /**
-     * @see User#getMembershipNestingDepth()
+     * @see DefaultSyncConfig.User#getMembershipNestingDepth()
      */
     public static final int PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT = 0;
 
     /**
-     * @see User#getMembershipNestingDepth()
+     * @see DefaultSyncConfig.User#getMembershipNestingDepth()
      */
     @Property(
             label = "User membership nesting depth",
@@ -152,12 +152,38 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_MEMBERSHIP_NESTING_DEPTH = "user.membershipNestingDepth";
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getExpirationTime()
+     * @see DefaultSyncConfig.User#getDynamicMembership()
+     */
+    public static final boolean PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT = false;
+
+    /**
+     * Configuration option to enable dynamic group membership. If enabled the
+     * implementation will no longer synchronized group accounts into the repository
+     * but instead will enable a dedicated principal management: This results in
+     * external users having their complete principal set as defined external IDP
+     * synchronized to the repository asserting proper population of the
+     * {@link javax.security.auth.Subject} upon login. Please note that the external
+     * groups are reflected through the built-in principal management and thus can
+     * be retrieved for authorization purposes. However, the information is no
+     * longer reflected through the Jackrabbit user management API.
+     *
+     * @see DefaultSyncConfig.User#getDynamicMembership()
+     */
+    @Property(
+            label = "User Dynamic Membership",
+            description = "If enabled membership of external identities (user) is no longer fully reflected " +
+                    "within the repositories user management.",
+            boolValue = PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT
+    )
+    public static final String PARAM_USER_DYNAMIC_MEMBERSHIP = "user.dynamicMembership";
+
+    /**
+     * @see DefaultSyncConfig.Group#getExpirationTime()
      */
     public static final String PARAM_GROUP_EXPIRATION_TIME_DEFAULT = "1d";
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getExpirationTime()
+     * @see DefaultSyncConfig.Group#getExpirationTime()
      */
     @Property(
             label = "Group Expiration Time",
@@ -167,12 +193,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_GROUP_EXPIRATION_TIME = "group.expirationTime";
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getAutoMembership()
+     * @see DefaultSyncConfig.Group#getAutoMembership()
      */
     public static final String[] PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT = {};
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getAutoMembership()
+     * @see DefaultSyncConfig.Group#getAutoMembership()
      */
     @Property(
             label = "Group auto membership",
@@ -183,12 +209,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_GROUP_AUTO_MEMBERSHIP = "group.autoMembership";
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getPropertyMapping()
+     * @see DefaultSyncConfig.Group#getPropertyMapping()
      */
     public static final String[] PARAM_GROUP_PROPERTY_MAPPING_DEFAULT = {};
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getPropertyMapping()
+     * @see DefaultSyncConfig.Group#getPropertyMapping()
      */
     @Property(
             label = "Group property mapping",
@@ -199,12 +225,12 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_GROUP_PROPERTY_MAPPING = "group.propertyMapping";
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getPathPrefix()
+     * @see DefaultSyncConfig.Group#getPathPrefix()
      */
     public static final String PARAM_GROUP_PATH_PREFIX_DEFAULT = "";
 
     /**
-     * @see DefaultSyncConfigImpl.Group#getPathPrefix()
+     * @see DefaultSyncConfig.Group#getPathPrefix()
      */
     @Property(
             label = "Group Path Prefix",
@@ -229,6 +255,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
         cfg.user()
                 .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
+                .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
                 .setAutoMembership(params.getConfigValue(PARAM_USER_AUTO_MEMBERSHIP, PARAM_USER_AUTO_MEMBERSHIP_DEFAULT))

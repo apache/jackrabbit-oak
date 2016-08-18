@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -115,6 +116,10 @@ public abstract class AbstractSecurityTest {
         }
     }
 
+    protected ContentRepository getContentRepository() {
+        return contentRepository;
+    }
+
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             securityProvider = new SecurityProviderImpl(getSecurityConfigParameters());
@@ -194,6 +199,10 @@ public abstract class AbstractSecurityTest {
     }
 
     protected ValueFactory getValueFactory() {
+        return getValueFactory(root);
+    }
+
+    protected ValueFactory getValueFactory(@Nonnull Root root) {
         return new ValueFactoryImpl(root, getNamePathMapper());
     }
 

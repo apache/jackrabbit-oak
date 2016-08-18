@@ -24,8 +24,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,12 +42,6 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
 
     protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
-    private final String userId = "testUser";
-
-    private final static String TEST_CONSTANT_PROPERTY_NAME = "profile/constantProperty";
-
-    private final static String TEST_CONSTANT_PROPERTY_VALUE = "constant-value";
-
     @Before
     public void before() throws Exception {
         super.before();
@@ -57,15 +50,6 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
     @After
     public void after() throws Exception {
         super.after();
-    }
-
-    protected ExternalIdentityProvider createIDP() {
-        return new TestIdentityProvider();
-    }
-
-    @Override
-    protected void destroyIDP(ExternalIdentityProvider idp) {
-    // ignore
     }
 
     @Test
@@ -78,7 +62,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         } catch (LoginException e) {
             // success
         } finally {
-            assertNull(userManager.getAuthorizable(userId));
+            assertNull(userManager.getAuthorizable(USER_ID));
         }
     }
 
@@ -87,15 +71,15 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         UserManager userManager = getUserManager(root);
         ContentSession cs = null;
         try {
-            assertNull(userManager.getAuthorizable(userId));
+            assertNull(userManager.getAuthorizable(USER_ID));
 
-            cs = login(new SimpleCredentials(userId, new char[0]));
+            cs = login(new SimpleCredentials(USER_ID, new char[0]));
 
             root.refresh();
 
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = userManager.getAuthorizable(USER_ID);
             assertNotNull(a);
-            ExternalUser user = idp.getUser(userId);
+            ExternalUser user = idp.getUser(USER_ID);
             for (String prop : user.getProperties().keySet()) {
                 assertTrue(a.hasProperty(prop));
             }
@@ -113,15 +97,15 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         UserManager userManager = getUserManager(root);
         ContentSession cs = null;
         try {
-            assertNull(userManager.getAuthorizable(userId));
+            assertNull(userManager.getAuthorizable(USER_ID));
 
-            cs = login(new SimpleCredentials(userId.toUpperCase(), new char[0]));
+            cs = login(new SimpleCredentials(USER_ID.toUpperCase(), new char[0]));
 
             root.refresh();
 
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = userManager.getAuthorizable(USER_ID);
             assertNotNull(a);
-            ExternalUser user = idp.getUser(userId);
+            ExternalUser user = idp.getUser(USER_ID);
             for (String prop : user.getProperties().keySet()) {
                 assertTrue(a.hasProperty(prop));
             }
@@ -139,7 +123,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         UserManager userManager = getUserManager(root);
         ContentSession cs = null;
         try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
+            cs = login(new SimpleCredentials(USER_ID, new char[0]));
 
             root.refresh();
             for (String id : new String[]{"a", "b", "c"}) {
@@ -162,7 +146,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         UserManager userManager = getUserManager(root);
         ContentSession cs = null;
         try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
+            cs = login(new SimpleCredentials(USER_ID, new char[0]));
 
             root.refresh();
             for (String id : new String[]{"a", "b", "c", "aa", "aaa"}) {
@@ -180,18 +164,18 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
     public void testSyncUpdate() throws Exception {
         // create user upfront in order to test update mode
         UserManager userManager = getUserManager(root);
-        ExternalUser externalUser = idp.getUser(userId);
+        ExternalUser externalUser = idp.getUser(USER_ID);
         Authorizable user = userManager.createUser(externalUser.getId(), null);
-        user.setProperty("rep:externalId", new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(externalUser.getExternalId().getString()));
+        user.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, getValueFactory().createValue(externalUser.getExternalId().getString()));
         root.commit();
 
         ContentSession cs = null;
         try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
+            cs = login(new SimpleCredentials(USER_ID, new char[0]));
 
             root.refresh();
 
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = userManager.getAuthorizable(USER_ID);
             assertNotNull(a);
             for (String prop : externalUser.getProperties().keySet()) {
                 assertTrue(a.hasProperty(prop));
