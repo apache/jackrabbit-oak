@@ -945,6 +945,7 @@ public class CompactionAndCleanupIT {
                 .withGCMonitor(fileStoreGCMonitor)
                 .withStatisticsProvider(statsProvider)
                 .withMaxFileSize(1)
+                .withMemoryMapping(false)
                 .build();
         
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
@@ -1000,6 +1001,7 @@ public class CompactionAndCleanupIT {
                 .withGCMonitor(fileStoreGCMonitor)
                 .withStatisticsProvider(statsProvider)
                 .withMaxFileSize(1)
+                .withMemoryMapping(false)
                 .build();
         
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
