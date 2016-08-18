@@ -760,6 +760,7 @@ public class FileStore implements SegmentStore, Closeable {
         Set<UUID> bulkRefs = newHashSet();
         Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
+        long initialSize = 0;
         fileStoreLock.writeLock().lock();
         try {
             gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
@@ -778,13 +779,12 @@ public class FileStore implements SegmentStore, Closeable {
             }
             for (TarReader reader : readers) {
                 cleaned.put(reader, reader);
+                initialSize += reader.size();
             }
         } finally {
             fileStoreLock.writeLock().unlock();
         }
         
-        // compute initial size here to better reflect repository size after the previous tar writer was closed
-        long initialSize = size();
         gcListener.info("TarMK GC #{}: current repository size is {} ({} bytes)",
                 GC_COUNT, humanReadableByteCount(initialSize), initialSize);
         
