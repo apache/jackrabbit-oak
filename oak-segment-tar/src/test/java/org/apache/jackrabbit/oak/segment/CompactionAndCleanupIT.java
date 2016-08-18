@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
@@ -1039,6 +1040,70 @@ public class CompactionAndCleanupIT {
             new ExecutorCloser(executorService).close();
             fileStore.close();
             new ExecutorCloser(scheduler).close();
+        }
+    }
+    
+    @Test
+    public void randomAccessFileConcurrentReadAndLength() throws Exception {
+        final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+                .withMaxFileSize(1)
+                .withMemoryMapping(false)
+                .build();
+        
+        final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        ExecutorService executorService = newFixedThreadPool(300);
+        final AtomicInteger counter = new AtomicInteger();
+        final ReferenceCollector dummyCollector = new ReferenceCollector() {
+            
+            @Override
+            public void addReference(String reference, String nodeId) {
+                // do nothing
+            }
+        };
+        
+        try {
+            Callable<Void> concurrentWriteTask = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    NodeBuilder builder = nodeStore.getRoot().builder();
+                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 25 * 25));
+                    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    fileStore.flush();
+                    return null;
+                }
+            };
+            
+            Callable<Void> concurrentCleanupTask = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    fileStore.cleanup();
+                    return null;
+                }
+            };
+            
+            Callable<Void> concurrentReferenceCollector = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    fileStore.collectBlobReferences(dummyCollector);
+                    return null;
+                }
+            };
+
+            List<Future<?>> results = newArrayList();
+            for (int i = 0; i < 100; i++) {
+                results.add(executorService.submit(concurrentWriteTask));
+                results.add(executorService.submit(concurrentCleanupTask));
+                results.add(executorService.submit(concurrentReferenceCollector));
+            }
+
+            for (Future<?> result : results) {
+                assertNull(result.get());
+            }
+
+        } finally {
+            new ExecutorCloser(executorService).close();
+            fileStore.close();
         }
     }
     
