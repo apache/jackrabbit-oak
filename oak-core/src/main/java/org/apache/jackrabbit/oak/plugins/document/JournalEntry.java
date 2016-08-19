@@ -79,8 +79,15 @@ public final class JournalEntry extends Document {
 
     private volatile TreeNode changes = null;
 
+    private boolean concurrent;
+
     JournalEntry(DocumentStore store) {
+        this(store, false);
+    }
+
+    JournalEntry(DocumentStore store, boolean concurrent) {
         this.store = store;
+        this.concurrent = concurrent;
     }
 
     static StringSort newSorter() {
@@ -390,7 +397,7 @@ public final class JournalEntry extends Document {
     @Nonnull
     private TreeNode getChanges() {
         if (changes == null) {
-            TreeNode node = new TreeNode();
+            TreeNode node = new TreeNode(concurrent);
             String c = (String) get(CHANGES);
             if (c != null) {
                 node.parse(new JsopTokenizer(c));
@@ -406,17 +413,23 @@ public final class JournalEntry extends Document {
 
         private Map<String, TreeNode> children = NO_CHILDREN;
 
+        private final MapFactory mapFactory;
         private final TreeNode parent;
         private final String name;
 
         TreeNode() {
-            this(null, "");
+            this(false);
         }
 
-        TreeNode(TreeNode parent, String name) {
+        TreeNode(boolean concurrent) {
+            this(concurrent ? MapFactory.CONCURRENT : MapFactory.DEFAULT, null, "");
+        }
+
+        TreeNode(MapFactory mapFactory, TreeNode parent, String name) {
             checkArgument(!name.contains("/"),
                     "name must not contain '/': {}", name);
 
+            this.mapFactory = mapFactory;
             this.parent = parent;
             this.name = name;
         }
@@ -517,11 +530,11 @@ public final class JournalEntry extends Document {
         @Nonnull
         private TreeNode getOrCreate(String name) {
             if (children == NO_CHILDREN) {
-                children = Maps.newHashMap();
+                children = mapFactory.newMap();
             }
             TreeNode c = children.get(name);
             if (c == null) {
-                c = new TreeNode(this, name);
+                c = new TreeNode(mapFactory, this, name);
                 children.put(name, c);
             }
             return c;
@@ -533,4 +546,22 @@ public final class JournalEntry extends Document {
         void node(TreeNode node, String path) throws IOException;
     }
 
+    private interface MapFactory {
+
+        MapFactory DEFAULT = new MapFactory() {
+            @Override
+            public Map<String, TreeNode> newMap() {
+                return Maps.newHashMap();
+            }
+        };
+
+        MapFactory CONCURRENT = new MapFactory() {
+            @Override
+            public Map<String, TreeNode> newMap() {
+                return Maps.newConcurrentMap();
+            }
+        };
+
+        Map<String, TreeNode> newMap();
+    }
 }
