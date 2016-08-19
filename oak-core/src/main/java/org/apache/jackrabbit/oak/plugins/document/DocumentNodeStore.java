@@ -435,7 +435,6 @@ public final class DocumentNodeStore
         } else {
             readOnlyMode = false;
         }
-        this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
 
@@ -459,6 +458,7 @@ public final class DocumentNodeStore
         }
 
         this.store = s;
+        this.changes = newJournalEntry();
         this.clusterId = cid;
         this.branches = new UnmergedBranches();
         this.asyncDelay = builder.getAsyncDelay();
@@ -2015,7 +2015,7 @@ public final class DocumentNodeStore
             public void acquiring(Revision mostRecent) {
                 if (store.create(JOURNAL, singletonList(changes.asUpdateOp(mostRecent)))) {
                     // success: start with a new document
-                    changes = JOURNAL.newDocument(getDocumentStore());
+                    changes = newJournalEntry();
                 } else {
                     // fail: log and keep the changes
                     LOG.error("Failed to write to journal, accumulating changes for future write (~" + changes.getMemory()
@@ -2026,6 +2026,10 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    private JournalEntry newJournalEntry() {
+        return new JournalEntry(store, true);
+    }
 
     /**
      * Performs an initial read of the _lastRevs on the root document and sets
