@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -61,6 +62,8 @@ import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUD
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.markIndexesToBeRebuilt;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
@@ -307,6 +310,12 @@ public class RepositorySidegrade {
         }
 
         markIndexesToBeRebuilt(targetRoot);
+
+        // type validation, reference and indexing hooks
+        hooks.add(new EditorHook(new CompositeEditorProvider(
+                createTypeEditorProvider(),
+                createIndexEditorProvider()
+        )));
 
         target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
     }
