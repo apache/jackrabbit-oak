@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -215,6 +216,34 @@ public class JournalEntryTest {
                 Collections.singletonList(entry.asUpdateOp(r))));
         entry = store.find(JOURNAL, JournalEntry.asId(r));
         assertEquals(r.getTimestamp(), entry.getRevisionTimestamp());
+    }
+
+    // OAK-4682
+    @Ignore
+    @Test
+    public void concurrentModification() throws Exception {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        try {
+            final JournalEntry entry = store.getCurrentJournalEntry();
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 0; i < 100000; i++) {
+                        entry.modified("/node-" + i);
+                    }
+                }
+            });
+            t.start();
+            StringSort sort = JournalEntry.newSorter();
+            try {
+                entry.addTo(sort);
+            } finally {
+                sort.close();
+            }
+            t.join();
+        } finally {
+            store.dispose();
+        }
     }
 
     private static void addRandomPaths(java.util.Collection<String> paths) throws IOException {
