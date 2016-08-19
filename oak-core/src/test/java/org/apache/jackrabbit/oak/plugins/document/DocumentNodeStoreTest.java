@@ -2566,7 +2566,9 @@ public class DocumentNodeStoreTest {
         builder.child("parent").child("node-x").child("child").child("x");
         b.setRoot(builder.getNodeState());
         // branch state is now InMemory
-        builder.child("b");
+        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT; i++) {
+            builder.child("b" + i);
+        }
         b.setRoot(builder.getNodeState());
         // branch state is now Persisted
         builder.child("c");
