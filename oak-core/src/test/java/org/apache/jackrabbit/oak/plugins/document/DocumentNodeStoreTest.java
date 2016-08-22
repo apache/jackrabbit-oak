@@ -29,6 +29,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -64,6 +65,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -91,6 +93,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -98,6 +101,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -2701,6 +2705,37 @@ public class DocumentNodeStoreTest {
         assertTrue(parent.hasChildNode("foo"));
         assertTrue(parent.hasChildNode("bar"));
         assertTrue(parent.hasChildNode("baz"));
+    }
+
+    @Ignore("OAK-4687")
+    @Test
+    public void exceptionHandlingInCommit() throws Exception{
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        final TestException testException = new TestException();
+        final AtomicBoolean failCommit = new AtomicBoolean();
+        ns.addObserver(new Observer() {
+            @Override
+            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+                if (failCommit.get()){
+                    throw testException;
+                }
+            }
+        });
+
+
+        NodeBuilder b1 = ns.getRoot().builder();
+        b1.child("parent");
+        failCommit.set(true);
+        try {
+            merge(ns, b1);
+            fail();
+        } catch(Exception e){
+            assertSame(testException, Throwables.getRootCause(e));
+        }
+    }
+
+    private static class TestException extends RuntimeException {
+
     }
 
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
