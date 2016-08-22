@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.32
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.33
 
 Introduction
 ------------
@@ -8,61 +8,42 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.32 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.33 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.32
+Changes in Oak 1.0.33
 ---------------------
-
-Sub-task
-
-    [OAK-3306] - Create a copy of MemoryDocumentStore
 
 Technical task
 
-    [OAK-4409] - RDB*Store: bump up recommended DB2 version to 10.5
-    [OAK-4425] - RDBDocumentStore: upgrade MySQL JDBC driver dependency to 5.1.39
-    [OAK-4482] - RDB*Store: update tomcat-jdbc test dependency
-    [OAK-4495] - RDBDocumentStore: consistent handling of invalidate methods
-    [OAK-4497] - RDBDocumentStore: potential race condition between update and invalidate can cause stale cache entries
-    [OAK-4509] - RDBDocumentStore: low-level read method should also support condition on MODIFIED value
-    [OAK-4510] - RDBDocumentStore: can't persist _modified value of null
+    [OAK-3662] - Add bulk createOrUpdate method to the DocumentStore API
+    [OAK-4477] - RDBDatasourceFactory should use pool config similar to sling datasource defaults
+    [OAK-4559] - RDB*Store: failures with Tomcat JDBC pool's StatementCache interceptor
+    [OAK-4562] - BasicDocumentStore max id test might return misleading results
+    [OAK-4629] - Make it possible to override blob accessing methods in DataStoreBlobStore
 
 Bug
 
-    [OAK-1648] - Creating multiple checkpoint on same head revision overwrites previous entries
-    [OAK-2311] - Released checkpoint can still be retrieved
-    [OAK-2343] - Wrong handling of InterruptedException in BackgroundThread
-    [OAK-2363] - NPE in DocumentNodeStore#retrieve for non existing checkpoint
-    [OAK-3305] - Self recovering instance may not see all changes
-    [OAK-3903] - Commit fails even though change made it to the DocumentStore
-    [OAK-3923] - Async indexing delayed by 30 minutes because stop order is incorrect
-    [OAK-4494] - Stale documents after revision GC in cluster
+    [OAK-3131] - DocumentNodeStore doesn't serialize blobs that have been created in a different store
+    [OAK-4503] - Update count increases with rebase
+    [OAK-4575] - Oak 1.0.x fulltext search with ideographic space (U+3000) as separator
+    [OAK-4600] - In case of branch commits, nodeChildrenCache gets entries for branch revision without "br" prefix
+    [OAK-4676] - Index definition on nt:base with analyzed property incorrectly matches query with different property
 
 Improvement
 
-    [OAK-3436] - Prevent missing checkpoint due to unstable topology from causing complete reindexing
-    [OAK-3702] - More resilient BackgroundThread implementation
-    [OAK-3797] - SegmentTracker#collectBlobReferences should retain fewer SegmentId instances
-    [OAK-4035] - AsyncIndexUpdate should not log exception when its forcibly stopped
-    [OAK-4262] - Provide a way to abort an async indexing run
-    [OAK-4405] - JCR TCK on RDBDocumentStore
-    [OAK-4514] - ResurrectNodeAfterRevisionGCTest's cleanup may interfere with DS disposal
-    [OAK-4545] - Configurable maxBackOffMillis
+    [OAK-3361] - Reduce PerfLogger isDebugEnabled overhead
+    [OAK-4542] - PerfLogger should also allow a threshold to log at INFO
+    [OAK-4563] - Specify thread pool name which should be used by Async Indexing task
+    [OAK-4636] - PropertyIndexLookup#getIndexNode should be more tolerant towards property types
 
 Task
 
-    [OAK-2575] - Improve documentation for DocumentStore.invalidateCache
-    [OAK-4411] - DocumentNodeStore: Improve test coverage for concurrent updates and queries
-
-Test
-
-    [OAK-4489] - Improve test coverage on DocumentStore for concurrent query and invalidate
-    [OAK-4546] - Long running DocumentNodeStoreTest
+    [OAK-3611] - upgrade H2DB dependency to 1.4.190
 
 
 In addition to the above-mentioned changes, this release contains
