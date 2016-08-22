@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.text.DateFormat.getDateTimeInstance;
-import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 import java.io.PrintWriter;
@@ -29,27 +28,18 @@ import java.io.StringWriter;
 import java.util.Date;
 
 import javax.annotation.Nonnull;
-import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.stats.TimeSeriesRecorder;
 
 /**
  * {@link GCMonitor} implementation providing the file store gc status
  * as {@link GCMonitorMBean}.
- * <p>
- * Users of this class need to schedule a call to {@link #run()} once per
- * second to ensure the various time series maintained by this implementation
- * are correctly aggregated.
+ *
  */
 public class FileStoreGCMonitor extends AnnotatedStandardMBean
-        implements GCMonitor, GCMonitorMBean, Runnable {
-    private final TimeSeriesRecorder gcCount = new TimeSeriesRecorder(true);
-    private final TimeSeriesRecorder repositorySize = new TimeSeriesRecorder(false);
-    private final TimeSeriesRecorder reclaimedSize = new TimeSeriesRecorder(true);
-
+        implements GCMonitor, GCMonitorMBean {
     private final Clock clock;
 
     private long lastCompaction;
@@ -62,15 +52,6 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     public FileStoreGCMonitor(@Nonnull Clock clock) {
         super(GCMonitorMBean.class);
         this.clock = checkNotNull(clock);
-    }
-
-    //------------------------------------------------------------< Runnable >---
-
-    @Override
-    public void run() {
-        gcCount.recordOneSecond();
-        repositorySize.recordOneSecond();
-        reclaimedSize.recordOneSecond();
     }
 
     //------------------------------------------------------------< GCMonitor >---
@@ -108,9 +89,6 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
         lastCleanup = clock.getTime();
         lastReclaimedSize = reclaimed;
         lastRepositorySize = current;
-        gcCount.getCounter().addAndGet(1);
-        repositorySize.getCounter().set(current);
-        reclaimedSize.getCounter().addAndGet(reclaimed);
     }
 
     //------------------------------------------------------------< GCMonitorMBean >---
@@ -153,17 +131,4 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     public String getStatus() {
         return status;
     }
-
-    @Nonnull
-    @Override
-    public CompositeData getRepositorySize() {
-        return asCompositeData(repositorySize, "RepositorySize");
-    }
-
-    @Nonnull
-    @Override
-    public CompositeData getReclaimedSize() {
-        return asCompositeData(reclaimedSize, "ReclaimedSize");
-    }
-
 }
