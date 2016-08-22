@@ -17,18 +17,34 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-/**
- * This exception can be thrown during the startup of the {@link FileStore} to
- * indicate an incompatible version mismatch between the code that generated the
- * data in the store and the current version of the {@link FileStore}.
- */
-public class InvalidFileStoreVersionException extends Exception {
+import static org.junit.Assert.assertEquals;
 
-    public InvalidFileStoreVersionException() {
+import java.io.File;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+public class ManifestTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @Test
+    public void defaultStoreVersionShouldBeReturned() throws Exception {
+        assertEquals(42, Manifest.load(folder.newFile()).getStoreVersion(42));
     }
 
-    public InvalidFileStoreVersionException(String message) {
-        super(message);
+    @Test
+    public void storeVersionShouldBeReturned() throws Exception {
+        File file = folder.newFile();
+
+        Manifest write = Manifest.empty();
+        write.setStoreVersion(42);
+        write.save(file);
+
+        Manifest read = Manifest.load(file);
+        assertEquals(42, read.getStoreVersion(0));
     }
 
 }
