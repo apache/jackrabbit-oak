@@ -22,7 +22,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
-import org.apache.lucene.analysis.standard.ClassicTokenizer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.util.Version;
 
 public class OakAnalyzer extends Analyzer {
@@ -43,7 +43,7 @@ public class OakAnalyzer extends Analyzer {
     @Override
     protected TokenStreamComponents createComponents(final String fieldName,
             final Reader reader) {
-        ClassicTokenizer src = new ClassicTokenizer(matchVersion, reader);
+        StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
         TokenStream tok = new LowerCaseFilter(matchVersion, src);
         tok = new WordDelimiterFilter(tok,
                 WordDelimiterFilter.GENERATE_WORD_PARTS
