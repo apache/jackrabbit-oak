@@ -97,7 +97,7 @@ abstract class FileAccess {
         }
 
         @Override
-        public int length() throws IOException {
+        public synchronized int length() throws IOException {
             long length = file.length();
             checkState(length < Integer.MAX_VALUE);
             return (int) length;
