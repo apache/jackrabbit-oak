@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETR
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -507,8 +506,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                         fsgcm,
                         GCMonitorMBean.TYPE,
                         "File Store garbage collection monitor"
-                ),
-                scheduleWithFixedDelay(whiteboard, fsgcm, 1)
+                )
         )));
 
         // Register a factory service to expose the FileStore

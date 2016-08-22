@@ -222,13 +222,6 @@ public class SegmentCompactionIT {
     public void setUp() throws Exception {
         assumeTrue(ENABLED);
 
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                fileStoreGCMonitor.run();
-            }
-        }, 1, 1, SECONDS);
-
         SegmentGCOptions gcOptions = defaultGCOptions().setLockWaitTime(lockWaitTime);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         fileStore = fileStoreBuilder(folder.getRoot())
