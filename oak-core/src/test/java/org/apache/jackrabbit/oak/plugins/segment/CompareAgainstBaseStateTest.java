@@ -152,4 +152,20 @@ public class CompareAgainstBaseStateTest {
         verify(diff);
     }
 
+    @Test
+    public void testChildNodeDeletedAndMultipleAdded() {
+        NodeState before = builder.getNodeState();
+        builder.getChildNode("baz").remove();
+        builder.child("x");
+        builder.child("y");
+        NodeState after = builder.getNodeState();
+
+        expect(diff.childNodeDeleted("baz", before.getChildNode("baz"))).andReturn(true);
+        expect(diff.childNodeAdded("x", after.getChildNode("x"))).andReturn(true);
+        expect(diff.childNodeAdded("y", after.getChildNode("x"))).andReturn(true);
+        replay(diff);
+
+        after.compareAgainstBaseState(before, diff);
+        verify(diff);
+    }
 }
