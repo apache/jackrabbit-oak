@@ -76,7 +76,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -113,6 +112,19 @@ public class FileStore implements SegmentStore, Closeable {
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final int MB = 1024 * 1024;
+
+    /**
+     * This value can be used as an invalid store version, since the store
+     * version is defined to be strictly greater than zero.
+     */
+    private static final int INVALID_STORE_VERSION = 0;
+
+    /**
+     * The store version is an always incrementing number, strictly greater than
+     * zero, that is changed every time there is a backwards incompatible
+     * modification to the format of the segment store.
+     */
+    private static final int CURRENT_STORE_VERSION = 1;
 
     private static final Pattern FILE_NAME_PATTERN =
             Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
@@ -281,17 +293,13 @@ public class FileStore implements SegmentStore, Closeable {
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
 
-        File manifest = new File(directory, MANIFEST_FILE_NAME);
+        Manifest manifest = Manifest.empty();
 
         if (map.size() > 0) {
-            if (manifest.exists()) {
-                log.debug("The store folder is non empty and has a valid manifest file");
-            } else {
-                throw new InvalidFileStoreVersionException();
-            }
+            manifest = checkManifest(openManifest());
         }
 
-        Files.touch(manifest);
+        saveManifest(manifest);
 
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
@@ -389,6 +397,51 @@ public class FileStore implements SegmentStore, Closeable {
     FileStore bind(TarRevisions revisions) throws IOException {
         revisions.bind(this, initialNode());
         return this;
+    }
+
+    private File getManifestFile() {
+        return new File(directory, MANIFEST_FILE_NAME);
+    }
+
+    private Manifest openManifest() throws IOException {
+        File file = getManifestFile();
+
+        if (file.exists()) {
+            return Manifest.load(file);
+        }
+
+        return null;
+    }
+
+    private Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
+        if (manifest == null) {
+            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
+        }
+
+        int storeVersion = manifest.getStoreVersion(INVALID_STORE_VERSION);
+
+        // A store version less than or equal to the highest invalid value means
+        // that something or someone is messing up with the manifest. This error
+        // is not recoverable and is thus represented as an ISE.
+
+        if (storeVersion <= INVALID_STORE_VERSION) {
+            throw new IllegalStateException("Invalid store version");
+        }
+
+        if (storeVersion < CURRENT_STORE_VERSION) {
+            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
+        }
+
+        if (storeVersion > CURRENT_STORE_VERSION) {
+            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
+        }
+
+        return manifest;
+    }
+
+    private void saveManifest(Manifest manifest) throws IOException {
+        manifest.setStoreVersion(CURRENT_STORE_VERSION);
+        manifest.save(getManifestFile());
     }
 
     @Nonnull
