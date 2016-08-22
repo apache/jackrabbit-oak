@@ -1059,7 +1059,25 @@ public final class DocumentNodeStore
                 String p = concat(parent.getPath(), input);
                 DocumentNodeState result = getNode(p, readRevision);
                 if (result == null) {
-                    throw new DocumentStoreException("DocumentNodeState is null for revision " + readRevision + " of " + p + " (aborting getChildNodes())");
+                    //This is very unexpected situation - parent's child list declares the child to exist, while
+                    //its node state is null. Let's put some extra effort to do some logging
+                    String id = Utils.getIdFromPath(p);
+                    String cachedDocStr, uncachedDocStr;
+                    try {
+                        cachedDocStr = store.find(Collection.NODES, id).asString();
+                    } catch (DocumentStoreException dse) {
+                        cachedDocStr = dse.toString();
+                    }
+                    try {
+                        uncachedDocStr = store.find(Collection.NODES, id, 0).asString();
+                    } catch (DocumentStoreException dse) {
+                        uncachedDocStr = dse.toString();
+                    }
+                    String exceptionMsg = String.format(
+                            "Aborting getChildNodes() - DocumentNodeState is null for %s at %s " +
+                                    "{\"cachedDoc\":{%s}, \"uncachedDoc\":{%s}}",
+                            readRevision, p, cachedDocStr, uncachedDocStr);
+                    throw new DocumentStoreException(exceptionMsg);
                 }
                 return result;
             }
