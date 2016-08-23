@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>oak-segment-tar</artifactId>
-    <version>0.0.10</version>
+    <version>0.0.11-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
@@ -38,9 +38,9 @@
     </properties>
 
     <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/tags/oak-segment-tar-0.0.10</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/tags/oak-segment-tar-0.0.10</developerConnection>
-        <url>http://svn.apache.org/viewvc/jackrabbit/oak/tags/oak-segment-tar-0.0.10</url>
+        <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-segment-tar</connection>
+        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-segment-tar</developerConnection>
+        <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-segment-tar</url>
     </scm>
 
     <build>
