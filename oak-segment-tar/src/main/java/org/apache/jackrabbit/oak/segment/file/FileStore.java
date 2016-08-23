@@ -1386,23 +1386,15 @@ public class FileStore implements SegmentStore, Closeable {
 
     @Override
     public void writeSegment(SegmentId id, byte[] buffer, int offset, int length) throws IOException {
-        fileStoreLock.writeLock().lock();
-        try {
-            int generation = Segment.getGcGeneration(wrap(buffer, offset, length), id.asUUID());
-            long size = tarWriter.writeEntry(
-                    id.getMostSignificantBits(),
-                    id.getLeastSignificantBits(),
-                    buffer, offset, length, generation);
-            if (size >= maxFileSize) {
-                newWriter();
-            }
-        } finally {
-            fileStoreLock.writeLock().unlock();
-        }
+        Segment segment = null;
 
-        // Keep this data segment in memory as it's likely to be accessed soon
+        // If the segment is a data segment, create a new instance of Segment to
+        // access some internal information stored in the segment and to store
+        // in an in-memory cache for later use.
+
         if (id.isDataSegmentId()) {
             ByteBuffer data;
+
             if (offset > 4096) {
                 data = ByteBuffer.allocate(length);
                 data.put(buffer, offset, length);
@@ -1410,7 +1402,49 @@ public class FileStore implements SegmentStore, Closeable {
             } else {
                 data = ByteBuffer.wrap(buffer, offset, length);
             }
-            segmentCache.putSegment(new Segment(this, segmentReader, id, data));
+
+            segment = new Segment(this, segmentReader, id, data);
+        }
+
+        fileStoreLock.writeLock().lock();
+        try {
+            int generation = Segment.getGcGeneration(wrap(buffer, offset, length), id.asUUID());
+
+            // Flush the segment to disk
+
+            long size = tarWriter.writeEntry(
+                    id.getMostSignificantBits(),
+                    id.getLeastSignificantBits(),
+                    buffer,
+                    offset,
+                    length,
+                    generation
+            );
+
+            // If the segment is a data segment, update the graph before
+            // (potentially) flushing the TAR file.
+
+            if (segment != null) {
+                UUID from = segment.getSegmentId().asUUID();
+
+                for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+                    tarWriter.addGraphEdge(from, segment.getReferencedSegmentId(i));
+                }
+            }
+
+            // Close the TAR file if the size exceeds the maximum.
+
+            if (size >= maxFileSize) {
+                newWriter();
+            }
+        } finally {
+            fileStoreLock.writeLock().unlock();
+        }
+
+        // Keep this data segment in memory as it's likely to be accessed soon.
+
+        if (segment != null) {
+            segmentCache.putSegment(segment);
         }
     }
 
