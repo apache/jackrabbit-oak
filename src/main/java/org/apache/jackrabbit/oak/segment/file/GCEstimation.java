@@ -28,7 +28,7 @@ public interface GCEstimation {
 
     /**
      * User friendly message explaining the value of the
-     * {@link GCEstimation#isGcNeeded()} flag
+     * {@link GCEstimation#gcNeeded()} flag
      */
     String gcLog();
 
