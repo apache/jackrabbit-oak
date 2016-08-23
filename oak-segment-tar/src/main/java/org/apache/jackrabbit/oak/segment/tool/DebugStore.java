@@ -24,11 +24,13 @@ import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
@@ -101,6 +103,19 @@ public class DebugStore implements Runnable {
         }
     }
 
+    private static List<SegmentId> getReferencedSegmentIds(FileStore store, Segment segment) {
+        List<SegmentId> result = new ArrayList<>();
+
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            UUID uuid = segment.getReferencedSegmentId(i);
+            long msb = uuid.getMostSignificantBits();
+            long lsb = uuid.getLeastSignificantBits();
+            result.add(store.newSegmentId(msb, lsb));
+        }
+
+        return result;
+    }
+
     private static void debugFileStore(FileStore store) {
         Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
         int dataCount = 0;
@@ -115,7 +130,7 @@ public class DebugStore implements Runnable {
                 Segment segment = id.getSegment();
                 dataCount++;
                 dataSize += segment.size();
-                idmap.put(id, segment.getReferencedIds());
+                idmap.put(id, getReferencedSegmentIds(store, segment));
                 analyseSegment(segment, analyser);
             } else if (id.isBulkSegmentId()) {
                 bulkCount++;
