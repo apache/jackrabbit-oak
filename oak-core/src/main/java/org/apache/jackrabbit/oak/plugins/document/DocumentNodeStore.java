@@ -654,6 +654,9 @@ public final class DocumentNodeStore
         if (persistentCache != null) {
             persistentCache.close();
         }
+        if (journalCache != null) {
+            journalCache.close();
+        }
         LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
 
