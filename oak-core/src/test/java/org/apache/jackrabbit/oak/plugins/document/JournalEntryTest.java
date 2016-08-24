@@ -213,4 +213,32 @@ public class JournalEntryTest {
             assertTrue(loaderCalled.get());
         }
     }
+
+    // OAK-4682
+    @Test
+    public void concurrentModification() throws Exception {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        try {
+            final JournalEntry entry = store.getCurrentJournalEntry();
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 0; i < 100000; i++) {
+                        entry.modified("/node-" + i);
+                    }
+                }
+            });
+            t.start();
+            StringSort sort = JournalEntry.newSorter();
+            try {
+                entry.addTo(sort);
+            } finally {
+                sort.close();
+            }
+            t.join();
+        } finally {
+            store.dispose();
+        }
+    }
+
 }
