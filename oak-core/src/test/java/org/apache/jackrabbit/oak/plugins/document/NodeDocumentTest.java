@@ -30,6 +30,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -37,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -630,6 +633,41 @@ public class NodeDocumentTest {
         String json = root.asString();
         NodeDocument doc2 = NodeDocument.fromString(ns.getDocumentStore(), json);
         doc2.put("foo", "bar");
+        ns.dispose();
+    }
+
+    @Ignore("OAK-4697")
+    @Test
+    public void tooManyReadsOnGetNodeAtRevision() throws Exception {
+        final int numChanges = 200;
+        final Set<String> prevDocCalls = newHashSet();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (Utils.getPathFromId(key).startsWith("p")) {
+                    prevDocCalls.add(key);
+                }
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns = createTestStore(store, 0, numChanges);
+        NodeDocument doc = getRootDocument(store);
+        Map<Revision, String> valueMap = doc.getValueMap("p");
+        assertEquals(200, valueMap.size());
+        Revision oldest = Iterables.getLast(valueMap.keySet());
+
+        prevDocCalls.clear();
+        DocumentNodeState state = doc.getNodeAtRevision(ns,
+                new RevisionVector(oldest), null);
+        assertNotNull(state);
+        PropertyState prop = state.getProperty("p");
+        assertNotNull(prop);
+        assertEquals(0L, (long) prop.getValue(Type.LONG));
+
+        assertTrue("too many calls for previous documents: " + prevDocCalls,
+                prevDocCalls.size() <= 2);
+
         ns.dispose();
     }
 
