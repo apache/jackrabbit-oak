@@ -265,7 +265,7 @@ public class SegmentDataStoreBlobGCIT {
             .filter(Level.TRACE)
             .create();
 
-        DataStoreState state = setUp(30000);
+        DataStoreState state = setUp(10);
         log.info("{} blobs available : {}", state.blobsPresent.size(), state.blobsPresent);
         customLogs.starting();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
