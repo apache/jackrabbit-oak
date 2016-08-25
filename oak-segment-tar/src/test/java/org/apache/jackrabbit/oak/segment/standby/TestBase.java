@@ -68,7 +68,7 @@ public class TestBase {
     @BeforeClass
     public static void assumptions() {
         assumeTrue(!CIHelper.travis());
-        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_MK));
+        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_TAR));
     }
 
     public void setUpServerAndClient() throws Exception {
