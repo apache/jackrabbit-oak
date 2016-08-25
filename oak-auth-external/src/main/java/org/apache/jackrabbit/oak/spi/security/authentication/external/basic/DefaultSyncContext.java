@@ -531,10 +531,10 @@ public class DefaultSyncContext implements SyncContext {
             if (a == null) {
                 grp = createGroup(extGroup);
                 log.debug("- created new group");
-            } else if (a.isGroup()) {
+            } else if (a.isGroup() && isSameIDP(a)) {
                 grp = (Group) a;
             } else {
-                log.warn("Authorizable '{}' is not a group, but should be one.", extGroup.getId());
+                log.warn("Existing authorizable '{}' is not a group from this IDP '{}'.", extGroup.getId(), idp.getName());
                 continue;
             }
             log.debug("- user manager returned '{}'", grp);
@@ -557,6 +557,7 @@ public class DefaultSyncContext implements SyncContext {
             }
         }
         timer.mark("adding");
+
         // remove us from the lost membership groups
         for (Group grp : declaredExternalGroups.values()) {
             grp.removeMember(auth);
