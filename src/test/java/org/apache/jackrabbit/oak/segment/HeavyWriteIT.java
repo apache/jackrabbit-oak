@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.CIHelper.travis;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -58,7 +57,7 @@ public class HeavyWriteIT {
     @BeforeClass
     public static void checkFixtures() {
         assumeTrue(!travis());  // FIXME OAK-2375. Often fails on Travis
-        assumeTrue(FIXTURES.contains(SEGMENT_MK));
+        assumeTrue(FIXTURES.contains(SEGMENT_TAR));
     }
 
     @Test
