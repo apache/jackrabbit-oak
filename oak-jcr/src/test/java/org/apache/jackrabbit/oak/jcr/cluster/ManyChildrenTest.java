@@ -41,8 +41,7 @@ import org.junit.Test;
 public class ManyChildrenTest {
 
     NodeStoreFixture fixture = NodeStoreFixtures.DOCUMENT_NS;
-//    NodeStoreFixture fixture = NodeStoreFixture.SEGMENT_MK;
-    
+
     Repository repository;
     Session session;
     NodeStore nodeStore;

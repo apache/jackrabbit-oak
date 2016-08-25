@@ -32,7 +32,7 @@
     <packaging>bundle</packaging>
 
     <properties>
-        <fixtures>MEMORY_NS,SEGMENT_MK</fixtures>
+        <fixtures>MEMORY_NS,SEGMENT_TAR</fixtures>
     </properties>
 
     <dependencies>
