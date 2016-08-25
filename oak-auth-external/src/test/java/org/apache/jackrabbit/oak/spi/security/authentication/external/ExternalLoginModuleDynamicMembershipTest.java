@@ -23,6 +23,7 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
@@ -165,17 +166,19 @@ public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModul
             // synchronized users with full membership sync.
             Root systemRoot = getSystemRoot();
             UserManager userManager = getUserManager(systemRoot);
-            Authorizable a = userManager.getAuthorizable(USER_ID);
-            a.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+            User user = userManager.getAuthorizable(USER_ID, User.class);
+            user.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
             systemRoot.commit();
+
+            waitUntilExpired(user, systemRoot, syncConfig.user().getExpirationTime());
 
             // login again
             login(new SimpleCredentials(USER_ID, new char[0])).close();
 
             systemRoot.refresh();
-            a = userManager.getAuthorizable(USER_ID);
-            assertTrue(a.hasProperty(ExternalIdentityConstants.REP_LAST_SYNCED));
-            assertFalse(a.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
+            user = userManager.getAuthorizable(USER_ID, User.class);
+            assertTrue(user.hasProperty(ExternalIdentityConstants.REP_LAST_SYNCED));
+            assertFalse(user.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
 
             for (ExternalIdentityRef ref : idp.getUser(USER_ID).getDeclaredGroups()) {
                 assertNotNull(userManager.getAuthorizable(ref.getId()));
