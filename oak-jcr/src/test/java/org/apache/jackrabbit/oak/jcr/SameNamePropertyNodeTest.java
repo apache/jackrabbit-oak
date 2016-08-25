@@ -23,7 +23,6 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -118,7 +117,7 @@ public class SameNamePropertyNodeTest extends AbstractJCRTest {
      */
     @Test
     public void testNodeStoreSupport() throws Exception {
-        NodeStore nodeStore = NodeStoreFixtures.SEGMENT_MK.createNodeStore();
+        NodeStore nodeStore = NodeStoreFixtures.SEGMENT_TAR.createNodeStore();
         JackrabbitRepository repository  = (JackrabbitRepository) new Jcr(nodeStore).createRepository();
         try {
             assertTrue(repository.getDescriptorValue(Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED).getBoolean());

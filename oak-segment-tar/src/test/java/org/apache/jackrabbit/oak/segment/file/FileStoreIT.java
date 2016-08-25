@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newTreeSet;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -62,7 +62,7 @@ public class FileStoreIT {
 
     @BeforeClass
     public static void assumptions() {
-        assumeTrue(getFixtures().contains(SEGMENT_MK));
+        assumeTrue(getFixtures().contains(SEGMENT_TAR));
     }
 
     @Test

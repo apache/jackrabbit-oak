@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.jcr.OakDocumentMemRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakDocumentRDBRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakMongoNSRepositoryStub;
+import org.apache.jackrabbit.oak.jcr.OakSegmentTarRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakTarMKRepositoryStub;
 import org.apache.jackrabbit.test.RepositoryHelper;
 import org.apache.jackrabbit.test.RepositoryHelperPool;
@@ -55,6 +56,9 @@ public abstract class TCKBase extends TestSuite {
         super(name);
         if (FIXTURES.contains(Fixture.SEGMENT_MK)) {
             Setup.wrap(this, OakTarMKRepositoryStub.class.getName());
+        }
+        if (FIXTURES.contains(Fixture.SEGMENT_TAR)) {
+            Setup.wrap(this, OakSegmentTarRepositoryStub.class.getName());
         }
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
             if (OakMongoNSRepositoryStub.isMongoDBAvailable()) {

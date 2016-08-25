@@ -23,7 +23,7 @@ import java.util.Set;
 
 /**
  * helper class that return the list of available fixtures based on the {@code nsfixtures} system
- * property ({@code -Dnsfixtures=SEGMENT_MK}).
+ * property ({@code -Dnsfixtures=SEGMENT_TAR}).
  * 
  * See {@link FixturesHelper.Fixture} for a list of available fixtures
  */
