@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -122,7 +123,7 @@ public class CheckpointTest {
             @Override
             public void run() {
                 try {
-                    store.locked(block);
+                    store.locked(block, 10, SECONDS);
                 } catch (Exception e) {
                     //
                 }
@@ -159,7 +160,7 @@ public class CheckpointTest {
             public Boolean call() {
                 try {
                     semaphore.release();
-                    TimeUnit.SECONDS.sleep(blockTime);
+                    SECONDS.sleep(blockTime);
                 } catch (InterruptedException e) {
                     //
                 }
@@ -171,7 +172,7 @@ public class CheckpointTest {
             @Override
             public void run() {
                 try {
-                    store.locked(block);
+                    store.locked(block, 10, SECONDS);
                 } catch (Exception e) {
                     //
                 }
