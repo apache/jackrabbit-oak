@@ -16,10 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment;
+package org.apache.jackrabbit.oak.segment.standby.client;
 
-public interface SegmentStoreProvider {
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.util.concurrent.Promise;
 
-    SegmentStore getSegmentStore();
+public class FailedRequestListener implements ChannelFutureListener {
 
+    private final Promise<?> promise;
+
+    public FailedRequestListener(Promise<?> promise) {
+        this.promise = promise;
+    }
+
+    @Override
+    public void operationComplete(ChannelFuture future) throws Exception {
+        if (!future.isSuccess()) {
+            promise.setFailure(future.cause());
+            future.channel().close();
+        } else {
+            future.channel().read();
+        }
+    }
 }

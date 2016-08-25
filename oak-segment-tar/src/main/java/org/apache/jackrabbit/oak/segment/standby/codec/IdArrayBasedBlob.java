@@ -16,10 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment;
 
-public interface SegmentStoreProvider {
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-    SegmentStore getSegmentStore();
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 
+public class IdArrayBasedBlob extends ArrayBasedBlob {
+
+    private final String blobId;
+
+    public IdArrayBasedBlob(byte[] value, String blobId) {
+        super(value);
+        this.blobId = blobId;
+    }
+
+    public String getBlobId() {
+        return blobId;
+    }
 }
