@@ -30,9 +30,12 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
 import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
@@ -581,6 +584,14 @@ public class Segment {
             }
             writer.println("--------------------------------------------------------------------------");
             return string.toString();
+        }
+    }
+
+    public void writeTo(OutputStream stream) throws IOException {
+        ByteBuffer buffer = data.duplicate();
+        WritableByteChannel channel = Channels.newChannel(stream);
+        while (buffer.hasRemaining()) {
+            channel.write(buffer);
         }
     }
 

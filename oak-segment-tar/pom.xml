@@ -35,6 +35,7 @@
 
     <properties>
         <oak.version>1.5.5</oak.version>
+        <netty.version>4.0.23.Final</netty.version>
     </properties>
 
     <scm>
@@ -51,7 +52,24 @@
                 <configuration>
                     <instructions>
                         <Export-Package />
-                        <Embed-Dependency>commons-math3</Embed-Dependency>
+                        <Embed-Dependency>
+                            commons-math3,
+                            netty-*
+                        </Embed-Dependency>
+                        <Import-Package>
+                            com.google.protobuf.*;resolution:=optional,
+                            com.jcraft.jzlib.*;resolution:=optional,
+                            javassist.*;resolution:=optional,
+                            org.apache.tomcat.jni.*;resolution:=optional,
+                            org.bouncycastle.*;resolution:=optional,
+                            org.eclipse.jetty.npn.*;resolution:=optional,
+                            org.jboss.marshalling.*;resolution:=optional,
+                            sun.misc.*;resolution:=optional,
+                            sun.nio.ch.*;resolution:=optional,
+                            sun.security.util.*;resolution:=optional,
+                            sun.security.x509.*;resolution:=optional,
+                            *
+                        </Import-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -60,11 +78,49 @@
                 <artifactId>maven-scr-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.12</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>reserve-network-port</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <portNames>
+                                <portName>standby.server.port</portName>
+                                <portName>standby.proxy.port</portName>
+                            </portNames>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <standby.server.port>${standby.server.port}</standby.server.port>
+                        <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
+                    </systemPropertyVariables>
+                    <excludes>
+                        <exclude>**/BulkTest.java</exclude>
+                        <exclude>**/MBeanTest.java</exclude>
+                        <exclude>**/FailoverIPRangeTest.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.19.1</version>
                 <configuration>
                     <systemPropertyVariables>
                         <nsfixtures>SEGMENT_TAR</nsfixtures>
+                        <standby.server.port>${standby.server.port}</standby.server.port>
+                        <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -205,6 +261,39 @@
         <dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.scr.annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Netty -->
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+            <version>${netty.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <version>${netty.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>${netty.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+            <version>${netty.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>${netty.version}</version>
             <scope>provided</scope>
         </dependency>
 

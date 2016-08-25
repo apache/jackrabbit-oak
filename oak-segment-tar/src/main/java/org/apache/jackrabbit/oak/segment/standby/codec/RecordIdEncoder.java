@@ -16,10 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment;
 
-public interface SegmentStoreProvider {
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-    SegmentStore getSegmentStore();
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.util.CharsetUtil;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
+
+public class RecordIdEncoder extends MessageToByteEncoder<RecordId> {
+
+    @Override
+    protected void encode(ChannelHandlerContext ctx, RecordId msg, ByteBuf out)
+            throws Exception {
+        byte[] body = msg.toString().getBytes(CharsetUtil.UTF_8);
+        out.writeInt(body.length + 1);
+        out.writeByte(Messages.HEADER_RECORD);
+        out.writeBytes(body);
+    }
 }
