@@ -197,27 +197,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     /**
      * Execute the passed callable with trying to acquire this store's commit lock.
-     * @param c  callable to execute
-     * @return  {@code false} if the store's commit lock cannot be acquired, the result
-     *          of {@code c.call()} otherwise.
-     * @throws Exception
-     */
-    // FIXME OAK-4015: Expedite commits from the compactor
-    // FIXME OAK-4122: Replace the commit semaphore in the segment node store with a scheduler
-    // Replace by usage of expeditable lock or commit scheduler
-    boolean locked(Callable<Boolean> c) throws Exception {
-        if (commitSemaphore.tryAcquire()) {
-            try {
-                return c.call();
-            } finally {
-                commitSemaphore.release();
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Execute the passed callable with trying to acquire this store's commit lock.
      * @param timeout the maximum time to wait for the store's commit lock
      * @param unit the time unit of the {@code timeout} argument
      * @param c  callable to execute
