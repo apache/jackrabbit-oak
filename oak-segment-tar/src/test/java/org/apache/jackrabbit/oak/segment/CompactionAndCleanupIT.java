@@ -975,11 +975,11 @@ public class CompactionAndCleanupIT {
                 results.add(executorService.submit(concurrentWriteTask));
             }
 
-            fileStore.cleanup();
-
             for (Future<?> result : results) {
                 assertNull(result.get());
             }
+
+            fileStore.cleanup();
 
             for (String fileName : fileStoreFolder.list()) {
                 if (fileName.endsWith(".tar")) {
