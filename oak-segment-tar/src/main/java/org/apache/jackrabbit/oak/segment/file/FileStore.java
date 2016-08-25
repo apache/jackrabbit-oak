@@ -825,11 +825,8 @@ public class FileStore implements SegmentStore, Closeable {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
-            for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                if (!isDataSegmentId(id.getLeastSignificantBits())) {
-                    bulkRefs.add(id.asUUID());
-                }
-            }
+            collectBulkReferences(bulkRefs);
+
             for (TarReader reader : readers) {
                 cleaned.put(reader, reader);
                 initialSize += reader.size();
@@ -911,6 +908,19 @@ public class FileStore implements SegmentStore, Closeable {
                 humanReadableByteCount(finalSize), finalSize,
                 humanReadableByteCount(reclaimedSize), reclaimedSize);
         return toRemove;
+    }
+
+    private void collectBulkReferences(Set<UUID> bulkRefs) {
+        Set<UUID> refs = newHashSet();
+        for (SegmentId id : tracker.getReferencedSegmentIds()) {
+            refs.add(id.asUUID());
+        }
+        tarWriter.collectReferences(refs);
+        for (UUID ref : refs) {
+            if (!isDataSegmentId(ref.getLeastSignificantBits())) {
+                bulkRefs.add(ref);
+            }
+        }
     }
 
     /**

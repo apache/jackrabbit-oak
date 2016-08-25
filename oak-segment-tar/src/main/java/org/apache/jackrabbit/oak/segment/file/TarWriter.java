@@ -22,6 +22,8 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.reverse;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -600,6 +602,27 @@ class TarWriter implements Closeable {
                 header, 148, 8);
 
         return header;
+    }
+
+    /**
+     * Add all segment ids that are reachable from {@code referencedIds} via
+     * this writer's segment graph and subsequently remove those segment ids
+     * from {@code referencedIds} that are in this {@code TarWriter}. The
+     * latter can't be cleaned up anyway because they are not be present in
+     * any of the readers.
+     *
+     * @param referencedIds
+     * @throws IOException
+     */
+    synchronized void collectReferences(Set<UUID> referencedIds) {
+        for (UUID uuid : reverse(newArrayList(index.keySet()))) {
+            if (referencedIds.remove(uuid)) {
+                Set<UUID> refs = graph.get(uuid);
+                if (refs != null) {
+                    referencedIds.addAll(refs);
+                }
+            }
+        }
     }
 
     //------------------------------------------------------------< Object >--
