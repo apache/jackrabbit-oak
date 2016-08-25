@@ -273,6 +273,12 @@ class ChangeProcessor implements Observer {
                     }
                 }
             }
+
+            @Override
+            protected void removed(int queueSize, long created) {
+                maxQueueLength.recordValue(queueSize);
+                tracker.recordQueueLength(queueSize, created);
+            }
         };
     }
 
