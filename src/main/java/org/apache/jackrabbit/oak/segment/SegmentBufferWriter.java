@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -108,7 +107,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private final Map<RecordId, RecordType> roots = newLinkedHashMap();
 
-    private final Set<UUID> referencedSegmentIds = newHashSet();
+    private final Set<SegmentId> referencedSegmentIds = newHashSet();
 
     @Nonnull
     private final SegmentStore store;
@@ -289,7 +288,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         writeShort((short)((offset >> Segment.RECORD_ALIGN_BITS) & 0xffff));
 
         if (!recordId.getSegmentId().equals(segment.getSegmentId())) {
-            referencedSegmentIds.add(recordId.getSegmentId().asUUID());
+            referencedSegmentIds.add(recordId.getSegmentId());
         }
 
         statistics.recordIdCount++;
@@ -368,7 +367,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 length = buffer.length;
             }
 
-            for (UUID id : referencedSegmentIds) {
+            for (SegmentId id : referencedSegmentIds) {
                 pos = BinaryUtils.writeLong(buffer, pos, id.getMostSignificantBits());
                 pos = BinaryUtils.writeLong(buffer, pos, id.getLeastSignificantBits());
             }

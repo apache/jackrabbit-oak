@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
+import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -1001,7 +1002,7 @@ public class CompactionAndCleanupIT {
         ScheduledExecutorService scheduler = newSingleThreadScheduledExecutor();
         StatisticsProvider statsProvider = new DefaultStatisticsProvider(scheduler);
         final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
-        
+
         final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
                 .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
                 .withGCMonitor(fileStoreGCMonitor)
@@ -1111,7 +1112,73 @@ public class CompactionAndCleanupIT {
             fileStore.close();
         }
     }
-    
+
+    /**
+     * Test asserting OAK-4700: Concurrent cleanup must not remove segments that are still reachable
+     */
+    @Test
+    public void concurrentCleanup() throws Exception {
+        File fileStoreFolder = getFileStoreFolder();
+
+        final FileStore fileStore = fileStoreBuilder(fileStoreFolder)
+                .withMaxFileSize(1)
+                .build();
+
+        final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        ExecutorService executorService = newFixedThreadPool(50);
+        final AtomicInteger counter = new AtomicInteger();
+
+        try {
+            Callable<Void> concurrentWriteTask = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    NodeBuilder builder = nodeStore.getRoot().builder();
+                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 512 * 512));
+                    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    fileStore.flush();
+                    return null;
+                }
+            };
+
+            final Callable<Void> concurrentCleanTask = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    // FIXME OAK-4685: Explicitly avoid concurrent cleanup calls until OAK-4685 is fixed
+                    synchronized (nodeStore) {
+                        fileStore.cleanup();
+                    }
+                    return null;
+                }
+            };
+
+            List<Future<?>> results = newArrayList();
+            for (int i = 0; i < 50; i++) {
+                if (i % 2 == 0) {
+                    results.add(executorService.submit(concurrentWriteTask));
+                } else {
+                    results.add(executorService.submit(concurrentCleanTask));
+                }
+            }
+
+            for (Future<?> result : results) {
+                assertNull(result.get());
+            }
+
+            for (String fileName : fileStoreFolder.list()) {
+                if (fileName.endsWith(".tar")) {
+                    int pos = fileName.length() - "a.tar".length();
+                    char generation = fileName.charAt(pos);
+                    assertEquals("Expected nothing to be cleaned but generation '" + generation +
+                        "' for file " + fileName + " indicates otherwise.",
+                        "a", valueOf(generation));
+                }
+            }
+        } finally {
+            new ExecutorCloser(executorService).close();
+            fileStore.close();
+        }
+    }
+
     private static void addContent(NodeBuilder builder) {
         for (int k = 0; k < 10000; k++) {
             builder.setProperty(UUID.randomUUID().toString(), UUID.randomUUID().toString());
