@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -117,6 +118,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     }
 
     @Test
+    @Ignore("OAK-4382")
     public void testFindPrincipalsByHint() throws Exception {
         List<String> hints = ImmutableList.of(
                 AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME,

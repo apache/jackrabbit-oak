@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdenti
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DynamicSyncContext;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -159,6 +160,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
+    @Ignore("OAK-4382")
     public void testGetPrincipalInheritedGroupsDepthInfinite() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
         syncWithMembership(externalUser, Long.MAX_VALUE);
@@ -270,6 +272,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
+    @Ignore("OAK-4382")
     public void testGetGroupMembershipExternalUserInfiniteDepth() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
         syncWithMembership(externalUser, Long.MAX_VALUE);
@@ -341,12 +344,14 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
+    @Ignore("OAK-4382")
     public void testFindPrincipalsByHintTypeNotGroup() {
         Iterator<? extends Principal> iter = principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertSame(Iterators.emptyIterator(), iter);
     }
 
     @Test
+    @Ignore("OAK-4382")
     public void testFindPrincipalsByHintTypeGroup() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
         syncWithMembership(externalUser, Long.MAX_VALUE);
@@ -358,6 +363,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     }
 
     @Test
+    @Ignore("OAK-4382")
     public void testFindPrincipalsByHintTypeAll() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
         syncWithMembership(externalUser, Long.MAX_VALUE);
