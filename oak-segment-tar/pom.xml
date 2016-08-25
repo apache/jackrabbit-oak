@@ -105,11 +105,6 @@
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
-                    <excludes>
-                        <exclude>**/BulkTest.java</exclude>
-                        <exclude>**/MBeanTest.java</exclude>
-                        <exclude>**/FailoverIPRangeTest.java</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
