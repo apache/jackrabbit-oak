@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class StandbyTestIT extends TestBase {
@@ -84,6 +85,7 @@ public class StandbyTestIT extends TestBase {
      * OAK-2430
      */
     @Test
+    @Ignore("OAK-4707")
     public void testSyncLoop() throws Exception {
         final int blobSize = 25 * 1024;
         final int dataNodes = 5000;
