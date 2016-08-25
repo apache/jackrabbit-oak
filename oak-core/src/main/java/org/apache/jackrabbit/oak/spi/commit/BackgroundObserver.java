@@ -94,6 +94,7 @@ public class BackgroundObserver implements Observer, Closeable {
     private static class ContentChange {
         private final NodeState root;
         private final CommitInfo info;
+        private final long created = System.currentTimeMillis();
         ContentChange(NodeState root, CommitInfo info) {
             this.root = root;
             this.info = info;
@@ -129,6 +130,7 @@ public class BackgroundObserver implements Observer, Closeable {
                     ContentChange change = queue.poll();
                     if (change != null && change != STOP) {
                         observer.contentChanged(change.root, change.info);
+                        removed(queue.size(), change.created);
                         currentTask.onComplete(completionHandler);
                     }
                 } catch (Throwable t) {
@@ -185,6 +187,15 @@ public class BackgroundObserver implements Observer, Closeable {
      * @param queueSize  size of the queue
      */
     protected void added(int queueSize) { }
+
+    /**
+     * Called when ever an item has been removed from the queue.
+     *
+     * @param queueSize the size of the queue after the item was removed.
+     * @param created the time in milliseconds when the removed item was put
+     *                into the queue.
+     */
+    protected void removed(int queueSize, long created) { }
 
     /**
      * @return  The max queue length used for this observer's queue
