@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
@@ -30,8 +29,6 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.junit.Test;
@@ -77,9 +74,11 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     }
 
     @Override
-    void collectExpectedPrincipals(Set<Principal> grPrincipals, @Nonnull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
-        super.collectExpectedPrincipals(grPrincipals, declaredGroups, depth);
-        grPrincipals.add(autoMembershipGroup.getPrincipal());
+    @Test
+    public void testFindPrincipalsByTypeAll() throws Exception {
+        Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
+        // not automembership principals expected here
+        assertEquals(super.getExpectedGroupPrincipals(USER_ID), res);
     }
 
     @Test
@@ -92,9 +91,6 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     @Test
     public void testGetGroupPrincipals() throws Exception {
-        ExternalUser externalUser = idp.getUser(USER_ID);
-        syncWithMembership(externalUser, 1);
-
         Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
 
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
@@ -106,9 +102,6 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
     @Test
     public void testGetPrincipals() throws Exception {
-        ExternalUser externalUser = idp.getUser(USER_ID);
-        syncWithMembership(externalUser, 1);
-
         Set<Principal> expected = getExpectedGroupPrincipals(USER_ID);
 
         Set<? extends Principal> result = principalProvider.getPrincipals(USER_ID);
