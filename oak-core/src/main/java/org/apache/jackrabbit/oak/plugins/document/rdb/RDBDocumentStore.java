@@ -1128,19 +1128,19 @@ public class RDBDocumentStore implements DocumentStore {
             String appendData = ser.asString(update);
 
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
-
                 Set<QueryContext> seenQueryContext = Collections.emptySet();
 
                 if (collection == Collection.NODES) {
+                    for (String id : chunkedIds) {
+                        nodesCache.invalidate(id);
+                    }
+
                     // keep concurrently running queries from updating
                     // the cache entry for this key
                     seenQueryContext = new HashSet<QueryContext>();
                     for (QueryContext qc : qmap.values()) {
                         qc.addKeys(chunkedIds);
                         seenQueryContext.add(qc);
-                    }
-                    for (String id : chunkedIds) {
-                        nodesCache.invalidate(id);
                     }
                 }
 
