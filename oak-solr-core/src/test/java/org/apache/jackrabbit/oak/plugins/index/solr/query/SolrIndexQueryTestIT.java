@@ -285,6 +285,7 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-4701")
     public void testRepSimilarXPathQuery() throws Exception {
         String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
         Tree test = root.getTree("/").addChild("test");
