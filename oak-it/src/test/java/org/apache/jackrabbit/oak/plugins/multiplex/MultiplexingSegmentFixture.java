@@ -32,14 +32,8 @@ public class MultiplexingSegmentFixture extends NodeStoreFixture {
 
     private static final String MOUNT_PATH = "/tmp";
     
-    private MultiplexingNodeStore store;
-
     @Override
     public NodeStore createNodeStore() {
-        
-        if ( store != null ) {
-            return store;
-        }
         
         try {
             MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
@@ -49,10 +43,7 @@ public class MultiplexingSegmentFixture extends NodeStoreFixture {
             NodeStore globalStore = SegmentNodeStore.builder(new MemoryStore()).build();
             NodeStore tempMount = SegmentNodeStore.builder(new MemoryStore()).build();
             
-            store = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("temp", tempMount).build();
-
-            
-            return store;
+            return new MultiplexingNodeStore.Builder(mip, globalStore).addMount("temp", tempMount).build();
         } catch (IOException e) {
             throw new RuntimeException();
         }
