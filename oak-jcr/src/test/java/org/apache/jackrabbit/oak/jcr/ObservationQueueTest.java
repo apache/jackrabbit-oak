@@ -44,6 +44,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -82,6 +83,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
     private static final String USER = "user";
     private static final String PASSWORD = "password";
     private static final long MB = 1024 * 1024;
+    private static final int NUM_CHILDREN = 100;
 
     private List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<Throwable>());
     private List<Session> sessions = Lists.newArrayList();
@@ -106,18 +108,19 @@ public class ObservationQueueTest extends AbstractClusterTest {
     public void heavyLoad() throws Throwable {
         List<Whiteboard> whiteboards = Lists.newArrayList(w1, w2);
         Iterator<Repository> repos = Iterators.cycle(r1, r2);
+        AtomicLong commitCounter = new AtomicLong();
         for (int i = 0; i < NUM_WRITERS; i++) {
             Session s = loginUser(repos.next());
             Node n = s.getRootNode().addNode("session-" + i, "oak:Unstructured");
             s.save();
-            writers.add(new Thread(new Writer(n)));
+            writers.add(new Thread(new Writer(n, commitCounter)));
         }
         for (int i = 0; i < NUM_READERS; i++) {
             Session s = loginUser(repos.next());
             readers.add(new Thread(new Reader(s)));
         }
         AtomicInteger queueLength = new AtomicInteger();
-        loggers.add(new Thread(new QueueLogger(whiteboards, queueLength)));
+        loggers.add(new Thread(new QueueLogger(whiteboards, queueLength, commitCounter)));
         for (int i = 0; i < NUM_OBSERVERS; i++) {
             Session s = loginUser(repos.next());
             observers.add(new Thread(new Observer(s, queueLength)));
@@ -145,7 +148,8 @@ public class ObservationQueueTest extends AbstractClusterTest {
                 return new DocumentMK.Builder().setClusterId(clusterNodeId)
                         .setMongoDB(MongoUtils.getConnection("oak-test").getDB())
                         .setPersistentCache("target/persistentCache" + clusterNodeId + ",time,size=128")
-                        .memoryCacheSize(256 * MB)
+                        .setJournalCache("target/journalCache" + clusterNodeId + ",time,size=128")
+                        .memoryCacheSize(128 * MB)
                         .getNodeStore();
             }
         };
@@ -209,7 +213,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
             Node node = nodes.get(r.nextInt(nodes.size()));
             for (int i = 0; i < 2 && node != null; i++) {
                 try {
-                    node = node.getNode("node-" + r.nextInt(100));
+                    node = node.getNode("node-" + r.nextInt(NUM_CHILDREN));
                     logRead(node);
                 } catch (PathNotFoundException e) {
                     // ignore
@@ -226,18 +230,20 @@ public class ObservationQueueTest extends AbstractClusterTest {
 
         private final Random r;
         private final Node node;
+        private final AtomicLong commitCounter;
 
-        public Writer(Node node) throws RepositoryException {
+        public Writer(Node node, AtomicLong commitCounter) throws RepositoryException {
             super(node.getSession());
             this.r = new Random();
             this.node = node;
+            this.commitCounter = commitCounter;
         }
 
         @Override
         void perform() throws Exception {
             Node p = node;
             for (int i = 0; i < 2; i++) {
-                p = JcrUtils.getOrAddNode(p, "node-" + r.nextInt(100), "oak:Unstructured");
+                p = JcrUtils.getOrAddNode(p, "node-" + r.nextInt(NUM_CHILDREN), "oak:Unstructured");
             }
             // set property or add node?
             if (r.nextBoolean()) {
@@ -253,6 +259,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
                 log("Add node {}", n.getPath());
             }
             s.save();
+            commitCounter.incrementAndGet();
         }
 
         void createNodes(Node parent, AtomicInteger remaining, int depth)
@@ -317,11 +324,15 @@ public class ObservationQueueTest extends AbstractClusterTest {
 
         private final List<Whiteboard> whiteboards;
         private final AtomicInteger queueLength;
+        private final AtomicLong commitCounter;
 
-        QueueLogger(List<Whiteboard> whiteboards, AtomicInteger queueLength) {
+        QueueLogger(List<Whiteboard> whiteboards,
+                    AtomicInteger queueLength,
+                    AtomicLong commitCounter) {
             super(null);
             this.whiteboards = whiteboards;
             this.queueLength = queueLength;
+            this.commitCounter = commitCounter;
         }
 
         @Override
@@ -330,7 +341,8 @@ public class ObservationQueueTest extends AbstractClusterTest {
             for (Whiteboard w : whiteboards) {
                 stats.add(queueStats(w));
             }
-            LOG.info("Observation queue stats: {}", stats);
+            LOG.info("Observation queue stats: {}, commits: {}",
+                    stats, commitCounter.get());
             Thread.sleep(1000);
         }
 
@@ -349,7 +361,17 @@ public class ObservationQueueTest extends AbstractClusterTest {
             if (len >= 0) {
                 queueLength.set(len);
             }
-            return "" + len + " (" + ext + ")";
+            int numListeners = 0;
+            long micros = 0;
+            for (EventListenerMBean bean : getServices(w, EventListenerMBean.class)) {
+                micros += bean.getMicrosecondsPerEventDelivery();
+                numListeners++;
+            }
+            List<String> stats = Lists.newArrayList();
+            stats.add(String.valueOf(len));
+            stats.add(String.valueOf(ext));
+            stats.add(String.valueOf(micros / numListeners));
+            return stats.toString();
         }
     }
 
