@@ -181,6 +181,10 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     private MultiplexingNodeState wrap(NodeState nodeState, String path) {
         
+        if ( nodeBuilder != null ) {
+            return new MultiplexingNodeState(path, nodeState, ctx, nodeBuilder);
+        }
+        
         return new MultiplexingNodeState(path, nodeState, ctx, checkpoints);
     }
 
