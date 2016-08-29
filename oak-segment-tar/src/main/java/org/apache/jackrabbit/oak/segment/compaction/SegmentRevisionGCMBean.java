@@ -102,4 +102,15 @@ public class SegmentRevisionGCMBean
     public void setRetainedGenerations(int retainedGenerations) {
         gcOptions.setRetainedGenerations(retainedGenerations);
     }
+
+    @Override
+    public long getGcSizeDeltaEstimation() {
+        return gcOptions.getGcSizeDeltaEstimation();
+    }
+
+    @Override
+    public void setGcSizeDeltaEstimation(long gcSizeDeltaEstimation) {
+        gcOptions.setGcSizeDeltaEstimation(gcSizeDeltaEstimation);
+    }
+
 }

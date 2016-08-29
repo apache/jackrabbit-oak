@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +38,12 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -61,7 +64,9 @@ import com.google.common.collect.Sets;
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.mergeSorted;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
@@ -967,7 +972,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 continue;
             }
             // first check local map, which contains most recent values
-            Value value = getLatestValue(nodeStore, local, readRevision, validRevisions, lastRevs);
+            Value value = getLatestValue(nodeStore, local.entrySet(),
+                    readRevision, validRevisions, lastRevs);
 
             // check if there may be more recent values in a previous document
             if (value != null
@@ -986,8 +992,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
 
             if (value == null && !getPreviousRanges().isEmpty()) {
-                // check complete revision history
-                value = getLatestValue(nodeStore, getValueMap(key), readRevision, validRevisions, lastRevs);
+                // check revision history
+                value = getLatestValue(nodeStore, getVisibleChanges(key, readRevision),
+                        readRevision, validRevisions, lastRevs);
             }
             String propertyName = Utils.unescapePropertyName(key);
             String v = value != null ? value.value : null;
@@ -1070,10 +1077,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                     Map<Revision, String> validRevisions,
                                     LastRevs lastRevs) {
         // check local deleted map first
-        Value value = getLatestValue(context, getLocalDeleted(), readRevision, validRevisions, lastRevs);
+        Value value = getLatestValue(context, getLocalDeleted().entrySet(), readRevision, validRevisions, lastRevs);
         if (value == null && !getPreviousRanges().isEmpty()) {
             // need to check complete map
-            value = getLatestValue(context, getDeleted(), readRevision, validRevisions, lastRevs);
+            value = getLatestValue(context, getDeleted().entrySet(), readRevision, validRevisions, lastRevs);
         }
 
         return value != null && "false".equals(value.value) ? value.revision : null;
@@ -1515,6 +1522,70 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return changes.get(0);
         } else {
             return Iterables.mergeSorted(changes, StableRevisionComparator.REVERSE);
+        }
+    }
+
+    /**
+     * Returns all changes for the given property that are visible from the
+     * {@code readRevision} vector. The revisions include committed as well as
+     * uncommitted changes. The returned revisions are sorted in reverse order
+     * (newest first).
+     *
+     * @param property the name of the property.
+     * @param readRevision the read revision vector.
+     * @return property changes visible from the given read revision vector.
+     */
+    @Nonnull
+    Iterable<Map.Entry<Revision, String>> getVisibleChanges(@Nonnull final String property,
+                                                            @Nonnull final RevisionVector readRevision) {
+        Predicate<Map.Entry<Revision, String>> p = new Predicate<Map.Entry<Revision, String>>() {
+            @Override
+            public boolean apply(Map.Entry<Revision, String> input) {
+                return !readRevision.isRevisionNewer(input.getKey());
+            }
+        };
+        List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
+        changes.add(filter(getLocalMap(property).entrySet(), p));
+
+        boolean overlapping = false;
+        List<Range> ranges = Lists.newArrayList();
+        long lowStamp = Long.MAX_VALUE;
+        for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
+            Range range = e.getValue();
+            if (!readRevision.isRevisionNewer(range.low)) {
+                ranges.add(range);
+                // check if overlapping
+                if (!overlapping) {
+                    overlapping = range.high.getTimestamp() >= lowStamp;
+                }
+                lowStamp = Math.min(lowStamp, range.low.getTimestamp());
+            }
+        }
+
+        if (!ranges.isEmpty()) {
+            Iterable<Iterable<Map.Entry<Revision, String>>> revs = transform(filter(transform(ranges,
+                    new Function<Range, NodeDocument>() {
+                @Override
+                public NodeDocument apply(Range input) {
+                    return getPreviousDoc(input.high, input);
+                }
+            }), Predicates.notNull()), new Function<NodeDocument, Iterable<Map.Entry<Revision, String>>>() {
+                @Override
+                public Iterable<Map.Entry<Revision, String>> apply(NodeDocument prev) {
+                    return prev.getVisibleChanges(property, readRevision);
+                }
+            });
+            if (overlapping) {
+                changes.add(mergeSorted(revs, ValueComparator.REVERSE));
+            } else {
+                changes.add(concat(revs));
+            }
+        }
+
+        if (changes.size() == 1) {
+            return changes.get(0);
+        } else {
+            return mergeSorted(changes, ValueComparator.REVERSE);
         }
     }
 
@@ -1965,11 +2036,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @CheckForNull
     private Value getLatestValue(@Nonnull RevisionContext context,
-                                 @Nonnull Map<Revision, String> valueMap,
+                                 @Nonnull Iterable<Map.Entry<Revision, String>> valueMap,
                                  @Nonnull RevisionVector readRevision,
                                  @Nonnull Map<Revision, String> validRevisions,
                                  @Nonnull LastRevs lastRevs) {
-        for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
+        for (Map.Entry<Revision, String> entry : valueMap) {
             Revision propRev = entry.getKey();
             String commitValue = validRevisions.get(propRev);
             if (commitValue == null) {
@@ -2186,6 +2257,26 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         Value(@Nonnull Revision revision, @Nullable String value) {
             this.revision = checkNotNull(revision);
             this.value = value;
+        }
+    }
+
+    private static final class ValueComparator implements
+            Comparator<Entry<Revision, String>> {
+
+        static final Comparator<Entry<Revision, String>> INSTANCE = new ValueComparator();
+
+        static final Comparator<Entry<Revision, String>> REVERSE = Collections.reverseOrder(INSTANCE);
+
+        private static final Ordering<String> STRING_ORDERING = Ordering.natural().nullsFirst();
+
+        @Override
+        public int compare(Entry<Revision, String> o1,
+                           Entry<Revision, String> o2) {
+            int cmp = StableRevisionComparator.INSTANCE.compare(o1.getKey(), o2.getKey());
+            if (cmp != 0) {
+                return cmp;
+            }
+            return STRING_ORDERING.compare(o1.getValue(), o2.getValue());
         }
     }
 }

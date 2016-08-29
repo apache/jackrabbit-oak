@@ -108,9 +108,23 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore implements SegmentStore, Closeable {
+
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final int MB = 1024 * 1024;
+
+    /**
+     * This value can be used as an invalid store version, since the store
+     * version is defined to be strictly greater than zero.
+     */
+    private static final int INVALID_STORE_VERSION = 0;
+
+    /**
+     * The store version is an always incrementing number, strictly greater than
+     * zero, that is changed every time there is a backwards incompatible
+     * modification to the format of the segment store.
+     */
+    private static final int CURRENT_STORE_VERSION = 1;
 
     private static final Pattern FILE_NAME_PATTERN =
             Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
@@ -118,6 +132,8 @@ public class FileStore implements SegmentStore, Closeable {
     private static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     private static final String LOCK_FILE_NAME = "repo.lock";
+
+    private static final String MANIFEST_FILE_NAME = "manifest";
 
     /**
      * GC counter for logging purposes
@@ -184,6 +200,8 @@ public class FileStore implements SegmentStore, Closeable {
 
     private final SegmentGCOptions gcOptions;
 
+    private final GCJournal gcJournal;
+
     /**
      * Flag to request revision cleanup during the next flush.
      */
@@ -230,7 +248,7 @@ public class FileStore implements SegmentStore, Closeable {
     };
 
     // FIXME OAK-4450: Properly split the FileStore into read-only and r/w variants
-    FileStore(FileStoreBuilder builder, final boolean readOnly) throws IOException {
+    FileStore(FileStoreBuilder builder, final boolean readOnly) throws InvalidFileStoreVersionException, IOException {
         this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
@@ -271,8 +289,18 @@ public class FileStore implements SegmentStore, Closeable {
         this.memoryMapping = builder.getMemoryMapping();
         this.gcListener = builder.getGcListener();
         this.gcOptions = builder.getGcOptions();
+        this.gcJournal = new GCJournal(directory);
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
+
+        Manifest manifest = Manifest.empty();
+
+        if (map.size() > 0) {
+            manifest = checkManifest(openManifest());
+        }
+
+        saveManifest(manifest);
+
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
@@ -371,6 +399,51 @@ public class FileStore implements SegmentStore, Closeable {
         return this;
     }
 
+    private File getManifestFile() {
+        return new File(directory, MANIFEST_FILE_NAME);
+    }
+
+    private Manifest openManifest() throws IOException {
+        File file = getManifestFile();
+
+        if (file.exists()) {
+            return Manifest.load(file);
+        }
+
+        return null;
+    }
+
+    private Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
+        if (manifest == null) {
+            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
+        }
+
+        int storeVersion = manifest.getStoreVersion(INVALID_STORE_VERSION);
+
+        // A store version less than or equal to the highest invalid value means
+        // that something or someone is messing up with the manifest. This error
+        // is not recoverable and is thus represented as an ISE.
+
+        if (storeVersion <= INVALID_STORE_VERSION) {
+            throw new IllegalStateException("Invalid store version");
+        }
+
+        if (storeVersion < CURRENT_STORE_VERSION) {
+            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
+        }
+
+        if (storeVersion > CURRENT_STORE_VERSION) {
+            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
+        }
+
+        return manifest;
+    }
+
+    private void saveManifest(Manifest manifest) throws IOException {
+        manifest.setStoreVersion(CURRENT_STORE_VERSION);
+        manifest.save(getManifestFile());
+    }
+
     @Nonnull
     private Supplier<RecordId> initialNode() {
         return new Supplier<RecordId>() {
@@ -460,34 +533,21 @@ public class FileStore implements SegmentStore, Closeable {
         } else {
             gcListener.info("TarMK GC #{}: estimation started", GC_COUNT);
             Supplier<Boolean> shutdown = newShutdownSignal();
-            CompactionGainEstimate estimate = estimateCompactionGain(shutdown);
+            GCEstimation estimate = estimateCompactionGain(shutdown);
             if (shutdown.get()) {
                 gcListener.info("TarMK GC #{}: estimation interrupted. Skipping compaction.", GC_COUNT);
             }
 
-            long gain = estimate.estimateCompactionGain();
-            sufficientEstimatedGain = gain >= gainThreshold;
+            sufficientEstimatedGain = estimate.gcNeeded();
+            String gcLog = estimate.gcLog();
             if (sufficientEstimatedGain) {
                 gcListener.info(
-                    "TarMK GC #{}: estimation completed in {} ({} ms). " +
-                    "Gain is {}% or {}/{} ({}/{} bytes), so running compaction",
-                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), gain,
-                        humanReadableByteCount(estimate.getReachableSize()), humanReadableByteCount(estimate.getTotalSize()),
-                        estimate.getReachableSize(), estimate.getTotalSize());
+                        "TarMK GC #{}: estimation completed in {} ({} ms). {}",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), gcLog);
             } else {
-                if (estimate.getTotalSize() == 0) {
-                    gcListener.skipped(
-                            "TarMK GC #{}: estimation completed in {} ({} ms). " +
-                            "Skipping compaction for now as repository consists of a single tar file only",
-                            GC_COUNT, watch, watch.elapsed(MILLISECONDS));
-                } else {
-                    gcListener.skipped(
-                        "TarMK GC #{}: estimation completed in {} ({} ms). " +
-                        "Gain is {}% or {}/{} ({}/{} bytes), so skipping compaction for now",
-                            GC_COUNT, watch, watch.elapsed(MILLISECONDS), gain,
-                            humanReadableByteCount(estimate.getReachableSize()), humanReadableByteCount(estimate.getTotalSize()),
-                            estimate.getReachableSize(), estimate.getTotalSize());
-                }
+                gcListener.skipped(
+                        "TarMK GC #{}: estimation completed in {} ({} ms). {}",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), gcLog);
             }
         }
 
@@ -660,8 +720,15 @@ public class FileStore implements SegmentStore, Closeable {
      * @param stop  signal for stopping the estimation process.
      * @return compaction gain estimate
      */
-    CompactionGainEstimate estimateCompactionGain(Supplier<Boolean> stop) {
-        CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(), count(), stop);
+    GCEstimation estimateCompactionGain(Supplier<Boolean> stop) {
+        if (gcOptions.isGcSizeDeltaEstimation()) {
+            SizeDeltaGcEstimation e = new SizeDeltaGcEstimation(gcOptions,
+                    gcJournal, stats.getApproximateSize());
+            return e;
+        }
+
+        CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(),
+                count(), stop, gcOptions.getGainThreshold());
         fileStoreLock.readLock().lock();
         try {
             for (TarReader reader : readers) {
@@ -743,14 +810,13 @@ public class FileStore implements SegmentStore, Closeable {
             @Nonnull String gcInfo)
     throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
-        long initialSize = size();
         Set<UUID> bulkRefs = newHashSet();
         Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
+        long initialSize = 0;
         fileStoreLock.writeLock().lock();
         try {
-            gcListener.info("TarMK GC #{}: cleanup started. Current repository size is {} ({} bytes)",
-                    GC_COUNT, humanReadableByteCount(initialSize), initialSize);
+            gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
 
             newWriter();
             segmentCache.clear();
@@ -759,18 +825,19 @@ public class FileStore implements SegmentStore, Closeable {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
-            for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                if (!isDataSegmentId(id.getLeastSignificantBits())) {
-                    bulkRefs.add(id.asUUID());
-                }
-            }
+            collectBulkReferences(bulkRefs);
+
             for (TarReader reader : readers) {
                 cleaned.put(reader, reader);
+                initialSize += reader.size();
             }
         } finally {
             fileStoreLock.writeLock().unlock();
         }
-
+        
+        gcListener.info("TarMK GC #{}: current repository size is {} ({} bytes)",
+                GC_COUNT, humanReadableByteCount(initialSize), initialSize);
+        
         Set<UUID> reclaim = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
             reader.mark(bulkRefs, reclaim, reclaimGeneration);
@@ -790,26 +857,31 @@ public class FileStore implements SegmentStore, Closeable {
             }
         }
 
+        // it doesn't account for concurrent commits that might have happened
+        long afterCleanupSize = 0;
+        
         List<TarReader> oldReaders = newArrayList();
         fileStoreLock.writeLock().lock();
         try {
             // Replace current list of reader with the cleaned readers taking care not to lose
             // any new reader that might have come in through concurrent calls to newWriter()
-            List<TarReader> newReaders = newArrayList();
+            List<TarReader> sweptReaders = newArrayList();
             for (TarReader reader : readers) {
                 if (cleaned.containsKey(reader)) {
                     TarReader newReader = cleaned.get(reader);
                     if (newReader != null) {
-                        newReaders.add(newReader);
+                        sweptReaders.add(newReader);
+                        afterCleanupSize += newReader.size();
                     }
+                    // if these two differ, the former represents the swept version of the latter
                     if (newReader != reader) {
                         oldReaders.add(reader);
                     }
                 } else {
-                    newReaders.add(reader);
+                    sweptReaders.add(reader);
                 }
             }
-            readers = newReaders;
+            readers = sweptReaders;
         } finally {
             fileStoreLock.writeLock().unlock();
         }
@@ -826,15 +898,29 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         long finalSize = size();
-        stats.reclaimed(initialSize - finalSize);
-        // FIXME OAK-4106: Reclaimed size reported by FileStore.cleanup is off
-        gcListener.cleaned(initialSize - finalSize, finalSize);
+        long reclaimedSize = initialSize - afterCleanupSize; 
+        stats.reclaimed(reclaimedSize);
+        gcJournal.persist(reclaimedSize, finalSize);
+        gcListener.cleaned(reclaimedSize, finalSize);
         gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                 " and space reclaimed {} ({} bytes).",
                 GC_COUNT, watch, watch.elapsed(MILLISECONDS),
                 humanReadableByteCount(finalSize), finalSize,
-                humanReadableByteCount(initialSize - finalSize), initialSize - finalSize);
+                humanReadableByteCount(reclaimedSize), reclaimedSize);
         return toRemove;
+    }
+
+    private void collectBulkReferences(Set<UUID> bulkRefs) {
+        Set<UUID> refs = newHashSet();
+        for (SegmentId id : tracker.getReferencedSegmentIds()) {
+            refs.add(id.asUUID());
+        }
+        tarWriter.collectReferences(refs);
+        for (UUID ref : refs) {
+            if (!isDataSegmentId(ref.getLeastSignificantBits())) {
+                bulkRefs.add(ref);
+            }
+        }
     }
 
     /**
@@ -1310,23 +1396,15 @@ public class FileStore implements SegmentStore, Closeable {
 
     @Override
     public void writeSegment(SegmentId id, byte[] buffer, int offset, int length) throws IOException {
-        fileStoreLock.writeLock().lock();
-        try {
-            int generation = Segment.getGcGeneration(wrap(buffer, offset, length), id.asUUID());
-            long size = tarWriter.writeEntry(
-                    id.getMostSignificantBits(),
-                    id.getLeastSignificantBits(),
-                    buffer, offset, length, generation);
-            if (size >= maxFileSize) {
-                newWriter();
-            }
-        } finally {
-            fileStoreLock.writeLock().unlock();
-        }
+        Segment segment = null;
 
-        // Keep this data segment in memory as it's likely to be accessed soon
+        // If the segment is a data segment, create a new instance of Segment to
+        // access some internal information stored in the segment and to store
+        // in an in-memory cache for later use.
+
         if (id.isDataSegmentId()) {
             ByteBuffer data;
+
             if (offset > 4096) {
                 data = ByteBuffer.allocate(length);
                 data.put(buffer, offset, length);
@@ -1334,7 +1412,49 @@ public class FileStore implements SegmentStore, Closeable {
             } else {
                 data = ByteBuffer.wrap(buffer, offset, length);
             }
-            segmentCache.putSegment(new Segment(this, segmentReader, id, data));
+
+            segment = new Segment(this, segmentReader, id, data);
+        }
+
+        fileStoreLock.writeLock().lock();
+        try {
+            int generation = Segment.getGcGeneration(wrap(buffer, offset, length), id.asUUID());
+
+            // Flush the segment to disk
+
+            long size = tarWriter.writeEntry(
+                    id.getMostSignificantBits(),
+                    id.getLeastSignificantBits(),
+                    buffer,
+                    offset,
+                    length,
+                    generation
+            );
+
+            // If the segment is a data segment, update the graph before
+            // (potentially) flushing the TAR file.
+
+            if (segment != null) {
+                UUID from = segment.getSegmentId().asUUID();
+
+                for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+                    tarWriter.addGraphEdge(from, segment.getReferencedSegmentId(i));
+                }
+            }
+
+            // Close the TAR file if the size exceeds the maximum.
+
+            if (size >= maxFileSize) {
+                newWriter();
+            }
+        } finally {
+            fileStoreLock.writeLock().unlock();
+        }
+
+        // Keep this data segment in memory as it's likely to be accessed soon.
+
+        if (segment != null) {
+            segmentCache.putSegment(segment);
         }
     }
 
@@ -1447,7 +1567,7 @@ public class FileStore implements SegmentStore, Closeable {
     public static class ReadOnlyStore extends FileStore {
         private RecordId currentHead;
 
-        ReadOnlyStore(FileStoreBuilder builder) throws IOException {
+        ReadOnlyStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
             super(builder, true);
         }
 

@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -74,7 +75,7 @@ public class ConsistencyChecker implements Closeable {
      * @throws IOException
      */
     public static String checkConsistency(File directory, String journalFileName,
-            boolean fullTraversal, long debugInterval, long binLen) throws IOException {
+            boolean fullTraversal, long debugInterval, long binLen) throws IOException, InvalidFileStoreVersionException {
         print("Searching for last good revision in {}", journalFileName);
         Set<String> badPaths = newHashSet();
         try (
@@ -117,7 +118,7 @@ public class ConsistencyChecker implements Closeable {
      * @throws IOException
      */
     public ConsistencyChecker(File directory, long debugInterval)
-            throws IOException {
+            throws IOException, InvalidFileStoreVersionException {
         store = fileStoreBuilder(directory).buildReadOnly();
         this.debugInterval = debugInterval;
     }

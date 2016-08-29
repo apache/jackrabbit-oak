@@ -45,13 +45,13 @@ public class ExternalSharedStoreIT extends DataStoreTestBase {
     }
 
     @Override
-    protected FileStore setupPrimary(File d) throws IOException {
+    protected FileStore setupPrimary(File d) throws Exception {
         externalStore = createTmpTargetDir("ExternalCommonStoreIT");
         return setupFileDataStore(d, externalStore.getAbsolutePath());
     }
 
     @Override
-    protected FileStore setupSecondary(File d) throws IOException {
+    protected FileStore setupSecondary(File d) throws Exception {
         return setupFileDataStore(d, externalStore.getAbsolutePath());
     }
 }

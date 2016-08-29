@@ -177,8 +177,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
                         updateSubject(tc, null, null);
                     } else {
                         // failed to create token -> fail commit()
-                        log.debug("TokenProvider failed to create a login token for user " + userId);
-                        throw new LoginException("Failed to create login token for user " + userId);
+                        Object logId = (userId != null) ? userId : sharedState.get(SHARED_KEY_LOGIN_NAME);
+                        log.debug("TokenProvider failed to create a login token for user " + logId);
+                        throw new LoginException("Failed to create login token for user " + logId);
                     }
                 }
             }

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
@@ -134,7 +133,7 @@ public class ReferenceBinaryIT {
     }
 
     @Parameterized.Parameters
-    public static Collection<Object[]> fixtures() throws IOException {
+    public static Collection<Object[]> fixtures() throws Exception {
         File file = getTestDir("tar");
         SegmentStore segmentStore = FileStore.builder(file)
                 .withBlobStore(createBlobStore())

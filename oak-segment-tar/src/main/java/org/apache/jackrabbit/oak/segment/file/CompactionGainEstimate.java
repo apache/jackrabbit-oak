@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.io.File;
 import java.util.UUID;
@@ -36,7 +37,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 
-class CompactionGainEstimate implements TarEntryVisitor {
+class CompactionGainEstimate implements TarEntryVisitor, GCEstimation {
 
     private static final Funnel<UUID> UUID_FUNNEL = new Funnel<UUID>() {
         @Override
@@ -48,9 +49,17 @@ class CompactionGainEstimate implements TarEntryVisitor {
 
     private final BloomFilter<UUID> uuids;
 
+    private final int gainThreshold;
+
     private long totalSize = 0;
 
     private long reachableSize = 0;
+
+    private boolean gcNeeded;
+
+    private String gcInfo = "unknown";
+
+    private boolean finished = false;
 
     /**
      * Create a new instance of gain estimator. The estimation process can be stopped
@@ -61,8 +70,10 @@ class CompactionGainEstimate implements TarEntryVisitor {
      * @param estimatedBulkCount
      * @param stop  stop signal
      */
-    CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount, Supplier<Boolean> stop) {
+    CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount,
+            Supplier<Boolean> stop, int gainThreshold) {
         uuids = BloomFilter.create(UUID_FUNNEL, estimatedBulkCount);
+        this.gainThreshold = gainThreshold;
         collectReferencedSegments(node, new RecordIdSet(), stop);
     }
 
@@ -111,12 +122,47 @@ class CompactionGainEstimate implements TarEntryVisitor {
         return 100 * (totalSize - reachableSize) / totalSize;
     }
 
-    public long getTotalSize() {
-        return totalSize;
+    private void run() {
+        if (finished) {
+            return;
+        }
+        long gain = estimateCompactionGain();
+        gcNeeded = gain >= gainThreshold;
+        if (gcNeeded) {
+            gcInfo = String
+                    .format("Gain is %s%% or %s/%s (%s/%s bytes), so running compaction",
+                            gain, humanReadableByteCount(reachableSize),
+                            humanReadableByteCount(totalSize),
+                            reachableSize, totalSize);
+        } else {
+            if (totalSize == 0) {
+                gcInfo = "Skipping compaction for now as repository consists of a single tar file only";
+            } else {
+                gcInfo = String
+                        .format("Gain is %s%% or %s/%s (%s/%s bytes), so skipping compaction for now",
+                                gain,
+                                humanReadableByteCount(reachableSize),
+                                humanReadableByteCount(totalSize),
+                                reachableSize, totalSize);
+            }
+        }
+        finished = true;
     }
 
-    public long getReachableSize() {
-        return reachableSize;
+    @Override
+    public boolean gcNeeded() {
+        if (!finished) {
+            run();
+        }
+        return gcNeeded;
+    }
+
+    @Override
+    public String gcLog() {
+        if (!finished) {
+            run();
+        }
+        return gcInfo;
     }
 
     // ---------------------------------------------------< TarEntryVisitor >--

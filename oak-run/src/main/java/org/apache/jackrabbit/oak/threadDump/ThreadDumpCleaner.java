@@ -50,6 +50,8 @@ public class ThreadDumpCleaner {
 
         "   Locked ownable synchronizers:(?s).*?\n\n",
 
+        "   Locked synchronizers:(?s).*?\n\n",
+
         "\".*?\".*?\n   java.lang.Thread.State: (TIMED_)?WAITING(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
@@ -90,6 +92,9 @@ public class ThreadDumpCleaner {
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
                 "at java.net.PlainSocketImpl.socketAvailable(?s).*?\n\n",
+
+        "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
+                "at java.net.PlainSocketImpl.socketConnect(?s).*?\n\n",
 
         "<EndOfDump>\n\n",
 

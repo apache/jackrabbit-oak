@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -65,7 +64,7 @@ public class SegmentGraphTest {
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         FileStore store = fileStoreBuilder(getStoreFolder()).build();
         try {
             SegmentNodeState root = store.getHead();
@@ -127,7 +126,7 @@ public class SegmentGraphTest {
     private static UUID getSegmentId(SegmentNodeState root) {return root.getSegment().getSegmentId().asUUID();}
 
     @Test
-    public void testSegmentGraph() throws IOException {
+    public void testSegmentGraph() throws Exception {
         ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store, Predicates.<UUID>alwaysTrue());
@@ -143,7 +142,7 @@ public class SegmentGraphTest {
     }
 
     @Test
-    public void testSegmentGraphWithFilter() throws IOException {
+    public void testSegmentGraphWithFilter() throws Exception {
         ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Predicate<UUID> filter = createRegExpFilter(".*(writer2|writer3).*", store);
@@ -160,7 +159,7 @@ public class SegmentGraphTest {
     }
 
     @Test
-    public void testGCGraph() throws IOException {
+    public void testGCGraph() throws Exception {
         // TODO Improve test coverage to non trivial cases with more than a single generation
         // This is quite tricky as there is no easy way to construct a file store with
         // a segment graphs having edges between generations (OAK-3348)

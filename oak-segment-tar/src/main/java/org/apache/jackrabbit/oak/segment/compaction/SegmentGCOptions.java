@@ -84,6 +84,9 @@ public class SegmentGCOptions {
             "oak.segment.compaction.binaryDeduplicationMaxSize",
             100 * 1024 * 1024);
 
+    private long gcSizeDeltaEstimation = Long.getLong(
+            "oak.segment.compaction.gcSizeDeltaEstimation", -1);
+
     public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
                             int retryCount, boolean forceAfterFail, int lockWaitTime) {
         this.paused = paused;
@@ -263,7 +266,8 @@ public class SegmentGCOptions {
                     ", retryCount=" + retryCount +
                     ", forceAfterFail=" + forceAfterFail +
                     ", lockWaitTime=" + lockWaitTime +
-                    ", retainedGenerations=" + retainedGenerations + "}";
+                    ", retainedGenerations=" + retainedGenerations +
+                    ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation + "}";
         }
     }
 
@@ -325,5 +329,18 @@ public class SegmentGCOptions {
 
     public long getBinaryDeduplicationMaxSize() {
         return this.ocBinMaxSize;
+    }
+
+    public boolean isGcSizeDeltaEstimation() {
+        return gcSizeDeltaEstimation >= 0;
+    }
+
+    public long getGcSizeDeltaEstimation() {
+        return gcSizeDeltaEstimation;
+    }
+
+    public SegmentGCOptions setGcSizeDeltaEstimation(long gcSizeDeltaEstimation) {
+        this.gcSizeDeltaEstimation = gcSizeDeltaEstimation;
+        return this;
     }
 }

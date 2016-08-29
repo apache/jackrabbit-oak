@@ -625,7 +625,7 @@ final class SegmentTarUtils {
 
     private static FileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
-                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .withBlobStore(blobStore)
                 .buildReadOnly();
@@ -633,7 +633,7 @@ final class SegmentTarUtils {
 
     private static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
-                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .buildReadOnly();
     }
@@ -641,7 +641,7 @@ final class SegmentTarUtils {
     private static FileStoreBuilder newFileStoreBuilder(String directory, boolean force)
             throws IOException {
         return fileStoreBuilder(checkFileStoreVersionOrFail(directory, force))
-                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED);
     }
 

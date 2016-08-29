@@ -61,7 +61,7 @@ public class RootFuzzIT {
 
     @Parameters
     public static Collection<Object[]> fixtures() {
-        return NodeStoreFixtures.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_MK));
+        return NodeStoreFixtures.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_TAR));
     }
 
     private static final int OP_COUNT = 5000;

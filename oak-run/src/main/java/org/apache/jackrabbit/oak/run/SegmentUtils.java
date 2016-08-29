@@ -84,6 +84,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -98,7 +99,7 @@ class SegmentUtils {
         // Prevent instantiation
     }
 
-    static NodeStore bootstrapNodeStore(String path, Closer closer) throws IOException {
+    static NodeStore bootstrapNodeStore(String path, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return SegmentNodeStore.builder(bootstrapFileStore(path, closer)).build();
     }
 
@@ -121,11 +122,11 @@ class SegmentUtils {
         }
     }
 
-    static void restore(File source, File target) throws IOException {
+    static void restore(File source, File target) throws IOException, InvalidFileStoreVersionException {
         FileStoreRestore.restore(source, target);
     }
 
-    static void debug(String... args) throws IOException {
+    static void debug(String... args) throws IOException, InvalidFileStoreVersionException {
         File file = new File(args[0]);
         System.out.println("Debug " + file);
         FileStore store = openReadOnlyFileStore(file);
@@ -154,18 +155,18 @@ class SegmentUtils {
         }
     }
 
-    static void history(File directory, File journal, String path, int depth) throws IOException {
+    static void history(File directory, File journal, String path, int depth) throws IOException, InvalidFileStoreVersionException {
         Iterable<RevisionHistory.HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
         for (RevisionHistory.HistoryElement historyElement : history) {
             System.out.println(historyElement.toString(depth));
         }
     }
 
-    static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException {
+    static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException, InvalidFileStoreVersionException {
         checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 
-    static void compact(File directory, boolean force) throws IOException {
+    static void compact(File directory, boolean force) throws IOException, InvalidFileStoreVersionException {
         FileStore store = openFileStore(directory.getAbsolutePath(), force);
         try {
             boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
@@ -225,7 +226,7 @@ class SegmentUtils {
         }
     }
 
-    static void diff(File store, File out, boolean listOnly, String interval, boolean incremental, String path, boolean ignoreSNFEs) throws IOException {
+    static void diff(File store, File out, boolean listOnly, String interval, boolean incremental, String path, boolean ignoreSNFEs) throws IOException, InvalidFileStoreVersionException {
         if (listOnly) {
             listRevs(store, out);
         } else {
@@ -233,11 +234,11 @@ class SegmentUtils {
         }
     }
 
-    private static FileStore bootstrapFileStore(String path, Closer closer) throws IOException {
+    private static FileStore bootstrapFileStore(String path, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return closer.register(bootstrapFileStore(path));
     }
 
-    private static FileStore bootstrapFileStore(String path) throws IOException {
+    private static FileStore bootstrapFileStore(String path) throws IOException, InvalidFileStoreVersionException {
         return FileStore.builder(new File(path)).build();
     }
 
@@ -259,7 +260,7 @@ class SegmentUtils {
         }
     }
 
-    private static void diff(File dir, String interval, boolean incremental, File out, String filter, boolean ignoreSNFEs) throws IOException {
+    private static void diff(File dir, String interval, boolean incremental, File out, String filter, boolean ignoreSNFEs) throws IOException, InvalidFileStoreVersionException {
         System.out.println("Store " + dir);
         System.out.println("Writing diff to " + out);
         String[] tokens = interval.trim().split("\\.\\.");

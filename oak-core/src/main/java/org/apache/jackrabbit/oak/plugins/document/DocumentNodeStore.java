@@ -435,7 +435,6 @@ public final class DocumentNodeStore
         } else {
             readOnlyMode = false;
         }
-        this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
 
@@ -454,9 +453,12 @@ public final class DocumentNodeStore
         if (builder.getLeaseCheck()) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
+        } else {
+            clusterNodeInfo.setLeaseCheckDisabled(true);
         }
 
         this.store = s;
+        this.changes = newJournalEntry();
         this.clusterId = cid;
         this.branches = new UnmergedBranches();
         this.asyncDelay = builder.getAsyncDelay();
@@ -651,6 +653,9 @@ public final class DocumentNodeStore
         }
         if (persistentCache != null) {
             persistentCache.close();
+        }
+        if (journalCache != null) {
+            journalCache.close();
         }
         LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
@@ -1057,7 +1062,25 @@ public final class DocumentNodeStore
                 String p = concat(parent.getPath(), input);
                 DocumentNodeState result = getNode(p, readRevision);
                 if (result == null) {
-                    throw new DocumentStoreException("DocumentNodeState is null for revision " + readRevision + " of " + p + " (aborting getChildNodes())");
+                    //This is very unexpected situation - parent's child list declares the child to exist, while
+                    //its node state is null. Let's put some extra effort to do some logging
+                    String id = Utils.getIdFromPath(p);
+                    String cachedDocStr, uncachedDocStr;
+                    try {
+                        cachedDocStr = store.find(Collection.NODES, id).asString();
+                    } catch (DocumentStoreException dse) {
+                        cachedDocStr = dse.toString();
+                    }
+                    try {
+                        uncachedDocStr = store.find(Collection.NODES, id, 0).asString();
+                    } catch (DocumentStoreException dse) {
+                        uncachedDocStr = dse.toString();
+                    }
+                    String exceptionMsg = String.format(
+                            "Aborting getChildNodes() - DocumentNodeState is null for %s at %s " +
+                                    "{\"cachedDoc\":{%s}, \"uncachedDoc\":{%s}}",
+                            readRevision, p, cachedDocStr, uncachedDocStr);
+                    throw new DocumentStoreException(exceptionMsg);
                 }
                 return result;
             }
@@ -2013,7 +2036,7 @@ public final class DocumentNodeStore
             public void acquiring(Revision mostRecent) {
                 if (store.create(JOURNAL, singletonList(changes.asUpdateOp(mostRecent)))) {
                     // success: start with a new document
-                    changes = JOURNAL.newDocument(getDocumentStore());
+                    changes = newJournalEntry();
                 } else {
                     // fail: log and keep the changes
                     LOG.error("Failed to write to journal, accumulating changes for future write (~" + changes.getMemory()
@@ -2024,6 +2047,10 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    private JournalEntry newJournalEntry() {
+        return new JournalEntry(store, true);
+    }
 
     /**
      * Performs an initial read of the _lastRevs on the root document and sets

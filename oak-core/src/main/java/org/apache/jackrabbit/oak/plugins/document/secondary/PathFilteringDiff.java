@@ -36,7 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDoc
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
-public class PathFilteringDiff extends ApplyDiff {
+class PathFilteringDiff extends ApplyDiff {
     private static final Logger logger = LoggerFactory.getLogger(PathFilteringDiff.class);
     private final DiffContext ctx;
     private final AbstractDocumentNodeState parent;
@@ -100,7 +100,7 @@ public class PathFilteringDiff extends ApplyDiff {
         return (AbstractDocumentNodeState) state;
     }
 
-    public static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder) {
+    static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder) {
         builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
         builder.setProperty(asPropertyState(PROP_LAST_REV, state.getLastRevision()));
         builder.setProperty(createProperty(PROP_PATH, state.getPath()));

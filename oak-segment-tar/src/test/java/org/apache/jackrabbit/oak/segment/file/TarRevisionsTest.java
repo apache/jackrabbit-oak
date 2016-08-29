@@ -64,7 +64,7 @@ public class TarRevisionsTest {
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         store = FileStoreBuilder.fileStoreBuilder(getFileStoreFolder()).build();
         revisions = store.getRevisions();
         reader = store.getReader();

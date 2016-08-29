@@ -57,7 +57,7 @@ class SegmentTarFixture extends OakFixture {
     public Oak getOak(int clusterId) throws Exception {
         FileStore fs = fileStoreBuilder(base)
                 .withMaxFileSize(maxFileSizeMB)
-                .withCacheSize(cacheSizeMB)
+                .withSegmentCacheSize(cacheSizeMB)
                 .withMemoryMapping(memoryMapping)
                 .build();
         return newOak(SegmentNodeStoreBuilders.builder(fs).build());
@@ -84,7 +84,7 @@ class SegmentTarFixture extends OakFixture {
             }
             stores[i] = builder
                     .withMaxFileSize(maxFileSizeMB)
-                    .withCacheSize(cacheSizeMB)
+                    .withSegmentCacheSize(cacheSizeMB)
                     .withMemoryMapping(memoryMapping)
                     .build();
             cluster[i] = newOak(SegmentNodeStoreBuilders.builder(stores[i]).build());

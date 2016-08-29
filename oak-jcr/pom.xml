@@ -78,7 +78,6 @@
       org.apache.jackrabbit.core.observation.ReorderTest                                           <!-- Uses SNS -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                       <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                    <!-- OAK-118 workspace support needed -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.ObservationTest#testEventDeniedNode     <!-- OAK-4196 -->
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testMerge

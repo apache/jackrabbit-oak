@@ -114,7 +114,7 @@ public class SegmentDataStoreBlobGCIT {
         this.usePersistedMap = usePersistedMap;
     }
 
-    protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
+    protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws Exception {
         if (nodeStore == null) {
             FileStore.Builder builder = FileStore.builder(getWorkDir())
                     .withBlobStore(blobStore).withMaxFileSize(256)

@@ -73,7 +73,7 @@ public class SegmentReferenceLimitTestIT {
     }
 
     @Test
-    public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
+    public void corruption() throws Exception {
         FileStore fileStore = FileStore.builder(getFileStoreFolder()).withMaxFileSize(1)
                 .withNoCache().withMemoryMapping(true).build();
         SegmentNodeStore nodeStore = SegmentNodeStore.builder(fileStore).build();

@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.management.openmbean.CompositeData;
 
-// FIXME OAK-4618: Align GCMonitorMBean MBean with new generation based GC
 /**
  * MBean for monitoring the revision garbage collection process of the
  * {@link FileStore}.
@@ -44,6 +42,16 @@ public interface GCMonitorMBean {
     String getLastCleanup();
 
     /**
+     * @return  repository size after the last cleanup.
+     */
+    long getLastRepositorySize();
+
+    /**
+     * @return  reclaimed size during the last cleanup.
+     */
+    long getLastReclaimedSize();
+
+    /**
      * @return  last error or {@code null} if none.
      */
     @CheckForNull
@@ -54,16 +62,4 @@ public interface GCMonitorMBean {
      */
     @Nonnull
     String getStatus();
-
-    /**
-     * @return  time series of the repository size
-     */
-    @Nonnull
-    CompositeData getRepositorySize();
-
-    /**
-     * @return  time series of the reclaimed space
-     */
-    @Nonnull
-    CompositeData getReclaimedSize();
 }

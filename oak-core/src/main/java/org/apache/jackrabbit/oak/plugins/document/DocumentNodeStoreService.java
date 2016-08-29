@@ -438,7 +438,7 @@ public class DocumentNodeStoreService {
                             // plan A: try stopping oak-core
                             log.error("handleLeaseFailure: stopping oak-core...");
                             Bundle bundle = context.getBundleContext().getBundle();
-                            bundle.stop();
+                            bundle.stop(Bundle.STOP_TRANSIENT);
                             log.error("handleLeaseFailure: stopped oak-core.");
                             // plan A worked, perfect!
                         } catch (BundleException e) {

@@ -84,7 +84,7 @@ public class RandomOpCompare {
 
     // @Before
     public void login() throws RepositoryException {
-        f1 = NodeStoreFixtures.SEGMENT_MK;
+        f1 = NodeStoreFixtures.SEGMENT_TAR;
         f2 = getMongo();
         
         ns1 = f1.createNodeStore();

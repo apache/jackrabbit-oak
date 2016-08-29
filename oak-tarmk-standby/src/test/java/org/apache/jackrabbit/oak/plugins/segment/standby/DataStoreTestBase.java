@@ -57,7 +57,7 @@ public class DataStoreTestBase extends TestBase {
         setUpServerAndClient();
     }
 
-    protected FileStore setupFileDataStore(File d, String path) throws IOException {
+    protected FileStore setupFileDataStore(File d, String path) throws Exception {
         FileDataStore fds = new FileDataStore();
         fds.setMinRecordLength(4092);
         fds.init(path);

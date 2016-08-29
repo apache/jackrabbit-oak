@@ -62,7 +62,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
@@ -220,16 +219,8 @@ public class SegmentCompactionIT {
     }
 
     @Before
-    public void setUp() throws IOException, MalformedObjectNameException, NotCompliantMBeanException,
-            InstanceAlreadyExistsException, MBeanRegistrationException {
+    public void setUp() throws Exception {
         assumeTrue(ENABLED);
-
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                fileStoreGCMonitor.run();
-            }
-        }, 1, 1, SECONDS);
 
         SegmentGCOptions gcOptions = defaultGCOptions().setLockWaitTime(lockWaitTime);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();

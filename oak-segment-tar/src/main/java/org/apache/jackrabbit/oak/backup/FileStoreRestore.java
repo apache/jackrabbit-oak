@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class FileStoreRestore {
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
     public static void restore(File source, File destination)
-            throws IOException {
+            throws IOException, InvalidFileStoreVersionException {
         if (!validFileStore(source)) {
             throw new IOException("Folder " + source
                     + " is not a valid FileStore directory");

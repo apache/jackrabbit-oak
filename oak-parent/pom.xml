@@ -42,7 +42,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.13.1</jackrabbit.version>
+    <jackrabbit.version>2.13.2</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -67,13 +67,13 @@
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
       more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
-      for the possible values: SEGMENT_MK DOCUMENT_NS DOCUMENT_RDB -->
-    <fixtures>SEGMENT_MK</fixtures>
+      for the possible values: SEGMENT_MK SEGMENT_TAR DOCUMENT_NS DOCUMENT_RDB -->
+    <fixtures>SEGMENT_TAR</fixtures>
 
    <!-- whether skip the surefire unit testing during the integration testing. 
       Override with -Dsurefire.skip.ut=true when needed -->
     <surefire.skip.ut>false</surefire.skip.ut>
-    <segment.tar.version>0.0.4</segment.tar.version>
+    <segment.tar.version>0.0.8</segment.tar.version>
   </properties>
 
   <issueManagement>
@@ -543,7 +543,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-math3</artifactId>
-        <version>3.2</version>
+        <version>3.6.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

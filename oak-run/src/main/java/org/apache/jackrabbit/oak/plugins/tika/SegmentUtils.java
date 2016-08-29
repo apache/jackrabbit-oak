@@ -23,6 +23,7 @@ import java.io.IOException;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -32,15 +33,15 @@ class SegmentUtils {
         // Prevent instantiation
     }
 
-    static NodeStore bootstrap(String path, BlobStore store, Closer closer) throws IOException {
+    static NodeStore bootstrap(String path, BlobStore store, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return SegmentNodeStore.builder(fileStore(path, store, closer)).build();
     }
 
-    private static FileStore fileStore(String path, BlobStore store, Closer closer) throws IOException {
+    private static FileStore fileStore(String path, BlobStore store, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return closer.register(fileStore(path, store));
     }
 
-    private static FileStore fileStore(String path, BlobStore store) throws IOException {
+    private static FileStore fileStore(String path, BlobStore store) throws IOException, InvalidFileStoreVersionException {
         return FileStore.builder(new File(path)).withBlobStore(store).build();
     }
 

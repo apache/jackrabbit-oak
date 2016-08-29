@@ -38,6 +38,7 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -173,7 +174,7 @@ public final class FileStoreHelper {
         return false;
     }
 
-    public static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException {
+    public static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException, InvalidFileStoreVersionException {
         File directory = new File(path);
         if (!directory.exists()) {
             return directory;
@@ -199,19 +200,20 @@ public final class FileStoreHelper {
         return directory;
     }
 
-    public static FileStore openFileStore(String directory) throws IOException {
+    public static FileStore openFileStore(String directory) throws IOException, InvalidFileStoreVersionException {
         return openFileStore(directory, false);
     }
 
     public static FileStore openFileStore(String directory, boolean force)
-            throws IOException {
+            throws IOException, InvalidFileStoreVersionException {
         return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).build();
     }
 
     public static FileStore openFileStore(String directory, boolean force,
-            BlobStore blobStore) throws IOException {
+            BlobStore blobStore
+    ) throws IOException, InvalidFileStoreVersionException {
         return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
@@ -219,7 +221,7 @@ public final class FileStoreHelper {
     }
 
     public static ReadOnlyStore openReadOnlyFileStore(File directory)
-            throws IOException {
+            throws IOException, InvalidFileStoreVersionException {
         return FileStore.builder(isValidFileStoreOrFail(directory))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
@@ -227,7 +229,8 @@ public final class FileStoreHelper {
     }
 
     public static ReadOnlyStore openReadOnlyFileStore(File directory,
-            BlobStore blobStore) throws IOException {
+            BlobStore blobStore
+    ) throws IOException, InvalidFileStoreVersionException {
         return FileStore.builder(isValidFileStoreOrFail(directory))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)

@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -52,7 +53,7 @@ public class RevisionHistory {
      * @param directory
      * @throws IOException
      */
-    public RevisionHistory(@Nonnull File directory) throws IOException {
+    public RevisionHistory(@Nonnull File directory) throws IOException, InvalidFileStoreVersionException {
         this.store = FileStore.builder(checkNotNull(directory)).buildReadOnly();
     }
 

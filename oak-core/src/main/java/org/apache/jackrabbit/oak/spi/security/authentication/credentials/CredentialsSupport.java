@@ -21,15 +21,12 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 
 /**
  * Simple helper interface that allows to easily plug support for additional or
  * custom {@link Credentials} implementations during authentication.
  *
- * @see AbstractLoginModule#getSupportedCredentials()
+ * @see org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule#getSupportedCredentials()
  * @see SimpleCredentialsSupport
  */
 public interface CredentialsSupport {
@@ -64,4 +61,15 @@ public interface CredentialsSupport {
      */
     @Nonnull
     Map<String, ?> getAttributes(@Nonnull Credentials credentials);
+
+    /**
+     * Writes the attributes to the specified {@code Credentials}.
+     * If the specified credentials are not supported or doesn't allow to write
+     * attributes this method will return {@code false}.
+     *
+     * @param credentials The credentials as passed to the repository login.
+     * @param attributes The attributes to be written to the given credentials.
+     * @return {@code true}, if the attributes were set; {@code false} otherwise.
+     */
+    boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes);
 }

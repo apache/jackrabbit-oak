@@ -92,31 +92,4 @@ public class SegmentIdFactoryTest {
         assertTrue(ids.contains(b));
     }
 
-    /**
-     * OAK-2049 - error for data segments
-     */
-    @Test(expected = IllegalStateException.class)
-    public void dataAIOOBE() throws IOException {
-        MemoryStore store = new MemoryStore();
-        Segment segment = store.getRevisions().getHead().getSegment();
-        byte[] buffer = new byte[segment.size()];
-        segment.readBytes(Segment.MAX_SEGMENT_SIZE - segment.size(), buffer, 0, segment.size());
-
-        SegmentId id = store.newDataSegmentId();
-        ByteBuffer data = ByteBuffer.wrap(buffer);
-        Segment s = new Segment(store, store.getReader(), id, data);
-        s.getRefId(1);
-    }
-
-    /**
-     * OAK-2049 - error for bulk segments
-     */
-    @Test(expected = IllegalStateException.class)
-    public void bulkAIOOBE() {
-        SegmentId id = store.newBulkSegmentId();
-        ByteBuffer data = ByteBuffer.allocate(4);
-        Segment s = new Segment(store, store.getReader(), id, data);
-        s.getRefId(1);
-    }
-
 }

@@ -21,4 +21,5 @@ package org.apache.jackrabbit.oak.segment;
 public interface SegmentStoreProvider {
 
     SegmentStore getSegmentStore();
+
 }

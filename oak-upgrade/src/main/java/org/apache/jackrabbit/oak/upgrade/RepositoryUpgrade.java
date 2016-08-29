@@ -580,7 +580,7 @@ public class RepositoryUpgrade {
         return true;
     }
 
-    private static EditorProvider createTypeEditorProvider() {
+    static EditorProvider createTypeEditorProvider() {
         return new EditorProvider() {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
@@ -597,7 +597,7 @@ public class RepositoryUpgrade {
         };
     }
 
-    private static EditorProvider createIndexEditorProvider() {
+    static EditorProvider createIndexEditorProvider() {
         final ProgressTicker ticker = new AsciiArtTicker();
         return new EditorProvider() {
             @Override
