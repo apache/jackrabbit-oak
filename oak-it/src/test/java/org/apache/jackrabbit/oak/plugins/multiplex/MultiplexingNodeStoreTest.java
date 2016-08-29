@@ -536,6 +536,70 @@ public class MultiplexingNodeStoreTest {
     }
     
     @Test
+    public void freshBuilderForGlobalStore() {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        assertFalse("builder.isNew", builder.isNew());
+        assertFalse("builder.isModified", builder.isModified());
+        assertFalse("builder.isReplaced", builder.isReplaced());
+    }
+    
+    @Test
+    public void freshBuilderForMountedStore() {
+        
+        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        
+        assertFalse("builder.isNew", builder.isNew());
+        assertFalse("builder.isModified", builder.isModified());
+        assertFalse("builder.isReplaced", builder.isReplaced());
+    }
+    
+    @Test
+    public void newBuilderForGlobalStore() {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder = builder.child("newChild");
+        
+        assertTrue("builder.isNew", builder.isNew());
+        assertFalse("builder.isModified", builder.isModified());
+        assertFalse("builder.isReplaced", builder.isReplaced());
+    }
+    
+    @Test
+    public void newBuilderForMountedStore() {
+        
+        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        
+        builder = builder.child("newChild");
+        
+        assertTrue("builder.isNew", builder.isNew());
+        assertFalse("builder.isModified", builder.isModified());
+        assertFalse("builder.isReplaced", builder.isReplaced());
+    }    
+    
+    @Test
+    public void replacedBuilderForGlobalStore() {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder = builder.setChildNode("libs");
+        
+        assertTrue("builder.isReplaced", builder.isReplaced());
+    }
+    
+    @Test
+    public void replacedBuilderForMountedStore() {
+        
+        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        
+        builder = builder.setChildNode("child1");
+        
+        assertTrue("builder.isReplaced", builder.isReplaced());
+    }
+    
+    @Test
     public void readChildNodeBasedOnPathFragment() throws Exception {
      
         NodeBuilder builder = globalStore.getRoot().builder();
