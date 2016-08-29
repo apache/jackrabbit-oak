@@ -311,13 +311,19 @@ public class RepositorySidegrade {
 
         markIndexesToBeRebuilt(targetRoot);
 
-        // type validation, reference and indexing hooks
-        hooks.add(new EditorHook(new CompositeEditorProvider(
-                createTypeEditorProvider(),
-                createIndexEditorProvider()
-        )));
+        if (!isCompleteMigration()) {
+            // type validation, reference and indexing hooks
+            hooks.add(new EditorHook(new CompositeEditorProvider(
+                    createTypeEditorProvider(),
+                    createIndexEditorProvider()
+            )));
+        }
 
         target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+    }
+
+    private boolean isCompleteMigration() {
+        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
