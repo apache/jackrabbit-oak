@@ -201,8 +201,12 @@ public class MultiplexingNodeStore implements NodeStore {
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
         
         // global store is always first
-        return new MultiplexingNodeState("/", globalStore.getNodeStore().retrieve(checkpoints.get(0)), 
-                ctx, checkpoints);
+        NodeState globalStoreNodeState = globalStore.getNodeStore().retrieve(checkpoints.get(0));
+        if ( globalStoreNodeState == null ) {
+            return null;
+        }
+        
+        return new MultiplexingNodeState("/", globalStoreNodeState, ctx, checkpoints);
     }
 
     @Override
