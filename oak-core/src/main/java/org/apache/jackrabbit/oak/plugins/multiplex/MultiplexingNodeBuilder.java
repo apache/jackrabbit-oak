@@ -50,7 +50,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     @Override
     public NodeState getNodeState() {
         // TODO - cache?
-        return new MultiplexingNodeState(path, wrappedBuilder.getNodeState(), ctx);
+        return new MultiplexingNodeState(path, wrappedBuilder.getNodeState(), ctx, this);
     }
 
     @Override

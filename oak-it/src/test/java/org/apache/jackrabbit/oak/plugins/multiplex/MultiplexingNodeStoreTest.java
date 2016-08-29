@@ -435,6 +435,25 @@ public class MultiplexingNodeStoreTest {
     }
     
     @Test
+    public void builderStateIsUpdatedBeforeMergeinGlobalStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("newChild");
+        
+        assertTrue("Newly created node should be visible in the builder's node state", builder.hasChildNode("newChild"));
+    }
+    
+    @Test
+    public void builderStateIsUpdatedBeforeMergeinMountedStore() throws Exception {
+        
+        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        builder.child("newChild");
+        
+        assertTrue("Newly created node should be visible in the builder's node state", builder.hasChildNode("newChild"));
+    }
+    
+    
+    @Test
     public void builderHasPropertyNameInRootStore() {
         
         assertFalse("Node 'nope' does not exist", store.getRoot().builder().hasChildNode("nope"));

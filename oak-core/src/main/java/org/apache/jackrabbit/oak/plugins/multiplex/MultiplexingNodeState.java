@@ -52,6 +52,7 @@ public class MultiplexingNodeState extends AbstractNodeState {
     private final NodeState wrapped;
     private final MultiplexingContext ctx;
     private final List<String> checkpoints;
+    private final MultiplexingNodeBuilder nodeBuilder;
 
     public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, List<String> checkpoints) {
         
@@ -59,12 +60,21 @@ public class MultiplexingNodeState extends AbstractNodeState {
         this.wrapped = wrapped;
         this.ctx = ctx;
         this.checkpoints = checkpoints;
+        this.nodeBuilder = null;
     }
-
     
     public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx) {
         
         this(path, wrapped, ctx, Collections.<String> emptyList());
+    }
+    
+    public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, MultiplexingNodeBuilder nodeBuilder) {
+        
+        this.path = path;
+        this.wrapped = wrapped;
+        this.ctx = ctx;
+        this.checkpoints = Collections.emptyList();
+        this.nodeBuilder = nodeBuilder;
     }
 
     @Override
@@ -179,7 +189,9 @@ public class MultiplexingNodeState extends AbstractNodeState {
         NodeStore nodeStore = mountedNodeStore.getNodeStore();
         
         NodeState root;
-        if ( checkpoints.isEmpty() ) {
+        if ( nodeBuilder != null && nodeBuilder.getAffectedBuilders().containsKey(mountedNodeStore) ) {
+            root = nodeBuilder.getAffectedBuilders().get(mountedNodeStore).getNodeState();
+        } else if ( checkpoints.isEmpty() ) {
             root = nodeStore.getRoot();
         } else {
             root = nodeStore.retrieve(ctx.getCheckpoint(nodeStore, checkpoints));
