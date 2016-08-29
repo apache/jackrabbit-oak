@@ -159,7 +159,7 @@ public enum StoreType {
                 return t;
             }
         }
-        return SEGMENT;
+        return SEGMENT_TAR;
     }
 
     public abstract boolean matches(String argument);
