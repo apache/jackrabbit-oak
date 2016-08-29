@@ -85,29 +85,29 @@ public class TarNodeStore implements NodeStore {
     @Nonnull
     @Override
     public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
-        return checkpoint(lifetime, properties);
+        return ns.checkpoint(lifetime, properties);
     }
 
     @Nonnull
     @Override
     public String checkpoint(long lifetime) {
-        return checkpoint(lifetime);
+        return ns.checkpoint(lifetime);
     }
 
     @Nonnull
     @Override
     public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
-        return checkpointInfo(checkpoint);
+        return ns.checkpointInfo(checkpoint);
     }
 
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
-        return retrieve(checkpoint);
+        return ns.retrieve(checkpoint);
     }
 
     @Override
     public boolean release(@Nonnull String checkpoint) {
-        return release(checkpoint);
+        return ns.release(checkpoint);
     }
 
     interface SuperRootProvider {
