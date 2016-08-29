@@ -595,6 +595,28 @@ public class MultiplexingNodeStoreTest {
     }
     
     @Test
+    public void resetOnGlobalStore() {
+        
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("newChild");
+        
+        store.reset(builder);
+        
+        assertFalse("Newly added child should no longer be visible after reset", builder.hasChildNode("newChild"));
+    }
+    
+    @Test
+    public void resetOnMountedStore() {
+        
+        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        builder.child("newChild");
+        
+        store.reset(builder);
+        
+        assertFalse("Newly added child should no longer be visible after reset", builder.getChildNode("tmp").hasChildNode("newChild"));
+    }
+    
+    @Test
     @Ignore("Not implemented")
     public void readOnlyMountRejectsChanges() {
         

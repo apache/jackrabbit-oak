@@ -99,8 +99,20 @@ public class MultiplexingNodeStore implements NodeStore {
 
     @Override
     public NodeState reset(NodeBuilder builder) {
-        // TODO Auto-generated method stub
-        return null;
+        checkArgument(builder instanceof MultiplexingNodeBuilder);
+        
+        MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
+        
+        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
+            
+            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
+            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
+            
+            nodeStore.reset(affectedBuilder);
+        }
+        
+        // TODO - is this correct or do we need a specific path?
+        return getRoot();
     }
 
     @Override
