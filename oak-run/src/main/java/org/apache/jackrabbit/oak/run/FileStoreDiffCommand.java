@@ -38,7 +38,7 @@ class FileStoreDiffCommand implements Command {
         OptionSpec<?> incrementalO = parser.accepts("incremental", "Runs diffs between each subsequent revisions in the provided interval");
         OptionSpec<String> pathO = parser.accepts("path", "Filter diff by given path").withRequiredArg().ofType(String.class).defaultsTo("/");
         OptionSpec<?> ignoreSNFEsO = parser.accepts("ignore-snfes", "Ignores SegmentNotFoundExceptions and continues running the diff (experimental)");
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.has(help)) {
@@ -61,10 +61,10 @@ class FileStoreDiffCommand implements Command {
         String path = pathO.value(options);
         boolean ignoreSNFEs = options.has(ignoreSNFEsO);
 
-        if (options.has(segmentTar)) {
-            SegmentTarUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
-        } else {
+        if (options.has(segment)) {
             SegmentUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
+        } else {
+            SegmentTarUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
         }
     }
 

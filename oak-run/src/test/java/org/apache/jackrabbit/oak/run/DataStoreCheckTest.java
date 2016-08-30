@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,9 +47,10 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.SegmentBlob;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,9 +63,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link DataStoreCheckCommand}
@@ -90,11 +91,12 @@ public class DataStoreCheckTest {
 
         File storeFile = temporaryFolder.newFolder();
         storePath = storeFile.getAbsolutePath();
-        FileStore.Builder builder = FileStore.builder(storeFile)
-            .withBlobStore(blobStore).withMaxFileSize(256)
-            .withCacheSize(64).withMemoryMapping(false);
-        FileStore fileStore = builder.build();
-        NodeStore store = SegmentNodeStore.builder(fileStore).build();
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(storeFile)
+                .withBlobStore(blobStore)
+                .withMaxFileSize(256)
+                .withSegmentCacheSize(64)
+                .build();
+        NodeStore store = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         /* Create nodes with blobs stored in DS*/
         NodeBuilder a = store.getRoot().builder();

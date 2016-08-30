@@ -84,7 +84,7 @@ class ResetClusterIdCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().isEmpty()) {
@@ -105,12 +105,12 @@ class ResetClusterIdCommand implements Command {
                         .getNodeStore();
                 closer.register(Utils.asCloseable(dns));
                 store = dns;
-            } else if (options.has(segmentTar)) {
-                store = SegmentTarUtils.bootstrapNodeStore(source, closer);
-            } else {
+            } else if (options.has(segment)) {
                 FileStore fs = openFileStore(source);
                 closer.register(Utils.asCloseable(fs));
                 store = SegmentNodeStore.builder(fs).build();
+            } else {
+                store = SegmentTarUtils.bootstrapNodeStore(source, closer);
             }
             
             deleteClusterId(store);

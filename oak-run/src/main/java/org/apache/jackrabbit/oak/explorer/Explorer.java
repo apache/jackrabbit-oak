@@ -59,7 +59,7 @@ public class Explorer {
 
     public static void main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSpec skipSizeCheck = parser.accepts("skip-size-check", "Don't compute the size of the records");
         OptionSpec<File> nonOptions = parser.nonOptions().ofType(File.class);
         OptionSet options = parser.parse(args);
@@ -73,10 +73,10 @@ public class Explorer {
 
         ExplorerBackend backend;
 
-        if (options.has(segmentTar)) {
-            backend = new SegmentTarExplorerBackend(path);
-        } else {
+        if (options.has(segment)) {
             backend = new SegmentExplorerBackend(path);
+        } else {
+            backend = new SegmentTarExplorerBackend(path);
         }
 
         new Explorer(path, backend, options.has(skipSizeCheck));
