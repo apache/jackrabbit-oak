@@ -66,7 +66,7 @@ class FileReaper {
 
         for (File file : reap) {
             try {
-                Files.delete(file.toPath());
+                Files.deleteIfExists(file.toPath());
                 logger.info("Removed file {}", file);
             } catch (IOException e) {
                 logger.warn(String.format("Unable to remove file %s", file), e);
