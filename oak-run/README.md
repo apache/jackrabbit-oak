@@ -17,8 +17,6 @@ The following runmodes are currently available:
     * graph           : Export the segment graph of a segment store to a file.
     * history         : Trace the history of a node
     * check           : Check the FileStore for inconsistencies
-    * primary         : Run a TarMK Cold Standby primary instance
-    * standby         : Run a TarMK Cold Standby standby instance
     * scalability     : Run scalability tests against different Oak repository fixtures.
     * recovery        : Run a _lastRev recovery on a MongoMK repository
     * checkpoints     : Manage checkpoints
@@ -201,33 +199,6 @@ output.
     Traversed 11612889 nodes and 27511640 properties
     Found latest good revision 84d693cb-f214-4d19-a1cd-8b5766d50fdb:250028
     Searched through 2 of 390523 revisions
-
-Primary
--------
-
-The 'primary' mode starts a TarMK Cold Standby primary instance (master) listening on a TCP/IP port for connecting slaves.
-
-    $ java -jar oak-run-*.jar primary [options] /path/to/TarMK
-
-The following options are available:
-
-    --port 8023            - port to listen at
-    --admissible 127.0.0.1 - admissible client IP range or host name
-    --secure               - use secure connections
-
-Standby
--------
-
-The 'standby' mode starts a TarMK Cold Standby standby instance (slave) to create or update a continuous backup from a Cold Standby primary.
-
-    $ java -jar oak-run-*.jar standby [options] /path/to/TarMK
-
-The following options are available:
-
-    --port 8023            - port to connect to
-    --host 127.0.0.1       - host to connect to
-    --secure               - use secure connections
-    --interval 5           - schedule the slave to run continuously, connecting every n seconds
 
 Compact
 -------
