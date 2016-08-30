@@ -42,7 +42,7 @@ class CompactCommand implements Command {
                 "Path to segment store (required)").ofType(String.class);
         OptionSpec<Void> forceFlag = parser.accepts(
                 "force", "Force compaction and ignore non matching segment version");
-        OptionSpec<?> segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         String path = directoryArg.value(options);
@@ -70,10 +70,10 @@ class CompactCommand implements Command {
         System.out.println("    -> compacting");
 
         try {
-            if (options.has(segmentTar)) {
-                SegmentTarUtils.compact(directory, force);
-            } else {
+            if (options.has(segment)) {
                 SegmentUtils.compact(directory, force);
+            } else {
+                SegmentTarUtils.compact(directory, force);
             }
             success = true;
         } catch (Throwable e) {

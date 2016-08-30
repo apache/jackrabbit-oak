@@ -28,7 +28,7 @@ class BackupCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().size() < 2) {
@@ -39,10 +39,11 @@ class BackupCommand implements Command {
         File source = new File(options.nonOptionArguments().get(0).toString());
         File target = new File(options.nonOptionArguments().get(1).toString());
 
-        if (options.has(segmentTar)) {
-            SegmentTarUtils.backup(source, target);
-        } else {
+        if (options.has(segment)) {
             SegmentUtils.backup(source, target);
+        } else {
+            SegmentTarUtils.backup(source, target);
+
         }
     }
 

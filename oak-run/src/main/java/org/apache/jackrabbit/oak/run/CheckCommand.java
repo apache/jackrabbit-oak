@@ -44,7 +44,7 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
                 "bin", "read the n first bytes from binary properties. -1 for all bytes.")
                 .withOptionalArg().ofType(Long.class).defaultsTo(0L);
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
         OptionSet options = parser.parse(args);
 
@@ -60,10 +60,10 @@ class CheckCommand implements Command {
         long debugLevel = deep.value(options);
         long binLen = bin.value(options);
 
-        if (options.has(segmentTar)) {
-            SegmentTarUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
-        } else {
+        if (options.has(segment)) {
             SegmentUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
+        } else {
+            SegmentTarUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
         }
     }
 
