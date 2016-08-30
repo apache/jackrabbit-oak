@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 
@@ -61,7 +62,12 @@ public class IncludeExcludeSidegradeTest extends IncludeExcludeUpgradeTest {
 
     @Override
     protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
-        FileStore fileStore = fileStoreBuilder(source).build();
+        FileStore fileStore;
+        try {
+            fileStore = fileStoreBuilder(source).build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             final RepositorySidegrade sidegrade = new RepositorySidegrade(segmentNodeStore, target);

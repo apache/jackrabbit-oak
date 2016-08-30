@@ -37,6 +37,7 @@ import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -73,6 +74,8 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
             upgradeComplete = false;
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
         }
     }
 

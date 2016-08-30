@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -86,7 +87,12 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
     @Override
     protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
-        FileStore fileStore = fileStoreBuilder(source).build();
+        FileStore fileStore;
+        try {
+            fileStore = fileStoreBuilder(source).build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);

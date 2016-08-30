@@ -85,8 +85,9 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryElement;
@@ -108,11 +109,19 @@ final class SegmentTarUtils {
     }
 
     static NodeStore bootstrapNodeStore(String path, Closer closer) throws IOException {
-        return SegmentNodeStoreBuilders.builder(bootstrapFileStore(path, closer)).build();
+        try {
+            return SegmentNodeStoreBuilders.builder(bootstrapFileStore(path, closer)).build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     static BlobReferenceRetriever newBlobReferenceRetriever(String path, Closer closer) throws IOException {
-        return new SegmentBlobReferenceRetriever(closer.register(openFileStore(path, false)));
+        try {
+            return new SegmentBlobReferenceRetriever(closer.register(openFileStore(path, false)));
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     static void backup(File source, File target) throws IOException {
@@ -134,13 +143,22 @@ final class SegmentTarUtils {
     }
 
     static void restore(File source, File target) throws IOException {
-        FileStoreRestore.restore(source, target);
+        try {
+            FileStoreRestore.restore(source, target);
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     static void debug(String... args) throws IOException {
         File file = new File(args[0]);
         System.out.println("Debug " + file);
-        FileStore store = openReadOnlyFileStore(file);
+        FileStore store;
+        try {
+            store = openReadOnlyFileStore(file);
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         try {
             if (args.length == 1) {
                 debugFileStore(store);
@@ -167,7 +185,12 @@ final class SegmentTarUtils {
     }
 
     static void history(File directory, File journal, String path, int depth) throws IOException {
-        Iterator<HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
+        Iterator<HistoryElement> history;
+        try {
+            history = new RevisionHistory(directory).getHistory(journal, path);
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         while (history.hasNext()) {
             RevisionHistory.HistoryElement historyElement = history.next();
             System.out.println(historyElement.toString(depth));
@@ -175,12 +198,21 @@ final class SegmentTarUtils {
     }
 
     static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException {
-        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
+        try {
+            checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     static void compact(File directory, boolean force) throws IOException {
-        FileStore store = newFileStoreBuilder(directory.getAbsolutePath(),
-                force).withGCOptions(defaultGCOptions().setOffline()).build();
+        FileStore store;
+        try {
+            store = newFileStoreBuilder(directory.getAbsolutePath(),
+                    force).withGCOptions(defaultGCOptions().setOffline()).build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         try {
             store.compact();
         } finally {
@@ -188,8 +220,12 @@ final class SegmentTarUtils {
         }
 
         System.out.println("    -> cleaning up");
-        store = newFileStoreBuilder(directory.getAbsolutePath(), force)
-                .withGCOptions(defaultGCOptions().setOffline()).build();
+        try {
+            store = newFileStoreBuilder(directory.getAbsolutePath(), force)
+                    .withGCOptions(defaultGCOptions().setOffline()).build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         try {
             for (File file : store.cleanup()) {
                 if (!file.exists() || file.delete()) {
@@ -225,16 +261,21 @@ final class SegmentTarUtils {
     static void diff(File store, File out, boolean listOnly, String interval, boolean incremental, String path, boolean ignoreSNFEs) throws IOException {
         if (listOnly) {
             listRevs(store, out);
-        } else {
+            return;
+        }
+
+        try {
             diff(store, interval, incremental, out, path, ignoreSNFEs);
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
         }
     }
 
-    private static FileStore bootstrapFileStore(String path, Closer closer) throws IOException {
+    private static FileStore bootstrapFileStore(String path, Closer closer) throws IOException, InvalidFileStoreVersionException {
         return closer.register(bootstrapFileStore(path));
     }
 
-    private static FileStore bootstrapFileStore(String path) throws IOException {
+    private static FileStore bootstrapFileStore(String path) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(new File(path)).build();
     }
 
@@ -284,7 +325,7 @@ final class SegmentTarUtils {
         return revs;
     }
 
-    private static void diff(File dir, String interval, boolean incremental, File out, String filter, boolean ignoreSNFEs) throws IOException {
+    private static void diff(File dir, String interval, boolean incremental, File out, String filter, boolean ignoreSNFEs) throws IOException, InvalidFileStoreVersionException {
         System.out.println("Store " + dir);
         System.out.println("Writing diff to " + out);
         String[] tokens = interval.trim().split("\\.\\.");
@@ -374,6 +415,19 @@ final class SegmentTarUtils {
         }
     }
 
+    private static List<SegmentId> getReferencedIds(FileStore store, Segment segment) {
+        List<SegmentId> segmentIds = new ArrayList<>();
+
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            UUID uuid = segment.getReferencedSegmentId(i);
+            long msb = uuid.getMostSignificantBits();
+            long lsb = uuid.getLeastSignificantBits();
+            segmentIds.add(store.newSegmentId(msb, lsb));
+        }
+
+        return segmentIds;
+    }
+
     private static void debugFileStore(FileStore store) {
         Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
         int dataCount = 0;
@@ -389,7 +443,7 @@ final class SegmentTarUtils {
                 Segment segment = id.getSegment();
                 dataCount++;
                 dataSize += segment.size();
-                idmap.put(id, segment.getReferencedIds());
+                idmap.put(id, getReferencedIds(store, segment));
                 analyseSegment(segment, analyser);
             } else if (id.isBulkSegmentId()) {
                 bulkCount++;
@@ -623,7 +677,7 @@ final class SegmentTarUtils {
         }
     }
 
-    private static FileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException {
+    private static FileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
@@ -631,26 +685,24 @@ final class SegmentTarUtils {
                 .buildReadOnly();
     }
 
-    private static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException {
+    private static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .buildReadOnly();
     }
 
-    private static FileStoreBuilder newFileStoreBuilder(String directory, boolean force)
-            throws IOException {
+    private static FileStoreBuilder newFileStoreBuilder(String directory, boolean force) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(checkFileStoreVersionOrFail(directory, force))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED);
     }
 
-    private static FileStore openFileStore(String directory, boolean force)
-            throws IOException {
+    private static FileStore openFileStore(String directory, boolean force) throws IOException, InvalidFileStoreVersionException {
         return newFileStoreBuilder(directory, force).build();
     }
 
-    private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException {
+    private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException, InvalidFileStoreVersionException {
         File directory = new File(path);
         if (!directory.exists()) {
             return directory;

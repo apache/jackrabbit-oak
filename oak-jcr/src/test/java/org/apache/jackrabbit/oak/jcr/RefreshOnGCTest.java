@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -116,7 +115,7 @@ public class RefreshOnGCTest {
         return SegmentNodeStore.builder(fileStore).build();
     }
 
-    private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws IOException {
+    private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws Exception {
         final org.apache.jackrabbit.oak.segment.file.FileStore fileStore =
                 fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
         compact = new Callable<Void>() {
