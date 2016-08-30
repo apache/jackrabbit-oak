@@ -402,4 +402,33 @@ public class RevisionVectorTest {
         RevisionVector rvFromStr = RevisionVector.fromString(rvstr);
         assertEquals(rv, rvFromStr);
     }
+
+    @Test
+    public void toStringBuilder() throws Exception {
+        RevisionVector rv = new RevisionVector();
+        StringBuilder sb = new StringBuilder();
+        rv.toStringBuilder(sb);
+        assertEquals("", sb.toString());
+
+        rv = new RevisionVector(
+                new Revision(1, 0, 1),
+                new Revision(2, 0, 2)
+        );
+        rv.toStringBuilder(sb);
+        assertEquals(rv.toString(), sb.toString());
+    }
+
+    @Test
+    public void getDimensions() throws Exception {
+        RevisionVector rv = new RevisionVector();
+        assertEquals(0, rv.getDimensions());
+        rv = new RevisionVector(
+                new Revision(1, 0, 1),
+                new Revision(2, 0, 2)
+        );
+        assertEquals(2, rv.getDimensions());
+        rv = rv.remove(1);
+        assertEquals(1, rv.getDimensions());
+
+    }
 }

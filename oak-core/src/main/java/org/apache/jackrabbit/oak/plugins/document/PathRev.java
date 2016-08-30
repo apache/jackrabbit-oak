@@ -68,7 +68,12 @@ public final class PathRev implements CacheValue {
 
     @Override
     public String toString() {
-        return path + "@" + revision;
+        int dim = revision.getDimensions();
+        StringBuilder sb = new StringBuilder(path.length() + (Revision.REV_STRING_APPROX_SIZE + 1) * dim);
+        sb.append(path);
+        sb.append("@");
+        revision.toStringBuilder(sb);
+        return sb.toString();
     }
 
     public String asString() {
