@@ -326,13 +326,25 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             return "";
         }
         StringBuilder sb = new StringBuilder(len * Revision.REV_STRING_APPROX_SIZE + len - 1);
-        for (int i = 0; i < len; i++) {
+        return toStringBuilder(sb).toString();
+    }
+
+    /**
+     * Appends the string representation of this revision vector to the passed
+     * {@code StringBuilder}. The string representation is the same as returned
+     * by {@link #asString()}.
+     *
+     * @param sb the {@code StringBuilder} this revision vector is appended to.
+     * @return the passed {@code StringBuilder} object.
+     */
+    public StringBuilder toStringBuilder(StringBuilder sb) {
+        for (int i = 0; i < revisions.length; i++) {
             if (i > 0) {
                 sb.append(',');
             }
             revisions[i].toStringBuilder(sb);
         }
-        return sb.toString();
+        return sb;
     }
 
     /**
@@ -395,6 +407,16 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                     "] does not have a revision for clusterId " + clusterId);
         }
         return new RevisionVector(revs, false, false);
+    }
+
+    /**
+     * Returns the dimensions of this revision vector. That is, the number of
+     * revision elements in this vector.
+     *
+     * @return the number of revision elements in this vector.
+     */
+    public int getDimensions() {
+        return revisions.length;
     }
 
     //------------------------< CacheValue >------------------------------------
