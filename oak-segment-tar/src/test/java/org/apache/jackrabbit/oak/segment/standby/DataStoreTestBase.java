@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
-import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -48,7 +47,10 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.io.ByteStreams;
 
 public class DataStoreTestBase extends TestBase {
 
@@ -91,6 +93,7 @@ public class DataStoreTestBase extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testSync() throws Exception {
         final int mb = 1 * 1024 * 1024;
         final int blobSize = 5 * mb;
@@ -128,36 +131,43 @@ public class DataStoreTestBase extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxySkippedBytes() throws Exception {
         useProxy(100, 1, -1, false);
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxySkippedBytesIntermediateChange() throws Exception {
         useProxy(100, 1, -1, true);
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxyFlippedStartByte() throws Exception {
         useProxy(0, 0, 0, false);
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByte() throws Exception {
         useProxy(0, 0, 150, false);
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByte2() throws Exception {
         useProxy(0, 0, 150000, false);
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByteChange() throws Exception {
         useProxy(0, 0, 150, true);
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByteChange2() throws Exception {
         useProxy(0, 0, 150000, true);
     }
