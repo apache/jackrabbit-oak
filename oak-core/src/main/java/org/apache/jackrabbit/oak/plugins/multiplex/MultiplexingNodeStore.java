@@ -19,16 +19,20 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -46,7 +50,7 @@ import com.google.common.collect.Maps;
  * A <tt>NodeStore</tt> implementation that multiplexes multiple <tt>MemoryNodeStore</tt> instances
  *
  */
-public class MultiplexingNodeStore implements NodeStore {
+public class MultiplexingNodeStore implements NodeStore, Observable {
     
     // TODO - define concurrency model
     //
@@ -66,6 +70,8 @@ public class MultiplexingNodeStore implements NodeStore {
     private final List<MountedNodeStore> nonDefaultStores;
 
     private final MultiplexingContext ctx;
+    
+    private final List<Observer> observers = new CopyOnWriteArrayList<>();
     
     private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
 
@@ -109,8 +115,12 @@ public class MultiplexingNodeStore implements NodeStore {
             nodeStore.merge(affectedBuilder, commitHook, info);
         }
         
-        // TODO - is this correct or do we need a specific path?
-        return getRoot();
+        NodeState newRoot = getRoot();
+        for ( Observer observer: observers ) {
+            observer.contentChanged(newRoot, info);
+        }
+        
+        return newRoot;
    }
 
     @Override
@@ -245,6 +255,20 @@ public class MultiplexingNodeStore implements NodeStore {
         }
         
         return result;
+    }
+    
+    public Closeable addObserver(final Observer observer) {
+        
+        observer.contentChanged(getRoot(), null);
+        
+        observers.add(observer);
+        
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                observers.remove(observer);
+            }
+        };
     }
     
     public static class Builder {
