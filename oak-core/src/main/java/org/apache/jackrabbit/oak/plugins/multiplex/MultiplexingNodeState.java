@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -53,28 +55,32 @@ public class MultiplexingNodeState extends AbstractNodeState {
     private final MultiplexingContext ctx;
     private final List<String> checkpoints;
     private final MultiplexingNodeBuilder nodeBuilder;
+    private final Map<MountedNodeStore, NodeState> nodeStates;
 
     public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, List<String> checkpoints) {
         
-        this.path = path;
-        this.wrapped = wrapped;
-        this.ctx = ctx;
-        this.checkpoints = checkpoints;
-        this.nodeBuilder = null;
+        this(path, wrapped, ctx, checkpoints, null, Collections.<MountedNodeStore, NodeState> emptyMap());
     }
     
-    public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx) {
+    public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, Map<MountedNodeStore, NodeState> nodeStates) {
         
-        this(path, wrapped, ctx, Collections.<String> emptyList());
+        this(path, wrapped, ctx, Collections.<String> emptyList(), null, nodeStates);
     }
     
     public MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, MultiplexingNodeBuilder nodeBuilder) {
         
+        this(path, wrapped, ctx, Collections.<String> emptyList(), nodeBuilder, Collections.<MountedNodeStore, NodeState> emptyMap());
+        
+    }
+
+    private MultiplexingNodeState(String path, NodeState wrapped, MultiplexingContext ctx, List<String> checkpoints,
+            MultiplexingNodeBuilder nodeBuilder, Map<MountedNodeStore, NodeState> nodeStates) {
         this.path = path;
         this.wrapped = wrapped;
         this.ctx = ctx;
-        this.checkpoints = Collections.emptyList();
+        this.checkpoints = checkpoints;
         this.nodeBuilder = nodeBuilder;
+        this.nodeStates = nodeStates;
     }
 
     @Override
@@ -162,6 +168,8 @@ public class MultiplexingNodeState extends AbstractNodeState {
     @Override
     public NodeBuilder builder() {
         
+        // TODO - use the internal NodeState instead of calling getRoot()
+        
         // register the initial builder as affected as it's already instantiated
         Map<MountedNodeStore, NodeBuilder> affectedBuilders = Maps.newHashMap();
         MountedNodeStore owningStore = ctx.getOwningStore(path);
@@ -174,6 +182,16 @@ public class MultiplexingNodeState extends AbstractNodeState {
         for ( String segment : PathUtils.elements(path))
             builder = builder.getChildNode(segment);
         
+        for ( MountedNodeStore mountedStore : nodeStates.keySet() ) {
+            
+            // TODO - prevent overwriting the builder for the root store
+            if ( affectedBuilders.containsKey(mountedStore)) {
+                continue;
+            }
+            
+            affectedBuilders.put(mountedStore, mountedStore.getNodeStore().getRoot().builder());
+        }
+        
         return new MultiplexingNodeBuilder(path, builder, ctx, affectedBuilders);
     }
 
@@ -181,25 +199,23 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     private MultiplexingNodeState wrap(NodeState nodeState, String path) {
         
-        if ( nodeBuilder != null ) {
-            return new MultiplexingNodeState(path, nodeState, ctx, nodeBuilder);
-        }
-        
-        return new MultiplexingNodeState(path, nodeState, ctx, checkpoints);
+        return new MultiplexingNodeState(path, nodeState, ctx, checkpoints, nodeBuilder, nodeStates);
     }
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
-        
+                
         NodeStore nodeStore = mountedNodeStore.getNodeStore();
         
         NodeState root;
-        if ( nodeBuilder != null && nodeBuilder.getAffectedBuilders().containsKey(mountedNodeStore) ) {
+        if ( nodeBuilder != null) {
             root = nodeBuilder.getAffectedBuilders().get(mountedNodeStore).getNodeState();
-        } else if ( checkpoints.isEmpty() ) {
-            root = nodeStore.getRoot();
-        } else {
+        } else if ( !checkpoints.isEmpty() ) {
             root = nodeStore.retrieve(ctx.getCheckpoint(nodeStore, checkpoints));
+        } else {
+            root = nodeStates.get(mountedNodeStore);            
         }
+        
+        checkNotNull(root, "NodeState is null for mount named %s, nodePath %s", mountedNodeStore.getMount().getName(), nodePath);
         
         return getChildNode(root, nodePath);
     }

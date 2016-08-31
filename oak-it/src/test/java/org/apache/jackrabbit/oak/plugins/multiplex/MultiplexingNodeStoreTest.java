@@ -681,6 +681,36 @@ public class MultiplexingNodeStoreTest {
     }
     
     @Test
+    public void oldNodeStateDoesNotRefreshOnGlobalStore() throws Exception {
+        
+        NodeState old = store.getRoot();
+        
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("newNode");
+        
+        assertFalse("old NodeState should not see newly added child node before merge ", old.hasChildNode("newNode"));
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertFalse("old NodeState should not see newly added child node after merge ", old.hasChildNode("newNode"));
+    }
+    
+    @Test
+    public void oldNodeStateDoesNotRefreshOnMountedStore() throws Exception {
+        
+        NodeState old = store.getRoot();
+        
+        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        builder.child("newNode");
+        
+        assertFalse("old NodeState should not see newly added child node before merge ", old.getChildNode("tmp").hasChildNode("newNode"));
+        
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertFalse("old NodeState should not see newly added child node after merge ", old.getChildNode("tmp").hasChildNode("newNode"));
+    }    
+    
+    @Test
     @Ignore("Not implemented")
     public void readOnlyMountRejectsChanges() {
         

@@ -14,6 +14,8 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.collect.Maps;
+
 public class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final String path;
@@ -55,8 +57,15 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getBaseState() {
+        
+        // TODO - refactor into a common data structure MountedNodeStore -> {NodeState, NodeBuilder}
+        Map<MountedNodeStore, NodeState> nodeStates = Maps.newHashMap();
+        for ( Map.Entry<MountedNodeStore, NodeBuilder> entry : affectedBuilders.entrySet()) {
+            nodeStates.put(entry.getKey(), entry.getValue().getBaseState());
+        }
+        
         // TODO - cache?
-        return new MultiplexingNodeState(path, wrappedBuilder.getBaseState(), ctx);
+        return new MultiplexingNodeState(path, wrappedBuilder.getBaseState(), ctx, nodeStates);
     }
     
     // node or property-related methods ; directly delegate to wrapped builder

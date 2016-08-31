@@ -40,6 +40,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * A <tt>NodeStore</tt> implementation that multiplexes multiple <tt>MemoryNodeStore</tt> instances
@@ -76,8 +77,21 @@ public class MultiplexingNodeStore implements NodeStore {
 
     @Override
     public NodeState getRoot() {
+        
+        // the multiplexed root state exposes the node states as they are
+        // at this certain point in time, so we eagerly retrieve them from all stores
+        
+        // register the initial builder as affected as it's already instantiated
+        Map<MountedNodeStore, NodeState> nodeStates = Maps.newHashMap();
+        MountedNodeStore owningStore = ctx.getOwningStore("/");
+        NodeState rootState = owningStore.getNodeStore().getRoot();
+        nodeStates.put(owningStore, rootState);
+        
+        for ( MountedNodeStore nodeStore : nonDefaultStores ) {
+            nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
+        }
 
-        return new MultiplexingNodeState("/", globalStore.getNodeStore().getRoot(), ctx);
+        return new MultiplexingNodeState("/", rootState, ctx, nodeStates);
     }
 
     @Override
