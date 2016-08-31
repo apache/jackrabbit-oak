@@ -102,7 +102,6 @@
                 <version>2.19.1</version>
                 <configuration>
                     <systemPropertyVariables>
-                    	<nsfixtures>SEGMENT_TAR</nsfixtures>
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
@@ -114,7 +113,6 @@
                 <version>2.19.1</version>
                 <configuration>
                     <systemPropertyVariables>
-                        <nsfixtures>SEGMENT_TAR</nsfixtures>
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
