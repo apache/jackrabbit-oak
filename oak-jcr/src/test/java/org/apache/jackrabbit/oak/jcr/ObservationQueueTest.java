@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -150,6 +151,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
                         .setPersistentCache("target/persistentCache" + clusterNodeId + ",time,size=128")
                         .setJournalCache("target/journalCache" + clusterNodeId + ",time,size=128")
                         .memoryCacheSize(128 * MB)
+                        .setExecutor(Executors.newCachedThreadPool())
                         .getNodeStore();
             }
         };
