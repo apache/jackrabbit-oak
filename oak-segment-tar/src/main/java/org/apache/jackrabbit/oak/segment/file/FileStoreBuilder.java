@@ -335,7 +335,7 @@ public class FileStoreBuilder {
     @Nonnull
     public FileStore build() throws InvalidFileStoreVersionException, IOException {
         checkState(revisions == null, "Cannot re-use builder");
-        directory.mkdir();
+        directory.mkdirs();
         revisions = new TarRevisions(false, directory);
         LOG.info("Creating file store {}", this);
         return new FileStore(this, false).bind(revisions);
