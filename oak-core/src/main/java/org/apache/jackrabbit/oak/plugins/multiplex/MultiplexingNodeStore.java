@@ -47,6 +47,14 @@ import com.google.common.collect.Lists;
  */
 public class MultiplexingNodeStore implements NodeStore {
     
+    // TODO - define concurrency model
+    //
+    // This implementation operates on multiple mounted stores and is generally expected to be 
+    // thread safe. From a publication point of view this is achieved. It is up for debate
+    // whether we need to make operations atomic, or rely on the internal consistency of the
+    // mounted repositories. It's possible that there is some unfortunate interleaving of
+    // operations which would ultimately require us to have some sort of global ordering.
+    
     private static final char CHECKPOINT_MARKER = '|';
 
     private static final Splitter CHECKPOINT_SPLITTER = Splitter.on(CHECKPOINT_MARKER);
