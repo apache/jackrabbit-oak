@@ -25,13 +25,10 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.commons.CIHelper;
-import org.apache.jackrabbit.oak.commons.FixturesHelper;
-import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
 import org.junit.BeforeClass;
@@ -47,8 +44,6 @@ public class TestBase {
     final static String LOCALHOST = "127.0.0.1";
 
     static final int timeout = Integer.getInteger("standby.test.timeout", 500);
-
-    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
     File directoryS;
     FileStore storeS;
@@ -68,7 +63,6 @@ public class TestBase {
     @BeforeClass
     public static void assumptions() {
         assumeTrue(!CIHelper.travis());
-        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_TAR));
     }
 
     public void setUpServerAndClient() throws Exception {
