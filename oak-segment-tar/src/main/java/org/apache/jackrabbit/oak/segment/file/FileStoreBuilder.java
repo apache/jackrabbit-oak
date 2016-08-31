@@ -79,7 +79,7 @@ public class FileStoreBuilder {
 
     private int nodeDeduplicationCacheDepth = DEFAULT_NODE_CACHE_DEPTH;
 
-    private boolean memoryMapping;
+    private boolean memoryMapping = FileStore.MEMORY_MAPPING_DEFAULT;
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
