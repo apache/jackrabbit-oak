@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class FailoverIPRangeTest extends TestBase {
@@ -103,6 +104,7 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testFailoverCorrectList() throws Exception {
         createTestWithConfig(new String[]{"foobar","127-128","126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
     }
@@ -127,6 +129,7 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testFailoverCorrectListIPv6UseIPv6() throws Exception {
         if (!noDualStackSupport) {
             createTestWithConfig("::1", new String[]{"foobar", "122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
