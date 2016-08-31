@@ -529,7 +529,9 @@ public final class DocumentNodeStore
         // initialize branchCommits
         branches.init(store, this);
 
-        dispatcher = new ChangeDispatcher(getRoot());
+        dispatcher = builder.isPrefetchExternalChanges() ?
+                new PrefetchDispatcher(getRoot(), executor) :
+                new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
         String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store);

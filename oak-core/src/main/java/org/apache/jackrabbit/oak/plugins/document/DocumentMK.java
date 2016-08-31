@@ -568,6 +568,7 @@ public class DocumentMK {
         private boolean useSimpleRevision;
         private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
         private boolean disableBranches;
+        private boolean prefetchExternalChanges;
         private Clock clock = Clock.SIMPLE;
         private Executor executor;
         private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
@@ -1025,6 +1026,15 @@ public class DocumentMK {
 
         public boolean isDisableBranches() {
             return disableBranches;
+        }
+
+        public Builder setPrefetchExternalChanges(boolean b) {
+            prefetchExternalChanges = b;
+            return this;
+        }
+
+        public boolean isPrefetchExternalChanges() {
+            return prefetchExternalChanges;
         }
 
         VersionGCSupport createVersionGCSupport() {
