@@ -24,7 +24,7 @@ public class OptionParserFactory {
 
     public static final String COPY_BINARIES = "copy-binaries";
 
-    public static final String MMAP = "mmap";
+    public static final String DISABLE_MMAP = "disable-mmap";
 
     public static final String FAIL_ON_ERROR = "fail-on-error";
 
@@ -140,7 +140,7 @@ public class OptionParserFactory {
     }
 
     private static void addMiscOptions(OptionParser op) {
-        op.accepts(MMAP, "Enable memory mapped file access for Segment Store");
+        op.accepts(DISABLE_MMAP, "Disable memory mapped file access for Segment Store");
         op.accepts(FAIL_ON_ERROR, "Fail completely if nodes can't be read from the source repo");
         op.accepts(EARLY_SHUTDOWN,
                 "Shutdown the source repository after nodes are copied and before the commit hooks are applied");
