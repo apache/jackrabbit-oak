@@ -1174,7 +1174,7 @@ public final class DocumentNodeStore
                 }
             }
             if (children != null) {
-                PathRev afterKey = new PathRev(path, before.update(rev));
+                PathRev afterKey = new PathRev(path, beforeState.getLastRevision().update(rev));
                 // are there any added or removed children?
                 if (added.isEmpty() && removed.isEmpty()) {
                     // simply use the same list
