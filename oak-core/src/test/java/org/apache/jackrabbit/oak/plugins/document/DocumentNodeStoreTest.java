@@ -2746,18 +2746,20 @@ public class DocumentNodeStoreTest {
                                                       String fromKey,
                                                       String toKey,
                                                       int limit) {
-                numQueries.incrementAndGet();
+                if (collection == Collection.NODES) {
+                    numQueries.incrementAndGet();
+                }
                 return super.query(collection, fromKey, toKey, limit);
             }
         };
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setDocumentStore(store).getNodeStore();
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("node-1");
         merge(ns1, builder);
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setDocumentStore(store).getNodeStore();
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
         builder = ns2.getRoot().builder();
         builder.child("node-2");
         merge(ns2, builder);
