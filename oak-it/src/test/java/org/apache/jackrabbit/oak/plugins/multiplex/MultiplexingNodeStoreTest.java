@@ -503,12 +503,13 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void builderBasedOnRootStoreChildNode() throws Exception {
         
-        NodeBuilder appsBuilder = store.getRoot().getChildNode("apps").builder();
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appsBuilder = builder.getChildNode("apps");
         
         appsBuilder.removeProperty("prop");
         appsBuilder.setChildNode("child1");
         
-        store.merge(appsBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
         assertFalse("Node apps must have no properties (multiplexed store)", store.getRoot().getChildNode("apps").hasProperty("prop"));
         assertFalse("Node apps must have no properties (root store)", globalStore.getRoot().getChildNode("apps").hasProperty("prop"));
@@ -520,12 +521,13 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void builderBasedOnMountStoreChildNode() throws Exception {
 
-        NodeBuilder tmpBuilder = store.getRoot().getChildNode("tmp").builder();
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder tmpBuilder = builder.getChildNode("tmp");
         
         tmpBuilder.removeProperty("prop1");
         tmpBuilder.setChildNode("child3");
         
-        store.merge(tmpBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
         assertFalse("Node tmp must have no properties (multiplexed store)", store.getRoot().getChildNode("tmp").hasProperty("prop1"));
         assertFalse("Node tmp must have no properties (mounted store)", mountedStore.getRoot().getChildNode("tmp").hasProperty("prop1"));
@@ -700,8 +702,9 @@ public class MultiplexingNodeStoreTest {
         
         NodeState old = store.getRoot();
         
-        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
-        builder.child("newNode");
+        NodeBuilder builder = store.getRoot().builder();
+        
+        builder.getChildNode("tmp").child("newNode");
         
         assertFalse("old NodeState should not see newly added child node before merge ", old.getChildNode("tmp").hasChildNode("newNode"));
         

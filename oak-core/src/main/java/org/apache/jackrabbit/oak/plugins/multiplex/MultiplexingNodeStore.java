@@ -107,6 +107,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         
+        // since we maintain a mapping of _root_ NodeBuilder instances for all mounted stores
+        // we need to check ourselves against merging a non-root node
+
+        checkArgument(nodeBuilder.getPath().equals("/"));
+        
         for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
             
             NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
