@@ -2795,6 +2795,54 @@ public class DocumentNodeStoreTest {
         assertEquals(0, numQueries.get());
     }
 
+    // OAK-4733
+    @Test
+    public void localChangesFromCache2() throws Exception {
+        final Set<String> finds = Sets.newHashSet();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T getIfCached(Collection<T> collection,
+                                                      String key) {
+                return super.find(collection, key);
+            }
+
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (collection == Collection.NODES) {
+                    finds.add(key);
+                }
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("node-1");
+        merge(ns1, builder);
+        ns1.runBackgroundOperations();
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+        builder = ns2.getRoot().builder();
+        builder.child("node-2");
+        merge(ns2, builder);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        builder = ns1.getRoot().builder();
+        builder.child("node-1").child("foo");
+        merge(ns1, builder);
+
+        // adding /node-1/bar must not result in a find on the document store
+        // because the previous merge added 'foo' to a node that did not
+        // have any nodes before
+        finds.clear();
+        builder = ns1.getRoot().builder();
+        builder.child("node-1").child("bar");
+        merge(ns1, builder);
+        assertFalse(finds.contains(Utils.getIdFromPath("/node-1/bar")));
+    }
+
     private static class TestException extends RuntimeException {
 
     }
