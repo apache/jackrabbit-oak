@@ -54,12 +54,17 @@ public class SegmentGCOptions {
     /**
      * Default value for {@link #getLockWaitTime()}
      */
-    public static final int LOCK_WAIT_TIME_DEFAULT = 60000;
+    public static final int LOCK_WAIT_TIME_DEFAULT = 60;
 
     /**
      * Default value for {@link #getRetainedGenerations()}
      */
     public static final int RETAINED_GENERATIONS_DEFAULT = 2;
+
+    /**
+     * Default value for {@link #getGcSizeDeltaEstimation()}
+     */
+    public static final long SIZE_DELTA_ESTIMATION_DEFAULT = -1;
 
     private boolean paused = PAUSE_DEFAULT;
 
@@ -85,7 +90,8 @@ public class SegmentGCOptions {
             100 * 1024 * 1024);
 
     private long gcSizeDeltaEstimation = Long.getLong(
-            "oak.segment.compaction.gcSizeDeltaEstimation", -1);
+            "oak.segment.compaction.gcSizeDeltaEstimation",
+            SIZE_DELTA_ESTIMATION_DEFAULT);
 
     public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
                             int retryCount, boolean forceAfterFail, int lockWaitTime) {
