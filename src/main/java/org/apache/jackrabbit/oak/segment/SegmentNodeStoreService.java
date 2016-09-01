@@ -26,9 +26,11 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_AFTER_FAIL_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.LOCK_WAIT_TIME_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -223,15 +225,20 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     )
     public static final String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
 
-    public static final int COMPACTION_LOCK_WAIT_TIME_DEFAULT = 60;
-
     @Property(
-            intValue = COMPACTION_LOCK_WAIT_TIME_DEFAULT,
+            intValue = LOCK_WAIT_TIME_DEFAULT,
             label = "Compaction Lock Wait Time",
             description = "Number of seconds to wait for the lock for committing compacted changes " +
                     "respectively to wait for the exclusive write lock for force committing."
     )
     public static final String COMPACTION_LOCK_WAIT_TIME = "compaction.lockWaitTime";
+
+    @Property(
+            longValue = SIZE_DELTA_ESTIMATION_DEFAULT,
+            label = "Compaction Repository Size Delta",
+            description = "Amount of increase in repository size that will trigger compaction (bytes)"
+    )
+    public static final String COMPACTION_SIZE_DELTA_ESTIMATION = "compaction.sizeDeltaEstimation";
 
     @Property(
             boolValue = false,
@@ -520,15 +527,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
         boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
-        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
+        int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), LOCK_WAIT_TIME_DEFAULT);
 
         byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
+        long sizeDeltaEstimation = toLong(COMPACTION_SIZE_DELTA_ESTIMATION, SIZE_DELTA_ESTIMATION_DEFAULT);
 
-        SegmentGCOptions segmentGCOptions = new SegmentGCOptions(
-                pauseCompaction, memoryThreshold, gainThreshold, retryCount, forceAfterFail, lockWaitTime);
-        segmentGCOptions.setForceAfterFail(forceAfterFail);
-        return segmentGCOptions;
+        return new SegmentGCOptions(pauseCompaction, memoryThreshold,
+                gainThreshold, retryCount, forceAfterFail, lockWaitTime)
+                .setForceAfterFail(forceAfterFail).setGcSizeDeltaEstimation(
+                        sizeDeltaEstimation);
     }
 
     private boolean registerSegmentNodeStore() throws IOException {
