@@ -71,6 +71,18 @@ class TarReader implements Closeable {
 
     private static final Logger GC_LOG = LoggerFactory.getLogger(TarReader.class.getName() + "-GC");
 
+    private static final TarRecovery DEFAULT_TAR_RECOVERY = new TarRecovery() {
+
+        @Override
+        public void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException {
+            int generation = getGcGeneration(wrap(data), uuid);
+            long msb = uuid.getMostSignificantBits();
+            long lsb = uuid.getLeastSignificantBits();
+            writer.writeEntry(msb, lsb, data, 0, data.length, generation);
+        }
+
+    };
+
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
 
@@ -136,7 +148,7 @@ class TarReader implements Closeable {
 
         // regenerate the first generation based on the recovered data
         File file = sorted.values().iterator().next();
-        generateTarFile(entries, file);
+        generateTarFile(entries, file, DEFAULT_TAR_RECOVERY);
 
         reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
         if (reader != null) {
@@ -166,7 +178,7 @@ class TarReader implements Closeable {
             LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
             collectFileEntries(file, entries, false);
             file = findAvailGen(file, ".ro.bak");
-            generateTarFile(entries, file);
+            generateTarFile(entries, file, DEFAULT_TAR_RECOVERY);
             reader = openFirstFileWithValidIndex(singletonList(file),
                     memoryMapping);
             if (reader != null) {
@@ -213,20 +225,18 @@ class TarReader implements Closeable {
      * @param file
      * @throws IOException
      */
-    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries,
-            File file) throws IOException {
+    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, File file, TarRecovery recovery) throws IOException {
         log.info("Regenerating tar file {}", file);
-        TarWriter writer = new TarWriter(file);
-        for (Map.Entry<UUID, byte[]> entry : entries.entrySet()) {
-            UUID uuid = entry.getKey();
-            byte[] data = entry.getValue();
-            int generation = getGcGeneration(wrap(data), uuid);
-            writer.writeEntry(
-                    uuid.getMostSignificantBits(),
-                    uuid.getLeastSignificantBits(),
-                    data, 0, data.length, generation);
+
+        try (TarWriter writer = new TarWriter(file)) {
+            for (Entry<UUID, byte[]> entry : entries.entrySet()) {
+                try {
+                    recovery.recoverEntry(entry.getKey(), entry.getValue(), writer);
+                } catch (IOException e) {
+                    throw new IOException(String.format("Unable to recover entry %s for file %s", entry.getKey(), file), e);
+                }
+            }
         }
-        writer.close();
     }
 
     /**
