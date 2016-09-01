@@ -51,6 +51,7 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testServerEmptyConfig() throws Exception {
         final StandbyServer server = new StandbyServer(this.port, this.storeS);
         server.start();
@@ -86,6 +87,7 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testClientEmptyConfigNoServer() throws Exception {
         final StandbyClient client = newStandbyClient(storeC);
         client.start();
@@ -122,6 +124,7 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4708")
     public void testClientNoServer() throws Exception {
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Foo");
         final StandbyClient client = newStandbyClient(storeC);

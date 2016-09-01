@@ -141,7 +141,7 @@ public class StoreArguments {
     }
 
     public boolean isInPlaceUpgrade() {
-        if (src.getType() == JCR2_DIR_XML && dst.getType() == SEGMENT) {
+        if (src.getType() == JCR2_DIR_XML && dst.getType() == SEGMENT_TAR) {
             return src.getPath().equals(dst.getPath());
         }
         return false;
@@ -167,7 +167,7 @@ public class StoreArguments {
             StoreType type = getMatchingType(argument);
             if (type == JCR2_DIR) {
                 if (jcr2Dir) {
-                    type = SEGMENT;
+                    type = SEGMENT_TAR;
                 }
                 jcr2Dir = true;
             }
@@ -225,7 +225,7 @@ public class StoreArguments {
             StoreType type = descriptors.get(0).getType();
             if (type == JCR2_DIR_XML) {
                 String crx2Dir = descriptors.get(0).getPath();
-                descriptors.add(new StoreDescriptor(SEGMENT, crx2Dir));
+                descriptors.add(new StoreDescriptor(SEGMENT_TAR, crx2Dir));
                 log.info("In place migration between JCR2 and SegmentNodeStore in {}", crx2Dir);
             }
         }

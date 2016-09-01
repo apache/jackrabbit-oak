@@ -32,8 +32,6 @@ enum Mode {
     UPGRADE("upgrade", new UpgradeCommand()),
     SCALABILITY("scalability", new ScalabilityCommand()),
     EXPLORE("explore", new ExploreCommand()),
-    PRIMARY("primary", new PrimaryCommand()),
-    STANDBY("standy", new StandbyCommand()),
     CHECKPOINTS("checkpoints", new CheckpointsCommand()),
     RECOVERY("recovery", new RecoveryCommand()),
     REPAIR("repair", new RepairCommand()),

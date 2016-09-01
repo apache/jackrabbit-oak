@@ -253,6 +253,13 @@ public class DocumentNodeStoreService {
     )
     public static final String PROP_JOURNAL_GC_BATCH_SIZE = "journalGcBatchSize";
 
+    @Property (boolValue = false,
+            label = "Pre-fetch external changes",
+            description = "Boolean value indicating if external changes should " +
+                    "be pre-fetched in a background thread."
+    )
+    public static final String PROP_PREFETCH_EXTERNAL_CHANGES = "prefetchExternalChanges";
+
     private static final long MB = 1024 * 1024;
 
     private static enum DocumentStoreType {
@@ -418,6 +425,7 @@ public class DocumentNodeStoreService {
         String journalCache = PropertiesUtil.toString(prop(PROP_JOURNAL_CACHE), DEFAULT_JOURNAL_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
         int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
+        boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 setStatisticsProvider(statisticsProvider).
@@ -450,7 +458,8 @@ public class DocumentNodeStoreService {
                             // plan B succeeded.
                         }
                     }
-                });
+                }).
+                setPrefetchExternalChanges(prefetchExternalChanges);
 
         if (persistentCache != null && persistentCache.length() > 0) {
             mkBuilder.setPersistentCache(persistentCache);

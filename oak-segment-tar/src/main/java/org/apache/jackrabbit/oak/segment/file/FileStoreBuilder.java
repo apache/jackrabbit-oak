@@ -79,7 +79,7 @@ public class FileStoreBuilder {
 
     private int nodeDeduplicationCacheDepth = DEFAULT_NODE_CACHE_DEPTH;
 
-    private boolean memoryMapping;
+    private boolean memoryMapping = FileStore.MEMORY_MAPPING_DEFAULT;
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
@@ -335,7 +335,7 @@ public class FileStoreBuilder {
     @Nonnull
     public FileStore build() throws InvalidFileStoreVersionException, IOException {
         checkState(revisions == null, "Cannot re-use builder");
-        directory.mkdir();
+        directory.mkdirs();
         revisions = new TarRevisions(false, directory);
         LOG.info("Creating file store {}", this);
         return new FileStore(this, false).bind(revisions);

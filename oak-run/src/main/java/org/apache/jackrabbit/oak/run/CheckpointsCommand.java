@@ -36,11 +36,11 @@ class CheckpointsCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().isEmpty()) {
-            System.out.println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>] [--segment-tar]");
+            System.out.println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>] [--segment]");
             System.exit(1);
         }
 
@@ -65,10 +65,10 @@ class CheckpointsCommand implements Command {
                         .getNodeStore();
                 closer.register(Utils.asCloseable(store));
                 cps = Checkpoints.onDocumentMK(store);
-            } else if (options.has(segmentTar)) {
-                cps = Checkpoints.onSegmentTar(new File(connection), closer);
-            } else {
+            } else if (options.has(segment)) {
                 cps = Checkpoints.onSegment(new File(connection), closer);
+            } else {
+                cps = Checkpoints.onSegmentTar(new File(connection), closer);
             }
 
             System.out.println("Checkpoints " + connection);

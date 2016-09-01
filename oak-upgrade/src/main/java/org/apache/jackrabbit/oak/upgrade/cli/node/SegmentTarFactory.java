@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,11 +39,11 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
     private final File dir;
 
-    private final boolean mmap;
+    private final boolean disableMmap;
 
-    public SegmentTarFactory(String directory, boolean mmap) {
+    public SegmentTarFactory(String directory, boolean disableMmap) {
         this.dir = new File(directory);
-        this.mmap = mmap;
+        this.disableMmap = disableMmap;
         createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + dir.getPath());
@@ -61,8 +62,18 @@ public class SegmentTarFactory implements NodeStoreFactory {
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
-        builder.withMaxFileSize(256).withMemoryMapping(mmap);
-        final FileStore fs = builder.build();
+        builder.withMaxFileSize(256);
+        if (disableMmap) {
+            builder.withMemoryMapping(false);
+        } else {
+            builder.withDefaultMemoryMapping();
+        }
+        final FileStore fs;
+        try {
+            fs = builder.build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
+        }
         closer.register(asCloseable(fs));
 
         return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new TarNodeStore.SuperRootProvider() {

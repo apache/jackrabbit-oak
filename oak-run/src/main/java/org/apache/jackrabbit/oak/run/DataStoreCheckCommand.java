@@ -91,8 +91,7 @@ public class DataStoreCheckCommand implements Command {
             // Optional argument to specify the dump path
             ArgumentAcceptingOptionSpec<String> dump = parser.accepts("dump", "Dump Path")
                 .withRequiredArg().ofType(String.class);
-            OptionSpec
-                segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+            OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -133,12 +132,12 @@ public class DataStoreCheckCommand implements Command {
                     closer.register(Utils.asCloseable(nodeStore));
                     blobStore = (GarbageCollectableBlobStore) nodeStore.getBlobStore();
                     marker = new DocumentBlobReferenceRetriever(nodeStore);
-                } else if (options.has(segmentTar)) {
-                    marker = SegmentTarUtils.newBlobReferenceRetriever(source, closer);
-                } else {
+                } else if (options.has(segment)) {
                     FileStore fileStore = openFileStore(source);
                     closer.register(Utils.asCloseable(fileStore));
                     marker = new SegmentBlobReferenceRetriever(fileStore.getTracker());
+                } else {
+                    marker = SegmentTarUtils.newBlobReferenceRetriever(source, closer);
                 }
             }
 

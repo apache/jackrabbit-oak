@@ -113,7 +113,6 @@
                 <version>2.19.1</version>
                 <configuration>
                     <systemPropertyVariables>
-                        <nsfixtures>SEGMENT_TAR</nsfixtures>
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
@@ -130,6 +129,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <quiet>true</quiet>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

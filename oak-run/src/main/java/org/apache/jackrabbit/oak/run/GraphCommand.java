@@ -45,7 +45,7 @@ class GraphCommand implements Command {
                 "pattern", "Regular exception specifying which nodes to include (optional). " +
                         "Ignore when --gc is specified.")
                 .withRequiredArg().ofType(String.class);
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
         OptionSet options = parser.parse(args);
 
@@ -82,10 +82,10 @@ class GraphCommand implements Command {
 
         boolean gcGraph = options.has(gcGraphArg);
 
-        if (options.has(segmentTar)) {
-            SegmentTarUtils.graph(directory, gcGraph, epoch, regExp, out);
-        } else {
+        if (options.has(segment)) {
             SegmentUtils.graph(directory, gcGraph, epoch, regExp, out);
+        } else {
+            SegmentTarUtils.graph(directory, gcGraph, epoch, regExp, out);
         }
     }
 

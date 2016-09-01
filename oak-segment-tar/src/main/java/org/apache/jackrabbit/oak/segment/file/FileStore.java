@@ -212,7 +212,7 @@ public class FileStore implements SegmentStore, Closeable {
      * not be removed immediately, because they first need to be closed, and the
      * JVM needs to release the memory mapped file references.
      */
-    private final List<File> pendingRemove = newLinkedList();
+    private final FileReaper fileReaper = new FileReaper();
 
     /**
      * {@code GcListener} listening to this instance's gc progress
@@ -761,24 +761,10 @@ public class FileStore implements SegmentStore, Closeable {
 
         if (cleanupNeeded.getAndSet(false)) {
             // FIXME OAK-4138: Decouple revision cleanup from the flush thread
-            pendingRemove.addAll(cleanup());
+            fileReaper.add(cleanup());
         }
 
-        // FIXME OAK-4138 Decouple revision cleanup from the flush thread: instead of synchronizing, skip flush if already in progress
-        // remove all obsolete tar generations
-        synchronized (pendingRemove) {
-            Iterator<File> iterator = pendingRemove.iterator();
-            while (iterator.hasNext()) {
-                File file = iterator.next();
-                log.debug("TarMK GC: Attempting to remove old file {}", file);
-                if (!file.exists() || file.delete()) {
-                    log.debug("TarMK GC: Removed old file {}", file);
-                    iterator.remove();
-                } else {
-                    log.warn("TarMK GC: Failed to remove old file {}. Will retry later.", file);
-                }
-            }
-        }
+        fileReaper.reap();
     }
 
     /**
@@ -1095,11 +1081,11 @@ public class FileStore implements SegmentStore, Closeable {
                         return generation == newGeneration;
                     }
                 };
-                cleanup(cleanupPredicate,
+                fileReaper.add(cleanup(cleanupPredicate,
                     "gc-count=" + GC_COUNT +
                     ",gc-status=failed" +
                     ",store-generation=" + (newGeneration - 1) +
-                    ",reclaim-predicate=(generation==" + newGeneration + ")");
+                    ",reclaim-predicate=(generation==" + newGeneration + ")"));
 
                 gcListener.compacted(FAILURE, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",

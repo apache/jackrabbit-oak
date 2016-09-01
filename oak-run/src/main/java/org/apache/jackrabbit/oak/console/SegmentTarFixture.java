@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -40,10 +41,14 @@ class SegmentTarFixture implements NodeStoreFixture {
 
         FileStore store;
 
-        if (readOnly) {
-            store = builder.buildReadOnly();
-        } else {
-            store = builder.build();
+        try {
+            if (readOnly) {
+                store = builder.buildReadOnly();
+            } else {
+                store = builder.build();
+            }
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IllegalStateException(e);
         }
 
         return new SegmentTarFixture(store);

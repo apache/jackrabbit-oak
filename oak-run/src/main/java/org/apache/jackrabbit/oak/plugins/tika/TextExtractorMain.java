@@ -78,8 +78,7 @@ public class TextExtractorMain {
                     .withRequiredArg()
                     .ofType(String.class);
 
-            OptionSpec segmentTar = parser
-                    .accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+            OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
             OptionSpec<String> pathSpec = parser
                     .accepts("path", "Path in repository under which the binaries would be searched")
@@ -217,7 +216,7 @@ public class TextExtractorMain {
                 checkNotNull(blobStore, "BlobStore found to be null. FileDataStore directory " +
                         "must be specified via %s", fdsDirSpec.options());
                 checkNotNull(dataFile, "Data file path not provided");
-                NodeStore nodeStore = bootStrapNodeStore(src, options.has(segmentTar), blobStore, closer);
+                NodeStore nodeStore = bootStrapNodeStore(src, options.has(segment), blobStore, closer);
                 BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
                 CSVFileGenerator generator = new CSVFileGenerator(dataFile);
                 generator.generate(brp.getBinaries(path));
@@ -287,7 +286,7 @@ public class TextExtractorMain {
         return props;
     }
 
-    private static NodeStore bootStrapNodeStore(String src, boolean segmentTar, BlobStore blobStore, Closer closer) throws IOException, InvalidFileStoreVersionException {
+    private static NodeStore bootStrapNodeStore(String src, boolean segment, BlobStore blobStore, Closer closer) throws IOException, InvalidFileStoreVersionException {
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {
@@ -304,11 +303,11 @@ public class TextExtractorMain {
             return store;
         }
 
-        if (segmentTar) {
-            return SegmentTarUtils.bootstrap(src, blobStore, closer);
+        if (segment) {
+            return SegmentUtils.bootstrap(src, blobStore, closer);
         }
 
-        return SegmentUtils.bootstrap(src, blobStore, closer);
+        return SegmentTarUtils.bootstrap(src, blobStore, closer);
     }
 
     private static Closeable asCloseable(final FileStore fs) {

@@ -529,7 +529,9 @@ public final class DocumentNodeStore
         // initialize branchCommits
         branches.init(store, this);
 
-        dispatcher = new ChangeDispatcher(getRoot());
+        dispatcher = builder.isPrefetchExternalChanges() ?
+                new PrefetchDispatcher(getRoot(), executor) :
+                new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
         String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store);
@@ -1123,12 +1125,20 @@ public final class DocumentNodeStore
                       List<String> removed, List<String> changed,
                       DiffCache.Entry cacheEntry) {
         if (isNew) {
+            // determine the revision for the nodeChildrenCache entry when
+            // the node is new. Fallback to after revision in case document
+            // is not in the cache. (OAK-4715)
+            NodeDocument doc = store.getIfCached(NODES, getIdFromPath(path));
+            RevisionVector afterLastRev = after;
+            if (doc != null) {
+                afterLastRev = new RevisionVector(doc.getLastRev().values());
+                afterLastRev = afterLastRev.update(rev);
+            }
             if (added.isEmpty()) {
                 // this is a leaf node.
                 // check if it has the children flag set
-                NodeDocument doc = store.find(NODES, getIdFromPath(path));
                 if (doc != null && doc.hasChildren()) {
-                    PathRev key = childNodeCacheKey(path, after, null);
+                    PathRev key = childNodeCacheKey(path, afterLastRev, null);
                     LOG.debug("nodeChildrenCache.put({},{})", key, "NO_CHILDREN");
                     nodeChildrenCache.put(key, DocumentNodeState.NO_CHILDREN);
                 }
@@ -1139,7 +1149,7 @@ public final class DocumentNodeStore
                     set.add(Utils.unshareString(PathUtils.getName(p)));
                 }
                 c.children.addAll(set);
-                PathRev key = childNodeCacheKey(path, after, null);
+                PathRev key = childNodeCacheKey(path, afterLastRev, null);
                 LOG.debug("nodeChildrenCache.put({},{})", key, c);
                 nodeChildrenCache.put(key, c);
             }
@@ -1164,7 +1174,7 @@ public final class DocumentNodeStore
                 }
             }
             if (children != null) {
-                PathRev afterKey = new PathRev(path, before.update(rev));
+                PathRev afterKey = new PathRev(path, beforeState.getLastRevision().update(rev));
                 // are there any added or removed children?
                 if (added.isEmpty() && removed.isEmpty()) {
                     // simply use the same list

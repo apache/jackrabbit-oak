@@ -20,14 +20,11 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -78,7 +75,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -99,11 +95,6 @@ public class SegmentDataStoreBlobGCIT {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
-
-    @BeforeClass
-    public static void assumptions() {
-        assumeTrue(getFixtures().contains(SEGMENT_TAR));
-    }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws Exception {
         if (nodeStore == null) {
