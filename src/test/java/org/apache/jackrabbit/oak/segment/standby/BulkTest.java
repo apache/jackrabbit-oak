@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class BulkTest extends TestBase {
@@ -54,31 +55,37 @@ public class BulkTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void test100Nodes() throws Exception {
         test(100, 1, 1, 3000, 3100);
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void test1000Nodes() throws Exception {
         test(1000, 1, 1, 53000, 55000);
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void test10000Nodes() throws Exception {
         test(10000, 1, 1, 245000, 246000);
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void test100000Nodes() throws Exception {
         test(100000, 9, 9, 2210000, 2220000);
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void test1MillionNodes() throws Exception {
         test(1000000, 87, 87, 22700000, 22800000);
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void test1MillionNodesUsingSSL() throws Exception {
         test(1000000, 87, 87, 22700000, 22800000, true);
     }

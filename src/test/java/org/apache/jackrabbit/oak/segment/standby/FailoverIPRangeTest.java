@@ -94,6 +94,7 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4707")
     public void testFailoverValidIPRange() throws Exception {
         createTestWithConfig(new String[]{"127.0.0.0-127.0.0.2"}, true);
     }
