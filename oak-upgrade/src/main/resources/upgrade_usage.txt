@@ -42,7 +42,7 @@ An descriptor of the Oak node store. Possible options:
 # node store options
 
 --cache <int>             Cache size in MB (default: 256)
---disable-mmap            Disable memory mapped file access for Segment Store
+--mmap                    Enable memory mapped file access for Segment Store
 
 --src-password            Source rdb password
 --src-user                Source rdb user

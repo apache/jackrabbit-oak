@@ -39,11 +39,11 @@ public class SegmentFactory implements NodeStoreFactory {
 
     private final File dir;
 
-    private final boolean disableMmap;
+    private final boolean mmap;
 
-    public SegmentFactory(String directory, boolean disableMmap) {
+    public SegmentFactory(String directory, boolean mmap) {
         this.dir = new File(directory);
-        this.disableMmap = disableMmap;
+        this.mmap = mmap;
         createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + dir.getPath());
@@ -62,12 +62,7 @@ public class SegmentFactory implements NodeStoreFactory {
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
-        builder.withMaxFileSize(256);
-        if (disableMmap) {
-            builder.withMemoryMapping(false);
-        } else {
-            builder.withDefaultMemoryMapping();
-        }
+        builder.withMaxFileSize(256).withMemoryMapping(mmap);
         final FileStore fs;
 
         try {
