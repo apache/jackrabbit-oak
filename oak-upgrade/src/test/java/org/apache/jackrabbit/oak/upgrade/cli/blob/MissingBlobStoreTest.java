@@ -89,7 +89,7 @@ public class MissingBlobStoreTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--missingblobstore", source.getDescription(), destination.getDescription() };
+        return new String[] { "--disable-mmap", "--missingblobstore", source.getDescription(), destination.getDescription() };
     }
 
     protected boolean supportsCheckpointMigration() {
