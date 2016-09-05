@@ -239,6 +239,11 @@ public class StoreArguments {
         } else if (descriptors.get(1).getType() == JCR2_DIR_XML) {
             throw new CliArgumentException("Can't use CRX2 as a destination", 1);
         }
+        StoreDescriptor src = descriptors.get(0);
+        StoreDescriptor dst = descriptors.get(1);
+        if (src.getType() == dst.getType() && src.getPath().equals(dst.getPath())) {
+            throw new CliArgumentException("The source and the destination is the same repository.", 1);
+        }
     }
 
     private static void logSegmentVersion() {
