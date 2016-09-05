@@ -32,7 +32,7 @@ public class MigrationOptions {
 
     private final boolean copyBinariesByReference;
 
-    private final boolean mmap;
+    private final boolean disableMmap;
 
     private final int cacheSizeInMB;
 
@@ -60,7 +60,7 @@ public class MigrationOptions {
 
     public MigrationOptions(MigrationCliArguments args) {
         this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
-        this.mmap = args.hasOption(OptionParserFactory.MMAP);
+        this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
         if (args.hasOption(OptionParserFactory.CACHE_SIZE)) {
             this.cacheSizeInMB = args.getIntOption(OptionParserFactory.CACHE_SIZE);
         } else {
@@ -95,8 +95,8 @@ public class MigrationOptions {
         return copyBinariesByReference;
     }
 
-    public boolean isMmap() {
-        return mmap;
+    public boolean isDisableMmap() {
+        return disableMmap;
     }
 
     public int getCacheSizeInMB() {
@@ -154,8 +154,8 @@ public class MigrationOptions {
             log.info("Binary content would be copied to the NodeStore.");
         }
 
-        if (mmap) {
-            log.info("Enabling memory mapped file access for Segment Store");
+        if (disableMmap) {
+            log.info("Disabling memory mapped file access for Segment Store");
         }
 
         if (copyVersions == null) {

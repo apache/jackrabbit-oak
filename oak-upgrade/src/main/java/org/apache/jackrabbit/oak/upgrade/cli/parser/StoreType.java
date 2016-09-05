@@ -128,7 +128,7 @@ public enum StoreType {
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
             String path = removeStart(paths[0], SEGMENT_OLD_PREFIX);
-            return new StoreFactory(new SegmentFactory(path, arguments.getOptions().isMmap()));
+            return new StoreFactory(new SegmentFactory(path, arguments.getOptions().isDisableMmap()));
         }
 
         @Override
@@ -144,7 +144,7 @@ public enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new SegmentTarFactory(paths[0], arguments.getOptions().isMmap()));
+            return new StoreFactory(new SegmentTarFactory(paths[0], arguments.getOptions().isDisableMmap()));
         }
 
         @Override
