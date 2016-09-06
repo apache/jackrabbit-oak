@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,6 +30,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -46,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -61,7 +64,7 @@ public class DataStoreTestBase extends TestBase {
         setUpServerAndClient();
     }
 
-    protected FileStore setupFileDataStore(File d, String path) throws Exception {
+    protected FileStore setupFileDataStore(File d, String path, ScheduledExecutorService executor) throws Exception {
         FileDataStore fds = new FileDataStore();
         fds.setMinRecordLength(4092);
         fds.init(path);
@@ -74,6 +77,7 @@ public class DataStoreTestBase extends TestBase {
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
                 .withBlobStore(blobStore)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                 .build();
     }
 
