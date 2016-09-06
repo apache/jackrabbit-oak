@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
@@ -248,6 +249,19 @@ public class FileStore implements SegmentStore, Closeable {
 
     // FIXME OAK-4450: Properly split the FileStore into read-only and r/w variants
     FileStore(FileStoreBuilder builder, final boolean readOnly) throws InvalidFileStoreVersionException, IOException {
+        this.directory = builder.getDirectory();
+        if (!readOnly) {
+            lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
+            try {
+                lock = lockFile.getChannel().lock();
+            } catch (OverlappingFileLockException ex) {
+                throw new IllegalStateException(directory.getAbsolutePath()
+                        + " is in use by another store.", ex);
+            }
+        } else {
+            lockFile = null;
+            lock = null;
+        }
         this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
@@ -283,7 +297,6 @@ public class FileStore implements SegmentStore, Closeable {
                 .withWriterPool()
                 .with(builder.getCacheManager())
                 .build(this);
-        this.directory = builder.getDirectory();
         this.maxFileSize = builder.getMaxFileSize() * MB;
         this.memoryMapping = builder.getMemoryMapping();
         this.gcListener = builder.getGcListener();
@@ -325,14 +338,6 @@ public class FileStore implements SegmentStore, Closeable {
             this.writeFile = new File(directory, format(
                     FILE_NAME_FORMAT, writeNumber, "a"));
             this.tarWriter = new TarWriter(writeFile, stats);
-        }
-
-        if (!readOnly) {
-            lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
-            lock = lockFile.getChannel().lock();
-        } else {
-            lockFile = null;
-            lock = null;
         }
 
         // FIXME OAK-4621: External invocation of background operations
