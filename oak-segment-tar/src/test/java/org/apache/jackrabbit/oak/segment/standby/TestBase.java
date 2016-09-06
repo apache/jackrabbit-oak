@@ -25,12 +25,16 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.BeforeClass;
 
 public class TestBase {
@@ -47,12 +51,15 @@ public class TestBase {
 
     File directoryS;
     FileStore storeS;
+    ScheduledExecutorService executorS;
 
     File directoryC;
     FileStore storeC;
+    ScheduledExecutorService executorC;
 
     File directoryC2;
     FileStore storeC2;
+    ScheduledExecutorService executorC2;
 
     /*
      Java 6 on Windows doesn't support dual IP stacks, so we will skip our IPv6
@@ -68,14 +75,16 @@ public class TestBase {
     public void setUpServerAndClient() throws Exception {
         // server
         directoryS = createTmpTargetDir(getClass().getSimpleName()+"-Server");
-        storeS = setupPrimary(directoryS);
+        executorS = Executors.newSingleThreadScheduledExecutor();
+        storeS = setupPrimary(directoryS, executorS);
 
         // client
         directoryC = createTmpTargetDir(getClass().getSimpleName()+"-Client");
-        storeC = setupSecondary(directoryC);
+        executorC = Executors.newSingleThreadScheduledExecutor();
+        storeC = setupSecondary(directoryC, executorC);
     }
 
-    private static FileStore newFileStore(File directory) throws Exception {
+    private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
         return fileStoreBuilder(directory)
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
@@ -83,19 +92,20 @@ public class TestBase {
                 .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                 .build();
     }
 
-    protected FileStore setupPrimary(File directory) throws Exception {
-        return newFileStore(directory);
+    protected FileStore setupPrimary(File directory, ScheduledExecutorService executor) throws Exception {
+        return newFileStore(directory, executor);
     }
 
     protected FileStore getPrimary() {
         return storeS;
     }
 
-    protected FileStore setupSecondary(File directory) throws Exception {
-        return newFileStore(directoryC);
+    protected FileStore setupSecondary(File directory, ScheduledExecutorService executor) throws Exception {
+        return newFileStore(directoryC, executor);
     }
 
     protected FileStore getSecondary() {
@@ -106,7 +116,8 @@ public class TestBase {
         setUpServerAndClient();
 
         directoryC2 = createTmpTargetDir(getClass().getSimpleName()+"-Client2");
-        storeC2 = newFileStore(directoryC2);
+        executorC2 = Executors.newSingleThreadScheduledExecutor();
+        storeC2 = newFileStore(directoryC2, executorC2);
     }
 
     public void closeServerAndClient() {
@@ -116,6 +127,10 @@ public class TestBase {
             FileUtils.deleteDirectory(directoryS);
             FileUtils.deleteDirectory(directoryC);
         } catch (IOException e) {
+            // ignore
+        } finally {
+            new ExecutorCloser(executorS).close();
+            new ExecutorCloser(executorC).close();
         }
     }
 
@@ -125,6 +140,9 @@ public class TestBase {
         try {
             FileUtils.deleteDirectory(directoryC2);
         } catch (IOException e) {
+            // ignore
+        } finally {
+            new ExecutorCloser(executorC2).close();
         }
     }
 

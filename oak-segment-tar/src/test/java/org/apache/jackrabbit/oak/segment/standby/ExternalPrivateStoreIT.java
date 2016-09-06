@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.createTmpTarget
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -32,7 +33,7 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
 
     private File primaryStore;
     private File secondaryStore;
-
+    
     @After
     public void after() {
         closeServerAndClient();
@@ -44,15 +45,15 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
     }
 
     @Override
-    protected FileStore setupPrimary(File d) throws Exception {
+    protected FileStore setupPrimary(File d, ScheduledExecutorService primaryExecutor) throws Exception {
         primaryStore = createTmpTargetDir("ExternalStoreITPrimary");
-        return setupFileDataStore(d, primaryStore.getAbsolutePath());
+        return setupFileDataStore(d, primaryStore.getAbsolutePath(), primaryExecutor);
     }
 
     @Override
-    protected FileStore setupSecondary(File d) throws Exception {
+    protected FileStore setupSecondary(File d, ScheduledExecutorService secondaryExecutor) throws Exception {
         secondaryStore = createTmpTargetDir("ExternalStoreITSecondary");
-        return setupFileDataStore(d, secondaryStore.getAbsolutePath());
+        return setupFileDataStore(d, secondaryStore.getAbsolutePath(), secondaryExecutor);
     }
 
 }
