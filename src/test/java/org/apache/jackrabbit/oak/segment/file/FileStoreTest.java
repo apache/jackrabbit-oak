@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -45,6 +46,19 @@ public class FileStoreTest {
             if (fileStore.containsSegment(id)) {
                 fileStore.readSegment(id);
             }
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    @Test
+    public void overlapping() throws Exception {
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
+        try {
+            fileStoreBuilder(getFileStoreFolder()).build();
+            Assert.fail("should not be able to open 2 stores on the same path");
+        } catch (Exception ex) {
+            // expected
         } finally {
             fileStore.close();
         }
