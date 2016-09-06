@@ -67,6 +67,7 @@ import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEdit
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.markIndexesToBeRebuilt;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositorySidegrade {
 
@@ -298,7 +299,7 @@ public class RepositorySidegrade {
         }
 
         if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-            copyVersionStorage(sourceRoot, targetRoot, versionCopyConfiguration);
+            copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), getVersionStorage(targetRoot), versionCopyConfiguration);
         }
 
         final List<CommitHook> hooks = new ArrayList<CommitHook>();

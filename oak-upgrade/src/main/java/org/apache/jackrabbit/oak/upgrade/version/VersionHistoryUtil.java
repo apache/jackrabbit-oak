@@ -31,10 +31,10 @@ import com.google.common.base.Joiner;
 
 public class VersionHistoryUtil {
 
-    public static String getVersionHistoryPath(String versionableUuid) {
+    public static String getRelativeVersionHistoryPath(String versionableUuid) {
         return Joiner.on('/').join(concat(
                 singleton(""),
-                getVersionHistoryPathSegments(versionableUuid),
+                getRelativeVersionHistoryPathSegments(versionableUuid),
                 singleton(versionableUuid)));
     }
 
@@ -46,30 +46,36 @@ public class VersionHistoryUtil {
      * @return The NodeState corresponding to the version history, or {@code null}
      *         if it does not exist.
      */
-    static NodeState getVersionHistoryNodeState(NodeState root, String versionableUuid) {
-        NodeState historyParent = root;
-        for (String segment : getVersionHistoryPathSegments(versionableUuid)) {
+    static NodeState getVersionHistoryNodeState(NodeState versionStorage, String versionableUuid) {
+        NodeState historyParent = versionStorage;
+        for (String segment : getRelativeVersionHistoryPathSegments(versionableUuid)) {
             historyParent = historyParent.getChildNode(segment);
         }
         return historyParent.getChildNode(versionableUuid);
     }
 
-    static NodeBuilder getVersionHistoryBuilder(NodeBuilder root, String versionableUuid) {
-        NodeBuilder history = root;
-        for (String segment : getVersionHistoryPathSegments(versionableUuid)) {
+    static NodeBuilder getVersionHistoryBuilder(NodeBuilder versionStorage, String versionableUuid) {
+        NodeBuilder history = versionStorage;
+        for (String segment : getRelativeVersionHistoryPathSegments(versionableUuid)) {
             history = history.getChildNode(segment);
         }
         return history.getChildNode(versionableUuid);
     }
 
-    private static List<String> getVersionHistoryPathSegments(String versionableUuid) {
+    private static List<String> getRelativeVersionHistoryPathSegments(String versionableUuid) {
         final List<String> segments = new ArrayList<String>();
-        segments.add(JCR_SYSTEM);
-        segments.add(JCR_VERSIONSTORAGE);
         for (int i = 0; i < 3; i++) {
             segments.add(versionableUuid.substring(i * 2, i * 2 + 2));
         }
         return segments;
+    }
+
+    public static NodeState getVersionStorage(NodeState root) {
+        return root.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
+    }
+
+    public static NodeBuilder getVersionStorage(NodeBuilder root) {
+        return root.child(JCR_SYSTEM).child(JCR_VERSIONSTORAGE);
     }
 
 }
