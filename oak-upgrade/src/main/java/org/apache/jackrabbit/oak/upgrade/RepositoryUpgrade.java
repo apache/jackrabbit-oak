@@ -151,6 +151,8 @@ public class RepositoryUpgrade {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryUpgrade.class);
 
+    private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+
     private static final Set<String> INDEXES_TO_REBUILD = ImmutableSet.of("counter", "uuid");
 
     public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
@@ -473,7 +475,7 @@ public class RepositoryUpgrade {
                             source, workspaceName, targetBuilder.getNodeState(), 
                             uriToPrefix, copyBinariesByReference, skipOnError
                     ),
-                    new LoggingReporter(logger, "Migrating", 10000, -1)
+                    new LoggingReporter(logger, "Migrating", LOG_NODE_COPY, -1)
             );
             final NodeState sourceRoot;
             if (filterLongNames) {

@@ -74,6 +74,8 @@ public class RepositorySidegrade {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
 
+    private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+
     /**
      * Target node store.
      */
@@ -260,7 +262,7 @@ public class RepositorySidegrade {
                 }
             }
 
-            final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", 10000, -1));
+            final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
             final NodeState sourceRoot;
             if (filterLongNames) {
                 sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
