@@ -145,6 +145,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositoryUpgrade {
 
@@ -491,7 +492,7 @@ public class RepositoryUpgrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration);
+                copyVersionStorage(targetBuilder, getVersionStorage(sourceRoot), getVersionStorage(targetBuilder), versionCopyConfiguration);
                 targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
                 logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             } else {
