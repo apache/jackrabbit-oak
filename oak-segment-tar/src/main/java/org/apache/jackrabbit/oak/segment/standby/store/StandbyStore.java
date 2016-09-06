@@ -61,19 +61,25 @@ public class StandbyStore implements SegmentStore, Closeable {
     @Nonnull
     @Override
     public SegmentId newSegmentId(long msb, long lsb) {
-        return delegate.newSegmentId(msb, lsb);
+        return new SegmentId(this, msb, lsb);
     }
 
     @Nonnull
     @Override
     public SegmentId newBulkSegmentId() {
-        return delegate.newBulkSegmentId();
+        SegmentId segmentId = delegate.newBulkSegmentId();
+        long msb = segmentId.getMostSignificantBits();
+        long lsb = segmentId.getLeastSignificantBits();
+        return newSegmentId(msb, lsb);
     }
 
     @Nonnull
     @Override
     public SegmentId newDataSegmentId() {
-        return delegate.newDataSegmentId();
+        SegmentId segmentId = delegate.newDataSegmentId();
+        long msb = segmentId.getMostSignificantBits();
+        long lsb = segmentId.getLeastSignificantBits();
+        return newSegmentId(msb, lsb);
     }
 
     @Override
@@ -264,7 +270,7 @@ public class StandbyStore implements SegmentStore, Closeable {
     }
 
     public Segment newSegment(SegmentId segmentId, ByteBuffer buffer) {
-        return new Segment(delegate, delegate.getReader(), segmentId, buffer);
+        return new Segment(this, delegate.getReader(), segmentId, buffer);
     }
 
     public BlobStore getBlobStore() {
