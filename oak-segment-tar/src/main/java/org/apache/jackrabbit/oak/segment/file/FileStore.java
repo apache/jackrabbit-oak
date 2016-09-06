@@ -52,7 +52,6 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -501,26 +500,6 @@ public class FileStore implements SegmentStore, Closeable {
 
     public void maybeCompact(boolean cleanup) throws IOException {
         gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
-
-        Runtime runtime = Runtime.getRuntime();
-        long avail = runtime.totalMemory() - runtime.freeMemory();
-        // FIXME OAK-4281: Rework memory estimation for compaction
-        // What value should we use for delta?
-        long delta = 0;
-        long needed = delta * gcOptions.getMemoryThreshold();
-        if (needed >= avail) {
-            gcListener.skipped(
-                    "TarMK GC #{}: not enough available memory {} ({} bytes), needed {} ({} bytes)," +
-                    " last merge delta {} ({} bytes), so skipping compaction for now",
-                    GC_COUNT,
-                    humanReadableByteCount(avail), avail,
-                    humanReadableByteCount(needed), needed,
-                    humanReadableByteCount(delta), delta);
-            if (cleanup) {
-                cleanupNeeded.set(!gcOptions.isPaused());
-            }
-        }
-
         Stopwatch watch = Stopwatch.createStarted();
 
         int gainThreshold = gcOptions.getGainThreshold();
