@@ -129,7 +129,7 @@ public class FileStore implements SegmentStore, Closeable {
     private static final Pattern FILE_NAME_PATTERN =
             Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
 
-    private static final String FILE_NAME_FORMAT = "data%05d%s.tar";
+    static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     private static final String LOCK_FILE_NAME = "repo.lock";
 
@@ -164,10 +164,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final boolean memoryMapping;
 
     private volatile List<TarReader> readers;
-
-    private int writeNumber;
-
-    private volatile File writeFile;
 
     private volatile TarWriter tarWriter;
 
@@ -330,14 +326,13 @@ public class FileStore implements SegmentStore, Closeable {
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
 
         if (!readOnly) {
+            int writeNumber = 0;
             if (indices.length > 0) {
-                this.writeNumber = indices[indices.length - 1] + 1;
-            } else {
-                this.writeNumber = 0;
+                writeNumber = indices[indices.length - 1] + 1;
             }
-            this.writeFile = new File(directory, format(
-                    FILE_NAME_FORMAT, writeNumber, "a"));
-            this.tarWriter = new TarWriter(writeFile, stats);
+            this.tarWriter = new TarWriter(directory, stats, writeNumber);
+        } else {
+            this.tarWriter = null;
         }
 
         // FIXME OAK-4621: External invocation of background operations
@@ -655,7 +650,7 @@ public class FileStore implements SegmentStore, Closeable {
         fileStoreLock.readLock().lock();
         try {
             readersSnapshot = ImmutableList.copyOf(readers);
-            writeFileSnapshotSize = writeFile != null ? writeFile.length() : 0;
+            writeFileSnapshotSize = tarWriter != null ? tarWriter.fileLength() : 0;
         } finally {
             fileStoreLock.readLock().unlock();
         }
@@ -1452,20 +1447,15 @@ public class FileStore implements SegmentStore, Closeable {
      * @throws IOException
      */
     private void newWriter() throws IOException {
-        if (tarWriter.isDirty()) {
-            tarWriter.close();
-
+        TarWriter newWriter = tarWriter.createNextGeneration();
+        if (newWriter != tarWriter) {
+            File writeFile = tarWriter.getFile();
             List<TarReader> list =
                     newArrayListWithCapacity(1 + readers.size());
             list.add(TarReader.open(writeFile, memoryMapping));
             list.addAll(readers);
             readers = list;
-
-            writeNumber++;
-            writeFile = new File(
-                    directory,
-                    format(FILE_NAME_FORMAT, writeNumber, "a"));
-            tarWriter = new TarWriter(writeFile, stats);
+            tarWriter = newWriter;
         }
     }
 
