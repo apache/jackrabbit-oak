@@ -151,7 +151,7 @@ public class RepositoryUpgrade {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryUpgrade.class);
 
-    private static final Set<String> INDEXES_TO_REBUILD = ImmutableSet.of("counter");
+    private static final Set<String> INDEXES_TO_REBUILD = ImmutableSet.of("counter", "uuid");
 
     public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
 

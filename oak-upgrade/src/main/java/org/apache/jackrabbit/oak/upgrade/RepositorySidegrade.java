@@ -311,9 +311,8 @@ public class RepositorySidegrade {
             hooks.addAll(customCommitHooks);
         }
 
-        markIndexesToBeRebuilt(targetRoot);
-
         if (!isCompleteMigration()) {
+            markIndexesToBeRebuilt(targetRoot);
             // type validation, reference and indexing hooks
             hooks.add(new EditorHook(new CompositeEditorProvider(
                     createTypeEditorProvider(),
