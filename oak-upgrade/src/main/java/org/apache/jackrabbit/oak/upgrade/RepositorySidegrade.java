@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -351,35 +352,35 @@ public class RepositorySidegrade {
         TarNodeStore sourceTarNS = (TarNodeStore) source;
         TarNodeStore targetTarNS = (TarNodeStore) target;
 
-        NodeState srcSuperRoot = sourceTarNS.getSuperRoot();
-        NodeBuilder builder = targetTarNS.getSuperRoot().builder();
+        NodeState sourceSuperRoot = sourceTarNS.getSuperRoot();
+        NodeBuilder targetSuperRoot = targetTarNS.getSuperRoot().builder();
 
-        String previousRoot = null;
-        for (String checkpoint : getCheckpointPaths(srcSuperRoot)) {
-            // copy the checkpoint without the root
-            NodeStateCopier.builder()
-                    .include(checkpoint)
-                    .exclude(checkpoint + "/root")
-                    .copy(srcSuperRoot, builder);
-
-            // reference the previousRoot or targetRoot as a new checkpoint root
-            NodeState baseRoot;
-            if (previousRoot == null) {
-                baseRoot = targetRoot.getNodeState();
+        String previousCheckpoint = null;
+        for (String checkpoint : getCheckpointNames(sourceSuperRoot)) {
+            NodeState targetPreviousRoot, sourcePreviousRoot;
+            if (previousCheckpoint == null) {
+                sourcePreviousRoot = source.getRoot();
+                targetPreviousRoot = targetRoot.getNodeState();
             } else {
-                baseRoot = getBuilder(builder, previousRoot).getNodeState();
+                sourcePreviousRoot = getCheckpointRoot(sourceSuperRoot, previousCheckpoint);
+                targetPreviousRoot = getCheckpointRoot(targetSuperRoot.getNodeState(), previousCheckpoint);
             }
-            NodeBuilder targetParent = getBuilder(builder, checkpoint);
-            targetParent.setChildNode("root", baseRoot);
-            previousRoot = checkpoint + "/root";
+            NodeState sourceCheckpoint = getCheckpoint(sourceSuperRoot, checkpoint);
+            NodeBuilder targetCheckpoint = getCheckpoint(targetSuperRoot, checkpoint);
 
-            // apply diff changes
-            NodeStateCopier.builder()
-                    .include(checkpoint + "/root")
-                    .copy(srcSuperRoot, builder);
+            // copy checkpoint metadata
+            NodeStateCopier.copyProperties(sourceCheckpoint, targetCheckpoint);
+            targetCheckpoint.setChildNode("properties", sourceCheckpoint.getChildNode("properties"));
+
+            // create the checkpoint root
+            NodeState sourceCheckpointRoot = sourceCheckpoint.getChildNode("root");
+            NodeBuilder targetCheckpointRoot = targetCheckpoint.setChildNode("root", targetPreviousRoot);
+            sourceCheckpointRoot.compareAgainstBaseState(sourcePreviousRoot, new ApplyDiff(targetCheckpointRoot));
+
+            previousCheckpoint = checkpoint;
         }
 
-        targetTarNS.setSuperRoot(builder);
+        targetTarNS.setSuperRoot(targetSuperRoot);
         return true;
    }
 
@@ -389,7 +390,7 @@ public class RepositorySidegrade {
      * @param superRoot
      * @return
      */
-    private static List<String> getCheckpointPaths(NodeState superRoot) {
+    private static List<String> getCheckpointNames(NodeState superRoot) {
         List<ChildNodeEntry> checkpoints = newArrayList(superRoot.getChildNode("checkpoints").getChildNodeEntries().iterator());
         sort(checkpoints, new Comparator<ChildNodeEntry>() {
             @Override
@@ -403,16 +404,20 @@ public class RepositorySidegrade {
             @Nullable
             @Override
             public String apply(@Nullable ChildNodeEntry input) {
-                return "/checkpoints/" + input.getName();
+                return input.getName();
             }
         });
     }
 
-    private static NodeBuilder getBuilder(NodeBuilder root, String path) {
-        NodeBuilder builder = root;
-        for (String element : PathUtils.elements(path)) {
-            builder = builder.child(element);
-        }
-        return builder;
+    private static NodeState getCheckpointRoot(NodeState superRoot, String name) {
+        return getCheckpoint(superRoot, name).getChildNode("root");
+    }
+
+    private static NodeState getCheckpoint(NodeState superRoot, String name) {
+        return superRoot.getChildNode("checkpoints").getChildNode(name);
+    }
+
+    private static NodeBuilder getCheckpoint(NodeBuilder superRoot, String name) {
+        return superRoot.child("checkpoints").child(name);
     }
 }
