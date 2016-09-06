@@ -27,6 +27,8 @@ import static com.google.common.collect.Lists.reverse;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.String.format;
+import static org.apache.jackrabbit.oak.segment.file.FileStore.FILE_NAME_FORMAT;
 
 import java.io.Closeable;
 import java.io.File;
@@ -110,6 +112,8 @@ class TarWriter implements Closeable {
         }
     }
 
+    private final int writeIndex;
+
     /**
      * The file being written. This instance is also used as an additional
      * synchronization point by {@link #flush()} and {@link #close()} to
@@ -157,13 +161,20 @@ class TarWriter implements Closeable {
      */
     private final Map<UUID, Set<UUID>> graph = newHashMap();
 
+    /**
+     * Used for maintenance operations (GC or recovery) via the TarReader and tests
+     */
     TarWriter(File file) {
-        this(file, FileStoreMonitor.DEFAULT);
+        this.file = file;
+        this.monitor = FileStoreMonitor.DEFAULT;
+        this.writeIndex = -1;
     }
 
-    TarWriter(File file, FileStoreMonitor monitor) {
-        this.file = file;
+    TarWriter(File directory, FileStoreMonitor monitor, int writeIndex) {
+        this.file = new File(directory, format(FILE_NAME_FORMAT, writeIndex,
+                "a"));
         this.monitor = monitor;
+        this.writeIndex = writeIndex;
     }
 
     /**
@@ -308,10 +319,6 @@ class TarWriter implements Closeable {
         }
     }
 
-    boolean isDirty() {
-        return access != null;
-    }
-
     /**
      * Closes this tar file.
      *
@@ -350,6 +357,23 @@ class TarWriter implements Closeable {
         }
 
         monitor.written(currentPosition - initialPosition);
+    }
+
+    /**
+     * If the current instance is dirty, this will return a new TarWriter based
+     * on the next generation of the file being written to by incrementing the
+     * internal {@link #writeIndex} counter. Otherwise it will return the
+     * current instance.
+     */
+    synchronized TarWriter createNextGeneration() throws IOException {
+        checkState(writeIndex >= 0);
+        // If nothing was written to this file, then we're already done.
+        if (access == null) {
+            return this;
+        }
+        close();
+        int newIndex = writeIndex + 1;
+        return new TarWriter(file.getParentFile(), monitor, newIndex);
     }
 
     private void writeBinaryReferences() throws IOException {
@@ -623,6 +647,18 @@ class TarWriter implements Closeable {
                 }
             }
         }
+    }
+
+    synchronized long fileLength() {
+        return file.length();
+    }
+
+    synchronized File getFile() {
+        return file;
+    }
+
+    synchronized boolean isClosed() {
+        return closed;
     }
 
     //------------------------------------------------------------< Object >--
