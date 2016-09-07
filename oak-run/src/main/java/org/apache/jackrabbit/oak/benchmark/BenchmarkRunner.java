@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static java.util.Arrays.asList;
-
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -25,9 +23,18 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -40,7 +47,11 @@ import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+
+import static java.util.Arrays.asList;
 
 public class BenchmarkRunner {
 
@@ -81,6 +92,10 @@ public class BenchmarkRunner {
                 .ofType(File.class);
         OptionSpec<Boolean> luceneIndexOnFS = parser
                 .accepts("luceneIndexOnFS", "Store Lucene index on file system")
+                .withOptionalArg()
+                .ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<Boolean> metrics = parser
+                .accepts("metrics", "Enable Metrics collection")
                 .withOptionalArg()
                 .ofType(Boolean.class).defaultsTo(false);
         OptionSpec<Boolean> withStorage = parser
@@ -152,6 +167,7 @@ public class BenchmarkRunner {
             }
             uri = "mongodb://" + host.value(options) + ":" + port.value(options) + "/" + db;
         }
+        StatisticsProvider statsProvider = options.has(metrics) ? getStatsProvider() : StatisticsProvider.NOOP;
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
@@ -179,6 +195,7 @@ public class BenchmarkRunner {
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                         dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
                         fdsCache.value(options));
+
         Benchmark[] allBenchmarks = new Benchmark[] {
             new OrderedIndexQueryOrderedIndexTest(),
             new OrderedIndexQueryStandardIndexTest(),
@@ -403,6 +420,7 @@ public class BenchmarkRunner {
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
                 fixtures.add(fixture);
+                configure(fixture, statsProvider);
             }
         }
 
@@ -437,8 +455,35 @@ public class BenchmarkRunner {
             if (out != null) {
                 out.close();
             }
+            reportMetrics(statsProvider);
         } else {
             System.err.println("Unknown arguments: " + argset);
+        }
+    }
+
+    private static void reportMetrics(StatisticsProvider statsProvider) {
+        if (statsProvider instanceof MetricStatisticsProvider) {
+            MetricRegistry metricRegistry = ((MetricStatisticsProvider) statsProvider).getRegistry();
+            ConsoleReporter.forRegistry(metricRegistry)
+                    .outputTo(System.out)
+                    .filter(new MetricFilter() {
+                        @Override
+                        public boolean matches(String name, Metric metric) {
+                            if (metric instanceof Counting) {
+                                //Only report non zero metrics
+                                return ((Counting) metric).getCount() > 0;
+                            }
+                            return true;
+                        }
+                    })
+                    .build()
+                    .report();
+        }
+    }
+
+    private static void configure(RepositoryFixture fixture, StatisticsProvider statsProvider) {
+        if (fixture instanceof OakRepositoryFixture) {
+            ((OakRepositoryFixture) fixture).setStatisticsProvider(statsProvider);
         }
     }
 
@@ -449,5 +494,11 @@ public class BenchmarkRunner {
         }
         Collections.sort(tmp);
         return tmp.toString();
+    }
+
+    private static MetricStatisticsProvider getStatsProvider(){
+        ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
+                (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1));
+        return new MetricStatisticsProvider(null, executorService);
     }
 }

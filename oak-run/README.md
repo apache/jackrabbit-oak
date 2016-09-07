@@ -453,6 +453,7 @@ The following benchmark options (with default values) are currently supported:
     --report false         - Whether to output intermediate results
     --csvFile <file>       - Optional csv file to report the benchmark results
     --concurrency <levels> - Comma separated list of concurrency levels
+    --metrics false        - Enable metrics based stats collection
     --rdbjdbcuri           - JDBC URL for RDB persistence (defaults to local file-based H2)
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
