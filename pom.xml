@@ -105,6 +105,7 @@
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
             </plugin>
             <plugin>
@@ -116,6 +117,7 @@
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
                 <executions>
                     <execution>
