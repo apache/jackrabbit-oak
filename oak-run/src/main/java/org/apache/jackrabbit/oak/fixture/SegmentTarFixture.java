@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 class SegmentTarFixture extends OakFixture {
 
@@ -64,7 +65,7 @@ class SegmentTarFixture extends OakFixture {
     }
 
     @Override
-    public Oak[] setUpCluster(int n) throws Exception {
+    public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
         Oak[] cluster = new Oak[n];
         stores = new FileStore[cluster.length];
         if (useBlobStore) {
@@ -84,6 +85,7 @@ class SegmentTarFixture extends OakFixture {
             }
             stores[i] = builder
                     .withMaxFileSize(maxFileSizeMB)
+                    .withStatisticsProvider(statsProvider)
                     .withSegmentCacheSize(cacheSizeMB)
                     .withMemoryMapping(memoryMapping)
                     .build();
