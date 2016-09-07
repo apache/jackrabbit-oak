@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.Random;
 
 import com.google.common.io.ByteStreams;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -120,10 +119,6 @@ public class StandbyTestIT extends TestBase {
 
         assertTrue(primary.getStats().getApproximateSize() > blobSize);
         assertTrue(secondary.getStats().getApproximateSize() > blobSize);
-
-        long primaryFs = FileUtils.sizeOf(directoryS);
-        long secondaryFs = FileUtils.sizeOf(directoryC);
-        assertTrue(secondaryFs < primaryFs * 1.15);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
                 .getChildNode("server").getProperty("testBlob");

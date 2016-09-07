@@ -19,16 +19,13 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
-import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.createTmpTargetDir;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -36,6 +33,8 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 public class TestBase {
 
@@ -49,15 +48,15 @@ public class TestBase {
 
     static final int timeout = Integer.getInteger("standby.test.timeout", 500);
 
-    File directoryS;
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     FileStore storeS;
     ScheduledExecutorService executorS;
 
-    File directoryC;
     FileStore storeC;
     ScheduledExecutorService executorC;
 
-    File directoryC2;
     FileStore storeC2;
     ScheduledExecutorService executorC2;
 
@@ -73,15 +72,12 @@ public class TestBase {
     }
 
     public void setUpServerAndClient() throws Exception {
-        // server
-        directoryS = createTmpTargetDir(getClass().getSimpleName()+"-Server");
         executorS = Executors.newSingleThreadScheduledExecutor();
-        storeS = setupPrimary(directoryS, executorS);
+        storeS = setupPrimary(folder.newFolder("server"), executorS);
 
         // client
-        directoryC = createTmpTargetDir(getClass().getSimpleName()+"-Client");
         executorC = Executors.newSingleThreadScheduledExecutor();
-        storeC = setupSecondary(directoryC, executorC);
+        storeC = setupSecondary(folder.newFolder("client-1"), executorC);
     }
 
     private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
@@ -105,7 +101,7 @@ public class TestBase {
     }
 
     protected FileStore setupSecondary(File directory, ScheduledExecutorService executor) throws Exception {
-        return newFileStore(directoryC, executor);
+        return newFileStore(directory, executor);
     }
 
     protected FileStore getSecondary() {
@@ -115,33 +111,36 @@ public class TestBase {
     public void setUpServerAndTwoClients() throws Exception {
         setUpServerAndClient();
 
-        directoryC2 = createTmpTargetDir(getClass().getSimpleName()+"-Client2");
         executorC2 = Executors.newSingleThreadScheduledExecutor();
-        storeC2 = newFileStore(directoryC2, executorC2);
+        storeC2 = newFileStore(folder.newFolder("client-2"), executorC2);
     }
 
     public void closeServerAndClient() {
-        storeS.close();
-        storeC.close();
-        try {
-            FileUtils.deleteDirectory(directoryS);
-            FileUtils.deleteDirectory(directoryC);
-        } catch (IOException e) {
-            // ignore
-        } finally {
+        if (storeS != null) {
+            storeS.close();
+        }
+
+        if (storeC != null) {
+            storeC.close();
+        }
+
+        if (executorS != null) {
             new ExecutorCloser(executorS).close();
+        }
+
+        if (executorC != null) {
             new ExecutorCloser(executorC).close();
         }
     }
 
     public void closeServerAndTwoClients() {
         closeServerAndClient();
-        storeC2.close();
-        try {
-            FileUtils.deleteDirectory(directoryC2);
-        } catch (IOException e) {
-            // ignore
-        } finally {
+
+        if (storeC2 != null) {
+            storeC2.close();
+        }
+
+        if (executorC2 != null) {
             new ExecutorCloser(executorC2).close();
         }
     }

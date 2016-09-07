@@ -19,11 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static java.io.File.createTempFile;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -40,13 +35,6 @@ public final class SegmentTestUtils {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(child).setProperty("ts", System.currentTimeMillis());
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-
-    public static File createTmpTargetDir(String name) throws IOException {
-        File f = createTempFile(name, "dir", new File("target"));
-        f.delete();
-        f.mkdir();
-        return f;
     }
 
 }
