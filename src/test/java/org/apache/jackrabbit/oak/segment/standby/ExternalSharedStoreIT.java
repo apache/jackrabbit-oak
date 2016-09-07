@@ -22,29 +22,25 @@ import java.io.File;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.junit.Before;
 
 public class ExternalSharedStoreIT extends DataStoreTestBase {
-
-    private String commonDataStorePath;
 
     public ExternalSharedStoreIT() {
         this.storesCanBeEqual = true;
     }
 
-    @Before
-    public void createCommonDataStoreFolder() throws Exception {
-        commonDataStorePath = folder.newFolder("data-store-common").getAbsolutePath();
+    private String getCommonDataStorePath() {
+        return new File(folder.getRoot(), "data-store-common").getAbsolutePath();
     }
 
     @Override
     protected FileStore setupPrimary(File d, ScheduledExecutorService primaryExecutor) throws Exception {
-        return setupFileDataStore(d, commonDataStorePath, primaryExecutor);
+        return setupFileDataStore(d, getCommonDataStorePath(), primaryExecutor);
     }
 
     @Override
     protected FileStore setupSecondary(File d, ScheduledExecutorService secondaryExecutor) throws Exception {
-        return setupFileDataStore(d, commonDataStorePath, secondaryExecutor);
+        return setupFileDataStore(d, getCommonDataStorePath(), secondaryExecutor);
     }
 
 }
