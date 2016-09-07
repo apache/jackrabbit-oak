@@ -55,6 +55,7 @@ public final class IndexDefinitionBuilder {
     public IndexDefinitionBuilder(){
         tree.setProperty(LuceneIndexConstants.COMPAT_MODE, 2);
         tree.setProperty("async", "async");
+        tree.setProperty("reindex", true);
         tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
         tree.setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition", NAME);
         indexRule = createChild(tree, LuceneIndexConstants.INDEX_RULES);
