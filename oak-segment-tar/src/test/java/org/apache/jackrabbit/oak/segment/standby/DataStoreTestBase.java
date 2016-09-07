@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -48,10 +49,9 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.io.ByteStreams;
 
 public class DataStoreTestBase extends TestBase {
 
@@ -60,6 +60,11 @@ public class DataStoreTestBase extends TestBase {
     @Before
     public void setUp() throws Exception {
         setUpServerAndClient();
+    }
+
+    @After
+    public void after() {
+        closeServerAndClient();
     }
 
     protected FileStore setupFileDataStore(File d, String path, ScheduledExecutorService executor) throws Exception {
