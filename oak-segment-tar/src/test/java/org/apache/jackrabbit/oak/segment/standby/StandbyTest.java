@@ -59,7 +59,6 @@ public class StandbyTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4673")
     public void testSync() throws Exception {
         final int mb = 1 * 1024 * 1024;
         final int blobSize = 5 * mb;

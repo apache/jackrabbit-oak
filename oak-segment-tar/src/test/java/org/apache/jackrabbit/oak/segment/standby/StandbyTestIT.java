@@ -84,7 +84,6 @@ public class StandbyTestIT extends TestBase {
      * OAK-2430
      */
     @Test
-    @Ignore("OAK-4707")
     public void testSyncLoop() throws Exception {
         final int blobSize = 25 * 1024;
         final int dataNodes = 5000;
