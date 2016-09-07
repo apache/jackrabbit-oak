@@ -24,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -32,6 +33,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import com.google.common.base.Joiner;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
@@ -180,12 +183,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     @Override
     public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
         System.out.format(
-                "# %-26.26s       C     min     10%%     50%%     90%%     max       N%n",
-                toString());
+                "# %-26.26s       C     min     10%%     50%%     90%%     max       N%s%n",
+                toString(), statsNamesJoined(false));
         if (out != null) {
             out.format(
-                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,      N%n",
-                    toString());
+                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,      N%s%n",
+                    toString(), statsNamesJoined(true));
         }
         for (RepositoryFixture fixture : fixtures) {
             try {
@@ -200,7 +203,6 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
             }
         }
     }
-
 
     private void runTest(RepositoryFixture fixture, Repository repository, List<Integer> concurrencyLevels) throws Exception {
 
@@ -226,28 +228,30 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
             for (Integer concurrency: concurrencyLevels) {
                 // Run the test
                 DescriptiveStatistics statistics = runTest(concurrency);
+                Object[] defaultStats = new Object[] {
+                    fixture.toString(),
+                    concurrency,
+                    statistics.getMin(),
+                    statistics.getPercentile(10.0),
+                    statistics.getPercentile(50.0),
+                    statistics.getPercentile(90.0),
+                    statistics.getMax(),
+                    statistics.getN()
+                };
+
+                Object[] statsArg =  ArrayUtils.addAll(defaultStats, statsValues());
+                String comment = comment();
+                if (comment != null) {
+                    statsArg = ArrayUtils.add(statsArg, comment);
+                }
                 if (statistics.getN() > 0) {
                     System.out.format(
-                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
-                            fixture.toString(),
-                            concurrency,
-                            statistics.getMin(),
-                            statistics.getPercentile(10.0),
-                            statistics.getPercentile(50.0),
-                            statistics.getPercentile(90.0),
-                            statistics.getMax(),
-                            statistics.getN());
+                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d"+statsFormatsJoined(false)+"%n",
+                            statsArg);
                     if (out != null) {
                         out.format(
-                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d%n",
-                                fixture.toString(),
-                                concurrency,
-                                statistics.getMin(),
-                                statistics.getPercentile(10.0),
-                                statistics.getPercentile(50.0),
-                                statistics.getPercentile(90.0),
-                                statistics.getMax(),
-                                statistics.getN());
+                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d"+statsFormatsJoined(false)+"%n",
+                                statsArg);
                     }
                 }
 
@@ -255,6 +259,26 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         } finally {
             tearDown();
         }
+    }
+
+    private String statsFormatsJoined(boolean commaSeparated) {
+        String comment = comment();
+        String[] formatPattern = statsFormats();
+        if (comment != null){
+            String commentPattern = commaSeparated ? "#%s" : "    #%s";
+            formatPattern = (String[])ArrayUtils.add(formatPattern, commentPattern);
+        }
+        Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
+        return joiner.join(formatPattern);
+    }
+
+    private String statsNamesJoined(boolean commaSeparated) {
+        Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
+        String names = joiner.join(statsNames());
+        if (!commaSeparated) {
+            names =  " " + names;
+        }
+        return names;
     }
 
     private class Executor extends Thread {
@@ -397,6 +421,35 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         this.sessions = null;
         this.credentials = null;
         this.repository = null;
+    }
+
+    /**
+     * Names of additional stats which benchmark wants to be reported as part of
+     * default report. Add required padding to the names to account for stats value
+     * size
+     */
+    protected String[] statsNames(){
+        return new String[0];
+    }
+
+    /**
+     * Format string used for additional stats as per {@link java.util.Formatter}
+     * Example [ "%6d" , "%6.0f" ]
+     */
+    protected String[] statsFormats(){
+        return new String[0];
+    }
+
+    /**
+     * Stats values which needs to be included in the report
+     */
+    protected Object[] statsValues(){
+        return new Object[0];
+    }
+
+    @CheckForNull
+    protected String comment(){
+        return null;
     }
 
     /**
