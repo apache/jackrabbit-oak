@@ -17,13 +17,10 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby;
-
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
+package org.apache.jackrabbit.oak.segment.standby.benchmark;
 
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 import java.util.Set;
 
 import javax.management.MBeanServer;
@@ -37,67 +34,44 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
-public class BulkTest extends TestBase {
+public class BulkTransferBenchmark extends BenchmarkBase {
 
-    @Before
     public void setUp() throws Exception {
         setUpServerAndClient();
     }
 
-    @After
     public void after() {
         closeServerAndClient();
     }
 
-    @Test
-    @Ignore("OAK-4707")
     public void test100Nodes() throws Exception {
         test(100, 1, 1, 3000, 3100);
     }
 
-    @Test
-    @Ignore("OAK-4707")
     public void test1000Nodes() throws Exception {
         test(1000, 1, 1, 53000, 55000);
     }
 
-    @Test
-    @Ignore("OAK-4707")
     public void test10000Nodes() throws Exception {
         test(10000, 1, 1, 245000, 246000);
     }
 
-    @Test
-    @Ignore("OAK-4707")
     public void test100000Nodes() throws Exception {
         test(100000, 9, 9, 2210000, 2220000);
     }
 
-    @Test
-    @Ignore("OAK-4707")
     public void test1MillionNodes() throws Exception {
         test(1000000, 87, 87, 22700000, 22800000);
     }
 
-    @Test
-    @Ignore("OAK-4707")
     public void test1MillionNodesUsingSSL() throws Exception {
         test(1000000, 87, 87, 22700000, 22800000, true);
     }
 
-/*
-    @Test
     public void test10MillionNodes() throws Exception {
         test(10000000, 856, 856, 223000000, 224000000);
     }
-*/
-
-    // private helper
 
     private void test(int number, int minExpectedSegments, int maxExpectedSegments, long minExpectedBytes, long maxExpectedBytes) throws Exception {
         test(number, minExpectedSegments, maxExpectedSegments, minExpectedBytes, maxExpectedBytes, false);
@@ -133,32 +107,45 @@ public class BulkTest extends TestBase {
 
         try {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
-            assertEquals(3, instances.size());
-
             ObjectName connectionStatus = null;
             for (ObjectName s : instances) {
                 if (!s.equals(clientStatus) && !s.equals(serverStatus)) connectionStatus = s;
             }
-            assertNotNull(connectionStatus);
+            assert(connectionStatus != null);
 
             long segments = ((Long)jmxServer.getAttribute(connectionStatus, "TransferredSegments")).longValue();
             long bytes = ((Long)jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes")).longValue();
 
             System.out.println("did transfer " + segments + " segments with " + bytes + " bytes in " + (System.currentTimeMillis() - start) / 1000 + " seconds.");
-
-            assertEquals(storeS.getHead(), storeC.getHead());
-
-            //compare(segments, "segment", minExpectedSegments, maxExpectedSegments);
-            //compare(bytes, "byte", minExpectedBytes, maxExpectedBytes);
-
         } finally {
             server.close();
             cl.close();
         }
     }
-
-    private void compare(long current, String unit, long expectedMin, long expectedMax) {
-        assertTrue("current number of " + unit + "s (" + current + ") is less than minimum expected: " + expectedMin, current >= expectedMin);
-        assertTrue("current number of " + unit + "s (" + current + ") is bigger than maximum expected: " + expectedMax, current <= expectedMax);
+    
+    public static void main(String[] args) {
+        BulkTransferBenchmark benchmark = new BulkTransferBenchmark();
+        
+        String[] methodNames = new String[] {
+                "test100Nodes",
+                "test1000Nodes",
+                "test10000Nodes",
+                "test100000Nodes",
+                "test1MillionNodes",
+                "test1MillionNodesUsingSSL",
+                "test10MillionNodes"
+        };
+        
+        for (String methodName : methodNames) {
+            try {
+                Method method = benchmark.getClass().getMethod(methodName);
+                
+                benchmark.setUp();
+                method.invoke(benchmark);
+                benchmark.after();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } 
+        }
     }
 }
