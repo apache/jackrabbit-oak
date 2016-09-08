@@ -53,6 +53,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public NodeStore open() throws IOException {
+        directory.mkdirs();
         FileStore.Builder builder = FileStore.builder(new File(directory, "segmentstore"));
         if (blob != null) {
             builder.withBlobStore(blob.open());

@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 
@@ -57,28 +58,21 @@ public class MigrationFactory {
     }
 
     public RepositorySidegrade createSidegrade() throws IOException {
-        BlobStore srcBlobStore = stores.getSrcBlobStore().create(closer);
+        BlobStore srcBlobStore = stores.getDatastores().getSrcBlobStore().create(closer);
         NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
         NodeStore dstStore = createTarget(closer, srcBlobStore);
         return createSidegrade(srcStore, dstStore);
     }
 
     protected NodeStore createTarget(Closer closer, BlobStore srcBlobStore) throws IOException {
-        BlobStore dstBlobStore;
-        if (options.isCopyBinariesByReference()) {
-            dstBlobStore = srcBlobStore;
-        } else {
-            dstBlobStore = stores.getDstBlobStore().create(closer);
-        }
+        BlobStore dstBlobStore = stores.getDatastores().getDstBlobStore(srcBlobStore).create(closer);
         NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
         return dstStore;
     }
 
     protected RepositoryUpgrade createUpgrade(RepositoryContext source, NodeStore dstStore) {
         RepositoryUpgrade upgrade = new RepositoryUpgrade(source, dstStore);
-        if (source.getDataStore() != null && options.isCopyBinariesByReference()) {
-            upgrade.setCopyBinariesByReference(true);
-        }
+        upgrade.setCopyBinariesByReference(stores.getDatastores().getBlobMigrationCase() == DatastoreArguments.BlobMigrationCase.COPY_REFERENCES);
         upgrade.setCopyVersions(options.getCopyVersions());
         upgrade.setCopyOrphanedVersions(options.getCopyOrphanedVersions());
         if (options.getIncludePaths() != null) {

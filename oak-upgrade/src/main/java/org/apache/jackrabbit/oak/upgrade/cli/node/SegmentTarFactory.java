@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -34,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import javax.annotation.Nullable;
 
 public class SegmentTarFactory implements NodeStoreFactory {
 
@@ -97,6 +100,39 @@ public class SegmentTarFactory implements NodeStoreFactory {
         });
     }
 
+
+    @Override
+    public boolean hasExternalBlobReferences() throws IOException {
+        final FileStoreBuilder builder = fileStoreBuilder(new File(dir, "segmentstore"));
+        builder.withMaxFileSize(256);
+        if (disableMmap) {
+            builder.withMemoryMapping(false);
+        } else {
+            builder.withDefaultMemoryMapping();
+        }
+        final FileStore fs;
+        try {
+            fs = builder.build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IOException(e);
+        }
+        try {
+            fs.collectBlobReferences(new ReferenceCollector() {
+                @Override
+                public void addReference(String reference, @Nullable String nodeId) {
+                    // FIXME the collector should allow to stop processing
+                    // see java.nio.file.FileVisitor
+                    throw new ExternalBlobFound();
+                }
+            });
+            return false;
+        } catch (ExternalBlobFound e) {
+            return true;
+        } finally {
+            fs.close();
+        }
+    }
+
     public File getRepositoryDir() {
         return dir;
     }
@@ -113,5 +149,8 @@ public class SegmentTarFactory implements NodeStoreFactory {
     @Override
     public String toString() {
         return String.format("SegmentTarNodeStore[%s]", dir);
+    }
+
+    private static class ExternalBlobFound extends RuntimeException {
     }
 }

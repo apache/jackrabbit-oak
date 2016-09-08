@@ -53,6 +53,7 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public NodeStore open() throws IOException {
+        directory.mkdirs();
         FileStoreBuilder builder = fileStoreBuilder(new File(directory, "segmentstore"));
         if (blob != null) {
             builder.withBlobStore(blob.open());
@@ -67,7 +68,10 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void close() {
-        fs.close();
+        if (fs != null) {
+            fs.close();
+            fs = null;
+        }
     }
 
     @Override

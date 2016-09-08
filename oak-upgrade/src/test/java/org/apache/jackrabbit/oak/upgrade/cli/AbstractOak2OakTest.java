@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -118,8 +119,12 @@ public abstract class AbstractOak2OakTest {
     @After
     public void clean() throws IOException {
         try {
-            session.logout();
-            repository.shutdown();
+            if (session != null) {
+                session.logout();
+            }
+            if (repository != null) {
+                repository.shutdown();
+            }
         } finally {
             IOUtils.closeQuietly(getDestinationContainer());
             getDestinationContainer().clean();
@@ -147,7 +152,7 @@ public abstract class AbstractOak2OakTest {
     }
 
     @Test
-    public void validateMigration() throws RepositoryException, IOException {
+    public void validateMigration() throws RepositoryException, IOException, CliArgumentException {
         verifyContent(session);
         verifyBlob(session);
         if (supportsCheckpointMigration()) {

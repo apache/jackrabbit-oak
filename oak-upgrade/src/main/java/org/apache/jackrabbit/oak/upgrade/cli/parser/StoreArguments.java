@@ -23,32 +23,13 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.BlobStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.DummyBlobStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.FileBlobStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.MissingBlobStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.IGNORE_MISSING_BINARIES;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FBS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FDS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_S3;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_S3_CONFIG;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FBS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FDS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3_CONFIG;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.MISSING_BLOBSTORE;
-
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JDBC;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.MONGO;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
@@ -69,6 +50,10 @@ public class StoreArguments {
 
     private final StoreDescriptor dst;
 
+    private final DatastoreArguments datastores;
+
+    private Boolean srcHasExternalBlobRefs;
+
     public StoreArguments(MigrationCliArguments parser) throws CliArgumentException {
         this.parser = parser;
 
@@ -84,9 +69,7 @@ public class StoreArguments {
             logSegmentVersion();
         }
 
-        if (parser.hasOption(MISSING_BLOBSTORE) && !nodeStoresSupportMissingBlobStore()) {
-            throw new CliArgumentException("This combination of node stores is not supported by the --" + MISSING_BLOBSTORE, 1);
-        }
+        datastores = new DatastoreArguments(parser, this);
     }
 
     public StoreFactory getSrcStore() {
@@ -97,6 +80,10 @@ public class StoreArguments {
         return dst.getFactory(MigrationDirection.DST, parser);
     }
 
+    public DatastoreArguments getDatastores() {
+        return datastores;
+    }
+
     public StoreType getSrcType() {
         return src.getType();
     }
@@ -105,39 +92,12 @@ public class StoreArguments {
         return dst.getType();
     }
 
-    public BlobStoreFactory getSrcBlobStore() throws IOException {
-        BlobStoreFactory factory;
-        boolean ignoreMissingBinaries = parser.hasOption(IGNORE_MISSING_BINARIES);
-        if (parser.hasOption(SRC_FBS)) {
-            factory = new FileBlobStoreFactory(parser.getOption(SRC_FBS));
-        } else if (parser.hasOption(SRC_S3_CONFIG) && parser.hasOption(SRC_S3)) {
-            factory = new S3DataStoreFactory(parser.getOption(SRC_S3_CONFIG), parser.getOption(SRC_S3), ignoreMissingBinaries);
-        } else if (parser.hasOption(SRC_FDS)) {
-            factory = new FileDataStoreFactory(parser.getOption(SRC_FDS), ignoreMissingBinaries);
-        } else if (parser.hasOption(MISSING_BLOBSTORE)) {
-            factory = new MissingBlobStoreFactory();
-        } else {
-            factory = new DummyBlobStoreFactory();
-        }
-        log.info("Source blob store: {}", factory);
-        return factory;
+    String getSrcDescriptor() {
+        return src.toString();
     }
 
-    public BlobStoreFactory getDstBlobStore() throws IOException {
-        BlobStoreFactory factory;
-        if (parser.hasOption(DST_FBS)) {
-            factory = new FileBlobStoreFactory(parser.getOption(DST_FBS));
-        } else if (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) {
-            factory = new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3), false);
-        } else if (parser.hasOption(DST_FDS)) {
-            factory = new FileDataStoreFactory(parser.getOption(DST_FDS), false);
-        } else if (parser.hasOption(MISSING_BLOBSTORE)) {
-            factory = new MissingBlobStoreFactory();
-        } else {
-            factory = new DummyBlobStoreFactory();
-        }
-        log.info("Destination blob store: {}", factory);
-        return factory;
+    String getDstDescriptor() {
+        return dst.toString();
     }
 
     public boolean isInPlaceUpgrade() {
@@ -149,6 +109,13 @@ public class StoreArguments {
 
     public String[] getSrcPaths() {
         return src.getPaths();
+    }
+
+    boolean srcHasExternalBlobReferences() throws IOException {
+        if (srcHasExternalBlobRefs == null) {
+            srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, parser).hasExternalBlobReferences();
+        }
+        return srcHasExternalBlobRefs;
     }
 
     private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments) throws CliArgumentException {
@@ -256,21 +223,6 @@ public class StoreArguments {
         }
     }
 
-    private boolean nodeStoresSupportMissingBlobStore() {
-        StoreType srcType = src.getType();
-        StoreType dstType = dst.getType();
-
-        if (srcType.isSegment() && dstType.isSegment()) {
-            return true;
-        } else if (srcType == MONGO && (dstType.isSegment() || dstType == MONGO)) {
-            return true;
-        } else if (srcType == JDBC && (dstType.isSegment() || dstType == JDBC)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     enum MigrationDirection {
         SRC, DST
     }
@@ -310,5 +262,6 @@ public class StoreArguments {
                 return String.format("%s%s", type, Arrays.toString(getPaths()));
             }
         }
+
     }
 }

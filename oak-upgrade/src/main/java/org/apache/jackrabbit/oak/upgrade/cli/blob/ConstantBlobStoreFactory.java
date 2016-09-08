@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.node;
+package org.apache.jackrabbit.oak.upgrade.cli.blob;
+
+import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+public class ConstantBlobStoreFactory implements BlobStoreFactory {
 
-import com.google.common.io.Closer;
+    private final BlobStore blobStore;
 
-public interface NodeStoreFactory {
+    public ConstantBlobStoreFactory(BlobStore blobStore) {
+        this.blobStore = blobStore;
+    }
 
-    NodeStore create(BlobStore blobStore, Closer closer) throws IOException;
-
-    boolean hasExternalBlobReferences() throws IOException;
+    @Override
+    public BlobStore create(Closer closer) throws IOException {
+        return blobStore;
+    }
 }
