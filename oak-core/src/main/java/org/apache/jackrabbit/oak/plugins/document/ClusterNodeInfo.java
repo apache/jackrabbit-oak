@@ -884,6 +884,10 @@ public class ClusterNodeInfo {
         return leaseTime;
     }
 
+    public long getLeaseEndTime() {
+        return leaseEndTime;
+    }
+
     public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;
     }
