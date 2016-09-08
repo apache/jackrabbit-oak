@@ -161,8 +161,10 @@ public class ComparisonImpl extends ConstraintImpl {
                 if (lowerBound != null) {
                     String upperBound = p.getUpperBound();
                     if (lowerBound.equals(upperBound)) {
-                        // no wildcards
-                        operand1.restrict(f, Operator.EQUAL, v);
+                        // no wildcards: equality comparison
+                        // but v may contain escaped wildcards, so we can't use it
+                        PropertyValue pv = PropertyValues.newString(lowerBound);
+                        operand1.restrict(f, Operator.EQUAL, pv);
                     } else if (operand1.supportsRangeConditions()) {
                         if (lowerBound != null) {
                             PropertyValue pv = PropertyValues.newString(lowerBound);
