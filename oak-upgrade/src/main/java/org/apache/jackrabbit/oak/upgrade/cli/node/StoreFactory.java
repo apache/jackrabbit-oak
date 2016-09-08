@@ -59,4 +59,12 @@ public class StoreFactory {
     public boolean isJcr2() {
         return jcr2Factory != null;
     }
+
+    public boolean hasExternalBlobReferences() throws IOException {
+        if (isJcr2()) {
+            return true;
+        } else {
+            return nodeStoreFactory.hasExternalBlobReferences();
+        }
+    }
 }

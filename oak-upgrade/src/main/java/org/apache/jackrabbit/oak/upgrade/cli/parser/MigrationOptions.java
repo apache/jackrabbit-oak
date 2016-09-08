@@ -30,7 +30,7 @@ public class MigrationOptions {
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
-    private final boolean copyBinariesByReference;
+    private final boolean copyBinaries;
 
     private final boolean disableMmap;
 
@@ -59,8 +59,8 @@ public class MigrationOptions {
     private final boolean ignoreMissingBinaries;
 
     public MigrationOptions(MigrationCliArguments args) {
-        this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
         this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
+        this.copyBinaries = args.hasOption(OptionParserFactory.COPY_BINARIES);
         if (args.hasOption(OptionParserFactory.CACHE_SIZE)) {
             this.cacheSizeInMB = args.getIntOption(OptionParserFactory.CACHE_SIZE);
         } else {
@@ -91,8 +91,8 @@ public class MigrationOptions {
         logOptions();
     }
 
-    public boolean isCopyBinariesByReference() {
-        return copyBinariesByReference;
+    public boolean isCopyBinaries() {
+        return copyBinaries;
     }
 
     public boolean isDisableMmap() {
@@ -148,12 +148,6 @@ public class MigrationOptions {
     }
 
     private void logOptions() {
-        if (copyBinariesByReference) {
-            log.info("DataStore needs to be shared with new repository");
-        } else {
-            log.info("Binary content would be copied to the NodeStore.");
-        }
-
         if (disableMmap) {
             log.info("Disabling memory mapped file access for Segment Store");
         }

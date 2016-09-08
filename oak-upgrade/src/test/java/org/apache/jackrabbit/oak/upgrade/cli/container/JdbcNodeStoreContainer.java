@@ -62,7 +62,10 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
     @Override
     public void close() {
         try {
-            closer.close();
+            if (closer != null) {
+                closer.close();
+                closer = null;
+            }
         } catch (IOException e) {
             LOG.error("Can't close document node store", e);
         }
