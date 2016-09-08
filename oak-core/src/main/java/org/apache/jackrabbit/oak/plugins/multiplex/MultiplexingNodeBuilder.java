@@ -1,5 +1,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -11,9 +13,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.state.HasNativeNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 public class MultiplexingNodeBuilder implements NodeBuilder {
@@ -29,6 +33,9 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         this.wrappedBuilder = builder;
         this.ctx = ctx;
         this.affectedBuilders = affectedBuilders;
+        
+        Preconditions.checkArgument(affectedBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores",
+                affectedBuilders.size(), ctx.getStoresCount());
     }
     
     // multiplexing-specific APIs
@@ -192,7 +199,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         
         MountedNodeStore owningStore = ctx.getOwningStore(childPath);
         
-        NodeBuilder builder = getOrCreateNodeBuilder(owningStore);
+        NodeBuilder builder = getNodeBuilder(owningStore);
         
         for ( String segment : PathUtils.elements(path) ) {
             builder = builder.child(segment);
@@ -208,7 +215,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         
         MountedNodeStore owningStore = ctx.getOwningStore(childPath);
 
-        NodeBuilder builder = getOrCreateNodeBuilder(owningStore);
+        NodeBuilder builder = getNodeBuilder(owningStore);
         
         for ( String segment : PathUtils.elements(path) ) {
             builder = builder.child(segment);
@@ -230,7 +237,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         
         MountedNodeStore owningStore = ctx.getOwningStore(childPath);
 
-        NodeBuilder builder = getOrCreateNodeBuilder(owningStore);
+        NodeBuilder builder = getNodeBuilder(owningStore);
         
         for ( String segment : PathUtils.elements(path) ) {
             builder = builder.child(segment);
@@ -265,15 +272,9 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         return new MultiplexingNodeBuilder(childPath, wrappedBuilder, ctx, affectedBuilders);
     }
     
-    private NodeBuilder getOrCreateNodeBuilder(MountedNodeStore nodeStore) {
+    private NodeBuilder getNodeBuilder(MountedNodeStore nodeStore) {
         
-        NodeBuilder builder = affectedBuilders.get(nodeStore);
-        if ( builder == null ) {
-            builder = nodeStore.getNodeStore().getRoot().builder();
-            affectedBuilders.put(nodeStore, builder);
-        }
-        
-        return builder;
+        return checkNotNull(affectedBuilders.get(nodeStore));
     }
 
 }

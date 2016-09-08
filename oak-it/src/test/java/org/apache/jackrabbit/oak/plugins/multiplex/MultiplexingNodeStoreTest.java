@@ -109,11 +109,13 @@ public class MultiplexingNodeStoreTest {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
                 .mount("temp", "/tmp")
                 .mount("deep", "/libs/mount")
+                .mount("empty", "/nowhere")
                 .build();
         
         globalStore = register(root.create(null));
         mountedStore = register(mounts.create("temp"));
         deepMountedStore = register(mounts.create("deep"));
+        NodeStore emptyStore = register(mounts.create("empty")); // this NodeStore will always be empty
 
         // create a property on the root node
         NodeBuilder builder = globalStore.getRoot().builder();
@@ -159,6 +161,7 @@ public class MultiplexingNodeStoreTest {
         store = new MultiplexingNodeStore.Builder(mip, globalStore)
                 .addMount("temp", mountedStore)
                 .addMount("deep", deepMountedStore)
+                .addMount("empty", emptyStore)
                 .build();
     }
     
@@ -586,9 +589,10 @@ public class MultiplexingNodeStoreTest {
         
         NodeBuilder builder = store.getRoot().builder();
         
-        builder = builder.setChildNode("libs");
+        NodeBuilder libsBuilder = builder.setChildNode("libs");
         
-        assertTrue("builder.isReplaced", builder.isReplaced());
+        assertTrue("libsBuilder.isReplaced", libsBuilder.isReplaced());
+        assertTrue("builder.getChild('libs').isReplaced", builder.getChildNode("libs").isReplaced());
     }
     
     @Test
@@ -711,7 +715,21 @@ public class MultiplexingNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertFalse("old NodeState should not see newly added child node after merge ", old.getChildNode("tmp").hasChildNode("newNode"));
-    }    
+    }
+    
+    // this test ensures that when going from State -> Builder -> State -> Builder the state is properly maintained
+    @Test
+    public void nestedBuilderFromState() throws Exception {
+        
+        NodeState rootState = store.getRoot();
+        NodeBuilder rootBuilder = rootState.builder();
+        rootBuilder.child("newNode");
+        
+        NodeState baseState = rootBuilder.getNodeState();
+        NodeBuilder builderFromState = baseState.builder();
+        
+        assertTrue(builderFromState.hasChildNode("newNode"));
+    }
     
     @Test
     @Ignore("Not implemented")

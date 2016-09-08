@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -81,6 +82,11 @@ public class MultiplexingNodeState extends AbstractNodeState {
         this.checkpoints = checkpoints;
         this.nodeBuilder = nodeBuilder;
         this.nodeStates = nodeStates;
+        
+        if ( nodeStates.size() != 0 ) {
+            Preconditions.checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s nodeStates but the context handles %s stores", 
+                    nodeStates.size(), ctx.getStoresCount());
+        }
     }
 
     @Override
@@ -182,14 +188,21 @@ public class MultiplexingNodeState extends AbstractNodeState {
         for ( String segment : PathUtils.elements(path))
             builder = builder.getChildNode(segment);
         
-        for ( MountedNodeStore mountedStore : nodeStates.keySet() ) {
-            
-            // TODO - prevent overwriting the builder for the root store
-            if ( affectedBuilders.containsKey(mountedStore)) {
-                continue;
+        // TODO - do we need to consider checkpoints when building the affected builders?
+        if  ( !nodeStates.isEmpty() ) {
+            for ( MountedNodeStore mountedStore : nodeStates.keySet() ) {
+                
+                // TODO - prevent overwriting the builder for the root store
+                if ( affectedBuilders.containsKey(mountedStore)) {
+                    continue;
+                }
+                
+                affectedBuilders.put(mountedStore, mountedStore.getNodeStore().getRoot().builder());
             }
-            
-            affectedBuilders.put(mountedStore, mountedStore.getNodeStore().getRoot().builder());
+        }
+        
+        if ( nodeBuilder != null ) {
+            affectedBuilders = nodeBuilder.getAffectedBuilders();
         }
         
         return new MultiplexingNodeBuilder(path, builder, ctx, affectedBuilders);

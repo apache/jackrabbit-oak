@@ -132,4 +132,9 @@ class MultiplexingContext {
         return multiplexingNodeStore;
     }
     
+    // exposed for internal consistency checks
+    int getStoresCount() {
+        return nonDefaultStores.size() + 1;
+    }
+    
 }
