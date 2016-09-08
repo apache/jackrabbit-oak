@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
  * The base class for dynamic operands (such as a function or property).
@@ -47,15 +48,12 @@ public abstract class DynamicOperandImpl extends AstElement {
     public abstract void restrictList(FilterImpl f, List<PropertyValue> list);
     
     /**
-     * Apply a restriction of type "function(this) = value" to the given filter.
+     * Get the function of a function-based index, in Polish notation.
      * 
-     * @param functionName the function name (for example "upper")
-     * @param f the filter where the restriction is applied.
-     * @param operator the operator (for example "=").
-     * @param v the value
+     * @param s the selector
+     * @return the function, or null if not supported
      */
-    public abstract void restrictFunction(FilterImpl f, String functionName, Operator operator,
-            PropertyValue v);
+    public abstract String getFunction(SelectorImpl s);
 
     /**
      * Check whether the condition can be applied to a selector (to restrict the
@@ -106,5 +104,14 @@ public abstract class DynamicOperandImpl extends AstElement {
     }
     
     public abstract DynamicOperandImpl createCopy();
+    
+    /**
+     * Create an entry for the "order by" list for a given filter.
+     * 
+     * @param s the selector
+     * @param o the ordering
+     * @return the entry
+     */
+    public abstract OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o);
 
 }

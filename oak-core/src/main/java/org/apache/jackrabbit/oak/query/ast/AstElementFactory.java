@@ -94,8 +94,8 @@ public class AstElementFactory {
         return new JoinImpl(left, right, joinType, joinCondition);
     }
 
-    public LengthImpl length(PropertyValueImpl propertyValue) {
-        return new LengthImpl(propertyValue);
+    public LengthImpl length(DynamicOperandImpl operand) {
+        return new LengthImpl(operand);
     }
 
     public LiteralImpl literal(PropertyValue literalValue) {

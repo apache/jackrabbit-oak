@@ -71,13 +71,13 @@ public class FilterTest {
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
                 "where upper(name()) = 'ACME:TEST', " + 
                 "path=*, property=[" + 
-                "function*upper*@:localname=[TEST]])", createFilterSQL(sql2).toString());
+                "function*upper*@:name=[ACME:TEST]])", createFilterSQL(sql2).toString());
         
-        sql2 = "select [jcr:path] from [nt:base] where lower(localname()) = 'test'";
+        sql2 = "select [jcr:path] from [nt:base] where lower(localname()) > 'test'";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
-                "where lower(localname()) = 'test', " + 
+                "where lower(localname()) > 'test', " + 
                 "path=*, property=[" + 
-                "function*lower*@:localname=[test]])", createFilterSQL(sql2).toString());
+                "function*lower*@:localname=[(test..]])", createFilterSQL(sql2).toString());
 
         sql2 = "select [jcr:path] from [nt:base] where length([test]) <= 10";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
@@ -85,13 +85,11 @@ public class FilterTest {
                 "path=*, property=[function*length*@test=[..10]], " + 
                 "test=[is not null]])", createFilterSQL(sql2).toString());
         
-        sql2 = "select [jcr:path] from [nt:base] where length([test]) > 2";
+        sql2 = "select [jcr:path] from [nt:base] where length([data/test]) > 2";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " + 
-                "where length([test]) > 2, " + 
-                "path=*, property=[function*length*@test=[(2..], " + 
-                "test=[is not null]])", createFilterSQL(sql2).toString());
-        
-
+                "where length([data/test]) > 2, " + 
+                "path=*, property=[data/test=[is not null], " + 
+                "function*length*@data/test=[(2..]])", createFilterSQL(sql2).toString());
     }
     
     @Test
