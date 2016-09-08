@@ -112,6 +112,10 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
         checkArgument(nodeBuilder.getPath().equals("/"));
         
+        // TODO - how do we dispatch commit hooks?
+        // Right now nodeStore.merge() fails for instance when setting up the repository and trying
+        // to perform a merge call on the secondary node store
+        
         for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
             
             NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
