@@ -162,14 +162,6 @@ public abstract class OakFixture {
             private DocumentMK[] kernels;
             private BlobStoreFixture blobStoreFixture;
 
-            {
-                if (useFileDataStore) {
-                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB);
-                } else {
-                    blobStoreFixture = BlobStoreFixture.create(base, false);
-                }
-            }
-
             @Override
             public Oak getOak(int clusterId) throws Exception {
                 MongoConnection mongo = new MongoConnection(uri);
@@ -180,7 +172,7 @@ public abstract class OakFixture {
                         setPersistentCache("target/persistentCache,time").
                         setClusterId(clusterId).
                         setLogging(false);
-                setupBlobStore(mkBuilder);
+                setupBlobStore(mkBuilder, StatisticsProvider.NOOP);
                 DocumentMK dmk = mkBuilder.open();
                 return newOak(dmk.getNodeStore());
             }
@@ -198,7 +190,7 @@ public abstract class OakFixture {
                             setPersistentCache("target/persistentCache,time").
                             setClusterId(i + 1).
                             setLogging(false);
-                    setupBlobStore(mkBuilder);
+                    setupBlobStore(mkBuilder, statsProvider);
                     kernels[i] = mkBuilder.open();
                     cluster[i] = newOak(kernels[i].getNodeStore());
                 }
@@ -225,9 +217,22 @@ public abstract class OakFixture {
                 }
             }
 
-            private void setupBlobStore(DocumentMK.Builder mkBuilder) {
+            private void setupBlobStore(DocumentMK.Builder mkBuilder, StatisticsProvider statsProvider) {
+                initializeBlobStoreFixture(statsProvider);
                 if (blobStoreFixture != null) {
                     mkBuilder.setBlobStore(blobStoreFixture.setUp());
+                }
+            }
+
+            private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
+                if (blobStoreFixture != null){
+                    return;
+                }
+
+                if (useFileDataStore) {
+                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB, statsProvider);
+                } else {
+                    blobStoreFixture = BlobStoreFixture.create(base, false, statsProvider);
                 }
             }
         };
@@ -245,19 +250,14 @@ public abstract class OakFixture {
             private DocumentMK[] kernels;
             private BlobStoreFixture blobStoreFixture;
 
-            {
-                if (useFileDataStore) {
-                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB);
-                }
-            }
-
             private RDBOptions getOptions(boolean dropDBAFterTest, String tablePrefix) {
                 return new RDBOptions().dropTablesOnClose(dropDBAfterTest).tablePrefix(tablePrefix);
             }
 
-            private BlobStore getBlobStore() {
+            private BlobStore getBlobStore(StatisticsProvider statsProvider) {
                 try {
                     if (useFileDataStore) {
+                        initializeBlobStoreFixture(statsProvider);
                         return blobStoreFixture.setUp();
                     } else {
                         DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
@@ -274,7 +274,7 @@ public abstract class OakFixture {
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
                         .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                         .setClusterId(clusterId).setLogging(false);
-                BlobStore blobStore = getBlobStore();
+                BlobStore blobStore = getBlobStore(StatisticsProvider.NOOP);
                 if (blobStore != null) {
                     mkBuilder.setBlobStore(blobStore);
                 }
@@ -287,7 +287,7 @@ public abstract class OakFixture {
                 Oak[] cluster = new Oak[n];
                 kernels = new DocumentMK[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
-                    BlobStore blobStore = getBlobStore();
+                    BlobStore blobStore = getBlobStore(statsProvider);
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
                     DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
                             .setStatisticsProvider(statsProvider)
@@ -321,6 +321,12 @@ public abstract class OakFixture {
                     if (dropped.isEmpty()) {
                         throw new RuntimeException("dropdb was set, but tables have not been dropped");
                     }
+                }
+            }
+
+            private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
+                if (useFileDataStore && blobStoreFixture == null) {
+                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB, statsProvider);
                 }
             }
         };
@@ -376,7 +382,7 @@ public abstract class OakFixture {
             for (int i = 0; i < cluster.length; i++) {
                 BlobStore blobStore = null;
                 if (useBlobStore) {
-                    blobStoreFixtures[i] = BlobStoreFixture.create(base, true);
+                    blobStoreFixtures[i] = BlobStoreFixture.create(base, true, statsProvider);
                     blobStore = blobStoreFixtures[i].setUp();
                 }
 

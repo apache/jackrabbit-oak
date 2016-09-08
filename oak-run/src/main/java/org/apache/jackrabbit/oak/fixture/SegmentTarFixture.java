@@ -75,7 +75,7 @@ class SegmentTarFixture extends OakFixture {
         for (int i = 0; i < cluster.length; i++) {
             BlobStore blobStore = null;
             if (useBlobStore) {
-                blobStoreFixtures[i] = BlobStoreFixture.create(base, true);
+                blobStoreFixtures[i] = BlobStoreFixture.create(base, true, statsProvider);
                 blobStore = blobStoreFixtures[i].setUp();
             }
 
