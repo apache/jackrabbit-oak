@@ -31,10 +31,12 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -66,7 +68,8 @@ public abstract class BlobStoreFixture implements Closeable{
      *                      any explicitly defined BlobStore
      */
     @CheckForNull
-    public static BlobStoreFixture create(File basedir, boolean fallbackToFDS) {
+    public static BlobStoreFixture create(File basedir, boolean fallbackToFDS,
+                                          StatisticsProvider statisticsProvider) {
         String className = System.getProperty("dataStore");
         if (className != null) {
             return getDataStore();
@@ -78,7 +81,7 @@ public abstract class BlobStoreFixture implements Closeable{
 
         String blobStore = System.getProperty("blobStoreType");
         if ("FDS".equals(blobStore) || (blobStore == null && fallbackToFDS)) {
-            return getFileDataStore(basedir, DataStoreBlobStore.DEFAULT_CACHE_SIZE);
+            return getFileDataStore(basedir, DataStoreBlobStore.DEFAULT_CACHE_SIZE, statisticsProvider);
         } else if ("FBS".equals(blobStore)) {
             return getFileBlobStore(basedir);
         } else if ("MEM".equals(blobStore)) {
@@ -88,7 +91,8 @@ public abstract class BlobStoreFixture implements Closeable{
         return null;
     }
 
-    public static BlobStoreFixture getFileDataStore(final File basedir, final int fdsCacheInMB) {
+    public static BlobStoreFixture getFileDataStore(final File basedir, final int fdsCacheInMB,
+                                                    final StatisticsProvider statisticsProvider) {
         return new BlobStoreFixture("FDS") {
             private File storeDir;
             private FileDataStore fds;
@@ -100,7 +104,8 @@ public abstract class BlobStoreFixture implements Closeable{
                 storeDir = new File(basedir, unique);
                 fds.init(storeDir.getAbsolutePath());
                 configure(fds);
-                BlobStore bs = new DataStoreBlobStore(fds, true, fdsCacheInMB);
+                DataStoreBlobStore bs = new DataStoreBlobStore(fds, true, fdsCacheInMB);
+                bs.setBlobStatsCollector(new BlobStoreStats(statisticsProvider));
                 configure(bs);
                 return bs;
             }
