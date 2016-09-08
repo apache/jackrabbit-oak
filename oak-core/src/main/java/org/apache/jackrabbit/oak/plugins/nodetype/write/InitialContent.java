@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.HasNativeNodeBuilder;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
@@ -115,7 +116,11 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         }
 
         // squeeze node state before it is passed to store (OAK-2411)
-        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
+        
+        NodeState rawState = builder instanceof HasNativeNodeBuilder ? 
+                ((HasNativeNodeBuilder) builder).getNativeRootBuilder().getNodeState() : builder.getNodeState();
+        
+        NodeState base = ModifiedNodeState.squeeze(rawState);
         NodeStore store = new MemoryNodeStore(base);
         NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(

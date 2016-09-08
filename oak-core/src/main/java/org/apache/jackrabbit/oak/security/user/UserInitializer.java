@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
+import org.apache.jackrabbit.oak.spi.state.HasNativeNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -91,7 +92,10 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
         // squeeze node state before it is passed to store (OAK-2411)
-        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
+        NodeState rawState = builder instanceof HasNativeNodeBuilder ? 
+                ((HasNativeNodeBuilder) builder).getNativeRootBuilder().getNodeState() : builder.getNodeState();
+        
+        NodeState base = ModifiedNodeState.squeeze(rawState);
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
