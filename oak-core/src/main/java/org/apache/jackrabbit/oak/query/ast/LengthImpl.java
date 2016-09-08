@@ -24,22 +24,25 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
  * The function "length(..)".
  */
 public class LengthImpl extends DynamicOperandImpl {
 
-    private final PropertyValueImpl propertyValue;
+    private final DynamicOperandImpl operand;
 
-    public LengthImpl(PropertyValueImpl propertyValue) {
-        this.propertyValue = propertyValue;
+    public LengthImpl(DynamicOperandImpl operand) {
+        this.operand = operand;
     }
 
-    public PropertyValueImpl getPropertyValue() {
-        return propertyValue;
+    public DynamicOperandImpl getOperand() {
+        return operand;
     }
 
     @Override
@@ -49,22 +52,22 @@ public class LengthImpl extends DynamicOperandImpl {
 
     @Override
     public String toString() {
-        return "length(" + propertyValue + ')';
+        return "length(" + operand + ')';
     }
     
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
-        return propertyValue.getPropertyExistence();
+        return operand.getPropertyExistence();
     }
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        return propertyValue.getSelectors();
+        return operand.getSelectors();
     }
 
     @Override
     public PropertyValue currentProperty() {
-        PropertyValue p = propertyValue.currentProperty();
+        PropertyValue p = operand.currentProperty();
         if (p == null) {
             return null;
         }
@@ -99,8 +102,16 @@ public class LengthImpl extends DynamicOperandImpl {
             }
         }
         // LENGTH(x) implies x is not null
-        propertyValue.restrict(f, Operator.NOT_EQUAL, null);
-        propertyValue.restrictFunction(f, "length", operator, v);
+        operand.restrict(f, Operator.NOT_EQUAL, null);
+        if (operator == Operator.NOT_EQUAL && v != null) {
+            // not supported
+            return;
+        }        
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, 
+                    operator, v, PropertyType.LONG);
+        }
     }
     
     @Override
@@ -109,13 +120,17 @@ public class LengthImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
-        // optimizations of the type "upper(length(x)) = '1'" are not supported
+    public String getFunction(SelectorImpl s) {
+        String f = operand.getFunction(s);
+        if (f == null) {
+            return null;
+        }
+        return "length*" + f;
     }
 
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
-        return propertyValue.canRestrictSelector(s);
+        return operand.canRestrictSelector(s);
     }
     
     @Override
@@ -125,7 +140,20 @@ public class LengthImpl extends DynamicOperandImpl {
     
     @Override
     public DynamicOperandImpl createCopy() {
-        return new LengthImpl(propertyValue.createCopy());
+        return new LengthImpl(operand.createCopy());
+    }
+
+    @Override
+    public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
+        String fn = getFunction(s);
+        if (fn != null) {
+            return new OrderEntry(
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,                     
+                Type.LONG, 
+                o.isDescending() ? 
+                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+        }
+        return null;
     }
 
 }

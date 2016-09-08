@@ -321,7 +321,7 @@ public abstract class AbstractQueryTest {
             assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
                 .contains(p));
         }
-        assertEquals("Result set size is different", expected.size(),
+        assertEquals("Result set size is different: " + actual, expected.size(),
                 actual.size());
     }
 

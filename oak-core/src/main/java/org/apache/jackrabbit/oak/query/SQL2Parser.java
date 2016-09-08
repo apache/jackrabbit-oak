@@ -626,7 +626,7 @@ public class SQL2Parser {
     private DynamicOperandImpl parseExpressionFunction(String functionName) throws ParseException {
         DynamicOperandImpl op;
         if ("LENGTH".equalsIgnoreCase(functionName)) {
-            op = factory.length(parsePropertyValue(readName()));
+            op = factory.length(parseDynamicOperand());
         } else if ("NAME".equalsIgnoreCase(functionName)) {
             if (isToken(")")) {
                 op = factory.nodeName(getOnlySelectorName());

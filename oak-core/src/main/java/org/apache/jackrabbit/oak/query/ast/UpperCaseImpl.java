@@ -24,8 +24,11 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -80,7 +83,15 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         // UPPER(x) implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
-        operand.restrictFunction(f, "upper", operator, v);
+        if (operator == Operator.NOT_EQUAL && v != null) {
+            // not supported
+            return;
+        }        
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictProperty(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, 
+                    operator, v, PropertyType.STRING);
+        }
     }
     
     @Override
@@ -90,9 +101,13 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     }
     
     @Override
-    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
-        // optimizations of the type "lower(upper(x)) = 'x'" are not supported
-    }    
+    public String getFunction(SelectorImpl s) {
+        String f = operand.getFunction(s);
+        if (f == null) {
+            return null;
+        }
+        return "upper*" + f;
+    }
 
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
@@ -108,5 +123,18 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     public DynamicOperandImpl createCopy() {
         return new UpperCaseImpl(operand.createCopy());
     }
+    
+    @Override
+    public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
+        String fn = getFunction(s);
+        if (fn != null) {
+            return new OrderEntry(
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn,                     
+                Type.STRING, 
+                o.isDescending() ? 
+                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+        }
+        return null;
+    }    
 
 }

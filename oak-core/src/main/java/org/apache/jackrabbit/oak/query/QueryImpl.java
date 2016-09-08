@@ -31,16 +31,9 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
@@ -97,6 +90,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 /**
  * Represents a parsed query.
@@ -987,21 +986,10 @@ public class QueryImpl implements Query {
                     sortOrder = new ArrayList<OrderEntry>();
                     for (OrderingImpl o : orderings) {
                         DynamicOperandImpl op = o.getOperand();
-                        if (!(op instanceof PropertyValueImpl)) {
-                            // ordered by a function: currently not supported
-                            break;
-                        }
-                        PropertyValueImpl p = (PropertyValueImpl) op;
-                        SelectorImpl s = p.getSelectors().iterator().next();
-                        if (!s.equals(filter.getSelector())) {
-                            // ordered by a different selector
+                        OrderEntry e = op.getOrderEntry(filter.getSelector(), o);
+                        if (e == null) {
                             continue;
                         }
-                        OrderEntry e = new OrderEntry(
-                                p.getPropertyName(), 
-                                Type.UNDEFINED, 
-                                o.isDescending() ? 
-                                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
                         sortOrder.add(e);
                     }
                     if (sortOrder.size() == 0) {

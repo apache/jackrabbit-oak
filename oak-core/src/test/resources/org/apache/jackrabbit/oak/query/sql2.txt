@@ -468,6 +468,11 @@ select [jcr:path]
 
 select [jcr:path]
   from [nt:base]
+  where upper(name) = '10%'
+/testRoot/test4
+
+select [jcr:path]
+  from [nt:base]
   where upper(name) like '10\%'
 /testRoot/test4
 
