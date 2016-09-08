@@ -91,12 +91,17 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof SegmentReply) {
-            onSegmentReply((SegmentReply) evt);
-        }
-
         if (evt instanceof String) {
             onCommand((String) evt);
+        }
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (msg instanceof SegmentReply) {
+            onSegmentReply((SegmentReply) msg);
+        } else {
+            ctx.fireChannelRead(msg);
         }
     }
 
