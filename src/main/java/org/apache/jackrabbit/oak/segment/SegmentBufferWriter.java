@@ -302,7 +302,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         if (!DISABLE_GENERATION_CHECK) {
             try {
                 if (isDataSegmentId(id.getLeastSignificantBits())) {
-                    if (id.getSegment().getGcGeneration() < generation) {
+                    if (id.getGcGeneration() < generation) {
                         LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
                                 info(this.segment), info(id.getSegment()), new Exception());
                     }

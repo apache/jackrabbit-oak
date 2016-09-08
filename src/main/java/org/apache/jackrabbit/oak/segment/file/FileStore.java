@@ -466,7 +466,7 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     private int getGcGeneration() {
-        return revisions.getHead().getSegment().getGcGeneration();
+        return revisions.getHead().getSegmentId().getGcGeneration();
     }
 
     @Nonnull

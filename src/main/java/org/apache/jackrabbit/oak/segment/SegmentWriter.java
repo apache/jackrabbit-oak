@@ -1196,7 +1196,7 @@ public class SegmentWriter {
 
         private boolean isOldGeneration(RecordId id) {
             try {
-                int thatGen = id.getSegment().getGcGeneration();
+                int thatGen = id.getSegmentId().getGcGeneration();
                 int thisGen = writer.getGeneration();
                 return thatGen < thisGen;
             } catch (SegmentNotFoundException snfe) {
