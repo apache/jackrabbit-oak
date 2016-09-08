@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-public class MultiplexingNodeBuilder implements NodeBuilder {
+public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilder {
 
     private final String path;
     private final NodeBuilder wrappedBuilder;
@@ -277,4 +277,9 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         return checkNotNull(affectedBuilders.get(nodeStore));
     }
 
+
+    @Override
+    public NodeBuilder getNativeRootBuilder() {
+        return affectedBuilders.get(ctx.getOwningStore("/"));
+    }
 }
