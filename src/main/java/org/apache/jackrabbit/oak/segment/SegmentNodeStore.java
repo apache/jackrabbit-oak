@@ -204,7 +204,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
      *          of {@code c.call()} otherwise.
      * @throws Exception
      */
-    // FIXME OAK-4015: Expedite commits from the compactor
     // FIXME OAK-4122: Replace the commit semaphore in the segment node store with a scheduler
     // Replace by usage of expeditable lock or commit scheduler
     boolean locked(Callable<Boolean> c, long timeout, TimeUnit unit) throws Exception {
