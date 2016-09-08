@@ -121,16 +121,20 @@ public final class IndexDefinitionBuilder {
         }
 
         public PropertyRule property(String name){
+            return property(name, false);
+        }
+
+        public PropertyRule property(String name, boolean regex){
             PropertyRule propRule = props.get(name);
             if (propRule == null){
-                propRule = new PropertyRule(this, createChild(propsTree, createPropNodeName(name)), name);
+                propRule = new PropertyRule(this, createChild(propsTree, createPropNodeName(name, regex)), name, regex);
                 props.put(name, propRule);
             }
             return propRule;
         }
 
-        private String createPropNodeName(String name) {
-            name = getSafePropName(name);
+        private String createPropNodeName(String name, boolean regex) {
+            name = regex ? "prop" : getSafePropName(name);
             if (name.isEmpty()){
                 name = "prop";
             }
@@ -150,10 +154,13 @@ public final class IndexDefinitionBuilder {
         private final IndexRule indexRule;
         private final Tree propTree;
 
-        private PropertyRule(IndexRule indexRule, Tree propTree, String name) {
+        private PropertyRule(IndexRule indexRule, Tree propTree, String name, boolean regex) {
             this.indexRule = indexRule;
             this.propTree = propTree;
             propTree.setProperty(LuceneIndexConstants.PROP_NAME, name);
+            if (regex) {
+                propTree.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+            }
         }
 
         public PropertyRule useInExcerpt(){
