@@ -61,7 +61,7 @@ public class FileStoreRestore {
         SegmentNodeState current = store.getHead();
         try {
             SegmentNodeState head = restore.getHead();
-            int gen = head.getRecordId().getSegment().getGcGeneration();
+            int gen = head.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     store,
                     store.getTracker(),
