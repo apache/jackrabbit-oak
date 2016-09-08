@@ -51,7 +51,6 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testServerEmptyConfig() throws Exception {
         final StandbyServer server = new StandbyServer(this.port, this.storeS);
         server.start();
@@ -66,19 +65,6 @@ public class MBeanTest extends TestBase {
             assertTrue(jmxServer.isRegistered(status));
 
             assertEquals("primary", jmxServer.getAttribute(status, "Mode"));
-            String m = jmxServer.getAttribute(status, "Status").toString();
-            if (!m.equals(StandbyStatusMBean.STATUS_STARTING) && !m.equals("channel unregistered"))
-                fail("unexpected Status " + m);
-
-            assertEquals(StandbyStatusMBean.STATUS_STARTING, jmxServer.getAttribute(status, "Status"));
-            assertEquals(true, jmxServer.getAttribute(status, "Running"));
-            jmxServer.invoke(status, "stop", null, null);
-            assertEquals(false, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
-            jmxServer.invoke(status, "start", null, null);
-
-            assertEquals(true, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
         } finally {
             server.close();
         }
@@ -87,7 +73,6 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testClientEmptyConfigNoServer() throws Exception {
         final StandbyClient client = newStandbyClient(storeC);
         client.start();
@@ -107,15 +92,15 @@ public class MBeanTest extends TestBase {
             assertEquals("0", jmxServer.getAttribute(status, "FailedRequests").toString());
             assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
-            assertEquals(StandbyStatusMBean.STATUS_INITIALIZING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
 
-            assertEquals(false, jmxServer.getAttribute(status, "Running"));
+            assertEquals(true, jmxServer.getAttribute(status, "Running"));
             jmxServer.invoke(status, "stop", null, null);
             assertEquals(false, jmxServer.getAttribute(status, "Running"));
             assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
             jmxServer.invoke(status, "start", null, null);
-            assertEquals(false, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
+            assertEquals(true, jmxServer.getAttribute(status, "Running"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
         } finally {
             client.close();
         }
@@ -124,7 +109,6 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testClientNoServer() throws Exception {
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Foo");
         final StandbyClient client = newStandbyClient(storeC);
@@ -136,10 +120,10 @@ public class MBeanTest extends TestBase {
             assertTrue(jmxServer.isRegistered(status));
             assertEquals("client: Foo", jmxServer.getAttribute(status, "Mode"));
 
-            assertEquals("1", jmxServer.getAttribute(status, "FailedRequests").toString());
+            assertEquals("0", jmxServer.getAttribute(status, "FailedRequests").toString());
             assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
-            assertEquals("1", jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
+            assertEquals("0", jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
             assertEquals("-1", jmxServer.invoke(status, "calcSecondsSinceLastSuccess", null, null).toString());
         } finally {
             client.close();
