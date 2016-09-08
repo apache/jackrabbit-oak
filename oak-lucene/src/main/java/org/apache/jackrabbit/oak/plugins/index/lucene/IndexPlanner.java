@@ -549,7 +549,13 @@ class IndexPlanner {
             //Relative parent properties where [../foo1] is not null
             return true;
         }
-        return false;
+        for (PropertyRestriction r : filter.getPropertyRestrictions()) {
+            if (!r.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX)) {
+                // not a function restriction
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
