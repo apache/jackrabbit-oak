@@ -18,6 +18,8 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
@@ -31,9 +33,9 @@ import org.slf4j.LoggerFactory;
  * Known issue: if a host name is provided as a filter and that host name
  * contains a dash ("-"), it will be interpreted as an IP range.
  */
-class IpAddressFilter {
+class ClientIpFilter implements ClientFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(IpAddressFilter.class);
+    private static final Logger log = LoggerFactory.getLogger(ClientIpFilter.class);
 
     private static boolean areAddressesEqual(InetAddress a, InetAddress b) {
         return Arrays.equals(a.getAddress(), b.getAddress());
@@ -118,18 +120,16 @@ class IpAddressFilter {
      *
      * @param filters A list of filters.
      */
-    IpAddressFilter(String[] filters) {
+    ClientIpFilter(String[] filters) {
         this.allowedIpRanges = filters;
     }
 
-    /**
-     * Check if the provided IP address is allowed by this white list.
-     *
-     * @param address the address to verify.
-     * @return {@code true} if the address is valid according to this white
-     * list, {@code false} otherwise.
-     */
-    boolean isAllowed(InetAddress address) {
+    @Override
+    public boolean isAllowed(SocketAddress address) {
+        return isAllowed(((InetSocketAddress) address).getAddress());
+    }
+
+    private boolean isAllowed(InetAddress address) {
         if (allowedIpRanges == null) {
             return true;
         }

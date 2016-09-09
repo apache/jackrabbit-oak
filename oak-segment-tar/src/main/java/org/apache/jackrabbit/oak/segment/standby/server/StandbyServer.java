@@ -82,7 +82,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         this(port, store, allowedClientIPRanges, false);
     }
 
-    public StandbyServer(int port, final FileStore store, String[] allowedClientIPRanges, boolean secure) throws CertificateException, SSLException {
+    public StandbyServer(int port, final FileStore store, final String[] allowedClientIPRanges, boolean secure) throws CertificateException, SSLException {
         this.port = port;
 
         if (secure) {
@@ -91,7 +91,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         }
 
         observer = new CommunicationObserver("primary");
-        handler = new StandbyServerHandler(store, observer, allowedClientIPRanges);
+        handler = new StandbyServerHandler(store, observer);
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
 
@@ -117,9 +117,13 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
+
+                p.addLast(new ClientFilterHandler(new ClientIpFilter(allowedClientIPRanges)));
+
                 if (sslContext != null) {
                     p.addLast(sslContext.newHandler(ch.alloc()));
                 }
+
                 p.addLast(new LineBasedFrameDecoder(8192));
                 p.addLast(new StringDecoder(CharsetUtil.UTF_8));
                 p.addLast(new SnappyFramedEncoder());
