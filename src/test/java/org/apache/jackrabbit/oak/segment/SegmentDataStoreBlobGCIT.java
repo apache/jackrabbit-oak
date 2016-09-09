@@ -144,7 +144,7 @@ public class SegmentDataStoreBlobGCIT {
 
         // 2. Now remove the nodes to generate garbage
         content = a.child("content");
-        for (int i = 0; i < 2000; i++) {
+        for (int i = 0; i < 500; i++) {
             NodeBuilder c = content.child("x" + i);
             for (int j = 0; j < 5; j++) {
                 c.removeProperty("p" + j);
@@ -375,6 +375,17 @@ public class SegmentDataStoreBlobGCIT {
         assertEquals(0, candidates);
     }
 
+    private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        MarkSweepGarbageCollector gc = init(maxBlobGcInSecs, executor);
+        gc.collectGarbage(false);
+
+        assertEquals(0, executor.getTaskCount());
+        Set<String> existingAfterGC = iterate();
+        log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
+        return existingAfterGC;
+    }
+
     private static void assertBlobReferenceRecords(Set<String> expected, String rootFolder) throws IOException {
         // Read the marked files to check if paths logged or not
         File root = new File(rootFolder);
@@ -396,22 +407,13 @@ public class SegmentDataStoreBlobGCIT {
         }
     }
 
-    private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        MarkSweepGarbageCollector gc = init(maxBlobGcInSecs, executor);
-        gc.collectGarbage(false);
-
-        assertEquals(0, executor.getTaskCount());
-        Set<String> existingAfterGC = iterate();
-        log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
-        return existingAfterGC;
-    }
-
-    private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor) throws Exception {
+    private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor)
+        throws Exception {
         return init(blobGcMaxAgeInSecs, executor, folder.newFolder().getAbsolutePath());
     }
 
-    private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor, String root) throws Exception {
+    private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor,
+        String root) throws Exception {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
@@ -419,10 +421,10 @@ public class SegmentDataStoreBlobGCIT {
                 new ByteArrayInputStream(new byte[0]), 
                 REPOSITORY.getNameFromId(repoId));
         }
-        MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
-            new SegmentBlobReferenceRetriever(store),
-            (GarbageCollectableBlobStore) store.getBlobStore(), executor, root, 2048, blobGcMaxAgeInSecs,
-            repoId);
+        MarkSweepGarbageCollector gc =
+            new MarkSweepGarbageCollector(new SegmentBlobReferenceRetriever(store),
+                (GarbageCollectableBlobStore) store.getBlobStore(), executor,
+                root, 2048, blobGcMaxAgeInSecs, repoId);
         return gc;
     }    
 
