@@ -31,20 +31,45 @@ public class Messages {
     private static final String MAGIC = "Standby-CMD@";
     private static final String SEPARATOR = ":";
 
-    private static String newRequest(String clientID, String body) {
-        return MAGIC + (clientID == null ? "" : clientID.replace(SEPARATOR, "#")) + SEPARATOR + body + "\r\n";
+    private static String newRequest(String clientId, String body, boolean delimited) {
+        StringBuilder builder = new StringBuilder(MAGIC);
+
+        if (clientId != null) {
+            builder.append(clientId.replace(SEPARATOR, "#"));
+        }
+
+        builder.append(SEPARATOR);
+        builder.append(body);
+
+        if (delimited) {
+            builder.append("\r\n");
+        }
+
+        return builder.toString();
     }
 
-    public static String newGetHeadReq(String clientID) {
-        return newRequest(clientID, GET_HEAD);
+    public static String newGetHeadRequest(String clientId, boolean delimited) {
+        return newRequest(clientId, GET_HEAD, delimited);
     }
 
-    public static String newGetSegmentReq(String clientID, String sid) {
-        return newRequest(clientID, GET_SEGMENT + sid);
+    public static String newGetHeadRequest(String clientId) {
+        return newGetHeadRequest(clientId, true);
     }
 
-    public static String newGetBlobReq(String clientID, String blobId) {
-        return newRequest(clientID, GET_BLOB + blobId);
+    public static String newGetSegmentRequest(String clientId, String segmentId, boolean delimited) {
+        return newRequest(clientId, GET_SEGMENT + segmentId, delimited);
+    }
+
+    public static String newGetSegmentRequest(String clientId, String segmentId) {
+        return newGetSegmentRequest(clientId, segmentId, true);
+    }
+
+    public static String newGetBlobRequest(String clientId, String blobId, boolean delimited) {
+        return newRequest(clientId, GET_BLOB + blobId, delimited);
+    }
+
+    public static String newGetBlobRequest(String clientId, String blobId) {
+        return newGetBlobRequest(clientId, blobId, true);
     }
 
     public static String extractMessageFrom(String payload) {

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import static org.apache.jackrabbit.oak.segment.standby.codec.Messages.newGetHeadReq;
+import static org.apache.jackrabbit.oak.segment.standby.codec.Messages.newGetHeadRequest;
 
 import java.io.Closeable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,7 +57,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId> 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.debug("sending head request");
-        ctx.writeAndFlush(newGetHeadReq(this.observer.getID()));
+        ctx.writeAndFlush(newGetHeadRequest(this.observer.getID()));
         log.debug("did send head request");
     }
 
