@@ -19,9 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -34,11 +32,9 @@ import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
-import org.apache.jackrabbit.oak.segment.standby.store.StandbyStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,18 +42,20 @@ import org.slf4j.LoggerFactory;
 @Sharable
 public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
 
-    private static final Logger log = LoggerFactory
-            .getLogger(StandbyServerHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(StandbyServerHandler.class);
 
     private final FileStore store;
+
     private final CommunicationObserver observer;
-    private final String[] allowedIPRanges;
+
+    private final IpAddressFilter allowedIPRanges;
+
     public String state;
 
     public StandbyServerHandler(FileStore store, CommunicationObserver observer, String[] allowedIPRanges) {
         this.store = store;
         this.observer = observer;
-        this.allowedIPRanges = allowedIPRanges;
+        this.allowedIPRanges = new IpAddressFilter(allowedIPRanges);
     }
 
     private RecordId headId() {
@@ -67,41 +65,8 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
         return null;
     }
 
-    private static long ipToLong(InetAddress ip) {
-        byte[] octets = ip.getAddress();
-        long result = 0;
-        for (byte octet : octets) {
-            result <<= 8;
-            result |= octet & 0xff;
-        }
-        return result;
-    }
-
     private boolean clientAllowed(InetSocketAddress client) {
-        if (this.allowedIPRanges != null && this.allowedIPRanges.length > 0) {
-            for (String s : this.allowedIPRanges) {
-                try {
-                    if (ipToLong(InetAddress.getByName(s)) == ipToLong(client.getAddress())) {
-                        return true;
-                    }
-                }
-                catch (UnknownHostException ignored) { /* it's an ip range */ }
-                int i = s.indexOf('-');
-                if (i > 0) {
-                    try {
-                        long startIPRange = ipToLong(InetAddress.getByName(s.substring(0, i).trim()));
-                        long endIPRange = ipToLong(InetAddress.getByName(s.substring(i + 1).trim()));
-                        long ipl = ipToLong(client.getAddress());
-                        if (startIPRange <= ipl && ipl <= endIPRange) return true;
-                    }
-                    catch (Exception e) {
-                        log.warn("invalid IP-range format: " + s);
-                    }
-                }
-            }
-            return false;
-        }
-        return true;
+        return allowedIPRanges.isAllowed(client.getAddress());
     }
 
     @Override
