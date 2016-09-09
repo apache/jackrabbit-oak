@@ -48,14 +48,11 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
 
     private final CommunicationObserver observer;
 
-    private final IpAddressFilter allowedIPRanges;
-
     public String state;
 
-    public StandbyServerHandler(FileStore store, CommunicationObserver observer, String[] allowedIPRanges) {
+    public StandbyServerHandler(FileStore store, CommunicationObserver observer) {
         this.store = store;
         this.observer = observer;
-        this.allowedIPRanges = new IpAddressFilter(allowedIPRanges);
     }
 
     private RecordId headId() {
@@ -63,10 +60,6 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
             return store.getHead().getRecordId();
         }
         return null;
-    }
-
-    private boolean clientAllowed(InetSocketAddress client) {
-        return allowedIPRanges.isAllowed(client.getAddress());
     }
 
     @Override
@@ -94,61 +87,57 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
     }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, String payload)
-            throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, String payload) throws Exception {
         state = "got message";
 
         String request = Messages.extractMessageFrom(payload);
-        InetSocketAddress client = (InetSocketAddress)ctx.channel().remoteAddress();
+        InetSocketAddress client = (InetSocketAddress) ctx.channel().remoteAddress();
 
-        if (!clientAllowed(client)) {
-            log.warn("Got request from client " + client + " which is not in the allowed ip ranges! Request will be ignored.");
-        }
-        else {
-            String clientID = Messages.extractClientFrom(payload);
-            observer.gotMessageFrom(clientID, request, client);
-            if (Messages.GET_HEAD.equalsIgnoreCase(request)) {
-                RecordId r = headId();
-                if (r != null) {
-                    ctx.writeAndFlush(r);
-                    return;
-                }
-            } else if (request.startsWith(Messages.GET_SEGMENT)) {
-                String sid = request.substring(Messages.GET_SEGMENT.length());
-                log.debug("request segment id {}", sid);
-                UUID uuid = UUID.fromString(sid);
-
-                Segment s = null;
-
-                for (int i = 0; i < 10; i++) {
-                    try {
-                        s = store.readSegment(store.newSegmentId(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits()));
-                    } catch (IllegalRepositoryStateException e) {
-                        // segment not found
-                        log.debug("waiting for segment. Got exception: " + e.getMessage());
-                        TimeUnit.MILLISECONDS.sleep(2000);
-                    }
-                    if (s != null) break;
-                }
-
-                if (s != null) {
-                    log.debug("sending segment " + sid + " to " + client);
-                    ctx.writeAndFlush(s);
-                    observer.didSendSegmentBytes(clientID, s.size());
-                    return;
-                }
-            } else if (request.startsWith(Messages.GET_BLOB)) {
-                String bid = request.substring(Messages.GET_BLOB.length());
-                log.debug("request blob id {}", bid);
-                Blob b = readBlob(bid);
-                log.debug("sending blob " + bid + " to " + client);
-                ctx.writeAndFlush(b);
-                observer.didSendBinariesBytes(clientID,
-                        Math.max(0, (int) b.length()));
+        String clientID = Messages.extractClientFrom(payload);
+        observer.gotMessageFrom(clientID, request, client);
+        if (Messages.GET_HEAD.equalsIgnoreCase(request)) {
+            RecordId r = headId();
+            if (r != null) {
+                ctx.writeAndFlush(r);
                 return;
-            } else {
-                log.warn("Unknown request {}, ignoring.", request);
             }
+        } else if (request.startsWith(Messages.GET_SEGMENT)) {
+            String sid = request.substring(Messages.GET_SEGMENT.length());
+            log.debug("request segment id {}", sid);
+            UUID uuid = UUID.fromString(sid);
+
+            Segment s = null;
+
+            for (int i = 0; i < 10; i++) {
+                try {
+                    s = store.readSegment(store.newSegmentId(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits()));
+                } catch (IllegalRepositoryStateException e) {
+                    // segment not found
+                    log.debug("waiting for segment. Got exception: " + e.getMessage());
+                    TimeUnit.MILLISECONDS.sleep(2000);
+                }
+                if (s != null) {
+                    break;
+                }
+            }
+
+            if (s != null) {
+                log.debug("sending segment " + sid + " to " + client);
+                ctx.writeAndFlush(s);
+                observer.didSendSegmentBytes(clientID, s.size());
+                return;
+            }
+        } else if (request.startsWith(Messages.GET_BLOB)) {
+            String bid = request.substring(Messages.GET_BLOB.length());
+            log.debug("request blob id {}", bid);
+            Blob b = readBlob(bid);
+            log.debug("sending blob " + bid + " to " + client);
+            ctx.writeAndFlush(b);
+            observer.didSendBinariesBytes(clientID,
+                    Math.max(0, (int) b.length()));
+            return;
+        } else {
+            log.warn("Unknown request {}, ignoring.", request);
         }
         ctx.writeAndFlush(Unpooled.EMPTY_BUFFER);
     }
