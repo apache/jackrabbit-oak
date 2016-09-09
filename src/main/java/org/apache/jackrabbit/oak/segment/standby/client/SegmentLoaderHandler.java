@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.segment.standby.client;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.segment.standby.codec.Messages.newGetBlobReq;
-import static org.apache.jackrabbit.oak.segment.standby.codec.Messages.newGetSegmentReq;
+import static org.apache.jackrabbit.oak.segment.standby.codec.Messages.newGetBlobRequest;
+import static org.apache.jackrabbit.oak.segment.standby.codec.Messages.newGetSegmentRequest;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -180,7 +180,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     @Override
     public Segment readSegment(final String id) {
         // Use the I/O thread to write the request to the server
-        ctx.writeAndFlush(newGetSegmentReq(this.clientID, id));
+        ctx.writeAndFlush(newGetSegmentRequest(this.clientID, id));
         // Wait on the sync thread for the response.
         return getSegment(id);
     }
@@ -188,7 +188,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     @Override
     public Blob readBlob(String blobId) {
         // Use the I/O thread to write the request to the server
-        ctx.writeAndFlush(newGetBlobReq(this.clientID, blobId));
+        ctx.writeAndFlush(newGetBlobRequest(this.clientID, blobId));
         // Wait on the sync thread for the response.
         return getBlob(blobId);
     }
