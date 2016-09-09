@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 import static org.junit.Assert.assertEquals;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +28,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class IpAddressFilterTest {
+public class ClientIpFilterTest {
 
     @Parameters(name = "filters={0}, address={1}, matches={2}")
     public static Object[] parameters() {
@@ -58,7 +59,7 @@ public class IpAddressFilterTest {
 
     private final boolean match;
 
-    public IpAddressFilterTest(String addresses, String client, boolean match) {
+    public ClientIpFilterTest(String addresses, String client, boolean match) {
         this.addresses = addresses;
         this.client = client;
         this.match = match;
@@ -66,7 +67,7 @@ public class IpAddressFilterTest {
 
     @Test
     public void test() throws Exception {
-        assertEquals(match, new IpAddressFilter(parseFilters()).isAllowed(InetAddress.getByName(client)));
+        assertEquals(match, new ClientIpFilter(parseFilters()).isAllowed(createAddress()));
     }
 
     private String[] parseFilters() {
@@ -75,6 +76,10 @@ public class IpAddressFilterTest {
         }
 
         return addresses.split(",");
+    }
+
+    private InetSocketAddress createAddress() throws Exception {
+        return new InetSocketAddress(InetAddress.getByName(client), 8080);
     }
 
 }
