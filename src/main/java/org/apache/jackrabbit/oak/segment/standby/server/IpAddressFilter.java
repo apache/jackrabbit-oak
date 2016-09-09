@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,16 +35,45 @@ class IpAddressFilter {
 
     private static final Logger log = LoggerFactory.getLogger(IpAddressFilter.class);
 
-    private static long ipToLong(InetAddress ip) {
-        byte[] octets = ip.getAddress();
+    private static boolean areAddressesEqual(InetAddress a, InetAddress b) {
+        return Arrays.equals(a.getAddress(), b.getAddress());
+    }
 
-        long result = 0;
+    private static int compare(byte[] left, byte[] right) {
+        assert left.length == right.length;
 
-        for (byte octet : octets) {
-            result = (result << 8) | (octet & 0xff);
+        for (int i = 0; i < left.length; i++) {
+            int l = left[i] & 0xff;
+            int r = right[i] & 0xff;
+
+            if (l < r) {
+                return -1;
+            }
+
+            if (r < l) {
+                return 1;
+            }
         }
 
-        return result;
+        return 0;
+    }
+
+    private static boolean isAddressInRange(InetAddress address, InetAddress left, InetAddress right) {
+        byte[] addressBytes = address.getAddress();
+
+        byte[] leftBytes = left.getAddress();
+
+        if (leftBytes.length != addressBytes.length) {
+            return false;
+        }
+
+        byte[] rightBytes = right.getAddress();
+
+        if (rightBytes.length != addressBytes.length) {
+            return false;
+        }
+
+        return compare(leftBytes, addressBytes) <= 0 && compare(addressBytes, rightBytes) <= 0;
     }
 
     private static boolean isAllowed(InetAddress client, String left, String right) {
@@ -65,7 +95,7 @@ class IpAddressFilter {
             return false;
         }
 
-        return isAllowed(ipToLong(client), ipToLong(leftAddress), ipToLong(rightAddress));
+        return isAddressInRange(client, leftAddress, rightAddress);
     }
 
     private static boolean isAllowed(InetAddress client, String match) {
@@ -78,11 +108,7 @@ class IpAddressFilter {
             return false;
         }
 
-        return ipToLong(client) == ipToLong(matchAddress);
-    }
-
-    private static boolean isAllowed(long address, long left, long right) {
-        return left <= address && address <= right;
+        return areAddressesEqual(matchAddress, client);
     }
 
     private final String[] allowedIpRanges;
