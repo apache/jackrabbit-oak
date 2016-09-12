@@ -118,6 +118,7 @@ public class SegmentNodeState extends Record implements NodeState {
      * @return  stable id
      */
     String getStableId() {
+        // FIXME OAK-4797: Optimise stable ids: come up with a faster to serialise representation that uses less memory
         ByteBuffer buffer = ByteBuffer.wrap(getStableIdBytes());
         long msb = buffer.getLong();
         long lsb = buffer.getLong();
