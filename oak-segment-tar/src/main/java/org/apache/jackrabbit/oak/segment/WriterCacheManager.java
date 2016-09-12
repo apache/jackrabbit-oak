@@ -38,6 +38,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 
 /**
  * Instances of this class manage the deduplication caches used
@@ -63,18 +64,11 @@ public abstract class WriterCacheManager {
             "oak.tar.templatesCacheSize", 3000);
 
     /**
-     * Default capacity of the node cache.
+     * Default size of the node deduplication cache.
      * @see #getNodeCache(int)
      */
-    public static final int DEFAULT_NODE_CACHE_CAPACITY = getInteger(
-            "oak.tar.nodeCacheCapacity", 1000000);
-
-    /**
-     * Default maximal depth of the node cache.
-     * @see #getNodeCache(int)
-     */
-    public static final int DEFAULT_NODE_CACHE_DEPTH = getInteger(
-            "oak.tar.nodeCacheDepth", 20);
+    public static final int DEFAULT_NODE_CACHE_SIZE = getInteger(
+            "oak.tar.nodeCacheSize", 8388608);
 
     /**
      * @param generation
@@ -122,6 +116,14 @@ public abstract class WriterCacheManager {
     }
 
     /**
+     * Get occupancy information for the node deduplication cache indicating occupancy and
+     * evictions per priority.
+     * @return  occupancy information for the node deduplication cache.
+     */
+    @CheckForNull
+    public String getNodeCacheOccupancyInfo() { return null; }
+
+    /**
      * This implementation of {@link WriterCacheManager} returns empty caches
      * of size 0.
      * @see #INSTANCE
@@ -135,7 +137,6 @@ public abstract class WriterCacheManager {
 
         private final RecordCache<String> stringCache = newRecordCache(0);
         private final RecordCache<Template> templateCache = newRecordCache(0);
-        private final NodeCache nodeCache = NodeCache.newNodeCache(0, 0);
 
         private Empty() {}
 
@@ -156,18 +157,26 @@ public abstract class WriterCacheManager {
         }
 
         /**
-         * @return  empty cache of size 0
+         * @return  a {@code NodeCache} cache that is always empty
          */
+        @Nonnull
         @Override
         public NodeCache getNodeCache(int generation) {
-            return nodeCache;
+            return new NodeCache() {
+                @Override
+                public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) { }
+
+                @CheckForNull
+                @Override
+                public RecordId get(@Nonnull String stableId) { return null; }
+            };
         }
     }
 
     /**
      * This implementation of {@link WriterCacheManager} returns
      * {@link RecordCache} instances for the string and template cache
-     * and {@link NodeCache} instances for the node cache.
+     * and {@link NodeCache} instance for the node cache.
      */
     public static class Default extends WriterCacheManager {
         /**
@@ -186,7 +195,7 @@ public abstract class WriterCacheManager {
          * Cache of recently stored nodes to avoid duplicating linked nodes (i.e. checkpoints)
          * during compaction.
          */
-        private final Generations<NodeCache> nodeCaches;
+        private final Supplier<PriorityCache<String, RecordId>> nodeCache;
 
         /**
          * New instance using the passed factories for creating cache instances.
@@ -200,21 +209,22 @@ public abstract class WriterCacheManager {
         public Default(
                 @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
                 @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
-                @Nonnull Supplier<NodeCache> nodeCacheFactory) {
+                @Nonnull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
-            this.nodeCaches = new Generations<>(nodeCacheFactory);
+            this.nodeCache = memoize(nodeCacheFactory);
         }
 
         /**
          * New instance using the default factories {@link RecordCache#factory(int)}
-         * and {@link NodeCache#factory(int, int)} with the sizes
-         * {@link #DEFAULT_STRING_CACHE_SIZE} and {@link #DEFAULT_TEMPLATE_CACHE_SIZE}.
+         * and {@link PriorityCache#factory(int)} with the sizes
+         * {@link #DEFAULT_STRING_CACHE_SIZE}, {@link #DEFAULT_TEMPLATE_CACHE_SIZE}
+         * and {@link #DEFAULT_NODE_CACHE_SIZE}.
          */
         public Default() {
             this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
                  RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
-                 NodeCache.factory(DEFAULT_NODE_CACHE_CAPACITY, DEFAULT_NODE_CACHE_DEPTH));
+                 PriorityCache.<String, RecordId>factory(DEFAULT_NODE_CACHE_SIZE));
         }
 
         private static class Generations<T> implements Iterable<T> {
@@ -265,10 +275,21 @@ public abstract class WriterCacheManager {
             return templateCaches.getGeneration(generation);
         }
 
-        @Nonnull
         @Override
-        public NodeCache getNodeCache(int generation) {
-            return nodeCaches.getGeneration(generation);
+        @Nonnull
+        public NodeCache getNodeCache(final int generation) {
+            return new NodeCache() {
+                @Override
+                public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) {
+                    nodeCache.get().put(stableId, recordId, generation, cost);
+                }
+
+                @CheckForNull
+                @Override
+                public RecordId get(@Nonnull String stableId) {
+                    return nodeCache.get().get(stableId, generation);
+                }
+            };
         }
 
         @CheckForNull
@@ -319,37 +340,23 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getNodeCacheStats() {
             return new RecordCacheStats("Node deduplication cache stats",
-                    accumulateNodeCacheStats(nodeCaches), accumulateNodeCacheSizes(nodeCaches));
+                    new Supplier<CacheStats>() {
+                        @Override
+                        public CacheStats get() {
+                            return nodeCache.get().getStats();
+                        }
+                    },
+                    new Supplier<Long>() {
+                        @Override
+                        public Long get() {
+                            return nodeCache.get().size();
+                        }
+                    });
         }
 
-        @Nonnull
-        private static <T> Supplier<CacheStats> accumulateNodeCacheStats(
-                final Iterable<NodeCache> caches) {
-            return new Supplier<CacheStats>() {
-                @Override
-                public CacheStats get() {
-                    CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
-                    for (NodeCache cache : caches) {
-                        stats = stats.plus(cache.getStats());
-                    }
-                    return stats;
-                }
-            };
-        }
-
-        @Nonnull
-        public static <T> Supplier<Long> accumulateNodeCacheSizes(
-                final Iterable<NodeCache> caches) {
-            return new Supplier<Long>() {
-                @Override
-                public Long get() {
-                    long size = 0;
-                    for (NodeCache cache : caches) {
-                        size += cache.size();
-                    }
-                    return size;
-                }
-            };
+        @Override
+        public String getNodeCacheOccupancyInfo() {
+            return nodeCache.get().toString();
         }
 
         /**
@@ -359,7 +366,6 @@ public abstract class WriterCacheManager {
         protected final void evictCaches(Predicate<Integer> generations) {
             stringCaches.evictGenerations(generations);
             templateCaches.evictGenerations(generations);
-            nodeCaches.evictGenerations(generations);
         }
     }
 }

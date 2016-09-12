@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Default;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.junit.Test;
@@ -34,7 +32,6 @@ public class WriteCacheManagerTest {
     public void emptyGenerations() {
         WriterCacheManager cache = Empty.INSTANCE;
         assertEquals(cache.getTemplateCache(0), cache.getTemplateCache(1));
-        assertEquals(cache.getNodeCache(0), cache.getNodeCache(1));
         assertEquals(cache.getStringCache(0), cache.getStringCache(1));
     }
 
@@ -42,26 +39,7 @@ public class WriteCacheManagerTest {
     public void nonEmptyGenerations() {
         WriterCacheManager cache = new Default();
         assertNotEquals(cache.getTemplateCache(0), cache.getTemplateCache(1));
-        assertNotEquals(cache.getNodeCache(0), cache.getNodeCache(1));
         assertNotEquals(cache.getStringCache(0), cache.getStringCache(1));
     }
 
-    @Test
-    public void factory() {
-        WriterCacheManager cache = new Default(new Supplier<RecordCache<String>>() {
-            int accessCount = 2;
-            @Override
-            public RecordCache<String> get() {
-                assertTrue("Factory should only be invoked once per generation", --accessCount >= 0);
-                return RecordCache.<String>factory(42).get();
-            }
-        }, RecordCache.<Template>factory(42), NodeCache.factory(42, 2));
-
-        cache.getStringCache(0);
-        cache.getStringCache(0);
-        cache.getStringCache(1);
-        cache.getStringCache(1);
-        cache.getStringCache(1);
-        cache.getStringCache(0);
-    }
 }

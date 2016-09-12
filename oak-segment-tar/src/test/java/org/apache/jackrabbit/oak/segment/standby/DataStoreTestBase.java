@@ -75,7 +75,7 @@ public class DataStoreTestBase extends TestBase {
         return FileStoreBuilder.fileStoreBuilder(d)
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(0)
+                .withNodeDeduplicationCacheSize(1)
                 .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)

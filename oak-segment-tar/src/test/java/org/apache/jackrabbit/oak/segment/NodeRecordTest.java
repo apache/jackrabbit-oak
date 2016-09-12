@@ -186,7 +186,6 @@ public class NodeRecordTest {
             public NodeCache getNodeCache(int generation) {
                 return defaultCache.getNodeCache(generation);
             }
-
         };
     }
 

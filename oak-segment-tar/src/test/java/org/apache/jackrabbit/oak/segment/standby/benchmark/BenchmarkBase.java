@@ -78,9 +78,15 @@ public class BenchmarkBase {
     }
 
     private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
-        return fileStoreBuilder(directory).withMaxFileSize(1).withMemoryMapping(false).withNodeDeduplicationCacheSize(0)
-                .withSegmentCacheSize(0).withStringCacheSize(0).withTemplateCacheSize(0)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor)).build();
+        return fileStoreBuilder(directory)
+                .withMaxFileSize(1)
+                .withMemoryMapping(false)
+                .withNodeDeduplicationCacheSize(1)
+                .withSegmentCacheSize(0)
+                .withStringCacheSize(0)
+                .withTemplateCacheSize(0)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+                .build();
     }
 
     protected FileStore setupPrimary(File directory, ScheduledExecutorService executor) throws Exception {

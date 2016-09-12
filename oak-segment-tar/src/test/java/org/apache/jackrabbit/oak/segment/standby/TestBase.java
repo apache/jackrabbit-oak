@@ -84,7 +84,7 @@ public class TestBase {
         return fileStoreBuilder(directory)
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(0)
+                .withNodeDeduplicationCacheSize(1)
                 .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
