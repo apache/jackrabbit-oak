@@ -534,10 +534,12 @@ public class FileStore implements SegmentStore, Closeable {
         if (sufficientEstimatedGain) {
             if (!gcOptions.isPaused()) {
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
+                log(segmentWriter.getNodeCacheOccupancyInfo());
                 if (compact()) {
                     cleanupNeeded.set(cleanup);
                 }
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
+                log(segmentWriter.getNodeCacheOccupancyInfo());
             } else {
                 gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
             }
@@ -551,6 +553,12 @@ public class FileStore implements SegmentStore, Closeable {
         log.info("Node compact time statistics (ns) {}", toString(nodeCompactTimeStats));
         nodeWriteTimeStats.clear();
         nodeCompactTimeStats.clear();
+    }
+
+    private static void log(@CheckForNull String nodeCacheOccupancyInfo) {
+        if (nodeCacheOccupancyInfo != null) {
+            log.info("NodeCache occupancy: {}", nodeCacheOccupancyInfo);
+        }
     }
 
     private static String toString(DescriptiveStatistics statistics) {

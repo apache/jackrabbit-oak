@@ -33,6 +33,8 @@ import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.io.ByteStreams.read;
 import static java.lang.Integer.getInteger;
+import static java.lang.Long.numberOfLeadingZeros;
+import static java.lang.Math.min;
 import static java.lang.System.nanoTime;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -157,6 +159,16 @@ public class SegmentWriter {
     @Nonnull
     public DescriptiveStatistics getNodeCompactTimeStats() {
         return nodeCompactTimeStats;
+    }
+
+    /**
+     * Get occupancy information for the node deduplication cache indicating occupancy and
+     * evictions per priority.
+     * @return  occupancy information for the node deduplication cache.
+     */
+    @CheckForNull
+    public String getNodeCacheOccupancyInfo() {
+        return cacheManager.getNodeCacheOccupancyInfo();
     }
 
     /**
@@ -727,7 +739,7 @@ public class SegmentWriter {
 
             // inline the remaining data as block records
             while (pos < data.length) {
-                int len = Math.min(BLOCK_SIZE, data.length - pos);
+                int len = min(BLOCK_SIZE, data.length - pos);
                 blockIds.add(writeBlock(data, pos, len));
                 pos += len;
             }
@@ -988,9 +1000,10 @@ public class SegmentWriter {
             } finally {
                 if (nodeWriteStats.isCompactOp) {
                     nodeCompactTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
-                    LOG.info(nodeWriteStats.toString());
+                    LOG.info("{}", nodeWriteStats);
                 } else {
                     nodeWriteTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
+                    LOG.debug("{}", nodeWriteStats);
                 }
             }
         }
@@ -1016,10 +1029,15 @@ public class SegmentWriter {
                 // generation (e.g. due to compaction). Put it into the cache for
                 // deduplication of hard links to it (e.g. checkpoints).
                 SegmentNodeState sns = (SegmentNodeState) state;
-                nodeCache.put(sns.getStableId(), recordId, depth);
+                nodeCache.put(sns.getStableId(), recordId, cost(sns));
                 nodeWriteStats.isCompactOp = true;
             }
             return recordId;
+        }
+
+        private byte cost(SegmentNodeState node) {
+            long childCount = node.getChildNodeCount(Long.MAX_VALUE);
+            return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(childCount));
         }
 
         private RecordId writeNodeUncached(@Nonnull NodeState state, int depth) throws IOException {
