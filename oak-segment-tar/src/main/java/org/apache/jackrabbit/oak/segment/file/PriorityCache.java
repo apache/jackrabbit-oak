@@ -27,6 +27,7 @@ import static java.util.Arrays.fill;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 
@@ -222,6 +223,21 @@ public class PriorityCache<K, V> {
         }
         missCount++;
         return null;
+    }
+
+    /**
+     * Purge all keys from this cache whose entry's generation matches the
+     * passed {@code purge} predicate.
+     * @param purge
+     */
+    public synchronized void purgeGenerations(@Nonnull Predicate<Integer> purge) {
+        for (int i = 0; i < entries.length; i++) {
+            Entry<?, ?> entry = entries[i];
+            if (entry != Entry.NULL && purge.apply(entry.generation)) {
+                entries[i] = Entry.NULL;
+                size--;
+            }
+        }
     }
 
     @Override
