@@ -1003,7 +1003,7 @@ public class SegmentWriter {
             checkState(nodeWriteStats != null);
             nodeWriteStats.nodeCount++;
 
-            RecordId compactedId = deduplicateNode(state);
+            RecordId compactedId = deduplicateNode(state, nodeWriteStats);
 
             if (compactedId != null) {
                 return compactedId;
@@ -1032,7 +1032,9 @@ public class SegmentWriter {
             RecordId beforeId = null;
 
             if (after != null) {
-                beforeId = deduplicateNode(after.getBaseState());
+                // Pass null to indicate we don't want to update the node write statistics
+                // when deduplicating the base state
+                beforeId = deduplicateNode(after.getBaseState(), null);
             }
 
             SegmentNodeState before = null;
@@ -1138,11 +1140,12 @@ public class SegmentWriter {
          * and is still in the de-duplication cache for nodes.
          *
          * @param node The node states to de-duplicate.
+         * @param nodeWriteStats  write statistics to update if not {@code null}.
          * @return the id of the de-duplicated node or {@code null} if none.
          */
-        private RecordId deduplicateNode(NodeState node) {
-            checkState(nodeWriteStats != null);
-
+        private RecordId deduplicateNode(
+                @Nonnull NodeState node,
+                @CheckForNull NodeWriteStats nodeWriteStats) {
             if (!(node instanceof SegmentNodeState)) {
                 // De-duplication only for persisted node states
                 return null;
@@ -1158,7 +1161,9 @@ public class SegmentWriter {
             if (!isOldGeneration(sns.getRecordId())) {
                 // This segment node state is already in this store, no need to
                 // write it again
-                nodeWriteStats.deDupNodes++;
+                if (nodeWriteStats != null) {
+                    nodeWriteStats.deDupNodes++;
+                }
                 return sns.getRecordId();
             }
 
@@ -1167,12 +1172,14 @@ public class SegmentWriter {
             // cache
             RecordId compacted = nodeCache.get(sns.getStableId());
 
-            if (compacted == null) {
-                nodeWriteStats.cacheMiss++;
-                return null;
+            if (nodeWriteStats != null) {
+                if (compacted == null) {
+                    nodeWriteStats.cacheMiss++;
+                } else {
+                    nodeWriteStats.cacheHits++;
+                }
             }
 
-            nodeWriteStats.cacheHits++;
             return compacted;
         }
 
