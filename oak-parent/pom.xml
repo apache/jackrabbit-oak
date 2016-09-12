@@ -63,6 +63,7 @@
     <findbugs.version>3.0.0</findbugs.version>
     <derby.version>10.12.1.1</derby.version>
     <java.version>1.7</java.version>
+    <java.version.signature>java17</java.version.signature>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -98,6 +99,18 @@
           <configuration>
             <target>${java.version}</target>
             <source>${java.version}</source>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>animal-sniffer-maven-plugin</artifactId>
+          <version>1.15</version>
+          <configuration>
+            <signature>
+              <groupId>org.codehaus.mojo.signature</groupId>
+              <artifactId>${java.version.signature}</artifactId>
+              <version>1.0</version>
+            </signature>
           </configuration>
         </plugin>
         <plugin>
@@ -429,6 +442,19 @@
                 <exclude>logback-test.xml</exclude>
               </excludes>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>animal-sniffer</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
@@ -1011,6 +1037,16 @@
                   <configuration>
                     <skip>true</skip>
                   </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>animal-sniffer-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>animal-sniffer</id>
+                  <phase/>
                 </execution>
               </executions>
             </plugin>
