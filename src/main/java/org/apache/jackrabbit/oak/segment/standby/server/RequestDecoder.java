@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.util.List;
+import java.util.UUID;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
@@ -45,7 +46,7 @@ class RequestDecoder extends MessageToMessageDecoder<String> {
             out.add(new GetHeadRequest(Messages.extractClientFrom(msg)));
         } else if (request.startsWith(Messages.GET_SEGMENT)) {
             log.debug("Parsed 'get segment' message");
-            out.add(new GetSegmentRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_SEGMENT.length())));
+            out.add(new GetSegmentRequest(Messages.extractClientFrom(msg), UUID.fromString(request.substring(Messages.GET_SEGMENT.length()))));
         } else if (request.startsWith(Messages.GET_BLOB)) {
             log.debug("Parsed 'get blob' message");
             out.add(new GetBlobRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_BLOB.length())));
