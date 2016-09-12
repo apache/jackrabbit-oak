@@ -18,40 +18,25 @@
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.util.List;
-import java.util.UUID;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Implements the logic for parsing input messages and failing when an incorrect
- * or unrecognized message is received.
- */
-public class RequestDecoder extends MessageToMessageDecoder<String> {
+public class GetBlobRequestDecoder extends MessageToMessageDecoder<String> {
 
-    private static final Logger log = LoggerFactory.getLogger(RequestDecoder.class);
+    private static final Logger log = LoggerFactory.getLogger(GetBlobRequestDecoder.class);
 
     @Override
     protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
         String request = Messages.extractMessageFrom(msg);
 
-        if (request == null) {
-            log.debug("Unable to parse message '{}'", msg);
-            ctx.close();
-        } else if (request.equalsIgnoreCase(Messages.GET_HEAD)) {
-            log.debug("Parsed 'get head' message");
-            out.add(new GetHeadRequest(Messages.extractClientFrom(msg)));
-        } else if (request.startsWith(Messages.GET_SEGMENT)) {
-            log.debug("Parsed 'get segment' message");
-            out.add(new GetSegmentRequest(Messages.extractClientFrom(msg), UUID.fromString(request.substring(Messages.GET_SEGMENT.length()))));
-        } else if (request.startsWith(Messages.GET_BLOB)) {
+        if (request != null && request.startsWith(Messages.GET_BLOB)) {
             log.debug("Parsed 'get blob' message");
             out.add(new GetBlobRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_BLOB.length())));
         } else {
-            log.debug("Unrecognized message '{}'", msg);
-            ctx.close();
+            ctx.fireChannelRead(msg);
         }
     }
 
