@@ -24,7 +24,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import com.google.common.base.Predicate;
 import org.junit.Test;
 
 public class PriorityCacheTest {
@@ -123,6 +125,29 @@ public class PriorityCacheTest {
 
         // But one of the same generation
         assertTrue(cache.put("two", 2, 1, (byte) 0));
+    }
+
+    @Test
+    public void generationPurge() {
+        PriorityCache<String, Integer> cache = new PriorityCache<String, Integer>(65536);
+
+        for (int gen = 4; gen >= 0; gen--) {
+            // Backward iteration avoids earlier generations are replaced with later ones
+            for (int k = 0; k < 100; k++) {
+                if (!cache.put("key-" + gen + "-" + k, 0, gen, (byte) 0)) {
+                    assumeTrue("All test keys are in the cache", false);
+                }
+            }
+        }
+
+        assertEquals(500, cache.size());
+        cache.purgeGenerations(new Predicate<Integer>() {
+            @Override
+            public boolean apply(Integer generation) {
+                return generation <= 2;
+            }
+        });
+        assertEquals(200, cache.size());
     }
 
 }
