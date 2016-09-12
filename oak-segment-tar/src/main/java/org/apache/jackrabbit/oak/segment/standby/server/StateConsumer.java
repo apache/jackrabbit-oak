@@ -17,25 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+/**
+ * Implementors of this interface can consume the state of the communication
+ * pipeline as tracked by {@link StateHandler}.
+ */
+interface StateConsumer {
 
-class GetSegmentRequest {
-
-    private final String clientId;
-
-    private final UUID segmentId;
-
-    GetSegmentRequest(String clientId, UUID segmentId) {
-        this.clientId = clientId;
-        this.segmentId = segmentId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public UUID getSegmentId() {
-        return segmentId;
-    }
+    void consumeState(String state);
 
 }

@@ -17,25 +17,28 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-class GetSegmentRequest {
+class DefaultStandbyBlobReader implements StandbyBlobReader {
 
-    private final String clientId;
+    private final FileStore store;
 
-    private final UUID segmentId;
-
-    GetSegmentRequest(String clientId, UUID segmentId) {
-        this.clientId = clientId;
-        this.segmentId = segmentId;
+    DefaultStandbyBlobReader(FileStore store) {
+        this.store = store;
     }
 
-    public String getClientId() {
-        return clientId;
-    }
+    @Override
+    public Blob readBlob(String blobId) {
+        BlobStore blobStore = store.getBlobStore();
 
-    public UUID getSegmentId() {
-        return segmentId;
+        if (blobStore != null) {
+            return new BlobStoreBlob(blobStore, blobId);
+        }
+
+        return null;
     }
 
 }

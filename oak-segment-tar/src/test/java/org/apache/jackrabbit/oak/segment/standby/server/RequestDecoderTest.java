@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.util.UUID;
+
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.junit.Test;
@@ -37,10 +39,10 @@ public class RequestDecoderTest {
     @Test
     public void shouldDecodeGetSegmentRequests() throws Exception {
         EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
-        channel.writeInbound(Messages.newGetSegmentRequest("clientId", "segmentId", false));
+        channel.writeInbound(Messages.newGetSegmentRequest("clientId", new UUID(1, 2).toString(), false));
         GetSegmentRequest request = (GetSegmentRequest) channel.readInbound();
         assertEquals("clientId", request.getClientId());
-        assertEquals("segmentId", request.getSegmentId());
+        assertEquals(new UUID(1, 2), request.getSegmentId());
     }
 
     @Test

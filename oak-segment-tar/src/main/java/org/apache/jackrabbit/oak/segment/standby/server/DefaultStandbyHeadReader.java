@@ -17,25 +17,20 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 
-class GetSegmentRequest {
+class DefaultStandbyHeadReader implements StandbyHeadReader {
 
-    private final String clientId;
+    private final FileStore store;
 
-    private final UUID segmentId;
-
-    GetSegmentRequest(String clientId, UUID segmentId) {
-        this.clientId = clientId;
-        this.segmentId = segmentId;
+    DefaultStandbyHeadReader(FileStore store) {
+        this.store = store;
     }
 
-    public String getClientId() {
-        return clientId;
-    }
-
-    public UUID getSegmentId() {
-        return segmentId;
+    @Override
+    public RecordId readHeadRecordId() {
+        return store.getHead().getRecordId();
     }
 
 }
