@@ -46,9 +46,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.codec.BlobEncoder;
-import org.apache.jackrabbit.oak.segment.standby.codec.RecordIdEncoder;
-import org.apache.jackrabbit.oak.segment.standby.codec.SegmentEncoder;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 import org.slf4j.Logger;
@@ -65,10 +62,11 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     private final EventLoopGroup workerGroup;
     private final ServerBootstrap b;
     private final CommunicationObserver observer;
-    private final StandbyServerHandler handler;
     private SslContext sslContext;
     private ChannelFuture channelFuture;
     private boolean running;
+
+    private volatile String state;
 
     public StandbyServer(int port, final FileStore store) throws CertificateException, SSLException {
         this(port, store, null, false);
@@ -91,7 +89,6 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         }
 
         observer = new CommunicationObserver("primary");
-        handler = new StandbyServerHandler(store, observer);
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
 
@@ -124,15 +121,40 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
                     p.addLast(sslContext.newHandler(ch.alloc()));
                 }
 
+                // Decoders
+
                 p.addLast(new LineBasedFrameDecoder(8192));
                 p.addLast(new StringDecoder(CharsetUtil.UTF_8));
+                p.addLast(new RequestDecoder());
+                p.addLast(new StateHandler(newStateConsumer()));
+                p.addLast(new RequestObserverHandler(observer));
+
+                // Encoders
+
                 p.addLast(new SnappyFramedEncoder());
-                p.addLast(new RecordIdEncoder());
-                p.addLast(new SegmentEncoder());
-                p.addLast(new BlobEncoder());
-                p.addLast(handler);
+                p.addLast(new GetHeadResponseEncoder());
+                p.addLast(new GetSegmentResponseEncoder());
+                p.addLast(new GetBlobResponseEncoder());
+                p.addLast(new ResponseObserverHandler(observer));
+
+                // Handlers
+
+                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
+                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
+                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store)));
             }
         });
+    }
+
+    private StateConsumer newStateConsumer() {
+        return new StateConsumer() {
+
+            @Override
+            public void consumeState(String state) {
+                StandbyServer.this.state = state;
+            }
+
+        };
     }
 
     public String getMBeanName() {
@@ -141,7 +163,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
 
     public void close() {
         stop();
-        handler.state = STATUS_CLOSING;
+        state = STATUS_CLOSING;
         observer.unregister();
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
@@ -157,7 +179,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         if (workerGroup != null && !workerGroup.isShuttingDown()) {
             workerGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
         }
-        handler.state = STATUS_CLOSED;
+        state = STATUS_CLOSED;
     }
 
     @Override
@@ -166,7 +188,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
             return;
         }
 
-        handler.state = STATUS_STARTING;
+        state = STATUS_STARTING;
 
         channelFuture = b.bind(port);
 
@@ -189,20 +211,20 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
 
     private void onSuccessfulStart() {
         log.debug("Binding was successful");
-        handler.state = STATUS_RUNNING;
+        state = STATUS_RUNNING;
         running = true;
     }
 
     private void onUnsuccessfulStart() {
         log.debug("Binding was unsuccessful", channelFuture.cause());
-        handler.state = null;
+        state = null;
         running = false;
         throw new RuntimeException(channelFuture.cause());
     }
 
     private void onStartTimeOut() {
         log.debug("Binding timed out, canceling");
-        handler.state = null;
+        state = null;
         running = false;
         channelFuture.cancel(true);
     }
@@ -219,13 +241,14 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     public void stop() {
         if (running) {
             running = false;
-            this.handler.state = STATUS_STOPPED;
+            this.state = STATUS_STOPPED;
             channelFuture.channel().disconnect();
         }
     }
 
     @Override
     public String getStatus() {
-        return handler == null ? STATUS_INITIALIZING : handler.state;
+        return state == null ? STATUS_INITIALIZING : state;
     }
+
 }

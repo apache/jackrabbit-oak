@@ -17,25 +17,25 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+import org.apache.jackrabbit.oak.segment.Segment;
 
-class GetSegmentRequest {
+class GetSegmentResponse {
 
     private final String clientId;
 
-    private final UUID segmentId;
+    private final Segment segment;
 
-    GetSegmentRequest(String clientId, UUID segmentId) {
+    GetSegmentResponse(String clientId, Segment segment) {
         this.clientId = clientId;
-        this.segmentId = segmentId;
+        this.segment = segment;
     }
 
-    public String getClientId() {
+    String getClientId() {
         return clientId;
     }
 
-    public UUID getSegmentId() {
-        return segmentId;
+    Segment getSegment() {
+        return segment;
     }
 
 }

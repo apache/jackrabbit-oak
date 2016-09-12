@@ -17,25 +17,25 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+import org.apache.jackrabbit.oak.api.Blob;
 
-class GetSegmentRequest {
+class GetBlobResponse {
 
     private final String clientId;
 
-    private final UUID segmentId;
+    private final Blob blob;
 
-    GetSegmentRequest(String clientId, UUID segmentId) {
+    GetBlobResponse(String clientId, Blob blob) {
         this.clientId = clientId;
-        this.segmentId = segmentId;
+        this.blob = blob;
     }
 
-    public String getClientId() {
+    String getClientId() {
         return clientId;
     }
 
-    public UUID getSegmentId() {
-        return segmentId;
+    Blob getBlob() {
+        return blob;
     }
 
 }

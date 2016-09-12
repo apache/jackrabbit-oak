@@ -17,25 +17,19 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+import org.apache.jackrabbit.oak.segment.RecordId;
 
-class GetSegmentRequest {
+/**
+ * Read the head record ID.
+ */
+interface StandbyHeadReader {
 
-    private final String clientId;
-
-    private final UUID segmentId;
-
-    GetSegmentRequest(String clientId, UUID segmentId) {
-        this.clientId = clientId;
-        this.segmentId = segmentId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public UUID getSegmentId() {
-        return segmentId;
-    }
+    /**
+     * Read the head record ID.
+     *
+     * @return the head record ID or {@code null} if the head record ID can't be
+     * found.
+     */
+    RecordId readHeadRecordId();
 
 }

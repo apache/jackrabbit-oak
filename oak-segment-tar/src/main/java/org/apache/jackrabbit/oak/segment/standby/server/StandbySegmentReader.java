@@ -19,23 +19,10 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.util.UUID;
 
-class GetSegmentRequest {
+import org.apache.jackrabbit.oak.segment.Segment;
 
-    private final String clientId;
+interface StandbySegmentReader {
 
-    private final UUID segmentId;
-
-    GetSegmentRequest(String clientId, UUID segmentId) {
-        this.clientId = clientId;
-        this.segmentId = segmentId;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public UUID getSegmentId() {
-        return segmentId;
-    }
+    Segment readSegment(UUID segmentId);
 
 }
