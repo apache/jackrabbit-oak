@@ -46,10 +46,12 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
-import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 import org.slf4j.Logger;
@@ -129,7 +131,9 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
 
                 p.addLast(new LineBasedFrameDecoder(8192));
                 p.addLast(new StringDecoder(CharsetUtil.UTF_8));
-                p.addLast(new RequestDecoder());
+                p.addLast(new GetHeadRequestDecoder());
+                p.addLast(new GetSegmentRequestDecoder());
+                p.addLast(new GetBlobRequestDecoder());
                 p.addLast(new StateHandler(newStateConsumer()));
                 p.addLast(new RequestObserverHandler(observer));
 
