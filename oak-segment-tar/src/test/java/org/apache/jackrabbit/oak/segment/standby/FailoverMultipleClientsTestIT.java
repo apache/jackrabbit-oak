@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment.standby;
 
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentTestUtils;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
@@ -27,9 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
 
 public class FailoverMultipleClientsTestIT extends TestBase {
 
