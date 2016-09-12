@@ -34,7 +34,6 @@ import com.google.common.base.Function;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.io.Closeables.close;
 import static com.google.common.io.Files.newWriter;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 
@@ -76,7 +75,7 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape)
         throws IOException {
-        BufferedWriter writer =  newWriter(f, UTF_8);
+        BufferedWriter writer =  newWriter(f, Charsets.UTF_8);
         boolean threw = true;
 
         int count = 0;
