@@ -366,6 +366,7 @@ public abstract class WriterCacheManager {
         protected final void evictCaches(Predicate<Integer> generations) {
             stringCaches.evictGenerations(generations);
             templateCaches.evictGenerations(generations);
+            // FIXME OAK-4635: evict old generations from node cache
         }
     }
 }
