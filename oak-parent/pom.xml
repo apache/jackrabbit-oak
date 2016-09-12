@@ -58,6 +58,7 @@
     <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
     <h2.version>1.4.190</h2.version>
     <logback.version>1.1.0</logback.version>
+    <java.version.signature>java17</java.version.signature>
   </properties>
 
   <issueManagement>
@@ -82,6 +83,18 @@
           <configuration>
             <target>1.6</target>
             <source>1.6</source>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>animal-sniffer-maven-plugin</artifactId>
+          <version>1.15</version>
+          <configuration>
+            <signature>
+              <groupId>org.codehaus.mojo.signature</groupId>
+              <artifactId>${java.version.signature}</artifactId>
+              <version>1.0</version>
+            </signature>
           </configuration>
         </plugin>
         <plugin>
@@ -250,6 +263,21 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>animal-sniffer</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <reporting>
