@@ -109,13 +109,12 @@ public class ClusterNodeInfoTest {
         ClusterNodeInfo info = newClusterNodeInfo(1);
         clock.waitUntil(info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         recoverClusterNode(1);
-        boolean renewed = false;
         try {
-            renewed = info.renewLease();
-        } catch (AssertionError e) {
-            // TODO: rather use DocumentStoreException !?
+            info.renewLease();
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
         }
-        assertFalse(renewed);
         for (int i = 0; i < 10; i++) {
             if (handler.isLeaseFailure()) {
                 return;
@@ -136,14 +135,12 @@ public class ClusterNodeInfoTest {
         MissingLastRevSeeker seeker = new MissingLastRevSeeker(store.getStore(), clock);
         assertTrue(seeker.acquireRecoveryLock(1, 42));
         // cluster node 1 must not be able to renew the lease now
-        boolean renewed = false;
         try {
             // must either return false
-            renewed = info.renewLease();
-        } catch (AssertionError e) {
+            assertFalse(info.renewLease());
+        } catch (DocumentStoreException e) {
             // or throw an exception
         }
-        assertFalse(renewed);
     }
 
     private void recoverClusterNode(int clusterId) throws Exception {

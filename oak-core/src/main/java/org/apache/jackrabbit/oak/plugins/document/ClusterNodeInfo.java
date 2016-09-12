@@ -628,7 +628,17 @@ public class ClusterNodeInfo {
         return true;
     }
 
-    public void performLeaseCheck() {
+    /**
+     * Checks if the lease for this cluster node is still valid, otherwise
+     * throws a {@link DocumentStoreException}. This method will not throw the
+     * exception immediately when the lease expires, but instead give the lease
+     * update thread a last chance of 5 seconds to renew it. This allows the
+     * DocumentNodeStore to recover from an expired lease caused by a system
+     * put to sleep or a JVM in debug mode.
+     *
+     * @throws DocumentStoreException if the lease expired.
+     */
+    public void performLeaseCheck() throws DocumentStoreException {
         if (leaseCheckDisabled || !renewed) {
             // if leaseCheckDisabled is set we never do the check, so return fast
 
@@ -646,8 +656,7 @@ public class ClusterNodeInfo {
             // (note that once a lease check failed it would not
             // be updated again, ever, as guaranteed by checking
             // for leaseCheckFailed in renewLease() )
-            LOG.error(LEASE_CHECK_FAILED_MSG);
-            throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+            throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
         }
         long now = getCurrentTime();
         // OAK-3238 put the barrier 1/3 of 60sec=20sec before the end
@@ -662,8 +671,7 @@ public class ClusterNodeInfo {
         synchronized(this) {
             if (leaseCheckFailed) {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
-                LOG.error(LEASE_CHECK_FAILED_MSG);
-                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+                throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
             }
             for(int i=0; i<MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE; i++) {
                 now = getCurrentTime();
@@ -704,8 +712,7 @@ public class ClusterNodeInfo {
             }
             if (leaseCheckFailed) {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
-                LOG.error(LEASE_CHECK_FAILED_MSG);
-                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+                throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
             }
             leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
@@ -747,7 +754,7 @@ public class ClusterNodeInfo {
             th.start();
         }
 
-        throw new AssertionError(errorMsg);
+        throw leaseExpired(errorMsg, false);
     }
 
     /**
@@ -755,10 +762,17 @@ public class ClusterNodeInfo {
      * to ensure the same cluster id is not re-used by a different instance.
      * The lease is only renewed after 'leaseUpdateInterval' millis
      * since last lease update - default being every 10 sec (this used to be 30sec).
+     * <p>
+     * This method will not fail immediately with a DocumentStoreException if
+     * the lease expired. It will still try to renew the lease and only fail if
+     * {@link #performLeaseCheck()} decided the lease expired or another cluster
+     * node initiated recover for this node.
      *
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
+     * @throws DocumentStoreException if the operation failed or the lease
+     *          expired.
      */
-    public boolean renewLease() {
+    public boolean renewLease() throws DocumentStoreException {
         long now = getCurrentTime();
 
         if (LOG.isTraceEnabled()) {
@@ -780,8 +794,7 @@ public class ClusterNodeInfo {
 
             if (leaseCheckFailed) {
                 // prevent lease renewal after it failed
-                LOG.error(LEASE_CHECK_FAILED_MSG);
-                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+                throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
             }
             // synchronized could have delayed the 'now', so
             // set it again..
@@ -829,8 +842,7 @@ public class ClusterNodeInfo {
                 if (leaseCheckFailed) {
                     // somehow the instance figured out otherwise that the
                     // lease check failed - so we don't have to too - so we just log/throw
-                    LOG.error(LEASE_CHECK_FAILED_MSG);
-                    throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+                    throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
                 }
                 leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
             }
@@ -841,7 +853,7 @@ public class ClusterNodeInfo {
             LOG.error(errorMsg);
 
             handleLeaseFailure(errorMsg);
-            // should never be reached: handleLeaseFailure throws an AssertionError
+            // should never be reached: handleLeaseFailure throws a DocumentStoreException
             return false;
         }
         previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
@@ -1043,5 +1055,12 @@ public class ClusterNodeInfo {
 
     private static long getCurrentTime() {
         return clock.getTime();
+    }
+
+    private static DocumentStoreException leaseExpired(String msg, boolean log) {
+        if (log) {
+            LOG.error(msg);
+        }
+        return new DocumentStoreException(msg);
     }
 }
