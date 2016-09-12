@@ -58,7 +58,7 @@
     <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
     <h2.version>1.4.190</h2.version>
     <logback.version>1.1.0</logback.version>
-    <java.version.signature>java17</java.version.signature>
+    <java.version.signature>java16</java.version.signature>
   </properties>
 
   <issueManagement>
