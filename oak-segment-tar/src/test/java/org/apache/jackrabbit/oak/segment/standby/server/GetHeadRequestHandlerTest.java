@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.oak.segment.standby.server.ServerTestUtils.mockRecordId;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockRecordId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponse;
 import org.junit.Test;
 
 public class GetHeadRequestHandlerTest {

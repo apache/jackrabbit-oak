@@ -15,25 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-class GetBlobRequest {
+import org.apache.jackrabbit.oak.segment.RecordId;
+
+public class GetHeadResponse {
 
     private final String clientId;
 
-    private final String blobId;
+    private final RecordId headRecordId;
 
-    GetBlobRequest(String clientId, String blobId) {
+    public GetHeadResponse(String clientId, RecordId headRecordId) {
         this.clientId = clientId;
-        this.blobId = blobId;
+        this.headRecordId = headRecordId;
     }
 
-    String getClientId() {
+    public String getClientId() {
         return clientId;
     }
 
-    String getBlobId() {
-        return blobId;
+    public RecordId getHeadRecordId() {
+        return headRecordId;
     }
 
 }

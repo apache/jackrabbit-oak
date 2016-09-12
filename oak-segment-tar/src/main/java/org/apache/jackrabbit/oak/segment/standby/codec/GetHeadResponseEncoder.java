@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.util.CharsetUtil;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Encodes a 'get head' response.
  */
-class GetHeadResponseEncoder extends MessageToByteEncoder<GetHeadResponse> {
+public class GetHeadResponseEncoder extends MessageToByteEncoder<GetHeadResponse> {
 
     private static final Logger log = LoggerFactory.getLogger(GetHeadResponseEncoder.class);
 

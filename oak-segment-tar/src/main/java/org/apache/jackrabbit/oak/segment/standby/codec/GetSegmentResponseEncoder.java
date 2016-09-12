@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.io.ByteArrayOutputStream;
 
@@ -26,14 +26,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Encodes a 'get segment' response.
  */
-class GetSegmentResponseEncoder extends MessageToByteEncoder<GetSegmentResponse> {
+public class GetSegmentResponseEncoder extends MessageToByteEncoder<GetSegmentResponse> {
 
     private static final Logger log = LoggerFactory.getLogger(GetSegmentResponseEncoder.class);
 

@@ -25,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.junit.Test;
 
 public class GetBlobRequestHandlerTest {

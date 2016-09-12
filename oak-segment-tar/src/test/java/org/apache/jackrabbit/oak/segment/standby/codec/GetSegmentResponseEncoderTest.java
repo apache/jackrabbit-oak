@@ -15,33 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.apache.jackrabbit.oak.segment.standby.server.ServerTestUtils.mockRecordId;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockSegment;
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.base.Charsets;
+import java.util.UUID;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
+import org.apache.jackrabbit.oak.segment.Segment;
 import org.junit.Test;
 
-public class GetHeadResponseEncoderTest {
+public class GetSegmentResponseEncoderTest {
 
     @Test
     public void encodeResponse() throws Exception {
-        RecordId recordId = mockRecordId(1, 2, 8);
+        UUID uuid = new UUID(1, 2);
+        byte[] data = new byte[] {3, 4, 5};
+        Segment segment = mockSegment(uuid, data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new GetHeadResponseEncoder());
-        channel.writeOutbound(new GetHeadResponse("clientId", recordId));
+        EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentResponseEncoder());
+        channel.writeOutbound(new GetSegmentResponse("clientId", segment));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         ByteBuf expected = Unpooled.buffer();
-        expected.writeInt(recordId.toString().getBytes(Charsets.UTF_8).length + 1);
-        expected.writeByte(Messages.HEADER_RECORD);
-        expected.writeBytes(recordId.toString().getBytes(Charsets.UTF_8));
+        expected.writeInt(data.length + 25);
+        expected.writeByte(Messages.HEADER_SEGMENT);
+        expected.writeLong(uuid.getMostSignificantBits());
+        expected.writeLong(uuid.getLeastSignificantBits());
+        expected.writeLong(hash(data));
+        expected.writeBytes(data);
+
         assertEquals(expected, buffer);
     }
 

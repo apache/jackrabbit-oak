@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 
 /**

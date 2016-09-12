@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.oak.segment.standby.server.ServerTestUtils.mockSegment;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockSegment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -28,6 +28,8 @@ import java.util.UUID;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.junit.Test;
 
 public class GetSegmentRequestHandlerTest {

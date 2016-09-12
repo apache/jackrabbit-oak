@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -27,11 +27,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class GetBlobResponseEncoder extends MessageToByteEncoder<GetBlobResponse> {
+public class GetBlobResponseEncoder extends MessageToByteEncoder<GetBlobResponse> {
 
     private static final Logger log = LoggerFactory.getLogger(GetBlobResponseEncoder.class);
 
