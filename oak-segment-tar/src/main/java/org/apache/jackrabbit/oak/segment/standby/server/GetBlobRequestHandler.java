@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

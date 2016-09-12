@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import java.util.UUID;
 
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.junit.Test;
 
 public class RequestDecoderTest {

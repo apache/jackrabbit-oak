@@ -21,6 +21,9 @@ import java.net.InetSocketAddress;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 
 /**

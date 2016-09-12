@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.mockito.Mockito.mock;
 
@@ -29,17 +29,17 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 
-class ServerTestUtils {
+public class StandbyTestUtils {
 
-    private ServerTestUtils() {
+    private StandbyTestUtils() {
         // Prevent instantiation.
     }
 
-    static RecordId mockRecordId(long msb, long lsb, int offset) {
+    public static RecordId mockRecordId(long msb, long lsb, int offset) {
         return new RecordId(new SegmentId(mock(SegmentStore.class), msb, lsb), offset);
     }
 
-    static Segment mockSegment(UUID uuid, byte[] buffer) {
+    public static Segment mockSegment(UUID uuid, byte[] buffer) {
         SegmentStore store = mock(SegmentStore.class);
         SegmentReader reader = mock(SegmentReader.class);
         long msb = uuid.getMostSignificantBits();
@@ -49,7 +49,7 @@ class ServerTestUtils {
         return new Segment(store, reader, id, data);
     }
 
-    static long hash(byte[] data) {
+    public static long hash(byte[] data) {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
 
