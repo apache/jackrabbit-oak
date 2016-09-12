@@ -15,38 +15,44 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.apache.jackrabbit.oak.segment.standby.server.ServerTestUtils.hash;
-import static org.apache.jackrabbit.oak.segment.standby.server.ServerTestUtils.mockSegment;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.util.UUID;
+import java.io.ByteArrayInputStream;
 
+import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.junit.Test;
 
-public class GetSegmentResponseEncoderTest {
+public class GetBlobResponseEncoderTest {
 
     @Test
     public void encodeResponse() throws Exception {
-        UUID uuid = new UUID(1, 2);
-        byte[] data = new byte[] {3, 4, 5};
-        Segment segment = mockSegment(uuid, data);
+        byte[] data = new byte[] {1, 2, 3};
 
-        EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentResponseEncoder());
-        channel.writeOutbound(new GetSegmentResponse("clientId", segment));
+        String contentIdentity = "contentIdentity";
+        byte[] contentIdentityBytes = contentIdentity.getBytes(Charsets.UTF_8);
+
+        Blob blob = mock(Blob.class);
+        when(blob.getNewStream()).thenReturn(new ByteArrayInputStream(data));
+        when(blob.getContentIdentity()).thenReturn(contentIdentity);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new GetBlobResponseEncoder());
+        channel.writeOutbound(new GetBlobResponse("clientId", blob));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         ByteBuf expected = Unpooled.buffer();
-        expected.writeInt(data.length + 25);
-        expected.writeByte(Messages.HEADER_SEGMENT);
-        expected.writeLong(uuid.getMostSignificantBits());
-        expected.writeLong(uuid.getLeastSignificantBits());
+        expected.writeInt(3);
+        expected.writeByte(Messages.HEADER_BLOB);
+        expected.writeInt(contentIdentityBytes.length);
+        expected.writeBytes(contentIdentityBytes);
         expected.writeLong(hash(data));
         expected.writeBytes(data);
 

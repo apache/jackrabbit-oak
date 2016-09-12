@@ -15,18 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-class GetHeadRequest {
+import java.util.UUID;
 
-    private String clientId;
+public class GetSegmentRequest {
 
-    GetHeadRequest(String clientId) {
+    private final String clientId;
+
+    private final UUID segmentId;
+
+    public GetSegmentRequest(String clientId, UUID segmentId) {
         this.clientId = clientId;
+        this.segmentId = segmentId;
     }
 
-    String getClientId() {
+    public String getClientId() {
         return clientId;
+    }
+
+    public UUID getSegmentId() {
+        return segmentId;
     }
 
 }

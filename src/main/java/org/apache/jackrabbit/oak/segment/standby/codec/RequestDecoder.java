@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.util.List;
 import java.util.UUID;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * Implements the logic for parsing input messages and failing when an incorrect
  * or unrecognized message is received.
  */
-class RequestDecoder extends MessageToMessageDecoder<String> {
+public class RequestDecoder extends MessageToMessageDecoder<String> {
 
     private static final Logger log = LoggerFactory.getLogger(RequestDecoder.class);
 

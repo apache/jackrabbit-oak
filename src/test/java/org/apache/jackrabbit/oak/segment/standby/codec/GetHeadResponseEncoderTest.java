@@ -15,48 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.apache.jackrabbit.oak.segment.standby.server.ServerTestUtils.hash;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockRecordId;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
 
 import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.segment.standby.codec.Messages;
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.junit.Test;
 
-public class GetBlobResponseEncoderTest {
+public class GetHeadResponseEncoderTest {
 
     @Test
     public void encodeResponse() throws Exception {
-        byte[] data = new byte[] {1, 2, 3};
+        RecordId recordId = mockRecordId(1, 2, 8);
 
-        String contentIdentity = "contentIdentity";
-        byte[] contentIdentityBytes = contentIdentity.getBytes(Charsets.UTF_8);
-
-        Blob blob = mock(Blob.class);
-        when(blob.getNewStream()).thenReturn(new ByteArrayInputStream(data));
-        when(blob.getContentIdentity()).thenReturn(contentIdentity);
-
-        EmbeddedChannel channel = new EmbeddedChannel(new GetBlobResponseEncoder());
-        channel.writeOutbound(new GetBlobResponse("clientId", blob));
+        EmbeddedChannel channel = new EmbeddedChannel(new GetHeadResponseEncoder());
+        channel.writeOutbound(new GetHeadResponse("clientId", recordId));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         ByteBuf expected = Unpooled.buffer();
-        expected.writeInt(3);
-        expected.writeByte(Messages.HEADER_BLOB);
-        expected.writeInt(contentIdentityBytes.length);
-        expected.writeBytes(contentIdentityBytes);
-        expected.writeLong(hash(data));
-        expected.writeBytes(data);
-
+        expected.writeInt(recordId.toString().getBytes(Charsets.UTF_8).length + 1);
+        expected.writeByte(Messages.HEADER_RECORD);
+        expected.writeBytes(recordId.toString().getBytes(Charsets.UTF_8));
         assertEquals(expected, buffer);
     }
 

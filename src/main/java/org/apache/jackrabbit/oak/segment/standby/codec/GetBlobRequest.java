@@ -15,27 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.UUID;
-
-class GetSegmentRequest {
+public class GetBlobRequest {
 
     private final String clientId;
 
-    private final UUID segmentId;
+    private final String blobId;
 
-    GetSegmentRequest(String clientId, UUID segmentId) {
+    public GetBlobRequest(String clientId, String blobId) {
         this.clientId = clientId;
-        this.segmentId = segmentId;
+        this.blobId = blobId;
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public UUID getSegmentId() {
-        return segmentId;
+    public String getBlobId() {
+        return blobId;
     }
 
 }
