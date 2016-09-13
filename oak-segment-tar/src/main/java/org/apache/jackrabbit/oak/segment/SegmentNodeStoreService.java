@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
@@ -181,13 +180,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     " value is not a power of 2, it will be rounded up to the next power of 2."
     )
     public static final String NODE_DEDUPLICATION_CACHE_SIZE = "nodeDeduplicationCache.size";
-
-    @Property(
-            byteValue = MEMORY_THRESHOLD_DEFAULT,
-            label = "Memory Multiplier",
-            description = "TarMK compaction available memory multiplier needed to run compaction"
-    )
-    public static final String COMPACTION_MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
     @Property(
             byteValue = GAIN_THRESHOLD_DEFAULT,
@@ -527,12 +519,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
         int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
 
-        byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
         long sizeDeltaEstimation = toLong(COMPACTION_SIZE_DELTA_ESTIMATION, SIZE_DELTA_ESTIMATION_DEFAULT);
 
-        return new SegmentGCOptions(
-                pauseCompaction, memoryThreshold, gainThreshold, retryCount, forceTimeout)
+        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
                 .setGcSizeDeltaEstimation(sizeDeltaEstimation);
     }
 
@@ -710,16 +700,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private int getMaxFileSize() {
         return Integer.parseInt(getMaxFileSizeProperty());
-    }
-
-    private byte getMemoryThreshold() {
-        String mt = property(COMPACTION_MEMORY_THRESHOLD);
-
-        if (mt == null) {
-            return MEMORY_THRESHOLD_DEFAULT;
-        }
-
-        return Byte.valueOf(mt);
     }
 
     private byte getGainThreshold() {
