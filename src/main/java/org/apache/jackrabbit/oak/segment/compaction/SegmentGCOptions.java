@@ -32,11 +32,6 @@ public class SegmentGCOptions {
     public static final boolean PAUSE_DEFAULT = false;
 
     /**
-     * Default value for {@link #getMemoryThreshold()}
-     */
-    public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
-
-    /**
      * Default value for {@link #getGainThreshold()}
      */
     public static final byte GAIN_THRESHOLD_DEFAULT = 10;
@@ -63,8 +58,6 @@ public class SegmentGCOptions {
 
     private boolean paused = PAUSE_DEFAULT;
 
-    private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
-
     private int gainThreshold = GAIN_THRESHOLD_DEFAULT;
 
     private int retryCount = RETRY_COUNT_DEFAULT;
@@ -86,23 +79,20 @@ public class SegmentGCOptions {
             "oak.segment.compaction.gcSizeDeltaEstimation",
             SIZE_DELTA_ESTIMATION_DEFAULT);
 
-    public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
-                            int retryCount, int forceTimeout) {
+    public SegmentGCOptions(boolean paused, int gainThreshold, int retryCount, int forceTimeout) {
         this.paused = paused;
-        this.memoryThreshold = memoryThreshold;
         this.gainThreshold = gainThreshold;
         this.retryCount = retryCount;
         this.forceTimeout = forceTimeout;
     }
 
     public SegmentGCOptions() {
-        this(PAUSE_DEFAULT, MEMORY_THRESHOLD_DEFAULT, GAIN_THRESHOLD_DEFAULT,
-                RETRY_COUNT_DEFAULT, FORCE_TIMEOUT_DEFAULT);
+        this(PAUSE_DEFAULT, GAIN_THRESHOLD_DEFAULT, RETRY_COUNT_DEFAULT, FORCE_TIMEOUT_DEFAULT);
     }
 
     /**
-     * Default options: {@link #PAUSE_DEFAULT}, {@link #MEMORY_THRESHOLD_DEFAULT},
-     * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT}, {@link #FORCE_TIMEOUT_DEFAULT}.
+     * Default options: {@link #PAUSE_DEFAULT}, {@link #GAIN_THRESHOLD_DEFAULT},
+     * {@link #RETRY_COUNT_DEFAULT}, {@link #FORCE_TIMEOUT_DEFAULT}.
      */
     public static SegmentGCOptions defaultGCOptions() {
         return new SegmentGCOptions();
@@ -122,23 +112,6 @@ public class SegmentGCOptions {
      */
     public SegmentGCOptions setPaused(boolean paused) {
         this.paused = paused;
-        return this;
-    }
-
-    /**
-     * @return  the memory threshold below which revision gc will not run.
-     */
-    public int getMemoryThreshold() {
-        return memoryThreshold;
-    }
-
-    /**
-     * Set the memory threshold below which revision gc will not run.
-     * @param memoryThreshold
-     * @return this instance
-     */
-    public SegmentGCOptions setMemoryThreshold(int memoryThreshold) {
-        this.memoryThreshold = memoryThreshold;
         return this;
     }
 
@@ -240,7 +213,6 @@ public class SegmentGCOptions {
         } else {
             return getClass().getSimpleName() + "{" +
                     "paused=" + paused +
-                    ", memoryThreshold=" + memoryThreshold +
                     ", gainThreshold=" + gainThreshold +
                     ", retryCount=" + retryCount +
                     ", forceTimeout=" + forceTimeout +
