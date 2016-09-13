@@ -38,6 +38,10 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Import-Package>
+              com.mongodb*;version="[2.14, 4)",
+              *
+            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.api,
