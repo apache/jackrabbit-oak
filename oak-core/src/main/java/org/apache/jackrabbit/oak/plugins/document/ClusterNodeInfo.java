@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
@@ -527,7 +526,7 @@ public class ClusterNodeInfo {
                 // case something is very very wrong anyway)
                 if (waitForLease && (leaseEnd - now) < (DEFAULT_LEASE_DURATION_MILLIS + 5000) && mId.equals(machineId)
                         && iId.equals(instanceId)) {
-                    boolean worthRetrying = waitForLeaseExpiry(store, doc, leaseEnd.longValue(), machineId, instanceId);
+                    boolean worthRetrying = waitForLeaseExpiry(store, doc, leaseEnd, machineId, instanceId);
                     if (worthRetrying) {
                         return createInstance(store, machineId, instanceId, configuredClusterId, false);
                     }
@@ -540,8 +539,7 @@ public class ClusterNodeInfo {
             // remove entries with "random:" keys if not in use (no lease at all) 
             if (mId.startsWith(RANDOM_PREFIX) && leaseEnd == null) {
                 store.remove(Collection.CLUSTER_NODES, key);
-                LOG.debug("Cleaned up cluster node info for clusterNodeId {} [machineId: {}, leaseEnd: {}]", id, mId,
-                        leaseEnd == null ? "n/a" : Utils.timestampToString(leaseEnd));
+                LOG.debug("Cleaned up cluster node info for clusterNodeId {} [machineId: {}, leaseEnd: n/a]", id, mId);
                 if (alreadyExistingConfigured == doc) {
                     // we removed it, so we can't re-use it after all
                     alreadyExistingConfigured = null;
@@ -617,7 +615,7 @@ public class ClusterNodeInfo {
                         LOG.info("Cluster node " + key + ": lease end information missing, aborting.");
                         return false;
                     } else {
-                        if (newLeaseEnd.longValue() != leaseEnd) {
+                        if (newLeaseEnd != leaseEnd) {
                             LOG.info("Cluster node " + key + " seems to be still active (lease end changed from " + leaseEnd
                                     + " to " + newLeaseEnd + ", will not try to use it.");
                             return false;
