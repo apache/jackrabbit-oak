@@ -819,6 +819,8 @@ public class ClusterNodeInfo {
             update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
             // plus it must still be active ..
             update.equals(STATE, null, ClusterNodeState.ACTIVE.name());
+            // plus it must not have a recovery lock on it
+            update.notEquals(REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
             // @TODO: to make it 100% failure proof we could introduce
             // yet another field to clusterNodes: a runtimeId that we
             // create (UUID) at startup each time - and against that
@@ -846,10 +848,24 @@ public class ClusterNodeInfo {
                 }
                 leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
             }
-            final String errorMsg = LEASE_CHECK_FAILED_MSG+
-                    " (Could not update lease anymore, someone else in the cluster "
-                    + "must have noticed this instance' slowness already. "
-                    + "Going to invoke leaseFailureHandler!)";
+
+            String errorMsg = LEASE_CHECK_FAILED_MSG + " (Could not update lease anymore, someone else in the cluster "
+                    + "must have noticed this instance' slowness already. " + "Going to invoke leaseFailureHandler!)";
+
+            // try to add more diagnostics
+            try {
+                ClusterNodeInfoDocument current = store.find(Collection.CLUSTER_NODES, "" + id);
+                if (current != null) {
+                    Object leaseEnd = current.get(LEASE_END_KEY);
+                    Object recoveryLock = current.get(REV_RECOVERY_LOCK);
+                    Object recoveryBy = current.get(REV_RECOVERY_BY);
+                    errorMsg += " (leaseEnd: " + leaseEnd + " (expected: " + leaseEndTime + "), recoveryLock: " + recoveryLock
+                            + ", recoveryBy: " + recoveryBy + ")";
+                }
+            } catch (DocumentStoreException ex) {
+                LOG.error("trying to read ClusterNodeInfo for cluster id " + id, ex);
+            }
+
             LOG.error(errorMsg);
 
             handleLeaseFailure(errorMsg);
