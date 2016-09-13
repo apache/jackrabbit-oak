@@ -49,17 +49,6 @@ public interface SegmentRevisionGC {
     void setGainThreshold(int gainThreshold);
 
     /**
-     * @return  the memory threshold below which revision gc will not run.
-     */
-    int getMemoryThreshold();
-
-    /**
-     * Set the memory threshold below which revision gc will not run.
-     * @param memoryThreshold
-     */
-    void setMemoryThreshold(int memoryThreshold);
-
-    /**
      * Get the number of tries to compact concurrent commits on top of already
      * compacted commits
      * @return  retry count

@@ -54,16 +54,6 @@ public class SegmentRevisionGCMBean
     }
 
     @Override
-    public int getMemoryThreshold() {
-        return gcOptions.getMemoryThreshold();
-    }
-
-    @Override
-    public void setMemoryThreshold(int memoryThreshold) {
-        gcOptions.setMemoryThreshold(memoryThreshold);
-    }
-
-    @Override
     public int getRetryCount() {
         return gcOptions.getRetryCount();
     }
