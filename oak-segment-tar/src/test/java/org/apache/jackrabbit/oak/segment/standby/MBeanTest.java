@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.lang.management.ManagementFactory;
 import java.util.Set;
@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MBeanTest extends TestBase {
@@ -52,7 +51,7 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testServerEmptyConfig() throws Exception {
-        final StandbyServer server = new StandbyServer(this.port, this.storeS);
+        final StandbyServer server = new StandbyServer(TestBase.port, this.storeS);
         server.start();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
@@ -65,6 +64,19 @@ public class MBeanTest extends TestBase {
             assertTrue(jmxServer.isRegistered(status));
 
             assertEquals("primary", jmxServer.getAttribute(status, "Mode"));
+            String m = jmxServer.getAttribute(status, "Status").toString();
+            if (!m.equals(StandbyStatusMBean.STATUS_RUNNING) && !m.equals("channel unregistered"))
+                fail("unexpected Status " + m);
+
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(true, jmxServer.getAttribute(status, "Running"));
+            jmxServer.invoke(status, "stop", null, null);
+            assertEquals(false, jmxServer.getAttribute(status, "Running"));
+            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
+            jmxServer.invoke(status, "start", null, null);
+
+            assertEquals(true, jmxServer.getAttribute(status, "Running"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
         } finally {
             server.close();
         }
@@ -76,6 +88,7 @@ public class MBeanTest extends TestBase {
     public void testClientEmptyConfigNoServer() throws Exception {
         final StandbyClient client = newStandbyClient(storeC);
         client.start();
+        client.run();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
@@ -89,7 +102,7 @@ public class MBeanTest extends TestBase {
             String m = jmxServer.getAttribute(status, "Mode").toString();
             if (!m.startsWith("client: ")) fail("unexpected mode " + m);
 
-            assertEquals("0", jmxServer.getAttribute(status, "FailedRequests").toString());
+            assertEquals("1", jmxServer.getAttribute(status, "FailedRequests").toString());
             assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
             assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
@@ -113,6 +126,7 @@ public class MBeanTest extends TestBase {
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Foo");
         final StandbyClient client = newStandbyClient(storeC);
         client.start();
+        client.run();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(client.getMBeanName());
@@ -120,10 +134,10 @@ public class MBeanTest extends TestBase {
             assertTrue(jmxServer.isRegistered(status));
             assertEquals("client: Foo", jmxServer.getAttribute(status, "Mode"));
 
-            assertEquals("0", jmxServer.getAttribute(status, "FailedRequests").toString());
+            assertEquals("1", jmxServer.getAttribute(status, "FailedRequests").toString());
             assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
-            assertEquals("0", jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
+            assertEquals("1", jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
             assertEquals("-1", jmxServer.invoke(status, "calcSecondsSinceLastSuccess", null, null).toString());
         } finally {
             client.close();
@@ -133,7 +147,6 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-2086")
     public void testClientAndServerEmptyConfig() throws Exception {
         final StandbyServer server = new StandbyServer(port, this.storeS);
         server.start();
@@ -141,6 +154,7 @@ public class MBeanTest extends TestBase {
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Bar");
         final StandbyClient client = newStandbyClient(storeC);
         client.start();
+        client.run();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
@@ -163,7 +177,7 @@ public class MBeanTest extends TestBase {
             String m = jmxServer.getAttribute(clientStatus, "Mode").toString();
             if (!m.startsWith("client: ")) fail("unexpected mode " + m);
 
-            assertEquals("master", jmxServer.getAttribute(serverStatus, "Mode"));
+            assertEquals("primary", jmxServer.getAttribute(serverStatus, "Mode"));
 
             assertEquals(true, jmxServer.getAttribute(serverStatus, "Running"));
             assertEquals(true, jmxServer.getAttribute(clientStatus, "Running"));
@@ -180,9 +194,9 @@ public class MBeanTest extends TestBase {
             assertEquals("0", jmxServer.invoke(clientStatus, "calcFailedRequests", null, null).toString());
             assertEquals("1", jmxServer.invoke(clientStatus, "calcSecondsSinceLastSuccess", null, null).toString());
 
-            assertEquals(new Long(2), jmxServer.getAttribute(connectionStatus, "TransferredSegments"));
-            assertEquals(new Long(128), jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes"));
-
+            assertEquals(new Long(1), jmxServer.getAttribute(connectionStatus, "TransferredSegments"));
+            assertEquals(new Long(208), jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes"));
+            
             // stop the master
             jmxServer.invoke(serverStatus, "stop", null, null);
             assertEquals(false, jmxServer.getAttribute(serverStatus, "Running"));
@@ -195,7 +209,7 @@ public class MBeanTest extends TestBase {
             assertEquals(true, jmxServer.getAttribute(serverStatus, "Running"));
             assertEquals(true, jmxServer.getAttribute(clientStatus, "Running"));
             m = jmxServer.getAttribute(serverStatus, "Status").toString();
-            if (!m.equals(StandbyStatusMBean.STATUS_STARTING) && !m.equals("channel unregistered"))
+            if (!m.equals(StandbyStatusMBean.STATUS_RUNNING) && !m.equals("channel unregistered"))
                 fail("unexpected Status" + m);
 
             // stop the slave
