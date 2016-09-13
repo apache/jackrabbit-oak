@@ -74,33 +74,22 @@ public interface SegmentRevisionGC {
     void setRetryCount(int retryCount);
 
     /**
-     * Get whether or not to force compact concurrent commits on top of already
-     * compacted commits after the maximum number of retries has been reached.
-     * Force committing tries to exclusively write lock the node store.
-     * @return  {@code true} if force commit is on, {@code false} otherwise
+     * Get the number of seconds to attempt to force compact concurrent commits on top of
+     * already compacted commits after the maximum number of retries has been reached.
+     * Forced compaction acquires an exclusive write lock on the node store.
+     * @return  the number of seconds until forced compaction gives up and the exclusive
+     *          write lock on the node store is released.
      */
-    boolean getForceAfterFail();
+    int getForceTimeout();
 
     /**
-     * Set whether or not to force compact concurrent commits on top of already
-     * compacted commits after the maximum number of retries has been reached.
-     * Force committing tries to exclusively write lock the node store.
-     * @param forceAfterFail
+     * Set the number of seconds to attempt to force compact concurrent commits on top of
+     * already compacted commits after the maximum number of retries has been reached.
+     * Forced compaction acquires an exclusively write lock on the node store.
+     * @param timeout  the number of seconds until forced compaction gives up and the exclusive
+     *                 lock on the node store is released.
      */
-    void setForceAfterFail(boolean forceAfterFail);
-
-    /**
-     * Get the time to wait for the lock when force compacting.
-     * See {@link #setForceAfterFail(boolean)}
-     * @return lock wait time in seconds.
-     */
-    int getLockWaitTime();
-
-    /**
-     * Set the time to wait for the lock when force compacting.
-     * @param lockWaitTime  lock wait time in seconds
-     */
-    void setLockWaitTime(int lockWaitTime);
+    void setForceTimeout(int timeout);
 
     /**
      * Number of segment generations to retain.

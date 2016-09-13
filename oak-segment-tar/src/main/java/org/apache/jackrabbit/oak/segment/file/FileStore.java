@@ -27,6 +27,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
+import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.emptyMap;
@@ -61,6 +62,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -76,6 +78,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -971,6 +974,38 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     /**
+     * @param duration
+     * @param unit
+     * @return  {@code Supplier} instance which returns true once the time specified in
+     * {@code duration} and {@code unit} has passed.
+     */
+    private static Supplier<Boolean> timeOut(final long duration, @Nonnull final TimeUnit unit) {
+        return new Supplier<Boolean>() {
+            long deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
+            @Override
+            public Boolean get() {
+                return currentTimeMillis() > deadline;
+            }
+        };
+    }
+
+    /**
+     * @param supplier1
+     * @param supplier2
+     * @return {@code Supplier} instance that returns {@code true} iff {@code supplier1} returns
+     * {@code true} or otherwise {@code supplier2} returns {@code true}.
+     */
+    private static Supplier<Boolean> or(
+            @Nonnull Supplier<Boolean> supplier1,
+            @Nonnull Supplier<Boolean> supplier2) {
+        if (supplier1.get()) {
+            return Suppliers.ofInstance(true);
+        } else {
+            return supplier2;
+        }
+    }
+
+    /**
      * Returns a signal indication the file store shutting down.
      * @return  a shutdown signal
      */
@@ -1043,10 +1078,12 @@ public class FileStore implements SegmentStore, Closeable {
             if (!success) {
                 gcListener.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
                         GC_COUNT, cycles);
-                if (gcOptions.getForceAfterFail()) {
-                    gcListener.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
+                int forceTimeout = gcOptions.getForceTimeout();
+                if (forceTimeout > 0) {
+                    gcListener.info("TarMK GC #{}: trying to force compact remaining commits for {} seconds",
+                        GC_COUNT, forceTimeout);
                     cycles++;
-                    success = forceCompact(bufferWriter, cancel);
+                    success = forceCompact(bufferWriter, or(cancel, timeOut(forceTimeout, SECONDS)));
                     if (!success) {
                         gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
                             "Most likely compaction didn't get exclusive access to the store or was " +
@@ -1111,10 +1148,12 @@ public class FileStore implements SegmentStore, Closeable {
                 @Override
                 public RecordId apply(RecordId base) {
                     try {
+                        long t0 = currentTimeMillis();
                         SegmentNodeState after = compact(bufferWriter,
                                 segmentReader.readNode(base), cancel);
                         if (after == null) {
-                            gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+                            gcListener.info("TarMK GC #{}: compaction cancelled after {} seconds",
+                                GC_COUNT, (currentTimeMillis() - t0) / 1000);
                             return null;
                         } else {
                             return after.getRecordId();
@@ -1125,7 +1164,7 @@ public class FileStore implements SegmentStore, Closeable {
                     }
                 }
             },
-            timeout(gcOptions.getLockWaitTime(), SECONDS));
+            timeout(gcOptions.getForceTimeout(), SECONDS));
     }
 
     public Iterable<SegmentId> getSegmentIds() {

@@ -74,23 +74,13 @@ public class SegmentRevisionGCMBean
     }
 
     @Override
-    public boolean getForceAfterFail() {
-        return gcOptions.getForceAfterFail();
+    public int getForceTimeout() {
+        return gcOptions.getForceTimeout();
     }
 
     @Override
-    public void setForceAfterFail(boolean forceAfterFail) {
-        gcOptions.setForceAfterFail(forceAfterFail);
-    }
-
-    @Override
-    public int getLockWaitTime() {
-        return gcOptions.getLockWaitTime();
-    }
-
-    @Override
-    public void setLockWaitTime(int lockWaitTime) {
-        gcOptions.setLockWaitTime(lockWaitTime);
+    public void setForceTimeout(int timeout) {
+        gcOptions.setForceTimeout(timeout);
     }
 
     @Override
