@@ -37,6 +37,7 @@ Bug
     [OAK-4675] - SNFE thrown while testing FileStore.cleanup() running concurrently with writes
     [OAK-4676] - Index definition on nt:base with analyzed property incorrectly matches query with different property
     [OAK-4679] - Backport OAK-4119, OAK-4101, OAK-4087 and OAK-4344
+    [OAK-4790] - Compilation error with JDK 6 in FileIOUtils
 
 
 Improvement
@@ -73,7 +74,7 @@ Task
     [OAK-3211] - Document External Identity Management
     [OAK-4364] - Initial Benchmarks for oak-auth-external
     [OAK-4743] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.4
-
+    [OAK-4791] - Enable animal sniffer plugin
 
 Test
 
