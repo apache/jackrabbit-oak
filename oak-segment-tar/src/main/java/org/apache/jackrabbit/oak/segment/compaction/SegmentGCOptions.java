@@ -47,14 +47,9 @@ public class SegmentGCOptions {
     public static final int RETRY_COUNT_DEFAULT = 5;
 
     /**
-     * Default value for {@link #getForceAfterFail()}
+     * Default value for {@link #getForceTimeout()} in seconds.
      */
-    public static final boolean FORCE_AFTER_FAIL_DEFAULT = false;
-
-    /**
-     * Default value for {@link #getLockWaitTime()}
-     */
-    public static final int LOCK_WAIT_TIME_DEFAULT = 60;
+    public static final int FORCE_TIMEOUT_DEFAULT = 60;
 
     /**
      * Default value for {@link #getRetainedGenerations()}
@@ -74,9 +69,7 @@ public class SegmentGCOptions {
 
     private int retryCount = RETRY_COUNT_DEFAULT;
 
-    private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
-
-    private int lockWaitTime = LOCK_WAIT_TIME_DEFAULT;
+    private int forceTimeout = FORCE_TIMEOUT_DEFAULT;
 
     private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
 
@@ -94,24 +87,22 @@ public class SegmentGCOptions {
             SIZE_DELTA_ESTIMATION_DEFAULT);
 
     public SegmentGCOptions(boolean paused, int memoryThreshold, int gainThreshold,
-                            int retryCount, boolean forceAfterFail, int lockWaitTime) {
+                            int retryCount, int forceTimeout) {
         this.paused = paused;
         this.memoryThreshold = memoryThreshold;
         this.gainThreshold = gainThreshold;
         this.retryCount = retryCount;
-        this.forceAfterFail = forceAfterFail;
-        this.lockWaitTime = lockWaitTime;
+        this.forceTimeout = forceTimeout;
     }
 
     public SegmentGCOptions() {
         this(PAUSE_DEFAULT, MEMORY_THRESHOLD_DEFAULT, GAIN_THRESHOLD_DEFAULT,
-                RETRY_COUNT_DEFAULT, FORCE_AFTER_FAIL_DEFAULT, LOCK_WAIT_TIME_DEFAULT);
+                RETRY_COUNT_DEFAULT, FORCE_TIMEOUT_DEFAULT);
     }
 
     /**
      * Default options: {@link #PAUSE_DEFAULT}, {@link #MEMORY_THRESHOLD_DEFAULT},
-     * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT},
-     * {@link #FORCE_AFTER_FAIL_DEFAULT}, {@link #LOCK_WAIT_TIME_DEFAULT}.
+     * {@link #GAIN_THRESHOLD_DEFAULT}, {@link #RETRY_COUNT_DEFAULT}, {@link #FORCE_TIMEOUT_DEFAULT}.
      */
     public static SegmentGCOptions defaultGCOptions() {
         return new SegmentGCOptions();
@@ -190,44 +181,26 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Get whether or not to force compact concurrent commits on top of already
-     * compacted commits after the maximum number of retries has been reached.
-     * Force committing tries to exclusively write lock the node store.
-     * @return  {@code true} if force commit is on, {@code false} otherwise
+     * Get the number of seconds to attempt to force compact concurrent commits on top of
+     * already compacted commits after the maximum number of retries has been reached.
+     * Forced compaction acquires an exclusive write lock on the node store.
+     * @return  the number of seconds until forced compaction gives up and the exclusive
+     *          write lock on the node store is released.
      */
-    public boolean getForceAfterFail() {
-        return forceAfterFail;
+    public int getForceTimeout() {
+        return forceTimeout;
     }
 
     /**
-     * Set whether or not to force compact concurrent commits on top of already
-     * compacted commits after the maximum number of retries has been reached.
-     * Force committing tries to exclusively write lock the node store.
-     * @param forceAfterFail
+     * Set the number of seconds to attempt to force compact concurrent commits on top of
+     * already compacted commits after the maximum number of retries has been reached.
+     * Forced compaction acquires an exclusively write lock on the node store.
+     * @param timeout  the number of seconds until forced compaction gives up and the exclusive
+     *                 lock on the node store is released.
      * @return this instance
      */
-    public SegmentGCOptions setForceAfterFail(boolean forceAfterFail) {
-        this.forceAfterFail = forceAfterFail;
-        return this;
-    }
-
-    /**
-     * Get the time to wait for the lock when force compacting.
-     * See {@link #setForceAfterFail(boolean)}
-     * @return lock wait time in seconds.
-     */
-    public int getLockWaitTime() {
-        return lockWaitTime;
-    }
-
-    /**
-     * Set the time to wait for the lock when force compacting.
-     * @param lockWaitTime  lock wait time in seconds
-     * @return
-     * @return this instance
-     */
-    public SegmentGCOptions setLockWaitTime(int lockWaitTime) {
-        this.lockWaitTime = lockWaitTime;
+    public SegmentGCOptions setForceTimeout(int timeout) {
+        this.forceTimeout = timeout;
         return this;
     }
 
@@ -270,8 +243,7 @@ public class SegmentGCOptions {
                     ", memoryThreshold=" + memoryThreshold +
                     ", gainThreshold=" + gainThreshold +
                     ", retryCount=" + retryCount +
-                    ", forceAfterFail=" + forceAfterFail +
-                    ", lockWaitTime=" + lockWaitTime +
+                    ", forceTimeout=" + forceTimeout +
                     ", retainedGenerations=" + retainedGenerations +
                     ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation + "}";
         }
