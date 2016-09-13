@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.ACTIVE;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 
 import java.lang.management.ManagementFactory;
@@ -29,6 +30,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -364,7 +368,7 @@ public class ClusterNodeInfo {
      * @return the cluster node info
      */
     public static ClusterNodeInfo getReadOnlyInstance(DocumentStore store) {
-        return new ClusterNodeInfo(0, store, MACHINE_ID, WORKING_DIR, ClusterNodeState.ACTIVE,
+        return new ClusterNodeInfo(0, store, MACHINE_ID, WORKING_DIR, ACTIVE,
                 RecoverLockState.NONE, null, true) {
             @Override
             public void dispose() {
@@ -785,6 +789,7 @@ public class ClusterNodeInfo {
         }
         // lease requires renewal
 
+        long updatedLeaseEndTime;
         synchronized(this) {
             // this is synchronized since access to leaseCheckFailed and leaseEndTime
             // are both normally synchronized to propagate values between renewLease()
@@ -799,12 +804,12 @@ public class ClusterNodeInfo {
             // synchronized could have delayed the 'now', so
             // set it again..
             now = getCurrentTime();
-            leaseEndTime = now + leaseTime;
+            updatedLeaseEndTime = now + leaseTime;
         }
 
         UpdateOp update = new UpdateOp("" + id, false);
-        update.set(LEASE_END_KEY, leaseEndTime);
-        update.set(STATE, ClusterNodeState.ACTIVE.name());
+        update.set(LEASE_END_KEY, updatedLeaseEndTime);
+        update.set(STATE, ACTIVE.name());
 
         if (renewed && !leaseCheckDisabled) {
             // if leaseCheckDisabled, then we just update the lease without
@@ -818,7 +823,7 @@ public class ClusterNodeInfo {
             // make two assertions: the leaseEnd must match ..
             update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
             // plus it must still be active ..
-            update.equals(STATE, null, ClusterNodeState.ACTIVE.name());
+            update.equals(STATE, null, ACTIVE.name());
             // plus it must not have a recovery lock on it
             update.notEquals(REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
             // @TODO: to make it 100% failure proof we could introduce
@@ -830,56 +835,126 @@ public class ClusterNodeInfo {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Renewing lease for cluster id " + id + " with UpdateOp " + update);
         }
-        ClusterNodeInfoDocument doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Lease renewal for cluster id " + id + " resulted in: " + doc);
-        }
- 
-        if (doc == null) { // should not occur when leaseCheckDisabled
-            // OAK-3398 : someone else either started recovering or is already through with that.
-            // in both cases the local instance lost the lease-update-game - and hence
-            // should behave and must consider itself as 'lease failed'
+        Stopwatch sw = Stopwatch.createStarted();
+        DocumentStoreException dse;
+        Object result = null;
+        try {
+            ClusterNodeInfoDocument doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+            result = doc;
 
-            synchronized(this) {
+            if (doc == null) { // should not occur when leaseCheckDisabled
+                // OAK-3398 : someone else either started recovering or is already through with that.
+                // in both cases the local instance lost the lease-update-game - and hence
+                // should behave and must consider itself as 'lease failed'
+
+                synchronized(this) {
+                    if (leaseCheckFailed) {
+                        // somehow the instance figured out otherwise that the
+                        // lease check failed - so we don't have to too - so we just log/throw
+                        throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                    }
+                    leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
+                }
+
+                String errorMsg = LEASE_CHECK_FAILED_MSG
+                        + " (Could not update lease anymore, someone else in the cluster "
+                        + "must have noticed this instance' slowness already. "
+                        + "Going to invoke leaseFailureHandler!)";
+
+                // try to add more diagnostics
+                try {
+                    ClusterNodeInfoDocument current = store.find(Collection.CLUSTER_NODES, "" + id);
+                    if (current != null) {
+                        Object leaseEnd = current.get(LEASE_END_KEY);
+                        Object recoveryLock = current.get(REV_RECOVERY_LOCK);
+                        Object recoveryBy = current.get(REV_RECOVERY_BY);
+                        Object cnState = current.get(STATE);
+                        errorMsg += " (leaseEnd: " + leaseEnd + " (expected: " + leaseEndTime + ")" +
+                                ", (state: " + cnState + " (expected: " + ACTIVE.name() + ")" +
+                                ", recoveryLock: " + recoveryLock +
+                                ", recoveryBy: " + recoveryBy + ")";
+                    }
+                } catch (DocumentStoreException ex) {
+                    LOG.error("trying to read ClusterNodeInfo for cluster id " + id, ex);
+                }
+
+                LOG.error(errorMsg);
+
+                handleLeaseFailure(errorMsg);
+                // should never be reached: handleLeaseFailure throws a DocumentStoreException
+                return false;
+            }
+            leaseEndTime = updatedLeaseEndTime;
+            previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
+            String mode = (String) doc.get(READ_WRITE_MODE_KEY);
+            if (mode != null && !mode.equals(readWriteMode)) {
+                readWriteMode = mode;
+                store.setReadWriteMode(mode);
+            }
+            renewed = true;
+            return true;
+        } catch (DocumentStoreException e) {
+            dse = e;
+            result = e.toString();
+        } finally {
+            sw.stop();
+            String msg = "Lease renewal for cluster id {} took {}, resulted in: {}";
+            if (sw.elapsed(TimeUnit.SECONDS) > 10) {
+                LOG.warn(msg, id, sw, result);
+            } else if (sw.elapsed(TimeUnit.SECONDS) > 1) {
+                LOG.info(msg, id, sw, result);
+            } else if (LOG.isDebugEnabled()) {
+                LOG.debug(msg, id, sw, result);
+            }
+        }
+        // if we get here, the update failed with an exception, try to read the
+        // current cluster node info document and update leaseEndTime &
+        // previousLeaseEndTime accordingly until leaseEndTime is reached
+        while (getCurrentTime() < updatedLeaseEndTime) {
+            synchronized (this) {
                 if (leaseCheckFailed) {
-                    // somehow the instance figured out otherwise that the
-                    // lease check failed - so we don't have to too - so we just log/throw
-                    throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                    // no need to read from store, lease check already failed
+                    break;
                 }
-                leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
             }
-
-            String errorMsg = LEASE_CHECK_FAILED_MSG + " (Could not update lease anymore, someone else in the cluster "
-                    + "must have noticed this instance' slowness already. " + "Going to invoke leaseFailureHandler!)";
-
-            // try to add more diagnostics
+            long t1 = clock.getTime();
+            ClusterNodeInfoDocument doc;
             try {
-                ClusterNodeInfoDocument current = store.find(Collection.CLUSTER_NODES, "" + id);
-                if (current != null) {
-                    Object leaseEnd = current.get(LEASE_END_KEY);
-                    Object recoveryLock = current.get(REV_RECOVERY_LOCK);
-                    Object recoveryBy = current.get(REV_RECOVERY_BY);
-                    errorMsg += " (leaseEnd: " + leaseEnd + " (expected: " + leaseEndTime + "), recoveryLock: " + recoveryLock
-                            + ", recoveryBy: " + recoveryBy + ")";
+                doc = store.find(Collection.CLUSTER_NODES, String.valueOf(id));
+            } catch (DocumentStoreException e) {
+                LOG.warn("Reading ClusterNodeInfoDocument for id " + id + " failed", e);
+                // do not retry more than once a second
+                try {
+                    clock.waitUntil(t1 + 1000);
+                } catch (InterruptedException iex) {
+                    // ignore
                 }
-            } catch (DocumentStoreException ex) {
-                LOG.error("trying to read ClusterNodeInfo for cluster id " + id, ex);
+                continue;
             }
-
-            LOG.error(errorMsg);
-
-            handleLeaseFailure(errorMsg);
-            // should never be reached: handleLeaseFailure throws a DocumentStoreException
-            return false;
+            if (doc != null) {
+                if (!doc.isActive()) {
+                    LOG.warn("ClusterNodeInfoDocument for id {} is not active " +
+                            "anymore. {}", id, doc);
+                    // break here and let the next lease update attempt fail
+                    break;
+                } else if (doc.getLeaseEndTime() == previousLeaseEndTime
+                        || doc.getLeaseEndTime() == updatedLeaseEndTime) {
+                    // set lease end times to current values
+                    previousLeaseEndTime = doc.getLeaseEndTime();
+                    leaseEndTime = doc.getLeaseEndTime();
+                    break;
+                } else {
+                    // leaseEndTime is neither the previous nor the new value
+                    // another cluster node must have updated the leaseEndTime
+                    // break here and let the next lease update attempt fail
+                    break;
+                }
+            } else {
+                LOG.warn("ClusterNodeInfoDocument for id {} does not exist anymore", id);
+                break;
+            }
         }
-        previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
-        String mode = (String) doc.get(READ_WRITE_MODE_KEY);
-        if (mode != null && !mode.equals(readWriteMode)) {
-            readWriteMode = mode;
-            store.setReadWriteMode(mode);
-        }
-        renewed = true;
-        return true;
+        throw dse;
     }
     
     /**

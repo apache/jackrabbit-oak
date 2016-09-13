@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -82,7 +81,6 @@ public class ClusterNodeInfoTest {
     }
 
     // OAK-4770
-    @Ignore
     @Test
     public void renewLeaseExceptionAfter() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
@@ -102,6 +100,92 @@ public class ClusterNodeInfoTest {
         assertTrue(info.renewLease());
         assertTrue(info.getLeaseEndTime() > leaseEnd);
         assertFalse(handler.isLeaseFailure());
+    }
+
+    @Test
+    public void renewLeaseExceptionBeforeWithDelay() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        waitLeaseUpdateInterval();
+        store.setFailBeforeUpdate(1);
+        // delay operations by half the lease time, this will
+        // first delay the update and then delay the subsequent
+        // find because of the exception on update. afterwards the
+        // lease must be expired
+        store.setDelayMillis(info.getLeaseTime() / 2);
+        try {
+            info.renewLease();
+            fail("must throw DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
+        }
+        assertTrue(info.getLeaseEndTime() < clock.getTime());
+    }
+
+    @Test
+    public void renewLeaseExceptionAfterWithDelay() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        long leaseEnd = info.getLeaseEndTime();
+        waitLeaseUpdateInterval();
+        store.setFailAfterUpdate(1);
+        // delay operations by half the lease time, this will
+        // first delay the update and then delay the subsequent
+        // find because of the exception on update. afterwards
+        // the leaseEnd must reflect the updated value
+        store.setDelayMillis(info.getLeaseTime() / 2);
+        try {
+            info.renewLease();
+            fail("must throw DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
+        }
+        assertTrue(info.getLeaseEndTime() > leaseEnd);
+    }
+
+    @Test
+    public void renewLeaseExceptionAfterFindFails() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        long leaseEnd = info.getLeaseEndTime();
+        waitLeaseUpdateInterval();
+        store.setFailAfterUpdate(1);
+        store.setFailFind(1);
+        // delay operations by half the lease time, this will
+        // first delay the update and then delay and fail the
+        // subsequent find once.
+        store.setDelayMillis(info.getLeaseTime() / 2);
+        try {
+            info.renewLease();
+            fail("must throw DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
+        }
+        assertEquals(0, store.getFailFind());
+        // must not reflect the updated value, because retries
+        // to read the current cluster node info document stops
+        // once lease expires
+        assertEquals(leaseEnd, info.getLeaseEndTime());
+    }
+
+    @Test
+    public void renewLeaseExceptionAfterFindSucceedsEventually() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        waitLeaseUpdateInterval();
+        // delay operations by a sixth of the lease time, this will
+        // first delay the update and then delay and fail the
+        // subsequent find calls. find retries should eventually
+        // succeed within the lease time
+        store.setDelayMillis(info.getLeaseTime() / 6);
+        store.setFailAfterUpdate(1);
+        store.setFailFind(3);
+        try {
+            info.renewLease();
+            fail("must throw DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
+        }
+        // the three retries must eventually succeed within the lease time
+        assertEquals(0, store.getFailFind());
+        // must reflect the updated value
+        assertTrue(info.getLeaseEndTime() > clock.getTime());
     }
 
     @Test
@@ -133,6 +217,26 @@ public class ClusterNodeInfoTest {
         // simulate a started recovery
         MissingLastRevSeeker seeker = new MissingLastRevSeeker(store.getStore(), clock);
         assertTrue(seeker.acquireRecoveryLock(1, 42));
+        // cluster node 1 must not be able to renew the lease now
+        try {
+            // must either return false
+            assertFalse(info.renewLease());
+        } catch (DocumentStoreException e) {
+            // or throw an exception
+        }
+    }
+
+    @Test
+    public void renewLeaseTimedOutWithCheck() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        // wait until after lease end
+        clock.waitUntil(info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        try {
+            info.performLeaseCheck();
+            fail("lease check must fail with exception");
+        } catch (DocumentStoreException e) {
+            // expected
+        }
         // cluster node 1 must not be able to renew the lease now
         try {
             // must either return false
@@ -183,6 +287,7 @@ public class ClusterNodeInfoTest {
 
         private final AtomicInteger failBeforeUpdate = new AtomicInteger();
         private final AtomicInteger failAfterUpdate = new AtomicInteger();
+        private final AtomicInteger failFind = new AtomicInteger();
         private long delayMillis;
 
         TestStore() {
@@ -201,6 +306,14 @@ public class ClusterNodeInfoTest {
             T doc = super.findAndUpdate(collection, update);
             maybeThrow(failAfterUpdate, "update failed after");
             return doc;
+        }
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection,
+                                           String key) {
+            maybeDelay();
+            maybeThrow(failFind, "find failed");
+            return super.find(collection, key);
         }
 
         private void maybeDelay() {
@@ -240,6 +353,14 @@ public class ClusterNodeInfoTest {
 
         public void setDelayMillis(long delayMillis) {
             this.delayMillis = delayMillis;
+        }
+
+        public int getFailFind() {
+            return failFind.get();
+        }
+
+        public void setFailFind(int num) {
+            this.failFind.set(num);
         }
     }
 }
