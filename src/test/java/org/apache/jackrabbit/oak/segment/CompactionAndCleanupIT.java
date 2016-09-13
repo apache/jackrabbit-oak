@@ -565,7 +565,6 @@ public class CompactionAndCleanupIT {
         FileStore store = fileStoreBuilder(getFileStoreFolder())
                 .withMaxFileSize(2)
                 .withMemoryMapping(true)
-                .withGCOptions(defaultGCOptions().setForceAfterFail(true))
                 .build();
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         final AtomicBoolean compactionSuccess = new AtomicBoolean(true);

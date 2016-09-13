@@ -24,9 +24,8 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_AFTER_FAIL_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.LOCK_WAIT_TIME_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
@@ -214,21 +213,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String COMPACTION_RETRY_COUNT = "compaction.retryCount";
 
     @Property(
-            boolValue = FORCE_AFTER_FAIL_DEFAULT,
-            label = "Force Compaction",
-            description = "Whether or not to force compact concurrent commits on top of already " +
-                    " compacted commits after the maximum number of retries has been reached. " +
-                    "Force committing tries to exclusively write lock the node store."
+            intValue = FORCE_TIMEOUT_DEFAULT,
+            label = "Force Compaction Timeout",
+            description = "Number of seconds to attempt to force compact concurrent commits on top " +
+                    "of already compacted commits after the maximum number of retries has been " +
+                    "reached. Forced compaction tries to acquire an exclusive write lock on the " +
+                    "node store."
     )
-    public static final String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
-
-    @Property(
-            intValue = LOCK_WAIT_TIME_DEFAULT,
-            label = "Compaction Lock Wait Time",
-            description = "Number of seconds to wait for the lock for committing compacted changes " +
-                    "respectively to wait for the exclusive write lock for force committing."
-    )
-    public static final String COMPACTION_LOCK_WAIT_TIME = "compaction.lockWaitTime";
+    public static final String COMPACTION_FORCE_TIMEOUT = "compaction.force.timeout";
 
     @Property(
             longValue = SIZE_DELTA_ESTIMATION_DEFAULT,
@@ -533,17 +525,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private SegmentGCOptions newGCOptions() {
         boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
-        boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
-        int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), LOCK_WAIT_TIME_DEFAULT);
+        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
 
         byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
         long sizeDeltaEstimation = toLong(COMPACTION_SIZE_DELTA_ESTIMATION, SIZE_DELTA_ESTIMATION_DEFAULT);
 
-        return new SegmentGCOptions(pauseCompaction, memoryThreshold,
-                gainThreshold, retryCount, forceAfterFail, lockWaitTime)
-                .setForceAfterFail(forceAfterFail).setGcSizeDeltaEstimation(
-                        sizeDeltaEstimation);
+        return new SegmentGCOptions(
+                pauseCompaction, memoryThreshold, gainThreshold, retryCount, forceTimeout)
+                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
     }
 
     private boolean registerSegmentNodeStore() throws IOException {
