@@ -41,7 +41,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3</Export-Package>
+                        <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3,org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats</Export-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                     </instructions>
                 </configuration>
@@ -99,6 +99,13 @@
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>jackrabbit-data</artifactId>
             <version>${jackrabbit.version}</version>
+        </dependency>
+
+        <!-- Dependencies to other Oak components -->
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-commons</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Amazon AWS dependency -->
