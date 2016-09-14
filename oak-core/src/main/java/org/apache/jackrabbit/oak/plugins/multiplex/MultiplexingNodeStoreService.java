@@ -34,6 +34,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -60,7 +61,7 @@ public class MultiplexingNodeStoreService {
     private MountInfoProvider mountInfoProvider;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class)
-    private List<NodeStoreWithProps> nodeStores;
+    private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
 
     private ComponentContext context;
 
