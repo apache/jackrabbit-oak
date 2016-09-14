@@ -243,11 +243,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String STANDBY = "standby";
 
     @Property(
-            boolValue = false,
-            label = "Secondary Store Mode",
-            description = "Flag indicating that this component will not register as a NodeStore but just as a SecondaryNodeStoreProvider"
+            label = "NodeStoreProvider role",
+            description = "Property indicating that this component will not register as a NodeStore but as a NodeStoreProvider with given role"
     )
-    public static final String SECONDARY_STORE = "secondary";
+    public static final String ROLE = "nsProvider.role";
 
     @Property(boolValue = false,
             label = "Custom BlobStore",
@@ -329,8 +328,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Activate
     public void activate(ComponentContext context) throws IOException {
         this.context = context;
-        //In secondaryNodeStore mode customBlobStore is always enabled
-        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE)) || isSecondaryStoreMode();
+        //For node store provider mode customBlobStore is always enabled
+        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE)) || isNodeStoreProvider();
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
@@ -375,8 +374,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 return;
             }
 
-            if (isSecondaryStoreMode()){
-                registerSecondaryStore();
+            if (isNodeStoreProvider()){
+                registerNodeStoreProvider();
                 return;
             }
 
@@ -389,16 +388,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
     }
 
-    private boolean isSecondaryStoreMode() {
-        return toBoolean(property(SECONDARY_STORE), false);
+    private boolean isNodeStoreProvider() {
+        return property(ROLE) != null;
     }
 
-    private void registerSecondaryStore() {
+    private void registerNodeStoreProvider() {
         SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.builder(store);
         nodeStoreBuilder.withCompactionStrategy(compactionStrategy);
         segmentNodeStore = nodeStoreBuilder.build();
         Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(NodeStoreProvider.ROLE, "secondary");
+        props.put(NodeStoreProvider.ROLE, property(ROLE));
         storeRegistration = context.getBundleContext().registerService(NodeStoreProvider.class.getName(), new NodeStoreProvider() {
                     @Override
                     public NodeStore getNodeStore() {
