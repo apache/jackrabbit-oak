@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,33 +59,47 @@ public abstract class CacheConsistencyTestBase {
 
     @Test
     public void testExceptionInvalidatesCache() {
-        String id = this.getClass().getName() + ".testExceptionInvalidatesCache";
-        UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
-        up.set("_test", "oldvalue");
-        ds.create(Collection.NODES, Collections.singletonList(up));
-        removeMe.add(id);
+        String id1 = this.getClass().getName() + ".testExceptionInvalidatesCache1";
+        UpdateOp up1 = new UpdateOp(id1, true);
+        up1.set("_id", id1);
+        up1.set("_test", "oldvalue");
+        String id2 = this.getClass().getName() + ".testExceptionInvalidatesCache2";
+        UpdateOp up2 = new UpdateOp(id2, true);
+        up2.set("_id", id2);
+        up2.set("_test", "oldvalue");
+        String id3 = this.getClass().getName() + ".testExceptionInvalidatesCache3";
+        UpdateOp up3 = new UpdateOp(id3, true);
+        up3.set("_id", id3);
+        up3.set("_test", "oldvalue");
+        ds.create(Collection.NODES, Lists.newArrayList(up1, up2, up3));
+        removeMe.add(id1);
+        removeMe.add(id2);
+        removeMe.add(id3);
         // make sure cache is populated
-        NodeDocument olddoc = ds.find(Collection.NODES, id, 1000);
+        NodeDocument olddoc = ds.find(Collection.NODES, id1, 1000);
+        assertEquals("oldvalue", olddoc.get("_test"));
+        olddoc = ds.find(Collection.NODES, id2, 1000);
+        assertEquals("oldvalue", olddoc.get("_test"));
+        olddoc = ds.find(Collection.NODES, id3, 1000);
         assertEquals("oldvalue", olddoc.get("_test"));
 
         // findAndUpdate
         try {
             // make sure cache is populated
-            olddoc = ds.find(Collection.NODES, id);
+            olddoc = ds.find(Collection.NODES, id1);
 
             String random = UUID.randomUUID().toString();
             setTemporaryUpdateException(random);
             try {
-                up = new UpdateOp(id, false);
-                up.set("_id", id);
-                up.set("_test", random);
-                ds.findAndUpdate(Collection.NODES, up);
+                up1 = new UpdateOp(id1, false);
+                up1.set("_id", id1);
+                up1.set("_test", random);
+                ds.findAndUpdate(Collection.NODES, up1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
                 // make sure cache was invalidated
-                NodeDocument newdoc = ds.find(Collection.NODES, id, 1000);
+                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
                 assertNotNull(newdoc);
                 assertEquals(random, newdoc.get("_test"));
             }
@@ -94,20 +110,20 @@ public abstract class CacheConsistencyTestBase {
         // update
         try {
             // make sure cache is populated
-            olddoc = ds.find(Collection.NODES, id);
+            olddoc = ds.find(Collection.NODES, id1);
 
             String random = UUID.randomUUID().toString();
             setTemporaryUpdateException(random);
             try {
-                up = new UpdateOp(id, false);
-                up.set("_id", id);
-                up.set("_test", random);
-                ds.update(Collection.NODES, Collections.singletonList(id), up);
+                up1 = new UpdateOp(id1, false);
+                up1.set("_id", id1);
+                up1.set("_test", random);
+                ds.update(Collection.NODES, Collections.singletonList(id1), up1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
                 // make sure cache was invalidated
-                NodeDocument newdoc = ds.find(Collection.NODES, id, 1000);
+                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
                 assertNotNull(newdoc);
                 assertEquals(random, newdoc.get("_test"));
             }
@@ -118,20 +134,62 @@ public abstract class CacheConsistencyTestBase {
         // createOrUpdate
         try {
             // make sure cache is populated
-            olddoc = ds.find(Collection.NODES, id);
+            olddoc = ds.find(Collection.NODES, id1);
 
             String random = UUID.randomUUID().toString();
             setTemporaryUpdateException(random);
             try {
-                up = new UpdateOp(id, false);
-                up.set("_id", id);
-                up.set("_test", random);
-                ds.createOrUpdate(Collection.NODES, up);
+                up1 = new UpdateOp(id1, false);
+                up1.set("_id", id1);
+                up1.set("_test", random);
+                ds.createOrUpdate(Collection.NODES, up1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
                 // make sure cache was invalidated
-                NodeDocument newdoc = ds.find(Collection.NODES, id, 1000);
+                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
+                assertNotNull(newdoc);
+                assertEquals(random, newdoc.get("_test"));
+            }
+        } finally {
+            setTemporaryUpdateException(null);
+        }
+
+        // createOrUpdate multiple
+        try {
+            // make sure cache is populated
+            olddoc = ds.find(Collection.NODES, id1);
+            assertNotNull(olddoc);
+            olddoc = ds.find(Collection.NODES, id2);
+            assertNotNull(olddoc);
+            olddoc = ds.find(Collection.NODES, id3);
+            assertNotNull(olddoc);
+
+            String random = UUID.randomUUID().toString();
+            setTemporaryUpdateException(random);
+            try {
+                up1 = new UpdateOp(id1, false);
+                up1.set("_id", id1);
+                up1.set("_test", random);
+                up2 = new UpdateOp(id2, false);
+                up2.set("_id", id2);
+                up2.set("_test", random);
+                up3 = new UpdateOp(id3, false);
+                up3.set("_id", id3);
+                up3.set("_test", random);
+
+                ds.createOrUpdate(Collection.NODES, Lists.newArrayList(up1, up2, up3));
+                fail("should have failed with DocumentStoreException");
+            } catch (DocumentStoreException ex) {
+                assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
+                // make sure cache was invalidated
+                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
+                assertNotNull(newdoc);
+                assertEquals(random, newdoc.get("_test"));
+                newdoc = ds.find(Collection.NODES, id2, 1000);
+                assertNotNull(newdoc);
+                assertEquals(random, newdoc.get("_test"));
+                newdoc = ds.find(Collection.NODES, id3, 1000);
                 assertNotNull(newdoc);
                 assertEquals(random, newdoc.get("_test"));
             }
@@ -144,12 +202,12 @@ public abstract class CacheConsistencyTestBase {
             String random = UUID.randomUUID().toString();
             setTemporaryUpdateException(random);
             try {
-                ds.remove(Collection.NODES, id);
+                ds.remove(Collection.NODES, id1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
                 // make sure cache was invalidated
-                NodeDocument newdoc = ds.find(Collection.NODES, id, 1000);
+                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
                 assertNull(newdoc);
             }
         } finally {
