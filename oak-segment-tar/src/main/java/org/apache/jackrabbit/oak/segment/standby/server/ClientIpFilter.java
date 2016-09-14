@@ -20,22 +20,20 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.regex.Pattern;
 
 /**
  * A white list for IP addresses. A filter can be a single IP address, a single
  * host name or a range of IP addresses.
- * <p>
- * Known issue: if a host name is provided as a filter and that host name
- * contains a dash ("-"), it will be interpreted as an IP range.
  */
 class ClientIpFilter implements ClientFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(ClientIpFilter.class);
+    private static final Pattern LETTERS = Pattern.compile("[a-zA-Z]+");
+
+    private static boolean containsLetters(String s) {
+        return LETTERS.matcher(s).matches();
+    }
 
     private static boolean areAddressesEqual(InetAddress a, InetAddress b) {
         return Arrays.equals(a.getAddress(), b.getAddress());
@@ -78,35 +76,21 @@ class ClientIpFilter implements ClientFilter {
         return compare(leftBytes, addressBytes) <= 0 && compare(addressBytes, rightBytes) <= 0;
     }
 
-    private static boolean isAllowed(InetAddress client, String left, String right) {
-        InetAddress leftAddress;
+    private static boolean isAllowed(InetAddress client, AddressResolver addressResolver, String left, String right) {
+        InetAddress leftAddress = addressResolver.resolve(left);
+        InetAddress rightAddress = addressResolver.resolve(right);
 
-        try {
-            leftAddress = InetAddress.getByName(left);
-        } catch (UnknownHostException e) {
-            log.warn("Unable to resolve address or invalid IP literal " + left, e);
-            return false;
-        }
-
-        InetAddress rightAddress;
-
-        try {
-            rightAddress = InetAddress.getByName(right);
-        } catch (UnknownHostException e) {
-            log.warn("Unable to resolve address or invalid IP literal " + right, e);
+        if (leftAddress == null || rightAddress == null) {
             return false;
         }
 
         return isAddressInRange(client, leftAddress, rightAddress);
     }
 
-    private static boolean isAllowed(InetAddress client, String match) {
-        InetAddress matchAddress;
+    private static boolean isAllowed(InetAddress client, AddressResolver addressResolver, String match) {
+        InetAddress matchAddress = addressResolver.resolve(match);
 
-        try {
-            matchAddress = InetAddress.getByName(match);
-        } catch (UnknownHostException e) {
-            log.warn("Unable to resolve address or invalid IP literal " + match, e);
+        if (matchAddress == null) {
             return false;
         }
 
@@ -115,13 +99,28 @@ class ClientIpFilter implements ClientFilter {
 
     private final String[] allowedIpRanges;
 
+    private final AddressResolver addressResolver;
+
     /**
-     * Create a new white list based on the provided filters.
+     * Create a new white list based on the provided filters and the default
+     * {@link InetAddressResolver}.
      *
      * @param filters A list of filters.
      */
     ClientIpFilter(String[] filters) {
+        this(filters, new InetAddressResolver());
+    }
+
+    /**
+     * Create a new white list based on the provided filters.
+     *
+     * @param filters         An array of filters.
+     * @param addressResolver The resolver to be used for resolving IP
+     *                        addresses.
+     */
+    ClientIpFilter(String[] filters, AddressResolver addressResolver) {
         this.allowedIpRanges = filters;
+        this.addressResolver = addressResolver;
     }
 
     @Override
@@ -139,14 +138,14 @@ class ClientIpFilter implements ClientFilter {
         }
 
         for (String s : this.allowedIpRanges) {
-            int i = s.indexOf('-');
+            String[] parts = s.split("-");
 
-            if (i > 0) {
-                if (isAllowed(address, s.substring(0, i).trim(), s.substring(i + 1).trim())) {
+            if (parts.length == 2 && !containsLetters(parts[0]) && !containsLetters(parts[1])) {
+                if (isAllowed(address, addressResolver, parts[0].trim(), parts[1].trim())) {
                     return true;
                 }
             } else {
-                if (isAllowed(address, s.trim())) {
+                if (isAllowed(address, addressResolver, s.trim())) {
                     return true;
                 }
             }
