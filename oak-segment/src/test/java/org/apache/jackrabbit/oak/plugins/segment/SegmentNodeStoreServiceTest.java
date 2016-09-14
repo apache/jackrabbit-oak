@@ -145,7 +145,7 @@ public class SegmentNodeStoreServiceTest {
     @Test
     public void nodeStoreProvider() throws Exception{
         Map<String, Object> properties = newHashMap();
-        properties.put(SegmentNodeStoreService.SECONDARY_STORE, true);
+        properties.put(SegmentNodeStoreService.ROLE, "secondary");
         properties.put(SegmentNodeStoreService.DIRECTORY, folder.getRoot().getAbsolutePath());
         context.registerService(BlobStore.class, new MemoryBlobStore());
 
