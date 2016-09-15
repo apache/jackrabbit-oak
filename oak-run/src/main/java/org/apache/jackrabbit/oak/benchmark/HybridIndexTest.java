@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
@@ -84,8 +85,14 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OA
 
 public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
-    private ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
+    private static final ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
             (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
+    private static final boolean metricStatsEnabled =
+            Boolean.parseBoolean(System.getProperty("metricStatsEnabled", "true"));
+    private static MetricStatisticsProvider metricStatsProvider;
+    public static final StatisticsProvider STATISTICS_PROVIDER = getStatsProvider(metricStatsEnabled);
+
+
     private final Random random = new Random(42); //fixed seed
     private String indexedPropName = "foo";
     private int nodesPerIteration = Integer.getInteger("nodesPerIteration", 25);
@@ -94,7 +101,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
     private int queueSize = Integer.getInteger("queueSize", 1000);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
-    private boolean metricStatsEnabled = Boolean.parseBoolean(System.getProperty("metricStatsEnabled", "true"));
+
     private boolean searcherEnabled = Boolean.parseBoolean(System.getProperty("searcherEnabled", "true"));
     private File indexCopierDir;
     private IndexCopier copier;
@@ -109,9 +116,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             "STOPPED", "ABORTED");
     private final File workDir;
     private Whiteboard whiteboard;
-    private MetricStatisticsProvider metricStatsProvider;
     private Searcher searcher;
+    private Mutator mutator;
     private final AtomicInteger indexedNodeCount = new AtomicInteger();
+    private List<TestContext> contexts = new ArrayList<>();
 
     public HybridIndexTest(File workDir) {
         this.workDir = workDir;
@@ -151,16 +159,22 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             runAsyncIndex();
         }
         defaultContext = new TestContext();
+        contexts.add(defaultContext);
         searcher = new Searcher();
+        mutator = new Mutator();
 
         if (searcherEnabled) {
             addBackgroundJob(searcher);
         }
+
+        addBackgroundJob(mutator);
     }
 
     @Override
     protected TestContext prepareThreadExecutionContext() throws RepositoryException {
-        return new TestContext();
+        TestContext ctx = new TestContext();
+        contexts.add(ctx);
+        return ctx;
     }
 
     @Override
@@ -195,8 +209,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             getAsyncIndexUpdate().close();
             queue.close();
             nrtIndexFactory.close();
-            dumpStats();
         }
+
+        dumpStats();
 
         if (indexCopierDir != null) {
             FileUtils.deleteDirectory(indexCopierDir);
@@ -204,7 +219,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         System.out.printf("numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
                         "hybridIndexEnabled: %s, metricStatsEnabled: %s %n", numOfIndexes, refreshDeltaMillis,
                 asyncInterval, queueSize, hybridIndexEnabled, metricStatsEnabled);
-        System.out.printf("Searcher: %d, indexedNodeCount: %d %n", searcher.resultSize, indexedNodeCount.get());
+        System.out.printf("Searcher: %d, Mutator: %d, indexedNodeCount: %d %n", searcher.resultSize, mutator
+                .mutationCount, indexedNodeCount.get());
     }
 
     private void dumpStats() {
@@ -216,7 +232,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                 .filter(new MetricFilter() {
                     @Override
                     public boolean matches(String name, Metric metric) {
-                        return name.startsWith("HYBRID");
+                        return name.startsWith("HYBRID") || name.startsWith("DOCUMENT_NS_MERGE");
                     }
                 })
                 .build()
@@ -231,6 +247,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         public TestContext() throws RepositoryException {
             dump = session.getRootNode()
+                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
                     .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
                     .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED);
             session.save();
@@ -268,11 +288,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                 null, //augmentorFactory
                 mip);
 
-        StatisticsProvider sp = StatisticsProvider.NOOP;
-        if (metricStatsEnabled) {
-            metricStatsProvider = new MetricStatisticsProvider(null, executorService);
-            sp = metricStatsProvider;
-        }
+        StatisticsProvider sp = STATISTICS_PROVIDER;
         queue = new DocumentQueue(queueSize, tracker, executorService, sp);
         localIndexObserver = new LocalIndexObserver(queue, sp);
     }
@@ -297,6 +313,16 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         createdFolder.mkdir();
         return createdFolder;
     }
+
+    private static StatisticsProvider getStatsProvider(boolean metricStatsEnabled){
+        StatisticsProvider sp = StatisticsProvider.NOOP;
+        if (metricStatsEnabled) {
+            metricStatsProvider = new MetricStatisticsProvider(null, executorService);
+            sp = metricStatsProvider;
+        }
+        return sp;
+    }
+
 
     private class PropertyIndexInitializer implements RepositoryInitializer {
 
@@ -361,6 +387,30 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             //With property index at time traversing index wins (somehow reporting lower cost)
             //and that leads to warning. So limit the iterator size
             resultSize += Iterators.size(Iterators.limit(result.getNodes(), 500));
+        }
+    }
+
+    private class Mutator implements Runnable {
+        final Session session = loginWriter();
+        int mutationCount = 0;
+        @Override
+        public void run() {
+            try{
+                run0();
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private void run0() throws RepositoryException {
+            TestContext ctx = contexts.get(random.nextInt(contexts.size()));
+            String path = ctx.paths.peek();
+            session.refresh(false);
+            if (path != null){
+                session.getNode(path).setProperty(indexedPropName, nextIndexedValue());
+                session.save();
+                mutationCount++;
+            }
         }
     }
 }
