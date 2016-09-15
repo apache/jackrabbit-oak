@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.slf4j.Logger;
@@ -39,14 +38,14 @@ class GetBlobRequestHandler extends SimpleChannelInboundHandler<GetBlobRequest> 
     protected void channelRead0(ChannelHandlerContext ctx, GetBlobRequest msg) throws Exception {
         log.debug("Reading blob {} for client {}", msg.getBlobId(), msg.getClientId());
 
-        Blob blob = reader.readBlob(msg.getBlobId());
+        byte[] data = reader.readBlob(msg.getBlobId());
 
-        if (blob == null) {
+        if (data == null) {
             log.debug("Blob {} not found, discarding request from client {}", msg.getBlobId(), msg.getClientId());
             return;
         }
 
-        ctx.writeAndFlush(new GetBlobResponse(msg.getClientId(), blob));
+        ctx.writeAndFlush(new GetBlobResponse(msg.getClientId(), msg.getBlobId(), data));
     }
 
 }

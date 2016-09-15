@@ -16,19 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-public class Messages {
+class Messages {
 
-    public static final byte HEADER_RECORD = 0x00;
-    public static final byte HEADER_SEGMENT = 0x01;
-    public static final byte HEADER_BLOB = 0x02;
+    static final byte HEADER_RECORD = 0x00;
 
-    public static final String GET_HEAD = "h";
-    public static final String GET_SEGMENT = "s.";
-    public static final String GET_BLOB = "b.";
+    static final byte HEADER_SEGMENT = 0x01;
+
+    static final byte HEADER_BLOB = 0x02;
+
+    static final String GET_HEAD = "h";
+
+    static final String GET_SEGMENT = "s.";
+
+    static final String GET_BLOB = "b.";
 
     private static final String MAGIC = "Standby-CMD@";
+
     private static final String SEPARATOR = ":";
 
     private static String newRequest(String clientId, String body, boolean delimited) {
@@ -48,31 +54,31 @@ public class Messages {
         return builder.toString();
     }
 
-    public static String newGetHeadRequest(String clientId, boolean delimited) {
+    static String newGetHeadRequest(String clientId, boolean delimited) {
         return newRequest(clientId, GET_HEAD, delimited);
     }
 
-    public static String newGetHeadRequest(String clientId) {
+    static String newGetHeadRequest(String clientId) {
         return newGetHeadRequest(clientId, true);
     }
 
-    public static String newGetSegmentRequest(String clientId, String segmentId, boolean delimited) {
+    static String newGetSegmentRequest(String clientId, String segmentId, boolean delimited) {
         return newRequest(clientId, GET_SEGMENT + segmentId, delimited);
     }
 
-    public static String newGetSegmentRequest(String clientId, String segmentId) {
+    static String newGetSegmentRequest(String clientId, String segmentId) {
         return newGetSegmentRequest(clientId, segmentId, true);
     }
 
-    public static String newGetBlobRequest(String clientId, String blobId, boolean delimited) {
+    static String newGetBlobRequest(String clientId, String blobId, boolean delimited) {
         return newRequest(clientId, GET_BLOB + blobId, delimited);
     }
 
-    public static String newGetBlobRequest(String clientId, String blobId) {
+    static String newGetBlobRequest(String clientId, String blobId) {
         return newGetBlobRequest(clientId, blobId, true);
     }
 
-    public static String extractMessageFrom(String payload) {
+    static String extractMessageFrom(String payload) {
         if (payload.startsWith(MAGIC) && payload.length() > MAGIC.length()) {
             int i = payload.indexOf(SEPARATOR);
             return payload.substring(i + 1);
@@ -80,7 +86,7 @@ public class Messages {
         return null;
     }
 
-    public static String extractClientFrom(String payload) {
+    static String extractClientFrom(String payload) {
         if (payload.startsWith(MAGIC) && payload.length() > MAGIC.length()) {
             payload = payload.substring(MAGIC.length());
             int i = payload.indexOf(SEPARATOR);
@@ -88,4 +94,5 @@ public class Messages {
         }
         return null;
     }
+
 }

@@ -17,9 +17,11 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -38,12 +40,27 @@ class DefaultStandbySegmentReader implements StandbySegmentReader {
     }
 
     @Override
-    public Segment readSegment(UUID uuid) {
+    public byte[] readSegment(String segmentId) {
+        UUID uuid = UUID.fromString(segmentId);
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
 
-        SegmentId id = store.newSegmentId(msb, lsb);
+        Segment segment = readSegment(store.newSegmentId(msb, lsb));
 
+        if (segment == null) {
+            return null;
+        }
+
+        try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+            segment.writeTo(stream);
+            return stream.toByteArray();
+        } catch (IOException e) {
+            log.warn("Error while reading segment content", e);
+            return null;
+        }
+    }
+
+    private Segment readSegment(SegmentId id) {
         for (int i = 0; i < 10; i++) {
             try {
                 return store.readSegment(id);

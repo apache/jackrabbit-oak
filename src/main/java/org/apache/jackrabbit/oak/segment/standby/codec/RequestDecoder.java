@@ -24,19 +24,28 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GetBlobRequestDecoder extends MessageToMessageDecoder<String> {
+public class RequestDecoder extends MessageToMessageDecoder<String> {
 
-    private static final Logger log = LoggerFactory.getLogger(GetBlobRequestDecoder.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestDecoder.class);
 
     @Override
     protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
         String request = Messages.extractMessageFrom(msg);
 
-        if (request != null && request.startsWith(Messages.GET_BLOB)) {
-            log.debug("Parsed 'get blob' message");
-            out.add(new GetBlobRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_BLOB.length())));
-        } else {
+        if (request == null) {
+            log.debug("Received invalid message {}, ignoring", msg);
             ctx.fireChannelRead(msg);
+        } else if (request.startsWith(Messages.GET_BLOB)) {
+            log.debug("Parsed 'get blob' request");
+            out.add(new GetBlobRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_BLOB.length())));
+        } else if (request.equalsIgnoreCase(Messages.GET_HEAD)) {
+            log.debug("Parsed 'get head' message");
+            out.add(new GetHeadRequest(Messages.extractClientFrom(msg)));
+        } else if (request.startsWith(Messages.GET_SEGMENT)) {
+            log.debug("Parsed 'get segment' message");
+            out.add(new GetSegmentRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_SEGMENT.length())));
+        } else {
+            log.debug("Received unrecognizable message {}, dropping", msg);
         }
     }
 

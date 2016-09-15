@@ -18,15 +18,16 @@
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Test;
 
-public class GetBlobRequestDecoderTest {
+public class RequestDecoderTest {
 
     @Test
-    public void shouldDecodeValidMessages() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel(new GetBlobRequestDecoder());
+    public void shouldDecodeValidGetBlobRequests() throws Exception {
+        EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
         channel.writeInbound(Messages.newGetBlobRequest("clientId", "blobId", false));
         GetBlobRequest request = (GetBlobRequest) channel.readInbound();
         assertEquals("clientId", request.getClientId());
@@ -34,10 +35,27 @@ public class GetBlobRequestDecoderTest {
     }
 
     @Test
-    public void shouldIgnoreInvalidMessages() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel(new GetBlobRequestDecoder());
+    public void shouldDecodeValidGetHeadRequests() throws Exception {
+        EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
+        channel.writeInbound(Messages.newGetHeadRequest("clientId", false));
+        GetHeadRequest request = (GetHeadRequest) channel.readInbound();
+        assertEquals("clientId", request.getClientId());
+    }
+
+    @Test
+    public void shouldDecodeValidGetSegmentRequests() throws Exception {
+        EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
+        channel.writeInbound(Messages.newGetSegmentRequest("clientId", "segmentId", false));
+        GetSegmentRequest request = (GetSegmentRequest) channel.readInbound();
+        assertEquals("clientId", request.getClientId());
+        assertEquals("segmentId", request.getSegmentId());
+    }
+
+    @Test
+    public void shouldDropInvalidMessages() throws Exception {
+        EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
         channel.writeInbound("Standby-CMD@clientId:z");
-        assertEquals("Standby-CMD@clientId:z", channel.readInbound());
+        assertNull(channel.readInbound());
     }
 
 }

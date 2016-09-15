@@ -28,13 +28,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Random;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -43,8 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.io.ByteStreams;
 
 public class StandbyTest extends TestBase {
 
@@ -71,7 +70,7 @@ public class StandbyTest extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize, 150);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary);
+        StandbySync cl = newStandbySync(secondary);
         cl.run();
 
         try {

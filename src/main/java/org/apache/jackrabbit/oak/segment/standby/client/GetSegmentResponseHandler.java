@@ -15,10 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.server;
+package org.apache.jackrabbit.oak.segment.standby.client;
 
-interface StandbySegmentReader {
+import java.util.concurrent.BlockingQueue;
 
-    byte[] readSegment(String segmentId);
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
+
+class GetSegmentResponseHandler extends SimpleChannelInboundHandler<GetSegmentResponse> {
+
+    private final BlockingQueue<GetSegmentResponse> queue;
+
+    GetSegmentResponseHandler(BlockingQueue<GetSegmentResponse> queue) {
+        this.queue = queue;
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, GetSegmentResponse msg) throws Exception {
+        queue.offer(msg);
+    }
 
 }

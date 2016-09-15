@@ -17,15 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import org.apache.jackrabbit.oak.segment.RecordId;
-
 public class GetHeadResponse {
 
     private final String clientId;
 
-    private final RecordId headRecordId;
+    private final String headRecordId;
 
-    public GetHeadResponse(String clientId, RecordId headRecordId) {
+    public GetHeadResponse(String clientId, String headRecordId) {
         this.clientId = clientId;
         this.headRecordId = headRecordId;
     }
@@ -34,7 +32,7 @@ public class GetHeadResponse {
         return clientId;
     }
 
-    public RecordId getHeadRecordId() {
+    public String getHeadRecordId() {
         return headRecordId;
     }
 

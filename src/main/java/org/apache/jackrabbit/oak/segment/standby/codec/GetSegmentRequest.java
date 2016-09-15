@@ -17,15 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.UUID;
-
 public class GetSegmentRequest {
 
     private final String clientId;
 
-    private final UUID segmentId;
+    private final String segmentId;
 
-    public GetSegmentRequest(String clientId, UUID segmentId) {
+    public GetSegmentRequest(String clientId, String segmentId) {
         this.clientId = clientId;
         this.segmentId = segmentId;
     }
@@ -34,7 +32,7 @@ public class GetSegmentRequest {
         return clientId;
     }
 
-    public UUID getSegmentId() {
+    public String getSegmentId() {
         return segmentId;
     }
 

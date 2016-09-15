@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.segment.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -112,7 +112,7 @@ public class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary);
+        StandbySync cl = newStandbySync(secondary);
         cl.run();
 
         try {
@@ -188,7 +188,7 @@ public class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary, proxyPort);
+        StandbySync cl = newStandbySync(secondary, proxyPort);
         cl.run();
 
         try {

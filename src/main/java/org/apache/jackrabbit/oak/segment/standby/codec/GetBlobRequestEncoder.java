@@ -18,27 +18,20 @@
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.util.List;
-import java.util.UUID;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.MessageToMessageEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GetSegmentRequestDecoder extends MessageToMessageDecoder<String> {
+public class GetBlobRequestEncoder extends MessageToMessageEncoder<GetBlobRequest> {
 
-    private static final Logger log = LoggerFactory.getLogger(GetSegmentRequestDecoder.class);
+    private final Logger log = LoggerFactory.getLogger(GetBlobRequestEncoder.class);
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
-        String request = Messages.extractMessageFrom(msg);
-
-        if (request != null && request.startsWith(Messages.GET_SEGMENT)) {
-            log.debug("Parsed 'get segment' message");
-            out.add(new GetSegmentRequest(Messages.extractClientFrom(msg), UUID.fromString(request.substring(Messages.GET_SEGMENT.length()))));
-        } else {
-            ctx.fireChannelRead(msg);
-        }
+    protected void encode(ChannelHandlerContext ctx, GetBlobRequest msg, List<Object> out) throws Exception {
+        log.debug("Sending request from client {} for blob {}", msg.getClientId(), msg.getBlobId());
+        out.add(Messages.newGetBlobRequest(msg.getClientId(), msg.getBlobId()));
     }
 
 }

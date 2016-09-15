@@ -27,7 +27,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -94,8 +94,8 @@ public class BulkTransferBenchmark extends BenchmarkBase {
         final StandbyServer server = new StandbyServer(port, storeS, useSSL);
         server.start();
 
-        System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Bar");
-        StandbyClient cl = newStandbyClient(storeC, port, useSSL);
+        System.setProperty(StandbySync.CLIENT_ID_PROPERTY_NAME, "Bar");
+        StandbySync cl = newStandbyClient(storeC, port, useSSL);
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");

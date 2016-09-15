@@ -30,7 +30,7 @@ import java.util.Set;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.junit.After;
@@ -86,7 +86,7 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientEmptyConfigNoServer() throws Exception {
-        final StandbyClient client = newStandbyClient(storeC);
+        final StandbySync client = newStandbySync(storeC);
         client.start();
         client.run();
 
@@ -123,8 +123,8 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientNoServer() throws Exception {
-        System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Foo");
-        final StandbyClient client = newStandbyClient(storeC);
+        System.setProperty(StandbySync.CLIENT_ID_PROPERTY_NAME, "Foo");
+        final StandbySync client = newStandbySync(storeC);
         client.start();
         client.run();
 
@@ -151,8 +151,8 @@ public class MBeanTest extends TestBase {
         final StandbyServer server = new StandbyServer(port, this.storeS);
         server.start();
 
-        System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Bar");
-        final StandbyClient client = newStandbyClient(storeC);
+        System.setProperty(StandbySync.CLIENT_ID_PROPERTY_NAME, "Bar");
+        final StandbySync client = newStandbySync(storeC);
         client.start();
         client.run();
 

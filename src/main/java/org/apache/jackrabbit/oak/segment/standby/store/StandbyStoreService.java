@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -95,7 +95,8 @@ public class StandbyStoreService {
     private FileStore fileStore;
 
     private StandbyServer primary = null;
-    private StandbyClient sync = null;
+
+    private StandbySync sync = null;
 
     private ServiceRegistration syncReg = null;
 
@@ -157,7 +158,7 @@ public class StandbyStoreService {
         int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
         boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
 
-        sync = new StandbyClient(host, port, fileStore, secure, readTimeout, clean);
+        sync = new StandbySync(host, port, fileStore, secure, readTimeout, clean);
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);
