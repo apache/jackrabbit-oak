@@ -37,6 +37,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.BinaryReferences.newReferenceReader;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.FAILURE;
@@ -925,7 +926,7 @@ public class FileStore implements SegmentStore, Closeable {
 
         int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
         for (TarReader tarReader : tarReaders) {
-            tarReader.collectBlobReferences(collector, minGeneration);
+            tarReader.collectBlobReferences(collector, newReferenceReader(this), minGeneration);
         }
     }
 
