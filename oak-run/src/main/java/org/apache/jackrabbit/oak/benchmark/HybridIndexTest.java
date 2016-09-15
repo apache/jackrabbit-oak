@@ -23,9 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -35,12 +35,14 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -57,6 +59,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -74,8 +77,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OA
 
 public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
-    private ExecutorService executorService = MoreExecutors.getExitingExecutorService((ThreadPoolExecutor) Executors
-            .newFixedThreadPool(5));
+    private ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
+            (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
     private final Random random = new Random(42); //fixed seed
     private String indexedPropName = "foo";
     private int nodesPerIteration = Integer.getInteger("nodesPerIteration", 100);
@@ -84,6 +87,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
     private int queueSize = Integer.getInteger("queueSize", 1000);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
+    private boolean metricStatsEnabled = Boolean.getBoolean("metricStatsEnabled");
     private File indexCopierDir;
     private IndexCopier copier;
     private NRTIndexFactory nrtIndexFactory;
@@ -97,6 +101,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             "STOPPED", "ABORTED");
     private final File workDir;
     private Whiteboard whiteboard;
+    private MetricStatisticsProvider metricStatsProvider;
 
     public HybridIndexTest(File workDir) {
         this.workDir = workDir;
@@ -163,14 +168,28 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         if (hybridIndexEnabled){
             queue.close();
             nrtIndexFactory.close();
+            dumpStats();
         }
 
         if (indexCopierDir != null) {
             FileUtils.deleteDirectory(indexCopierDir);
         }
         System.out.printf("numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
-                        "hybridIndexEnabled: %s %n", numOfIndexes, refreshDeltaMillis, asyncInterval,
-                queueSize, hybridIndexEnabled);
+                        "hybridIndexEnabled: %s, metricStatsEnabled: %s %n", numOfIndexes, refreshDeltaMillis,
+                asyncInterval, queueSize, hybridIndexEnabled, metricStatsEnabled);
+    }
+
+    private void dumpStats() {
+        ConsoleReporter.forRegistry(metricStatsProvider.getRegistry())
+                .outputTo(System.out)
+                .filter(new MetricFilter() {
+                    @Override
+                    public boolean matches(String name, Metric metric) {
+                        return name.startsWith("HYBRID");
+                    }
+                })
+                .build()
+                .report();
     }
 
     protected class TestContext {
@@ -218,8 +237,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                 null, //augmentorFactory
                 mip);
 
-        queue = new DocumentQueue(queueSize, tracker, executorService);
-        localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
+        StatisticsProvider sp = StatisticsProvider.NOOP;
+        if (metricStatsEnabled) {
+            metricStatsProvider = new MetricStatisticsProvider(null, executorService);
+            sp = metricStatsProvider;
+        }
+        queue = new DocumentQueue(queueSize, tracker, executorService, sp);
+        localIndexObserver = new LocalIndexObserver(queue, sp);
     }
 
     private void runAsyncIndex() {
