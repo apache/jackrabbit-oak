@@ -19,12 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -100,7 +96,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
-            if (!indexingContext.isAsync() && supportsSyncIndexing(definition)) {
+            if (!indexingContext.isAsync() && IndexDefinition.supportsSyncIndexing(definition)) {
 
                 //Would not participate in reindexing. Only interested in
                 //incremental indexing
@@ -131,14 +127,5 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
-    }
-
-    private boolean supportsSyncIndexing(NodeBuilder defn){
-        //TODO [hybrid] Similar logic exists in IndexDefinition. Should be unified
-        PropertyState async = defn.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
-        if (async == null){
-            return false;
-        }
-        return Iterables.contains(async.getValue(Type.STRINGS), "sync");
     }
 }

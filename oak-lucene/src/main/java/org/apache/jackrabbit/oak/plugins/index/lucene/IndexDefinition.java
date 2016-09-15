@@ -75,7 +75,6 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -305,7 +304,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
-        this.sync = determineSync(defn);
+        this.sync = supportsSyncIndexing(defn);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -1572,10 +1571,17 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return version == IndexFormatVersion.V1 ?  1.5 : 1.0;
     }
 
-    private static boolean determineSync(NodeState defn) {
-        Iterable<String> async = defn.getStrings(IndexConstants.ASYNC_PROPERTY_NAME);
+    private static boolean supportsSyncIndexing(NodeState defn) {
+        return supportsSyncIndexing(new ReadOnlyBuilder(defn));
+    }
+
+    public static boolean supportsSyncIndexing(NodeBuilder defn) {
+        PropertyState async = defn.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
+        if (async == null){
+            return false;
+        }
         //TODO [hybrid] make it a constant
-        return Iterables.contains(async, "sync");
+        return Iterables.contains(async.getValue(Type.STRINGS), "sync");
     }
 
 }
