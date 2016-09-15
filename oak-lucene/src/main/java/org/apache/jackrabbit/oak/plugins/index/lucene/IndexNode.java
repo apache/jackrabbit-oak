@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -47,6 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IndexNode {
+    private static final AtomicInteger INDEX_NODE_COUNTER = new AtomicInteger();
 
     static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState,
                           LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
@@ -86,6 +88,8 @@ public class IndexNode {
     private boolean closed = false;
 
     private List<LuceneIndexReader> nrtReaders;
+
+    private final int indexNodeId = INDEX_NODE_COUNTER.incrementAndGet();
 
     IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
             throws IOException {
@@ -134,6 +138,10 @@ public class IndexNode {
         lock.readLock().unlock();
     }
 
+    public int getIndexNodeId() {
+        return indexNodeId;
+    }
+
     void close() throws IOException {
         lock.writeLock().lock();
         try {
@@ -146,7 +154,7 @@ public class IndexNode {
         //Do not close the NRTIndex here as it might be in use
         //by newer IndexNode. Just close the readers obtained from
         //them
-        for (LuceneIndexReader reader : Iterables.concat(readers, getNRTReaders())){
+        for (LuceneIndexReader reader : Iterables.concat(readers, nrtReaders)){
            reader.close();
         }
     }

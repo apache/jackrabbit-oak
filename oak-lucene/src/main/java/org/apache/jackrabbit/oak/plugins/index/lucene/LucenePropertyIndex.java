@@ -306,13 +306,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
-            private long lastSearchIndexerVersion;
+            private IndexSearcher indexSearcher;
+            private int indexNodeId = -1;
 
             @Override
             protected LuceneResultRow computeNext() {
                 while (!queue.isEmpty() || loadDocs()) {
                     return queue.remove();
                 }
+                releaseSearcher();
                 return endOfData();
             }
 
@@ -366,7 +368,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 final IndexNode indexNode = acquireIndexNode(plan);
                 checkState(indexNode != null);
                 try {
-                    IndexSearcher searcher = indexNode.getSearcher();
+                    IndexSearcher searcher = getCurrentSearcher(indexNode);
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
@@ -376,8 +378,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         if (customScoreQuery != null) {
                             query = customScoreQuery;
                         }
-
-                        checkForIndexVersionChange(searcher);
 
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
@@ -521,15 +521,34 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return !queue.isEmpty();
             }
 
+            private IndexSearcher getCurrentSearcher(IndexNode indexNode) {
+                //The searcher once obtained is held till either cursor is finished
+                //or if the index gets updated. It needs to be ensured that
+                //searcher is obtained via this method only in this iterator
 
-            private void checkForIndexVersionChange(IndexSearcher searcher) {
-                long currentVersion = getVersion(searcher);
-                if (currentVersion != lastSearchIndexerVersion && lastDoc != null) {
+                //Refresh the searcher if change in indexNode is detected
+                //For NRT case its fine to keep a reference to searcher i.e. not
+                //acquire it for every loadDocs call otherwise with frequent change
+                //the reset of lastDoc would happen very frequently.
+                //Upon IndexNode change i.e. when new async index update is detected
+                //the searcher would be refreshed as done earlier
+                if (indexNodeId != indexNode.getIndexNodeId()){
+                    //if already initialized then log about change
+                    if (indexNodeId > 0){
+                        LOG.debug("Change in index version detected. Query would be performed without offset");
+                    }
+
+                    //TODO Add testcase for this scenario
+                    indexSearcher = indexNode.getSearcher();
+                    indexNodeId = indexNode.getIndexNodeId();
                     lastDoc = null;
-                    LOG.debug("Change in index version detected {} => {}. Query would be performed without " +
-                            "offset", currentVersion, lastSearchIndexerVersion);
                 }
-                this.lastSearchIndexerVersion = currentVersion;
+                return indexSearcher;
+            }
+
+            private void releaseSearcher() {
+                //For now nullifying it.
+                indexSearcher =  null;
             }
         };
         SizeEstimator sizeEstimator = new SizeEstimator() {
