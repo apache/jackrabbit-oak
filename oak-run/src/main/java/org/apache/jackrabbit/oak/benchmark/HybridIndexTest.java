@@ -34,12 +34,16 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
@@ -102,6 +106,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private final File workDir;
     private Whiteboard whiteboard;
     private MetricStatisticsProvider metricStatsProvider;
+    private Searcher searcher;
 
     public HybridIndexTest(File workDir) {
         this.workDir = workDir;
@@ -138,6 +143,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             runAsyncIndex();
         }
         defaultContext = new TestContext();
+        searcher = new Searcher();
+        addBackgroundJob(searcher);
     }
 
     @Override
@@ -181,6 +188,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         System.out.printf("numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
                         "hybridIndexEnabled: %s, metricStatsEnabled: %s %n", numOfIndexes, refreshDeltaMillis,
                 asyncInterval, queueSize, hybridIndexEnabled, metricStatsEnabled);
+        System.out.printf("Searcher: %d %n", searcher.resultSize);
     }
 
     private void dumpStats() {
@@ -266,6 +274,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             });
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private static File createTemporaryFolderIn(File parentFolder) throws IOException {
         File createdFolder = File.createTempFile("oak-", "", parentFolder);
         createdFolder.delete();
@@ -313,4 +322,25 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         }
     }
 
+    private class Searcher implements Runnable {
+        final Session session = loginWriter();
+        int resultSize = 0;
+        @Override
+        public void run() {
+            try{
+                run0();
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private void run0() throws RepositoryException {
+            session.refresh(false);
+            QueryManager qm = session.getWorkspace().getQueryManager();
+            Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $status", Query.JCR_SQL2);
+            q.bindValue("status", session.getValueFactory().createValue(nextIndexedValue()));
+            QueryResult result = q.execute();
+            resultSize =+Iterators.size(result.getNodes());
+        }
+    }
 }
