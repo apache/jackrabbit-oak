@@ -57,6 +57,13 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final LuceneIndexWriterFactory indexWriterFactory;
     private final IndexTracker indexTracker;
 
+    /**
+     * Number of indexed Lucene document that can be held in memory
+     * This ensures that for very large commit memory consumption
+     * is bounded
+     */
+    private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
+
     public LuceneIndexEditorProvider() {
         this(null);
     }
@@ -121,7 +128,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 //TODO Also check if index has been done once
 
-                writerFactory = new LocalIndexWriterFactory(indexingContext);
+                writerFactory = new LocalIndexWriterFactory(indexingContext, inMemoryDocsLimit);
 
                 //IndexDefinition from tracker might differ from one passed here for reindexing
                 //case which should be fine. However reusing existing definition would avoid
@@ -153,5 +160,9 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
+    }
+
+    public void setInMemoryDocsLimit(int inMemoryDocsLimit) {
+        this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 }
