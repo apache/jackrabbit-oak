@@ -47,6 +47,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -168,6 +169,26 @@ public class NRTIndexTest {
         assertEquals(2, idx2.getReaders().size());
 
         assertNotEquals(idx1.getIndexDir(), idx2.getIndexDir());
+    }
+
+    @Test
+    public void sameReaderIfNoChange() throws Exception{
+        IndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+        NRTIndex idx1 = indexFactory.createIndex(idxDefn);
+        LuceneIndexWriter w1 = idx1.getWriter();
+
+        Document d1 = new Document();
+        d1.add(newPathField("/a/b"));
+        w1.updateDocument("/a/b", d1);
+
+        List<LuceneIndexReader> readers = idx1.getReaders();
+        List<LuceneIndexReader> readers2 = idx1.getReaders();
+
+        assertSame(readers, readers2);
+
+        w1.updateDocument("/a/b", d1);
+        List<LuceneIndexReader> readers3 = idx1.getReaders();
+        assertNotSame(readers2, readers3);
     }
 
     private IndexDefinition getSyncIndexDefinition(String indexPath) {

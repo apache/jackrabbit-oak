@@ -19,45 +19,32 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.oak.stats.Clock;
-
-public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListener {
+/**
+ * Policy which performs immediate refresh upon completion of writes
+ */
+public class RefreshOnWritePolicy implements ReaderRefreshPolicy, IndexUpdateListener {
     private final AtomicBoolean dirty = new AtomicBoolean();
-    private final Clock clock;
-    private final long refreshDelta;
-    private volatile long lastRefreshTime;
-
-    public TimedRefreshPolicy(Clock clock, TimeUnit unit, long refreshDelta) {
-        this.clock = clock;
-        this.refreshDelta = unit.toMillis(refreshDelta);
-    }
 
     @Override
     public void refreshOnReadIfRequired(Runnable refreshCallback) {
-        refreshIfRequired(refreshCallback);
+        //As writer itself refreshes the index. No refresh done
+        //on read
     }
 
     @Override
     public void refreshOnWriteIfRequired(Runnable refreshCallback) {
-        refreshIfRequired(refreshCallback);
+        //For sync indexing mode we refresh the reader immediately
+        //on the writer thread. So that any read call later sees upto date index
+        if (dirty.get()) {
+            refreshCallback.run();
+            dirty.set(false);
+        }
     }
 
     @Override
     public void updated() {
         dirty.set(true);
-    }
-
-    private void refreshIfRequired(Runnable refreshCallback) {
-        if (dirty.get()){
-            long currentTime = clock.getTime();
-            if (currentTime - lastRefreshTime > refreshDelta
-                    && dirty.compareAndSet(true, false)){
-                lastRefreshTime = currentTime;
-                refreshCallback.run();
-            }
-        }
     }
 }

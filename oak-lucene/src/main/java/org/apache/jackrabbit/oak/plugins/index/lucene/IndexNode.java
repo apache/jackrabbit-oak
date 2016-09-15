@@ -85,6 +85,8 @@ public class IndexNode {
 
     private boolean closed = false;
 
+    private List<LuceneIndexReader> nrtReaders;
+
     IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
             throws IOException {
         checkArgument(!readers.isEmpty());
@@ -92,7 +94,8 @@ public class IndexNode {
         this.definition = definition;
         this.readers = readers;
         this.nrtIndex = nrtIndex;
-        this.indexSearcher = new IndexSearcher(createReader());
+        this.nrtReaders = getNRTReaders();
+        this.indexSearcher = new IndexSearcher(createReader(nrtReaders));
         this.refreshPolicy = nrtIndex != null ? nrtIndex.getRefreshPolicy() : ReaderRefreshPolicy.NEVER;
     }
 
@@ -158,8 +161,14 @@ public class IndexNode {
     }
 
     private void refreshReaders(){
-        indexSearcher = new IndexSearcher(createReader());
-        log.debug("Refreshed reader for index [{}]", definition);
+        List<LuceneIndexReader> newNRTReaders = getNRTReaders();
+        //The list reference would differ if index got updated
+        //so if they are same no need to reinitialize the searcher
+        if (newNRTReaders != nrtReaders) {
+            nrtReaders = newNRTReaders;
+            indexSearcher = new IndexSearcher(createReader(nrtReaders));
+            log.debug("Refreshed reader for index [{}]", definition);
+        }
     }
 
     private LuceneIndexReader getDefaultReader(){
@@ -167,8 +176,7 @@ public class IndexNode {
         return readers.get(0);
     }
 
-    private IndexReader createReader() {
-        List<LuceneIndexReader> nrtReaders = getNRTReaders();
+    private IndexReader createReader(List<LuceneIndexReader> nrtReaders) {
         if (readers.size() == 1 && nrtReaders.isEmpty()){
             return readers.get(0).getReader();
         }
