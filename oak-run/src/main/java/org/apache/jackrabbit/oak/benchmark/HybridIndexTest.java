@@ -45,6 +45,7 @@ import javax.jcr.query.QueryResult;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -242,10 +243,41 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                         "useOakCodec: %s %n",
                 numOfIndexes, refreshDeltaMillis, asyncInterval, queueSize, hybridIndexEnabled,
                 metricStatsEnabled, indexingMode, useOakCodec);
-        System.out.printf("Searcher: %d, Mutator: %d, indexedNodeCount: %d %n", searcher.resultSize,
-                mutator.mutationCount, indexedNodeCount.get());
 
         dumpStats();
+    }
+
+    @Override
+    protected String[] statsNames() {
+        return new String[]{"Searcher", "Mutator", "Indexed"};
+    }
+
+    @Override
+    protected String[] statsFormats() {
+        return new String[]{"%8d", "%8d", "%8d"};
+    }
+
+    @Override
+    protected Object[] statsValues() {
+        return new Object[]{searcher.resultSize, mutator.mutationCount, indexedNodeCount.get()};
+    }
+
+    @Override
+    protected String comment() {
+        List<String> commentElements = new ArrayList<>();
+        if (hybridIndexEnabled){
+            commentElements.add(indexingMode);
+
+            if (useOakCodec){
+                commentElements.add("oakCodec");
+            }
+        } else {
+            commentElements.add("property");
+        }
+
+        commentElements.add("numIdxs:"+ numOfIndexes);
+        commentElements.add("async:"+ asyncInterval);
+        return Joiner.on(',').join(commentElements);
     }
 
     private void dumpStats() {
