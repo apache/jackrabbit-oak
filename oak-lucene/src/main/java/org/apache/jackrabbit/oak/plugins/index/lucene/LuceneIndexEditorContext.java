@@ -84,6 +84,8 @@ public class LuceneIndexEditorContext {
     private final IndexAugmentorFactory augmentorFactory;
 
     private final NodeState root;
+
+    private final boolean asyncIndexing;
     /**
      * The media types supported by the parser used.
      */
@@ -98,7 +100,8 @@ public class LuceneIndexEditorContext {
                              IndexUpdateCallback updateCallback,
                              LuceneIndexWriterFactory indexWriterFactory,
                              ExtractedTextCache extractedTextCache,
-                             IndexAugmentorFactory augmentorFactory) {
+                             IndexAugmentorFactory augmentorFactory,
+                             boolean asyncIndexing) {
         configureUniqueId(definition);
         this.root = root;
         this.definitionBuilder = definition;
@@ -108,6 +111,7 @@ public class LuceneIndexEditorContext {
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
         this.augmentorFactory = augmentorFactory;
+        this.asyncIndexing = asyncIndexing;
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
@@ -178,6 +182,10 @@ public class LuceneIndexEditorContext {
     public long incIndexedNodes() {
         indexedNodes++;
         return indexedNodes;
+    }
+
+    public boolean isAsyncIndexing() {
+        return asyncIndexing;
     }
 
     public long getIndexedNodes() {
