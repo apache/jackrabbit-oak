@@ -43,6 +43,7 @@ public class RDBConnectionWrapper implements Connection {
     private final RDBDataSourceWrapper datasource;
     private final Connection connection;
     private final long constart;
+    private boolean isReadOnly = false;
 
     public RDBConnectionWrapper(RDBDataSourceWrapper datasource, Connection connection) {
         this.datasource = datasource;
@@ -85,6 +86,9 @@ public class RDBConnectionWrapper implements Connection {
         SQLException x = null;
         try {
             connection.commit();
+            if (this.datasource.getTemporaryUpdateException() != null && !isReadOnly) {
+                throw new SQLException(this.datasource.getTemporaryUpdateException());
+            }
         } catch (SQLException ex) {
             x = ex;
             throw ex;
@@ -323,8 +327,9 @@ public class RDBConnectionWrapper implements Connection {
         throw new SQLFeatureNotSupportedException();
     }
 
-    public void setReadOnly(boolean arg0) throws SQLException {
-        connection.setReadOnly(arg0);
+    public void setReadOnly(boolean readOnly) throws SQLException {
+        this.isReadOnly = readOnly;
+        connection.setReadOnly(readOnly);
     }
 
     public Savepoint setSavepoint() throws SQLException {
