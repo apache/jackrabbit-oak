@@ -55,7 +55,7 @@ public class LuceneIndexEditorContext {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
-    private final FacetsConfig facetsConfig;
+    private FacetsConfig facetsConfig;
 
     private static final Parser defaultParser = createDefaultParser();
 
@@ -107,7 +107,6 @@ public class LuceneIndexEditorContext {
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
-        this.facetsConfig = FacetHelper.getFacetsConfig(definition);
     }
 
     Parser getParser() {
@@ -197,6 +196,9 @@ public class LuceneIndexEditorContext {
     }
 
     FacetsConfig getFacetsConfig() {
+        if (facetsConfig == null){
+            facetsConfig = FacetHelper.getFacetsConfig(definitionBuilder);
+        }
         return facetsConfig;
     }
 
