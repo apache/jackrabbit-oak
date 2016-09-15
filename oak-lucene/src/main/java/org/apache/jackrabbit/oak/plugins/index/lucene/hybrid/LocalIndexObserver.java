@@ -26,12 +26,19 @@ import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 
 public class LocalIndexObserver implements Observer{
     private final DocumentQueue docQueue;
+    private final MeterStats added;
+    private final MeterStats dropped;
 
-    public LocalIndexObserver(DocumentQueue docQueue) {
+    public LocalIndexObserver(DocumentQueue docQueue, StatisticsProvider sp) {
         this.docQueue = docQueue;
+        this.added = sp.getMeter("HYBRID_ADDED", StatsOptions.DEFAULT);
+        this.dropped = sp.getMeter("HYBRID_DROPPED", StatsOptions.DEFAULT);
     }
 
     @Override
@@ -53,8 +60,16 @@ public class LocalIndexObserver implements Observer{
             return;
         }
 
+        int addedCount = 0, droppedCount = 0;
         for (LuceneDoc doc : holder.getAsyncIndexedDocs()){
-            docQueue.add(doc);
+            if (docQueue.add(doc)) {
+                addedCount++;
+            } else {
+                droppedCount++;
+            }
         }
+
+        added.mark(addedCount);
+        dropped.mark(droppedCount);
     }
 }

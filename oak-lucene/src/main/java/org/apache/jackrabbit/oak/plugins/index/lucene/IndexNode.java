@@ -43,6 +43,8 @@ import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IndexNode {
 
@@ -57,6 +59,8 @@ public class IndexNode {
         }
         return null;
     }
+
+    private static final Logger log = LoggerFactory.getLogger(IndexNode.class);
 
     private final List<LuceneIndexReader> readers;
 
@@ -145,6 +149,7 @@ public class IndexNode {
     public void refreshReadersIfRequired() {
         if (refreshPolicy.shouldRefresh()){
             indexSearcher = new IndexSearcher(createReader());
+            log.debug("Refreshed reader for index [{}]", definition);
         }
     }
 

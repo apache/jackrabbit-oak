@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +48,7 @@ public class LocalIndexObserverTest {
     @Before
     public void setUp(){
         collectingQueue = new DocumentQueue(10, tracker, NOOP_EXECUTOR);
-        observer = new LocalIndexObserver(collectingQueue);
+        observer = new LocalIndexObserver(collectingQueue, StatisticsProvider.NOOP);
     }
 
     @Test
