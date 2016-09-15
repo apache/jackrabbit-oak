@@ -102,7 +102,11 @@ public class NRTIndexFactory implements Closeable{
         return existing.get(existing.size() - 1);
     }
 
-    private TimedRefreshPolicy getRefreshPolicy(IndexDefinition definition) {
-        return new TimedRefreshPolicy(definition.isSyncIndexingEnabled(), clock, TimeUnit.SECONDS, refreshDeltaInSecs);
+    private IndexUpdateListener getRefreshPolicy(IndexDefinition definition) {
+        if (definition.isSyncIndexingEnabled()){
+            return new RefreshOnWritePolicy();
+            //return new RefreshOnReadPolicy(clock, TimeUnit.SECONDS, refreshDeltaInSecs);
+        }
+        return new TimedRefreshPolicy(clock, TimeUnit.SECONDS, refreshDeltaInSecs);
     }
 }

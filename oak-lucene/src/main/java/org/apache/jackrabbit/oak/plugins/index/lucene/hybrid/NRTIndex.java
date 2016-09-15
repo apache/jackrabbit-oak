@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -47,6 +48,7 @@ import org.apache.lucene.store.NRTCachingDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 
@@ -62,16 +64,18 @@ public class NRTIndex implements Closeable {
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
     private final LuceneIndexReader previousReader;
-    private final TimedRefreshPolicy refreshPolicy;
+    private final IndexUpdateListener refreshPolicy;
 
     private IndexWriter indexWriter;
     private NRTIndexWriter nrtIndexWriter;
     private File indexDir;
     private Directory directory;
+    private DirectoryReader dirReader;
     private boolean closed;
+    private List<LuceneIndexReader> readers;
 
     public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
-                    TimedRefreshPolicy refreshPolicy, @Nullable NRTIndex previous) {
+                    IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous) {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;
@@ -80,7 +84,8 @@ public class NRTIndex implements Closeable {
 
     @CheckForNull
     LuceneIndexReader getPrimaryReader() {
-        return createReader();
+        DirectoryReader reader = createReader();
+        return reader != null ? new NRTReader(reader) : null;
     }
 
     public LuceneIndexWriter getWriter() throws IOException {
@@ -91,18 +96,30 @@ public class NRTIndex implements Closeable {
         return nrtIndexWriter;
     }
 
-    public List<LuceneIndexReader> getReaders() {
+    /**
+     * Returns the list of LuceneIndexReader. If the writer has not received
+     * any updates between 2 calls to this method then same list would be
+     * returned.
+     */
+    public synchronized List<LuceneIndexReader> getReaders() {
         checkState(!closed);
-        List<LuceneIndexReader> readers = Lists.newArrayListWithCapacity(2);
-        LuceneIndexReader latestReader = createReader();
+        DirectoryReader latestReader = createReader();
+        //reader not changed i.e. no change in index
+        //reuse old readers
+        if (latestReader == dirReader && readers != null){
+            return readers;
+        }
+        List<LuceneIndexReader> newReaders = Lists.newArrayListWithCapacity(2);
         if (latestReader != null) {
-            readers.add(latestReader);
+            newReaders.add(new NRTReader(latestReader));
         }
 
         //Old reader should be added later
         if (previousReader != null) {
-            readers.add(previousReader);
+            newReaders.add(previousReader);
         }
+        dirReader = latestReader;
+        readers = ImmutableList.copyOf(newReaders);
         return readers;
     }
 
@@ -141,18 +158,31 @@ public class NRTIndex implements Closeable {
         return indexDir;
     }
 
+    /**
+     * If index was updated then a new reader would be returned otherwise
+     * existing reader would be returned
+     */
     @CheckForNull
-    private LuceneIndexReader createReader() {
+    private synchronized DirectoryReader createReader() {
         checkState(!closed);
         //Its possible that readers are obtained
         //before anything gets indexed
         if (indexWriter == null) {
             return null;
         }
+        DirectoryReader result = dirReader;
         try {
             //applyDeletes is false as layers above would take care of
             //stale result
-            return new NRTReader(DirectoryReader.open(indexWriter, false));
+            if (dirReader == null) {
+                result = DirectoryReader.open(indexWriter, false);
+            } else {
+                DirectoryReader newReader = DirectoryReader.openIfChanged(dirReader, indexWriter, false);
+                if (newReader != null) {
+                    result = newReader;
+                }
+            }
+            return result;
         } catch (IOException e) {
             log.warn("Error opening index [{}]", e);
         }
@@ -166,6 +196,11 @@ public class NRTIndex implements Closeable {
         //TODO make these configurable
         directory = new NRTCachingDirectory(fsdir, 1, 1);
         IndexWriterConfig config = IndexWriterUtils.getIndexWriterConfig(definition, false);
+
+        //TODO Explore following for optimizing indexing speed
+        //config.setUseCompoundFile(false);
+        //config.setRAMBufferSizeMB(1024*1024*25);
+
         indexWriter = new IndexWriter(directory, config);
         return new NRTIndexWriter(indexWriter);
     }
@@ -179,7 +214,7 @@ public class NRTIndex implements Closeable {
         private final IndexReader indexReader;
 
         public NRTReader(IndexReader indexReader) {
-            this.indexReader = indexReader;
+            this.indexReader = checkNotNull(indexReader);
         }
 
         @Override
