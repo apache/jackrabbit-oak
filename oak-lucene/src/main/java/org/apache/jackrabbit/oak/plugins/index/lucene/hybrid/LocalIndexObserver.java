@@ -29,8 +29,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LocalIndexObserver implements Observer{
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentQueue docQueue;
     private final MeterStats added;
     private final MeterStats dropped;
@@ -71,5 +74,9 @@ public class LocalIndexObserver implements Observer{
 
         added.mark(addedCount);
         dropped.mark(droppedCount);
+        if (droppedCount > 0){
+            //TODO Ensure that log do not flood
+            log.warn("Dropped [{}] docs from indexing as queue is full", droppedCount);
+        }
     }
 }
