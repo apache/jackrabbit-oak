@@ -165,6 +165,12 @@ public class DocumentQueue implements Closeable{
     }
 
     private void processDoc(String indexPath, Iterable<LuceneDoc> docs){
+
+        //Drop the write call if stopped
+        if (stopped) {
+            return;
+        }
+
         IndexNode indexNode = tracker.acquireIndexNode(indexPath);
         if (indexNode == null) {
             log.debug("No IndexNode found for index [{}].", indexPath);
@@ -205,7 +211,5 @@ public class DocumentQueue implements Closeable{
         docsQueue.clear();
         docsQueue.add(STOP);
         stopped = true;
-
-        //TODO Should we wait for STOP to be processed
     }
 }
