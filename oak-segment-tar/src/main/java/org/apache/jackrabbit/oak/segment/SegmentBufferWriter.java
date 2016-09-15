@@ -69,7 +69,12 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);
 
-    private static final boolean DISABLE_GENERATION_CHECK = Boolean.getBoolean("disable-generation-check");
+    /**
+     * Enable an extra check logging warnings should this writer create segments
+     * referencing segments from an older generation.
+     * @see #checkGCGeneration(SegmentId)
+     */
+    private static final boolean ENABLE_GENERATION_CHECK = Boolean.getBoolean("enable-generation-check");
 
     private static final class Statistics {
 
@@ -280,15 +285,15 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
         checkState(offset == align(offset, 1 << Segment.RECORD_ALIGN_BITS));
 
-        long msb = recordId.getSegmentId().getMostSignificantBits();
-        long lsb = recordId.getSegmentId().getLeastSignificantBits();
+        SegmentId segmentId = recordId.getSegmentId();
+        checkGCGeneration(segmentId);
 
-        writeLong(msb);
-        writeLong(lsb);
+        writeLong(segmentId.getMostSignificantBits());
+        writeLong(segmentId.getLeastSignificantBits());
         writeShort((short)((offset >> Segment.RECORD_ALIGN_BITS) & 0xffff));
 
-        if (!recordId.getSegmentId().equals(segment.getSegmentId())) {
-            referencedSegmentIds.add(recordId.getSegmentId());
+        if (!segmentId.equals(segment.getSegmentId())) {
+            referencedSegmentIds.add(segmentId);
         }
 
         statistics.recordIdCount++;
@@ -296,10 +301,15 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         dirty = true;
     }
 
-    // FIXME OAK-4287: Disable / remove SegmentBufferWriter#checkGCGeneration
-    // Disable/remove this in production
+    /**
+     * Check that the generation of a segment matches the generation of this writer and logs
+     * a warning otherwise.
+     * This check is skipped if the {@link #ENABLE_GENERATION_CHECK} is not set.
+     *
+     * @param id  id of the segment to check
+     */
     private void checkGCGeneration(SegmentId id) {
-        if (!DISABLE_GENERATION_CHECK) {
+        if (ENABLE_GENERATION_CHECK) {
             try {
                 if (isDataSegmentId(id.getLeastSignificantBits())) {
                     if (id.getGcGeneration() < generation) {
