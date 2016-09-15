@@ -48,6 +48,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
@@ -110,6 +112,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
     private int queueSize = Integer.getInteger("queueSize", 1000);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
+    private boolean dumpStats = Boolean.getBoolean("dumpStats");
     private boolean useOakCodec = Boolean.getBoolean("useOakCodec");
     private String indexingMode = System.getProperty("indexingMode", "nrt");
 
@@ -146,16 +149,23 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                 @Override
                 public Jcr customize(Oak oak) {
                     Jcr jcr = new Jcr(oak);
+                    prepareLuceneIndexer(workDir);
+                    jcr.with((QueryIndexProvider) luceneIndexProvider)
+                            .with((Observer) luceneIndexProvider)
+                            .with(luceneEditorProvider);
+
                     if (hybridIndexEnabled) {
-                        prepareLuceneIndexer(workDir);
-                        jcr.with((QueryIndexProvider) luceneIndexProvider)
-                                .with((Observer) luceneIndexProvider)
-                                .with(localIndexObserver)
-                                .with(luceneEditorProvider);
+                        jcr.with(localIndexObserver);
                         indexInitializer = new LuceneIndexInitializer();
                     }
+
                     whiteboard = oak.getWhiteboard();
                     jcr.with(indexInitializer);
+
+                    //Configure the default global fulltext index as it impacts
+                    //both pure property index based setup and nrt based
+                    //So more closer to real world
+                    jcr.with(new LuceneFullTextInitializer());
 
                     //Async indexing is enabled for both property and lucene
                     //as for property it relies on counter index
@@ -219,11 +229,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
     @Override
     protected void afterSuite() throws Exception {
+        //TODO This to avoid issue with Indexing still running post afterSuite call
+        //TO handle this properly we would need a callback after repository shutdown
+        //and before NodeStore teardown
+        getAsyncIndexUpdate().close();
+
+        //Close hybrid stuff after async is closed
         if (hybridIndexEnabled){
-            //TODO This to avoid issue with Indexing still running post afterSuite call
-            //TO handle this properly we would need a callback after repository shutdown
-            //and before NodeStore teardown
-            getAsyncIndexUpdate().close();
             queue.close();
             nrtIndexFactory.close();
         }
@@ -235,6 +247,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                         "hybridIndexEnabled: %s, indexingMode: %s, useOakCodec: %s %n",
                 numOfIndexes, refreshDeltaMillis, asyncInterval, queueSize, hybridIndexEnabled,
                 indexingMode, useOakCodec);
+
+        if (dumpStats) {
+            dumpStats();
+        }
     }
 
     @Override
@@ -266,7 +282,6 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         }
 
         commentElements.add("numIdxs:"+ numOfIndexes);
-        commentElements.add("async:"+ asyncInterval);
         return Joiner.on(',').join(commentElements);
     }
 
@@ -303,7 +318,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private void prepareLuceneIndexer(File workDir) {
         try {
             indexCopierDir = createTemporaryFolderIn(workDir);
-            copier = new IndexCopier(executorService, indexCopierDir);
+            copier = new IndexCopier(executorService, indexCopierDir, true);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -335,6 +350,11 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                     return input instanceof AsyncIndexUpdate;
                 }
             });
+    }
+
+    private void dumpStats() {
+        IndexStatsMBean indexStats = WhiteboardUtils.getService(whiteboard, IndexStatsMBean.class);
+        System.out.println(indexStats.getConsolidatedExecutionStats());
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -374,7 +394,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
             defnBuilder.evaluatePathRestrictions();
-            defnBuilder.async("async", indexingMode);
+            defnBuilder.async("async", indexingMode, "async");
             defnBuilder.indexRule("nt:base").property(indexedPropName).propertyIndex();
             if (useOakCodec) {
                 defnBuilder.codec("oakCodec");
@@ -385,6 +405,21 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             }
 
             oakIndex.setChildNode(indexedPropName, defnBuilder.build());
+        }
+    }
+
+    private class LuceneFullTextInitializer implements RepositoryInitializer {
+        @Override
+        public void initialize(@Nonnull NodeBuilder builder) {
+            NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
+
+            IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
+            defnBuilder.async("async", "async");
+            defnBuilder.codec("Lucene46");
+            defnBuilder.indexRule("nt:base")
+                    .property(LuceneIndexConstants.REGEX_ALL_PROPS, true)
+                    .nodeScopeIndex();
+            oakIndex.setChildNode("globalIndex", defnBuilder.build());
         }
     }
 
