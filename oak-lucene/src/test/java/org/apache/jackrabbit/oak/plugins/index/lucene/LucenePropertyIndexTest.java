@@ -242,14 +242,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
-        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
-        def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
-        def.setProperty(REINDEX_PROPERTY_NAME, true);
-        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES,
-                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
-        return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+        return TestUtil.createFulltextIndex(index, name);
     }
 
     @Test
@@ -2369,12 +2362,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
-        Tree fileNode = tree.addChild(name);
-        fileNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
-        Tree jcrContent = fileNode.addChild(JCR_CONTENT);
-        jcrContent.setProperty(JcrConstants.JCR_DATA, content);
-        jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
-        return jcrContent;
+        return TestUtil.createFileNode(tree, name, content, mimeType);
     }
 
     private Tree usc(Tree parent, String childName){

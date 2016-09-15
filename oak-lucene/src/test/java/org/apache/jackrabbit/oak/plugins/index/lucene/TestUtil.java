@@ -25,11 +25,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -49,6 +52,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class TestUtil {
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -181,6 +192,26 @@ public class TestUtil {
         builder = builder.child(nodeName);
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
+    }
+
+    public static Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
+        Tree fileNode = tree.addChild(name);
+        fileNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
+        Tree jcrContent = fileNode.addChild(JCR_CONTENT);
+        jcrContent.setProperty(JcrConstants.JCR_DATA, content);
+        jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
+        return jcrContent;
+    }
+
+    public static Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
+        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        def.setProperty(REINDEX_PROPERTY_NAME, true);
+        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES,
+                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
+        return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
     public static void shutdown(Repository repository) {

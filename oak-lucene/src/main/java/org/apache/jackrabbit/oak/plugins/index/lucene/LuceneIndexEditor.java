@@ -928,6 +928,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
+        if (!context.isAsyncIndexing()){
+            //Skip text extraction for sync indexing
+            return null;
+        }
         String text = context.getExtractedTextCache().get(path, propertyName, v, context.isReindex());
         if (text == null){
             text = parseStringValue0(v, metadata, path);

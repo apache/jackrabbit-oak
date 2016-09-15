@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
@@ -41,10 +43,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -66,6 +70,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.createIndex;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class HybridIndexTest extends AbstractQueryTest {
@@ -161,6 +166,31 @@ public class HybridIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
     }
 
+    @Test
+    public void noTextExtractionForSyncCommit() throws Exception{
+        String idxName = "hybridtest";
+        Tree idx = TestUtil.createFulltextIndex(root.getTree("/"), idxName);
+        idx.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, ImmutableSet.of("sync" , "async"), STRINGS));
+        root.commit();
+
+        runAsyncIndex();
+
+        AccessRecordingBlob testBlob =
+                new AccessRecordingBlob("<?xml version=\"1.0\" encoding=\"UTF-8\"?><msg>sky is blue</msg>".getBytes());
+
+        Tree test = root.getTree("/").addChild("test");
+        TestUtil.createFileNode(test, "msg", testBlob, "application/xml");
+        root.commit();
+
+        assertEquals(0, testBlob.accessCount);
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky')", Collections.<String>emptyList());
+
+        runAsyncIndex();
+        assertEquals(1, testBlob.accessCount);
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky')", of("/test/msg/jcr:content"));
+
+    }
+
     private void runAsyncIndex() {
         Runnable async = WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
             @Override
@@ -179,5 +209,19 @@ public class HybridIndexTest extends AbstractQueryTest {
             base = base.addChild(e);
         }
         return base;
+    }
+
+    private static class AccessRecordingBlob extends ArrayBasedBlob {
+        int accessCount = 0;
+        public AccessRecordingBlob(byte[] value) {
+            super(value);
+        }
+
+        @Nonnull
+        @Override
+        public InputStream getNewStream() {
+            accessCount++;
+            return super.getNewStream();
+        }
     }
 }

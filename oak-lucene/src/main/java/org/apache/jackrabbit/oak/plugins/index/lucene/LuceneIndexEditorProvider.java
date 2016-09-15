@@ -97,6 +97,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
+            boolean asyncIndexing = true;
             if (!indexingContext.isAsync() && IndexDefinition.supportsSyncIndexing(definition)) {
 
                 //Would not participate in reindexing. Only interested in
@@ -120,10 +121,12 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 //some stuff gets written to NodeBuilder. That logic should be refactored
                 //to be moved to LuceneIndexWriter
                 definition = new ReadOnlyBuilder(definition.getNodeState());
+
+                asyncIndexing = false;
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
-                    writerFactory, extractedTextCache, augmentorFactory);
+                    writerFactory, extractedTextCache, augmentorFactory, asyncIndexing);
             return new LuceneIndexEditor(context);
         }
         return null;
