@@ -20,9 +20,10 @@ package org.apache.jackrabbit.oak.segment;
 import java.util.UUID;
 
 /**
- * Utility methods to work with {@link BinaryReferenceConsumer} instances.
+ * Utility methods for working with binary references.
  */
-public class BinaryReferenceConsumers {
+public final class BinaryReferences {
+    private BinaryReferences() {}
 
     /**
      * Creates a new instance of {@link BinaryReferenceConsumer} that ignores
