@@ -63,8 +63,8 @@ public class NRTIndex implements Closeable {
 
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
-    private final LuceneIndexReader previousReader;
     private final IndexUpdateListener refreshPolicy;
+    private final NRTIndex previous;
 
     private IndexWriter indexWriter;
     private NRTIndexWriter nrtIndexWriter;
@@ -79,7 +79,7 @@ public class NRTIndex implements Closeable {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;
-        this.previousReader = previous != null ? previous.getPrimaryReader() : null;
+        this.previous = previous;
     }
 
     @CheckForNull
@@ -115,6 +115,7 @@ public class NRTIndex implements Closeable {
         }
 
         //Old reader should be added later
+        LuceneIndexReader previousReader = previous != null ? previous.getPrimaryReader() : null;
         if (previousReader != null) {
             newReaders.add(previousReader);
         }
