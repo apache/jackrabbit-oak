@@ -278,6 +278,10 @@ public class DocumentQueueTest {
 
         System.out.printf("%n[nrt] Time taken for %d is %s with waits %d%n", numDocs, w, waitCount);
 
+        indexed = createAndPopulateAsyncIndex(IndexingMode.SYNC);
+        tracker.update(indexed);
+        queue = new DocumentQueue(1000, tracker, executor);
+
         w = Stopwatch.createStarted();
         for (int i = 0; i < numDocs; i++) {
             ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
