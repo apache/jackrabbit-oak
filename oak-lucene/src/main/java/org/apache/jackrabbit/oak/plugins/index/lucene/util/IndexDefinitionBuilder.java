@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -73,6 +74,17 @@ public final class IndexDefinitionBuilder {
 
     public IndexDefinitionBuilder excludedPaths(String ... paths){
         tree.setProperty(PathFilter.PROP_EXCLUDED_PATHS, asList(paths), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder codec(String codecName){
+        tree.setProperty(LuceneIndexConstants.CODEC_NAME, checkNotNull(codecName));
+        return this;
+    }
+
+    public IndexDefinitionBuilder async(String ... asyncVals){
+        tree.removeProperty("async");
+        tree.setProperty("async", asList(asyncVals), STRINGS);
         return this;
     }
 
