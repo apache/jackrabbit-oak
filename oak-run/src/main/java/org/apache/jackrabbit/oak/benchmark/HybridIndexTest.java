@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
@@ -113,7 +114,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int queueSize = Integer.getInteger("queueSize", 1000);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
     private boolean dumpStats = Boolean.getBoolean("dumpStats");
-    private boolean useOakCodec = Boolean.getBoolean("useOakCodec");
+    private boolean useOakCodec = Boolean.parseBoolean(System.getProperty("useOakCodec", "true"));
     private String indexingMode = System.getProperty("indexingMode", "nrt");
 
     private boolean searcherEnabled = Boolean.parseBoolean(System.getProperty("searcherEnabled", "true"));
@@ -355,6 +356,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private void dumpStats() {
         IndexStatsMBean indexStats = WhiteboardUtils.getService(whiteboard, IndexStatsMBean.class);
         System.out.println(indexStats.getConsolidatedExecutionStats());
+        String queueSize = Arrays.toString(statsProvider.getStats().getTimeSeries("HYBRID_QUEUE_SIZE", false)
+                .getValuePerSecond());
+        System.out.println("Queue size " + queueSize);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
