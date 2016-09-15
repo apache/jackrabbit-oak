@@ -90,15 +90,17 @@ public class HybridIndexTest extends AbstractQueryTest {
             throw new RuntimeException(e);
         }
         MountInfoProvider mip = defaultMountInfoProvider();
-        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-                null,
-                null,
-                mip);
 
         NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
+
+        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
+                tracker,
+                null,
+                null,
+                mip);
 
         queue = new DocumentQueue(100, tracker, clock, sameThreadExecutor());
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue);

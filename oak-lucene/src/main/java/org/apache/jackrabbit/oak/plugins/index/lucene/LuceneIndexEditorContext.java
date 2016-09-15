@@ -23,6 +23,8 @@ import java.util.Calendar;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -91,7 +93,9 @@ public class LuceneIndexEditorContext {
     //Set for testing ONLY
     private static Clock clock = Clock.SIMPLE;
 
-    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
+                             @Nullable IndexDefinition indexDefinition,
+                             IndexUpdateCallback updateCallback,
                              LuceneIndexWriterFactory indexWriterFactory,
                              ExtractedTextCache extractedTextCache,
                              IndexAugmentorFactory augmentorFactory) {
@@ -99,7 +103,7 @@ public class LuceneIndexEditorContext {
         this.root = root;
         this.definitionBuilder = definition;
         this.indexWriterFactory = indexWriterFactory;
-        this.definition = new IndexDefinition(root, definition);
+        this.definition = indexDefinition != null ? indexDefinition : new IndexDefinition(root, definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;

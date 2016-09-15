@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -169,6 +170,17 @@ public class IndexTracker {
         } else {
             return findIndexNode(path);
         }
+    }
+
+    @CheckForNull
+    public IndexDefinition getIndexDefinition(String indexPath){
+        IndexNode node = indices.get(indexPath);
+        if (node != null){
+            //Accessing the definition should not require
+            //locking as its immutable state
+            return node.getDefinition();
+        }
+        return null;
     }
 
     Set<String> getIndexNodePaths(){
