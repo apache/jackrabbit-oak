@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
@@ -193,6 +194,21 @@ public class IndexRootDirectoryTest {
         assertFalse(fa1.exists());
         assertTrue(fa2.exists());
         assertEquals(1, dir.getLocalIndexes("/a").size());
+    }
+
+    @Test
+    public void gcNRTDirsOnStart() throws Exception{
+        configureUniqueId();
+
+        File fa0 = dir.getIndexDir(getDefn(), "/a", "default");
+        File nrt0 = dir.getIndexDir(getDefn(), "/a", NRTIndex.generateDirName());
+        File nrt1 = dir.getIndexDir(getDefn(), "/a", NRTIndex.generateDirName());
+
+        //Now reinitialize
+        dir = new IndexRootDirectory(temporaryFolder.getRoot());
+        assertFalse(nrt0.exists());
+        assertFalse(nrt1.exists());
+        assertTrue(fa0.exists());
     }
 
     private NodeBuilder resetBuilder() {

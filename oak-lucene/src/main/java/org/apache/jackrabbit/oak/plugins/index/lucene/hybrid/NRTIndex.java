@@ -57,7 +57,7 @@ public class NRTIndex implements Closeable {
     /**
      * Prefix used for naming the directory created for NRT indexes
      */
-    private static final String NRT_DIR_PREFIX = "nrt-";
+    public static final String NRT_DIR_PREFIX = "nrt-";
 
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
@@ -151,8 +151,7 @@ public class NRTIndex implements Closeable {
     }
 
     private synchronized NRTIndexWriter createWriter() throws IOException {
-        long uniqueCount = System.currentTimeMillis() + COUNTER.incrementAndGet();
-        String dirName = NRT_DIR_PREFIX + uniqueCount;
+        String dirName = generateDirName();
         indexDir = indexCopier.getIndexDir(definition, definition.getIndexPathFromConfig(), dirName);
         Directory fsdir = FSDirectory.open(indexDir);
         //TODO make these configurable
@@ -160,6 +159,11 @@ public class NRTIndex implements Closeable {
         IndexWriterConfig config = IndexWriterUtils.getIndexWriterConfig(definition, false);
         indexWriter = new IndexWriter(directory, config);
         return new NRTIndexWriter(indexWriter);
+    }
+
+    public static String generateDirName() {
+        long uniqueCount = System.currentTimeMillis() + COUNTER.incrementAndGet();
+        return NRT_DIR_PREFIX + uniqueCount;
     }
 
     private static class NRTReader implements LuceneIndexReader {
