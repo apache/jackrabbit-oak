@@ -17,8 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import org.apache.jackrabbit.oak.segment.RecordId;
-
 /**
  * Read the head record ID.
  */
@@ -30,6 +28,6 @@ interface StandbyHeadReader {
      * @return the head record ID or {@code null} if the head record ID can't be
      * found.
      */
-    RecordId readHeadRecordId();
+    String readHeadRecordId();
 
 }

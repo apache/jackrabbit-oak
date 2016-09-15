@@ -17,15 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockRecordId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponse;
 import org.junit.Test;
@@ -34,15 +31,13 @@ public class GetHeadRequestHandlerTest {
 
     @Test
     public void successfulReadsShouldGenerateResponses() throws Exception {
-        RecordId headRecordId = mockRecordId(1, 2, 8);
-
         StandbyHeadReader reader = mock(StandbyHeadReader.class);
-        when(reader.readHeadRecordId()).thenReturn(headRecordId);
+        when(reader.readHeadRecordId()).thenReturn("recordId");
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetHeadRequestHandler(reader));
         channel.writeInbound(new GetHeadRequest("clientId"));
         GetHeadResponse response = (GetHeadResponse) channel.readOutbound();
-        assertSame(headRecordId, response.getHeadRecordId());
+        assertEquals("recordId", response.getHeadRecordId());
         assertEquals("clientId", response.getClientId());
     }
 

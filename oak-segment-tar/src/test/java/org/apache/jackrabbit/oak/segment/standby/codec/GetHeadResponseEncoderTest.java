@@ -17,30 +17,29 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockRecordId;
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.RecordId;
 import org.junit.Test;
 
 public class GetHeadResponseEncoderTest {
 
     @Test
     public void encodeResponse() throws Exception {
-        RecordId recordId = mockRecordId(1, 2, 8);
+        String recordId = "recordId";
+        byte[] recordIdBytes = recordId.getBytes(Charsets.UTF_8);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetHeadResponseEncoder());
-        channel.writeOutbound(new GetHeadResponse("clientId", recordId));
+        channel.writeOutbound(new GetHeadResponse("clientId", "recordId"));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         ByteBuf expected = Unpooled.buffer();
-        expected.writeInt(recordId.toString().getBytes(Charsets.UTF_8).length + 1);
+        expected.writeInt(recordIdBytes.length + 1);
         expected.writeByte(Messages.HEADER_RECORD);
-        expected.writeBytes(recordId.toString().getBytes(Charsets.UTF_8));
+        expected.writeBytes(recordIdBytes);
         assertEquals(expected, buffer);
     }
 

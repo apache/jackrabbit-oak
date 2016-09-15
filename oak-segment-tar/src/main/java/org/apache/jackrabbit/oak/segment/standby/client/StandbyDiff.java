@@ -22,8 +22,10 @@ package org.apache.jackrabbit.oak.segment.standby.client;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -31,28 +33,28 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.standby.store.RemoteSegmentLoader;
-import org.apache.jackrabbit.oak.segment.standby.store.StandbyStore;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class StandbyApplyDiff implements NodeStateDiff {
+class StandbyDiff implements NodeStateDiff {
 
-    private static final Logger log = LoggerFactory
-            .getLogger(StandbyApplyDiff.class);
+    private static final Logger log = LoggerFactory.getLogger(StandbyDiff.class);
 
     private final NodeBuilder builder;
 
-    private final StandbyStore store;
+    private final FileStore store;
+
+    private final StandbyClient client;
 
     private final boolean hasDataStore;
 
-    private final RemoteSegmentLoader loader;
-
     private final String path;
+
+    private final Supplier<Boolean> running;
 
     /**
      * read-only traversal of the diff that has 2 properties: one is to log all
@@ -61,60 +63,70 @@ class StandbyApplyDiff implements NodeStateDiff {
      */
     private final boolean logOnly;
 
-    public StandbyApplyDiff(NodeBuilder builder, StandbyStore store,
-            RemoteSegmentLoader loader) {
-        this(builder, store, loader, "/", false);
+    StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, Supplier<Boolean> running) {
+        this(builder, store, client, "/", false, running);
     }
 
-    private StandbyApplyDiff(NodeBuilder builder, StandbyStore store,
-            RemoteSegmentLoader loader, String path, boolean logOnly) {
+    private StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, String path, boolean logOnly, Supplier<Boolean> running) {
         this.builder = builder;
         this.store = store;
         this.hasDataStore = store.getBlobStore() != null;
-        this.loader = loader;
+        this.client = client;
         this.path = path;
         this.logOnly = logOnly;
+        this.running = running;
+    }
+
+    private boolean stop() {
+        return !running.get();
     }
 
     @Override
     public boolean propertyAdded(PropertyState after) {
-        if (!loader.isRunning()) {
+        if (stop()) {
             return false;
         }
-        if (!logOnly) {
-            builder.setProperty(binaryCheck(after));
-        } else {
+
+        if (logOnly) {
             binaryCheck(after);
+        } else {
+            builder.setProperty(binaryCheck(after));
         }
+
         return true;
     }
 
     @Override
     public boolean propertyChanged(PropertyState before, PropertyState after) {
-        if (!loader.isRunning()) {
+        if (stop()) {
             return false;
         }
-        if (!logOnly) {
-            builder.setProperty(binaryCheck(after));
-        } else {
+
+        if (logOnly) {
             binaryCheck(after);
+        } else {
+            builder.setProperty(binaryCheck(after));
         }
+
         return true;
     }
 
     @Override
     public boolean propertyDeleted(PropertyState before) {
-        if (!loader.isRunning()) {
+        if (stop()) {
             return false;
         }
+
         if (!logOnly) {
             builder.removeProperty(before.getName());
         }
+
         return true;
     }
 
     private PropertyState binaryCheck(PropertyState property) {
         Type<?> type = property.getType();
+
         if (type == BINARY) {
             binaryCheck(property.getValue(Type.BINARY), property.getName());
         } else if (type == BINARIES) {
@@ -122,93 +134,100 @@ class StandbyApplyDiff implements NodeStateDiff {
                 binaryCheck(blob, property.getName());
             }
         }
+
         return property;
     }
 
     private void binaryCheck(Blob b, String pName) {
         if (b instanceof SegmentBlob) {
-            SegmentBlob sb = (SegmentBlob) b;
-            // verify if the blob exists
-            if (sb.isExternal() && hasDataStore && b.getReference() == null) {
-                String blobId = sb.getBlobId();
-                if (blobId != null) {
-                    readBlob(blobId, pName);
-                }
-            }
+            binaryCheck((SegmentBlob) b, pName);
         } else {
-            log.warn("Unknown Blob {} at {}, ignoring", b.getClass().getName(),
-                    path + "#" + pName);
+            log.warn("Unknown Blob {} at {}, ignoring", b.getClass().getName(), path + "#" + pName);
         }
     }
 
-    private void readBlob(String blobId, String pName) {
-        Blob read = loader.readBlob(blobId);
-        if (read != null) {
-            try {
-                store.getBlobStore().writeBlob(read.getNewStream());
-            } catch (IOException f) {
-                throw new IllegalStateException("Unable to persist blob "
-                        + blobId + " at " + path + "#" + pName, f);
+    private void binaryCheck(SegmentBlob sb, String pName) {
+        if (sb.isExternal() && hasDataStore && sb.getReference() == null) {
+            String blobId = sb.getBlobId();
+
+            if (blobId == null) {
+                return;
             }
-        } else {
-            throw new IllegalStateException("Unable to load remote blob "
-                    + blobId + " at " + path + "#" + pName);
+
+            try {
+                readBlob(blobId, pName);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private void readBlob(String blobId, String pName) throws InterruptedException {
+        byte[] data = client.getBlob(blobId);
+
+        if (data == null) {
+            throw new IllegalStateException("Unable to load remote blob " + blobId + " at " + path + "#" + pName);
+        }
+
+        try {
+            store.getBlobStore().writeBlob(new ByteArrayInputStream(data));
+        } catch (IOException f) {
+            throw new IllegalStateException("Unable to persist blob " + blobId + " at " + path + "#" + pName, f);
         }
     }
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        return process(name, "childNodeAdded", EmptyNodeState.EMPTY_NODE,
-                after);
+        return process(name, "childNodeAdded", EmptyNodeState.EMPTY_NODE, after);
     }
 
     @Override
-    public boolean childNodeChanged(String name, NodeState before,
-            NodeState after) {
+    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         return process(name, "childNodeChanged", before, after);
     }
 
-    private boolean process(String name, String op, NodeState before,
-            NodeState after) {
-        if (!loader.isRunning()) {
+    private boolean process(String name, String op, NodeState before, NodeState after) {
+        if (stop()) {
             return false;
         }
+
         if (after instanceof SegmentNodeState) {
             if (log.isTraceEnabled()) {
-                log.trace("{} {}, readonly binary check {}", op, path + name,
-                        logOnly);
+                log.trace("{} {}, readonly binary check {}", op, path + name, logOnly);
             }
+
             if (!logOnly) {
                 RecordId id = ((SegmentNodeState) after).getRecordId();
-                builder.setChildNode(name, store.newSegmentNodeState(id));
+                builder.setChildNode(name, store.getReader().readNode(id));
             }
+
             if ("checkpoints".equals(name)) {
                 // if we're on the /checkpoints path, there's no need for a deep
                 // traversal to verify binaries
                 return true;
             }
-            if (hasDataStore) {
-                // has external datastore, we need a deep
-                // traversal to verify binaries
-                return after.compareAgainstBaseState(before,
-                        new StandbyApplyDiff(builder.getChildNode(name), store,
-                                loader, path + name + "/", true));
-            } else {
+
+            if (!hasDataStore) {
                 return true;
+
             }
+            // has external datastore, we need a deep
+            // traversal to verify binaries
+            return after.compareAgainstBaseState(before, new StandbyDiff(builder.getChildNode(name), store, client, path + name + "/", true, running));
         }
+
         return false;
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        if (!loader.isRunning()) {
-            return false;
-        }
         log.trace("childNodeDeleted {}, RO:{}", path + name, logOnly);
+
         if (!logOnly) {
             builder.getChildNode(name).remove();
         }
+
         return true;
     }
+
 }

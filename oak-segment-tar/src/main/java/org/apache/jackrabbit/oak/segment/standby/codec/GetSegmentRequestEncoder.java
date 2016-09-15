@@ -17,26 +17,21 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.junit.Assert.assertEquals;
+import java.util.List;
 
-import io.netty.channel.embedded.EmbeddedChannel;
-import org.junit.Test;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class GetHeadRequestDecoderTest {
+public class GetSegmentRequestEncoder extends MessageToMessageEncoder<GetSegmentRequest> {
 
-    @Test
-    public void shouldDecodeValidMessages() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel(new GetHeadRequestDecoder());
-        channel.writeInbound(Messages.newGetHeadRequest("clientId", false));
-        GetHeadRequest request = (GetHeadRequest) channel.readInbound();
-        assertEquals("clientId", request.getClientId());
-    }
+    private final Logger log = LoggerFactory.getLogger(GetSegmentRequestEncoder.class);
 
-    @Test
-    public void shouldIgnoreInvalidMessages() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel(new GetHeadRequestDecoder());
-        channel.writeInbound("Standby-CMD@clientId:z");
-        assertEquals("Standby-CMD@clientId:z", channel.readInbound());
+    @Override
+    protected void encode(ChannelHandlerContext ctx, GetSegmentRequest msg, List<Object> out) throws Exception {
+        log.debug("Sending request from client {} for segment {}", msg.getClientId(), msg.getSegmentId());
+        out.add(Messages.newGetSegmentRequest(msg.getClientId(), msg.getSegmentId()));
     }
 
 }
