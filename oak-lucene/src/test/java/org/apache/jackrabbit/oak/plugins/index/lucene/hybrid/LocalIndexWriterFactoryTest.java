@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
@@ -82,21 +81,7 @@ public class LocalIndexWriterFactoryTest {
         //This is reindex case so nothing would be indexed
         //So now holder should be present in context
         assertNull(getHolder());
-        assertNull(getCommitAttribute(LocalIndexWriterFactory.COMMIT_PROCESSED_BY_LOCAL_LUCENE_EDITOR));
-    }
-
-    @Test
-    public void holderNotInitializedUnlessIndexed() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
-        builder = indexed.builder();
-        builder.child("b");
-        NodeState after = builder.getNodeState();
-        syncHook.processCommit(indexed, after, newCommitInfo());
-
-        //This is incremental index case but no entry for fooIndex
-        //so holder should be null
-        assertNull(getHolder());
-        assertNotNull(getCommitAttribute(LocalIndexWriterFactory.COMMIT_PROCESSED_BY_LOCAL_LUCENE_EDITOR));
+        assertNull(getCommitAttribute(LuceneDocumentHolder.NAME));
     }
 
     @Test

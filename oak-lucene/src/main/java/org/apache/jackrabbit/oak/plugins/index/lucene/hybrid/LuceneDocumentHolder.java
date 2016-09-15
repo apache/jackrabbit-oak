@@ -28,39 +28,62 @@ import com.google.common.collect.ListMultimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LuceneDocumentHolder {
+public class LuceneDocumentHolder {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
     public static final String NAME = "oak.lucene.documentHolder";
 
     private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
     private final ListMultimap<String, LuceneDoc> syncIndexedList = ArrayListMultimap.create();
+    private final int inMemoryDocsLimit;
     private boolean limitWarningLogged;
 
-    public List<LuceneDoc> getNRTIndexedDocList(String indexPath) {
-        return nrtIndexedList.get(indexPath);
+    public LuceneDocumentHolder(){
+        this(500);
+    }
+
+    public LuceneDocumentHolder(int inMemoryDocsLimit) {
+        this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
     public Iterable<LuceneDoc> getNRTIndexedDocs(){
         return nrtIndexedList.values();
     }
 
-    public List<LuceneDoc> getSyncIndexedDocList(String indexPath) {
-        return syncIndexedList.get(indexPath);
-    }
-
     public Map<String, Collection<LuceneDoc>> getSyncIndexedDocs(){
         return syncIndexedList.asMap();
     }
 
-    public boolean checkLimitAndLogWarning(int maxSize){
-        if (nrtIndexedList.size() >= maxSize){
+    public void add(boolean sync, LuceneDoc doc) {
+        if (sync){
+            getSyncIndexedDocList(doc.indexPath).add(doc);
+        } else {
+            if (queueSizeWithinLimits()) {
+                getNRTIndexedDocList(doc.indexPath).add(doc);
+            }
+        }
+    }
+
+    public void done(String indexPath) {
+
+    }
+
+    List<LuceneDoc> getNRTIndexedDocList(String indexPath) {
+        return nrtIndexedList.get(indexPath);
+    }
+
+    List<LuceneDoc> getSyncIndexedDocList(String indexPath) {
+        return syncIndexedList.get(indexPath);
+    }
+
+    private boolean queueSizeWithinLimits(){
+        if (nrtIndexedList.size() >= inMemoryDocsLimit){
             if (!limitWarningLogged){
                 log.warn("Number of in memory documents meant for hybrid indexing has " +
-                        "exceeded limit [{}]. Some documents would be dropped", maxSize);
+                        "exceeded limit [{}]. Some documents would be dropped", inMemoryDocsLimit);
                 limitWarningLogged = true;
             }
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 }

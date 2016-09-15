@@ -20,42 +20,20 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.IOException;
-import java.util.List;
 
-import com.google.common.base.Preconditions;
-import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
-import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
 public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
-    public static final String COMMIT_PROCESSED_BY_LOCAL_LUCENE_EDITOR = "commitProcessedByLocalLuceneEditor";
-    private final IndexingContext indexingContext;
-    private final CommitContext commitContext;
-    private final int inMemoryDocsLimit;
+    private final LuceneDocumentHolder documentHolder;
+    private final String indexPath;
 
-    public LocalIndexWriterFactory(IndexingContext indexingContext, int inMemoryDocsLimit) {
-        this.indexingContext = indexingContext;
-        this.commitContext = getCommitContext(indexingContext);
-        this.inMemoryDocsLimit = inMemoryDocsLimit;
-    }
-
-    private LuceneDocumentHolder getDocumentHolder(){
-        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
-        if (holder == null) {
-            //lazily initialize the holder
-            holder = new LuceneDocumentHolder();
-            commitContext.set(LuceneDocumentHolder.NAME, holder);
-        }
-        return holder;
-    }
-
-    private static CommitContext getCommitContext(IndexingContext indexingContext) {
-        CommitContext commitContext = (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
-        return Preconditions.checkNotNull(commitContext, "No commit context found in commit info");
+    public LocalIndexWriterFactory(LuceneDocumentHolder documentHolder, String indexPath) {
+        this.documentHolder = documentHolder;
+        this.indexPath = indexPath;
     }
 
     @Override
@@ -65,7 +43,6 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
 
     private class LocalIndexWriter implements LuceneIndexWriter {
         private final IndexDefinition definition;
-        private List<LuceneDoc> docList;
 
         public LocalIndexWriter(IndexDefinition definition) {
             this.definition = definition;
@@ -85,30 +62,13 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
 
         @Override
         public boolean close(long timestamp) throws IOException {
-            //This is used by testcase
-            commitContext.set(COMMIT_PROCESSED_BY_LOCAL_LUCENE_EDITOR, Boolean.TRUE);
+            documentHolder.done(indexPath);
             //always return false as nothing gets written to the index
             return false;
         }
 
         private void addLuceneDoc(LuceneDoc luceneDoc) {
-            if (docList == null){
-                if (definition.isSyncIndexingEnabled()){
-                    docList = getDocumentHolder().getSyncIndexedDocList(indexingContext.getIndexPath());
-                } else if (definition.isNRTIndexingEnabled()){
-                    docList = getDocumentHolder().getNRTIndexedDocList(indexingContext.getIndexPath());
-                } else {
-                    throw new IllegalStateException("Should not be invoked for any other indexing " +
-                            "mode apart from 'sync' and 'nrt'");
-                }
-            }
-
-            if (definition.isNRTIndexingEnabled()
-                    && getDocumentHolder().checkLimitAndLogWarning(inMemoryDocsLimit)){
-               return;
-            }
-
-            docList.add(luceneDoc);
+            documentHolder.add(definition.isSyncIndexingEnabled(), luceneDoc);
         }
     }
 }
