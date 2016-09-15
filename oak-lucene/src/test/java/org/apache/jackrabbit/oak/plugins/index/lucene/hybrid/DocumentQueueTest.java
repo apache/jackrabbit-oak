@@ -22,8 +22,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -209,6 +212,36 @@ public class DocumentQueueTest {
         //3 from async and 1 from current
         td = doSearch("bar");
         assertEquals(4, td.totalHits);
+    }
+
+    //@Test
+    public void benchMarkIndexWriter() throws Exception{
+        Executor executor = Executors.newFixedThreadPool(5);
+        IndexCopier indexCopier = new IndexCopier(executor, temporaryFolder.getRoot());
+        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
+        tracker = new IndexTracker(
+                new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
+                indexFactory
+        );
+        NodeState indexed = createAndPopulateAsyncIndex();
+        tracker.update(indexed);
+
+        DocumentQueue queue = new DocumentQueue(1000, tracker, executor);
+
+        Document d1 = new Document();
+        d1.add(newPathField("/a/b"));
+        d1.add(new StringField("foo", "a", Field.Store.NO));
+        LuceneDoc doc = LuceneDoc.forUpdate("/oak:index/fooIndex", "/a/b", d1);
+        int numDocs = 10000;
+        Stopwatch w = Stopwatch.createStarted();
+        int waitCount = 0;
+        for (int i = 0; i < numDocs; i++) {
+            while(!queue.add(doc)){
+                waitCount++;
+            }
+        }
+
+        System.out.printf("%nTime taken for %d is %s with waits %d", numDocs, w, waitCount);
     }
 
     private NodeState doAsyncIndex(NodeState current, String childName, String fooValue) throws CommitFailedException {
