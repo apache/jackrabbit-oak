@@ -413,7 +413,7 @@ public class BenchmarkRunner {
             new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
-            new HybridIndexTest(base.value(options))
+            new HybridIndexTest(base.value(options), statsProvider)
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
