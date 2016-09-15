@@ -22,32 +22,17 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 public interface ReaderRefreshPolicy {
     ReaderRefreshPolicy NEVER = new ReaderRefreshPolicy() {
         @Override
-        public boolean shouldRefresh() {
-            return false;
+        public void refreshOnReadIfRequired(Runnable refreshCallback) {
+            //Never refresh
         }
 
         @Override
-        public void updated() {
-
+        public void refreshOnWriteIfRequired(Runnable refreshCallback) {
+            //Never refresh
         }
     };
 
-    /**
-     * Returns  true if refresh is to be done and
-     * resets the internal state. The caller which
-     * gets the true answer would be responsible for
-     * refreshing the readers.
-     *
-     * <p>For e.g. once updated the first call to
-     * this method would return true and subsequent
-     * calls return false
-     *
-     * @return true if refresh is to be done
-     */
-    boolean shouldRefresh();
+    void refreshOnReadIfRequired(Runnable refreshCallback);
 
-    /**
-     * Invoked when index gets updated
-     */
-    void updated();
+    void refreshOnWriteIfRequired(Runnable refreshCallback);
 }

@@ -62,7 +62,7 @@ public class NRTIndex implements Closeable {
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
     private final LuceneIndexReader previousReader;
-    private final ReaderRefreshPolicy refreshPolicy;
+    private final TimedRefreshPolicy refreshPolicy;
 
     private IndexWriter indexWriter;
     private NRTIndexWriter nrtIndexWriter;
@@ -71,7 +71,7 @@ public class NRTIndex implements Closeable {
     private boolean closed;
 
     public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
-                    ReaderRefreshPolicy refreshPolicy, @Nullable NRTIndex previous) {
+                    TimedRefreshPolicy refreshPolicy, @Nullable NRTIndex previous) {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;

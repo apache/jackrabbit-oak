@@ -26,30 +26,60 @@ import org.apache.jackrabbit.oak.stats.Clock;
 
 public class TimedRefreshPolicy implements ReaderRefreshPolicy {
     private final AtomicBoolean dirty = new AtomicBoolean();
+    private final boolean syncIndexingMode;
     private final Clock clock;
     private final long refreshDelta;
     private volatile long lastRefreshTime;
 
-    public TimedRefreshPolicy(Clock clock, TimeUnit unit, long refreshDelta) {
+    public TimedRefreshPolicy(boolean syncIndexingMode, Clock clock, TimeUnit unit, long refreshDelta) {
+        this.syncIndexingMode = syncIndexingMode;
         this.clock = clock;
         this.refreshDelta = unit.toMillis(refreshDelta);
     }
 
     @Override
-    public boolean shouldRefresh() {
+    public void refreshOnReadIfRequired(Runnable refreshCallback) {
+        if (syncIndexingMode) {
+            //As writer itself refreshes the index. No refresh done
+            //on read
+            return;
+        }
+        refreshIfRequired(refreshCallback);
+    }
+
+    @Override
+    public void refreshOnWriteIfRequired(Runnable refreshCallback) {
+        if (syncIndexingMode) {
+            //For sync indexing mode we refresh the reader immediately
+            //on the writer thread. So that any read call later sees upto date index
+
+            //Another possibility is to refresh the readers upon first query post index update
+            //but that would mean that if multiple queries get invoked simultaneously then
+            //others would get blocked. So here we take hit on write side. If that proves to
+            //be problematic query side refresh can be looked into
+            if (dirty.get()) {
+                refreshCallback.run();
+                dirty.set(false);
+            }
+        } else {
+            refreshIfRequired(refreshCallback);
+        }
+    }
+
+    public void updated() {
+        dirty.set(true);
+    }
+
+    private void refreshIfRequired(Runnable refreshCallback) {
         if (dirty.get()){
             long currentTime = clock.getTime();
             if (currentTime - lastRefreshTime > refreshDelta
                     && dirty.compareAndSet(true, false)){
                 lastRefreshTime = currentTime;
-                return true;
+                refreshCallback.run();
             }
         }
-        return false;
     }
 
-    @Override
-    public void updated() {
-        dirty.set(true);
-    }
+
 }
