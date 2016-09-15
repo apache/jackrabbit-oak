@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.junit.Ignore;
 
-@Ignore
 public class SegmentToJdbcTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
