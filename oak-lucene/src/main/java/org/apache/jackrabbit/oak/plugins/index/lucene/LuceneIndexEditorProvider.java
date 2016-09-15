@@ -19,10 +19,17 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -31,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
@@ -66,7 +74,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      @Nullable IndexAugmentorFactory augmentorFactory,
                                      MountInfoProvider mountInfoProvider) {
         this.indexCopier = indexCopier;
-        this.extractedTextCache = checkNotNull(extractedTextCache);
+        this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.augmentorFactory = augmentorFactory;
         this.indexWriterFactory = new DefaultIndexWriterFactory(checkNotNull(mountInfoProvider), indexCopier);
     }
@@ -77,8 +85,25 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
+            checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
+                    "ContextAwareCallback [%s]", callback);
+            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            LuceneIndexWriterFactory writerFactory = indexWriterFactory;
+            if (!indexingContext.isAsync() && supportsSyncIndexing(definition)) {
+
+                //Would not participate in reindexing. Only interested in
+                //incremental indexing
+                if (indexingContext.isReindexing()){
+                    return null;
+                }
+                //TODO [hybrid] switch the builder to readonly one
+                //TODO [hybrid] Make use of existing IndexDefinition to avoid reinit for
+                //every commit
+                writerFactory = new LocalIndexWriterFactory(indexingContext);
+            }
+
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, callback,
-                    indexWriterFactory, extractedTextCache, augmentorFactory);
+                    writerFactory, extractedTextCache, augmentorFactory);
             return new LuceneIndexEditor(context);
         }
         return null;
@@ -90,5 +115,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
+    }
+
+    private boolean supportsSyncIndexing(NodeBuilder defn){
+        //TODO [hybrid] Similar logic exists in IndexDefinition. Should be unified
+        PropertyState async = defn.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
+        if (async == null){
+            return false;
+        }
+        return Iterables.contains(async.getValue(Type.STRINGS), "sync");
     }
 }

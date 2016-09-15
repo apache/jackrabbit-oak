@@ -34,7 +34,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
@@ -51,7 +54,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
-class IndexTracker {
+public class IndexTracker {
 
     /** Logger instance. */
     private static final Logger log = LoggerFactory.getLogger(IndexTracker.class);
@@ -59,6 +62,7 @@ class IndexTracker {
             new PerfLogger(LoggerFactory.getLogger(IndexTracker.class.getName() + ".perf"));
 
     private final LuceneIndexReaderFactory readerFactory;
+    private final NRTIndexFactory nrtFactory;
 
     private NodeState root = EMPTY_NODE;
 
@@ -66,7 +70,7 @@ class IndexTracker {
 
     private volatile boolean refresh;
 
-    IndexTracker() {
+    public IndexTracker() {
         this((IndexCopier)null);
     }
 
@@ -74,8 +78,13 @@ class IndexTracker {
         this(new DefaultIndexReaderFactory(Mounts.defaultMountInfoProvider(), cloner));
     }
 
-    IndexTracker(LuceneIndexReaderFactory readerFactory){
+    IndexTracker(LuceneIndexReaderFactory readerFactory) {
+        this(readerFactory, null);
+    }
+
+    public IndexTracker(LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory){
         this.readerFactory = readerFactory;
+        this.nrtFactory = nrtFactory;
     }
 
     synchronized void close() {
@@ -91,7 +100,7 @@ class IndexTracker {
         }
     }
 
-    synchronized void update(final NodeState root) {
+    public synchronized void update(final NodeState root) {
         if (refresh) {
             this.root = root;
             close();
@@ -115,7 +124,7 @@ class IndexTracker {
                 public void leave(NodeState before, NodeState after) {
                     try {
                         long start = PERF_LOGGER.start();
-                        IndexNode index = IndexNode.open(path, root, after, readerFactory);
+                        IndexNode index = IndexNode.open(path, root, after, readerFactory, nrtFactory);
                         PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
@@ -153,7 +162,7 @@ class IndexTracker {
         refresh = true;
     }
 
-    IndexNode acquireIndexNode(String path) {
+    public IndexNode acquireIndexNode(String path) {
         IndexNode index = indices.get(path);
         if (index != null && index.acquire()) {
             return index;
@@ -183,7 +192,7 @@ class IndexTracker {
 
         try {
             if (isLuceneIndexNode(node)) {
-                index = IndexNode.open(path, root, node, readerFactory);
+                index = IndexNode.open(path, root, node, readerFactory, nrtFactory);
                 if (index != null) {
                     checkState(index.acquire());
                     indices = ImmutableMap.<String, IndexNode>builder()

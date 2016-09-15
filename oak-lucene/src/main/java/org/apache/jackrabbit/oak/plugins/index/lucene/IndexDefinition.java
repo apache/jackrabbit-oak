@@ -231,6 +231,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final String indexPath;
 
+    private final boolean sync;
+
     @Nullable
     private final String uid;
 
@@ -303,6 +305,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
+        this.sync = determineSync(defn);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -431,6 +434,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     @CheckForNull
     public String getUniqueId() {
         return uid;
+    }
+
+    public boolean isSync() {
+        return sync;
     }
 
     @Override
@@ -1563,6 +1570,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         //For older format cost per entry would be higher as it does a runtime
         //aggregation
         return version == IndexFormatVersion.V1 ?  1.5 : 1.0;
+    }
+
+    private static boolean determineSync(NodeState defn) {
+        Iterable<String> async = defn.getStrings(IndexConstants.ASYNC_PROPERTY_NAME);
+        //TODO [hybrid] make it a constant
+        return Iterables.contains(async, "sync");
     }
 
 }

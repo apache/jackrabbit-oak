@@ -2422,7 +2422,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return createIndex(index, name, propNames);
     }
 
-    static Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
+    public static Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
