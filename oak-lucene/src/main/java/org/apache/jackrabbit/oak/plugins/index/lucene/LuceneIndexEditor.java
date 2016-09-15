@@ -275,6 +275,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return null; // no need to recurse down the removed subtree
     }
 
+    LuceneIndexEditorContext getContext() {
+        return context;
+    }
+
     private boolean addOrUpdate(String path, NodeState state, boolean isUpdate)
             throws CommitFailedException {
         try {
