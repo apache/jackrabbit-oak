@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 
@@ -29,6 +30,7 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,9 +41,17 @@ public class NRTIndexFactory implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ListMultimap<String, NRTIndex> indexes = LinkedListMultimap.create();
     private final IndexCopier indexCopier;
+    private final Clock clock;
+    private final long refreshDeltaInSecs;
 
     public NRTIndexFactory(IndexCopier indexCopier) {
+        this(indexCopier, Clock.SIMPLE, 1);
+    }
+
+    public NRTIndexFactory(IndexCopier indexCopier, Clock clock, long refreshDeltaInSecs) {
         this.indexCopier = checkNotNull(indexCopier);
+        this.clock = clock;
+        this.refreshDeltaInSecs = refreshDeltaInSecs;
     }
 
     //This would not be invoked concurrently
@@ -52,7 +62,7 @@ public class NRTIndexFactory implements Closeable{
             return null;
         }
         String indexPath = definition.getIndexPathFromConfig();
-        NRTIndex current = new NRTIndex(definition, indexCopier, getPrevious(indexPath));
+        NRTIndex current = new NRTIndex(definition, indexCopier, getRefreshPolicy(definition), getPrevious(indexPath));
         indexes.put(indexPath, current);
         closeLast(indexPath);
         return current;
@@ -90,5 +100,9 @@ public class NRTIndexFactory implements Closeable{
         }
         checkArgument(existing.size() <= 2, "Found [%s] more than 3 index", existing.size());
         return existing.get(existing.size() - 1);
+    }
+
+    private ReaderRefreshPolicy getRefreshPolicy(IndexDefinition definition) {
+        return new TimedRefreshPolicy(clock, TimeUnit.SECONDS, refreshDeltaInSecs);
     }
 }

@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -34,6 +33,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ReaderRefreshPolicy;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
@@ -58,12 +58,6 @@ public class IndexNode {
         return null;
     }
 
-    /**
-     * Time interval after which readers would be refreshed in case of real time index
-     * TODO Make this configurable
-     */
-    private final long refreshDelta = TimeUnit.SECONDS.toMillis(1);
-
     private final List<LuceneIndexReader> readers;
 
     private final String name;
@@ -76,9 +70,9 @@ public class IndexNode {
 
     private final NRTIndex nrtIndex;
 
-    private boolean closed = false;
+    private final ReaderRefreshPolicy refreshPolicy;
 
-    private long lastRefreshTime;
+    private boolean closed = false;
 
     IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
             throws IOException {
@@ -88,6 +82,7 @@ public class IndexNode {
         this.readers = readers;
         this.nrtIndex = nrtIndex;
         this.indexSearcher = new IndexSearcher(createReader());
+        this.refreshPolicy = nrtIndex != null ? nrtIndex.getRefreshPolicy() : ReaderRefreshPolicy.NEVER;
     }
 
     String getName() {
@@ -116,6 +111,7 @@ public class IndexNode {
             lock.readLock().unlock();
             return false;
         } else {
+            refreshReadersIfRequired();
             return true;
         }
     }
@@ -146,19 +142,10 @@ public class IndexNode {
         return nrtIndex != null ? nrtIndex.getWriter() : null;
     }
 
-    public void refreshReaders(long currentTime) {
-        //TODO [hybrid] Refreshing currently requires updates to happen
-        //However if no update happened after last update the refresh would not
-        //happen and result would remain stale upto next async cycle. Possibly
-        //introduce a refresh policy
-        if (currentTime - lastRefreshTime > refreshDelta){
-            lastRefreshTime = currentTime;
+    public void refreshReadersIfRequired() {
+        if (refreshPolicy.shouldRefresh()){
             indexSearcher = new IndexSearcher(createReader());
         }
-    }
-
-    public long getRefreshDelta() {
-        return refreshDelta;
     }
 
     private LuceneIndexReader getDefaultReader(){

@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -76,6 +77,8 @@ public class DocumentQueueTest {
 
     private IndexTracker tracker = new IndexTracker();
     private NRTIndexFactory indexFactory;
+    private Clock clock = new Clock.Virtual();
+    private long refreshDelta = TimeUnit.SECONDS.toMillis(1);
 
     @Before
     public void setUp() throws IOException {
@@ -92,7 +95,7 @@ public class DocumentQueueTest {
 
     @Test
     public void dropDocOnLimit() throws Exception{
-        DocumentQueue queue = new DocumentQueue(2, tracker, Clock.SIMPLE, NOOP_EXECUTOR);
+        DocumentQueue queue = new DocumentQueue(2, tracker, NOOP_EXECUTOR);
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
 
@@ -102,14 +105,14 @@ public class DocumentQueueTest {
 
     @Test
     public void noIssueIfNoIndex() throws Exception{
-        DocumentQueue queue = new DocumentQueue(2, tracker, Clock.SIMPLE, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
         assertTrue(queue.getQueuedDocs().isEmpty());
     }
 
     @Test
     public void closeQueue() throws Exception{
-        DocumentQueue queue = new DocumentQueue(2, tracker, Clock.SIMPLE, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
         queue.close();
 
         try {
@@ -123,7 +126,7 @@ public class DocumentQueueTest {
     @Test
     public void noIssueIfNoWriter() throws Exception{
         NodeState indexed = createAndPopulateAsyncIndex();
-        DocumentQueue queue = new DocumentQueue(2, tracker, Clock.SIMPLE, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
 
         tracker.update(indexed);
         assertTrue(queue.add(LuceneDoc.forDelete("/oak:index/fooIndex", "bar")));
@@ -134,7 +137,7 @@ public class DocumentQueueTest {
         IndexTracker tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex();
         tracker.update(indexed);
-        DocumentQueue queue = new DocumentQueue(2, tracker, Clock.SIMPLE, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
 
         Document d1 = new Document();
         d1.add(newPathField("/a/b"));
@@ -148,69 +151,63 @@ public class DocumentQueueTest {
 
     @Test
     public void indexRefresh() throws Exception{
-        IndexTracker tracker = createTracker();
+        tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex();
         tracker.update(indexed);
 
-        Clock clock = new Clock.Virtual();
-        clock.waitUntil(System.currentTimeMillis());
+        clock.waitUntil(refreshDelta);
 
-        DocumentQueue queue = new DocumentQueue(2, tracker, clock, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
 
-        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/fooIndex");
-        TopDocs td = doSearch(indexNode, "bar");
+        TopDocs td = doSearch("bar");
         assertEquals(1, td.totalHits);
 
         addDoc(queue, "/a/b", "bar");
 
         //First update would be picked as base time was zero which would now
         //get initialized
-        td = doSearch(indexNode, "bar");
+        td = doSearch("bar");
         assertEquals(2, td.totalHits);
 
         addDoc(queue, "/a/c", "bar");
 
         //Now it would not update as refresh interval has not exceeded
-        td = doSearch(indexNode, "bar");
+        td = doSearch("bar");
         assertEquals(2, td.totalHits);
-
-        //Get past the delta time
-        clock.waitUntil(clock.getTime() + indexNode.getRefreshDelta() + 1);
 
         addDoc(queue, "/a/d", "bar");
 
+        //Get past the delta time
+        clock.waitUntil(clock.getTime() + refreshDelta + 1);
+
         //Now it should show updated result
-        td = doSearch(indexNode, "bar");
+        td = doSearch("bar");
         assertEquals(4, td.totalHits);
 
         //Phase 2 - Check affect of async index update cycle
         //With that there should only be 2 copies of NRTIndex kept
         indexed = doAsyncIndex(indexed, "a2", "bar");
 
-        indexNode.release();
         tracker.update(indexed);
-        indexNode = tracker.acquireIndexNode("/oak:index/fooIndex");
 
         //Now result would be latest from async + last local
-        td = doSearch(indexNode, "bar");
+        td = doSearch("bar");
         assertEquals(5, td.totalHits);
 
         //Now there would be to NRTIndex - previous and current
         //so add to current and query again
         addDoc(queue, "/a/e", "bar");
-        td = doSearch(indexNode, "bar");
+        td = doSearch("bar");
         assertEquals(6, td.totalHits);
 
         //Now do another async update
         indexed = doAsyncIndex(indexed, "a3", "bar");
 
-        indexNode.release();
         tracker.update(indexed);
-        indexNode = tracker.acquireIndexNode("/oak:index/fooIndex");
 
         //Now total count would be 4
         //3 from async and 1 from current
-        td = doSearch(indexNode, "bar");
+        td = doSearch("bar");
         assertEquals(4, td.totalHits);
     }
 
@@ -222,8 +219,13 @@ public class DocumentQueueTest {
         return asyncHook.processCommit(current, after, newCommitInfo());
     }
 
-    private TopDocs doSearch(IndexNode indexNode, String fooValue) throws IOException {
-        return indexNode.getSearcher().search(new TermQuery(new Term("foo", fooValue)), 10);
+    private TopDocs doSearch(String fooValue) throws IOException {
+        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/fooIndex");
+        try {
+            return indexNode.getSearcher().search(new TermQuery(new Term("foo", fooValue)), 10);
+        } finally {
+            indexNode.release();
+        }
     }
 
     private void addDoc(DocumentQueue queue, String docPath, String fooValue) {
@@ -235,7 +237,7 @@ public class DocumentQueueTest {
 
     private IndexTracker createTracker() throws IOException {
         IndexCopier indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier);
+        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
         return new IndexTracker(
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
                 indexFactory
