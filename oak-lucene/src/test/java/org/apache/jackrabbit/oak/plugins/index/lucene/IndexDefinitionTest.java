@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -869,14 +870,14 @@ public class IndexDefinitionTest {
 
     @Test
     public void nrt() throws Exception{
-        TestUtil.enableNRTIndexing(builder);
+        TestUtil.enableIndexingMode(builder, IndexingMode.NRT);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         assertTrue(idxDefn.isNRTIndexingEnabled());
     }
 
     @Test
     public void sync() throws Exception{
-        TestUtil.enableIndexingMode(builder, LuceneIndexConstants.IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(builder, IndexingMode.SYNC);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         assertFalse(idxDefn.isNRTIndexingEnabled());
         assertTrue(idxDefn.isSyncIndexingEnabled());

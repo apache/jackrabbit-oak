@@ -223,16 +223,6 @@ public class TestUtil {
         }
     }
 
-    public static NodeBuilder enableNRTIndexing(NodeBuilder builder){
-        builder.setProperty(createAsyncProperty("nrt"));
-        return builder;
-    }
-
-    public static Tree enableNRTIndexing(Tree tree){
-        tree.setProperty(createAsyncProperty("nrt"));
-        return tree;
-    }
-
     public static NodeBuilder enableIndexingMode(NodeBuilder builder, IndexingMode indexingMode){
         builder.setProperty(createAsyncProperty(indexingMode));
         return builder;

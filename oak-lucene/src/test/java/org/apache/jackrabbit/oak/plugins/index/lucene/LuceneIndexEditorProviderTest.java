@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -119,7 +120,7 @@ public class LuceneIndexEditorProviderTest {
     private NodeState createIndexDefinition(String idxName) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
                 idxName, ImmutableSet.of("foo"), "async");
-        TestUtil.enableNRTIndexing(idx);
+        TestUtil.enableIndexingMode(idx, IndexingMode.NRT);
         LuceneIndexEditorContext.configureUniqueId(idx);
         IndexDefinition.updateDefinition(idx);
         return idx.getNodeState();

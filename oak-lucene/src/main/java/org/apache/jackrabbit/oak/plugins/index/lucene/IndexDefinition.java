@@ -79,6 +79,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.*;
@@ -1580,15 +1582,15 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static boolean supportsNRTIndexing(NodeState defn) {
-        return supportsIndexingMode(new ReadOnlyBuilder(defn), "nrt");
+        return supportsIndexingMode(new ReadOnlyBuilder(defn), INDEXING_MODE_NRT);
     }
 
     private static boolean supportsSyncIndexing(NodeState defn) {
-        return supportsIndexingMode(new ReadOnlyBuilder(defn), "sync");
+        return supportsIndexingMode(new ReadOnlyBuilder(defn), INDEXING_MODE_SYNC);
     }
 
     public static boolean supportsSyncOrNRTIndexing(NodeBuilder defn) {
-       return supportsIndexingMode(defn, "nrt") || supportsIndexingMode(defn, "sync");
+       return supportsIndexingMode(defn, INDEXING_MODE_NRT) || supportsIndexingMode(defn, INDEXING_MODE_SYNC);
     }
 
     private static boolean supportsIndexingMode(NodeBuilder defn, String mode) {
@@ -1596,7 +1598,6 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         if (async == null){
             return false;
         }
-        //TODO [hybrid] make it a constant
         return Iterables.contains(async.getValue(Type.STRINGS), mode);
     }
 
