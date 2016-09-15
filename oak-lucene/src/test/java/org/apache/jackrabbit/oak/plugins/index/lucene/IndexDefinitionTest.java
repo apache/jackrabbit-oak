@@ -77,7 +77,7 @@ public class IndexDefinitionTest {
     public void defaultConfig() throws Exception{
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         assertTrue(idxDefn.saveDirListing());
-        assertFalse(idxDefn.isSync());
+        assertFalse(idxDefn.isNRTIndexingEnabled());
     }
 
     @Test
@@ -871,7 +871,7 @@ public class IndexDefinitionTest {
     public void sync() throws Exception{
         builder.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("sync" , "async"), STRINGS));
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
-        assertTrue(idxDefn.isSync());
+        assertTrue(idxDefn.isNRTIndexingEnabled());
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled

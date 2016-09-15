@@ -91,7 +91,7 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
 
         private void addLuceneDoc(LuceneDoc luceneDoc) {
             if (docList == null){
-                docList = getDocumentHolder().getAsyncIndexedDocList(indexingContext.getIndexPath());
+                docList = getDocumentHolder().getNRTIndexedDocList(indexingContext.getIndexPath());
             }
             //TODO [hybrid] checks about the size. If too many drop
             //However for truly sync case hold on

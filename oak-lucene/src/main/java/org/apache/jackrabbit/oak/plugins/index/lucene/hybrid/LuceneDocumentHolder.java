@@ -27,13 +27,13 @@ import com.google.common.collect.ListMultimap;
 class LuceneDocumentHolder {
     public static final String NAME = "oak.lucene.documentHolder";
 
-    private final ListMultimap<String, LuceneDoc> asyncList = ArrayListMultimap.create();
+    private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
 
-    public List<LuceneDoc> getAsyncIndexedDocList(String indexPath) {
-        return asyncList.get(indexPath);
+    public List<LuceneDoc> getNRTIndexedDocList(String indexPath) {
+        return nrtIndexedList.get(indexPath);
     }
 
-    public Iterable<LuceneDoc> getAsyncIndexedDocs(){
-        return asyncList.values();
+    public Iterable<LuceneDoc> getNRTIndexedDocs(){
+        return nrtIndexedList.values();
     }
 }
