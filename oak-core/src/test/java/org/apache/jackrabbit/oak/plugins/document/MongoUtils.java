@@ -33,7 +33,7 @@ public class MongoUtils {
     protected static final int PORT =
             Integer.getInteger("mongo.port", 27017);
 
-    protected static final String DB =
+    public static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
     public static final String URL =
