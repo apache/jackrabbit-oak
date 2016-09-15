@@ -54,6 +54,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
     private final LuceneIndexWriterFactory indexWriterFactory;
+    private final IndexTracker indexTracker;
 
     public LuceneIndexEditorProvider() {
         this(null);
@@ -73,7 +74,16 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      ExtractedTextCache extractedTextCache,
                                      @Nullable IndexAugmentorFactory augmentorFactory,
                                      MountInfoProvider mountInfoProvider) {
+        this(indexCopier, null, extractedTextCache, augmentorFactory, mountInfoProvider);
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     @Nullable IndexTracker indexTracker,
+                                     ExtractedTextCache extractedTextCache,
+                                     @Nullable IndexAugmentorFactory augmentorFactory,
+                                     MountInfoProvider mountInfoProvider) {
         this.indexCopier = indexCopier;
+        this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.augmentorFactory = augmentorFactory;
         this.indexWriterFactory = new DefaultIndexWriterFactory(checkNotNull(mountInfoProvider), indexCopier);
@@ -89,6 +99,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                     "ContextAwareCallback [%s]", callback);
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
+            IndexDefinition indexDefinition = null;
             if (!indexingContext.isAsync() && supportsSyncIndexing(definition)) {
 
                 //Would not participate in reindexing. Only interested in
@@ -97,12 +108,17 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                     return null;
                 }
                 //TODO [hybrid] switch the builder to readonly one
-                //TODO [hybrid] Make use of existing IndexDefinition to avoid reinit for
-                //every commit
                 writerFactory = new LocalIndexWriterFactory(indexingContext);
+
+                //IndexDefinition from tracker might differ from one passed here for reindexing
+                //case which should be fine. However reusing existing definition would avoid
+                //creating definition instance for each commit as this gets executed for each commit
+                if (indexTracker != null){
+                    indexDefinition = indexTracker.getIndexDefinition(indexingContext.getIndexPath());
+                }
             }
 
-            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, callback,
+            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
                     writerFactory, extractedTextCache, augmentorFactory);
             return new LuceneIndexEditor(context);
         }
