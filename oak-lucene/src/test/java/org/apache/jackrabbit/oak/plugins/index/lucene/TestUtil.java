@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -218,5 +219,15 @@ public class TestUtil {
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
+    }
+
+    public static NodeBuilder enableNRTIndexing(NodeBuilder builder){
+        builder.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("nrt" , "async"), STRINGS));
+        return builder;
+    }
+
+    public static Tree enableNRTIndexing(Tree tree){
+        tree.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("nrt" , "async"), STRINGS));
+        return tree;
     }
 }

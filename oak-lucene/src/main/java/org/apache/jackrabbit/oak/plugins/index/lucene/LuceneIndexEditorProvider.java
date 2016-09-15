@@ -102,7 +102,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
-            if (!indexingContext.isAsync() && IndexDefinition.supportsSyncIndexing(definition)) {
+            if (!indexingContext.isAsync() && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
 
                 //Would not participate in reindexing. Only interested in
                 //incremental indexing

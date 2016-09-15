@@ -31,13 +31,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -67,9 +65,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.createIndex;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -133,7 +129,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void hybridIndex() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        idx.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, ImmutableSet.of("sync" , "async"), STRINGS));
+        TestUtil.enableNRTIndexing(idx);
         root.commit();
 
         //Get initial indexing done as local indexing only work
@@ -169,7 +165,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void noTextExtractionForSyncCommit() throws Exception{
         String idxName = "hybridtest";
         Tree idx = TestUtil.createFulltextIndex(root.getTree("/"), idxName);
-        idx.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, ImmutableSet.of("sync" , "async"), STRINGS));
+        TestUtil.enableNRTIndexing(idx);
         root.commit();
 
         runAsyncIndex();

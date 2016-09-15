@@ -119,7 +119,7 @@ public class LuceneIndexEditorProviderTest {
     private NodeState createIndexDefinition(String idxName) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
                 idxName, ImmutableSet.of("foo"), "async");
-        idx.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("sync", "async"), STRINGS));
+        TestUtil.enableNRTIndexing(idx);
         LuceneIndexEditorContext.configureUniqueId(idx);
         IndexDefinition.updateDefinition(idx);
         return idx.getNodeState();
