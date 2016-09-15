@@ -25,12 +25,16 @@ import java.util.Map;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class LuceneDocumentHolder {
+    private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
     public static final String NAME = "oak.lucene.documentHolder";
 
     private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
     private final ListMultimap<String, LuceneDoc> syncIndexedList = ArrayListMultimap.create();
+    private boolean limitWarningLogged;
 
     public List<LuceneDoc> getNRTIndexedDocList(String indexPath) {
         return nrtIndexedList.get(indexPath);
@@ -46,5 +50,17 @@ class LuceneDocumentHolder {
 
     public Map<String, Collection<LuceneDoc>> getSyncIndexedDocs(){
         return syncIndexedList.asMap();
+    }
+
+    public boolean checkLimitAndLogWarning(int maxSize){
+        if (nrtIndexedList.size() >= maxSize){
+            if (!limitWarningLogged){
+                log.warn("Number of in memory documents meant for hybrid indexing has " +
+                        "exceeded limit [{}]. Some documents would be dropped", maxSize);
+                limitWarningLogged = true;
+            }
+            return true;
+        }
+        return false;
     }
 }

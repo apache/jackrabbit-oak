@@ -52,10 +52,11 @@ public class LocalIndexWriterFactoryTest {
     private EditorHook syncHook;
     private EditorHook asyncHook;
     private CommitInfo info;
+    private LuceneIndexEditorProvider editorProvider;
 
     @Before
     public void setUp() throws IOException {
-        IndexEditorProvider editorProvider = new LuceneIndexEditorProvider(
+        editorProvider = new LuceneIndexEditorProvider(
                 null,
                 null,
                 null,
@@ -151,6 +152,21 @@ public class LocalIndexWriterFactoryTest {
         //2 add none for delete
         assertEquals(2, holder.getSyncIndexedDocList("/oak:index/fooIndex").size());
         assertEquals(0, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
+    }
+
+    @Test
+    public void inMemoryDocLimit() throws Exception{
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
+        editorProvider.setInMemoryDocsLimit(5);
+        builder = indexed.builder();
+        for (int i = 0; i < 10; i++) {
+            builder.child("b" + i).setProperty("foo", "bar");
+        }
+        NodeState after = builder.getNodeState();
+        syncHook.processCommit(indexed, after, newCommitInfo());
+
+        LuceneDocumentHolder holder = getHolder();
+        assertEquals(5, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
     }
 
     private NodeState createAndPopulateAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {

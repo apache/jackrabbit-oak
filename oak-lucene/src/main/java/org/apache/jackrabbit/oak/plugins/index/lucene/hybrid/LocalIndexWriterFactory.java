@@ -35,10 +35,12 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
     public static final String COMMIT_PROCESSED_BY_LOCAL_LUCENE_EDITOR = "commitProcessedByLocalLuceneEditor";
     private final IndexingContext indexingContext;
     private final CommitContext commitContext;
+    private final int inMemoryDocsLimit;
 
-    public LocalIndexWriterFactory(IndexingContext indexingContext) {
+    public LocalIndexWriterFactory(IndexingContext indexingContext, int inMemoryDocsLimit) {
         this.indexingContext = indexingContext;
         this.commitContext = getCommitContext(indexingContext);
+        this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
     private LuceneDocumentHolder getDocumentHolder(){
@@ -100,8 +102,12 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
                             "mode apart from 'sync' and 'nrt'");
                 }
             }
-            //TODO [hybrid] checks about the size. If too many drop
-            //However for truly sync case hold on
+
+            if (definition.isNRTIndexingEnabled()
+                    && getDocumentHolder().checkLimitAndLogWarning(inMemoryDocsLimit)){
+               return;
+            }
+
             docList.add(luceneDoc);
         }
     }
