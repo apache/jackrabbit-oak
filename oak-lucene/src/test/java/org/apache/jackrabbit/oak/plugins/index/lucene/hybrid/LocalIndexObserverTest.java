@@ -72,7 +72,7 @@ public class LocalIndexObserverTest {
         CommitContext cc = (CommitContext) info.getInfo().get(CommitContext.NAME);
 
         LuceneDocumentHolder holder = new LuceneDocumentHolder();
-        holder.getAsyncIndexedDocList("foo").add(LuceneDoc.forDelete("foo", "bar"));
+        holder.getNRTIndexedDocList("foo").add(LuceneDoc.forDelete("foo", "bar"));
 
         cc.set(LuceneDocumentHolder.NAME, holder);
 

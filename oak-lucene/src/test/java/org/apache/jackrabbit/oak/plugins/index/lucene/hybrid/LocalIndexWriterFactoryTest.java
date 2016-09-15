@@ -114,7 +114,7 @@ public class LocalIndexWriterFactoryTest {
         assertNotNull(holder);
 
         //2 add none for delete
-        assertEquals(2, holder.getAsyncIndexedDocList("/oak:index/fooIndex").size());
+        assertEquals(2, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
     }
 
     @Test
@@ -131,10 +131,10 @@ public class LocalIndexWriterFactoryTest {
         assertNotNull(holder);
 
         //1 add  - bar
-        assertEquals(1, holder.getAsyncIndexedDocList("/oak:index/fooIndex").size());
+        assertEquals(1, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
 
         //1 add  - bar
-        assertEquals(1, holder.getAsyncIndexedDocList("/oak:index/barIndex").size());
+        assertEquals(1, holder.getNRTIndexedDocList("/oak:index/barIndex").size());
 
     }
 

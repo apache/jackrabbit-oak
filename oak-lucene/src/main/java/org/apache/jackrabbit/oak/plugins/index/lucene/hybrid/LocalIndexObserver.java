@@ -64,7 +64,7 @@ public class LocalIndexObserver implements Observer{
         }
 
         int addedCount = 0, droppedCount = 0;
-        for (LuceneDoc doc : holder.getAsyncIndexedDocs()){
+        for (LuceneDoc doc : holder.getNRTIndexedDocs()){
             if (docQueue.add(doc)) {
                 addedCount++;
             } else {

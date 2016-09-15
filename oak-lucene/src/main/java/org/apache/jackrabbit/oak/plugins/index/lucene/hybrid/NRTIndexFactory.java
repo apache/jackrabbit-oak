@@ -58,7 +58,7 @@ public class NRTIndexFactory implements Closeable{
     // but still mark it synchronized for safety
     @CheckForNull
     public synchronized NRTIndex createIndex(IndexDefinition definition) {
-        if (!definition.isSync()){
+        if (!definition.isNRTIndexingEnabled()){
             return null;
         }
         String indexPath = definition.getIndexPathFromConfig();
