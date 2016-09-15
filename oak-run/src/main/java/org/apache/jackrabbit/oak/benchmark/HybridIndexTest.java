@@ -87,7 +87,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
     private int queueSize = Integer.getInteger("queueSize", 1000);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
-    private boolean metricStatsEnabled = Boolean.getBoolean("metricStatsEnabled");
+    private boolean metricStatsEnabled = Boolean.parseBoolean(System.getProperty("metricStatsEnabled", "true"));
     private File indexCopierDir;
     private IndexCopier copier;
     private NRTIndexFactory nrtIndexFactory;
@@ -166,6 +166,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     @Override
     protected void afterSuite() throws Exception {
         if (hybridIndexEnabled){
+            //TODO This to avoid issue with Indexing still running post afterSuite call
+            //TO handle this properly we would need a callback after repository shutdown
+            //and before NodeStore teardown
+            getAsyncIndexUpdate().close();
             queue.close();
             nrtIndexFactory.close();
             dumpStats();
@@ -180,6 +184,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     private void dumpStats() {
+        if (!metricStatsEnabled) {
+            return;
+        }
         ConsoleReporter.forRegistry(metricStatsProvider.getRegistry())
                 .outputTo(System.out)
                 .filter(new MetricFilter() {
@@ -247,13 +254,16 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     private void runAsyncIndex() {
-        Runnable async = WhiteboardUtils.getService(whiteboard, Runnable.class, new Predicate<Runnable>() {
-            @Override
-            public boolean apply(@Nullable Runnable input) {
-                return input instanceof AsyncIndexUpdate;
-            }
-        });
-        checkNotNull(async).run();
+        checkNotNull(getAsyncIndexUpdate()).run();
+    }
+
+    private AsyncIndexUpdate getAsyncIndexUpdate() {
+        return (AsyncIndexUpdate)WhiteboardUtils.getService(whiteboard, Runnable.class, new Predicate<Runnable>() {
+                @Override
+                public boolean apply(@Nullable Runnable input) {
+                    return input instanceof AsyncIndexUpdate;
+                }
+            });
     }
 
     private static File createTemporaryFolderIn(File parentFolder) throws IOException {
