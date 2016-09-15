@@ -331,6 +331,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return blobSize;
     }
 
+    @CheckForNull
     public Codec getCodec() {
         return codec;
     }

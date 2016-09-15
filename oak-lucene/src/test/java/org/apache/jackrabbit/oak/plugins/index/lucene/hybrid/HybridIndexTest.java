@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -107,7 +108,7 @@ public class HybridIndexTest extends AbstractQueryTest {
                 mip);
 
         queue = new DocumentQueue(100, tracker, sameThreadExecutor());
-        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue);
+        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
 
         nodeStore = new MemoryNodeStore();
         Oak oak = new Oak(nodeStore)

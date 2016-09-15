@@ -34,6 +34,9 @@ import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,7 @@ public class DocumentQueue implements Closeable{
     private final IndexTracker tracker;
     private final BlockingQueue<LuceneDoc> docsQueue;
     private final Executor executor;
+    private final CounterStats queueSizeStats;
     private volatile boolean stopped;
 
     /**
@@ -75,6 +79,7 @@ public class DocumentQueue implements Closeable{
                     LuceneDoc doc = docsQueue.poll();
                     if (doc != null && doc != STOP) {
                         processDoc(doc);
+                        queueSizeStats.dec();
                         currentTask.onComplete(completionHandler);
                     }
                 } catch (Throwable t) {
@@ -92,9 +97,14 @@ public class DocumentQueue implements Closeable{
     };
 
     public DocumentQueue(int maxQueueSize, IndexTracker tracker, Executor executor) {
+        this(maxQueueSize, tracker, executor, StatisticsProvider.NOOP);
+    }
+
+    public DocumentQueue(int maxQueueSize, IndexTracker tracker, Executor executor, StatisticsProvider sp) {
         this.docsQueue = new LinkedBlockingDeque<>(maxQueueSize);
         this.tracker = tracker;
         this.executor = executor;
+        this.queueSizeStats = sp.getCounterStats("HYBRID_QUEUE_SIZE", StatsOptions.DEFAULT);
     }
 
     public boolean add(LuceneDoc doc){
@@ -104,6 +114,9 @@ public class DocumentQueue implements Closeable{
         // to onComplete are not a problem here since we always pass the same value.
         // Thus there is no question as to which of the handlers will effectively run.
         currentTask.onComplete(completionHandler);
+        if (added) {
+            queueSizeStats.inc();
+        }
         //TODO log warning when queue is full
         return added;
     }
@@ -136,6 +149,7 @@ public class DocumentQueue implements Closeable{
             } else {
                 writer.updateDocument(doc.docPath, doc.doc);
             }
+            log.trace("Updated index with doc {}", doc);
             indexNode.refreshReadersIfRequired();
         } catch (Exception e) {
             //For now we just log it. Later we need to see if frequent error then to
