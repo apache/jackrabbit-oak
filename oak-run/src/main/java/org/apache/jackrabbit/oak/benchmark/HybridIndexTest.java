@@ -358,7 +358,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         System.out.println(indexStats.getConsolidatedExecutionStats());
         String queueSize = Arrays.toString(statsProvider.getStats().getTimeSeries("HYBRID_QUEUE_SIZE", false)
                 .getValuePerSecond());
-        System.out.println("Queue size " + queueSize);
+        System.out.println("Queue size - " + queueSize);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
