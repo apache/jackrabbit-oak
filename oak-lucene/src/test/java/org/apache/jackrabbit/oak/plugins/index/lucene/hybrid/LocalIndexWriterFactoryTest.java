@@ -113,8 +113,8 @@ public class LocalIndexWriterFactoryTest {
         LuceneDocumentHolder holder = getHolder();
         assertNotNull(holder);
 
-        //2 add and 1 delete
-        assertEquals(3, holder.getAsyncIndexedDocList("/oak:index/fooIndex").size());
+        //2 add none for delete
+        assertEquals(2, holder.getAsyncIndexedDocList("/oak:index/fooIndex").size());
     }
 
     @Test
@@ -130,11 +130,11 @@ public class LocalIndexWriterFactoryTest {
         LuceneDocumentHolder holder = getHolder();
         assertNotNull(holder);
 
-        //1 add and 1 delete - bar
-        assertEquals(2, holder.getAsyncIndexedDocList("/oak:index/fooIndex").size());
+        //1 add  - bar
+        assertEquals(1, holder.getAsyncIndexedDocList("/oak:index/fooIndex").size());
 
-        //1 add and 1 delete - bar
-        assertEquals(2, holder.getAsyncIndexedDocList("/oak:index/barIndex").size());
+        //1 add  - bar
+        assertEquals(1, holder.getAsyncIndexedDocList("/oak:index/barIndex").size());
 
     }
 

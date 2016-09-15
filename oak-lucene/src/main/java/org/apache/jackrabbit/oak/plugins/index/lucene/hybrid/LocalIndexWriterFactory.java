@@ -76,7 +76,9 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
 
         @Override
         public void deleteDocuments(String path) throws IOException {
-            addLuceneDoc(LuceneDoc.forDelete(definition.getIndexPathFromConfig(), path));
+            //Hybrid index logic drops the deletes. So no use to
+            //add them to the list
+            //addLuceneDoc(LuceneDoc.forDelete(definition.getIndexPathFromConfig(), path));
         }
 
         @Override
