@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
@@ -171,7 +172,7 @@ public class NRTIndexTest {
 
     private IndexDefinition getSyncIndexDefinition(String indexPath) {
         builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
-        TestUtil.enableNRTIndexing(builder);
+        TestUtil.enableIndexingMode(builder, IndexingMode.NRT);
 
         return new IndexDefinition(root, builder.getNodeState());
     }

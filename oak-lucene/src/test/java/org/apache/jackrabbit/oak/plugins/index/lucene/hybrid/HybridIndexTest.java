@@ -130,7 +130,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void hybridIndex() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableNRTIndexing(idx);
+        TestUtil.enableIndexingMode(idx, IndexingMode.NRT);
         root.commit();
 
         //Get initial indexing done as local indexing only work
@@ -166,7 +166,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void noTextExtractionForSyncCommit() throws Exception{
         String idxName = "hybridtest";
         Tree idx = TestUtil.createFulltextIndex(root.getTree("/"), idxName);
-        TestUtil.enableNRTIndexing(idx);
+        TestUtil.enableIndexingMode(idx, IndexingMode.NRT);
         root.commit();
 
         runAsyncIndex();
