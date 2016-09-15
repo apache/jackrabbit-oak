@@ -51,6 +51,9 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
@@ -61,6 +64,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
@@ -191,6 +195,23 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_BOOLEAN_CLAUSE_LIMIT = "booleanClauseLimit";
 
+    private static final boolean PROP_HYBRID_INDEXING_DEFAULT = true;
+    @Property(
+            boolValue = PROP_HYBRID_INDEXING_DEFAULT,
+            label = "Hybrid Indexing",
+            description = "When enabled Lucene NRT Indexing mode would be enabled"
+    )
+    private static final String PROP_HYBRID_INDEXING = "enableHybridIndexing";
+
+    private static final int PROP_HYBRID_QUEUE_SIZE_DEFAULT = 1000;
+    @Property(
+            intValue = PROP_HYBRID_QUEUE_SIZE_DEFAULT,
+            label = "Queue size",
+            description = "Size of in memory queue used for storing Lucene Documents which need to be " +
+                    "added to local index"
+    )
+    private static final String PROP_HYBRID_QUEUE_SIZE = "hybridQueueSize";
+
     private Whiteboard whiteboard;
 
     private BackgroundObserver backgroundObserver;
@@ -200,6 +221,9 @@ public class LuceneIndexProviderService {
 
     @Reference
     private IndexAugmentorFactory augmentorFactory;
+
+    @Reference
+    private StatisticsProvider statisticsProvider;
 
     @Reference(policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL_UNARY,
@@ -220,10 +244,17 @@ public class LuceneIndexProviderService {
 
     private ExtractedTextCache extractedTextCache;
 
+    private boolean hybridIndex;
+
+    private NRTIndexFactory nrtIndexFactory;
+
+    private DocumentQueue documentQueue;
+
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
         boolean disabled = PropertiesUtil.toBoolean(config.get(PROP_DISABLED), PROP_DISABLED_DEFAULT);
+        hybridIndex = PropertiesUtil.toBoolean(config.get(PROP_HYBRID_INDEXING), PROP_DISABLED_DEFAULT);
 
         if (disabled) {
             log.info("Component disabled by configuration");
@@ -236,13 +267,15 @@ public class LuceneIndexProviderService {
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeExtractedTextCache(bundleContext, config);
-        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config), scorerFactory, augmentorFactory);
+        IndexTracker tracker = createTracker(bundleContext, config);
+        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
         initializeLogging(config);
         initialize();
 
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
         registerObserver(bundleContext, config);
-        registerIndexEditor(bundleContext, config);
+        registerLocalIndexObserver(bundleContext, tracker, config);
+        registerIndexEditor(bundleContext, tracker, config);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
@@ -269,6 +302,14 @@ public class LuceneIndexProviderService {
         if (indexProvider != null) {
             indexProvider.close();
             indexProvider = null;
+        }
+
+        if (documentQueue != null){
+            documentQueue.close();
+        }
+
+        if (nrtIndexFactory != null){
+            nrtIndexFactory.close();
         }
 
         //Close the copier first i.e. before executorService
@@ -313,15 +354,17 @@ public class LuceneIndexProviderService {
         }
     }
 
-    private void registerIndexEditor(BundleContext bundleContext, Map<String, ?> config) throws IOException {
+    private void registerIndexEditor(BundleContext bundleContext, IndexTracker tracker, Map<String, ?> config) throws IOException {
         boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_WRITE), PROP_COPY_ON_WRITE_DEFAULT);
         LuceneIndexEditorProvider editorProvider;
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
-            editorProvider = new LuceneIndexEditorProvider(indexCopier, extractedTextCache, augmentorFactory, mountInfoProvider);
+            editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
+                    augmentorFactory,  mountInfoProvider);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
-            editorProvider = new LuceneIndexEditorProvider(null, extractedTextCache, augmentorFactory, mountInfoProvider);
+            editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
+                    mountInfoProvider);
         }
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, null));
         oakRegs.add(registerMBean(whiteboard,
@@ -336,7 +379,10 @@ public class LuceneIndexProviderService {
         if (enableCopyOnRead){
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
-            return new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier));
+            if (hybridIndex) {
+                nrtIndexFactory = new NRTIndexFactory(indexCopier);
+            }
+            return new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
         }
 
         return new IndexTracker();
@@ -423,6 +469,19 @@ public class LuceneIndexProviderService {
             log.info("Registering the LuceneIndexProvider as a BackgroundObserver");
         }
         regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
+    }
+
+    private void registerLocalIndexObserver(BundleContext bundleContext, IndexTracker tracker, Map<String, ?> config) {
+        if (!hybridIndex){
+            log.info("Hybrid indexing feature disabled");
+            return;
+        }
+
+        int queueSize = PropertiesUtil.toInteger(config.get(PROP_HYBRID_QUEUE_SIZE), PROP_HYBRID_QUEUE_SIZE_DEFAULT);
+        documentQueue = new DocumentQueue(queueSize, tracker, getExecutorService(), statisticsProvider);
+        LocalIndexObserver localIndexObserver = new LocalIndexObserver(documentQueue, statisticsProvider);
+        regs.add(bundleContext.registerService(Observer.class.getName(), localIndexObserver, null));
+        log.info("Hybrid indexing enabled for configured indexes with queue size of {}", queueSize);
     }
 
     private void initializeFactoryClassLoaders(ClassLoader classLoader) {

@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
@@ -70,6 +72,7 @@ public class LuceneIndexProviderServiceTest {
     @Before
     public void setUp(){
         context.registerService(MountInfoProvider.class, Mounts.defaultMountInfoProvider());
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(ScorerProviderFactory.class, ScorerProviderFactory.DEFAULT);
         context.registerService(IndexAugmentorFactory.class, mock(IndexAugmentorFactory.class));
         MockOsgi.injectServices(service, context.bundleContext());
@@ -98,6 +101,8 @@ public class LuceneIndexProviderServiceTest {
         assertEquals(InfoStream.NO_OUTPUT, InfoStream.getDefault());
 
         assertEquals(1024, BooleanQuery.getMaxClauseCount());
+
+        assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue"));
 
         MockOsgi.deactivate(service);
     }
