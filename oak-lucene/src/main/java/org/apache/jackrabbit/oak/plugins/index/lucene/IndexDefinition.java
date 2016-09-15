@@ -230,7 +230,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final String indexPath;
 
-    private final boolean nrt;
+    private final boolean nrtIndexMode;
 
     @Nullable
     private final String uid;
@@ -304,7 +304,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
-        this.nrt = supportsNRTIndexing(defn);
+        this.nrtIndexMode = supportsNRTIndexing(defn);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -437,7 +437,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public boolean isNRTIndexingEnabled() {
-        return nrt;
+        return nrtIndexMode;
     }
 
     @Override
@@ -1573,16 +1573,20 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static boolean supportsNRTIndexing(NodeState defn) {
-        return supportsSyncIndexing(new ReadOnlyBuilder(defn));
+        return supportsIndexingMode(new ReadOnlyBuilder(defn), "nrt");
     }
 
-    public static boolean supportsSyncIndexing(NodeBuilder defn) {
+    public static boolean supportsSyncOrNRTIndexing(NodeBuilder defn) {
+       return supportsIndexingMode(defn, "nrt") || supportsIndexingMode(defn, "sync");
+    }
+
+    private static boolean supportsIndexingMode(NodeBuilder defn, String mode) {
         PropertyState async = defn.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
         if (async == null){
             return false;
         }
         //TODO [hybrid] make it a constant
-        return Iterables.contains(async.getValue(Type.STRINGS), "sync");
+        return Iterables.contains(async.getValue(Type.STRINGS), mode);
     }
 
 }

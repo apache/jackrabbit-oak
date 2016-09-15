@@ -868,8 +868,8 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void sync() throws Exception{
-        builder.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("sync" , "async"), STRINGS));
+    public void nrt() throws Exception{
+        TestUtil.enableNRTIndexing(builder);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         assertTrue(idxDefn.isNRTIndexingEnabled());
     }
