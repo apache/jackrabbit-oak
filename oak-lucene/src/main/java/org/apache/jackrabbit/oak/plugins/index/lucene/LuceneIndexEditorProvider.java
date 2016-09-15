@@ -28,12 +28,15 @@ import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -47,6 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
  * 
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
@@ -105,6 +109,17 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 if (indexingContext.isReindexing()){
                     return null;
                 }
+
+                if (!indexingContext.getCommitInfo().getInfo().containsKey(CommitContext.NAME)){
+                    //Logically there should not be any commit without commit context. But
+                    //some initializer code does the commit with out it. So ignore such calls with
+                    //warning now
+                    //TODO Revisit use of warn level once all such cases are analyzed
+                    log.warn("No CommitContext found for commit", new Exception());
+                    return null;
+                }
+
+                //TODO Also check if index has been done once
 
                 writerFactory = new LocalIndexWriterFactory(indexingContext);
 
