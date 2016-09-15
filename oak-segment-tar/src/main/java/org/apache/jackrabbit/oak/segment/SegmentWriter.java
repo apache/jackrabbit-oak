@@ -44,6 +44,7 @@ import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.segment.BinaryReferences.newReference;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.segment.RecordWriters.newNodeStateWriter;
 
@@ -798,13 +799,17 @@ public class SegmentWriter {
 
             RecordId recordId;
 
+            String binaryReference;
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
+                binaryReference = newReference(blobId);
                 recordId = RecordWriters.newBlobIdWriter(data).write(writer);
             } else {
-                recordId = RecordWriters.newBlobIdWriter(writeString(blobId)).write(writer);
+                RecordId refId = writeString(blobId);
+                binaryReference = newReference(refId);
+                recordId = RecordWriters.newBlobIdWriter(refId).write(writer);
             }
 
-            binaryReferenceConsumer.consume(writer.getGeneration(), recordId.asUUID(), blobId);
+            binaryReferenceConsumer.consume(writer.getGeneration(), recordId.asUUID(), binaryReference);
 
             return recordId;
         }
