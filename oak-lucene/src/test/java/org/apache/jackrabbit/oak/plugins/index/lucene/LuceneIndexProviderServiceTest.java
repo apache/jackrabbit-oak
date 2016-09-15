@@ -102,7 +102,7 @@ public class LuceneIndexProviderServiceTest {
 
         assertEquals(1024, BooleanQuery.getMaxClauseCount());
 
-        assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue"));
+        assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue", true));
 
         MockOsgi.deactivate(service);
     }
