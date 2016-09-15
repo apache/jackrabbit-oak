@@ -46,7 +46,6 @@ import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
@@ -92,10 +91,31 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private static MetricStatisticsProvider metricStatsProvider;
     public static final StatisticsProvider STATISTICS_PROVIDER = getStatsProvider(metricStatsEnabled);
 
+    enum Status {
+        NONE, STARTING, STARTED, STOPPING, STOPPED, ABORTED;
+
+        private int count;
+
+        public void inc(){
+            count++;
+        }
+
+        public int count(){
+            return count;
+        }
+
+        public Status next(){
+            Status[] ss = values();
+            if (ordinal() == ss.length - 1){
+                return ss[0];
+            }
+            return ss[ordinal() + 1];
+        }
+    }
 
     private final Random random = new Random(42); //fixed seed
     private String indexedPropName = "foo";
-    private int nodesPerIteration = Integer.getInteger("nodesPerIteration", 25);
+    private int nodesPerIteration = Status.values().length;
     private int numOfIndexes = Integer.getInteger("numOfIndexes", 10);
     private int refreshDeltaMillis = Integer.getInteger("refreshDeltaMillis", 1000);
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
@@ -112,8 +132,6 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private LocalIndexObserver localIndexObserver;
     private RepositoryInitializer indexInitializer = new PropertyIndexInitializer();
     private TestContext defaultContext;
-    private final List<String> indexedValues = ImmutableList.of("STARTING", "STARTED", "STOPPING",
-            "STOPPED", "ABORTED");
     private final File workDir;
     private Whiteboard whiteboard;
     private Searcher searcher;
@@ -186,12 +204,15 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     protected void runTest(TestContext ctx)  throws Exception {
         //Create tree in breadth first fashion with each node having 50 child
         Node parent = ctx.session.getNode(ctx.paths.remove());
+        Status status = Status.NONE;
         for (int i = 0; i < nodesPerIteration; i++) {
             Node child = parent.addNode(nextNodeName());
-            child.setProperty(indexedPropName, nextIndexedValue());
+            child.setProperty(indexedPropName, status.name());
             ctx.session.save();
             ctx.paths.add(child.getPath());
             indexedNodeCount.incrementAndGet();
+            status.inc();
+            status = status.next();
         }
     }
 
@@ -259,13 +280,14 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         public void dispose() throws RepositoryException {
             dump.remove();
-            session.save();
             session.logout();
         }
     }
 
-    private String nextIndexedValue() {
-        return indexedValues.get(random.nextInt(indexedValues.size()));
+    private String randomStatus() {
+        Status status = Status.values()[random.nextInt(Status.values().length)];
+        status.inc();
+        return status.name();
     }
 
     private void prepareLuceneIndexer(File workDir) {
@@ -381,7 +403,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             session.refresh(false);
             QueryManager qm = session.getWorkspace().getQueryManager();
             Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $status", Query.JCR_SQL2);
-            q.bindValue("status", session.getValueFactory().createValue(nextIndexedValue()));
+            q.bindValue("status", session.getValueFactory().createValue(randomStatus()));
             QueryResult result = q.execute();
 
             //With property index at time traversing index wins (somehow reporting lower cost)
@@ -407,9 +429,14 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             String path = ctx.paths.peek();
             session.refresh(false);
             if (path != null){
-                session.getNode(path).setProperty(indexedPropName, nextIndexedValue());
-                session.save();
-                mutationCount++;
+                Node node = session.getNode(path);
+                if(node.hasProperty(indexedPropName)){
+                    String value = node.getProperty(indexedPropName).getString();
+                    String newValue = Status.valueOf(value).next().name();
+                    node.setProperty(indexedPropName, newValue);
+                    session.save();
+                    mutationCount++;
+                }
             }
         }
     }
