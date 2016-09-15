@@ -121,6 +121,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
     private int queueSize = Integer.getInteger("queueSize", 1000);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
+    private boolean useOakCodec = Boolean.getBoolean("useOakCodec");
+    private String indexingMode = System.getProperty("indexingMode", "nrt");
 
     private boolean searcherEnabled = Boolean.parseBoolean(System.getProperty("searcherEnabled", "true"));
     private File indexCopierDir;
@@ -232,16 +234,18 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             nrtIndexFactory.close();
         }
 
-        dumpStats();
-
         if (indexCopierDir != null) {
             FileUtils.deleteDirectory(indexCopierDir);
         }
         System.out.printf("numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
-                        "hybridIndexEnabled: %s, metricStatsEnabled: %s %n", numOfIndexes, refreshDeltaMillis,
-                asyncInterval, queueSize, hybridIndexEnabled, metricStatsEnabled);
-        System.out.printf("Searcher: %d, Mutator: %d, indexedNodeCount: %d %n", searcher.resultSize, mutator
-                .mutationCount, indexedNodeCount.get());
+                        "hybridIndexEnabled: %s, metricStatsEnabled: %s, indexingMode: %s, " +
+                        "useOakCodec: %s %n",
+                numOfIndexes, refreshDeltaMillis, asyncInterval, queueSize, hybridIndexEnabled,
+                metricStatsEnabled, indexingMode, useOakCodec);
+        System.out.printf("Searcher: %d, Mutator: %d, indexedNodeCount: %d %n", searcher.resultSize,
+                mutator.mutationCount, indexedNodeCount.get());
+
+        dumpStats();
     }
 
     private void dumpStats() {
@@ -375,9 +379,11 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
             defnBuilder.evaluatePathRestrictions();
-            defnBuilder.async("async", "sync");
+            defnBuilder.async("async", indexingMode);
             defnBuilder.indexRule("nt:base").property(indexedPropName).propertyIndex();
-            //defnBuilder.codec("oakCodec");
+            if (useOakCodec) {
+                defnBuilder.codec("oakCodec");
+            }
 
             for (int i = 0; i < numOfIndexes - 1; i++) {
                 defnBuilder.indexRule("nt:base").property(indexedPropName + i).propertyIndex();
