@@ -412,7 +412,8 @@ public class BenchmarkRunner {
             // benchmarks for oak-auth-external
             new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
-            new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options))
+            new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
+            new HybridIndexTest(base.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

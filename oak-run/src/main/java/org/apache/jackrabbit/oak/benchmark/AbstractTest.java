@@ -487,11 +487,11 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
      * @return context instance to be used for runTest call for the
      * current thread
      */
-    protected T prepareThreadExecutionContext() {
+    protected T prepareThreadExecutionContext() throws Exception{
         return null;
     }
 
-    protected void disposeThreadExecutionContext(T context) {
+    protected void disposeThreadExecutionContext(T context) throws Exception{
 
     }
 
