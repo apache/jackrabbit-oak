@@ -67,7 +67,7 @@ public class LocalIndexObserver implements Observer{
         //After nrt docs add all sync indexed docs
         //Doing it *after* ensures thar nrt index might catch
         //up by the time sync one are finished
-        docQueue.addAllSynchronously(holder.getSyncIndexedDocs(), true);
+        docQueue.addAllSynchronously(holder.getSyncIndexedDocs());
 
         if (droppedCount > 0){
             //TODO Ensure that log do not flood

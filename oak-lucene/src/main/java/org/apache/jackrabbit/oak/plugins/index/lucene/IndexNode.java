@@ -76,6 +76,13 @@ public class IndexNode {
 
     private final ReaderRefreshPolicy refreshPolicy;
 
+    private final Runnable refreshCallback = new Runnable() {
+        @Override
+        public void run() {
+            refreshReaders();
+        }
+    };
+
     private boolean closed = false;
 
     IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
@@ -115,7 +122,7 @@ public class IndexNode {
             lock.readLock().unlock();
             return false;
         } else {
-            refreshReadersIfRequired();
+            refreshPolicy.refreshOnReadIfRequired(refreshCallback);
             return true;
         }
     }
@@ -146,15 +153,11 @@ public class IndexNode {
         return nrtIndex != null ? nrtIndex.getWriter() : null;
     }
 
-    public void refreshReadersIfRequired() {
-        if (refreshPolicy.shouldRefresh()){
-            refreshReaders();
-        }
+    public void refreshReadersOnWriteIfRequired() {
+        refreshPolicy.refreshOnWriteIfRequired(refreshCallback);
     }
 
-    public void refreshReaders(){
-        //TODO Instead of refresh on write switch on refresh on read
-        //for sync indexes
+    private void refreshReaders(){
         indexSearcher = new IndexSearcher(createReader());
         log.debug("Refreshed reader for index [{}]", definition);
     }

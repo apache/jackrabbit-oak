@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -130,7 +131,7 @@ public class DocumentQueueTest {
 
     @Test
     public void noIssueIfNoWriter() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
 
         tracker.update(indexed);
@@ -140,7 +141,7 @@ public class DocumentQueueTest {
     @Test
     public void updateDocument() throws Exception{
         IndexTracker tracker = createTracker();
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         tracker.update(indexed);
         DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
 
@@ -157,7 +158,7 @@ public class DocumentQueueTest {
     @Test
     public void indexRefresh() throws Exception{
         tracker = createTracker();
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         tracker.update(indexed);
 
         clock.waitUntil(refreshDelta);
@@ -220,7 +221,7 @@ public class DocumentQueueTest {
     public void addAllSync() throws Exception{
         ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
         tracker = createTracker();
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.SYNC);
         tracker.update(indexed);
 
         DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
@@ -229,7 +230,7 @@ public class DocumentQueueTest {
         assertEquals(1, td.totalHits);
 
         docs.get("/oak:index/fooIndex").add(createDoc("/a/c", "bar"));
-        queue.addAllSynchronously(docs.asMap(), true);
+        queue.addAllSynchronously(docs.asMap());
 
         td = doSearch("bar");
         assertEquals(2, td.totalHits);
@@ -237,7 +238,7 @@ public class DocumentQueueTest {
         docs.clear();
 
         docs.get("/oak:index/fooIndex").add(createDoc("/a/d", "bar"));
-        queue.addAllSynchronously(docs.asMap(), true);
+        queue.addAllSynchronously(docs.asMap());
 
         td = doSearch("bar");
         assertEquals(3, td.totalHits);
@@ -252,7 +253,7 @@ public class DocumentQueueTest {
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
                 indexFactory
         );
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         tracker.update(indexed);
 
         DocumentQueue queue = new DocumentQueue(1000, tracker, executor);
@@ -281,7 +282,7 @@ public class DocumentQueueTest {
         for (int i = 0; i < numDocs; i++) {
             ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
             docs.get("/oak:index/fooIndex").add(doc);
-            queue.addAllSynchronously(docs.asMap(), true);
+            queue.addAllSynchronously(docs.asMap());
         }
         System.out.printf("%n[sync] Time taken for %d is %s%n", numDocs, w);
 
@@ -325,8 +326,8 @@ public class DocumentQueueTest {
         );
     }
 
-    private NodeState createAndPopulateAsyncIndex() throws CommitFailedException {
-        createIndexDefinition("fooIndex");
+    private NodeState createAndPopulateAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {
+        createIndexDefinition("fooIndex", indexingMode);
 
         //Have some stuff to be indexed
         builder.child("a").setProperty("foo", "bar");
@@ -340,12 +341,12 @@ public class DocumentQueueTest {
         return info;
     }
 
-    private void createIndexDefinition(String idxName) {
+    private void createIndexDefinition(String idxName, IndexingMode indexingMode) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
                 idxName, ImmutableSet.of("foo"), "async");
         //Disable compression
         //idx.setProperty("codec", "oakCodec");
-        TestUtil.enableNRTIndexing(idx);
+        TestUtil.enableIndexingMode(idx, indexingMode);
     }
 
 }

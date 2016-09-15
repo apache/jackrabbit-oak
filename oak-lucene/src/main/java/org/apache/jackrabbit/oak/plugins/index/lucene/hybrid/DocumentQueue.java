@@ -111,7 +111,7 @@ public class DocumentQueue implements Closeable{
                         docsPerIndex.get(doc.indexPath).add(doc);
                     }
 
-                    addAllSynchronously(docsPerIndex.asMap(), false);
+                    addAllSynchronously(docsPerIndex.asMap());
 
                     currentTask.onComplete(completionHandler);
                 } catch (Throwable t) {
@@ -162,11 +162,11 @@ public class DocumentQueue implements Closeable{
         return added;
     }
 
-    public void addAllSynchronously(Map<String, Collection<LuceneDoc>> docsPerIndex, boolean alwaysRefreshReaders) {
+    public void addAllSynchronously(Map<String, Collection<LuceneDoc>> docsPerIndex) {
         //If required it can optimized by indexing diff indexes in parallel
         //Something to consider if it becomes a bottleneck
         for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.entrySet()) {
-            processDocs(e.getKey(), e.getValue(), alwaysRefreshReaders);
+            processDocs(e.getKey(), e.getValue());
             added.mark(e.getValue().size());
         }
     }
@@ -177,7 +177,7 @@ public class DocumentQueue implements Closeable{
         return docs;
     }
 
-    private void processDocs(String indexPath, Iterable<LuceneDoc> docs, boolean alwaysRefreshReaders){
+    private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
 
         //Drop the write call if stopped
         if (stopped) {
@@ -207,11 +207,7 @@ public class DocumentQueue implements Closeable{
                 }
                 log.trace("Updated index with doc {}", doc);
             }
-            if (alwaysRefreshReaders) {
-                indexNode.refreshReaders();
-            } else {
-                indexNode.refreshReadersIfRequired();
-            }
+            indexNode.refreshReadersOnWriteIfRequired();
         } catch (Exception e) {
             //For now we just log it. Later we need to see if frequent error then to
             //temporarily disable indexing for this index
