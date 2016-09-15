@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneDocumentHolder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -117,7 +118,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                     return null;
                 }
 
-                if (!indexingContext.getCommitInfo().getInfo().containsKey(CommitContext.NAME)){
+                CommitContext commitContext = getCommitContext(indexingContext);
+                if (commitContext == null){
                     //Logically there should not be any commit without commit context. But
                     //some initializer code does the commit with out it. So ignore such calls with
                     //warning now
@@ -128,7 +130,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 //TODO Also check if index has been done once
 
-                writerFactory = new LocalIndexWriterFactory(indexingContext, inMemoryDocsLimit);
+                writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext),
+                        indexingContext.getIndexPath());
 
                 //IndexDefinition from tracker might differ from one passed here for reindexing
                 //case which should be fine. However reusing existing definition would avoid
@@ -165,4 +168,18 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     public void setInMemoryDocsLimit(int inMemoryDocsLimit) {
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
+
+    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
+        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
+        if (holder == null) {
+            holder = new LuceneDocumentHolder(inMemoryDocsLimit);
+            commitContext.set(LuceneDocumentHolder.NAME, holder);
+        }
+        return holder;
+    }
+
+    private static CommitContext getCommitContext(IndexingContext indexingContext) {
+        return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
+    }
+
 }
