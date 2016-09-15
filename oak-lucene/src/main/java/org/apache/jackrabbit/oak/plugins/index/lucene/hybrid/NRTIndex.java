@@ -110,12 +110,14 @@ public class NRTIndex implements Closeable {
         return refreshPolicy;
     }
 
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         if (closed) {
             return;
         }
-
         if (indexWriter != null) {
+            //TODO Close call can possibly be speeded up by
+            //avoiding merge and dropping stuff in memory. To be explored
+            //indexWrite.close(waitForMerges)
             indexWriter.close();
             directory.close();
             FileUtils.deleteQuietly(indexDir);
