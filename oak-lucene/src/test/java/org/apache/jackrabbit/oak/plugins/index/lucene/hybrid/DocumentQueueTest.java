@@ -27,8 +27,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -214,6 +216,33 @@ public class DocumentQueueTest {
         assertEquals(4, td.totalHits);
     }
 
+    @Test
+    public void addAllSync() throws Exception{
+        ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+        tracker = createTracker();
+        NodeState indexed = createAndPopulateAsyncIndex();
+        tracker.update(indexed);
+
+        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+
+        TopDocs td = doSearch("bar");
+        assertEquals(1, td.totalHits);
+
+        docs.get("/oak:index/fooIndex").add(createDoc("/a/c", "bar"));
+        queue.addAllSynchronously(docs.asMap(), true);
+
+        td = doSearch("bar");
+        assertEquals(2, td.totalHits);
+
+        docs.clear();
+
+        docs.get("/oak:index/fooIndex").add(createDoc("/a/d", "bar"));
+        queue.addAllSynchronously(docs.asMap(), true);
+
+        td = doSearch("bar");
+        assertEquals(3, td.totalHits);
+    }
+
     //@Test
     public void benchMarkIndexWriter() throws Exception{
         Executor executor = Executors.newFixedThreadPool(5);
@@ -228,10 +257,15 @@ public class DocumentQueueTest {
 
         DocumentQueue queue = new DocumentQueue(1000, tracker, executor);
 
-        Document d1 = new Document();
-        d1.add(newPathField("/a/b"));
-        d1.add(new StringField("foo", "a", Field.Store.NO));
-        LuceneDoc doc = LuceneDoc.forUpdate("/oak:index/fooIndex", "/a/b", d1);
+        /*
+            Sample output
+            [nrt] Time taken for 10000 is 639.3 ms with waits 1
+            [sync] Time taken for 10000 is 30.34 s
+
+            Refreshing reader after every commit would slow down things
+         */
+
+        LuceneDoc doc = createDoc("/a/b", "a");
         int numDocs = 10000;
         Stopwatch w = Stopwatch.createStarted();
         int waitCount = 0;
@@ -241,7 +275,16 @@ public class DocumentQueueTest {
             }
         }
 
-        System.out.printf("%nTime taken for %d is %s with waits %d", numDocs, w, waitCount);
+        System.out.printf("%n[nrt] Time taken for %d is %s with waits %d%n", numDocs, w, waitCount);
+
+        w = Stopwatch.createStarted();
+        for (int i = 0; i < numDocs; i++) {
+            ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+            docs.get("/oak:index/fooIndex").add(doc);
+            queue.addAllSynchronously(docs.asMap(), true);
+        }
+        System.out.printf("%n[sync] Time taken for %d is %s%n", numDocs, w);
+
     }
 
     private NodeState doAsyncIndex(NodeState current, String childName, String fooValue) throws CommitFailedException {
@@ -262,10 +305,15 @@ public class DocumentQueueTest {
     }
 
     private void addDoc(DocumentQueue queue, String docPath, String fooValue) {
+        LuceneDoc doc = createDoc(docPath, fooValue);
+        queue.add(doc);
+    }
+
+    private static LuceneDoc createDoc(String docPath, String fooValue) {
         Document d1 = new Document();
         d1.add(newPathField(docPath));
         d1.add(new StringField("foo", fooValue, Field.Store.NO));
-        queue.add(LuceneDoc.forUpdate("/oak:index/fooIndex", docPath, d1));
+        return LuceneDoc.forUpdate("/oak:index/fooIndex", docPath, d1);
     }
 
     private IndexTracker createTracker() throws IOException {
@@ -295,6 +343,8 @@ public class DocumentQueueTest {
     private void createIndexDefinition(String idxName) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
                 idxName, ImmutableSet.of("foo"), "async");
+        //Disable compression
+        //idx.setProperty("codec", "oakCodec");
         TestUtil.enableNRTIndexing(idx);
     }
 

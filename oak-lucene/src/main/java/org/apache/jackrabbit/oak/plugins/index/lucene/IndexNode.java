@@ -148,9 +148,15 @@ public class IndexNode {
 
     public void refreshReadersIfRequired() {
         if (refreshPolicy.shouldRefresh()){
-            indexSearcher = new IndexSearcher(createReader());
-            log.debug("Refreshed reader for index [{}]", definition);
+            refreshReaders();
         }
+    }
+
+    public void refreshReaders(){
+        //TODO Instead of refresh on write switch on refresh on read
+        //for sync indexes
+        indexSearcher = new IndexSearcher(createReader());
+        log.debug("Refreshed reader for index [{}]", definition);
     }
 
     private LuceneIndexReader getDefaultReader(){

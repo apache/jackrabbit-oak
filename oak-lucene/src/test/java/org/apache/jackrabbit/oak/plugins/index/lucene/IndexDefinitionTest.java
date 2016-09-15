@@ -874,6 +874,14 @@ public class IndexDefinitionTest {
         assertTrue(idxDefn.isNRTIndexingEnabled());
     }
 
+    @Test
+    public void sync() throws Exception{
+        TestUtil.enableIndexingMode(builder, LuceneIndexConstants.IndexingMode.SYNC);
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertFalse(idxDefn.isNRTIndexingEnabled());
+        assertTrue(idxDefn.isSyncIndexingEnabled());
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
