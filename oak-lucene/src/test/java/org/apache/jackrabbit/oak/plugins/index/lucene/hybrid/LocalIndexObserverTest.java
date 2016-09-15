@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class LocalIndexObserverTest {
     static final Executor NOOP_EXECUTOR = new Executor() {
@@ -79,6 +80,7 @@ public class LocalIndexObserverTest {
         observer.contentChanged(EMPTY_NODE, info);
 
         assertEquals(1, collectingQueue.getQueuedDocs().size());
+        assertNull(cc.get(LuceneDocumentHolder.NAME));
     }
 
     private CommitInfo newCommitInfo(){

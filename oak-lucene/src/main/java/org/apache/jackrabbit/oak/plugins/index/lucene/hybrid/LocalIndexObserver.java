@@ -57,6 +57,8 @@ public class LocalIndexObserver implements Observer{
             return;
         }
 
+        commitContext.remove(LuceneDocumentHolder.NAME);
+
         int droppedCount = 0;
         for (LuceneDoc doc : holder.getNRTIndexedDocs()){
             if (!docQueue.add(doc)) {
@@ -73,7 +75,5 @@ public class LocalIndexObserver implements Observer{
             //TODO Ensure that log do not flood
             log.warn("Dropped [{}] docs from indexing as queue is full", droppedCount);
         }
-
-        //TODO Remove the holder once processing is done
     }
 }
