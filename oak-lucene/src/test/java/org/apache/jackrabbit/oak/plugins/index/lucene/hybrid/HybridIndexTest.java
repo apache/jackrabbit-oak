@@ -83,12 +83,11 @@ public class HybridIndexTest extends AbstractQueryTest {
     private Clock clock = new Clock.Virtual();
     private Whiteboard wb;
 
-    //TODO [hybrid] this needs to be obtained from NRTIndexFactory
     private long refreshDelta = TimeUnit.SECONDS.toMillis(1);
 
     @Override
     protected ContentRepository createRepository() {
-        IndexCopier copier = null;
+        IndexCopier copier;
         try {
             copier = new IndexCopier(executorService, temporaryFolder.getRoot());
         } catch (IOException e) {
@@ -96,7 +95,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         }
         MountInfoProvider mip = defaultMountInfoProvider();
 
-        NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier);
+        NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
@@ -107,7 +106,7 @@ public class HybridIndexTest extends AbstractQueryTest {
                 null,
                 mip);
 
-        queue = new DocumentQueue(100, tracker, clock, sameThreadExecutor());
+        queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue);
 
         nodeStore = new MemoryNodeStore();
@@ -154,12 +153,11 @@ public class HybridIndexTest extends AbstractQueryTest {
         //Now let some time elapse such that readers can be refreshed
         clock.waitUntil(clock.getTime() + refreshDelta + 1);
 
-        //TODO This extra push would not be required once refresh also account for time
+        //Now recently added stuff should be visible without async indexing run
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+
         createPath("/c").setProperty("foo", "bar");
         root.commit();
-
-        //Now recently added stuff should be visible without async indexing run
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
 
         //Post async index it should still be upto date
         runAsyncIndex();

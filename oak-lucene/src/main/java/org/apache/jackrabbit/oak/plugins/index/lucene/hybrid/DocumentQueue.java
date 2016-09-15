@@ -34,19 +34,17 @@ import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 
-class DocumentQueue implements Closeable{
+public class DocumentQueue implements Closeable{
     private static final LuceneDoc STOP = LuceneDoc.forUpdate("", "", Collections.<IndexableField>emptyList());
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker tracker;
     private final BlockingQueue<LuceneDoc> docsQueue;
-    private final Clock clock;
     private final Executor executor;
     private volatile boolean stopped;
 
@@ -93,10 +91,9 @@ class DocumentQueue implements Closeable{
         }
     };
 
-    DocumentQueue(int maxQueueSize, IndexTracker tracker, Clock clock, Executor executor) {
+    public DocumentQueue(int maxQueueSize, IndexTracker tracker, Executor executor) {
         this.docsQueue = new LinkedBlockingDeque<>(maxQueueSize);
         this.tracker = tracker;
-        this.clock = clock;
         this.executor = executor;
     }
 
@@ -139,8 +136,7 @@ class DocumentQueue implements Closeable{
             } else {
                 writer.updateDocument(doc.docPath, doc.doc);
             }
-            //TODO Support for immediate refresh
-            indexNode.refreshReaders(clock.getTime());
+            indexNode.refreshReadersIfRequired();
         } catch (Exception e) {
             //For now we just log it. Later we need to see if frequent error then to
             //temporarily disable indexing for this index

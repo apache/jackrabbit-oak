@@ -62,6 +62,7 @@ public class NRTIndex implements Closeable {
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
     private final LuceneIndexReader previousReader;
+    private final ReaderRefreshPolicy refreshPolicy;
 
     private IndexWriter indexWriter;
     private NRTIndexWriter nrtIndexWriter;
@@ -69,9 +70,11 @@ public class NRTIndex implements Closeable {
     private Directory directory;
     private boolean closed;
 
-    public NRTIndex(IndexDefinition definition, IndexCopier indexCopier, @Nullable NRTIndex previous) {
+    public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
+                    ReaderRefreshPolicy refreshPolicy, @Nullable NRTIndex previous) {
         this.definition = definition;
         this.indexCopier = indexCopier;
+        this.refreshPolicy = refreshPolicy;
         this.previousReader = previous != null ? previous.getPrimaryReader() : null;
     }
 
@@ -101,6 +104,10 @@ public class NRTIndex implements Closeable {
             readers.add(previousReader);
         }
         return readers;
+    }
+
+    public ReaderRefreshPolicy getRefreshPolicy() {
+        return refreshPolicy;
     }
 
     public void close() throws IOException {
@@ -194,7 +201,7 @@ public class NRTIndex implements Closeable {
         }
     }
 
-    private static class NRTIndexWriter implements LuceneIndexWriter {
+    private class NRTIndexWriter implements LuceneIndexWriter {
         private final IndexWriter indexWriter;
 
         public NRTIndexWriter(IndexWriter indexWriter) {
@@ -207,6 +214,7 @@ public class NRTIndex implements Closeable {
             //instead they are just added. This would cause duplicates
             //That should be taken care at query side via unique cursor
             indexWriter.addDocument(doc);
+            refreshPolicy.updated();
         }
 
         @Override
