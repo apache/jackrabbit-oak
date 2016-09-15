@@ -19,6 +19,12 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+
 /**
  * Utility methods for working with binary references.
  */
@@ -42,4 +48,44 @@ public final class BinaryReferences {
         };
     }
 
+    /**
+     * @param blobId
+     * @return  A new id for a binary reference from an inlined {@code blobId}.
+     */
+    @Nonnull
+    public static String newReference(@Nonnull String blobId) {
+        return "I" + blobId;
+    }
+
+    /**
+     * @param blobId
+     * @return  A new id for a binary reference from a record id identifying a
+     *          string record where the {@code blobId} is stored.
+     */
+    @Nonnull
+    public static String newReference(@Nonnull RecordId blobId) {
+        return "R" + blobId.toString10();
+    }
+
+    /**
+     * @param fileStore
+     * @return  A new reader for binary references for the passed {@code fileStore}.
+     * @see #newReference(String)
+     * @see #newReference(RecordId)
+     */
+    @Nonnull
+    public static Function<String, String> newReferenceReader(@Nonnull final FileStore fileStore) {
+        return new Function<String, String>() {
+            @Nullable @Override
+            public String apply(String reference) {
+                if (reference.charAt(0) == 'I') {
+                    return reference.substring(1);
+                } else {
+                    return fileStore.getReader().readString(
+                            RecordId.fromString(fileStore, reference.substring(1)));
+                }
+            }
+
+        };
+    }
 }
