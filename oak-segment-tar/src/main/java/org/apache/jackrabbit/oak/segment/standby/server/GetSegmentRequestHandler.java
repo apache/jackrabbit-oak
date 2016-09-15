@@ -39,14 +39,18 @@ class GetSegmentRequestHandler extends SimpleChannelInboundHandler<GetSegmentReq
     protected void channelRead0(ChannelHandlerContext ctx, GetSegmentRequest msg) throws Exception {
         log.debug("Reading segment {} for client {}", msg.getSegmentId(), msg.getClientId());
 
-        Segment segment = reader.readSegment(msg.getSegmentId());
+        byte[] data = reader.readSegment(msg.getSegmentId());
 
-        if (segment == null) {
+        if (data == null) {
             log.debug("Segment {} not found, discarding request from client {}", msg.getSegmentId(), msg.getClientId());
             return;
         }
 
-        ctx.writeAndFlush(new GetSegmentResponse(msg.getClientId(), segment));
+        ctx.writeAndFlush(new GetSegmentResponse(msg.getClientId(), msg.getSegmentId(), data));
+    }
+
+    private String getId(Segment segment) {
+        return segment.getSegmentId().asUUID().toString();
     }
 
 }

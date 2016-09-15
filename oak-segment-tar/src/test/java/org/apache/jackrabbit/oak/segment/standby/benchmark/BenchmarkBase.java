@@ -29,7 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 
 public class BenchmarkBase {
@@ -97,16 +97,16 @@ public class BenchmarkBase {
         return newFileStore(directory, executor);
     }
 
-    public StandbyClient newStandbyClient(FileStore store) throws Exception {
+    public StandbySync newStandbyClient(FileStore store) throws Exception {
         return newStandbyClient(store, port, false);
     }
 
-    public StandbyClient newStandbyClient(FileStore store, int port) throws Exception {
+    public StandbySync newStandbyClient(FileStore store, int port) throws Exception {
         return newStandbyClient(store, port, false);
     }
 
-    public StandbyClient newStandbyClient(FileStore store, int port, boolean secure) throws Exception {
-        return new StandbyClient(LOCALHOST, port, store, secure, timeout, false);
+    public StandbySync newStandbyClient(FileStore store, int port, boolean secure) throws Exception {
+        return new StandbySync(LOCALHOST, port, store, secure, timeout, false);
     }
 
     private static File createTmpTargetDir(String name) throws IOException {

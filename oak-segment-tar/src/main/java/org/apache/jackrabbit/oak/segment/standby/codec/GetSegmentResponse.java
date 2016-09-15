@@ -17,25 +17,30 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import org.apache.jackrabbit.oak.segment.Segment;
-
 public class GetSegmentResponse {
 
     private final String clientId;
 
-    private final Segment segment;
+    private final String segmentId;
 
-    public GetSegmentResponse(String clientId, Segment segment) {
+    private final byte[] segmentData;
+
+    public GetSegmentResponse(String clientId, String segmentId, byte[] segmentData) {
         this.clientId = clientId;
-        this.segment = segment;
+        this.segmentId = segmentId;
+        this.segmentData = segmentData;
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public Segment getSegment() {
-        return segment;
+    public String getSegmentId() {
+        return segmentId;
+    }
+
+    public byte[] getSegmentData() {
+        return segmentData;
     }
 
 }

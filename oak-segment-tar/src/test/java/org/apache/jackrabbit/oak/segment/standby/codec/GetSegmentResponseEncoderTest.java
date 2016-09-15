@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
-import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockSegment;
 import static org.junit.Assert.assertEquals;
 
 import java.util.UUID;
@@ -26,7 +25,6 @@ import java.util.UUID;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.Segment;
 import org.junit.Test;
 
 public class GetSegmentResponseEncoderTest {
@@ -35,10 +33,9 @@ public class GetSegmentResponseEncoderTest {
     public void encodeResponse() throws Exception {
         UUID uuid = new UUID(1, 2);
         byte[] data = new byte[] {3, 4, 5};
-        Segment segment = mockSegment(uuid, data);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentResponseEncoder());
-        channel.writeOutbound(new GetSegmentResponse("clientId", segment));
+        channel.writeOutbound(new GetSegmentResponse("clientId", uuid.toString(), data));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         ByteBuf expected = Unpooled.buffer();

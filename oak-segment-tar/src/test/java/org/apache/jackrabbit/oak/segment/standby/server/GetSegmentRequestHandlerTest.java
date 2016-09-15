@@ -17,17 +17,15 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.mockSegment;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.junit.Test;
@@ -36,18 +34,17 @@ public class GetSegmentRequestHandlerTest {
 
     @Test
     public void successfulReadsShouldGenerateResponses() throws Exception {
-        UUID uuid = new UUID(1, 2);
-
-        Segment segment = mockSegment(uuid, new byte[] {3, 4, 5});
+        byte[] data = new byte[] {3, 4, 5};
 
         StandbySegmentReader reader = mock(StandbySegmentReader.class);
-        when(reader.readSegment(uuid)).thenReturn(segment);
+        when(reader.readSegment("segmentId")).thenReturn(data);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentRequestHandler(reader));
-        channel.writeInbound(new GetSegmentRequest("clientId", uuid));
+        channel.writeInbound(new GetSegmentRequest("clientId", "segmentId"));
         GetSegmentResponse response = (GetSegmentResponse) channel.readOutbound();
         assertEquals("clientId", response.getClientId());
-        assertSame(segment, response.getSegment());
+        assertEquals("segmentId", response.getSegmentId());
+        assertArrayEquals(data, response.getSegmentData());
     }
 
     @Test
@@ -55,10 +52,10 @@ public class GetSegmentRequestHandlerTest {
         UUID uuid = new UUID(1, 2);
 
         StandbySegmentReader reader = mock(StandbySegmentReader.class);
-        when(reader.readSegment(uuid)).thenReturn(null);
+        when(reader.readSegment(uuid.toString())).thenReturn(null);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentRequestHandler(reader));
-        channel.writeInbound(new GetSegmentRequest("clientId", uuid));
+        channel.writeInbound(new GetSegmentRequest("clientId", uuid.toString()));
         assertNull(channel.readOutbound());
     }
 

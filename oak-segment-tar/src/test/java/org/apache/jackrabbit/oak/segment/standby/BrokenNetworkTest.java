@@ -25,7 +25,7 @@ import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -126,7 +126,7 @@ public class BrokenNetworkTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl = newStandbyClient(storeC, proxyPort, ssl);
+        StandbySync cl = newStandbySync(storeC, proxyPort, ssl);
         cl.run();
 
         try {

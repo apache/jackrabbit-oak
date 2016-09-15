@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.standby.store;
 
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.segment.Segment;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-public interface RemoteSegmentLoader {
+import java.util.List;
 
-    Segment readSegment(String id);
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    Blob readBlob(String blobId);
+public class GetHeadRequestEncoder extends MessageToMessageEncoder<GetHeadRequest> {
 
-    void close();
+    private static final Logger log = LoggerFactory.getLogger(GetHeadRequestEncoder.class);
 
-    boolean isClosed();
-
-    boolean isRunning();
+    @Override
+    protected void encode(ChannelHandlerContext ctx, GetHeadRequest msg, List<Object> out) throws Exception {
+        log.debug("Sending request from client {} for current head", msg.getClientId());
+        out.add(Messages.newGetHeadRequest(msg.getClientId()));
+    }
 
 }

@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import com.google.common.hash.Hasher;
@@ -25,8 +24,6 @@ import com.google.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,30 +33,22 @@ public class GetBlobResponseEncoder extends MessageToByteEncoder<GetBlobResponse
 
     @Override
     protected void encode(ChannelHandlerContext ctx, GetBlobResponse msg, ByteBuf out) throws Exception {
-        log.debug("Sending blob {} to client {}", msg.getBlob().getContentIdentity(), msg.getClientId());
-        encode(msg.getBlob(), out);
+        log.debug("Sending blob {} to client {}", msg.getBlobId(), msg.getClientId());
+        encode(msg.getBlobId(), msg.getBlobData(), out);
     }
 
-    private void encode(Blob b, ByteBuf out) throws Exception {
-        byte[] bytes;
-
-        try (InputStream s = b.getNewStream()) {
-            bytes = IOUtils.toByteArray(s);
-        }
+    private void encode(String blobId, byte[] data, ByteBuf out) throws Exception {
+        byte[] blobIdBytes = blobId.getBytes(Charset.forName("UTF-8"));
 
         Hasher hasher = Hashing.murmur3_32().newHasher();
-        long hash = hasher.putBytes(bytes).hash().padToLong();
+        long hash = hasher.putBytes(data).hash().padToLong();
 
-        out.writeInt(bytes.length);
+        out.writeInt(1 + 4 + blobIdBytes.length + 8 + data.length);
         out.writeByte(Messages.HEADER_BLOB);
-
-        String bid = b.getContentIdentity();
-        byte[] id = bid.getBytes(Charset.forName("UTF-8"));
-        out.writeInt(id.length);
-        out.writeBytes(id);
-
+        out.writeInt(blobIdBytes.length);
+        out.writeBytes(blobIdBytes);
         out.writeLong(hash);
-        out.writeBytes(bytes);
+        out.writeBytes(data);
     }
 
 }

@@ -34,7 +34,7 @@ public class GetHeadResponseEncoder extends MessageToByteEncoder<GetHeadResponse
     @Override
     protected void encode(ChannelHandlerContext ctx, GetHeadResponse msg, ByteBuf out) throws Exception {
         log.debug("Sending head {} to client {}", msg.getHeadRecordId(), msg.getClientId());
-        byte[] body = msg.getHeadRecordId().toString().getBytes(CharsetUtil.UTF_8);
+        byte[] body = msg.getHeadRecordId().getBytes(CharsetUtil.UTF_8);
         out.writeInt(body.length + 1);
         out.writeByte(Messages.HEADER_RECORD);
         out.writeBytes(body);

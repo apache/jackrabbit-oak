@@ -17,14 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.junit.Test;
@@ -33,16 +32,17 @@ public class GetBlobRequestHandlerTest {
 
     @Test
     public void successfulReadsShouldGenerateResponses() throws Exception {
-        Blob blob = mock(Blob.class);
+        byte[] blobData = new byte[] {99, 114, 97, 112};
 
         StandbyBlobReader reader = mock(StandbyBlobReader.class);
-        when(reader.readBlob("blobId")).thenReturn(blob);
+        when(reader.readBlob("blobId")).thenReturn(blobData);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetBlobRequestHandler(reader));
         channel.writeInbound(new GetBlobRequest("clientId", "blobId"));
         GetBlobResponse response = (GetBlobResponse) channel.readOutbound();
         assertEquals("clientId", response.getClientId());
-        assertSame(blob, response.getBlob());
+        assertEquals("blobId", response.getBlobId());
+        assertArrayEquals(blobData, response.getBlobData());
     }
 
     @Test

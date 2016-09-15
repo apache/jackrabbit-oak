@@ -15,28 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.codec;
+package org.apache.jackrabbit.oak.segment.standby.client;
 
-import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponse;
 
-public class GetHeadRequestDecoder extends MessageToMessageDecoder<String> {
+class GetHeadResponseHandler extends SimpleChannelInboundHandler<GetHeadResponse> {
 
-    private static final Logger log = LoggerFactory.getLogger(GetHeadRequestDecoder.class);
+    private final BlockingQueue<GetHeadResponse> queue;
+
+    GetHeadResponseHandler(BlockingQueue<GetHeadResponse> queue) {
+        this.queue = queue;
+    }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
-        String request = Messages.extractMessageFrom(msg);
-
-        if (request != null && request.equalsIgnoreCase(Messages.GET_HEAD)) {
-            log.debug("Parsed 'get head' message");
-            out.add(new GetHeadRequest(Messages.extractClientFrom(msg)));
-        } else {
-            ctx.fireChannelRead(msg);
-        }
+    protected void channelRead0(ChannelHandlerContext ctx, GetHeadResponse msg) throws Exception {
+        queue.offer(msg);
     }
+
 }

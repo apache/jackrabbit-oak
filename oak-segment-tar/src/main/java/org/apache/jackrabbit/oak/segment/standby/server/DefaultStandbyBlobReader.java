@@ -17,12 +17,19 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import org.apache.jackrabbit.oak.api.Blob;
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class DefaultStandbyBlobReader implements StandbyBlobReader {
+
+    private final Logger log = LoggerFactory.getLogger(DefaultStandbyBlobReader.class);
 
     private final FileStore store;
 
@@ -31,14 +38,22 @@ class DefaultStandbyBlobReader implements StandbyBlobReader {
     }
 
     @Override
-    public Blob readBlob(String blobId) {
+    public byte[] readBlob(String blobId) {
         BlobStore blobStore = store.getBlobStore();
 
-        if (blobStore != null) {
-            return new BlobStoreBlob(blobStore, blobId);
+        if (blobStore == null) {
+            return null;
         }
 
-        return null;
+        byte[] bytes = null;
+
+        try (InputStream s = new BlobStoreBlob(blobStore, blobId).getNewStream()) {
+            bytes = IOUtils.toByteArray(s);
+        } catch (IOException e) {
+            log.warn("Error while reading blob content", e);
+        }
+
+        return bytes;
     }
 
 }

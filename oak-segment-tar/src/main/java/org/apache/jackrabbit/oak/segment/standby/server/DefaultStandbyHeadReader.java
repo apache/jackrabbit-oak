@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 
 class DefaultStandbyHeadReader implements StandbyHeadReader {
@@ -29,8 +28,8 @@ class DefaultStandbyHeadReader implements StandbyHeadReader {
     }
 
     @Override
-    public RecordId readHeadRecordId() {
-        return store.getHead().getRecordId();
+    public String readHeadRecordId() {
+        return store.getHead().getRecordId().toString();
     }
 
 }

@@ -19,42 +19,33 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
 
 import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.junit.Test;
 
 public class GetBlobResponseEncoderTest {
 
     @Test
     public void encodeResponse() throws Exception {
-        byte[] data = new byte[] {1, 2, 3};
+        byte[] blobData = new byte[] {1, 2, 3};
 
-        String contentIdentity = "contentIdentity";
-        byte[] contentIdentityBytes = contentIdentity.getBytes(Charsets.UTF_8);
-
-        Blob blob = mock(Blob.class);
-        when(blob.getNewStream()).thenReturn(new ByteArrayInputStream(data));
-        when(blob.getContentIdentity()).thenReturn(contentIdentity);
+        String blobId = "blobId";
+        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetBlobResponseEncoder());
-        channel.writeOutbound(new GetBlobResponse("clientId", blob));
+        channel.writeOutbound(new GetBlobResponse("clientId", blobId, blobData));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         ByteBuf expected = Unpooled.buffer();
-        expected.writeInt(3);
+        expected.writeInt(1 + 4 + blobIdBytes.length + 8 + blobData.length);
         expected.writeByte(Messages.HEADER_BLOB);
-        expected.writeInt(contentIdentityBytes.length);
-        expected.writeBytes(contentIdentityBytes);
-        expected.writeLong(hash(data));
-        expected.writeBytes(data);
+        expected.writeInt(blobIdBytes.length);
+        expected.writeBytes(blobIdBytes);
+        expected.writeLong(hash(blobData));
+        expected.writeBytes(blobData);
 
         assertEquals(expected, buffer);
     }

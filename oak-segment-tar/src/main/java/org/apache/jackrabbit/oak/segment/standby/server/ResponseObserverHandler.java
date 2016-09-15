@@ -48,11 +48,11 @@ class ResponseObserverHandler extends ChannelOutboundHandlerAdapter {
     }
 
     private void onGetSegmentResponse(GetSegmentResponse response) {
-        observer.didSendSegmentBytes(response.getClientId(), response.getSegment().size());
+        observer.didSendSegmentBytes(response.getClientId(), response.getSegmentData().length);
     }
 
     private void onGetBlobResponse(GetBlobResponse response) {
-        observer.didSendBinariesBytes(response.getClientId(), (int) Math.max(0, response.getBlob().length()));
+        observer.didSendBinariesBytes(response.getClientId(), (int) Math.max(0, response.getBlobData().length));
     }
 
 }

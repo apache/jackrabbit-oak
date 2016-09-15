@@ -17,25 +17,30 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import org.apache.jackrabbit.oak.api.Blob;
-
 public class GetBlobResponse {
 
     private final String clientId;
 
-    private final Blob blob;
+    private final String blobId;
 
-    public GetBlobResponse(String clientId, Blob blob) {
+    private final byte[] blobData;
+
+    public GetBlobResponse(String clientId, String blobId, byte[] blobData) {
         this.clientId = clientId;
-        this.blob = blob;
+        this.blobId = blobId;
+        this.blobData = blobData;
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public Blob getBlob() {
-        return blob;
+    public String getBlobId() {
+        return blobId;
+    }
+
+    public byte[] getBlobData() {
+        return blobData;
     }
 
 }
