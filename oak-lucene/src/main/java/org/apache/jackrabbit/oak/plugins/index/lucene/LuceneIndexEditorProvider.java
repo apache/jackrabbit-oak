@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -103,7 +104,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 if (indexingContext.isReindexing()){
                     return null;
                 }
-                //TODO [hybrid] switch the builder to readonly one
+
                 writerFactory = new LocalIndexWriterFactory(indexingContext);
 
                 //IndexDefinition from tracker might differ from one passed here for reindexing
@@ -112,6 +113,13 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 if (indexTracker != null){
                     indexDefinition = indexTracker.getIndexDefinition(indexingContext.getIndexPath());
                 }
+
+                //Pass on a read only builder to ensure that nothing gets written
+                //at all to NodeStore for local indexing.
+                //TODO [hybrid] This would cause issue with Facets as for faceted fields
+                //some stuff gets written to NodeBuilder. That logic should be refactored
+                //to be moved to LuceneIndexWriter
+                definition = new ReadOnlyBuilder(definition.getNodeState());
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
