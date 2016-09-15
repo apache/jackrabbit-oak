@@ -111,7 +111,7 @@ public class DocumentQueue implements Closeable{
                     //If required it can optimized by indexing diff indexes in parallel
                     //Something to consider if it becomes a bottleneck
                     for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.asMap().entrySet()) {
-                        processDoc(e.getKey(), e.getValue());
+                        processDocs(e.getKey(), e.getValue());
                     }
                     currentTask.onComplete(completionHandler);
                 } catch (Throwable t) {
@@ -164,7 +164,7 @@ public class DocumentQueue implements Closeable{
         return docs;
     }
 
-    private void processDoc(String indexPath, Iterable<LuceneDoc> docs){
+    private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
 
         //Drop the write call if stopped
         if (stopped) {
