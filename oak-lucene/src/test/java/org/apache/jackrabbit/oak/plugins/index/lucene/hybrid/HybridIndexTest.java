@@ -128,16 +128,12 @@ public class HybridIndexTest extends AbstractQueryTest {
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
         idx.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, ImmutableSet.of("sync" , "async"), STRINGS));
         root.commit();
-        //Run base reindex so reindex flag gets reset to false
-        runAsyncIndex();
 
         //Get initial indexing done as local indexing only work
         //for incremental indexing
         createPath("/a").setProperty("foo", "bar");
         root.commit();
 
-        //TODO This is required as LuceneIndexEditorContext has side effect of creating a facet
-        //config node
         runAsyncIndex();
 
         setTraversalEnabled(false);
