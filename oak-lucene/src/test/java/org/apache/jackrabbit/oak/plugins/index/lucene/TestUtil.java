@@ -33,11 +33,13 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -222,12 +224,38 @@ public class TestUtil {
     }
 
     public static NodeBuilder enableNRTIndexing(NodeBuilder builder){
-        builder.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("nrt" , "async"), STRINGS));
+        builder.setProperty(createAsyncProperty("nrt"));
         return builder;
     }
 
     public static Tree enableNRTIndexing(Tree tree){
-        tree.setProperty(createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("nrt" , "async"), STRINGS));
+        tree.setProperty(createAsyncProperty("nrt"));
         return tree;
+    }
+
+    public static NodeBuilder enableIndexingMode(NodeBuilder builder, IndexingMode indexingMode){
+        builder.setProperty(createAsyncProperty(indexingMode));
+        return builder;
+    }
+
+    public static Tree enableIndexingMode(Tree tree, IndexingMode indexingMode){
+        tree.setProperty(createAsyncProperty(indexingMode));
+        return tree;
+    }
+
+    private static PropertyState createAsyncProperty(String indexingMode) {
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode , "async"), STRINGS);
+    }
+
+    private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
+        switch(indexingMode) {
+            case NRT  :
+            case SYNC :
+                return createAsyncProperty(indexingMode.asyncValueName());
+            case ASYNC:
+                return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("async"), STRINGS);
+            default:
+                throw new IllegalArgumentException("Unknown mode " + indexingMode);
+        }
     }
 }

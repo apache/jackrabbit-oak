@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
@@ -184,6 +185,29 @@ public class HybridIndexTest extends AbstractQueryTest {
         assertEquals(1, testBlob.accessCount);
         assertQuery("select * from [nt:base] where CONTAINS(*, 'sky')", of("/test/msg/jcr:content"));
 
+    }
+
+    @Test
+    public void hybridIndexSync() throws Exception{
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        root.commit();
+
+        //Get initial indexing done as local indexing only work
+        //for incremental indexing
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+
+        runAsyncIndex();
+
+        setTraversalEnabled(false);
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+
+        //Add new node. This should get immediately reelected as its a sync index
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
     }
 
     private void runAsyncIndex() {

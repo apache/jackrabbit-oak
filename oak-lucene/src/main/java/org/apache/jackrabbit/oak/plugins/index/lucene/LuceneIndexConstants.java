@@ -16,13 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.util.Version;
 
 public interface LuceneIndexConstants {
+
+    enum IndexingMode {
+        SYNC,
+        NRT,
+        ASYNC;
+
+        public String asyncValueName(){
+            return name().toLowerCase();
+        }
+
+        public static IndexingMode from(String indexingMode){
+            return valueOf(indexingMode.toUpperCase());
+        }
+    }
 
     String TYPE_LUCENE = "lucene";
 

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.index.IndexableField;
@@ -55,6 +56,8 @@ public class DocumentQueue implements Closeable{
     private final BlockingQueue<LuceneDoc> docsQueue;
     private final Executor executor;
     private final CounterStats queueSizeStats;
+    private final MeterStats added;
+    private final MeterStats dropped;
 
     /**
      * Time in millis for which add call to queue
@@ -108,11 +111,8 @@ public class DocumentQueue implements Closeable{
                         docsPerIndex.get(doc.indexPath).add(doc);
                     }
 
-                    //If required it can optimized by indexing diff indexes in parallel
-                    //Something to consider if it becomes a bottleneck
-                    for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.asMap().entrySet()) {
-                        processDocs(e.getKey(), e.getValue());
-                    }
+                    addAllSynchronously(docsPerIndex.asMap(), false);
+
                     currentTask.onComplete(completionHandler);
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
@@ -138,6 +138,8 @@ public class DocumentQueue implements Closeable{
         this.executor = executor;
         this.offerTimeMillis = 100; //Wait for at most 100 mills while adding stuff to queue
         this.queueSizeStats = sp.getCounterStats("HYBRID_QUEUE_SIZE", StatsOptions.DEFAULT);
+        this.added = sp.getMeter("HYBRID_ADDED", StatsOptions.DEFAULT);
+        this.dropped = sp.getMeter("HYBRID_DROPPED", StatsOptions.DEFAULT);
     }
 
     public boolean add(LuceneDoc doc){
@@ -154,8 +156,19 @@ public class DocumentQueue implements Closeable{
         currentTask.onComplete(completionHandler);
         if (added) {
             queueSizeStats.inc();
+        } else {
+            dropped.mark();
         }
         return added;
+    }
+
+    public void addAllSynchronously(Map<String, Collection<LuceneDoc>> docsPerIndex, boolean alwaysRefreshReaders) {
+        //If required it can optimized by indexing diff indexes in parallel
+        //Something to consider if it becomes a bottleneck
+        for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.entrySet()) {
+            processDocs(e.getKey(), e.getValue(), alwaysRefreshReaders);
+            added.mark(e.getValue().size());
+        }
     }
 
     List<LuceneDoc> getQueuedDocs(){
@@ -164,7 +177,7 @@ public class DocumentQueue implements Closeable{
         return docs;
     }
 
-    private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
+    private void processDocs(String indexPath, Iterable<LuceneDoc> docs, boolean alwaysRefreshReaders){
 
         //Drop the write call if stopped
         if (stopped) {
@@ -194,7 +207,11 @@ public class DocumentQueue implements Closeable{
                 }
                 log.trace("Updated index with doc {}", doc);
             }
-            indexNode.refreshReadersIfRequired();
+            if (alwaysRefreshReaders) {
+                indexNode.refreshReaders();
+            } else {
+                indexNode.refreshReadersIfRequired();
+            }
         } catch (Exception e) {
             //For now we just log it. Later we need to see if frequent error then to
             //temporarily disable indexing for this index

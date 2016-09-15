@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -28,6 +30,7 @@ class LuceneDocumentHolder {
     public static final String NAME = "oak.lucene.documentHolder";
 
     private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
+    private final ListMultimap<String, LuceneDoc> syncIndexedList = ArrayListMultimap.create();
 
     public List<LuceneDoc> getNRTIndexedDocList(String indexPath) {
         return nrtIndexedList.get(indexPath);
@@ -35,5 +38,13 @@ class LuceneDocumentHolder {
 
     public Iterable<LuceneDoc> getNRTIndexedDocs(){
         return nrtIndexedList.values();
+    }
+
+    public List<LuceneDoc> getSyncIndexedDocList(String indexPath) {
+        return syncIndexedList.get(indexPath);
+    }
+
+    public Map<String, Collection<LuceneDoc>> getSyncIndexedDocs(){
+        return syncIndexedList.asMap();
     }
 }

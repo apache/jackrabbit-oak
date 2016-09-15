@@ -91,7 +91,14 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
 
         private void addLuceneDoc(LuceneDoc luceneDoc) {
             if (docList == null){
-                docList = getDocumentHolder().getNRTIndexedDocList(indexingContext.getIndexPath());
+                if (definition.isSyncIndexingEnabled()){
+                    docList = getDocumentHolder().getSyncIndexedDocList(indexingContext.getIndexPath());
+                } else if (definition.isNRTIndexingEnabled()){
+                    docList = getDocumentHolder().getNRTIndexedDocList(indexingContext.getIndexPath());
+                } else {
+                    throw new IllegalStateException("Should not be invoked for any other indexing " +
+                            "mode apart from 'sync' and 'nrt'");
+                }
             }
             //TODO [hybrid] checks about the size. If too many drop
             //However for truly sync case hold on

@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -40,11 +40,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.*;
 
@@ -75,7 +72,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void ignoreReindexCase() throws Exception{
-        createIndexDefinition("fooIndex");
+        createIndexDefinition("fooIndex", IndexingMode.NRT);
 
         builder.child("a").setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
@@ -89,7 +86,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void holderNotInitializedUnlessIndexed() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b");
         NodeState after = builder.getNodeState();
@@ -103,7 +100,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void localIndexWriter() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex();
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
         builder.child("c").setProperty("foo", "bar");
@@ -120,7 +117,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void mutlipleIndex() throws Exception{
-        NodeState indexed = createAndPopulateTwoAsyncIndex();
+        NodeState indexed = createAndPopulateTwoAsyncIndex(IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
         builder.child("c").setProperty("bar", "foo");
@@ -139,8 +136,25 @@ public class LocalIndexWriterFactoryTest {
 
     }
 
-    private NodeState createAndPopulateAsyncIndex() throws CommitFailedException {
-        createIndexDefinition("fooIndex");
+    @Test
+    public void syncIndexing() throws Exception{
+        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.SYNC);
+        builder = indexed.builder();
+        builder.child("b").setProperty("foo", "bar");
+        builder.child("c").setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+        syncHook.processCommit(indexed, after, newCommitInfo());
+
+        LuceneDocumentHolder holder = getHolder();
+        assertNotNull(holder);
+
+        //2 add none for delete
+        assertEquals(2, holder.getSyncIndexedDocList("/oak:index/fooIndex").size());
+        assertEquals(0, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
+    }
+
+    private NodeState createAndPopulateAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {
+        createIndexDefinition("fooIndex", indexingMode);
 
         //Have some stuff to be indexed
         builder.child("a").setProperty("foo", "bar");
@@ -148,9 +162,9 @@ public class LocalIndexWriterFactoryTest {
         return asyncHook.processCommit(EMPTY_NODE, after, newCommitInfo());
     }
 
-    private NodeState createAndPopulateTwoAsyncIndex() throws CommitFailedException {
-        createIndexDefinition("fooIndex");
-        createIndexDefinition("barIndex");
+    private NodeState createAndPopulateTwoAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {
+        createIndexDefinition("fooIndex", indexingMode);
+        createIndexDefinition("barIndex", indexingMode);
 
         //Have some stuff to be indexed
         builder.child("a").setProperty("foo", "bar");
@@ -174,10 +188,10 @@ public class LocalIndexWriterFactoryTest {
         return info;
     }
 
-    private void createIndexDefinition(String idxName) {
+    private void createIndexDefinition(String idxName, IndexingMode indexingMode) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
                 idxName, ImmutableSet.of("foo"), "async");
-        TestUtil.enableNRTIndexing(idx);
+        TestUtil.enableIndexingMode(idx, indexingMode);
     }
 
 }

@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -64,8 +65,17 @@ public class NRTIndexFactoryTest {
     }
 
     @Test
-    public void indexCreation() throws Exception{
-        IndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+    public void indexCreationNRT() throws Exception{
+        IndexDefinition idxDefn = getIndexDefinition("/foo", IndexingMode.SYNC);
+
+        NRTIndex idx1 = indexFactory.createIndex(idxDefn);
+        assertNotNull(idx1);
+        assertEquals(1, indexFactory.getIndexes("/foo").size());
+    }
+
+    @Test
+    public void indexCreationSync() throws Exception{
+        IndexDefinition idxDefn = getNRTIndexDefinition("/foo");
 
         NRTIndex idx1 = indexFactory.createIndex(idxDefn);
         assertNotNull(idx1);
@@ -74,7 +84,7 @@ public class NRTIndexFactoryTest {
 
     @Test
     public void indexCreationAndCloser() throws Exception{
-        IndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+        IndexDefinition idxDefn = getNRTIndexDefinition("/foo");
 
         NRTIndex idx1 = indexFactory.createIndex(idxDefn);
         assertNotNull(idx1);
@@ -93,7 +103,7 @@ public class NRTIndexFactoryTest {
 
     @Test
     public void closeIndexOnClose() throws Exception{
-        IndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+        IndexDefinition idxDefn = getNRTIndexDefinition("/foo");
 
         NRTIndex idx1 = indexFactory.createIndex(idxDefn);
         NRTIndex idx2 = indexFactory.createIndex(idxDefn);
@@ -105,9 +115,13 @@ public class NRTIndexFactoryTest {
         assertTrue(idx2.isClosed());
     }
 
-    private IndexDefinition getSyncIndexDefinition(String indexPath) {
+    private IndexDefinition getNRTIndexDefinition(String indexPath) {
+       return getIndexDefinition(indexPath, IndexingMode.NRT);
+    }
+
+    private IndexDefinition getIndexDefinition(String indexPath, IndexingMode indexingMode) {
         builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
-        TestUtil.enableNRTIndexing(builder);
+        TestUtil.enableIndexingMode(builder, indexingMode);
 
         return new IndexDefinition(root, builder.getNodeState());
     }

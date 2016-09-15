@@ -231,6 +231,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private final String indexPath;
 
     private final boolean nrtIndexMode;
+    private final boolean syncIndexMode;
 
     @Nullable
     private final String uid;
@@ -305,6 +306,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
         this.nrtIndexMode = supportsNRTIndexing(defn);
+        this.syncIndexMode = supportsSyncIndexing(defn);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -439,6 +441,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     public boolean isNRTIndexingEnabled() {
         return nrtIndexMode;
     }
+
+    public boolean isSyncIndexingEnabled() {
+        return syncIndexMode;
+    }
+
 
     @Override
     public String toString() {
@@ -1574,6 +1581,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static boolean supportsNRTIndexing(NodeState defn) {
         return supportsIndexingMode(new ReadOnlyBuilder(defn), "nrt");
+    }
+
+    private static boolean supportsSyncIndexing(NodeState defn) {
+        return supportsIndexingMode(new ReadOnlyBuilder(defn), "sync");
     }
 
     public static boolean supportsSyncOrNRTIndexing(NodeBuilder defn) {

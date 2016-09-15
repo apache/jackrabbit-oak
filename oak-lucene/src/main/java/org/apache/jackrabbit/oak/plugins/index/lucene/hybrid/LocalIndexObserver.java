@@ -26,22 +26,16 @@ import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalIndexObserver implements Observer{
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentQueue docQueue;
-    private final MeterStats added;
-    private final MeterStats dropped;
 
     public LocalIndexObserver(DocumentQueue docQueue, StatisticsProvider sp) {
         this.docQueue = docQueue;
-        this.added = sp.getMeter("HYBRID_ADDED", StatsOptions.DEFAULT);
-        this.dropped = sp.getMeter("HYBRID_DROPPED", StatsOptions.DEFAULT);
     }
 
     @Override
@@ -63,20 +57,23 @@ public class LocalIndexObserver implements Observer{
             return;
         }
 
-        int addedCount = 0, droppedCount = 0;
+        int droppedCount = 0;
         for (LuceneDoc doc : holder.getNRTIndexedDocs()){
-            if (docQueue.add(doc)) {
-                addedCount++;
-            } else {
+            if (!docQueue.add(doc)) {
                 droppedCount++;
             }
         }
 
-        added.mark(addedCount);
-        dropped.mark(droppedCount);
+        //After nrt docs add all sync indexed docs
+        //Doing it *after* ensures thar nrt index might catch
+        //up by the time sync one are finished
+        docQueue.addAllSynchronously(holder.getSyncIndexedDocs(), true);
+
         if (droppedCount > 0){
             //TODO Ensure that log do not flood
             log.warn("Dropped [{}] docs from indexing as queue is full", droppedCount);
         }
+
+        //TODO Remove the holder once processing is done
     }
 }
