@@ -36,7 +36,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -134,7 +133,7 @@ class ReferenceIndex implements QueryIndex {
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
-            iterables.add(s.query(new FilterImpl(), index + "("
+            iterables.add(s.query(filter, index + "("
                     + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
         }
         Iterable<String> paths = Iterables.concat(iterables);
