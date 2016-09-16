@@ -189,7 +189,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
 
     @Override
     public boolean hasChildNode(String name) {
-        return getNodeState().hasChildNode(name);
+        return getChildNode(name).exists();
     }
 
     @Override
@@ -218,7 +218,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
         NodeBuilder builder = getNodeBuilder(owningStore);
         
         for ( String segment : PathUtils.elements(path) ) {
-            builder = builder.child(segment);
+            builder = builder.getChildNode(segment);
         }
         
         return wrap(childPath, builder.getChildNode(name));
