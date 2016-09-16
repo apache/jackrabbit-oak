@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +32,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
@@ -40,10 +40,10 @@ import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.BlobByteSource;
@@ -325,6 +325,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         dirty |= indexAggregates(path, fields, state);
         dirty |= indexNullCheckEnabledProps(path, fields, state);
+        dirty |= indexFunctionRestrictions(path, fields, state);
         dirty |= indexNotNullCheckEnabledProps(path, fields, state);
 
         dirty |= augmentCustomFields(path, fields, state);
@@ -658,6 +659,31 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
         }
         return fieldAdded;
+    }
+
+    private boolean indexFunctionRestrictions(String path, List<Field> fields, NodeState state) {
+        boolean fieldAdded = false;
+        for (PropertyDefinition pd : indexingRule.getFunctionRestrictions()) {
+            PropertyState functionValue = calculateValue(path, state, pd.functionCode);
+            if (functionValue != null) {
+                if (pd.ordered) {
+                    addTypedOrderedFields(fields, functionValue, pd.function, pd);
+                }
+                addTypedFields(fields, functionValue, pd.function);
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+    
+    private static PropertyState calculateValue(String path, NodeState state, String[] functionCode) {
+        try {
+            return FunctionIndexProcessor.tryCalculateValue(path, state, functionCode);
+        } catch (RuntimeException e) {
+            log.error("Failed to calculate function value for {} at {}", 
+                    Arrays.toString(functionCode), path, e);
+            throw e;
+        }
     }
 
     private boolean indexIfSinglePropertyRemoved() {

@@ -65,6 +65,9 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
         TestUtil.enablePropertyIndex(props, "a/name", false);
         TestUtil.enablePropertyIndex(props, "b/name", false);
+        TestUtil.enableFunctionIndex(props, "length([name])");
+        TestUtil.enableFunctionIndex(props, "lower([name])");
+        TestUtil.enableFunctionIndex(props, "upper([name])");
         
         root.commit();                
     }

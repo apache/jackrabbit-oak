@@ -126,6 +126,12 @@ public class TestUtil {
         return prop;
     }
 
+    public static Tree enableFunctionIndex(Tree props, String function) {
+        Tree prop = props.addChild(unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_FUNCTION, function);
+        return prop;
+    }
+
     public static AggregatorBuilder newNodeAggregator(Tree indexDefn){
         return new AggregatorBuilder(indexDefn);
     }

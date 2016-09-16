@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -99,6 +100,16 @@ class PropertyDefinition {
     @CheckForNull
     final String nonRelativeName;
 
+    /**
+     * For function-based indexes: the function name, in Polish notation.
+     */    
+    final String function;
+    
+    /**
+     * For function-based indexes: the function code, as tokens.
+     */    
+    final String[] functionCode;
+
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
@@ -134,6 +145,9 @@ class PropertyDefinition {
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
         this.facet = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_FACETS, false);
+        this.function = FunctionIndexProcessor.convertToPolishNotation(
+                getOptionalValue(defn, LuceneIndexConstants.PROP_FUNCTION, null));
+        this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
         validate();
     }
 
