@@ -211,7 +211,7 @@ public class ContentMirrorStoreStrategyTest {
         final long repoTreeApproxNodeCount = 50000;
         final long repoSubPathApproxNodeCount = repoTreeApproxNodeCount /
                 filteredNodeFactor;
-        final FilterImpl filter = new FilterImpl();
+        final FilterImpl filter = FilterImpl.newTestInstance();
         filter.restrictPath("/" + subPathName,
                 Filter.PathRestriction.ALL_CHILDREN);
 
