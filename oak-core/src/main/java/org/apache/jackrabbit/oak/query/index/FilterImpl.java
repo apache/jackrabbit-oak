@@ -111,8 +111,20 @@ public class FilterImpl implements Filter {
     private boolean preparing;
 
     // TODO support "order by"
+
+    /**
+     * Create a new filter instance that is used for unit testing. This method
+     * is relatively slow, because it creates a new query engine setting object.
+     * Therefore, it is only to be used for testing. At runtime, the
+     * public constructor should be used instead.
+     * 
+     * @return the filter
+     */
+    public static FilterImpl newTestInstance() {
+        return new FilterImpl();
+    }
     
-    public FilterImpl() {
+    private FilterImpl() {
         this(null, null, new QueryEngineSettings());
     }
 

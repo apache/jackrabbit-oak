@@ -53,7 +53,7 @@ public class SolrIndexLookupTest {
         newSolrIndexDefinition(index, "l2", of("foo"));
 
         SolrIndexLookup lookup = new SolrIndexLookup(builder.getNodeState());
-        FilterImpl f = new FilterImpl();
+        FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/oak:index/l2"),
                 lookup.collectIndexNodePaths(f));
@@ -71,7 +71,7 @@ public class SolrIndexLookupTest {
         newSolrIndexDefinition(index, "l3", of("foo"));
 
         SolrIndexLookup lookup = new SolrIndexLookup(builder.getNodeState());
-        FilterImpl f = new FilterImpl();
+        FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/a/oak:index/l2"),
                 lookup.collectIndexNodePaths(f));

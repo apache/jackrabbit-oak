@@ -87,7 +87,7 @@ public class AsyncIndexUpdateTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        return Sets.newHashSet(lookup.query(new FilterImpl(), name,
+        return Sets.newHashSet(lookup.query(FilterImpl.newTestInstance(), name,
                 PropertyValues.newString(value)));
     }
 
