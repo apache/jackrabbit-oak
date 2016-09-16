@@ -568,7 +568,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * @return the indexing rule or <code>null</code> if none applies.
      */
     @CheckForNull
-    public IndexingRule getApplicableIndexingRule(Tree state) {
+    public IndexingRule getApplicableIndexingRule(NodeState state) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
         List<IndexingRule> rules = null;
@@ -864,7 +864,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
          * @return <code>true</code> the rule applies to the given node;
          *         <code>false</code> otherwise.
          */
-        public boolean appliesTo(Tree state) {
+        public boolean appliesTo(NodeState state) {
             for (String mixinName : getMixinTypeNames(state)){
                 if (nodeTypeName.equals(mixinName)){
                     return true;
@@ -1398,15 +1398,20 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         };
     }
 
-    private static String getPrimaryTypeName(Tree state) {
-        String primaryType = TreeUtil.getPrimaryTypeName(state);
+    private static String getPrimaryTypeName(NodeState state) {
+        String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
+
+        //To ensure compatibility with previous Tree based usage look based on string also
+        if (primaryType == null) {
+            primaryType = state.getString(JcrConstants.JCR_PRIMARYTYPE);
+        }
         //In case not a proper JCR assume nt:base TODO return null and ignore indexing such nodes
         //at all
         return primaryType != null ? primaryType : "nt:base";
     }
 
-    private static Iterable<String> getMixinTypeNames(Tree tree) {
-        PropertyState property = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+    private static Iterable<String> getMixinTypeNames(NodeState state) {
+        PropertyState property = state.getProperty(JcrConstants.JCR_MIXINTYPES);
         return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
     }
 

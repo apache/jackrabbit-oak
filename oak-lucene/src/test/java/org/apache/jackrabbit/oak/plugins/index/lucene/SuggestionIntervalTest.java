@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -133,7 +134,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
 
         //add a node... this should kick in a suggestions udpate too as enough time has passed
         root.getTree("/").addChild("indexedNode")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
         root.commit();
 
         Set<String> suggestions = getSuggestions(nodeType, "indexedn");
@@ -155,7 +156,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
 
         //add a node that get part in the index
         root.getTree("/").addChild("indexedNode")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
         root.commit();
 
         //wait for suggestions refresh time
@@ -164,7 +165,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
 
         //push a change which should not make any change in the index but yet should help update suggestions
         root.getTree("/").addChild("some-non-index-change")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured");
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured", Type.NAME);
         root.commit();
 
         Set<String> suggestions = getSuggestions(nodeType, "indexedn");

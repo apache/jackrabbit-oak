@@ -104,10 +104,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
      */
     private final boolean isDeleted;
 
-    private Tree afterTree;
-
-    private Tree beforeTree;
-
     private IndexDefinition.IndexingRule indexingRule;
 
     private List<Matcher> currentMatchers = Collections.emptyList();
@@ -140,7 +136,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     public String getPath() {
-        //TODO Use the tree instance to determine path
         if (path == null) { // => parent != null
             path = concat(parent.getPath(), name);
         }
@@ -154,20 +149,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             context.enableReindexMode();
         }
 
-        if (parent == null){
-            afterTree = TreeFactory.createReadOnlyTree(after);
-            beforeTree = TreeFactory.createReadOnlyTree(before);
-        } else {
-            afterTree = parent.afterTree.getChild(name);
-            beforeTree = parent.beforeTree.getChild(name);
-        }
-
         //Only check for indexing if the result is include.
         //In case like TRAVERSE nothing needs to be indexed for those
         //path
         if (pathFilterResult == PathFilter.Result.INCLUDE) {
             //For traversal in deleted sub tree before state has to be used
-            Tree current = afterTree.exists() ? afterTree : beforeTree;
+            NodeState current = after.exists() ? after : before;
             indexingRule = getDefinition().getApplicableIndexingRule(current);
 
             if (indexingRule != null) {
