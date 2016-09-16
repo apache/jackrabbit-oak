@@ -25,13 +25,11 @@ import javax.jcr.PropertyType;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
@@ -161,7 +159,7 @@ public class IndexDefinitionTest {
         builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule.getConfig("foo1/bar"));
         assertEquals(PropertyType.DATE, rule.getConfig("foo1/bar").getType());
         assertEquals(PropertyType.LONG, rule.getConfig("foo2/bar2/baz").getType());
@@ -179,9 +177,9 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
+        assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:base"))));
 
-        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule1);
         assertEquals(2.0f, rule1.boost, 0);
 
@@ -201,9 +199,9 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
-        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:hierarchyNode"))));
-        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+        assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:base"))));
+        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:hierarchyNode"))));
+        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
     }
 
     @Test
@@ -215,8 +213,8 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder", "mix:title"))));
-        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder", "mix:title"))));
+        assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
     }
 
     @Test
@@ -228,11 +226,11 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder", "mix:mimeType"))));
-        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder", "mix:mimeType"))));
+        assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
 
         //nt:resource > mix:mimeType
-        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:resource"))));
+        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:resource"))));
     }
 
     @Test
@@ -245,10 +243,10 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
-        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:hierarchyNode"))));
+        assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:base"))));
+        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:hierarchyNode"))));
         assertNull("nt:folder should not be index as rule is not inheritable",
-                defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+                defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
     }
 
     @Test
@@ -292,7 +290,7 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule1);
 
         assertTrue(rule1.isIndexed("prop1"));
@@ -318,7 +316,7 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule1);
 
         assertTrue(rule1.isIndexed("prop1"));
@@ -346,7 +344,7 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule1);
 
         assertTrue(rule1.isIndexed("prop1"));
@@ -360,7 +358,7 @@ public class IndexDefinitionTest {
         //Order it correctly to get expected result
         rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop1", "prop2"), NAMES);
         defn = new IndexDefinition(root, builder.getNodeState());
-        rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
     }
 
@@ -377,7 +375,7 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule1);
 
         assertTrue(rule1.isIndexed("Foo"));
@@ -398,7 +396,7 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertFalse(rule.getConfig("foo").skipTokenization("foo"));
         assertTrue(rule.getConfig(JcrConstants.JCR_UUID).skipTokenization(JcrConstants.JCR_UUID));
     }
@@ -467,7 +465,7 @@ public class IndexDefinitionTest {
         IndexDefinition defn2 = new IndexDefinition(root, updated.getNodeState());
 
         assertFalse(defn2.isOfOldFormat());
-        IndexingRule rule = defn2.getApplicableIndexingRule(newTree(newNode("nt:base")));
+        IndexingRule rule = defn2.getApplicableIndexingRule(asState(newNode("nt:base")));
         assertNotNull(rule);
         assertFalse(rule.getConfig("foo").index);
         assertFalse(rule.getConfig("Bar").index);
@@ -483,7 +481,7 @@ public class IndexDefinitionTest {
         NodeBuilder updated = IndexDefinition.updateDefinition(defnb.getNodeState().builder());
         IndexDefinition defn2 = new IndexDefinition(root, updated.getNodeState());
 
-        IndexingRule rule = defn2.getApplicableIndexingRule(newTree(newNode("nt:base")));
+        IndexingRule rule = defn2.getApplicableIndexingRule(asState(newNode("nt:base")));
         assertNotNull(rule.getConfig("foo"));
         assertNull("Property regex used should not allow relative properties", rule.getConfig("foo/bar"));
     }
@@ -731,7 +729,7 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
 
-        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule1);
 
         PropertyDefinition pd = rule1.getConfig("prop1");
@@ -752,14 +750,14 @@ public class IndexDefinitionTest {
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule);
         assertFalse(rule.isNodeFullTextIndexed());
 
         TestUtil.child(rules, "nt:folder/properties/prop1")
                 .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         defn = new IndexDefinition(root, builder.getNodeState());
-        rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertTrue(rule.isNodeFullTextIndexed());
         assertTrue(rule.indexesAllNodesOfMatchingType());
     }
@@ -773,14 +771,14 @@ public class IndexDefinitionTest {
                 .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule);
         assertFalse(rule.isNodeFullTextIndexed());
 
         TestUtil.child(rules, "nt:folder/properties/prop1")
                 .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         defn = new IndexDefinition(root, builder.getNodeState());
-        rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertTrue(rule.isNodeFullTextIndexed());
         assertTrue(rule.indexesAllNodesOfMatchingType());
     }
@@ -798,7 +796,7 @@ public class IndexDefinitionTest {
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PATH, "*");
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule);
         assertTrue(rule.isNodeFullTextIndexed());
         assertTrue(rule.indexesAllNodesOfMatchingType());
@@ -820,7 +818,7 @@ public class IndexDefinitionTest {
                 .setProperty(LuceneIndexConstants.PROP_ORDERED, true)
                 .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule);
 
         PropertyDefinition pd = rule.getConfig("foo");
@@ -886,16 +884,16 @@ public class IndexDefinitionTest {
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
-        return defn.getApplicableIndexingRule(newTree(newNode(typeName)));
+        return defn.getApplicableIndexingRule(asState(newNode(typeName)));
     }
 
-    private static Tree newTree(NodeBuilder nb){
-        return TreeFactory.createReadOnlyTree(nb.getNodeState());
+    private static NodeState asState(NodeBuilder nb){
+        return nb.getNodeState();
     }
 
     private static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName);
+        builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
     }
 
