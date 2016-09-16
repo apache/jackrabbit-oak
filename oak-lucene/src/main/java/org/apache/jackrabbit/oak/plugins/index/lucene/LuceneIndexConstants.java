@@ -349,4 +349,9 @@ public interface LuceneIndexConstants {
      * Boolean property indicate that property should not be included in aggregation
      */
     String PROP_EXCLUDE_FROM_AGGREGATE = "excludeFromAggregation";
+
+    /**
+     * String property: the function to index, for function-based index
+     */
+    String PROP_FUNCTION = "function";
 }

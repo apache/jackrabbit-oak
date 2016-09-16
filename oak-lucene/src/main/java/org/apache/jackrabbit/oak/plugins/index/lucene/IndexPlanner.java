@@ -146,6 +146,15 @@ class IndexPlanner {
 
         List<String> indexedProps = newArrayListWithCapacity(filter.getPropertyRestrictions().size());
 
+        for (PropertyDefinition functionIndex : indexingRule.getFunctionRestrictions()) {
+            for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                String f = functionIndex.function;
+                if (pr.propertyName.equals(f)) {
+                    indexedProps.add(f);
+                    result.propDefns.put(f, functionIndex);
+                }
+            }
+        }
         //Optimization - Go further only if any of the property is configured
         //for property index
         List<String> facetFields = new LinkedList<String>();
@@ -156,7 +165,7 @@ class IndexPlanner {
                     continue;
                 }
                 if (name.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX)) {
-                    // TODO support function-based indexes
+                    // function-based indexes were handled before
                     continue;
                 }
                 if (QueryImpl.REP_FACET.equals(pr.propertyName)) {
@@ -504,6 +513,13 @@ class IndexPlanner {
                 // Supports jcr:score descending natively
                 orderEntries.add(IndexDefinition.NATIVE_SORT_ORDER);
             }
+            for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
+                if (o.getPropertyName().equals(functionIndex.function)) {
+                    // Lucene can manage any order desc/asc
+                    orderEntries.add(o);
+                    result.sortedProperties.add(functionIndex);
+                }
+            }
         }
 
         //TODO Should we return order entries only when all order clauses are satisfied
@@ -549,6 +565,14 @@ class IndexPlanner {
             //Relative parent properties where [../foo1] is not null
             return true;
         }
+        boolean failTestOnMissingFunctionIndex = true;
+        if (failTestOnMissingFunctionIndex) {
+            // this means even just function restrictions fail the test
+            // (for example "where upper(name) = 'X'", 
+            // if a matching function-based index is missing
+            return false;
+        }
+        // the following would ensure the test doesn't fail in that case:
         for (PropertyRestriction r : filter.getPropertyRestrictions()) {
             if (!r.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX)) {
                 // not a function restriction

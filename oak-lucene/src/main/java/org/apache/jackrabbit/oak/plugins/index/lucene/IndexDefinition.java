@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -730,6 +731,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
+        private final List<PropertyDefinition> functionRestrictions;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final List<PropertyDefinition> nodeScopeAnalyzedProps;
         private final boolean indexesAllNodesOfMatchingType;
@@ -755,17 +757,19 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
             List<NamePattern> namePatterns = newArrayList();
             List<PropertyDefinition> nonExistentProperties = newArrayList();
+            List<PropertyDefinition> functionRestrictions = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
             List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
-                    existentProperties, nodeScopeAnalyzedProps);
+                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
             this.nodeScopeAnalyzedProps = ImmutableList.copyOf(nodeScopeAnalyzedProps);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
+            this.functionRestrictions = ImmutableList.copyOf(functionRestrictions);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || anyNodeScopeIndexedProperty();
@@ -794,6 +798,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.propAggregate = original.propAggregate;
             this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
             this.notNullCheckEnabledProperties = original.notNullCheckEnabledProperties;
+            this.functionRestrictions = original.functionRestrictions;
             this.nodeScopeAnalyzedProps = original.nodeScopeAnalyzedProps;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
@@ -833,6 +838,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
             return nullCheckEnabledProperties;
+        }
+        
+        public List<PropertyDefinition> getFunctionRestrictions() {
+            return functionRestrictions;
         }
 
         public List<PropertyDefinition> getNotNullCheckEnabledProperties() {
@@ -957,11 +966,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return JcrConstants.NT_BASE.equals(baseNodeType);
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, 
+                                                                   List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
                                                                    List<PropertyDefinition> existentProperties,
-                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps) {
+                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps, 
+                                                                   List<PropertyDefinition> functionRestrictions) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -981,6 +992,18 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                 NodeState propDefnNode = propNode.getChildNode(propName);
                 if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
                     PropertyDefinition pd = new PropertyDefinition(this, propName, propDefnNode);
+                    if (pd.function != null) {
+                        functionRestrictions.add(pd);
+                        String[] properties = FunctionIndexProcessor.getProperties(pd.functionCode);
+                        for (String p : properties) {
+                            if (PathUtils.getDepth(p) > 1) {
+                                PropertyDefinition pd2 = new PropertyDefinition(this, p, propDefnNode);
+                                propAggregate.add(new Aggregate.PropertyInclude(pd2));
+                            }
+                        }
+                        // a function index has no other options
+                        continue;
+                    }
                     if(pd.isRegexp){
                         patterns.add(new NamePattern(pd.name, pd));
                     } else {
