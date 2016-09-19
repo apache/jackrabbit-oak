@@ -738,9 +738,12 @@ public class MultiplexingNodeStoreTest {
         rootBuilder.setProperty("newProperty", true, Type.BOOLEAN);
 
         NodeState baseState = rootBuilder.getNodeState();
-        NodeBuilder builderFromState = baseState.builder();
+        assertTrue(baseState.getBoolean("newProperty"));
 
+        NodeBuilder builderFromState = baseState.builder();
         assertTrue(builderFromState.getBoolean("newProperty"));
+        assertTrue(builderFromState.getNodeState().getBoolean("newProperty"));
+        //assertTrue(builderFromState.getBaseState().getBoolean("newProperty")); // FIXME
     }
 
     @Test
