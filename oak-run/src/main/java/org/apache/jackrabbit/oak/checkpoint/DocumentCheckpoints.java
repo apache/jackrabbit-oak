@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.checkpoint;
 
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.getCheckpoints;
+import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.min;
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.removeOlderThan;
 
 import java.util.List;
@@ -54,11 +55,11 @@ class DocumentCheckpoints extends Checkpoints {
 
     @Override
     public long removeUnreferenced() {
-        String ref = getReferenceCheckpoint(store.getRoot());
+        Revision ref = min(getReferencedCheckpoints(store.getRoot()));
         if (ref == null) {
             return -1;
         }
-        return removeOlderThan(store, Revision.fromString(ref));
+        return removeOlderThan(store, ref);
     }
 
     @Override

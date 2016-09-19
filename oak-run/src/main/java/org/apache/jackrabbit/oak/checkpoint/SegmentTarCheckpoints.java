@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -79,13 +80,13 @@ class SegmentTarCheckpoints extends Checkpoints {
     public long removeUnreferenced() {
         SegmentNodeState head = store.getHead();
 
-        String ref = getReferenceCheckpoint(head.getChildNode("root"));
+        Set<String> refs = getReferencedCheckpoints(head.getChildNode("root"));
 
         NodeBuilder builder = head.builder();
         NodeBuilder cps = builder.getChildNode("checkpoints");
         long cnt = 0;
         for (String c : cps.getChildNodeNames()) {
-            if (c.equals(ref)) {
+            if (refs.contains(c)) {
                 continue;
             }
             cps.getChildNode(c).remove();

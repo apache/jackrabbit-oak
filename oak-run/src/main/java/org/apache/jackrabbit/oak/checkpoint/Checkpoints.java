@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.checkpoint;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -77,18 +79,19 @@ public abstract class Checkpoints {
      */
     public abstract int remove(String cp);
 
-    @CheckForNull
-    static String getReferenceCheckpoint(NodeState root) {
-        String ref = null;
-        PropertyState refPS = root.getChildNode(":async").getProperty("async");
-        if (refPS != null) {
-            ref = refPS.getValue(Type.STRING);
+    @Nonnull
+    static Set<String> getReferencedCheckpoints(NodeState root) {
+        Set<String> cps = new HashSet<String>();
+        for (PropertyState ps : root.getChildNode(":async").getProperties()) {
+            String name = ps.getName();
+            if (name.endsWith("async") && ps.getType().equals(Type.STRING)) {
+                String ref = ps.getValue(Type.STRING);
+                System.out.println("Referenced checkpoint from /:async@" + name
+                        + " is " + ref);
+                cps.add(ref);
+            }
         }
-        if (ref != null) {
-            System.out.println(
-                    "Referenced checkpoint from /:async@async is " + ref);
-        }
-        return ref;
+        return cps;
     }
 
     public static final class CP {

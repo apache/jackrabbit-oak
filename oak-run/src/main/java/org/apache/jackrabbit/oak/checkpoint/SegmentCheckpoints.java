@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.checkpoint;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -73,13 +74,13 @@ final class SegmentCheckpoints extends Checkpoints {
     public long removeUnreferenced() {
         SegmentNodeState head = store.getHead();
 
-        String ref = getReferenceCheckpoint(head.getChildNode("root"));
+        Set<String> refs = getReferencedCheckpoints(head.getChildNode("root"));
 
         NodeBuilder builder = head.builder();
         NodeBuilder cps = builder.getChildNode("checkpoints");
         long cnt = 0;
         for (String c : cps.getChildNodeNames()) {
-            if (c.equals(ref)) {
+            if (refs.contains(c)) {
                 continue;
             }
             cps.getChildNode(c).remove();
