@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -210,18 +211,21 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
 
     @Override
     public NodeBuilder getChildNode(String name) throws IllegalArgumentException {
-
         String childPath = PathUtils.concat(path, name);
         
         MountedNodeStore owningStore = ctx.getOwningStore(childPath);
 
         NodeBuilder builder = getNodeBuilder(owningStore);
         
-        for ( String segment : PathUtils.elements(path) ) {
-            builder = builder.getChildNode(segment);
+        for ( String segment : PathUtils.elements(childPath) ) {
+            if (builder.hasChildNode(segment)) {
+                builder = builder.getChildNode(segment);
+            } else {
+                return MISSING_NODE.builder();
+            }
         }
         
-        return wrap(childPath, builder.getChildNode(name));
+        return wrap(childPath, builder);
     }
 
     @Override

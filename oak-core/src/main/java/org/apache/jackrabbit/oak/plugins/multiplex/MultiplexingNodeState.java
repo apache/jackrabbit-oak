@@ -234,12 +234,15 @@ public class MultiplexingNodeState extends AbstractNodeState {
     }
 
     private NodeState getChildNode(NodeState root, String path) {
-        
-        // TODO - do we need to call 'exists()' at any point?
-        for ( String element : PathUtils.elements(path) ) {
-            root = root.getChildNode(element);
+        NodeState child = root;
+        for (String element : PathUtils.elements(path)) {
+            if (child.hasChildNode(element)) {
+                child = child.getChildNode(element);
+            } else {
+                return MISSING_NODE;
+            }
         }
-        return root;
+        return child;
     }
     
     /**
