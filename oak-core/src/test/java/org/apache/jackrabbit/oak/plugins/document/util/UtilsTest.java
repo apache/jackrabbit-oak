@@ -240,4 +240,14 @@ public class UtilsTest {
         assertEquals(4, Utils.getMinTimestampForDiff(to, from, minRevs));
 
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getDepthFromIdIllegalArgumentException1() {
+        Utils.getDepthFromId("a:/foo");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getDepthFromIdIllegalArgumentException2() {
+        Utils.getDepthFromId("42");
+    }
 }

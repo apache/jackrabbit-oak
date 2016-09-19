@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -92,10 +93,6 @@ public class VersionGarbageCollectorIT {
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        if (getFixtures().contains(DOCUMENT_MEM)) {
-            fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
-        }
-
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (getFixtures().contains(DOCUMENT_NS) && mongo.isAvailable()) {
             fixtures.add(new Object[] { mongo });
@@ -105,6 +102,10 @@ public class VersionGarbageCollectorIT {
         if (getFixtures().contains(DOCUMENT_RDB) && rdb.isAvailable()) {
             fixtures.add(new Object[] { rdb });
         }
+        if (fixtures.isEmpty() || getFixtures().contains(DOCUMENT_MEM)) {
+            fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
+        }
+
         return fixtures;
     }
 
@@ -497,6 +498,37 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = f.get();
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(2, stats.splitDocGCCount);
+    }
+
+    // OAK-4819
+    @Test
+    public void malformedId() throws Exception {
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // remove again
+        builder = store.getRoot().builder();
+        builder.child("foo").remove();
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        // add a document with a malformed id
+        String id = "42";
+        UpdateOp op = new UpdateOp(id, true);
+        op.set(ID, id);
+        NodeDocument.setDeletedOnce(op);
+        NodeDocument.setModified(op, store.newRevision());
+        store.getDocumentStore().create(NODES, Lists.newArrayList(op));
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
+
+        // gc must not fail
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(1, stats.deletedDocGCCount);
     }
 
     private void createTestNode(String name) throws CommitFailedException {
