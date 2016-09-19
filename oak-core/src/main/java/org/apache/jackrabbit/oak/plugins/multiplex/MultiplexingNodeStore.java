@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -115,13 +116,16 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // TODO - how do we dispatch commit hooks?
         // Right now nodeStore.merge() fails for instance when setting up the repository and trying
         // to perform a merge call on the secondary node store
-        
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
+
+        MultiplexingNodeState processed = (MultiplexingNodeState) commitHook.processCommit(nodeBuilder.getBaseState(), nodeBuilder.getNodeState(), info);
+        MultiplexingNodeBuilder processedBuilder = (MultiplexingNodeBuilder) processed.builder();
+
+        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : processedBuilder.getAffectedBuilders().entrySet() ) {
             
             NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
             NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
-            
-            nodeStore.merge(affectedBuilder, commitHook, info);
+
+            nodeStore.merge(affectedBuilder, EmptyHook.INSTANCE, info);
         }
         
         NodeState newRoot = getRoot();
