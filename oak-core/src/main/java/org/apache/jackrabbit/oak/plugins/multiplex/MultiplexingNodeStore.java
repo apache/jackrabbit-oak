@@ -117,7 +117,8 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // Right now nodeStore.merge() fails for instance when setting up the repository and trying
         // to perform a merge call on the secondary node store
 
-        MultiplexingNodeState processed = (MultiplexingNodeState) commitHook.processCommit(nodeBuilder.getBaseState(), nodeBuilder.getNodeState(), info);
+        NodeState rebased = rebase(nodeBuilder);
+        MultiplexingNodeState processed = (MultiplexingNodeState) commitHook.processCommit(getRoot(), rebased, info);
         MultiplexingNodeBuilder processedBuilder = (MultiplexingNodeBuilder) processed.builder();
 
         for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : processedBuilder.getAffectedBuilders().entrySet() ) {
@@ -150,9 +151,8 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             
             nodeStore.rebase(affectedBuilder);
         }
-        
-        // TODO - is this correct or do we need a specific path?
-        return getRoot();
+
+        return nodeBuilder.getNodeState();
     }
 
     @Override
