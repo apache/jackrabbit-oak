@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.checkpoint;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.getCheckpoints;
+import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.min;
 import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.removeOlderThan;
 
 /**
@@ -120,13 +123,13 @@ public abstract class Checkpoints {
         public long removeUnreferenced() {
             SegmentNodeState head = store.getHead();
 
-            String ref = getReferenceCheckpoint(head.getChildNode("root"));
+            Set<String> refs = getReferencedCheckpoints(head.getChildNode("root"));
 
             NodeBuilder builder = head.builder();
             NodeBuilder cps = builder.getChildNode("checkpoints");
             long cnt = 0;
             for (String c : cps.getChildNodeNames()) {
-                if (c.equals(ref)) {
+                if (refs.contains(c)) {
                     continue;
                 }
                 cps.getChildNode(c).remove();
@@ -190,11 +193,11 @@ public abstract class Checkpoints {
 
         @Override
         public long removeUnreferenced() {
-            String ref = getReferenceCheckpoint(store.getRoot());
+            Revision ref = min(getReferencedCheckpoints(store.getRoot()));
             if (ref == null) {
                 return -1;
             }
-            return removeOlderThan(store, Revision.fromString(ref));
+            return removeOlderThan(store, ref);
         }
 
         @Override
@@ -209,18 +212,19 @@ public abstract class Checkpoints {
         }
     }
 
-    @CheckForNull
-    private static String getReferenceCheckpoint(NodeState root) {
-        String ref = null;
-        PropertyState refPS = root.getChildNode(":async").getProperty("async");
-        if (refPS != null) {
-            ref = refPS.getValue(Type.STRING);
+    @Nonnull
+    static Set<String> getReferencedCheckpoints(NodeState root) {
+        Set<String> cps = new HashSet<String>();
+        for (PropertyState ps : root.getChildNode(":async").getProperties()) {
+            String name = ps.getName();
+            if (name.endsWith("async") && ps.getType().equals(Type.STRING)) {
+                String ref = ps.getValue(Type.STRING);
+                System.out.println("Referenced checkpoint from /:async@" + name
+                        + " is " + ref);
+                cps.add(ref);
+            }
         }
-        if (ref != null) {
-            System.out.println(
-                    "Referenced checkpoint from /:async@async is " + ref);
-        }
-        return ref;
+        return cps;
     }
 
     public static final class CP {
