@@ -52,7 +52,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
 
     @Override
     public NodeState getNodeState() {
-        return new MultiplexingNodeState(path, ctx, transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
+        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(@Nullable NodeBuilder input) {
                 return input.getNodeState();
@@ -62,7 +62,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
 
     @Override
     public NodeState getBaseState() {
-        return new MultiplexingNodeState(path, ctx, transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
+        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(@Nullable NodeBuilder input) {
                 return input.getBaseState();

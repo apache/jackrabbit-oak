@@ -26,7 +26,6 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -68,15 +67,7 @@ public class MultiplexingNodeState extends AbstractNodeState {
 
     private NodeState wrappedNodeState;
 
-    public MultiplexingNodeState(String path, MultiplexingContext ctx, List<String> checkpoints) {
-        this(path, ctx, checkpoints, Collections.<MountedNodeStore, NodeState> emptyMap());
-    }
-    
-    public MultiplexingNodeState(String path, MultiplexingContext ctx, Map<MountedNodeStore, NodeState> nodeStates) {
-        this(path, ctx, Collections.<String> emptyList(), nodeStates);
-    }
-
-    private MultiplexingNodeState(String path, MultiplexingContext ctx, List<String> checkpoints, Map<MountedNodeStore, NodeState> nodeStates) {
+    public MultiplexingNodeState(String path, MultiplexingContext ctx, List<String> checkpoints, Map<MountedNodeStore, NodeState> nodeStates) {
         this.path = path;
         this.ctx = ctx;
         this.checkpoints = checkpoints;

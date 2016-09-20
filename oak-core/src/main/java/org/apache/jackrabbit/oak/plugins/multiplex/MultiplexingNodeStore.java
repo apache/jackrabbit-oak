@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -46,7 +47,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * A <tt>NodeStore</tt> implementation that multiplexes multiple <tt>MemoryNodeStore</tt> instances
@@ -90,7 +90,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // at this certain point in time, so we eagerly retrieve them from all stores
         
         // register the initial builder as affected as it's already instantiated
-        Map<MountedNodeStore, NodeState> nodeStates = Maps.newHashMap();
+        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
         MountedNodeStore owningStore = ctx.getOwningStore("/");
         NodeState rootState = owningStore.getNodeStore().getRoot();
         nodeStates.put(owningStore, rootState);
@@ -99,7 +99,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
         }
 
-        return new MultiplexingNodeState("/", ctx, nodeStates);
+        return new MultiplexingNodeState("/", ctx, Collections.<String>emptyList(), nodeStates);
     }
 
     @Override
@@ -228,14 +228,22 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     public NodeState retrieve(String checkpoint) {
         // TODO - proper validation of checkpoints size compared to mounts
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
-        
+        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+
         // global store is always first
         NodeState globalStoreNodeState = globalStore.getNodeStore().retrieve(checkpoints.get(0));
         if (globalStoreNodeState == null) {
             return null;
         }
+        nodeStates.put(globalStore, globalStoreNodeState);
+
+        int i = 1;
+        for (MountedNodeStore ns : nonDefaultStores) {
+            NodeState root = ns.getNodeStore().retrieve(checkpoints.get(i++));
+            nodeStates.put(ns, root);
+        }
         
-        return new MultiplexingNodeState("/", ctx, checkpoints);
+        return new MultiplexingNodeState("/", ctx, checkpoints, nodeStates);
     }
 
     @Override
