@@ -35,6 +35,7 @@ import static com.google.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -489,6 +490,37 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = f.get();
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(2, stats.splitDocGCCount);
+    }
+
+    // OAK-4819
+    @Test
+    public void malformedId() throws Exception {
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // remove again
+        builder = store.getRoot().builder();
+        builder.child("foo").remove();
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        // add a document with a malformed id
+        String id = "42";
+        UpdateOp op = new UpdateOp(id, true);
+        op.set(ID, id);
+        op.set(NodeDocument.DELETED_ONCE, true);
+        NodeDocument.setModified(op, store.newRevision());
+        store.getDocumentStore().create(NODES, Lists.newArrayList(op));
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
+
+        // gc must not fail
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(1, stats.deletedDocGCCount);
     }
 
     private void createTestNode(String name) throws CommitFailedException {
