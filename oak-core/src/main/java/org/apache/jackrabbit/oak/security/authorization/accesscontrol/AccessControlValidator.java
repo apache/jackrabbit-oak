@@ -213,7 +213,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
         NodeState ns = (accessControlledTree instanceof AbstractTree) ? ((AbstractTree) accessControlledTree).getNodeState() : null;
         if (!requiredMixin.apply(ns)) {
-            String msg = "Isolated policy node. Parent is not of type " + requiredMixin;
+            String msg = "Isolated policy node (" + accessControlledTree.getPath() + "). Parent is not of type " + requiredMixin;
             throw accessViolation(6, msg);
         }
     }
