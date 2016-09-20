@@ -273,7 +273,11 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
     
     // utility methods
     private NodeBuilder wrap(String childPath, NodeBuilder wrappedBuilder) {
-        return new MultiplexingNodeBuilder(childPath, wrappedBuilder, ctx, affectedBuilders);
+        if (wrappedBuilder == MISSING_NODE) {
+            return wrappedBuilder;
+        } else {
+            return new MultiplexingNodeBuilder(childPath, wrappedBuilder, ctx, affectedBuilders);
+        }
     }
     
     private NodeBuilder getNodeBuilder(MountedNodeStore nodeStore) {
