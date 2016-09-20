@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -93,65 +94,49 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         MountedNodeStore owningStore = ctx.getOwningStore("/");
         NodeState rootState = owningStore.getNodeStore().getRoot();
         nodeStates.put(owningStore, rootState);
-        
-        for ( MountedNodeStore nodeStore : nonDefaultStores ) {
+
+        for (MountedNodeStore nodeStore : nonDefaultStores) {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
         }
 
-        return new MultiplexingNodeState("/", rootState, ctx, nodeStates);
+        return new MultiplexingNodeState("/", ctx, nodeStates);
     }
 
     @Override
     public NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info) throws CommitFailedException {
-        
         checkArgument(builder instanceof MultiplexingNodeBuilder);
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-        
+
         // since we maintain a mapping of _root_ NodeBuilder instances for all mounted stores
         // we need to check ourselves against merging a non-root node
-
         checkArgument(nodeBuilder.getPath().equals("/"));
-        
-        // TODO - how do we dispatch commit hooks?
-        // Right now nodeStore.merge() fails for instance when setting up the repository and trying
-        // to perform a merge call on the secondary node store
 
-        NodeState rebased = rebase(nodeBuilder);
-        MultiplexingNodeState processed = (MultiplexingNodeState) commitHook.processCommit(getRoot(), rebased, info);
-        MultiplexingNodeBuilder processedBuilder = (MultiplexingNodeBuilder) processed.builder();
+        NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
+        processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
 
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : processedBuilder.getAffectedBuilders().entrySet() ) {
-            
-            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
-
-            nodeStore.merge(affectedBuilder, EmptyHook.INSTANCE, info);
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
+            NodeStore nodeStore = e.getKey().getNodeStore();
+            NodeBuilder rootBuilder = e.getValue();
+            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, info);
         }
         
         NodeState newRoot = getRoot();
-        for ( Observer observer: observers ) {
+        for (Observer observer : observers) {
             observer.contentChanged(newRoot, info);
         }
-        
         return newRoot;
    }
 
     @Override
     public NodeState rebase(NodeBuilder builder) {
-        
         checkArgument(builder instanceof MultiplexingNodeBuilder);
-        
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-        
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
-            
-            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
-            
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
+            NodeStore nodeStore = e.getKey().getNodeStore();
+            NodeBuilder affectedBuilder = e.getValue();
             nodeStore.rebase(affectedBuilder);
         }
-
         return nodeBuilder.getNodeState();
     }
 
@@ -161,7 +146,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
+        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getRootBuilders().entrySet() ) {
             
             NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
             NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
@@ -241,17 +226,16 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     @Override
     public NodeState retrieve(String checkpoint) {
-        
         // TODO - proper validation of checkpoints size compared to mounts
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
         
         // global store is always first
         NodeState globalStoreNodeState = globalStore.getNodeStore().retrieve(checkpoints.get(0));
-        if ( globalStoreNodeState == null ) {
+        if (globalStoreNodeState == null) {
             return null;
         }
         
-        return new MultiplexingNodeState("/", globalStoreNodeState, ctx, checkpoints);
+        return new MultiplexingNodeState("/", ctx, checkpoints);
     }
 
     @Override
