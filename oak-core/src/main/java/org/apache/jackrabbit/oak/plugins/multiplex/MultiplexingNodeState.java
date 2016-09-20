@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import javax.annotation.Nullable;
@@ -160,6 +161,28 @@ public class MultiplexingNodeState extends AbstractNodeState {
         });
     }
 
+    @Override
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        if (base instanceof MultiplexingNodeState) {
+            MultiplexingNodeState multiBase = (MultiplexingNodeState) base;
+            NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(diff);
+            MountedNodeStore owningStore = ctx.getOwningStore(path);
+
+            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), diff);
+            for (MountedNodeStore mns : ctx.getContributingStores(path, checkpoints)) {
+                if (owningStore == mns) {
+                    continue;
+                }
+                NodeState contributing = getNodeByPath(rootNodeStates.get(mns), path);
+                NodeState contributingBase = getNodeByPath(multiBase.rootNodeStates.get(mns), path);
+                full = full && contributing.compareAgainstBaseState(contributingBase, childrenDiffFilter);
+            }
+            return full;
+        } else {
+            return super.compareAgainstBaseState(base, diff);
+        }
+    }
+
     // write operations
     @Override
     public NodeBuilder builder() {
@@ -230,5 +253,44 @@ public class MultiplexingNodeState extends AbstractNodeState {
             wrappedNodeState = getNodeState(ctx.getOwningStore(path), path);
         }
         return wrappedNodeState;
+    }
+
+    private static class ChildrenDiffFilter implements NodeStateDiff {
+
+        private final NodeStateDiff diff;
+
+        public ChildrenDiffFilter(NodeStateDiff diff) {
+            this.diff = diff;
+        }
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            return true;
+        }
+
+        @Override
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            return true;
+        }
+
+        @Override
+        public boolean propertyDeleted(PropertyState before) {
+            return true;
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            return diff.childNodeAdded(name, after);
+        }
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            return diff.childNodeChanged(name, before, after);
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            return diff.childNodeDeleted(name, before);
+        }
     }
 }
