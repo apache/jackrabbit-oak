@@ -173,39 +173,31 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     @Override
     public NodeBuilder builder() {
-        
-        // TODO - use the internal NodeState instead of calling getRoot()
-        
-        // register the initial builder as affected as it's already instantiated
-        Map<MountedNodeStore, NodeBuilder> affectedBuilders = Maps.newHashMap();
-        MountedNodeStore owningStore = ctx.getOwningStore(path);
-        NodeBuilder builder = owningStore.getNodeStore().getRoot().builder();
-        affectedBuilders.put(owningStore, builder);
-        
-        // make sure the wrapped builder references the path for this NodeState
-        // so we can easily call methods which update properties or otherwise
-        // don't require reaching out to multiple NodeStore instances
-        for ( String segment : PathUtils.elements(path))
-            builder = builder.getChildNode(segment);
-        
-        // TODO - do we need to consider checkpoints when building the affected builders?
-        if  ( !nodeStates.isEmpty() ) {
-            for ( MountedNodeStore mountedStore : nodeStates.keySet() ) {
-                
+        if (nodeBuilder == null) {
+            // register the initial builder as affected as it's already instantiated
+            Map<MountedNodeStore, NodeBuilder> affectedBuilders = Maps.newHashMap();
+            MountedNodeStore owningStore = ctx.getOwningStore(path);
+            NodeBuilder builder = owningStore.getNodeStore().getRoot().builder();
+            affectedBuilders.put(owningStore, builder);
+
+            // make sure the wrapped builder references the path for this NodeState
+            // so we can easily call methods which update properties or otherwise
+            // don't require reaching out to multiple NodeStore instances
+            for (String segment : PathUtils.elements(path))
+                builder = builder.getChildNode(segment);
+
+            // TODO - do we need to consider checkpoints when building the affected builders?
+            for (MountedNodeStore mountedStore : nodeStates.keySet()) {
                 // TODO - prevent overwriting the builder for the root store
-                if ( affectedBuilders.containsKey(mountedStore)) {
+                if (affectedBuilders.containsKey(mountedStore)) {
                     continue;
                 }
-                
                 affectedBuilders.put(mountedStore, mountedStore.getNodeStore().getRoot().builder());
             }
+            return new MultiplexingNodeBuilder(path, builder, ctx, affectedBuilders);
+        } else {
+            return new MultiplexingNodeBuilder(path, nodeBuilder, ctx, nodeBuilder.getAffectedBuilders());
         }
-        
-        if ( nodeBuilder != null ) {
-            affectedBuilders = nodeBuilder.getAffectedBuilders();
-        }
-        
-        return new MultiplexingNodeBuilder(path, builder, ctx, affectedBuilders);
     }
 
     // helper methods
