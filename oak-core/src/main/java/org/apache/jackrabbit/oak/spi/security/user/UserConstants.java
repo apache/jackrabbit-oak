@@ -170,6 +170,19 @@ public interface UserConstants {
     String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
     /**
+     * Optionally enables the UsernameCaseMapped profile defined in
+     * https://tools.ietf.org/html/rfc7613#section-3.2 for user name comparison.
+     * Use this if half-width and full-width user names should be considered
+     * equal.
+     */
+    String PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = "enableRFC7613UsercaseMappedProfile";
+
+    /**
+     * Default value for {@link #PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE}
+     */
+    boolean DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = false;
+
+    /**
      * Optional configuration parameter defining how to generate the name of the
      * authorizable node from the ID of the new authorizable that is being created.
      * The value is expected to be an instance of {@link AuthorizableNodeName}.
