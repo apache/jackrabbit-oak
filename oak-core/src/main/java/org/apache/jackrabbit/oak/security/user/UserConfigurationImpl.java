@@ -120,7 +120,11 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
                 description = "Optional configuration defining the number of milliseconds " +
                         "until the principal cache expires (NOTE: currently only respected for principal resolution with the internal system session such as used for login). " +
                         "If not set or equal/lower than zero no caches are created/evaluated.",
-                longValue = UserPrincipalProvider.EXPIRATION_NO_CACHE)
+                longValue = UserPrincipalProvider.EXPIRATION_NO_CACHE),
+        @Property(name = UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE,
+                label = "RFC7613 Username Comparison Profile",
+                description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.",
+                boolValue = false)
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
 
