@@ -60,14 +60,16 @@
                             com.google.protobuf.*;resolution:=optional,
                             com.jcraft.jzlib.*;resolution:=optional,
                             javassist.*;resolution:=optional,
-                            org.apache.tomcat.jni.*;resolution:=optional,
+                            org.apache.tomcat.*;resolution:=optional,
                             org.bouncycastle.*;resolution:=optional,
+                            org.eclipse.jetty.alpn.*;resolution:=optional,
                             org.eclipse.jetty.npn.*;resolution:=optional,
                             org.jboss.marshalling.*;resolution:=optional,
                             sun.misc.*;resolution:=optional,
                             sun.nio.ch.*;resolution:=optional,
                             sun.security.util.*;resolution:=optional,
                             sun.security.x509.*;resolution:=optional,
+                            org.apache.logging.log4j.*;resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>
