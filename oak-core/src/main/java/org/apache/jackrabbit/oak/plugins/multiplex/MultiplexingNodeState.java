@@ -120,12 +120,14 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     @Override
     public boolean hasChildNode(String name) {
-
         String childPath = PathUtils.concat(path, name);
-        
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
-        
-        return getNodeState(mountedStore, path).hasChildNode(name);
+        if (nodeBuilder == null) {
+            return getNodeState(mountedStore, path).hasChildNode(name);
+        } else {
+            NodeBuilder builder = nodeBuilder.getAffectedBuilders().get(mountedStore);
+            return getNode(builder, path).hasChildNode(name);
+        }
     }
 
     @Override
@@ -166,16 +168,24 @@ public class MultiplexingNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        
         List<ChildNodeEntry> entries = Lists.newArrayList();
-
-        for ( NodeState parent : getNodesForPath(path) ) {
-            for ( ChildNodeEntry entry : parent.getChildNodeEntries() ) {
-                MultiplexingNodeState wrappedChild = wrap(entry.getNodeState(), PathUtils.concat(path, entry.getName()));
-                entries.add(new MultiplexingChildNodeEntry(entry.getName(), wrappedChild));
+        if (nodeBuilder == null) {
+            for (NodeState parent : getNodesForPath(path)) {
+                for (ChildNodeEntry entry : parent.getChildNodeEntries()) {
+                    MultiplexingNodeState wrappedChild = wrap(entry.getNodeState(), PathUtils.concat(path, entry.getName()));
+                    entries.add(new MultiplexingChildNodeEntry(entry.getName(), wrappedChild));
+                }
+            }
+        } else {
+            Map<MountedNodeStore, NodeBuilder> affected = nodeBuilder.getAffectedBuilders();
+            for (MountedNodeStore mountedNodeStore : ctx.getContributingStores(path, checkpoints)) {
+                NodeBuilder builder = getNode(affected.get(mountedNodeStore), path);
+                for(String name : builder.getChildNodeNames()) {
+                    MultiplexingNodeState wrappedChild = wrap(builder.getChildNode(name).getNodeState(), PathUtils.concat(path, name));
+                    entries.add(new MultiplexingChildNodeEntry(name, wrappedChild));
+                }
             }
         }
-        
         return entries;
     }
 
