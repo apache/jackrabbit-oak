@@ -179,4 +179,14 @@ public class UtilsTest {
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(3, revTime);
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getDepthFromIdIllegalArgumentException1() {
+        Utils.getDepthFromId("a:/foo");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getDepthFromIdIllegalArgumentException2() {
+        Utils.getDepthFromId("42");
+    }
 }
