@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.Collections;
 import java.util.List;
@@ -129,7 +130,6 @@ public class MultiplexingNodeState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(String name) throws IllegalArgumentException {
-
         String childPath = PathUtils.concat(path, name);
         
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
@@ -139,16 +139,26 @@ public class MultiplexingNodeState extends AbstractNodeState {
     
     @Override
     public long getChildNodeCount(long max) {
-        
         long count = 0;
-        
-        for ( NodeState parent : getNodesForPath(path) ) {
-            long mountCount = parent.getChildNodeCount(max);
-            if ( mountCount == Long.MAX_VALUE ) {
-                return mountCount;
+
+        if (nodeBuilder == null) {
+            for (NodeState parent : getNodesForPath(path)) {
+                long mountCount = parent.getChildNodeCount(max);
+                if (mountCount == Long.MAX_VALUE) {
+                    return Long.MAX_VALUE;
+                }
+                count += mountCount;
             }
-            
-            count += mountCount;
+        } else {
+            Map<MountedNodeStore, NodeBuilder> affected = nodeBuilder.getAffectedBuilders();
+            for (MountedNodeStore mountedNodeStore : ctx.getContributingStores(path, checkpoints)) {
+                NodeBuilder builder = getNode(affected.get(mountedNodeStore), path);
+                long mountCount = builder.getChildNodeCount(max);
+                if (mountCount == Long.MAX_VALUE) {
+                    return Long.MAX_VALUE;
+                }
+                count += mountCount;
+            }
         }
         
         return count;
@@ -203,35 +213,45 @@ public class MultiplexingNodeState extends AbstractNodeState {
     // helper methods
     
     private MultiplexingNodeState wrap(NodeState nodeState, String path) {
-        
         return new MultiplexingNodeState(path, nodeState, ctx, checkpoints, nodeBuilder, nodeStates);
     }
 
     private NodeState getNodeState(MountedNodeStore mountedNodeStore, String nodePath) {
-                
-        NodeStore nodeStore = mountedNodeStore.getNodeStore();
-        
         NodeState root;
-        if ( nodeBuilder != null) {
-            root = nodeBuilder.getAffectedBuilders().get(mountedNodeStore).getNodeState();
-        } else if ( !checkpoints.isEmpty() ) {
+        if (nodeBuilder != null) {
+            NodeBuilder rootBuilder = nodeBuilder.getAffectedBuilders().get(mountedNodeStore);
+            return getNode(rootBuilder, nodePath).getNodeState();
+        } else if (!checkpoints.isEmpty()) {
+            NodeStore nodeStore = mountedNodeStore.getNodeStore();
             root = nodeStore.retrieve(ctx.getCheckpoint(nodeStore, checkpoints));
         } else {
             root = nodeStates.get(mountedNodeStore);            
         }
         
         checkNotNull(root, "NodeState is null for mount named %s, nodePath %s", mountedNodeStore.getMount().getName(), nodePath);
-        
-        return getChildNode(root, nodePath);
+
+        return getNode(root, nodePath);
     }
 
-    private NodeState getChildNode(NodeState root, String path) {
+    static NodeState getNode(NodeState root, String path) {
         NodeState child = root;
         for (String element : PathUtils.elements(path)) {
             if (child.hasChildNode(element)) {
                 child = child.getChildNode(element);
             } else {
                 return MISSING_NODE;
+            }
+        }
+        return child;
+    }
+
+    static NodeBuilder getNode(NodeBuilder root, String path) {
+        NodeBuilder child = root;
+        for (String element : PathUtils.elements(path)) {
+            if (child.hasChildNode(element)) {
+                child = child.getChildNode(element);
+            } else {
+                return MISSING_NODE.builder();
             }
         }
         return child;
