@@ -365,11 +365,13 @@ class TarWriter implements Closeable {
      * internal {@link #writeIndex} counter. Otherwise it will return the
      * current instance.
      */
-    synchronized TarWriter createNextGeneration() throws IOException {
+    TarWriter createNextGeneration() throws IOException {
         checkState(writeIndex >= 0);
         // If nothing was written to this file, then we're already done.
-        if (access == null) {
-            return this;
+        synchronized (this) {
+            if (access == null) {
+                return this;
+            }
         }
         close();
         int newIndex = writeIndex + 1;
