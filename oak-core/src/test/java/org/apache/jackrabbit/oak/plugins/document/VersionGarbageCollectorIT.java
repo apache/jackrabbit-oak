@@ -68,7 +68,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class VersionGarbageCollectorTest {
+public class VersionGarbageCollectorIT {
 
     private DocumentStoreFixture fixture;
 
@@ -80,7 +80,7 @@ public class VersionGarbageCollectorTest {
 
     private ExecutorService execService;
 
-    public VersionGarbageCollectorTest(DocumentStoreFixture fixture) {
+    public VersionGarbageCollectorIT(DocumentStoreFixture fixture) {
         this.fixture = fixture;
     }
 
