@@ -112,7 +112,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // we need to check ourselves against merging a non-root node
         checkArgument(nodeBuilder.getPath().equals("/"));
 
-        NodeState processed = commitHook.processCommit(nodeBuilder.getBaseState(), nodeBuilder.getNodeState(), info);
+        NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
         processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
 
         for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
