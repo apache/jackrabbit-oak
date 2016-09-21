@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -37,7 +38,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
     public MultiplexingNodeBuilder(String path, MultiplexingContext ctx, Map<MountedNodeStore, NodeBuilder> rootBuilders) {
         this.path = path;
         this.ctx = ctx;
-        this.rootBuilders = newHashMap(rootBuilders);
+        this.rootBuilders = rootBuilders;
         
         checkArgument(rootBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", rootBuilders.size(), ctx.getStoresCount());
     }
@@ -52,22 +53,22 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
 
     @Override
     public NodeState getNodeState() {
-        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
+        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), newHashMap(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(@Nullable NodeBuilder input) {
                 return input.getNodeState();
             }
-        }));
+        })));
     }
 
     @Override
     public NodeState getBaseState() {
-        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
+        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), newHashMap(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(@Nullable NodeBuilder input) {
                 return input.getBaseState();
             }
-        }));
+        })));
     }
     
     // node or property-related methods ; directly delegate to wrapped builder

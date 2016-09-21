@@ -71,7 +71,7 @@ public class MultiplexingNodeState extends AbstractNodeState {
         this.path = path;
         this.ctx = ctx;
         this.checkpoints = checkpoints;
-        this.rootNodeStates = newHashMap(nodeStates);
+        this.rootNodeStates = nodeStates;
 
         if (!rootNodeStates.isEmpty()) {
             checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s rootNodeStates but the context handles %s stores", nodeStates.size(), ctx.getStoresCount());
@@ -156,10 +156,11 @@ public class MultiplexingNodeState extends AbstractNodeState {
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (base instanceof MultiplexingNodeState) {
             MultiplexingNodeState multiBase = (MultiplexingNodeState) base;
-            NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(diff);
+            NodeStateDiff wrappingDiff = new WrappingDiff(diff, multiBase);
+            NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(wrappingDiff);
             MountedNodeStore owningStore = ctx.getOwningStore(path);
 
-            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), diff);
+            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), wrappingDiff);
             for (MountedNodeStore mns : ctx.getContributingStores(path, checkpoints)) {
                 if (owningStore == mns) {
                     continue;
@@ -177,12 +178,12 @@ public class MultiplexingNodeState extends AbstractNodeState {
     // write operations
     @Override
     public NodeBuilder builder() {
-        Map<MountedNodeStore, NodeBuilder> rootBuilders = transformValues(rootNodeStates, new Function<NodeState, NodeBuilder>() {
+        Map<MountedNodeStore, NodeBuilder> rootBuilders = newHashMap(transformValues(rootNodeStates, new Function<NodeState, NodeBuilder>() {
             @Override
             public NodeBuilder apply(NodeState input) {
                 return input.builder();
             }
-        });
+        }));
         return new MultiplexingNodeBuilder(path, ctx, rootBuilders);
     }
 
@@ -191,7 +192,9 @@ public class MultiplexingNodeState extends AbstractNodeState {
         if (nodeState == MISSING_NODE) {
             return nodeState;
         } else {
-            return new MultiplexingNodeState(PathUtils.concat(path, name), ctx, checkpoints, rootNodeStates);
+            MultiplexingNodeState mns = new MultiplexingNodeState(PathUtils.concat(path, name), ctx, checkpoints, rootNodeStates);
+            mns.wrappedNodeState = nodeState;
+            return mns;
         }
     }
 
@@ -284,4 +287,55 @@ public class MultiplexingNodeState extends AbstractNodeState {
             return diff.childNodeDeleted(name, before);
         }
     }
+
+    private class WrappingDiff implements NodeStateDiff {
+
+        private final NodeStateDiff diff;
+
+        private final MultiplexingNodeState base;
+
+        public WrappingDiff(NodeStateDiff diff, MultiplexingNodeState base) {
+            this.diff = diff;
+            this.base = base;
+        }
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            return diff.propertyAdded(after);
+        }
+
+        @Override
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            return diff.propertyChanged(before, after);
+        }
+
+        @Override
+        public boolean propertyDeleted(PropertyState before) {
+            return diff.propertyDeleted(before);
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            return diff.childNodeAdded(name, wrapAfter(name, after));
+        }
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            return diff.childNodeChanged(name, wrapBefore(name, before), wrapAfter(name, after));
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            return diff.childNodeDeleted(name, wrapBefore(name, before));
+        }
+
+        private NodeState wrapBefore(String name, NodeState before) {
+            return base.wrapChild(before, name);
+        }
+
+        private NodeState wrapAfter(String name, NodeState after) {
+            return wrapChild(after, name);
+        }
+    }
+
 }
