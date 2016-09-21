@@ -569,6 +569,11 @@
         <artifactId>commons-math3</artifactId>
         <version>3.2</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-jdbc</artifactId>
+        <version>7.0.72</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
