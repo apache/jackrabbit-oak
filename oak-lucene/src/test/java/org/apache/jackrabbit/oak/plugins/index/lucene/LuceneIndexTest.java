@@ -887,12 +887,10 @@ public class LuceneIndexTest {
         indexed = builder.getNodeState();
         tracker.update(indexed);
 
-        try {
-            queryIndex.getPlans(filter, null, indexed);
-            fail("Expecting UnsupportedOperationException exception");
-        } catch (UnsupportedOperationException ignore){
-            // expected
-        }
+        List<IndexPlan> list = queryIndex.getPlans(filter, null, indexed);
+        assertEquals("There must be only one plan", 1, list.size());
+        IndexPlan plan = list.get(0);
+        assertEquals("Didn't get the expected plan", "/test/oak:index/lucene", plan.getPlanName());
     }
 
     @Test
