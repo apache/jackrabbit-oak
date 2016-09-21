@@ -392,6 +392,11 @@
         <artifactId>commons-lang</artifactId>
         <version>2.6</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-jdbc</artifactId>
+        <version>7.0.72</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
