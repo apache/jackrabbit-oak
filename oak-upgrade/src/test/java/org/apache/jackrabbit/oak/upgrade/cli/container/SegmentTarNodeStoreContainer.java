@@ -59,7 +59,7 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
 
     private SegmentTarNodeStoreContainer(BlobStoreContainer blob, File directory) throws IOException {
         this.blob = blob;
-        this.directory = directory == null ? Files.createTempDirectory(Paths.get("target"), "segment-tar").toFile() : directory;
+        this.directory = directory == null ? Files.createTempDirectory(Paths.get("target"), "repo-segment-tar").toFile() : directory;
     }
 
     @Override

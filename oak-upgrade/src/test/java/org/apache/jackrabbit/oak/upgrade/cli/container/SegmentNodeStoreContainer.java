@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -50,7 +51,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     private SegmentNodeStoreContainer(BlobStoreContainer blob, File directory) throws IOException {
         this.blob = blob;
-        this.directory = directory == null ? java.nio.file.Files.createTempDirectory(Paths.get("target"), "segment").toFile() : directory;
+        this.directory = directory == null ? Files.createTempDirectory(Paths.get("target"), "repo-segment").toFile() : directory;
     }
     @Override
     public NodeStore open() throws IOException {
