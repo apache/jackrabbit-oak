@@ -1621,7 +1621,7 @@ such fields
 [OAK-2853]: https://issues.apache.org/jira/browse/OAK-2853
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
-[OAK-3994]: https://issues.apache.org/jira/browse/OAK-3394
+[OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [luke]: https://code.google.com/p/luke/
