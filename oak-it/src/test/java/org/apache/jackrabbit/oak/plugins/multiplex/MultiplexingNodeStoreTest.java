@@ -730,7 +730,22 @@ public class MultiplexingNodeStoreTest {
         
         assertTrue(builderFromState.hasChildNode("newNode"));
     }
-    
+
+    @Test
+    public void nestedBuilderWithNewPropertyFromState() throws Exception {
+        NodeState rootState = store.getRoot();
+        NodeBuilder rootBuilder = rootState.builder();
+        rootBuilder.setProperty("newProperty", true, Type.BOOLEAN);
+
+        NodeState baseState = rootBuilder.getNodeState();
+        assertTrue(baseState.getBoolean("newProperty"));
+
+        NodeBuilder builderFromState = baseState.builder();
+        assertTrue(builderFromState.getBoolean("newProperty"));
+        assertTrue(builderFromState.getNodeState().getBoolean("newProperty"));
+        //assertTrue(builderFromState.getBaseState().getBoolean("newProperty")); // FIXME
+    }
+
     @Test
     @Ignore("Not implemented")
     public void readOnlyMountRejectsChanges() {

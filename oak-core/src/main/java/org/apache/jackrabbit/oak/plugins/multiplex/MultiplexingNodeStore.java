@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -31,10 +32,12 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -44,7 +47,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * A <tt>NodeStore</tt> implementation that multiplexes multiple <tt>MemoryNodeStore</tt> instances
@@ -88,67 +90,54 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // at this certain point in time, so we eagerly retrieve them from all stores
         
         // register the initial builder as affected as it's already instantiated
-        Map<MountedNodeStore, NodeState> nodeStates = Maps.newHashMap();
+        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
         MountedNodeStore owningStore = ctx.getOwningStore("/");
         NodeState rootState = owningStore.getNodeStore().getRoot();
         nodeStates.put(owningStore, rootState);
-        
-        for ( MountedNodeStore nodeStore : nonDefaultStores ) {
+
+        for (MountedNodeStore nodeStore : nonDefaultStores) {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
         }
 
-        return new MultiplexingNodeState("/", rootState, ctx, nodeStates);
+        return new MultiplexingNodeState("/", ctx, Collections.<String>emptyList(), nodeStates);
     }
 
     @Override
     public NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info) throws CommitFailedException {
-        
         checkArgument(builder instanceof MultiplexingNodeBuilder);
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-        
+
         // since we maintain a mapping of _root_ NodeBuilder instances for all mounted stores
         // we need to check ourselves against merging a non-root node
-
         checkArgument(nodeBuilder.getPath().equals("/"));
-        
-        // TODO - how do we dispatch commit hooks?
-        // Right now nodeStore.merge() fails for instance when setting up the repository and trying
-        // to perform a merge call on the secondary node store
-        
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
-            
-            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
-            
-            nodeStore.merge(affectedBuilder, commitHook, info);
+
+        NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
+        processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
+
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
+            NodeStore nodeStore = e.getKey().getNodeStore();
+            NodeBuilder rootBuilder = e.getValue();
+            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, info);
         }
         
         NodeState newRoot = getRoot();
-        for ( Observer observer: observers ) {
+        for (Observer observer : observers) {
             observer.contentChanged(newRoot, info);
         }
-        
         return newRoot;
    }
 
     @Override
     public NodeState rebase(NodeBuilder builder) {
-        
         checkArgument(builder instanceof MultiplexingNodeBuilder);
-        
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-        
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
-            
-            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
-            
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
+            NodeStore nodeStore = e.getKey().getNodeStore();
+            NodeBuilder affectedBuilder = e.getValue();
             nodeStore.rebase(affectedBuilder);
         }
-        
-        // TODO - is this correct or do we need a specific path?
-        return getRoot();
+        return nodeBuilder.getNodeState();
     }
 
     @Override
@@ -157,7 +146,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getAffectedBuilders().entrySet() ) {
+        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getRootBuilders().entrySet() ) {
             
             NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
             NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
@@ -237,17 +226,24 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     @Override
     public NodeState retrieve(String checkpoint) {
-        
         // TODO - proper validation of checkpoints size compared to mounts
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
-        
+        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+
         // global store is always first
         NodeState globalStoreNodeState = globalStore.getNodeStore().retrieve(checkpoints.get(0));
-        if ( globalStoreNodeState == null ) {
+        if (globalStoreNodeState == null) {
             return null;
         }
+        nodeStates.put(globalStore, globalStoreNodeState);
+
+        int i = 1;
+        for (MountedNodeStore ns : nonDefaultStores) {
+            NodeState root = ns.getNodeStore().retrieve(checkpoints.get(i++));
+            nodeStates.put(ns, root);
+        }
         
-        return new MultiplexingNodeState("/", globalStoreNodeState, ctx, checkpoints);
+        return new MultiplexingNodeState("/", ctx, checkpoints, nodeStates);
     }
 
     @Override
