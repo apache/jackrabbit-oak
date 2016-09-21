@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import com.google.common.collect.Maps;
 import junit.framework.TestCase;
+
+import java.util.Map;
 
 /**
  * Test the string utilities.
@@ -38,6 +41,18 @@ public class StringUtilsTest extends TestCase {
             } catch (IllegalArgumentException e) {
                 // expected
             }
+        }
+    }
+
+    public void testEstimateMemoryUsage() {
+        final Map<String, Integer> testStrings = Maps.newHashMap();
+        testStrings.put(null, 0);
+        testStrings.put("", 48);
+        testStrings.put("a", 50);
+        testStrings.put("short string", 72);
+        testStrings.put("a much longer string than the one named 'short string'", 156);
+        for (final Map.Entry<String, Integer> e : testStrings.entrySet()) {
+            assertEquals(e.getValue().intValue(), StringUtils.estimateMemoryUsage(e.getKey()));
         }
     }
 
