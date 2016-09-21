@@ -62,7 +62,8 @@
     <h2.version>1.4.190</h2.version>
     <findbugs.version>3.0.0</findbugs.version>
     <derby.version>10.12.1.1</derby.version>
-    <java.version.signature>java16</java.version.signature>
+    <java.version>1.7</java.version>
+    <java.version.signature>java17</java.version.signature>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -95,8 +96,8 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <target>1.6</target>
-            <source>1.6</source>
+            <target>${java.version}</target>
+            <source>${java.version}</source>
           </configuration>
         </plugin>
         <plugin>
@@ -114,9 +115,9 @@
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
-            <source>1.6</source>
+            <source>${java.version}</source>
             <links>
-              <link>http://docs.oracle.com/javase/6/docs/api/</link>
+              <link>http://docs.oracle.com/javase/7/docs/api/</link>
               <link>http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/</link>
             </links>
           </configuration>
@@ -1043,7 +1044,7 @@
               <executions>
                 <execution>
                   <id>animal-sniffer</id>
-                  <phase/>
+                  <phase />
                 </execution>
               </executions>
             </plugin>
