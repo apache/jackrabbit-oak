@@ -101,4 +101,8 @@ public interface SegmentRevisionGC {
 
     void setGcSizeDeltaEstimation(long gcSizeDeltaEstimation);
 
+    /**
+     * Raise the flag to signal compaction to stop as soon as possible.
+     */
+    void stopCompaction();
 }
