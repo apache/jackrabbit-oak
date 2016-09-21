@@ -516,10 +516,10 @@ public class FileStore implements SegmentStore, Closeable {
             gcListener.info("TarMK GC #{}: estimation skipped because compaction is paused", GC_COUNT);
         } else {
             gcListener.info("TarMK GC #{}: estimation started", GC_COUNT);
-            Supplier<Boolean> shutdown = newShutdownSignal();
-            GCEstimation estimate = estimateCompactionGain(shutdown);
-            if (shutdown.get()) {
-                gcListener.info("TarMK GC #{}: estimation interrupted. Skipping compaction.", GC_COUNT);
+            Supplier<Boolean> cancel = newCancelCompactionCondition();
+            GCEstimation estimate = estimateCompactionGain(cancel);
+            if (cancel.get()) {
+                gcListener.info("TarMK GC #{}: estimation interrupted: {}. Skipping compaction.", GC_COUNT, cancel);
             }
 
             sufficientEstimatedGain = estimate.gcNeeded();
@@ -931,47 +931,11 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     /**
-     * Returns the cancellation policy for the compaction phase. If the disk
-     * space was considered insufficient at least once during compaction (or if
-     * the space was never sufficient to begin with), compaction is considered
-     * canceled.
-     * Furthermore when the file store is shutting down, compaction is considered
-     * canceled.
-     *
-     * @return a flag indicating if compaction should be canceled.
+     * Returns the cancellation policy for the compaction phase.
+     * @return a supplier indicating if compaction should be canceled.
      */
     private Supplier<Boolean> newCancelCompactionCondition() {
-        return new Supplier<Boolean>() {
-
-            private boolean outOfDiskSpace;
-            private boolean shutdown;
-
-            @Override
-            public Boolean get() {
-
-                // The outOfDiskSpace and shutdown flags can only transition from false (their initial
-                // values), to true. Once true, there should be no way to go back.
-                if (!sufficientDiskSpace.get()) {
-                    outOfDiskSpace = true;
-                }
-                if (FileStore.this.shutdown) {
-                    this.shutdown = true;
-                }
-
-                return shutdown || outOfDiskSpace;
-            }
-
-            @Override
-            public String toString() {
-                if (outOfDiskSpace) {
-                    return "Not enough disk space available";
-                } else if (shutdown) {
-                    return "FileStore shutdown request received";
-                } else {
-                    return "";
-                }
-            }
-        };
+        return new CancelCompactionSupplier(this);
     }
 
     /**
@@ -1007,19 +971,6 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     /**
-     * Returns a signal indication the file store shutting down.
-     * @return  a shutdown signal
-     */
-    private Supplier<Boolean> newShutdownSignal() {
-        return new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                return shutdown;
-            }
-        };
-    }
-
-    /**
      * Copy every referenced record in data (non-bulk) segments. Bulk segments
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
@@ -1045,7 +996,7 @@ public class FileStore implements SegmentStore, Closeable {
         Supplier<Boolean> cancel = newCancelCompactionCondition();
         SegmentNodeState after = compact(bufferWriter, before, cancel);
         if (after == null) {
-            gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+            gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
             return false;
         }
 
@@ -1067,7 +1018,7 @@ public class FileStore implements SegmentStore, Closeable {
                 SegmentNodeState head = getHead();
                 after = compact(bufferWriter, head, cancel);
                 if (after == null) {
-                    gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+                    gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
                     return false;
                 }
 
@@ -1086,9 +1037,13 @@ public class FileStore implements SegmentStore, Closeable {
                     cycles++;
                     success = forceCompact(bufferWriter, or(cancel, timeOut(forceTimeout, SECONDS)));
                     if (!success) {
-                        gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                            "Most likely compaction didn't get exclusive access to the store or was " +
-                            "prematurely cancelled.", GC_COUNT);
+                        if(cancel.get()) {
+                            gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
+                                    "Compaction was cancelled: {}.", GC_COUNT, cancel);
+                        } else {
+                            gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
+                                    "Most likely compaction didn't get exclusive access to the store.", GC_COUNT);
+                        }
                     }
                 }
             }
@@ -1684,4 +1639,61 @@ public class FileStore implements SegmentStore, Closeable {
         }
     }
 
+
+    /**
+     * Represents the cancellation policy for the compaction phase. If the disk
+     * space was considered insufficient at least once during compaction (or if
+     * the space was never sufficient to begin with), compaction is considered
+     * canceled. Furthermore when the file store is shutting down, compaction is
+     * considered canceled.
+     */
+    private static class CancelCompactionSupplier implements Supplier<Boolean> {
+
+        private static enum REASON {
+            UNKNOWN, DISK_SPACE, SHUTDOWN, MANUAL
+        };
+
+        private REASON reason = REASON.UNKNOWN;
+
+        private final FileStore store;
+
+        public CancelCompactionSupplier(FileStore store) {
+            this.store = store;
+            this.store.gcOptions.setStopCompaction(false);
+        }
+
+        @Override
+        public Boolean get() {
+            // The outOfDiskSpace and shutdown flags can only transition from
+            // false (their initial
+            // values), to true. Once true, there should be no way to go back.
+            if (!store.sufficientDiskSpace.get()) {
+                reason = REASON.DISK_SPACE;
+                return true;
+            }
+            if (store.shutdown) {
+                reason = REASON.SHUTDOWN;
+                return true;
+            }
+            if (store.gcOptions.isStopCompaction()) {
+                reason = REASON.MANUAL;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            switch (reason) {
+            case DISK_SPACE:
+                return "Not enough disk space available";
+            case SHUTDOWN:
+                return "FileStore shutdown request received";
+            case MANUAL:
+                return "GC stop request received";
+            default:
+                return "";
+            }
+        }
+    }
 }

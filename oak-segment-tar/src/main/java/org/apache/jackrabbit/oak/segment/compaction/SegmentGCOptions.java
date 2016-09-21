@@ -79,6 +79,8 @@ public class SegmentGCOptions {
             "oak.segment.compaction.gcSizeDeltaEstimation",
             SIZE_DELTA_ESTIMATION_DEFAULT);
 
+    private volatile boolean stopCompaction;
+
     public SegmentGCOptions(boolean paused, int gainThreshold, int retryCount, int forceTimeout) {
         this.paused = paused;
         this.gainThreshold = gainThreshold;
@@ -293,4 +295,14 @@ public class SegmentGCOptions {
         this.gcSizeDeltaEstimation = gcSizeDeltaEstimation;
         return this;
     }
+
+    public boolean isStopCompaction() {
+        return stopCompaction;
+    }
+
+    public boolean setStopCompaction(boolean stop) {
+        this.stopCompaction = stop;
+        return stop;
+    }
+
 }

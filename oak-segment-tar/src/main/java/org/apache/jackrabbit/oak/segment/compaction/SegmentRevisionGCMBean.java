@@ -93,4 +93,9 @@ public class SegmentRevisionGCMBean
         gcOptions.setGcSizeDeltaEstimation(gcSizeDeltaEstimation);
     }
 
+    @Override
+    public void stopCompaction() {
+        gcOptions.setStopCompaction(true);
+    }
+
 }
