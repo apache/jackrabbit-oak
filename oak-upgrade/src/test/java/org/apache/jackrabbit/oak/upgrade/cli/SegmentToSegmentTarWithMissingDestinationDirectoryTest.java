@@ -20,18 +20,20 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 
+import java.io.IOException;
+
 public class SegmentToSegmentTarWithMissingDestinationDirectoryTest  extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
 
     private final NodeStoreContainer destination;
 
-    public SegmentToSegmentTarWithMissingDestinationDirectoryTest() {
+    public SegmentToSegmentTarWithMissingDestinationDirectoryTest() throws IOException {
         source = new SegmentNodeStoreContainer();
         destination = getSegmentTarNodeStoreContainerWithMissingDirectory();
     }
 
-    private SegmentTarNodeStoreContainer getSegmentTarNodeStoreContainerWithMissingDirectory() {
+    private SegmentTarNodeStoreContainer getSegmentTarNodeStoreContainerWithMissingDirectory() throws IOException {
         SegmentTarNodeStoreContainer segmentTarNodeStoreContainer = new SegmentTarNodeStoreContainer();
         segmentTarNodeStoreContainer.getDirectory().delete();
         return segmentTarNodeStoreContainer;

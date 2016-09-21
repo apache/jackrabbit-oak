@@ -19,13 +19,15 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 
+import java.io.IOException;
+
 public class SegmentToSegmentTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
 
     private final NodeStoreContainer destination;
 
-    public SegmentToSegmentTest() {
+    public SegmentToSegmentTest() throws IOException {
         source = new SegmentNodeStoreContainer();
         destination = new SegmentNodeStoreContainer();
     }
