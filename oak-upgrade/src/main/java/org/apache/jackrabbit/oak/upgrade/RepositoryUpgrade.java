@@ -25,6 +25,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
@@ -40,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -635,13 +637,18 @@ public class RepositoryUpgrade {
                 config.getLoginModuleConfig(),
                 LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
                 LoginModuleConfig.PARAM_ANONYMOUS_ID, UserConstants.PARAM_ANONYMOUS_ID);
-        ConfigurationParameters userConfig = mapConfigurationParameters(
-                config.getSecurityManagerConfig().getUserManagerConfig(),
-                UserManagerImpl.PARAM_USERS_PATH, UserConstants.PARAM_USER_PATH,
-                UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.PARAM_GROUP_PATH,
-                UserManagerImpl.PARAM_DEFAULT_DEPTH, UserConstants.PARAM_DEFAULT_DEPTH,
-                UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM, UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
-                UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS, UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
+        ConfigurationParameters userConfig;
+        if (config.getSecurityManagerConfig() == null) {
+            userConfig = ConfigurationParameters.EMPTY;
+        } else {
+            userConfig = mapConfigurationParameters(
+                    config.getSecurityManagerConfig().getUserManagerConfig(),
+                    UserManagerImpl.PARAM_USERS_PATH, UserConstants.PARAM_USER_PATH,
+                    UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.PARAM_GROUP_PATH,
+                    UserManagerImpl.PARAM_DEFAULT_DEPTH, UserConstants.PARAM_DEFAULT_DEPTH,
+                    UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM, UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
+                    UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS, UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
+        }
         return ConfigurationParameters.of(ImmutableMap.of(
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(loginConfig, userConfig)));
