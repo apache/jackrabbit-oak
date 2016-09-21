@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.File;
@@ -31,12 +32,15 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
@@ -61,8 +65,7 @@ import org.slf4j.LoggerFactory;
         description = "Factory allowing configuration of adjacent instances of " +
                       "NodeStore implementation based on Segment model besides a default SegmentNodeStore in same setup."
 )
-public class SegmentNodeStoreFactory extends ProxyNodeStore
-        implements SegmentStoreProvider {
+public class SegmentNodeStoreFactory extends ProxyNodeStore {
 
     public static final String NAME = "name";
 
@@ -99,7 +102,14 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
             description = "Cache size for storing most recently used Segments"
     )
     public static final String CACHE = "cache";
-    
+
+    @Property(boolValue = false,
+            label = "Custom BlobStore",
+            description = "Boolean value indicating that a custom BlobStore is to be used. " +
+                    "By default large binary content would be stored within segment tar files"
+    )
+    public static final String CUSTOM_BLOB_STORE = "customBlobStore";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private String name;
@@ -110,6 +120,10 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
 
     private ComponentContext context;
 
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
+    private volatile BlobStore blobStore;
+
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
@@ -117,23 +131,40 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
     private Registration fileStoreStatsMBean;
     private WhiteboardExecutor executor;
 
+    private boolean customBlobStore;
+
+    private String role;
+
     @Override
     protected SegmentNodeStore getNodeStore() {
         checkState(segmentNodeStore != null, "service must be activated when used");
         return segmentNodeStore;
     }
-    
-    private String getRole() {
-        String role = PropertiesUtil.toString(property(ROLE), null);
-        return role;
-    }
-    
+
     @Activate
     public void activate(ComponentContext context) throws IOException {
         this.context = context;
-        log.info("activate: SegmentNodeStore '"+getRole()+"' starting.");
+        this.name = PropertiesUtil.toString(context.getProperties().get(NAME), "SegmentNodeStore instance");
+        this.role = property(ROLE);
+        //In secondaryNodeStore mode customBlobStore is always enabled
+        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE)) || isSecondaryStoreMode();
+        log.info("activate: SegmentNodeStore '"+role+"' starting.");
 
+        if (blobStore == null && customBlobStore) {
+            log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
+        } else {
+            registerNodeStore();
+        }
+    }
+
+    protected void bindBlobStore(BlobStore blobStore) throws IOException {
+        this.blobStore = blobStore;
         registerNodeStore();
+    }
+
+    protected void unbindBlobStore(BlobStore blobStore){
+        this.blobStore = null;
+        unregisterNodeStore();
     }
 
     @Deactivate
@@ -151,21 +182,20 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
     }
 
     private synchronized void registerNodeStore() throws IOException {
-        if (registerSegmentStore()) {
-
-            if (getRole() != null) {
-                registerNodeStoreProvider();
-                return;
-            }
-
+        if (registerSegmentStore() && role != null) {
+            registerNodeStoreProvider();
         }
+    }
+
+    private boolean isSecondaryStoreMode() {
+        return "secondary".equals(role);
     }
 
     private void registerNodeStoreProvider() {
         SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.builder(store);
         segmentNodeStore = nodeStoreBuilder.build();
         Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(NodeStoreProvider.ROLE, getRole());
+        props.put(NodeStoreProvider.ROLE, role);
         storeRegistration = context.getBundleContext().registerService(NodeStoreProvider.class.getName(), new NodeStoreProvider() {
                     @Override
                     public NodeStore getNodeStore() {
@@ -173,7 +203,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
                     }
                 },
                 props);
-        log.info("Registered NodeStoreProvider backed by SegmentNodeStore of type '{}'", getRole());
+        log.info("Registered NodeStoreProvider backed by SegmentNodeStore of type '{}'", role);
     }
 
     private boolean registerSegmentStore() throws IOException {
@@ -191,6 +221,11 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
                 .withStatisticsProvider(statisticsProvider);
+
+        if (customBlobStore) {
+            log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
+            builder.withBlobStore(blobStore);
+        }
 
         try {
             store = builder.build();
@@ -211,7 +246,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
                 FileStoreStatsMBean.class,
                 store.getStats(),
                 FileStoreStatsMBean.TYPE,
-                "FileStore '" + getRole() + "' statistics"
+                "FileStore '" + role + "' statistics"
         );
 
         return true;
@@ -238,8 +273,11 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
         if (directory != null) {
             return new File(directory);
         }
-
-        return new File("tarmk");
+        if (role == null) {
+            return new File("tarmk");
+        } else {
+            return new File("tarmk-" + role);
+        }
     }
 
     private File getDirectory() {
@@ -288,20 +326,10 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore
         return lookupConfigurationThenFramework(context, name);
     }
 
-    /**
-     * needed for situations where you have to unwrap the
-     * SegmentNodeStoreService, to get the SegmentStore, like the failover
-     */
-    @Override
-    public SegmentStore getSegmentStore() {
-        return store;
-    }
-
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
-        return name + ": " + segmentNodeStore + "[role:" + getRole() + "]";
+        return name + ": " + segmentNodeStore + "[role:" + role + "]";
     }
-
 }
