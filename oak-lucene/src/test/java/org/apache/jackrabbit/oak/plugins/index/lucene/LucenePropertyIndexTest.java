@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -239,6 +240,27 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
+    }
+
+    //OAK-4805
+    @Test
+    public void badIndexDefinitionShouldLetQEWork() throws Exception {
+        Tree idx = createFulltextIndex(root.getTree("/"), "badIndex");
+        TestUtil.useV2(idx);
+
+        //This would allow index def to get committed. Else bad index def can't be created.
+        idx.setProperty(ASYNC_PROPERTY_NAME, "async");
+
+        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
+        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
+        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
+        synFilter.setProperty("synonyms", "syn.txt");
+        // Don't add syn.txt to make analyzer (and hence index def) invalid
+        // synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "blah, foo, bar");
+        root.commit();
+
+        //Using this version of executeQuery as we don't want a result row quoting the exception
+        executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, NO_BINDINGS);
     }
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {

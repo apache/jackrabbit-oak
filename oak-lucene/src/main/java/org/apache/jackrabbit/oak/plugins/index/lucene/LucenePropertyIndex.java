@@ -244,6 +244,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         plans.add(plan);
                     }
                 }
+            } catch (Exception e) {
+                LOG.error("Error getting plan for {}", path);
+                LOG.error("Exception:", e);
             } finally {
                 if (indexNode != null) {
                     indexNode.release();
