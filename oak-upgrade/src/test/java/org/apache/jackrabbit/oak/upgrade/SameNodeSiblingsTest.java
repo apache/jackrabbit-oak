@@ -24,6 +24,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Set;
 
 import javax.jcr.Credentials;
@@ -43,8 +45,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.io.Files;
-
 public class SameNodeSiblingsTest {
 
     public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
@@ -53,7 +53,7 @@ public class SameNodeSiblingsTest {
 
     @Before
     public void createCrx2RepoDir() throws IOException {
-        crx2RepoDir = Files.createTempDir();
+        crx2RepoDir = Files.createTempDirectory(Paths.get("target"), "repo-crx2").toFile();
     }
 
     @After
