@@ -1962,8 +1962,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         } else {
             // branch commit (not merged)
-            RevisionVector branchCommit = RevisionVector.fromString(commitValue);
-            if (branchCommit.getBranchRevision().getClusterId() != context.getClusterId()) {
+            Revision branchCommit = Revision.fromString(commitValue);
+            if (branchCommit.getClusterId() != context.getClusterId()) {
                 // this is an unmerged branch commit from another cluster node,
                 // hence never visible to us
                 return false;
