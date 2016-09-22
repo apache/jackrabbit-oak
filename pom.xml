@@ -83,6 +83,7 @@
             <exclude>oak-doc/*.iml</exclude>
             <exclude>oak-doc/target/**</exclude>
             <exclude>oak-segment-tar/target/**</exclude>
+            <exclude>oak-segment-tar/*.iml</exclude>
           </excludes>
         </configuration>
       </plugin>
