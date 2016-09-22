@@ -21,16 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.github.fakemongo.Fongo;
-import com.mongodb.CommandResult;
-import com.mongodb.DBEncoder;
-import com.mongodb.DBObject;
-import com.mongodb.FongoDB;
-import com.mongodb.FongoDBCollection;
-import com.mongodb.InsertOptions;
-import com.mongodb.MongoException;
-import com.mongodb.ReadPreference;
-import com.mongodb.WriteConcern;
-import com.mongodb.WriteResult;
 import com.mongodb.connection.ServerVersion;
 
 public class OakFongo extends Fongo {
