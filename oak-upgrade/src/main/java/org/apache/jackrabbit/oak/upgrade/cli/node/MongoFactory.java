@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import com.mongodb.DB;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -44,22 +46,39 @@ public class MongoFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws UnknownHostException {
-        String db;
-        if (uri.getDatabase() == null) {
-            db = "aem-author"; // assume an author instance
-        } else {
-            db = uri.getDatabase();
-        }
         DocumentMK.Builder builder = getBuilder(cacheSize);
-        MongoClient client = new MongoClient(uri);
-        closer.register(asCloseable(client));
-        builder.setMongoDB(client.getDB(db));
+        builder.setMongoDB(getDB(closer));
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         closer.register(asCloseable(documentNodeStore));
         return documentNodeStore;
+    }
+
+    private DB getDB(Closer closer) throws UnknownHostException {
+        String db;
+        if (uri.getDatabase() == null) {
+            db = "aem-author"; // assume an author instance
+        } else {
+            db = uri.getDatabase();
+        }
+        MongoClient client = new MongoClient(uri);
+        closer.register(asCloseable(client));
+        return client.getDB(db);
+    }
+
+    @Override
+    public boolean hasExternalBlobReferences() throws IOException {
+        Closer closer = Closer.create();
+        try {
+            MongoBlobStore mongoBlobStore = new MongoBlobStore(getDB(closer));
+            return !mongoBlobStore.getAllChunkIds(0).hasNext();
+        } catch(Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
     }
 
     static Closeable asCloseable(final DocumentNodeStore documentNodeStore) {

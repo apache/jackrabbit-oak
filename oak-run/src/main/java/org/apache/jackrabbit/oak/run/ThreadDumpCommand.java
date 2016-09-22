@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -153,6 +154,9 @@ public class ThreadDumpCommand implements Command {
                 return 0;
             }
             int fullThreadDumps = 0;
+            String fileModifiedTime = new Timestamp(file.lastModified()).toString();
+            writer.write("file " + file.getAbsolutePath() + "\n");
+            writer.write("lastModified " + fileModifiedTime + "\n");
             if (file.getName().endsWith(".gz")) {
                 System.out.println("Extracting " + file.getAbsolutePath());
                 InputStream fileStream = new FileInputStream(file);
@@ -185,7 +189,7 @@ public class ThreadDumpCommand implements Command {
             }
             if (fullThreadDumps > 0) {
                 count++;
-                System.out.println("    (contains " + fullThreadDumps + " full thread dumps)");
+                System.out.println("    (contains " + fullThreadDumps + " full thread dumps; " + fileModifiedTime + ")");
             }
         } finally {
             if(reader != null) {

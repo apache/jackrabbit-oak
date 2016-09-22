@@ -651,10 +651,24 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("fn:string-length".equals(functionName)) {
+            Expression.Function f = new Expression.Function("length");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:name".equals(functionName)) {
             Expression.Function f = new Expression.Function("name");
             if (!readIf(")")) {
                 // only name(.) and name() are currently supported
+                read(".");
+                read(")");
+            }
+            f.params.add(new Expression.SelectorExpr(currentSelector));
+            return f;
+        } else if ("fn:local-name".equals(functionName)) {
+            Expression.Function f = new Expression.Function("localname");
+            if (!readIf(")")) {
+                // only localname(.) and localname() are currently supported
                 read(".");
                 read(")");
             }

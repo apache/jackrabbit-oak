@@ -461,7 +461,6 @@ public class SegmentDataStoreBlobGCIT {
         if (store != null) {
             store.close();
         }
-        DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
     }
 
     static InputStream randomStream(int seed, int size) {
@@ -474,7 +473,7 @@ public class SegmentDataStoreBlobGCIT {
     /**
     * Waits for some time and adds additional blobs after blob referenced identified to simulate
     * long running blob id collection phase.
-     */
+    */
     class TestGarbageCollector extends MarkSweepGarbageCollector {
         long maxLastModifiedInterval;
         String root;

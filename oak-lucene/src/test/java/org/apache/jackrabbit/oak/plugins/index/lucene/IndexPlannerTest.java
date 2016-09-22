@@ -768,11 +768,11 @@ public class IndexPlannerTest {
     //------ END - Suggestion/spellcheck plan tests
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {
-        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"));
+        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"), null);
     }
 
     private IndexNode createIndexNode(IndexDefinition defn) throws IOException {
-        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"));
+        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"), null);
     }
 
     private FilterImpl createFilter(String nodeTypeName) {

@@ -29,14 +29,13 @@ import java.io.IOException;
 import java.util.Random;
 
 import com.google.common.io.ByteStreams;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -44,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class StandbyTestIT extends TestBase {
@@ -85,7 +83,6 @@ public class StandbyTestIT extends TestBase {
      * OAK-2430
      */
     @Test
-    @Ignore("OAK-4707")
     public void testSyncLoop() throws Exception {
         final int blobSize = 25 * 1024;
         final int dataNodes = 5000;
@@ -99,7 +96,7 @@ public class StandbyTestIT extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize, dataNodes);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary);
+        StandbySync cl = newStandbySync(secondary);
 
         try {
 
@@ -120,10 +117,6 @@ public class StandbyTestIT extends TestBase {
 
         assertTrue(primary.getStats().getApproximateSize() > blobSize);
         assertTrue(secondary.getStats().getApproximateSize() > blobSize);
-
-        long primaryFs = FileUtils.sizeOf(directoryS);
-        long secondaryFs = FileUtils.sizeOf(directoryC);
-        assertTrue(secondaryFs < primaryFs * 1.15);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
                 .getChildNode("server").getProperty("testBlob");

@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class StandbyTest extends TestBase {
@@ -59,7 +58,6 @@ public class StandbyTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4673")
     public void testSync() throws Exception {
         final int mb = 1 * 1024 * 1024;
         final int blobSize = 5 * mb;
@@ -72,7 +70,7 @@ public class StandbyTest extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize, 150);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary);
+        StandbySync cl = newStandbySync(secondary);
         cl.run();
 
         try {

@@ -35,6 +35,10 @@ public interface IndexConstants {
 
     String REINDEX_ASYNC_PROPERTY_NAME = "reindex-async";
 
+    String INDEXING_MODE_SYNC = "sync";
+
+    String INDEXING_MODE_NRT = "nrt";
+
     String ASYNC_PROPERTY_NAME = "async";
 
     String ASYNC_REINDEX_VALUE = "async-reindex";

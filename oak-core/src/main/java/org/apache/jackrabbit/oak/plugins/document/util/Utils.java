@@ -314,10 +314,16 @@ public class Utils {
         return id.substring(index + 1);
     }
 
-    public static int getDepthFromId(String id) {
-        int index = id.indexOf(':');
-        assert index > 0 : "Invalid id " + id;
-        return Integer.parseInt(id.substring(0, index));
+    public static int getDepthFromId(String id) throws IllegalArgumentException {
+        try {
+            int index = id.indexOf(':');
+            if (index >= 0) {
+                return Integer.parseInt(id.substring(0, index));
+            }
+        } catch (NumberFormatException e) {
+            // ignore and throw IllegalArgumentException
+        }
+        throw new IllegalArgumentException("Invalid id: " + id);
     }
 
     public static String getPreviousPathFor(String path, Revision r, int height) {

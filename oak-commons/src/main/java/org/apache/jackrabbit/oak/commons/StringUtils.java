@@ -87,6 +87,6 @@ public class StringUtils {
      * @return the estimated memory usage.
      */
     public static int estimateMemoryUsage(String s) {
-        return 48 + s.length() * 2;
+        return s == null ? 0 : 48 + s.length() * 2;
     }
 }

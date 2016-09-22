@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -75,11 +76,12 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.*;
@@ -231,6 +233,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final String indexPath;
 
+    private final boolean nrtIndexMode;
+    private final boolean syncIndexMode;
+
     @Nullable
     private final String uid;
 
@@ -303,6 +308,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
+        this.nrtIndexMode = supportsNRTIndexing(defn);
+        this.syncIndexMode = supportsSyncIndexing(defn);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -329,6 +336,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return blobSize;
     }
 
+    @CheckForNull
     public Codec getCodec() {
         return codec;
     }
@@ -432,6 +440,15 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     public String getUniqueId() {
         return uid;
     }
+
+    public boolean isNRTIndexingEnabled() {
+        return nrtIndexMode;
+    }
+
+    public boolean isSyncIndexingEnabled() {
+        return syncIndexMode;
+    }
+
 
     @Override
     public String toString() {
@@ -552,7 +569,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * @return the indexing rule or <code>null</code> if none applies.
      */
     @CheckForNull
-    public IndexingRule getApplicableIndexingRule(Tree state) {
+    public IndexingRule getApplicableIndexingRule(NodeState state) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
         List<IndexingRule> rules = null;
@@ -714,6 +731,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
+        private final List<PropertyDefinition> functionRestrictions;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final List<PropertyDefinition> nodeScopeAnalyzedProps;
         private final boolean indexesAllNodesOfMatchingType;
@@ -739,17 +757,19 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
             List<NamePattern> namePatterns = newArrayList();
             List<PropertyDefinition> nonExistentProperties = newArrayList();
+            List<PropertyDefinition> functionRestrictions = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
             List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
-                    existentProperties, nodeScopeAnalyzedProps);
+                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
             this.nodeScopeAnalyzedProps = ImmutableList.copyOf(nodeScopeAnalyzedProps);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
+            this.functionRestrictions = ImmutableList.copyOf(functionRestrictions);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || anyNodeScopeIndexedProperty();
@@ -778,6 +798,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.propAggregate = original.propAggregate;
             this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
             this.notNullCheckEnabledProperties = original.notNullCheckEnabledProperties;
+            this.functionRestrictions = original.functionRestrictions;
             this.nodeScopeAnalyzedProps = original.nodeScopeAnalyzedProps;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
@@ -818,6 +839,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
             return nullCheckEnabledProperties;
         }
+        
+        public List<PropertyDefinition> getFunctionRestrictions() {
+            return functionRestrictions;
+        }
 
         public List<PropertyDefinition> getNotNullCheckEnabledProperties() {
             return notNullCheckEnabledProperties;
@@ -848,7 +873,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
          * @return <code>true</code> the rule applies to the given node;
          *         <code>false</code> otherwise.
          */
-        public boolean appliesTo(Tree state) {
+        public boolean appliesTo(NodeState state) {
             for (String mixinName : getMixinTypeNames(state)){
                 if (nodeTypeName.equals(mixinName)){
                     return true;
@@ -941,11 +966,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return JcrConstants.NT_BASE.equals(baseNodeType);
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, 
+                                                                   List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
                                                                    List<PropertyDefinition> existentProperties,
-                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps) {
+                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps, 
+                                                                   List<PropertyDefinition> functionRestrictions) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -965,6 +992,18 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                 NodeState propDefnNode = propNode.getChildNode(propName);
                 if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
                     PropertyDefinition pd = new PropertyDefinition(this, propName, propDefnNode);
+                    if (pd.function != null) {
+                        functionRestrictions.add(pd);
+                        String[] properties = FunctionIndexProcessor.getProperties(pd.functionCode);
+                        for (String p : properties) {
+                            if (PathUtils.getDepth(p) > 1) {
+                                PropertyDefinition pd2 = new PropertyDefinition(this, p, propDefnNode);
+                                propAggregate.add(new Aggregate.PropertyInclude(pd2));
+                            }
+                        }
+                        // a function index has no other options
+                        continue;
+                    }
                     if(pd.isRegexp){
                         patterns.add(new NamePattern(pd.name, pd));
                     } else {
@@ -1382,15 +1421,20 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         };
     }
 
-    private static String getPrimaryTypeName(Tree state) {
-        String primaryType = TreeUtil.getPrimaryTypeName(state);
+    private static String getPrimaryTypeName(NodeState state) {
+        String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
+
+        //To ensure compatibility with previous Tree based usage look based on string also
+        if (primaryType == null) {
+            primaryType = state.getString(JcrConstants.JCR_PRIMARYTYPE);
+        }
         //In case not a proper JCR assume nt:base TODO return null and ignore indexing such nodes
         //at all
         return primaryType != null ? primaryType : "nt:base";
     }
 
-    private static Iterable<String> getMixinTypeNames(Tree tree) {
-        PropertyState property = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+    private static Iterable<String> getMixinTypeNames(NodeState state) {
+        PropertyState property = state.getProperty(JcrConstants.JCR_MIXINTYPES);
         return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
     }
 
@@ -1563,6 +1607,26 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         //For older format cost per entry would be higher as it does a runtime
         //aggregation
         return version == IndexFormatVersion.V1 ?  1.5 : 1.0;
+    }
+
+    private static boolean supportsNRTIndexing(NodeState defn) {
+        return supportsIndexingMode(new ReadOnlyBuilder(defn), INDEXING_MODE_NRT);
+    }
+
+    private static boolean supportsSyncIndexing(NodeState defn) {
+        return supportsIndexingMode(new ReadOnlyBuilder(defn), INDEXING_MODE_SYNC);
+    }
+
+    public static boolean supportsSyncOrNRTIndexing(NodeBuilder defn) {
+       return supportsIndexingMode(defn, INDEXING_MODE_NRT) || supportsIndexingMode(defn, INDEXING_MODE_SYNC);
+    }
+
+    private static boolean supportsIndexingMode(NodeBuilder defn, String mode) {
+        PropertyState async = defn.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
+        if (async == null){
+            return false;
+        }
+        return Iterables.contains(async.getValue(Type.STRINGS), mode);
     }
 
 }

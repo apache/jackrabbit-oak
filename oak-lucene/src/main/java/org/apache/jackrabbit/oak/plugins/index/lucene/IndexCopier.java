@@ -1208,10 +1208,15 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
      */
     private static long getFileLength(Directory dir, String fileName){
         try{
-            return dir.fileLength(fileName);
-        } catch (Exception e){
-            return -1;
+            //Check for file presence otherwise internally it results in
+            //an exception to be created
+            if (dir.fileExists(fileName)) {
+                return dir.fileLength(fileName);
+            }
+        } catch (Exception ignore){
+
         }
+        return -1;
     }
 
     //~------------------------------------------< CopyOnReadStatsMBean >

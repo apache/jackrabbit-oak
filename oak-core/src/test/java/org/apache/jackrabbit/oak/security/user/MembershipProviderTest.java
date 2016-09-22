@@ -518,8 +518,9 @@ public class MembershipProviderTest extends AbstractSecurityTest implements User
 
         // 4. remove members from the initial set => ref nodes as before, rep:members prop on group modified
         memberIds.clear();
-        memberIds.put(MembershipProvider.getContentID("member1"), "member1");
-        memberIds.put(MembershipProvider.getContentID("member2"), "member2");
+        //TODO
+        memberIds.put(MembershipProvider.getContentID("member1", false), "member1");
+        memberIds.put(MembershipProvider.getContentID("member2", false), "member2");
         mp.removeMembers(groupTree, Maps.newHashMap(memberIds));
 
         assertMemberList(groupTree, 3, 5);
@@ -570,7 +571,8 @@ public class MembershipProviderTest extends AbstractSecurityTest implements User
         Map<String, String> memberIds = Maps.newLinkedHashMap();
         for (int i = start; i < end; i++) {
             String memberId = "member" + i;
-            memberIds.put(MembershipProvider.getContentID(memberId), memberId);
+            //TODO
+            memberIds.put(MembershipProvider.getContentID(memberId, false), memberId);
         }
         return memberIds;
     }

@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -113,5 +114,15 @@ public class IndexDefinitionBuilderTest {
         Iterator<Tree> children = tree.getChild("indexRules").getChildren().iterator();
         assertEquals("nt:unstructured", children.next().getName());
         assertEquals("nt:base", children.next().getName());
+    }
+
+    @Test
+    public void regexProperty() throws Exception{
+        builder.indexRule("nt:base")
+                .property(LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
+        NodeState state = builder.build();
+        assertTrue(NodeStateUtils.getNode(state, "indexRules/nt:base/properties/prop")
+                .getBoolean(LuceneIndexConstants.PROP_IS_REGEX));
     }
 }

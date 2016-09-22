@@ -59,8 +59,6 @@ public class OptionParserFactory {
     public static final String DST_S3 = "s3datastore";
 
     public static final String DST_S3_CONFIG = "s3config";
-    
-    public static final String MISSING_BLOBSTORE = "missingblobstore";
 
     public static final String COPY_VERSIONS = "copy-versions";
 
@@ -109,7 +107,6 @@ public class OptionParserFactory {
         op.accepts(DST_S3, "Datastore directory to be used for the target S3").withRequiredArg().ofType(String.class);
         op.accepts(DST_S3_CONFIG, "Configuration file for the target S3DataStore").withRequiredArg()
                 .ofType(String.class);
-        op.accepts(MISSING_BLOBSTORE, "Try to upgrade the NodeStore without access to the external Datastore");
         op.accepts(IGNORE_MISSING_BINARIES, "Don't break the migration if some binaries are missing");
     }
 

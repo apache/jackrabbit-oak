@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -41,10 +40,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
 import org.apache.jackrabbit.oak.upgrade.cli.Util;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.junit.Test;
 
 public class UpgradeOldSegmentTest {
@@ -54,16 +52,15 @@ public class UpgradeOldSegmentTest {
         File testFolder = new File(new File("target"), UpgradeOldSegmentTest.class.getSimpleName());
         FileUtils.deleteDirectory(testFolder);
         File oldRepo = new File(testFolder, "test-repo-1.0");
-        File newRepo = new File(testFolder, "test-repo-new");
         oldRepo.mkdirs();
         try (InputStream in = UpgradeOldSegmentTest.class.getResourceAsStream("/test-repo-1.0.zip")) {
             Util.unzip(in, oldRepo);
         }
 
-        OakUpgrade.main("segment-old:" + oldRepo.getPath(), newRepo.getPath());
+        SegmentTarNodeStoreContainer newRepoContainer = new SegmentTarNodeStoreContainer();
+        OakUpgrade.main("segment-old:" + oldRepo.getPath(), newRepoContainer.getDescription());
 
-        FileStore store = fileStoreBuilder(new File(newRepo, "segmentstore")).build();
-        Repository repo = new Jcr(SegmentNodeStoreBuilders.builder(store).build()).createRepository();
+        Repository repo = new Jcr(newRepoContainer.open()).createRepository();
         Session s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         Node myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");
@@ -114,8 +111,8 @@ public class UpgradeOldSegmentTest {
         if (repo instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repo).shutdown();
         }
-        store.close();
-
+        newRepoContainer.close();
+        newRepoContainer.clean();
         FileUtils.deleteDirectory(testFolder);
     }
 }

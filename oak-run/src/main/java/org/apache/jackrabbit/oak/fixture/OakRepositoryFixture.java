@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
+import java.util.Collections;
 
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public class OakRepositoryFixture implements RepositoryFixture {
 
@@ -106,6 +108,7 @@ public class OakRepositoryFixture implements RepositoryFixture {
     }
 
     private final OakFixture oakFixture;
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private Repository[] cluster;
 
     protected OakRepositoryFixture(OakFixture oakFixture) {
@@ -123,9 +126,10 @@ public class OakRepositoryFixture implements RepositoryFixture {
     }
 
     public Repository[] setUpCluster(int n, JcrCreator customizer) throws Exception {
-        Oak[] oaks = oakFixture.setUpCluster(n);
+        Oak[] oaks = oakFixture.setUpCluster(n, statisticsProvider);
         cluster = new Repository[oaks.length];
         for (int i = 0; i < oaks.length; i++) {
+            configureStatsProvider(oaks[i]);
             cluster[i] = customizer.customize(oaks[i]).createRepository();
         }
         return cluster;
@@ -155,5 +159,13 @@ public class OakRepositoryFixture implements RepositoryFixture {
 
     public OakFixture getOakFixture() {
         return oakFixture;
+    }
+
+    public void setStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
+    }
+
+    private void configureStatsProvider(Oak oak) {
+        oak.getWhiteboard().register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
     }
 }

@@ -32,7 +32,6 @@ import javax.net.ssl.SSLException;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -46,15 +45,13 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
-import io.netty.util.concurrent.Future;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.codec.BlobEncoder;
-import org.apache.jackrabbit.oak.segment.standby.codec.RecordIdEncoder;
-import org.apache.jackrabbit.oak.segment.standby.codec.SegmentEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
-import org.apache.jackrabbit.oak.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,10 +66,11 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     private final EventLoopGroup workerGroup;
     private final ServerBootstrap b;
     private final CommunicationObserver observer;
-    private final StandbyServerHandler handler;
     private SslContext sslContext;
     private ChannelFuture channelFuture;
     private boolean running;
+
+    private volatile String state;
 
     public StandbyServer(int port, final FileStore store) throws CertificateException, SSLException {
         this(port, store, null, false);
@@ -86,7 +84,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         this(port, store, allowedClientIPRanges, false);
     }
 
-    public StandbyServer(int port, final FileStore store, String[] allowedClientIPRanges, boolean secure) throws CertificateException, SSLException {
+    public StandbyServer(int port, final FileStore store, final String[] allowedClientIPRanges, boolean secure) throws CertificateException, SSLException {
         this.port = port;
 
         if (secure) {
@@ -95,7 +93,6 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         }
 
         observer = new CommunicationObserver("primary");
-        handler = new StandbyServerHandler(store, observer, allowedClientIPRanges);
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
 
@@ -121,18 +118,47 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
+
+                p.addLast(new ClientFilterHandler(new ClientIpFilter(allowedClientIPRanges)));
+
                 if (sslContext != null) {
                     p.addLast(sslContext.newHandler(ch.alloc()));
                 }
+
+                // Decoders
+
                 p.addLast(new LineBasedFrameDecoder(8192));
                 p.addLast(new StringDecoder(CharsetUtil.UTF_8));
+                p.addLast(new RequestDecoder());
+                p.addLast(new StateHandler(newStateConsumer()));
+                p.addLast(new RequestObserverHandler(observer));
+
+                // Encoders
+
                 p.addLast(new SnappyFramedEncoder());
-                p.addLast(new RecordIdEncoder());
-                p.addLast(new SegmentEncoder());
-                p.addLast(new BlobEncoder());
-                p.addLast(handler);
+                p.addLast(new GetHeadResponseEncoder());
+                p.addLast(new GetSegmentResponseEncoder());
+                p.addLast(new GetBlobResponseEncoder());
+                p.addLast(new ResponseObserverHandler(observer));
+
+                // Handlers
+
+                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
+                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
+                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store)));
             }
         });
+    }
+
+    private StateConsumer newStateConsumer() {
+        return new StateConsumer() {
+
+            @Override
+            public void consumeState(String state) {
+                StandbyServer.this.state = state;
+            }
+
+        };
     }
 
     public String getMBeanName() {
@@ -141,7 +167,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
 
     public void close() {
         stop();
-        handler.state = STATUS_CLOSING;
+        state = STATUS_CLOSING;
         observer.unregister();
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
@@ -157,73 +183,54 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         if (workerGroup != null && !workerGroup.isShuttingDown()) {
             workerGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
         }
-        handler.state = STATUS_CLOSED;
-    }
-
-    private void start(boolean wait) {
-        if (running) return;
-
-        this.handler.state = STATUS_STARTING;
-
-        final Thread close = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    running = true;
-                    handler.state = STATUS_RUNNING;
-                    channelFuture.sync().channel().closeFuture().sync();
-                } catch (InterruptedException e) {
-                    StandbyServer.this.stop();
-                }
-            }
-        };
-        final ChannelFutureListener bindListener = new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) {
-                if (future.isSuccess()) {
-                    close.start();
-                } else {
-                    log.error("Server failed to start on port " + port
-                            + ", will be canceled", future.cause());
-                    future.channel().close();
-                    new Thread() {
-                        @Override
-                        public void run() {
-                            close();
-                        }
-                    }.start();
-                }
-            }
-        };
-        Future<?> startup = bossGroup.submit(new Runnable() {
-            @Override
-            public void run() {
-                //netty 4.0.20 has a race condition issue with
-                //asynchronous channel registration. As a workaround
-                //we bind asynchronously from the boss event group to make
-                //the channel registration synchronous.
-                //Note that now this method will return immediately.
-                channelFuture = b.bind(port);
-                channelFuture.addListener(bindListener);
-            }
-        });
-        if (!startup.awaitUninterruptibly(10000)) {
-            log.error("Server failed to start within 10 seconds and will be canceled");
-            startup.cancel(true);
-        } else if (wait) {
-            try {
-                close.join();
-            } catch (InterruptedException ignored) {}
-        }
-    }
-
-    public void startAndWait() {
-        start(true);
+        state = STATUS_CLOSED;
     }
 
     @Override
     public void start() {
-        start(false);
+        if (running) {
+            return;
+        }
+
+        state = STATUS_STARTING;
+
+        channelFuture = b.bind(port);
+
+        if (channelFuture.awaitUninterruptibly(10, TimeUnit.SECONDS)) {
+            onTimelyStart();
+        } else {
+            onStartTimeOut();
+        }
+    }
+
+    private void onTimelyStart() {
+        if (channelFuture.isSuccess()) {
+            onSuccessfulStart();
+        }
+
+        if (channelFuture.cause() != null) {
+            onUnsuccessfulStart();
+        }
+    }
+
+    private void onSuccessfulStart() {
+        log.debug("Binding was successful");
+        state = STATUS_RUNNING;
+        running = true;
+    }
+
+    private void onUnsuccessfulStart() {
+        log.debug("Binding was unsuccessful", channelFuture.cause());
+        state = null;
+        running = false;
+        throw new RuntimeException(channelFuture.cause());
+    }
+
+    private void onStartTimeOut() {
+        log.debug("Binding timed out, canceling");
+        state = null;
+        running = false;
+        channelFuture.cancel(true);
     }
 
     @Override
@@ -238,13 +245,14 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     public void stop() {
         if (running) {
             running = false;
-            this.handler.state = STATUS_STOPPED;
+            this.state = STATUS_STOPPED;
             channelFuture.channel().disconnect();
         }
     }
 
     @Override
     public String getStatus() {
-        return handler == null ? STATUS_INITIALIZING : handler.state;
+        return state == null ? STATUS_INITIALIZING : state;
     }
+
 }

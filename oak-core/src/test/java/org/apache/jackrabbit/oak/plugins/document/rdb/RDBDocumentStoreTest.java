@@ -83,7 +83,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
                 assertTrue("document with " + id + " not created", success);
                 removeMe.add(id);
             }
-            System.out.println(removeMe);
+
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
             List<NodeDocument> result = rds.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
                     Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, 10000);

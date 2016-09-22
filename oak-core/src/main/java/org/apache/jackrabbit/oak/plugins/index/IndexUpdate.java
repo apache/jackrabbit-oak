@@ -24,6 +24,8 @@ import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
@@ -46,6 +48,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -238,12 +241,12 @@ public class IndexUpdate implements Editor {
     static boolean isIncluded(String asyncRef, NodeBuilder definition) {
         if (definition.hasProperty(ASYNC_PROPERTY_NAME)) {
             PropertyState p = definition.getProperty(ASYNC_PROPERTY_NAME);
-            List<String> opt = newArrayList(p.getValue(Type.STRINGS));
+            Iterable<String> opt = p.getValue(Type.STRINGS);
             if (asyncRef == null) {
                 // sync index job, accept synonyms
-                return opt.contains("") || opt.contains("sync");
+                return Iterables.contains(opt, INDEXING_MODE_NRT) || Iterables.contains(opt, INDEXING_MODE_SYNC);
             } else {
-                return opt.contains(asyncRef);
+                return Iterables.contains(opt, asyncRef);
             }
         } else {
             return asyncRef == null;

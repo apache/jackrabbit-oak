@@ -2583,6 +2583,7 @@ public final class DocumentNodeStore
         final WeakReference<DocumentNodeStore> ref;
         private final AtomicBoolean isDisposed;
         private final Supplier<Integer> delaySupplier;
+        private boolean failing;
 
         NodeStoreTask(final DocumentNodeStore nodeStore,
                       final AtomicBoolean isDisposed,
@@ -2623,7 +2624,13 @@ public final class DocumentNodeStore
                 if (nodeStore != null) {
                     try {
                         execute(nodeStore);
+                        if (failing) {
+                            LOG.info("Background operation {} successful again",
+                                    getClass().getSimpleName());
+                            failing = false;
+                        }
                     } catch (Throwable t) {
+                        failing = true;
                         LOG.warn("Background operation failed: " + t.toString(), t);
                     }
                     delay = delaySupplier.get();

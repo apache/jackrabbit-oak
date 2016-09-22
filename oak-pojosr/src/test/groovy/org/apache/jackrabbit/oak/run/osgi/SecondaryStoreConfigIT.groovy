@@ -39,11 +39,12 @@ class SecondaryStoreConfigIT extends AbstractRepositoryFactoryTest{
     @Test
     public void secondaryNodeStoreCache() throws Exception{
         mongoCheck()
-
+        MongoUtils.dropDatabase(MongoUtils.DB)
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json")
         config[REPOSITORY_CONFIG] = [
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
-                        mongouri       : MongoUtils.URL
+                        mongouri       : MongoUtils.URL,
+                        db             : MongoUtils.DB
                 ],
                 'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [
                         secondary       : true

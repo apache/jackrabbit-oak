@@ -287,7 +287,8 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
                 }
                 Tree userTree = parent.addChild("testUser");
                 userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-                userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser"));
+                //TODO
+                userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser", false));
                 userTree.setProperty(REP_PRINCIPAL_NAME, "testUser");
                 root.commit();
                 fail("Invalid hierarchy should be detected");

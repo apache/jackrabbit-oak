@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +43,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -251,6 +253,10 @@ public class IndexRootDirectory {
                             "Deletion would be retried later again.",  dir);
                 }
             }
+
+            if (!dirs.isEmpty()) {
+                totalDeletedSize += gcNRTIndexDirs(dirs.get(0));
+            }
             totalDeletedSize += deleteOldFormatDir(dirs.get(0).getJcrPath());
         }
 
@@ -258,6 +264,30 @@ public class IndexRootDirectory {
             log.info("Reclaimed [{}] space by removing unused/old index directories",
                     IOUtils.humanReadableByteCount(totalDeletedSize));
         }
+    }
+
+    /**
+     * Removes all directory created by NRTIndex which have
+     * nrt prefix
+     */
+    private long gcNRTIndexDirs(LocalIndexDir idxDir) {
+        final String prefix = getFSSafeName(NRTIndex.NRT_DIR_PREFIX);
+        File[] nrtDirs = idxDir.dir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.startsWith(prefix);
+            }
+        });
+
+        long size = 0;
+        if (nrtDirs != null) {
+            for (File f : nrtDirs){
+                size += FileUtils.sizeOf(f);
+                FileUtils.deleteQuietly(f);
+            }
+        }
+
+        return size;
     }
 
     @CheckForNull
@@ -294,7 +324,8 @@ public class IndexRootDirectory {
         return new File(indexRootDir, subDir);
     }
 
-    private static String getFSSafeName(String e) {
+    static String getFSSafeName(String e) {
+        //TODO Exclude -_ like chars via [^\W_]
         return e.replaceAll("\\W", "");
     }
 

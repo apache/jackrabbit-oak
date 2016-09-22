@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.util.ISO9075;
 
 /**
@@ -91,6 +92,10 @@ public class NodeNameImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
+        if (operator == Operator.NOT_EQUAL && v != null) {
+            // not supported
+            return;
+        }
         String name = getName(query, v);
         if (name != null && f.getSelector().equals(selector)
                 && NodeNameImpl.supportedOperator(operator)) {
@@ -106,23 +111,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
-        if (operator == Operator.NOT_EQUAL) {
-            // not supported
-            return;
+    public String getFunction(SelectorImpl s) {
+        if (!s.equals(selector)) {
+            return null;
         }
-        if (v == null) {
-            return;
-        }
-        String name = getName(query, v);
-        if (name != null && f.getSelector().equals(selector)
-                && NodeNameImpl.supportedOperator(operator)) {
-            String localName = NodeLocalNameImpl.getLocalName(name);
-            String restrictionName = QueryConstants.FUNCTION_RESTRICTION_PREFIX + 
-                    functionName + "*@" + QueryConstants.RESTRICTION_LOCAL_NAME;            
-            f.restrictProperty(restrictionName,
-                    operator, PropertyValues.newString(localName));
-        }
+        return "@" + QueryConstants.RESTRICTION_NAME;
     }
 
     @Override
@@ -178,6 +171,19 @@ public class NodeNameImpl extends DynamicOperandImpl {
     @Override
     public DynamicOperandImpl createCopy() {
         return new NodeNameImpl(selectorName);
+    }
+    
+    @Override
+    public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
+        if (!s.equals(selector)) {
+            // ordered by a different selector
+            return null;
+        }
+        return new OrderEntry(
+                QueryConstants.RESTRICTION_NAME, 
+            Type.STRING, 
+            o.isDescending() ? 
+            OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
 }

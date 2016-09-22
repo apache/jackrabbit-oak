@@ -140,7 +140,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
 
-        IndexNode node = new IndexNode("foo", defn, readers);
+        IndexNode node = new IndexNode("foo", defn, readers, null);
 
         //3 Obtain the plan
         FilterImpl filter = createFilter("nt:base");

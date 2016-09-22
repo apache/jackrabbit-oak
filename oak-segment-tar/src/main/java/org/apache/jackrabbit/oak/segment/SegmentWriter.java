@@ -33,6 +33,8 @@ import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.io.ByteStreams.read;
 import static java.lang.Integer.getInteger;
+import static java.lang.Long.numberOfLeadingZeros;
+import static java.lang.Math.min;
 import static java.lang.System.nanoTime;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -42,6 +44,7 @@ import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.segment.BinaryReferences.newReference;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.segment.RecordWriters.newNodeStateWriter;
 
@@ -157,6 +160,16 @@ public class SegmentWriter {
     @Nonnull
     public DescriptiveStatistics getNodeCompactTimeStats() {
         return nodeCompactTimeStats;
+    }
+
+    /**
+     * Get occupancy information for the node deduplication cache indicating occupancy and
+     * evictions per priority.
+     * @return  occupancy information for the node deduplication cache.
+     */
+    @CheckForNull
+    public String getNodeCacheOccupancyInfo() {
+        return cacheManager.getNodeCacheOccupancyInfo();
     }
 
     /**
@@ -727,7 +740,7 @@ public class SegmentWriter {
 
             // inline the remaining data as block records
             while (pos < data.length) {
-                int len = Math.min(BLOCK_SIZE, data.length - pos);
+                int len = min(BLOCK_SIZE, data.length - pos);
                 blockIds.add(writeBlock(data, pos, len));
                 pos += len;
             }
@@ -786,13 +799,17 @@ public class SegmentWriter {
 
             RecordId recordId;
 
+            String binaryReference;
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
+                binaryReference = newReference(blobId);
                 recordId = RecordWriters.newBlobIdWriter(data).write(writer);
             } else {
-                recordId = RecordWriters.newBlobIdWriter(writeString(blobId)).write(writer);
+                RecordId refId = writeString(blobId);
+                binaryReference = newReference(refId);
+                recordId = RecordWriters.newBlobIdWriter(refId).write(writer);
             }
 
-            binaryReferenceConsumer.consume(writer.getGeneration(), recordId.asUUID(), blobId);
+            binaryReferenceConsumer.consume(writer.getGeneration(), recordId.asUUID(), binaryReference);
 
             return recordId;
         }
@@ -988,9 +1005,10 @@ public class SegmentWriter {
             } finally {
                 if (nodeWriteStats.isCompactOp) {
                     nodeCompactTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
-                    LOG.info(nodeWriteStats.toString());
+                    LOG.info("{}", nodeWriteStats);
                 } else {
                     nodeWriteTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
+                    LOG.debug("{}", nodeWriteStats);
                 }
             }
         }
@@ -1003,7 +1021,7 @@ public class SegmentWriter {
             checkState(nodeWriteStats != null);
             nodeWriteStats.nodeCount++;
 
-            RecordId compactedId = deduplicateNode(state);
+            RecordId compactedId = deduplicateNode(state, nodeWriteStats);
 
             if (compactedId != null) {
                 return compactedId;
@@ -1016,10 +1034,15 @@ public class SegmentWriter {
                 // generation (e.g. due to compaction). Put it into the cache for
                 // deduplication of hard links to it (e.g. checkpoints).
                 SegmentNodeState sns = (SegmentNodeState) state;
-                nodeCache.put(sns.getStableId(), recordId, depth);
+                nodeCache.put(sns.getStableId(), recordId, cost(sns));
                 nodeWriteStats.isCompactOp = true;
             }
             return recordId;
+        }
+
+        private byte cost(SegmentNodeState node) {
+            long childCount = node.getChildNodeCount(Long.MAX_VALUE);
+            return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(childCount));
         }
 
         private RecordId writeNodeUncached(@Nonnull NodeState state, int depth) throws IOException {
@@ -1032,7 +1055,9 @@ public class SegmentWriter {
             RecordId beforeId = null;
 
             if (after != null) {
-                beforeId = deduplicateNode(after.getBaseState());
+                // Pass null to indicate we don't want to update the node write statistics
+                // when deduplicating the base state
+                beforeId = deduplicateNode(after.getBaseState(), null);
             }
 
             SegmentNodeState before = null;
@@ -1138,11 +1163,12 @@ public class SegmentWriter {
          * and is still in the de-duplication cache for nodes.
          *
          * @param node The node states to de-duplicate.
+         * @param nodeWriteStats  write statistics to update if not {@code null}.
          * @return the id of the de-duplicated node or {@code null} if none.
          */
-        private RecordId deduplicateNode(NodeState node) {
-            checkState(nodeWriteStats != null);
-
+        private RecordId deduplicateNode(
+                @Nonnull NodeState node,
+                @CheckForNull NodeWriteStats nodeWriteStats) {
             if (!(node instanceof SegmentNodeState)) {
                 // De-duplication only for persisted node states
                 return null;
@@ -1158,7 +1184,9 @@ public class SegmentWriter {
             if (!isOldGeneration(sns.getRecordId())) {
                 // This segment node state is already in this store, no need to
                 // write it again
-                nodeWriteStats.deDupNodes++;
+                if (nodeWriteStats != null) {
+                    nodeWriteStats.deDupNodes++;
+                }
                 return sns.getRecordId();
             }
 
@@ -1167,12 +1195,14 @@ public class SegmentWriter {
             // cache
             RecordId compacted = nodeCache.get(sns.getStableId());
 
-            if (compacted == null) {
-                nodeWriteStats.cacheMiss++;
-                return null;
+            if (nodeWriteStats != null) {
+                if (compacted == null) {
+                    nodeWriteStats.cacheMiss++;
+                } else {
+                    nodeWriteStats.cacheHits++;
+                }
             }
 
-            nodeWriteStats.cacheHits++;
             return compacted;
         }
 
@@ -1196,7 +1226,7 @@ public class SegmentWriter {
 
         private boolean isOldGeneration(RecordId id) {
             try {
-                int thatGen = id.getSegment().getGcGeneration();
+                int thatGen = id.getSegmentId().getGcGeneration();
                 int thisGen = writer.getGeneration();
                 return thatGen < thisGen;
             } catch (SegmentNotFoundException snfe) {

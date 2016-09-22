@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +32,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
@@ -40,10 +40,10 @@ import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.BlobByteSource;
@@ -104,10 +104,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
      */
     private final boolean isDeleted;
 
-    private Tree afterTree;
-
-    private Tree beforeTree;
-
     private IndexDefinition.IndexingRule indexingRule;
 
     private List<Matcher> currentMatchers = Collections.emptyList();
@@ -140,7 +136,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     public String getPath() {
-        //TODO Use the tree instance to determine path
         if (path == null) { // => parent != null
             path = concat(parent.getPath(), name);
         }
@@ -154,20 +149,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             context.enableReindexMode();
         }
 
-        if (parent == null){
-            afterTree = TreeFactory.createReadOnlyTree(after);
-            beforeTree = TreeFactory.createReadOnlyTree(before);
-        } else {
-            afterTree = parent.afterTree.getChild(name);
-            beforeTree = parent.beforeTree.getChild(name);
-        }
-
         //Only check for indexing if the result is include.
         //In case like TRAVERSE nothing needs to be indexed for those
         //path
         if (pathFilterResult == PathFilter.Result.INCLUDE) {
             //For traversal in deleted sub tree before state has to be used
-            Tree current = afterTree.exists() ? afterTree : beforeTree;
+            NodeState current = after.exists() ? after : before;
             indexingRule = getDefinition().getApplicableIndexingRule(current);
 
             if (indexingRule != null) {
@@ -275,6 +262,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return null; // no need to recurse down the removed subtree
     }
 
+    LuceneIndexEditorContext getContext() {
+        return context;
+    }
+
     private boolean addOrUpdate(String path, NodeState state, boolean isUpdate)
             throws CommitFailedException {
         try {
@@ -334,6 +325,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         dirty |= indexAggregates(path, fields, state);
         dirty |= indexNullCheckEnabledProps(path, fields, state);
+        dirty |= indexFunctionRestrictions(path, fields, state);
         dirty |= indexNotNullCheckEnabledProps(path, fields, state);
 
         dirty |= augmentCustomFields(path, fields, state);
@@ -669,6 +661,31 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return fieldAdded;
     }
 
+    private boolean indexFunctionRestrictions(String path, List<Field> fields, NodeState state) {
+        boolean fieldAdded = false;
+        for (PropertyDefinition pd : indexingRule.getFunctionRestrictions()) {
+            PropertyState functionValue = calculateValue(path, state, pd.functionCode);
+            if (functionValue != null) {
+                if (pd.ordered) {
+                    addTypedOrderedFields(fields, functionValue, pd.function, pd);
+                }
+                addTypedFields(fields, functionValue, pd.function);
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+    
+    private static PropertyState calculateValue(String path, NodeState state, String[] functionCode) {
+        try {
+            return FunctionIndexProcessor.tryCalculateValue(path, state, functionCode);
+        } catch (RuntimeException e) {
+            log.error("Failed to calculate function value for {} at {}", 
+                    Arrays.toString(functionCode), path, e);
+            throw e;
+        }
+    }
+
     private boolean indexIfSinglePropertyRemoved() {
         boolean dirty = false;
         for (PropertyState ps : propertiesModified) {
@@ -924,6 +941,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
+        if (!context.isAsyncIndexing()){
+            //Skip text extraction for sync indexing
+            return null;
+        }
         String text = context.getExtractedTextCache().get(path, propertyName, v, context.isReindex());
         if (text == null){
             text = parseStringValue0(v, metadata, path);

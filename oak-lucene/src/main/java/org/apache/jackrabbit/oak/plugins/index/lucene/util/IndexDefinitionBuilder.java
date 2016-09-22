@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -55,6 +56,7 @@ public final class IndexDefinitionBuilder {
     public IndexDefinitionBuilder(){
         tree.setProperty(LuceneIndexConstants.COMPAT_MODE, 2);
         tree.setProperty("async", "async");
+        tree.setProperty("reindex", true);
         tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
         tree.setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition", NAME);
         indexRule = createChild(tree, LuceneIndexConstants.INDEX_RULES);
@@ -72,6 +74,17 @@ public final class IndexDefinitionBuilder {
 
     public IndexDefinitionBuilder excludedPaths(String ... paths){
         tree.setProperty(PathFilter.PROP_EXCLUDED_PATHS, asList(paths), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder codec(String codecName){
+        tree.setProperty(LuceneIndexConstants.CODEC_NAME, checkNotNull(codecName));
+        return this;
+    }
+
+    public IndexDefinitionBuilder async(String ... asyncVals){
+        tree.removeProperty("async");
+        tree.setProperty("async", asList(asyncVals), STRINGS);
         return this;
     }
 
@@ -120,16 +133,20 @@ public final class IndexDefinitionBuilder {
         }
 
         public PropertyRule property(String name){
+            return property(name, false);
+        }
+
+        public PropertyRule property(String name, boolean regex){
             PropertyRule propRule = props.get(name);
             if (propRule == null){
-                propRule = new PropertyRule(this, createChild(propsTree, createPropNodeName(name)), name);
+                propRule = new PropertyRule(this, createChild(propsTree, createPropNodeName(name, regex)), name, regex);
                 props.put(name, propRule);
             }
             return propRule;
         }
 
-        private String createPropNodeName(String name) {
-            name = getSafePropName(name);
+        private String createPropNodeName(String name, boolean regex) {
+            name = regex ? "prop" : getSafePropName(name);
             if (name.isEmpty()){
                 name = "prop";
             }
@@ -149,10 +166,13 @@ public final class IndexDefinitionBuilder {
         private final IndexRule indexRule;
         private final Tree propTree;
 
-        private PropertyRule(IndexRule indexRule, Tree propTree, String name) {
+        private PropertyRule(IndexRule indexRule, Tree propTree, String name, boolean regex) {
             this.indexRule = indexRule;
             this.propTree = propTree;
             propTree.setProperty(LuceneIndexConstants.PROP_NAME, name);
+            if (regex) {
+                propTree.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+            }
         }
 
         public PropertyRule useInExcerpt(){

@@ -84,6 +84,15 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
 
 #### Reindexing
 
+Usually, reindexing is only needed if the configuration of an index is changed, 
+such that the index should contain more or different data.
+For example, reindexing is needed if the property to be indexed is changed, 
+if a nodetype is added to __`declaringNodeTypes`__, or if __`includedPaths`__ is changed.
+It is not strictly needed if less data is to be indexed, for example if a nodetype is removed.
+However, to save space, it might make sense to reindex even in that case.
+Typically, if a query does not return the expected result, reindexing does not help;
+more likely, the reason in somewhere else to be found, and disabling the index should be tried first.
+
 Reindexing a property index happens synchronously by setting the __`reindex`__ flag to __`true`__. This means that the 
 first #save call will generate a full repository traversal with the purpose of building the index content and it might
 take a long time.
@@ -106,3 +115,44 @@ Example:
         .setProperty("reindex", true);
     }
 
+#### Cost Estimation
+
+When running a query, the property index reports its estimated cost to the query engine,
+and then the query engine picks the index with the lowest cost (cost-based query optimization).
+The algorithm to calculate the estimated cost is roughly as follows (a bit simplified):
+
+* The cost is infinity (so the index is never used) 
+  if the condition contains a fulltext constraint, 
+  no applicable restriction,
+  the wrong nodetype, or
+  if the path filtering (`includedPaths` / `excludedPaths`) does not match the query.
+* For the nodetype index, the cost is the sum of the cost for the `jcr:primaryType` lookup
+  (if the primary type is known),
+  plus the cost for the `jcr:mixinTypes` lookup (if that is known).
+* Otherwise, the cost is based on the overhead (which is 2), 
+  plus the estimated number of entries.
+* For an "x is not null" condition, 
+  the estimated number of entries is
+  either the configured `entryCount` or, if not set, the 
+  approximate number of entries in the index.
+  The approximation is an "order of magnitude" estimation (Morris' algorithm).
+* For a unique index and "x = 1" condition, 
+  the estimated number of entries is either 0 or 1 
+  (depending on whether the key is found).
+* For a non-unique index and a "x = 1" condition,
+  if the `entryCount` and `keyCount` are set, those setting are used to estimate
+  the number of entries. If not, the 
+  approximate number of entries for the key is read (maintained using Morris’ algorithm).
+  In addition to that, the path condition is used to scale down
+  the estimated count depending on the approximate number of nodes
+  in that subtree versus the approximate number of entries
+  in the repository, using approximation available via the `counter` index.
+
+For example, for a query with path restriction "/content/products/t-shirts" and property restriction
+"color = 'red'", if there is an index for the property "color", then
+the entry count approximation is read from the index. Let's say it is 10'000 for this value.
+Then the approximate number of nodes in the subtree "/content/products/t-shirts" is read 
+(let's say it is 20'000), and the approximate number of nodes in the repository 
+(let's say it is 1 million).
+Therefore, the estimated number of entries is scaled down (divided by 50) from 10'000 to 200.
+The estimated cost is therefore 202, due to the overhead of 2.

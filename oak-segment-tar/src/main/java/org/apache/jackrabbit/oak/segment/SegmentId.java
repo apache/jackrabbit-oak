@@ -172,6 +172,7 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     void loaded(@Nonnull Segment segment) {
         this.segment = segment;
+        this.gcGeneration = segment.getGcGeneration();
     }
 
     /**
@@ -202,6 +203,18 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     public UUID asUUID() {
         return new UUID(msb, lsb);
+    }
+
+    /**
+     * Get the underlying segment's gc generation. Might cause the segment to
+     * get loaded if the generation info is missing
+     * @return the segment's gc generation
+     */
+    public int getGcGeneration() {
+        if (gcGeneration < 0) {
+            getSegment();
+        }
+        return gcGeneration;
     }
 
     // --------------------------------------------------------< Comparable >--

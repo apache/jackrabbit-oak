@@ -538,9 +538,10 @@ public final class SegmentGraph {
                     tokenizer.read('{');
                     infoMap.putAll(JsonObject.create(tokenizer).getProperties());
                 }
-                Segment segment = getSegmentId().getSegment();
+                SegmentId segmentId = getSegmentId();
+                Segment segment = segmentId.getSegment();
                 infoMap.put("size", valueOf(segment.size()));
-                infoMap.put("gc", valueOf(segment.getGcGeneration()));
+                infoMap.put("gc", valueOf(segmentId.getGcGeneration()));
                 return infoMap;
             } catch (SegmentNotFoundException e) {
                 return singletonMap("error", getStackTraceAsString(e));

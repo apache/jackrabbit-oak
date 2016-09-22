@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
  * A fulltext search score expression.
@@ -92,8 +93,9 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     }
 
     @Override
-    public void restrictFunction(FilterImpl f, String functionName, Operator operator, PropertyValue v) {
+    public String getFunction(SelectorImpl s) {
         // optimizations of the type "upper(jcr:score()) = '1'" are not supported
+        return null;
     }
 
     @Override
@@ -109,6 +111,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     @Override
     public DynamicOperandImpl createCopy() {
         return new FullTextSearchScoreImpl(selectorName);
+    }
+
+    @Override
+    public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
+        return null;
     }
 
 }
