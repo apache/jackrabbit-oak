@@ -18,13 +18,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.spi.state.HasNativeNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import javax.annotation.Nullable;
 
-public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilder {
+public class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final String path;
 
@@ -260,11 +259,6 @@ public class MultiplexingNodeBuilder implements NodeBuilder, HasNativeNodeBuilde
             }
         }
         return child;
-    }
-
-    @Override
-    public NodeBuilder getNativeRootBuilder() {
-        return rootBuilders.get(ctx.getOwningStore("/"));
     }
 
     private Iterable<NodeBuilder> getBuildersForPath(final String path) {
