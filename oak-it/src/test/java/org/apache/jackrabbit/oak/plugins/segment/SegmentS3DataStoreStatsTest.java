@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import java.io.File;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStoreStats;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats.S3DataStoreStatsMBean;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStoreStats;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedS3DataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -37,6 +37,8 @@ import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DIRECTORY;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -104,8 +106,8 @@ public class SegmentS3DataStoreStatsTest {
     private void registerSegmentNodeStoreService(boolean customBlobStore) {
         Map<String, Object> properties = newHashMap();
 
-        properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreService.DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put(CUSTOM_BLOB_STORE, customBlobStore);
+        properties.put(DIRECTORY, folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreService = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
     }

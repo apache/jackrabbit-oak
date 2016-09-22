@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import com.google.common.base.Strings;
 import org.apache.felix.scr.annotations.Activate;
@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats.S3DataStoreStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -166,7 +168,7 @@ public class S3DataStoreStats implements S3DataStoreStatsMBean {
         final String fullBlobId = blob.getContentIdentity();
         if (!Strings.isNullOrEmpty(fullBlobId)
             && !InMemoryDataRecord.isInstance(fullBlobId)) {
-            String blobId = DataStoreBlobStore.BlobId.of(fullBlobId).blobId;
+            String blobId = DataStoreBlobStore.BlobId.of(fullBlobId).getBlobId();
             return s3ds.haveRecordForIdentifier(blobId);
         }
         return false;

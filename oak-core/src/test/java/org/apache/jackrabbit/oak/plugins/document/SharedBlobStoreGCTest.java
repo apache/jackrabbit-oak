@@ -68,8 +68,8 @@ import org.slf4j.LoggerFactory;
 public class SharedBlobStoreGCTest {
     private static final Logger log = LoggerFactory.getLogger(SharedBlobStoreGCTest.class);
 
-    private Cluster cluster1;
-    private Cluster cluster2;
+    protected Cluster cluster1;
+    protected Cluster cluster2;
     private Clock clock;
 
     @Before
@@ -218,14 +218,13 @@ public class SharedBlobStoreGCTest {
 
     @After
     public void tearDown() throws Exception {
-        DataStoreUtils.cleanup(cluster1.getDataStore(), cluster1.getDate());
         FileUtils.cleanDirectory((new File(DataStoreUtils.getHomeDir())).getParentFile());
         DataStoreUtils.time = -1;
         cluster1.getDocumentNodeStore().dispose();
         cluster2.getDocumentNodeStore().dispose();
     }
 
-    class Cluster {
+    public class Cluster {
         private DocumentNodeStore ds;
         private int seed;
         private BlobGarbageCollector gc;
@@ -294,10 +293,7 @@ public class SharedBlobStoreGCTest {
             VersionGarbageCollector vGC = ds.getVersionGarbageCollector();
             VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
             Assert.assertEquals(deletes.size(), stats.deletedDocGCCount);
-
-            if (DataStoreUtils.isS3DataStore()) {
-                Thread.sleep(1000);
-            }
+            sleep();
         }
 
         private HashSet<String> addNodeSpecialChars() throws Exception {
@@ -341,6 +337,9 @@ public class SharedBlobStoreGCTest {
         public DocumentNodeStore getDocumentNodeStore() {
             return ds;
         }
+    }
+
+    protected void sleep() throws InterruptedException {
     }
 }
 

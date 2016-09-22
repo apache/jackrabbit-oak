@@ -35,8 +35,8 @@ import org.junit.BeforeClass;
  * 
  */
 public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
-    Date startDate;
-    DataStoreBlobStore blobStore;
+    protected Date startDate;
+    protected DataStoreBlobStore blobStore;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -61,7 +61,6 @@ public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
     @After
     @Override
     public void tearDownConnection() throws Exception {
-        DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
         FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
         MongoUtils.dropCollections(connectionFactory.getConnection().getDB());

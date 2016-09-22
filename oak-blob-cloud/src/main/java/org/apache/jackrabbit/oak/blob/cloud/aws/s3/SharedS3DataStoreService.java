@@ -17,12 +17,13 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -33,7 +34,7 @@ import java.util.Map;
 import java.util.Properties;
 
 @Component(policy = ConfigurationPolicy.REQUIRE, name = SharedS3DataStoreService.NAME)
-public class SharedS3DataStoreService extends AbstractDataStoreService{
+public class SharedS3DataStoreService extends AbstractDataStoreService {
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.SharedS3DataStore";
     private static final String DESCRIPTION = "oak.datastore.description";
 
