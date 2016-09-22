@@ -29,7 +29,9 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -40,17 +42,16 @@ import org.apache.jackrabbit.oak.segment.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import com.google.common.io.ByteStreams;
 
 public class DataStoreTestBase extends TestBase {
 
@@ -61,7 +62,12 @@ public class DataStoreTestBase extends TestBase {
         setUpServerAndClient();
     }
 
-    protected FileStore setupFileDataStore(File d, String path) throws Exception {
+    @After
+    public void after() {
+        closeServerAndClient();
+    }
+
+    protected FileStore setupFileDataStore(File d, String path, ScheduledExecutorService executor) throws Exception {
         FileDataStore fds = new FileDataStore();
         fds.setMinRecordLength(4092);
         fds.init(path);
@@ -69,11 +75,12 @@ public class DataStoreTestBase extends TestBase {
         return FileStoreBuilder.fileStoreBuilder(d)
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(0)
+                .withNodeDeduplicationCacheSize(1)
                 .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
                 .withBlobStore(blobStore)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                 .build();
     }
 
@@ -93,7 +100,6 @@ public class DataStoreTestBase extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testSync() throws Exception {
         final int mb = 1 * 1024 * 1024;
         final int blobSize = 5 * mb;
@@ -106,7 +112,7 @@ public class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary);
+        StandbySync cl = newStandbySync(secondary);
         cl.run();
 
         try {
@@ -131,43 +137,36 @@ public class DataStoreTestBase extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxySkippedBytes() throws Exception {
         useProxy(100, 1, -1, false);
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxySkippedBytesIntermediateChange() throws Exception {
         useProxy(100, 1, -1, true);
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxyFlippedStartByte() throws Exception {
         useProxy(0, 0, 0, false);
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByte() throws Exception {
         useProxy(0, 0, 150, false);
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByte2() throws Exception {
         useProxy(0, 0, 150000, false);
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByteChange() throws Exception {
         useProxy(0, 0, 150, true);
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testProxyFlippedIntermediateByteChange2() throws Exception {
         useProxy(0, 0, 150000, true);
     }
@@ -189,7 +188,7 @@ public class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
 
-        StandbyClient cl = newStandbyClient(secondary, proxyPort);
+        StandbySync cl = newStandbySync(secondary, proxyPort);
         cl.run();
 
         try {

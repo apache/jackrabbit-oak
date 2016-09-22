@@ -283,7 +283,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
             }
 
             idIterator.remove();
-            updateMap.put(AuthorizableBaseProvider.getContentID(memberId), memberId);
+            updateMap.put(AuthorizableBaseProvider.getContentID(memberId, getUserManager().getConfig().getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE)), memberId);
         }
 
         Set<String> processedIds = Sets.newHashSet(updateMap.values());

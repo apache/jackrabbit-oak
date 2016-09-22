@@ -73,31 +73,30 @@ public class FileStoreStatsTest {
     @Test
     public void tarWriterIntegration() throws Exception{
         StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
-        FileStore store = fileStoreBuilder(segmentFolder.newFolder())
+        File directory = segmentFolder.newFolder();
+        FileStore store = fileStoreBuilder(directory)
                 .withStatisticsProvider(statsProvider)
                 .build();
-        
         FileStoreStats stats = new FileStoreStats(statsProvider, store, 0);
-        
         try {
             long initialSize = stats.getApproximateSize();
-
             UUID id = UUID.randomUUID();
             long msb = id.getMostSignificantBits();
             long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
             byte[] data = "Hello, World!".getBytes(UTF_8);
 
-            File file = segmentFolder.newFile();
-            try (TarWriter writer = new TarWriter(file, stats)) {
+            TarWriter writer = null;
+            try {
+                writer = new TarWriter(directory, stats, 0);
                 writer.writeEntry(msb, lsb, data, 0, data.length, 0);
+            } finally {
+                writer.close();
             }
-
-            assertEquals(stats.getApproximateSize() - initialSize, file.length());
-            
+            assertEquals(stats.getApproximateSize() - initialSize,
+                    writer.fileLength());
         } finally {
             store.close();
         }
-        
         assertEquals(1, stats.getJournalWriteStatsAsCount());
     }
 

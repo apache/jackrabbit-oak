@@ -46,7 +46,7 @@ public class SegmentToJdbcTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--user", "sa", "--password", "sa", source.getDescription(),
+        return new String[] { "--disable-mmap", "--user", "sa", "--password", "sa", source.getDescription(),
                 destination.getDescription() };
     }
 }

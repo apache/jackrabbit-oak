@@ -24,11 +24,11 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_AFTER_FAIL_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -44,6 +44,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Strings;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -62,8 +63,10 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
@@ -171,25 +174,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String TEMPLATE_DEDUPLICATION_CACHE_SIZE = "templateDeduplicationCache.size";
 
     @Property(
-            intValue = 10000000,
-            label = "Node deduplication cache size  (#items)",
-            description = "Maximum number of nodes to keep in the deduplication cache"
+            intValue = 8388608,
+            label = "Node deduplication cache size (#items)",
+            description = "Maximum number of node to keep in the deduplication cache. If the supplied" +
+                    " value is not a power of 2, it will be rounded up to the next power of 2."
     )
     public static final String NODE_DEDUPLICATION_CACHE_SIZE = "nodeDeduplicationCache.size";
-
-    @Property(
-            intValue = 20,
-            label = "Node deduplication cache depth  (#levels)",
-            description = "Maximum number of levels to keep in the node deduplication cache"
-    )
-    public static final String NODE_DEDUPLICATION_CACHE_DEPTH = "nodeDeduplicationCache.depth";
-
-    @Property(
-            byteValue = MEMORY_THRESHOLD_DEFAULT,
-            label = "Memory Multiplier",
-            description = "TarMK compaction available memory multiplier needed to run compaction"
-    )
-    public static final String COMPACTION_MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
     @Property(
             byteValue = GAIN_THRESHOLD_DEFAULT,
@@ -215,23 +205,21 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String COMPACTION_RETRY_COUNT = "compaction.retryCount";
 
     @Property(
-            boolValue = FORCE_AFTER_FAIL_DEFAULT,
-            label = "Force Compaction",
-            description = "Whether or not to force compact concurrent commits on top of already " +
-                    " compacted commits after the maximum number of retries has been reached. " +
-                    "Force committing tries to exclusively write lock the node store."
+            intValue = FORCE_TIMEOUT_DEFAULT,
+            label = "Force Compaction Timeout",
+            description = "Number of seconds to attempt to force compact concurrent commits on top " +
+                    "of already compacted commits after the maximum number of retries has been " +
+                    "reached. Forced compaction tries to acquire an exclusive write lock on the " +
+                    "node store."
     )
-    public static final String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
-
-    public static final int COMPACTION_LOCK_WAIT_TIME_DEFAULT = 60;
+    public static final String COMPACTION_FORCE_TIMEOUT = "compaction.force.timeout";
 
     @Property(
-            intValue = COMPACTION_LOCK_WAIT_TIME_DEFAULT,
-            label = "Compaction Lock Wait Time",
-            description = "Number of seconds to wait for the lock for committing compacted changes " +
-                    "respectively to wait for the exclusive write lock for force committing."
+            longValue = SIZE_DELTA_ESTIMATION_DEFAULT,
+            label = "Compaction Repository Size Delta",
+            description = "Amount of increase in repository size that will trigger compaction (bytes)"
     )
-    public static final String COMPACTION_LOCK_WAIT_TIME = "compaction.lockWaitTime";
+    public static final String COMPACTION_SIZE_DELTA_ESTIMATION = "compaction.sizeDeltaEstimation";
 
     @Property(
             boolValue = false,
@@ -287,6 +275,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             "considered for GC"
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
+
+    /**
+     * Default interval for taking snapshots of locally tracked blob ids.
+     */
+    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+    @Property (longValue = DEFAULT_BLOB_SNAPSHOT_INTERVAL,
+        label = "Blob tracking snapshot interval (in secs)",
+        description = "This is the default interval in which the snapshots of locally tracked blob ids will"
+            + "be taken and synchronized with the blob store"
+    )
+    public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
     @Override
     protected SegmentNodeStore getNodeStore() {
@@ -375,7 +374,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .withStringDeduplicationCacheSize(getStringDeduplicationCacheSize())
                 .withTemplateDeduplicationCacheSize(getTemplateDeduplicationCacheSize())
                 .withNodeDeduplicationCacheSize(getNodeDeduplicationCacheSize())
-                .withNodeDeduplicationDepth(getNodeDeduplicationDepth())
                 .withMaxFileSize(getMaxFileSize())
                 .withMemoryMapping(getMode().equals("64"))
                 .withGCMonitor(gcMonitor)
@@ -519,16 +517,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private SegmentGCOptions newGCOptions() {
         boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
-        boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
-        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
+        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
 
-        byte memoryThreshold = getMemoryThreshold();
         byte gainThreshold = getGainThreshold();
+        long sizeDeltaEstimation = toLong(COMPACTION_SIZE_DELTA_ESTIMATION, SIZE_DELTA_ESTIMATION_DEFAULT);
 
-        SegmentGCOptions segmentGCOptions = new SegmentGCOptions(
-                pauseCompaction, memoryThreshold, gainThreshold, retryCount, forceAfterFail, lockWaitTime);
-        segmentGCOptions.setForceAfterFail(forceAfterFail);
-        return segmentGCOptions;
+        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
+                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
     }
 
     private boolean registerSegmentNodeStore() throws IOException {
@@ -575,6 +570,23 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                         SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
+            }
+
+            if (blobStore instanceof BlobTrackingStore) {
+                final long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL),
+                    DEFAULT_BLOB_SNAPSHOT_INTERVAL);
+                String root = property(DIRECTORY);
+                if (Strings.isNullOrEmpty(root)) {
+                    root = "repository";
+                }
+
+                BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
+                if (trackingStore.getTracker() != null) {
+                    trackingStore.getTracker().close();
+                }
+                ((BlobTrackingStore) blobStore).addTracker(
+                    new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
+                        blobStore));
             }
         }
 
@@ -671,11 +683,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private int getNodeDeduplicationCacheSize() {
-        return Integer.parseInt(getCacheSize(NODE_DEDUPLICATION_CACHE_SIZE));
-    }
-
-    private int getNodeDeduplicationDepth() {
-        return Integer.parseInt(getCacheSize(NODE_DEDUPLICATION_CACHE_DEPTH));
+        // Round to the next power of 2
+        int size = Math.max(1, Integer.parseInt(getCacheSize(NODE_DEDUPLICATION_CACHE_SIZE)));
+        return 1 << (32 - Integer.numberOfLeadingZeros(size - 1));
     }
 
     private String getMaxFileSizeProperty() {
@@ -690,16 +700,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private int getMaxFileSize() {
         return Integer.parseInt(getMaxFileSizeProperty());
-    }
-
-    private byte getMemoryThreshold() {
-        String mt = property(COMPACTION_MEMORY_THRESHOLD);
-
-        if (mt == null) {
-            return MEMORY_THRESHOLD_DEFAULT;
-        }
-
-        return Byte.valueOf(mt);
     }
 
     private byte getGainThreshold() {

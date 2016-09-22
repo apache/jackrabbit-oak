@@ -19,19 +19,22 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
-import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.createTmpTargetDir;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 
 public class TestBase {
 
@@ -45,14 +48,17 @@ public class TestBase {
 
     static final int timeout = Integer.getInteger("standby.test.timeout", 500);
 
-    File directoryS;
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     FileStore storeS;
+    ScheduledExecutorService executorS;
 
-    File directoryC;
     FileStore storeC;
+    ScheduledExecutorService executorC;
 
-    File directoryC2;
     FileStore storeC2;
+    ScheduledExecutorService executorC2;
 
     /*
      Java 6 on Windows doesn't support dual IP stacks, so we will skip our IPv6
@@ -66,36 +72,36 @@ public class TestBase {
     }
 
     public void setUpServerAndClient() throws Exception {
-        // server
-        directoryS = createTmpTargetDir(getClass().getSimpleName()+"-Server");
-        storeS = setupPrimary(directoryS);
+        executorS = Executors.newSingleThreadScheduledExecutor();
+        storeS = setupPrimary(folder.newFolder("server"), executorS);
 
         // client
-        directoryC = createTmpTargetDir(getClass().getSimpleName()+"-Client");
-        storeC = setupSecondary(directoryC);
+        executorC = Executors.newSingleThreadScheduledExecutor();
+        storeC = setupSecondary(folder.newFolder("client-1"), executorC);
     }
 
-    private static FileStore newFileStore(File directory) throws Exception {
+    private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
         return fileStoreBuilder(directory)
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(0)
+                .withNodeDeduplicationCacheSize(1)
                 .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                 .build();
     }
 
-    protected FileStore setupPrimary(File directory) throws Exception {
-        return newFileStore(directory);
+    protected FileStore setupPrimary(File directory, ScheduledExecutorService executor) throws Exception {
+        return newFileStore(directory, executor);
     }
 
     protected FileStore getPrimary() {
         return storeS;
     }
 
-    protected FileStore setupSecondary(File directory) throws Exception {
-        return newFileStore(directoryC);
+    protected FileStore setupSecondary(File directory, ScheduledExecutorService executor) throws Exception {
+        return newFileStore(directory, executor);
     }
 
     protected FileStore getSecondary() {
@@ -105,26 +111,37 @@ public class TestBase {
     public void setUpServerAndTwoClients() throws Exception {
         setUpServerAndClient();
 
-        directoryC2 = createTmpTargetDir(getClass().getSimpleName()+"-Client2");
-        storeC2 = newFileStore(directoryC2);
+        executorC2 = Executors.newSingleThreadScheduledExecutor();
+        storeC2 = newFileStore(folder.newFolder("client-2"), executorC2);
     }
 
     public void closeServerAndClient() {
-        storeS.close();
-        storeC.close();
-        try {
-            FileUtils.deleteDirectory(directoryS);
-            FileUtils.deleteDirectory(directoryC);
-        } catch (IOException e) {
+        if (storeS != null) {
+            storeS.close();
+        }
+
+        if (storeC != null) {
+            storeC.close();
+        }
+
+        if (executorS != null) {
+            new ExecutorCloser(executorS).close();
+        }
+
+        if (executorC != null) {
+            new ExecutorCloser(executorC).close();
         }
     }
 
     public void closeServerAndTwoClients() {
         closeServerAndClient();
-        storeC2.close();
-        try {
-            FileUtils.deleteDirectory(directoryC2);
-        } catch (IOException e) {
+
+        if (storeC2 != null) {
+            storeC2.close();
+        }
+
+        if (executorC2 != null) {
+            new ExecutorCloser(executorC2).close();
         }
     }
 
@@ -132,18 +149,16 @@ public class TestBase {
         return timeout;
     }
 
-    public StandbyClient newStandbyClient(FileStore store) throws Exception {
-        return newStandbyClient(store, port, false);
+    public StandbySync newStandbySync(FileStore store) throws Exception {
+        return newStandbySync(store, port, false);
     }
 
-    public StandbyClient newStandbyClient(FileStore store, int port)
-            throws Exception {
-        return newStandbyClient(store, port, false);
+    public StandbySync newStandbySync(FileStore store, int port) throws Exception {
+        return newStandbySync(store, port, false);
     }
 
-    public StandbyClient newStandbyClient(FileStore store, int port,
-            boolean secure) throws Exception {
-        return new StandbyClient(LOCALHOST, port, store, secure, timeout, false);
+    public StandbySync newStandbySync(FileStore store, int port, boolean secure) throws Exception {
+        return new StandbySync(LOCALHOST, port, store, secure, timeout, false);
     }
 
 }

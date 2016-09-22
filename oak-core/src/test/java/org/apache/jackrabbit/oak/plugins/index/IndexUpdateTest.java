@@ -20,6 +20,7 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
@@ -578,7 +579,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "" for sync
         base = EmptyNodeState.EMPTY_NODE.builder()
-                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet("", "async"),
+                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet(INDEXING_MODE_NRT, "async"),
                         Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));

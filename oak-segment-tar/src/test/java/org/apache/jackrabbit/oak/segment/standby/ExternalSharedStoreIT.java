@@ -18,40 +18,29 @@
  */
 package org.apache.jackrabbit.oak.segment.standby;
 
-import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.createTmpTargetDir;
-
 import java.io.File;
-import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.junit.After;
 
 public class ExternalSharedStoreIT extends DataStoreTestBase {
-    private File externalStore;
 
     public ExternalSharedStoreIT() {
-        super();
         this.storesCanBeEqual = true;
     }
 
-    @After
-    public void after() {
-        closeServerAndClient();
-        try {
-            FileUtils.deleteDirectory(externalStore);
-        } catch (IOException e) {
-        }
+    private String getCommonDataStorePath() {
+        return new File(folder.getRoot(), "data-store-common").getAbsolutePath();
     }
 
     @Override
-    protected FileStore setupPrimary(File d) throws Exception {
-        externalStore = createTmpTargetDir("ExternalCommonStoreIT");
-        return setupFileDataStore(d, externalStore.getAbsolutePath());
+    protected FileStore setupPrimary(File d, ScheduledExecutorService primaryExecutor) throws Exception {
+        return setupFileDataStore(d, getCommonDataStorePath(), primaryExecutor);
     }
 
     @Override
-    protected FileStore setupSecondary(File d) throws Exception {
-        return setupFileDataStore(d, externalStore.getAbsolutePath());
+    protected FileStore setupSecondary(File d, ScheduledExecutorService secondaryExecutor) throws Exception {
+        return setupFileDataStore(d, getCommonDataStorePath(), secondaryExecutor);
     }
+
 }

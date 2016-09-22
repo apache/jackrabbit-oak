@@ -26,4 +26,6 @@ import com.google.common.io.Closer;
 public interface NodeStoreFactory {
 
     NodeStore create(BlobStore blobStore, Closer closer) throws IOException;
+
+    boolean hasExternalBlobReferences() throws IOException;
 }

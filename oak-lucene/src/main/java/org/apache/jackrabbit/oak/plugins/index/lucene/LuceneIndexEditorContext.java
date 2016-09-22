@@ -23,6 +23,8 @@ import java.util.Calendar;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -55,7 +57,7 @@ public class LuceneIndexEditorContext {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
-    private final FacetsConfig facetsConfig;
+    private FacetsConfig facetsConfig;
 
     private static final Parser defaultParser = createDefaultParser();
 
@@ -82,6 +84,8 @@ public class LuceneIndexEditorContext {
     private final IndexAugmentorFactory augmentorFactory;
 
     private final NodeState root;
+
+    private final boolean asyncIndexing;
     /**
      * The media types supported by the parser used.
      */
@@ -91,23 +95,26 @@ public class LuceneIndexEditorContext {
     //Set for testing ONLY
     private static Clock clock = Clock.SIMPLE;
 
-    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
+                             @Nullable IndexDefinition indexDefinition,
+                             IndexUpdateCallback updateCallback,
                              LuceneIndexWriterFactory indexWriterFactory,
                              ExtractedTextCache extractedTextCache,
-                             IndexAugmentorFactory augmentorFactory) {
+                             IndexAugmentorFactory augmentorFactory,
+                             boolean asyncIndexing) {
         configureUniqueId(definition);
         this.root = root;
         this.definitionBuilder = definition;
         this.indexWriterFactory = indexWriterFactory;
-        this.definition = new IndexDefinition(root, definition);
+        this.definition = indexDefinition != null ? indexDefinition : new IndexDefinition(root, definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
         this.augmentorFactory = augmentorFactory;
+        this.asyncIndexing = asyncIndexing;
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
-        this.facetsConfig = FacetHelper.getFacetsConfig(definition);
     }
 
     Parser getParser() {
@@ -177,6 +184,10 @@ public class LuceneIndexEditorContext {
         return indexedNodes;
     }
 
+    public boolean isAsyncIndexing() {
+        return asyncIndexing;
+    }
+
     public long getIndexedNodes() {
         return indexedNodes;
     }
@@ -197,6 +208,9 @@ public class LuceneIndexEditorContext {
     }
 
     FacetsConfig getFacetsConfig() {
+        if (facetsConfig == null){
+            facetsConfig = FacetHelper.getFacetsConfig(definitionBuilder);
+        }
         return facetsConfig;
     }
 

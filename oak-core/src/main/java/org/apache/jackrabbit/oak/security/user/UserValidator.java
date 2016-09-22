@@ -223,9 +223,9 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
+    private boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
         String id = UserUtil.getAuthorizableId(parent);
-        return id != null && uuid.equals(UserProvider.getContentID(id));
+        return id != null && uuid.equals(UserProvider.getContentID(id, provider.getConfig().getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE)));
     }
 
     private static boolean isUser(@Nullable Tree tree) {

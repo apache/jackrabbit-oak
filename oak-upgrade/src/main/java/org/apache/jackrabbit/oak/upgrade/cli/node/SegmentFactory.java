@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -32,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
+
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -98,6 +101,38 @@ public class SegmentFactory implements NodeStoreFactory {
         });
     }
 
+    @Override
+    public boolean hasExternalBlobReferences() throws IOException {
+        Builder builder = FileStore.builder(new File(dir, "segmentstore"));
+        builder.withMaxFileSize(256);
+        if (disableMmap) {
+            builder.withMemoryMapping(false);
+        } else {
+            builder.withDefaultMemoryMapping();
+        }
+        FileStore fs;
+        try {
+            fs = builder.build();
+        } catch (InvalidFileStoreVersionException e) {
+            throw new IOException(e);
+        }
+        try {
+            fs.getTracker().collectBlobReferences(new ReferenceCollector() {
+                @Override
+                public void addReference(String reference, @Nullable String nodeId) {
+                    // FIXME the collector should allow to stop processing
+                    // see java.nio.file.FileVisitor
+                    throw new ExternalBlobFound();
+                }
+            });
+            return false;
+        } catch (ExternalBlobFound e) {
+            return true;
+        } finally {
+            fs.close();
+        }
+    }
+
     public File getRepositoryDir() {
         return dir;
     }
@@ -114,5 +149,8 @@ public class SegmentFactory implements NodeStoreFactory {
     @Override
     public String toString() {
         return String.format("SegmentNodeStore[%s]", dir);
+    }
+
+    private static class ExternalBlobFound extends RuntimeException {
     }
 }

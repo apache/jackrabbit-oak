@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 
+import java.io.IOException;
+
 public class FbsToFbsTest extends AbstractOak2OakTest {
 
     private final BlobStoreContainer sourceBlob;
@@ -32,7 +34,7 @@ public class FbsToFbsTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer destination;
 
-    public FbsToFbsTest() {
+    public FbsToFbsTest() throws IOException {
         sourceBlob = new FileBlobStoreContainer();
         destinationBlob = new FileBlobStoreContainer();
         source = new SegmentTarNodeStoreContainer(sourceBlob);

@@ -239,6 +239,21 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     )
     public static final String PARAM_GROUP_PATH_PREFIX = "group.pathPrefix";
 
+    /**
+     * Default value for {@link #PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE}
+     */
+    public static final boolean PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT = false;
+
+    /**
+     * @see Authorizable#isApplyRFC7613UsernameCaseMapped()
+     */
+    @Property(
+            label = "RFC7613 Username Normalization Profile",
+            description = "Enable the UsercaseMappedProfile defined in RFC7613 for username normalization.",
+            boolValue = PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT
+    )
+    public static final String PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = "enableRFC7613UsercaseMappedProfile";
+
     private static final long MILLIS_PER_HOUR = 60 * 60 * 1000;
     private static final ConfigurationParameters.Milliseconds ONE_HOUR = ConfigurationParameters.Milliseconds.of(MILLIS_PER_HOUR);
     private static final ConfigurationParameters.Milliseconds ONE_DAY = ConfigurationParameters.Milliseconds.of(24 * MILLIS_PER_HOUR);
@@ -257,6 +272,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
                 .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
+                .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
                 .setAutoMembership(params.getConfigValue(PARAM_USER_AUTO_MEMBERSHIP, PARAM_USER_AUTO_MEMBERSHIP_DEFAULT))
                 .setPropertyMapping(createMapping(
@@ -264,6 +280,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
 
         cfg.group()
                 .setExpirationTime(getMilliSeconds(params, PARAM_GROUP_EXPIRATION_TIME, PARAM_GROUP_EXPIRATION_TIME_DEFAULT, ONE_DAY))
+                .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
                 .setPathPrefix(params.getConfigValue(PARAM_GROUP_PATH_PREFIX, PARAM_GROUP_PATH_PREFIX_DEFAULT))
                 .setAutoMembership(params.getConfigValue(PARAM_GROUP_AUTO_MEMBERSHIP, PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT))
                 .setPropertyMapping(createMapping(

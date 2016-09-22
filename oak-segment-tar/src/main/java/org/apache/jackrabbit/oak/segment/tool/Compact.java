@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
@@ -146,11 +145,7 @@ public class Compact implements Runnable {
     }
 
     private FileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
-        return fileStoreBuilder(path.getAbsoluteFile()).withGCOptions(newGCOptions()).build();
-    }
-
-    private SegmentGCOptions newGCOptions() {
-        return defaultGCOptions().setForceAfterFail(force).setOffline();
+        return fileStoreBuilder(path.getAbsoluteFile()).withGCOptions(defaultGCOptions().setOffline()).build();
     }
 
 }

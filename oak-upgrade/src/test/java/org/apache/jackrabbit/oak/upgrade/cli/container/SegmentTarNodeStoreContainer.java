@@ -20,16 +20,24 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 
-import com.google.common.io.Files;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentTarNodeStoreContainer.class);
 
     private final File directory;
 
@@ -37,22 +45,26 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
 
     private FileStore fs;
 
-    public SegmentTarNodeStoreContainer() {
-        this(Files.createTempDir());
+    public SegmentTarNodeStoreContainer() throws IOException {
+        this(null, null);
     }
 
-    public SegmentTarNodeStoreContainer(File directory) {
-        this.blob = null;
-        this.directory = directory;
+    public SegmentTarNodeStoreContainer(File directory) throws IOException {
+        this(null, directory);
     }
 
-    public SegmentTarNodeStoreContainer(BlobStoreContainer blob) {
+    public SegmentTarNodeStoreContainer(BlobStoreContainer blob) throws IOException {
+        this(blob, null);
+    }
+
+    private SegmentTarNodeStoreContainer(BlobStoreContainer blob, File directory) throws IOException {
         this.blob = blob;
-        this.directory = Files.createTempDir();
+        this.directory = directory == null ? Files.createTempDirectory(Paths.get("target"), "repo-segment-tar").toFile() : directory;
     }
 
     @Override
     public NodeStore open() throws IOException {
+        directory.mkdirs();
         FileStoreBuilder builder = fileStoreBuilder(new File(directory, "segmentstore"));
         if (blob != null) {
             builder.withBlobStore(blob.open());
@@ -67,12 +79,15 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void close() {
-        fs.close();
+        if (fs != null) {
+            fs.close();
+            fs = null;
+        }
     }
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteDirectory(directory);
+        deleteRecursive(directory);
         if (blob != null) {
             blob.clean();
         }
@@ -87,4 +102,23 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
         return directory;
     }
 
+    static void deleteRecursive(File directory) {
+        try {
+            Files.walkFileTree(directory.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch(IOException e) {
+            LOG.error("Can't remove directory " + directory, e);
+        }
+    }
 }

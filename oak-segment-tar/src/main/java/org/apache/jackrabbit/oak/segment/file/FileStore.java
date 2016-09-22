@@ -27,6 +27,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
+import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.emptyMap;
@@ -36,10 +37,12 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.BinaryReferences.newReferenceReader;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.FAILURE;
 import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.SUCCESS;
+import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
 import java.io.Closeable;
@@ -48,11 +51,11 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +63,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -75,6 +79,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -129,7 +134,7 @@ public class FileStore implements SegmentStore, Closeable {
     private static final Pattern FILE_NAME_PATTERN =
             Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
 
-    private static final String FILE_NAME_FORMAT = "data%05d%s.tar";
+    static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     private static final String LOCK_FILE_NAME = "repo.lock";
 
@@ -164,10 +169,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final boolean memoryMapping;
 
     private volatile List<TarReader> readers;
-
-    private int writeNumber;
-
-    private volatile File writeFile;
 
     private volatile TarWriter tarWriter;
 
@@ -249,6 +250,19 @@ public class FileStore implements SegmentStore, Closeable {
 
     // FIXME OAK-4450: Properly split the FileStore into read-only and r/w variants
     FileStore(FileStoreBuilder builder, final boolean readOnly) throws InvalidFileStoreVersionException, IOException {
+        this.directory = builder.getDirectory();
+        if (!readOnly) {
+            lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
+            try {
+                lock = lockFile.getChannel().lock();
+            } catch (OverlappingFileLockException ex) {
+                throw new IllegalStateException(directory.getAbsolutePath()
+                        + " is in use by another store.", ex);
+            }
+        } else {
+            lockFile = null;
+            lock = null;
+        }
         this.tracker = new SegmentTracker();
         this.revisions = builder.getRevisions();
         this.blobStore = builder.getBlobStore();
@@ -284,7 +298,6 @@ public class FileStore implements SegmentStore, Closeable {
                 .withWriterPool()
                 .with(builder.getCacheManager())
                 .build(this);
-        this.directory = builder.getDirectory();
         this.maxFileSize = builder.getMaxFileSize() * MB;
         this.memoryMapping = builder.getMemoryMapping();
         this.gcListener = builder.getGcListener();
@@ -318,22 +331,13 @@ public class FileStore implements SegmentStore, Closeable {
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
 
         if (!readOnly) {
+            int writeNumber = 0;
             if (indices.length > 0) {
-                this.writeNumber = indices[indices.length - 1] + 1;
-            } else {
-                this.writeNumber = 0;
+                writeNumber = indices[indices.length - 1] + 1;
             }
-            this.writeFile = new File(directory, format(
-                    FILE_NAME_FORMAT, writeNumber, "a"));
-            this.tarWriter = new TarWriter(writeFile, stats);
-        }
-
-        if (!readOnly) {
-            lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
-            lock = lockFile.getChannel().lock();
+            this.tarWriter = new TarWriter(directory, stats, writeNumber);
         } else {
-            lockFile = null;
-            lock = null;
+            this.tarWriter = null;
         }
 
         // FIXME OAK-4621: External invocation of background operations
@@ -466,7 +470,7 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     private int getGcGeneration() {
-        return revisions.getHead().getSegment().getGcGeneration();
+        return revisions.getHead().getSegmentId().getGcGeneration();
     }
 
     @Nonnull
@@ -501,26 +505,6 @@ public class FileStore implements SegmentStore, Closeable {
 
     public void maybeCompact(boolean cleanup) throws IOException {
         gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
-
-        Runtime runtime = Runtime.getRuntime();
-        long avail = runtime.totalMemory() - runtime.freeMemory();
-        // FIXME OAK-4281: Rework memory estimation for compaction
-        // What value should we use for delta?
-        long delta = 0;
-        long needed = delta * gcOptions.getMemoryThreshold();
-        if (needed >= avail) {
-            gcListener.skipped(
-                    "TarMK GC #{}: not enough available memory {} ({} bytes), needed {} ({} bytes)," +
-                    " last merge delta {} ({} bytes), so skipping compaction for now",
-                    GC_COUNT,
-                    humanReadableByteCount(avail), avail,
-                    humanReadableByteCount(needed), needed,
-                    humanReadableByteCount(delta), delta);
-            if (cleanup) {
-                cleanupNeeded.set(!gcOptions.isPaused());
-            }
-        }
-
         Stopwatch watch = Stopwatch.createStarted();
 
         int gainThreshold = gcOptions.getGainThreshold();
@@ -532,10 +516,10 @@ public class FileStore implements SegmentStore, Closeable {
             gcListener.info("TarMK GC #{}: estimation skipped because compaction is paused", GC_COUNT);
         } else {
             gcListener.info("TarMK GC #{}: estimation started", GC_COUNT);
-            Supplier<Boolean> shutdown = newShutdownSignal();
-            GCEstimation estimate = estimateCompactionGain(shutdown);
-            if (shutdown.get()) {
-                gcListener.info("TarMK GC #{}: estimation interrupted. Skipping compaction.", GC_COUNT);
+            Supplier<Boolean> cancel = newCancelCompactionCondition();
+            GCEstimation estimate = estimateCompactionGain(cancel);
+            if (cancel.get()) {
+                gcListener.info("TarMK GC #{}: estimation interrupted: {}. Skipping compaction.", GC_COUNT, cancel);
             }
 
             sufficientEstimatedGain = estimate.gcNeeded();
@@ -554,10 +538,12 @@ public class FileStore implements SegmentStore, Closeable {
         if (sufficientEstimatedGain) {
             if (!gcOptions.isPaused()) {
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
+                log(segmentWriter.getNodeCacheOccupancyInfo());
                 if (compact()) {
                     cleanupNeeded.set(cleanup);
                 }
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
+                log(segmentWriter.getNodeCacheOccupancyInfo());
             } else {
                 gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
             }
@@ -571,6 +557,12 @@ public class FileStore implements SegmentStore, Closeable {
         log.info("Node compact time statistics (ns) {}", toString(nodeCompactTimeStats));
         nodeWriteTimeStats.clear();
         nodeCompactTimeStats.clear();
+    }
+
+    private static void log(@CheckForNull String nodeCacheOccupancyInfo) {
+        if (nodeCacheOccupancyInfo != null) {
+            log.info("NodeCache occupancy: {}", nodeCacheOccupancyInfo);
+        }
     }
 
     private static String toString(DescriptiveStatistics statistics) {
@@ -671,7 +663,7 @@ public class FileStore implements SegmentStore, Closeable {
         fileStoreLock.readLock().lock();
         try {
             readersSnapshot = ImmutableList.copyOf(readers);
-            writeFileSnapshotSize = writeFile != null ? writeFile.length() : 0;
+            writeFileSnapshotSize = tarWriter != null ? tarWriter.fileLength() : 0;
         } finally {
             fileStoreLock.readLock().unlock();
         }
@@ -934,65 +926,48 @@ public class FileStore implements SegmentStore, Closeable {
 
         int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
         for (TarReader tarReader : tarReaders) {
-            tarReader.collectBlobReferences(collector, minGeneration);
+            tarReader.collectBlobReferences(collector, newReferenceReader(this), minGeneration);
         }
     }
 
     /**
-     * Returns the cancellation policy for the compaction phase. If the disk
-     * space was considered insufficient at least once during compaction (or if
-     * the space was never sufficient to begin with), compaction is considered
-     * canceled.
-     * Furthermore when the file store is shutting down, compaction is considered
-     * canceled.
-     *
-     * @return a flag indicating if compaction should be canceled.
+     * Returns the cancellation policy for the compaction phase.
+     * @return a supplier indicating if compaction should be canceled.
      */
     private Supplier<Boolean> newCancelCompactionCondition() {
+        return new CancelCompactionSupplier(this);
+    }
+
+    /**
+     * @param duration
+     * @param unit
+     * @return  {@code Supplier} instance which returns true once the time specified in
+     * {@code duration} and {@code unit} has passed.
+     */
+    private static Supplier<Boolean> timeOut(final long duration, @Nonnull final TimeUnit unit) {
         return new Supplier<Boolean>() {
-
-            private boolean outOfDiskSpace;
-            private boolean shutdown;
-
+            long deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
             @Override
             public Boolean get() {
-
-                // The outOfDiskSpace and shutdown flags can only transition from false (their initial
-                // values), to true. Once true, there should be no way to go back.
-                if (!sufficientDiskSpace.get()) {
-                    outOfDiskSpace = true;
-                }
-                if (FileStore.this.shutdown) {
-                    this.shutdown = true;
-                }
-
-                return shutdown || outOfDiskSpace;
-            }
-
-            @Override
-            public String toString() {
-                if (outOfDiskSpace) {
-                    return "Not enough disk space available";
-                } else if (shutdown) {
-                    return "FileStore shutdown request received";
-                } else {
-                    return "";
-                }
+                return currentTimeMillis() > deadline;
             }
         };
     }
 
     /**
-     * Returns a signal indication the file store shutting down.
-     * @return  a shutdown signal
+     * @param supplier1
+     * @param supplier2
+     * @return {@code Supplier} instance that returns {@code true} iff {@code supplier1} returns
+     * {@code true} or otherwise {@code supplier2} returns {@code true}.
      */
-    private Supplier<Boolean> newShutdownSignal() {
-        return new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                return shutdown;
-            }
-        };
+    private static Supplier<Boolean> or(
+            @Nonnull Supplier<Boolean> supplier1,
+            @Nonnull Supplier<Boolean> supplier2) {
+        if (supplier1.get()) {
+            return Suppliers.ofInstance(true);
+        } else {
+            return supplier2;
+        }
     }
 
     /**
@@ -1021,7 +996,7 @@ public class FileStore implements SegmentStore, Closeable {
         Supplier<Boolean> cancel = newCancelCompactionCondition();
         SegmentNodeState after = compact(bufferWriter, before, cancel);
         if (after == null) {
-            gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+            gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
             return false;
         }
 
@@ -1032,7 +1007,7 @@ public class FileStore implements SegmentStore, Closeable {
             int cycles = 0;
             boolean success = false;
             while (cycles < gcOptions.getRetryCount() &&
-                    !(success = revisions.setHead(before.getRecordId(), after.getRecordId()))) {
+                    !(success = revisions.setHead(before.getRecordId(), after.getRecordId(), EXPEDITE_OPTION))) {
                 // Some other concurrent changes have been made.
                 // Rebase (and compact) those changes on top of the
                 // compacted state before retrying to set the head.
@@ -1043,7 +1018,7 @@ public class FileStore implements SegmentStore, Closeable {
                 SegmentNodeState head = getHead();
                 after = compact(bufferWriter, head, cancel);
                 if (after == null) {
-                    gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+                    gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
                     return false;
                 }
 
@@ -1055,14 +1030,20 @@ public class FileStore implements SegmentStore, Closeable {
             if (!success) {
                 gcListener.info("TarMK GC #{}: compaction gave up compacting concurrent commits after {} cycles.",
                         GC_COUNT, cycles);
-                if (gcOptions.getForceAfterFail()) {
-                    gcListener.info("TarMK GC #{}: compaction force compacting remaining commits", GC_COUNT);
+                int forceTimeout = gcOptions.getForceTimeout();
+                if (forceTimeout > 0) {
+                    gcListener.info("TarMK GC #{}: trying to force compact remaining commits for {} seconds",
+                        GC_COUNT, forceTimeout);
                     cycles++;
-                    success = forceCompact(bufferWriter, cancel);
+                    success = forceCompact(bufferWriter, or(cancel, timeOut(forceTimeout, SECONDS)));
                     if (!success) {
-                        gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                            "Most likely compaction didn't get exclusive access to the store or was " +
-                            "prematurely cancelled.", GC_COUNT);
+                        if(cancel.get()) {
+                            gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
+                                    "Compaction was cancelled: {}.", GC_COUNT, cancel);
+                        } else {
+                            gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
+                                    "Most likely compaction didn't get exclusive access to the store.", GC_COUNT);
+                        }
                     }
                 }
             }
@@ -1123,10 +1104,12 @@ public class FileStore implements SegmentStore, Closeable {
                 @Override
                 public RecordId apply(RecordId base) {
                     try {
+                        long t0 = currentTimeMillis();
                         SegmentNodeState after = compact(bufferWriter,
                                 segmentReader.readNode(base), cancel);
                         if (after == null) {
-                            gcListener.info("TarMK GC #{}: compaction cancelled.", GC_COUNT);
+                            gcListener.info("TarMK GC #{}: compaction cancelled after {} seconds",
+                                GC_COUNT, (currentTimeMillis() - t0) / 1000);
                             return null;
                         } else {
                             return after.getRecordId();
@@ -1137,7 +1120,7 @@ public class FileStore implements SegmentStore, Closeable {
                     }
                 }
             },
-            timeout(gcOptions.getLockWaitTime(), SECONDS));
+            timeout(gcOptions.getForceTimeout(), SECONDS));
     }
 
     public Iterable<SegmentId> getSegmentIds() {
@@ -1468,20 +1451,15 @@ public class FileStore implements SegmentStore, Closeable {
      * @throws IOException
      */
     private void newWriter() throws IOException {
-        if (tarWriter.isDirty()) {
-            tarWriter.close();
-
+        TarWriter newWriter = tarWriter.createNextGeneration();
+        if (newWriter != tarWriter) {
+            File writeFile = tarWriter.getFile();
             List<TarReader> list =
                     newArrayListWithCapacity(1 + readers.size());
             list.add(TarReader.open(writeFile, memoryMapping));
             list.addAll(readers);
             readers = list;
-
-            writeNumber++;
-            writeFile = new File(
-                    directory,
-                    format(FILE_NAME_FORMAT, writeNumber, "a"));
-            tarWriter = new TarWriter(writeFile, stats);
+            tarWriter = newWriter;
         }
     }
 
@@ -1661,4 +1639,61 @@ public class FileStore implements SegmentStore, Closeable {
         }
     }
 
+
+    /**
+     * Represents the cancellation policy for the compaction phase. If the disk
+     * space was considered insufficient at least once during compaction (or if
+     * the space was never sufficient to begin with), compaction is considered
+     * canceled. Furthermore when the file store is shutting down, compaction is
+     * considered canceled.
+     */
+    private static class CancelCompactionSupplier implements Supplier<Boolean> {
+
+        private static enum REASON {
+            UNKNOWN, DISK_SPACE, SHUTDOWN, MANUAL
+        };
+
+        private REASON reason = REASON.UNKNOWN;
+
+        private final FileStore store;
+
+        public CancelCompactionSupplier(FileStore store) {
+            this.store = store;
+            this.store.gcOptions.setStopCompaction(false);
+        }
+
+        @Override
+        public Boolean get() {
+            // The outOfDiskSpace and shutdown flags can only transition from
+            // false (their initial
+            // values), to true. Once true, there should be no way to go back.
+            if (!store.sufficientDiskSpace.get()) {
+                reason = REASON.DISK_SPACE;
+                return true;
+            }
+            if (store.shutdown) {
+                reason = REASON.SHUTDOWN;
+                return true;
+            }
+            if (store.gcOptions.isStopCompaction()) {
+                reason = REASON.MANUAL;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            switch (reason) {
+            case DISK_SPACE:
+                return "Not enough disk space available";
+            case SHUTDOWN:
+                return "FileStore shutdown request received";
+            case MANUAL:
+                return "GC stop request received";
+            default:
+                return "";
+            }
+        }
+    }
 }

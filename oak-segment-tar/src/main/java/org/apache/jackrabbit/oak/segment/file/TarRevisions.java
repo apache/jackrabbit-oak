@@ -82,10 +82,8 @@ public class TarRevisions implements Revisions, Closeable {
     @Nonnull
     private final AtomicReference<RecordId> persistedHead;
 
-    // FIXME OAK-4015: Expedite commits from the compactor
-    // use a lock that can expedite important commits like compaction and checkpoints.
     @Nonnull
-    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
     private static class TimeOutOption implements Option {
         private final long time;
@@ -107,6 +105,17 @@ public class TarRevisions implements Revisions, Closeable {
             }
         }
     }
+
+    /**
+     * Option to cause set head calls to be expedited. That is, cause them to skip the queue
+     * of any other callers waiting to complete that don't have this option specified.
+     */
+    public static final Option EXPEDITE_OPTION = new Option() {
+        @Override
+        public String toString() {
+            return "Expedite Option";
+        }
+    };
 
     /**
      * Timeout option approximating no time out ({@code Long.MAX_VALUE} days).
@@ -225,8 +234,10 @@ public class TarRevisions implements Revisions, Closeable {
      * This implementation blocks if a concurrent call to
      * {@link #setHead(Function, Option...)} is already in
      * progress.
-
-     * @param options   none
+     *
+     * @param options   zero or one expedite option for expediting this call
+     * @throws IllegalArgumentException  on any non recognised {@code option}.
+     * @see #EXPEDITE_OPTION
      */
     @Override
     public boolean setHead(
@@ -234,12 +245,19 @@ public class TarRevisions implements Revisions, Closeable {
             @Nonnull RecordId head,
             @Nonnull Option... options) {
         checkBound();
-        rwLock.readLock().lock();
+
+        // If the expedite option was specified we acquire the write lock instead of the read lock.
+        // This will cause this thread to get the lock before all threads currently waiting to
+        // enter the read lock. See also the class comment of ReadWriteLock.
+        Lock lock = isExpedited(options)
+            ? rwLock.writeLock()
+            : rwLock.readLock();
+        lock.lock();
         try {
             RecordId id = this.head.get();
             return id.equals(expected) && this.head.compareAndSet(id, head);
         } finally {
-            rwLock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -277,6 +295,16 @@ public class TarRevisions implements Revisions, Closeable {
             }
         } else {
             return false;
+        }
+    }
+
+    private static boolean isExpedited(Option[] options) {
+        if (options.length == 0) {
+            return false;
+        } else if (options.length == 1) {
+            return options[0] == EXPEDITE_OPTION;
+        } else {
+            throw new IllegalArgumentException("Expected zero or one options, got " + options.length);
         }
     }
 

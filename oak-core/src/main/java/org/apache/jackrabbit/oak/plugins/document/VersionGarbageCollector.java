@@ -218,10 +218,17 @@ public class VersionGarbageCollector {
          */
         void possiblyDeleted(NodeDocument doc)
                 throws IOException {
+            // construct an id that also contains
+            // the _modified time of the document
+            String id = doc.getId() + "/" + doc.getModified();
+            // check if id is valid
+            try {
+                Utils.getDepthFromId(id);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid GC id {} for document {}", id, doc);
+                return;
+            }
             if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
-                // construct an id that also contains
-                // the _modified time of the document
-                String id = doc.getId() + "/" + doc.getModified();
                 addDocument(id);
                 // Collect id of all previous docs also
                 Iterator<NodeDocument> it = doc.getAllPreviousDocs();

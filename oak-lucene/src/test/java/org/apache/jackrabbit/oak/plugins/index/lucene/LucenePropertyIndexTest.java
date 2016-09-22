@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -241,15 +242,29 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
     }
 
+    //OAK-4805
+    @Test
+    public void badIndexDefinitionShouldLetQEWork() throws Exception {
+        Tree idx = createFulltextIndex(root.getTree("/"), "badIndex");
+        TestUtil.useV2(idx);
+
+        //This would allow index def to get committed. Else bad index def can't be created.
+        idx.setProperty(ASYNC_PROPERTY_NAME, "async");
+
+        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
+        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
+        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
+        synFilter.setProperty("synonyms", "syn.txt");
+        // Don't add syn.txt to make analyzer (and hence index def) invalid
+        // synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "blah, foo, bar");
+        root.commit();
+
+        //Using this version of executeQuery as we don't want a result row quoting the exception
+        executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, NO_BINDINGS);
+    }
+
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
-        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
-        def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
-        def.setProperty(REINDEX_PROPERTY_NAME, true);
-        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES,
-                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
-        return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+        return TestUtil.createFulltextIndex(index, name);
     }
 
     @Test
@@ -2369,12 +2384,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
-        Tree fileNode = tree.addChild(name);
-        fileNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
-        Tree jcrContent = fileNode.addChild(JCR_CONTENT);
-        jcrContent.setProperty(JcrConstants.JCR_DATA, content);
-        jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
-        return jcrContent;
+        return TestUtil.createFileNode(tree, name, content, mimeType);
     }
 
     private Tree usc(Tree parent, String childName){
@@ -2422,7 +2432,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return createIndex(index, name, propNames);
     }
 
-    static Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
+    public static Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);

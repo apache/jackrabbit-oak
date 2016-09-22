@@ -47,8 +47,12 @@ import com.google.common.cache.CacheStats;
 import com.google.common.cache.RemovalCause;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
+
+    static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
     private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
 
@@ -84,8 +88,10 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         valueType = new ValueDataType(docNodeStore, docStore, type);
         if (ASYNC_CACHE) {
             this.writerQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
+            LOG.info("The persistent cache writes will be asynchronous");
         } else {
             this.writerQueue = null;
+            LOG.info("The persistent cache writes will be synchronous");
         }
         this.stats = new PersistentCacheStats(type, statisticsProvider);
     }

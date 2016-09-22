@@ -343,7 +343,10 @@ class ChangeProcessor implements Observer {
                     EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
                             provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER));
 
-                    if (events.hasNext() && runningMonitor.enterIf(running)) {
+                    long time = System.nanoTime();
+                    boolean hasEvents = events.hasNext();
+                    tracker.recordProducerTime(System.nanoTime() - time, TimeUnit.NANOSECONDS);
+                    if (hasEvents && runningMonitor.enterIf(running)) {
                         try {
                             CountingIterator countingEvents = new CountingIterator(events);
                             eventListener.onEvent(countingEvents);

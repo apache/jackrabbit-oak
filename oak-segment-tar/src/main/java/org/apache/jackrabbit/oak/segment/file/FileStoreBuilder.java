@@ -24,8 +24,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
-import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_CAPACITY;
-import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_DEPTH;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_STRING_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_TEMPLATE_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
@@ -37,8 +36,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.segment.NodeCache;
 import org.apache.jackrabbit.oak.segment.RecordCache;
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Template;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
@@ -75,9 +74,7 @@ public class FileStoreBuilder {
 
     private int templateDeduplicationCacheSize = DEFAULT_TEMPLATE_CACHE_SIZE;
 
-    private int nodeDeduplicationCacheSize = DEFAULT_NODE_CACHE_CAPACITY;
-
-    private int nodeDeduplicationCacheDepth = DEFAULT_NODE_CACHE_DEPTH;
+    private int nodeDeduplicationCacheSize = DEFAULT_NODE_CACHE_SIZE;
 
     private boolean memoryMapping = FileStore.MEMORY_MAPPING_DEFAULT;
 
@@ -241,23 +238,12 @@ public class FileStoreBuilder {
 
     /**
      * Number of items to keep in the node deduplication cache
-     * @param nodeDeduplicationCacheSize  None negative cache size
+     * @param nodeDeduplicationCacheSize  None negative cache size. Must be a power of 2.
      * @return this instance
      */
     @Nonnull
     public FileStoreBuilder withNodeDeduplicationCacheSize(int nodeDeduplicationCacheSize) {
         this.nodeDeduplicationCacheSize = nodeDeduplicationCacheSize;
-        return this;
-    }
-
-    /**
-     * Maximal depth of the node deduplication cache
-     * @param nodeDeduplicationCacheDepth
-     * @return this instance
-     */
-    @Nonnull
-    public FileStoreBuilder withNodeDeduplicationDepth(int nodeDeduplicationCacheDepth) {
-        this.nodeDeduplicationCacheDepth = nodeDeduplicationCacheDepth;
         return this;
     }
 
@@ -422,8 +408,7 @@ public class FileStoreBuilder {
     WriterCacheManager getCacheManager() {
         if (cacheManager == null) {
             cacheManager = new EvictingWriteCacheManager(
-                    stringDeduplicationCacheSize, templateDeduplicationCacheSize,
-                    nodeDeduplicationCacheSize, nodeDeduplicationCacheDepth);
+                    stringDeduplicationCacheSize, templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
         }
         return cacheManager;
     }
@@ -440,18 +425,16 @@ public class FileStoreBuilder {
                 ", stringDeduplicationCacheSize=" + stringDeduplicationCacheSize +
                 ", templateDeduplicationCacheSize=" + templateDeduplicationCacheSize +
                 ", nodeDeduplicationCacheSize=" + nodeDeduplicationCacheSize +
-                ", nodeDeduplicationCacheDepth=" + nodeDeduplicationCacheDepth +
                 ", memoryMapping=" + memoryMapping +
                 ", gcOptions=" + gcOptions +
                 '}';
     }
 
     private static class EvictingWriteCacheManager extends WriterCacheManager.Default {
-        public EvictingWriteCacheManager(int stringCacheSize, int templateCacheSize,
-                                         int nodeCacheCapacity, int nodeCacheDepth) {
+        public EvictingWriteCacheManager(int stringCacheSize, int templateCacheSize, int nodeCacheSize) {
             super(RecordCache.<String>factory(stringCacheSize),
                 RecordCache.<Template>factory(templateCacheSize),
-                NodeCache.factory(nodeCacheCapacity, nodeCacheDepth));
+                PriorityCache.<String, RecordId>factory(nodeCacheSize));
         }
 
         void evictOldGeneration(final int newGeneration) {

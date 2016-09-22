@@ -21,11 +21,14 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.ObjectName;
+import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -38,6 +41,8 @@ import javax.management.openmbean.TabularType;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Longs;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -53,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.osgi.framework.BundleContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -121,6 +127,28 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             tds = new TabularDataSupport(tt);
             for(BackgroundObserverMBean o: collectNonJcrObservers()){
                 tds.put(new ObserverStatsData(++id, o).toCompositeData());
+            }
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    @Override
+    public TabularData getLeaderBoard() {
+        TabularDataSupport tds;
+        try {
+            int id = 0;
+            TabularType tt = new TabularType(LeaderBoardData.class.getName(),
+                    "Leaderboard", LeaderBoardData.TYPE, new String[]{"index"});
+            tds = new TabularDataSupport(tt);
+            List<LeaderBoardData> leaderBoard = Lists.newArrayList();
+            for (EventListenerMBean mbean : eventListeners.values()) {
+                leaderBoard.add(new LeaderBoardData(++id, mbean));
+            }
+            sort(leaderBoard);
+            for (LeaderBoardData data : leaderBoard) {
+                tds.put(data.toCompositeData());
             }
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
@@ -421,6 +449,116 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
+        }
+    }
+
+    private static class LeaderBoardData {
+        static final String[] FIELD_NAMES = new String[] {
+                "index",
+                "className",
+                "processingTime",
+                "delivered",
+                "eventConsumerTimeRatio",
+        };
+
+        static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
+
+        @SuppressWarnings("rawtypes")
+        static final OpenType[] FIELD_TYPES = new OpenType[]{
+                SimpleType.INTEGER,
+                SimpleType.STRING,
+                SimpleType.LONG,
+                SimpleType.LONG,
+                SimpleType.DOUBLE,
+        };
+
+        static final CompositeType TYPE = createCompositeType();
+
+        static CompositeType createCompositeType() {
+            try {
+                return new CompositeType(
+                        LeaderBoardData.class.getName(),
+                        "Composite data type for Listener Leaderboard",
+                        LeaderBoardData.FIELD_NAMES,
+                        LeaderBoardData.FIELD_DESCRIPTIONS,
+                        LeaderBoardData.FIELD_TYPES);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private final EventListenerMBean mbean;
+        private final CompositeData producerTime;
+        private final CompositeData consumerTime;
+        private final int index;
+
+        public LeaderBoardData(int i, EventListenerMBean mbean) {
+            this(i, mbean, mbean.getEventProducerTime(), mbean.getEventConsumerTime());
+        }
+
+        private LeaderBoardData(int i, EventListenerMBean mbean,
+                                CompositeData producerTime,
+                                CompositeData consumerTime) {
+            this.index = i;
+            this.mbean = mbean;
+            this.producerTime = producerTime;
+            this.consumerTime = consumerTime;
+        }
+
+        LeaderBoardData withIndex(int i) {
+            return new LeaderBoardData(i, mbean, producerTime, consumerTime);
+        }
+
+        CompositeDataSupport toCompositeData() {
+            Object[] values = new Object[]{
+                    index,
+                    mbean.getClassName(),
+                    getProcessingTime(),
+                    mbean.getEventsDelivered(),
+                    mbean.getEventConsumerTimeRatio(),
+            };
+            try {
+                return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        long getProcessingTime() {
+            long time = 0;
+            for (String name : TimeSeriesStatsUtil.ITEM_NAMES) {
+                time += sum(name, producerTime, consumerTime);
+            }
+            return time;
+        }
+
+        private long sum(String key, CompositeData... data) {
+            long sum = 0;
+            for (CompositeData d : data) {
+                sum += sum((long[]) d.get(key));
+            }
+            return sum;
+        }
+
+        private long sum(long[] values) {
+            long sum = 0;
+            for (long value : values) {
+                sum += value;
+            }
+            return sum;
+        }
+    }
+
+    private void sort(List<LeaderBoardData> leaderBoard) {
+        Collections.sort(leaderBoard, new Comparator<LeaderBoardData>() {
+            @Override
+            public int compare(LeaderBoardData o1, LeaderBoardData o2) {
+                return Longs.compare(o1.getProcessingTime(), o2.getProcessingTime());
+            }
+        });
+        // assign new index value according to sort order
+        for (int i = 0; i < leaderBoard.size(); i++) {
+            leaderBoard.set(i, leaderBoard.get(i).withIndex(i));
         }
     }
 }

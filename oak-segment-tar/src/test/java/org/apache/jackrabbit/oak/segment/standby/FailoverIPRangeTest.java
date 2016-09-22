@@ -24,12 +24,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class FailoverIPRangeTest extends TestBase {
@@ -79,11 +78,6 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     @Test
-    public void testFailoverInvalidName() throws Exception {
-        createTestWithConfig(new String[]{"foobar"}, false);
-    }
-
-    @Test
     public void testFailoverValidIPRangeStart() throws Exception {
         createTestWithConfig(new String[]{"127.0.0.1-127.0.0.2"}, true);
     }
@@ -104,42 +98,40 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testFailoverCorrectList() throws Exception {
-        createTestWithConfig(new String[]{"foobar","127-128","126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+        createTestWithConfig(new String[]{"127-128","126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
     }
 
     @Test
     public void testFailoverCorrectListIPv6() throws Exception {
         if (!noDualStackSupport) {
-            createTestWithConfig(new String[]{"foobar", "122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+            createTestWithConfig(new String[]{"122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
         }
     }
 
     @Test
     public void testFailoverWrongList() throws Exception {
-        createTestWithConfig(new String[]{"foobar", "126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
+        createTestWithConfig(new String[]{"126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
     }
 
     @Test
     public void testFailoverCorrectListUseIPv6() throws Exception {
         if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"foobar","127-128", "0:0:0:0:0:0:0:1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+            createTestWithConfig("::1", new String[]{"127-128", "0:0:0:0:0:0:0:1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
         }
     }
 
     @Test
-    @Ignore("OAK-4708")
     public void testFailoverCorrectListIPv6UseIPv6() throws Exception {
         if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"foobar", "122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+            createTestWithConfig("::1", new String[]{"122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
         }
     }
 
     @Test
     public void testFailoverWrongListUseIPv6() throws Exception {
         if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"foobar", "126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
+            createTestWithConfig("::1", new String[]{"126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
         }
     }
 
@@ -154,7 +146,7 @@ public class FailoverIPRangeTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl =  new StandbyClient(host, port, storeC, false, timeout, false);
+        StandbySync cl = new StandbySync(host, port, storeC, false, timeout, false);
         cl.run();
 
         try {

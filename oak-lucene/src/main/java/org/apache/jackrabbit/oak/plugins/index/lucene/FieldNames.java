@@ -90,6 +90,11 @@ public final class FieldNames {
      * Name of the field that contains the node name
      */
     public static final String NODE_NAME = ":nodeName";
+    
+    /**
+     * Suffix of the fields that contains function values
+     */
+    public static final String FUNCTION_PREFIX = "function*";
 
     /**
      * Used to select only the PATH field from the lucene documents

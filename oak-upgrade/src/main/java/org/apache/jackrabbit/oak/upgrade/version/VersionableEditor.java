@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.upgrade.version;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -47,6 +46,7 @@ import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryNodeState;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
 /**
  * The VersionableEditor provides two possible ways to handle
@@ -70,6 +70,8 @@ public class VersionableEditor extends DefaultEditor {
 
     private final NodeBuilder rootBuilder;
 
+    private final NodeBuilder versionStorage;
+
     private final TypePredicate isReferenceable;
 
     private final TypePredicate isVersionable;
@@ -80,16 +82,17 @@ public class VersionableEditor extends DefaultEditor {
 
     private String path;
 
-    private VersionableEditor(Provider provider, NodeBuilder builder) {
+    private VersionableEditor(Provider provider, NodeBuilder rootBuilder) {
+        this.rootBuilder = rootBuilder;
+        this.versionStorage = getVersionStorage(rootBuilder);
+        this.vMgr = new ReadWriteVersionManager(versionStorage, rootBuilder);
+
         this.provider = provider;
-        this.rootBuilder = builder;
-        this.isVersionable = new TypePredicate(builder.getNodeState(), MIX_VERSIONABLE);
-        this.isReferenceable = new TypePredicate(builder.getNodeState(), MIX_REFERENCEABLE);
-        this.versionCopier = new VersionCopier(provider.sourceRoot, builder);
+        this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
+        this.isReferenceable = new TypePredicate(rootBuilder.getNodeState(), MIX_REFERENCEABLE);
+        this.versionCopier = new VersionCopier(rootBuilder, getVersionStorage(provider.sourceRoot), versionStorage);
         this.path = "/";
 
-        NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(NodeTypeConstants.JCR_VERSIONSTORAGE);
-        this.vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
     }
 
     public static class Provider implements EditorProvider {
@@ -107,8 +110,8 @@ public class VersionableEditor extends DefaultEditor {
         }
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
-            return new VersionableEditor(this, builder);
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder rootBuilder, CommitInfo info) throws CommitFailedException {
+            return new VersionableEditor(this, rootBuilder);
         }
     }
 
@@ -159,13 +162,13 @@ public class VersionableEditor extends DefaultEditor {
     }
 
     private void setVersionablePath(String versionableUuid) {
-        final NodeBuilder versionHistory = VersionHistoryUtil.getVersionHistoryBuilder(rootBuilder, versionableUuid);
+        final NodeBuilder versionHistory = VersionHistoryUtil.getVersionHistoryBuilder(versionStorage, versionableUuid);
         versionHistory.setProperty(provider.workspaceName, path, Type.PATH);
         addMixin(versionHistory, MIX_REP_VERSIONABLE_PATHS);
     }
 
     private boolean isVersionHistoryExists(String versionableUuid) {
-        return getVersionHistoryNodeState(rootBuilder.getNodeState(), versionableUuid).exists();
+        return getVersionHistoryNodeState(versionStorage.getNodeState(), versionableUuid).exists();
     }
 
     private void removeVersionProperties(final NodeBuilder versionableBuilder) {

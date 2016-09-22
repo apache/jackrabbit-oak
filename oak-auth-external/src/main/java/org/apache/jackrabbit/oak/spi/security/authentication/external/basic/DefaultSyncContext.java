@@ -374,8 +374,10 @@ public class DefaultSyncContext implements SyncContext {
     @Nonnull
     protected User createUser(@Nonnull ExternalUser externalUser) throws RepositoryException {
         Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
+        String authId = config.user().isApplyRFC7613UsernameCaseMapped() ?
+                        java.text.Normalizer.normalize(externalUser.getId().toLowerCase(), java.text.Normalizer.Form.NFKC) : externalUser.getId();
         User user = userManager.createUser(
-                externalUser.getId(),
+                authId,
                 null,
                 principal,
                 PathUtils.concatRelativePaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())

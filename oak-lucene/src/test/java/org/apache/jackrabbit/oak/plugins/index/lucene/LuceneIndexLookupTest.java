@@ -44,7 +44,7 @@ public class LuceneIndexLookupTest {
         newLuceneIndexDefinition(index, "l2", of(TYPENAME_STRING));
 
         LuceneIndexLookup lookup = new LuceneIndexLookup(builder.getNodeState());
-        FilterImpl f = new FilterImpl();
+        FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/oak:index/l2"),
                 lookup.collectIndexNodePaths(f));
@@ -62,7 +62,7 @@ public class LuceneIndexLookupTest {
         newLuceneIndexDefinition(index, "l3", of(TYPENAME_STRING));
 
         LuceneIndexLookup lookup = new LuceneIndexLookup(builder.getNodeState());
-        FilterImpl f = new FilterImpl();
+        FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/a/oak:index/l2"),
                 lookup.collectIndexNodePaths(f));

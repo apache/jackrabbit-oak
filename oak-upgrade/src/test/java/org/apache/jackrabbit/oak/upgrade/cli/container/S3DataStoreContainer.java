@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -26,7 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
-import com.google.common.io.Files;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer.deleteRecursive;
 
 public class S3DataStoreContainer implements BlobStoreContainer {
 
@@ -39,7 +42,7 @@ public class S3DataStoreContainer implements BlobStoreContainer {
     private final Closer closer;
 
     public S3DataStoreContainer(String configFile) throws IOException {
-        this.directory = Files.createTempDir();
+        this.directory = Files.createTempDirectory(Paths.get("target"), "repo-s3").toFile();
         this.factory = new S3DataStoreFactory(configFile, directory.getPath(), false);
         this.closer = Closer.create();
     }
@@ -60,7 +63,7 @@ public class S3DataStoreContainer implements BlobStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteDirectory(directory);
+        deleteRecursive(directory);
     }
 
     @Override

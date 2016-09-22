@@ -36,10 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * must not modify a document partially. Either the complete update operation is
  * applied to a document or no modification is done at all.
  * <p>
- * Even though none of the methods declare an exception, they will still throw
- * an implementation specific runtime exception when the operations fails (e.g.
- * an I/O error occurs).
- * <p>
  * The key is the id of a document. Keys are opaque strings. All characters are
  * allowed. Leading and trailing whitespace is allowed. For keys, the maximum
  * length is 512 bytes in the UTF-8 representation (in the latest Unicode
@@ -58,9 +54,12 @@ public interface DocumentStore {
      * @param collection the collection
      * @param key the key
      * @return the document, or null if not found
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     @CheckForNull
-    <T extends Document> T find(Collection<T> collection, String key);
+    <T extends Document> T find(Collection<T> collection, String key)
+            throws DocumentStoreException;
 
     /**
      * Get the document with the {@code key}. The implementation may serve the
@@ -77,9 +76,12 @@ public interface DocumentStore {
      * @param key the key
      * @param maxCacheAge the maximum age of the cached document (in ms)
      * @return the document, or null if not found
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     @CheckForNull
-    <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge);
+    <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge)
+            throws DocumentStoreException;
 
     /**
      * Get a list of documents where the key is greater than a start value and
@@ -93,12 +95,14 @@ public interface DocumentStore {
      * @param toKey the end value (excluding)
      * @param limit the maximum number of entries to return (starting with the lowest key)
      * @return the list (possibly empty)
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     @Nonnull
     <T extends Document> List<T> query(Collection<T> collection,
                                        String fromKey,
                                        String toKey,
-                                       int limit);
+                                       int limit) throws DocumentStoreException;
 
     /**
      * Get a list of documents where the key is greater than a start value and
@@ -119,6 +123,8 @@ public interface DocumentStore {
      * @param startValue the minimum value of the indexed property
      * @param limit the maximum number of entries to return
      * @return the list (possibly empty)
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     @Nonnull
     <T extends Document> List<T> query(Collection<T> collection,
@@ -126,44 +132,75 @@ public interface DocumentStore {
                                        String toKey,
                                        String indexedProperty,
                                        long startValue,
-                                       int limit);
+                                       int limit) throws DocumentStoreException;
 
     /**
      * Remove a document. This method does nothing if there is no document
      * with the given key.
+     * <p>
+     * In case of a {@code DocumentStoreException}, the document with the given
+     * key may or may not have been removed from the store. It is the
+     * responsibility of the caller to check whether it still exists. The
+     * implementation however ensures that the result of the operation is
+     * properly reflected in the document cache. That is, an implementation
+     * could simply evict the document with the given key.
      *
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
-    <T extends Document> void remove(Collection<T> collection, String key);
+    <T extends Document> void remove(Collection<T> collection, String key)
+            throws DocumentStoreException;
 
     /**
      * Batch remove documents with given keys. Keys for documents that do not
      * exist are simply ignored. If this method fails with an exception, then
      * only some of the documents identified by {@code keys} may have been
      * removed.
+     * <p>
+     * In case of a {@code DocumentStoreException}, the documents with the given
+     * keys may or may not have been removed from the store. It may also be
+     * possible that only some have been removed from the store. It is the
+     * responsibility of the caller to check which documents still exist. The
+     * implementation however ensures that the result of the operation is
+     * properly reflected in the document cache. That is, an implementation
+     * could simply evict documents with the given keys from the cache.
      *
      * @param <T> the document type
      * @param collection the collection
      * @param keys list of keys
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
-    <T extends Document> void remove(Collection<T> collection, List<String> keys);
+    <T extends Document> void remove(Collection<T> collection, List<String> keys)
+            throws DocumentStoreException;
 
     /**
      * Batch remove documents with given keys and corresponding conditions. Keys
      * for documents that do not exist are simply ignored. A document is only
-     * removed if the corresponding conditions are met. If this method fails
-     * with an exception, then only some of the documents may have been removed.
+     * removed if the corresponding conditions are met.
+     * <p>
+     * In case of a {@code DocumentStoreException}, the documents with the given
+     * keys may or may not have been removed from the store. It may also be
+     * possible that only some have been removed from the store. It is the
+     * responsibility of the caller to check which documents still exist. The
+     * implementation however ensures that the result of the operation is
+     * properly reflected in the document cache. That is, an implementation
+     * could simply evict documents with the given keys from the cache.
      *
      * @param <T> the document type
      * @param collection the collection.
      * @param toRemove the keys of the documents to remove with the
      *                 corresponding conditions.
      * @return the number of removed documents.
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     <T extends Document> int remove(Collection<T> collection,
-                                     Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove);
+                                    Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove)
+            throws DocumentStoreException;
 
     /**
      * Try to create a list of documents. This method returns {@code true} iff
@@ -173,24 +210,32 @@ public interface DocumentStore {
      * An implementation does not have to guarantee an atomic create of all the
      * documents described in the {@code updateOps}. It is the responsibility of
      * the caller to check, which documents were created and take appropriate
-     * action. The same is true when this method throws an exception (e.g. when
-     * a communication error occurs). In this case only some documents may have
-     * been created.
+     * action. The same is true when this method throws
+     * {@code DocumentStoreException} (e.g. when a communication error occurs).
+     * In this case only some documents may have been created.
      *
      * @param <T> the document type
      * @param collection the collection
      * @param updateOps the list of documents to add (where {@link Condition}s are not allowed)
      * @return true if this worked (if none of the documents already existed)
      * @throws IllegalArgumentException when at least one of the {@linkplain UpdateOp}s is conditional
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
-    <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps);
+    <T extends Document> boolean create(Collection<T> collection,
+                                        List<UpdateOp> updateOps)
+            throws IllegalArgumentException, DocumentStoreException;
 
     /**
      * Update documents with the given keys. Only existing documents are
-     * updated and keys for documents that do not exist are simply ignored. If
-     * this method fails with an exception, then only some of the documents
-     * identified by {@code keys} may have been updated. There is no guarantee
-     * in which sequence the updates are performed.
+     * updated and keys for documents that do not exist are simply ignored.
+     * There is no guarantee in which sequence the updates are performed.
+     * <p>
+     * If this method fails with a {@code DocumentStoreException}, then only some
+     * of the documents identified by {@code keys} may have been updated. The
+     * implementation however ensures that the result of the operation is
+     * properly reflected in the document cache. That is, an implementation
+     * could simply evict documents with the given keys from the cache.
      *
      * @param <T> the document type.
      * @param collection the collection.
@@ -198,32 +243,51 @@ public interface DocumentStore {
      * @param updateOp the update operation to apply to each of the documents
      *        (where {@link Condition}s are not allowed)
      * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     <T extends Document> void update(Collection<T> collection,
                                      List<String> keys,
-                                     UpdateOp updateOp);
+                                     UpdateOp updateOp)
+            throws IllegalArgumentException, DocumentStoreException;
 
     /**
-     * Create or update a document. For MongoDB, this is using "findAndModify" with
-     * the "upsert" flag (insert or update). The returned document is immutable.
+     * Atomically checks if the document exists and updates it, otherwise the
+     * document is created (aka upsert). The returned document is immutable.
+     * <p>
+     * If this method fails with a {@code DocumentStoreException}, then the
+     * document may or may not have been created or updated. It is the
+     * responsibility of the caller to check the result e.g. by calling
+     * {@link #find(Collection, String)}. The implementation however ensures
+     * that the result of the operation is properly reflected in the document
+     * cache. That is, an implementation could simply evict documents with the
+     * given keys from the cache.
      *
      * @param <T> the document type
      * @param collection the collection
      * @param update the update operation (where {@link Condition}s are not allowed)
      * @return the old document or <code>null</code> if it didn't exist before.
      * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     @CheckForNull
-    <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
+    <T extends Document> T createOrUpdate(Collection<T> collection,
+                                          UpdateOp update)
+            throws IllegalArgumentException, DocumentStoreException;
 
     /**
-     * Create or unconditionally update a number of documents.
+     * Create or unconditionally update a number of documents. An implementation
+     * does not have to guarantee that all changes are applied atomically,
+     * together.
      * <p>
-     * An implementation does not have to guarantee that all changes are applied
-     * atomically, together. In case of an exception (e.g. when a communication
-     * error occurs) only some changes may have been applied. In this case it is the
-     * responsibility of the caller to check which {@linkplain UpdateOp}s were applied and
-     * take appropriate action.
+     * In case of a {@code DocumentStoreException} (e.g. when a communication
+     * error occurs) only some changes may have been applied. In this case it is
+     * the responsibility of the caller to check which {@linkplain UpdateOp}s
+     * were applied and take appropriate action. The implementation however
+     * ensures that the result of the operations are properly reflected in the
+     * document cache. That is, an implementation could simply evict documents
+     * related to the given update operations from the cache.
      *
      * @param <T> the document type
      * @param collection the collection
@@ -231,23 +295,39 @@ public interface DocumentStore {
      * @return the list containing old documents or <code>null</code> values if they didn't exist
      *         before (see {@linkplain #createOrUpdate(Collection, UpdateOp)}), where the order
      *         reflects the order in the "updateOps" parameter
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
-    <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps);
+    <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                List<UpdateOp> updateOps)
+            throws DocumentStoreException;
 
     /**
      * Performs a conditional update (e.g. using
      * {@link UpdateOp.Condition.Type#EXISTS} and only updates the
      * document if the condition is <code>true</code>. The returned document is
      * immutable.
+     * <p>
+     * In case of a {@code DocumentStoreException} (e.g. when a communication
+     * error occurs) the update may or may not have been applied. In this case
+     * it is the responsibility of the caller to check whether the update was
+     * applied and take appropriate action. The implementation however ensures
+     * that the result of the operation is properly reflected in the document
+     * cache. That is, an implementation could simply evict the document related
+     * to the given update operation from the cache.
      *
      * @param <T> the document type
      * @param collection the collection
      * @param update the update operation with the condition
      * @return the old document or <code>null</code> if the condition is not met or
      *         if the document wasn't found
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
      */
     @CheckForNull
-    <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update);
+    <T extends Document> T findAndUpdate(Collection<T> collection,
+                                         UpdateOp update)
+            throws DocumentStoreException;
 
     /**
      * Invalidate the document cache. Calling this method instructs the
@@ -337,13 +417,17 @@ public interface DocumentStore {
     Map<String, String> getMetadata();
 
     /**
-     * @return the estimated time difference in milliseconds between
-     * the local instance and the (typically common, shared) document server system.
-     * The value can be zero if the times are estimated to be equal,
-     * positive when the local instance is ahead of the remote server
-     * and negative when the local instance is behind the remote server. An invocation is not cached
-     * and typically requires a round-trip to the server (but that is not a requirement).
-     * @throws UnsupportedOperationException if this DocumentStore does not support this method
+     * @return the estimated time difference in milliseconds between the local
+     * instance and the (typically common, shared) document server system. The
+     * value can be zero if the times are estimated to be equal, positive when
+     * the local instance is ahead of the remote server and negative when the
+     * local instance is behind the remote server. An invocation is not cached
+     * and typically requires a round-trip to the server (but that is not a
+     * requirement).
+     * @throws UnsupportedOperationException if this DocumentStore does not
+     *                                       support this method
+     * @throws DocumentStoreException if an I/O error occurs.
      */
-    long determineServerTimeDifferenceMillis();
+    long determineServerTimeDifferenceMillis()
+            throws UnsupportedOperationException, DocumentStoreException;
 }

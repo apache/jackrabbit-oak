@@ -26,7 +26,13 @@ public abstract class QueryConstants {
      * via NAME and LOCALNAME functions
      */
     public static final String RESTRICTION_LOCAL_NAME = ":localname";
-    
+
+    /**
+     * Name of the property restriction used to express query performed
+     * via NAME and LOCALNAME functions
+     */
+    public static final String RESTRICTION_NAME = ":name";
+
     /**
      * The prefix for restrictions for function-based indexes, for example
      * upper(propertyName). Syntax: "function*expression". In order to support

@@ -48,7 +48,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     @CheckForNull
     Tree getByID(@Nonnull String authorizableId, @Nonnull AuthorizableType authorizableType) {
-        return getByContentID(getContentID(authorizableId), authorizableType);
+        return getByContentID(getContentID(authorizableId, config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE)), authorizableType);
     }
 
     @CheckForNull
@@ -77,7 +77,11 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @Nonnull
-    static String getContentID(@Nonnull String authorizableId) {
-        return generateUUID(authorizableId.toLowerCase());
+    static String getContentID(@Nonnull String authorizableId, boolean usercaseMappedProfile) {
+        String s = authorizableId.toLowerCase();
+        if (usercaseMappedProfile) {
+            s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC);
+        }
+        return generateUUID(s);
     }
 }

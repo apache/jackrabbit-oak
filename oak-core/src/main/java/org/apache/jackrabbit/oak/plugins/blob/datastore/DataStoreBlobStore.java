@@ -623,8 +623,13 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
         return encodedBlobId;
     }
 
-    static class BlobId {
+    public static class BlobId {
         static final String SEP = "#";
+
+        public String getBlobId() {
+            return blobId;
+        }
+
         final String blobId;
         final long length;
 
@@ -672,7 +677,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
             return encodedBlobId.contains(SEP);
         }
 
-        static BlobId of(String encodedValue) {
+        public static BlobId of(String encodedValue) {
             return new BlobId(encodedValue);
         }
 

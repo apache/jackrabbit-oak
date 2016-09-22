@@ -23,19 +23,19 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.5.3</version>
+        <version>1.5.10</version>
         <relativePath />
     </parent>
 
     <artifactId>oak-segment-tar</artifactId>
-    <version>0.0.11-SNAPSHOT</version>
+    <version>0.0.13-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
 
     <properties>
-        <oak.version>1.5.5</oak.version>
-        <netty.version>4.0.23.Final</netty.version>
+        <oak.version>1.5.8</oak.version>
+        <netty.version>4.0.41.Final</netty.version>
     </properties>
 
     <scm>
@@ -60,14 +60,16 @@
                             com.google.protobuf.*;resolution:=optional,
                             com.jcraft.jzlib.*;resolution:=optional,
                             javassist.*;resolution:=optional,
-                            org.apache.tomcat.jni.*;resolution:=optional,
+                            org.apache.tomcat.*;resolution:=optional,
                             org.bouncycastle.*;resolution:=optional,
+                            org.eclipse.jetty.alpn.*;resolution:=optional,
                             org.eclipse.jetty.npn.*;resolution:=optional,
                             org.jboss.marshalling.*;resolution:=optional,
                             sun.misc.*;resolution:=optional,
                             sun.nio.ch.*;resolution:=optional,
                             sun.security.util.*;resolution:=optional,
                             sun.security.x509.*;resolution:=optional,
+                            org.apache.logging.log4j.*;resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>
@@ -105,6 +107,7 @@
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
             </plugin>
             <plugin>
@@ -116,6 +119,7 @@
                         <standby.server.port>${standby.server.port}</standby.server.port>
                         <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
                     </systemPropertyVariables>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
                 <executions>
                     <execution>

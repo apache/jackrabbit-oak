@@ -25,15 +25,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -49,6 +55,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class TestUtil {
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -109,6 +123,12 @@ public class TestUtil {
         prop.setProperty(LuceneIndexConstants.PROP_IS_REGEX, regex);
         prop.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
         prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, false);
+        return prop;
+    }
+
+    public static Tree enableFunctionIndex(Tree props, String function) {
+        Tree prop = props.addChild(unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_FUNCTION, function);
         return prop;
     }
 
@@ -183,9 +203,55 @@ public class TestUtil {
         return builder;
     }
 
+    public static Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
+        Tree fileNode = tree.addChild(name);
+        fileNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
+        Tree jcrContent = fileNode.addChild(JCR_CONTENT);
+        jcrContent.setProperty(JcrConstants.JCR_DATA, content);
+        jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
+        return jcrContent;
+    }
+
+    public static Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
+        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        def.setProperty(REINDEX_PROPERTY_NAME, true);
+        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES,
+                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
+        return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+    }
+
     public static void shutdown(Repository repository) {
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
+        }
+    }
+
+    public static NodeBuilder enableIndexingMode(NodeBuilder builder, IndexingMode indexingMode){
+        builder.setProperty(createAsyncProperty(indexingMode));
+        return builder;
+    }
+
+    public static Tree enableIndexingMode(Tree tree, IndexingMode indexingMode){
+        tree.setProperty(createAsyncProperty(indexingMode));
+        return tree;
+    }
+
+    private static PropertyState createAsyncProperty(String indexingMode) {
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode , "async"), STRINGS);
+    }
+
+    private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
+        switch(indexingMode) {
+            case NRT  :
+            case SYNC :
+                return createAsyncProperty(indexingMode.asyncValueName());
+            case ASYNC:
+                return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("async"), STRINGS);
+            default:
+                throw new IllegalArgumentException("Unknown mode " + indexingMode);
         }
     }
 }

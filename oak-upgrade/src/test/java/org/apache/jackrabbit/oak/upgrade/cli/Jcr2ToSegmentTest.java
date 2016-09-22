@@ -43,6 +43,9 @@ public class Jcr2ToSegmentTest {
 
     private Session session;
 
+    public Jcr2ToSegmentTest() throws IOException {
+    }
+
     @Before
     public void prepare() throws Exception {
         File tempDir = new File("target", "test-jcr2");

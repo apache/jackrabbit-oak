@@ -69,7 +69,7 @@ public class FileStoreBackup {
         SegmentNodeState current = reader.readHeadState(revisions);
         try {
             int gen = 0;
-            gen = current.getRecordId().getSegment().getGcGeneration();
+            gen = current.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     backup,
                     backup.getTracker(),

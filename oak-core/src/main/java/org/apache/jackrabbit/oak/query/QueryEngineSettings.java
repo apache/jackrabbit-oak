@@ -50,6 +50,12 @@ public class QueryEngineSettings extends AnnotatedStandardMBean implements Query
     
     private boolean sql2Optimisation = Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
 
+    /**
+     * Create a new query engine settings object. Creating the object is
+     * relatively slow, and at runtime, as few such objects as possible should
+     * be created (ideally, only one per Oak instance). Creating new instances
+     * also means they can not be configured using JMX, as one would expect.
+     */
     public QueryEngineSettings() {
         super(QueryEngineSettingsMBean.class);
     }
