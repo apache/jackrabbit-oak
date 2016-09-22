@@ -95,6 +95,7 @@ public class MultiplexingNodeStoreService {
 
         if (globalNs == null) {
             LOG.info("Multiplexing node store registration is deferred until there's a global node store registered in OSGi");
+            return;
         } else {
             LOG.info("Found global node store: {}", getDescription(globalNs));
         }
