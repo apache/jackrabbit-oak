@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
