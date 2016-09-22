@@ -143,5 +143,6 @@ public class OptionParserFactory {
                 "Shutdown the source repository after nodes are copied and before the commit hooks are applied");
         op.accepts(CACHE_SIZE, "Cache size in MB").withRequiredArg().ofType(Integer.class).defaultsTo(256);
         op.accepts(SKIP_INIT, "Skip the repository initialization; only copy data");
+        op.accepts(SKIP_NAME_CHECK, "Skip the initial phase of testing node name lengths");
     }
 }
