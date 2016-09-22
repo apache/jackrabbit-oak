@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

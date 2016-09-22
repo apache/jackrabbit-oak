@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3Backend;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 
 import java.io.File;

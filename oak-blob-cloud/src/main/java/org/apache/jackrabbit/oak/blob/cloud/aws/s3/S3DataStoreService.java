@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -28,12 +28,13 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE, name = S3DataStoreService.NAME)
-public class S3DataStoreService extends AbstractDataStoreService{
+public class S3DataStoreService extends AbstractDataStoreService {
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore";
     private static final String DESCRIPTION = "oak.datastore.description";
 
