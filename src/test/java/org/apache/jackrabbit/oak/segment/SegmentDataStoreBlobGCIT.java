@@ -443,7 +443,6 @@ public class SegmentDataStoreBlobGCIT {
         if (store != null) {
             store.close();
         }
-        DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
     }
 
     static InputStream randomStream(int seed, int size) {
