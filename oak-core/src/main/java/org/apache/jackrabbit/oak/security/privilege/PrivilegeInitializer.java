@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.wrap;
-
 /**
  * {@code RepositoryInitializer} that asserts the existence and node type of
  * the /jcr:system/jcr:privileges node that is used to store privilege definitions.
@@ -56,7 +54,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
             // squeeze node state before it is passed to store (OAK-2411)
-            NodeState base = wrap(builder.getNodeState());
+            NodeState base = builder.getNodeState();
             NodeStore store = new MemoryNodeStore(base);
             try {
                 Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null, null);
