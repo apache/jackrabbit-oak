@@ -114,7 +114,6 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                             "to decide whether traversing or using an index is faster.");
         }
 
-        // squeeze node state before it is passed to store (OAK-2411)
         NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
         NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
