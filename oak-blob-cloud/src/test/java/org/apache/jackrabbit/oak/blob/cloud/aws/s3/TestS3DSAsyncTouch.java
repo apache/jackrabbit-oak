@@ -16,27 +16,23 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
-import java.io.IOException;
-
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.CachingDataStore;
+import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /**
  * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with
- * {@link org.apache.jackrabbit.core.data.CachingDataStore#setTouchAsync(boolean) set to true. It requires
- * to pass aws config file via system property. For e.g.
- * -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
+ * {@link org.apache.jackrabbit.core.data.CachingDataStore#setTouchAsync(boolean) set to true.
+ * It requires to pass aws config file via system property  or system properties by prefixing with 'ds.'.
+ * See details @ {@link S3DataStoreUtils}.
+ * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
  */
 public class TestS3DSAsyncTouch extends TestS3Ds {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSAsyncTouch.class);
-
-    public TestS3DSAsyncTouch() throws IOException {
-
-    }
 
     @Override
     protected CachingDataStore createDataStore() throws RepositoryException {
@@ -44,6 +40,7 @@ public class TestS3DSAsyncTouch extends TestS3Ds {
         s3ds.setProperties(props);
         s3ds.setTouchAsync(true);
         s3ds.setSecret("123456");
+        s3ds.setAsyncUploadLimit(0);
         s3ds.init(dataStoreDir);
         s3ds.updateModifiedDateOnAccess(System.currentTimeMillis() + 50 * 1000);
         sleep(1000);

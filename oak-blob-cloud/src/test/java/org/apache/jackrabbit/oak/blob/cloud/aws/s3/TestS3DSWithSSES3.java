@@ -18,24 +18,30 @@
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
+import org.junit.Assert;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.junit.Assert.fail;
+
 /**
  * Test S3DataStore operation with SSE_S3 encryption.
+ * It requires to pass aws config file via system property  or system properties by prefixing with 'ds.'.
+ * See details @ {@link S3DataStoreUtils}.
+ * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
+ * src/test/resources/aws.properties
+
  */
 public class TestS3DSWithSSES3 extends TestS3Ds {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
-
-    public TestS3DSWithSSES3() throws IOException {
-    }
 
     @Override
     protected CachingDataStore createDataStore() throws RepositoryException {
@@ -52,6 +58,7 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     /**
      * Test data migration enabling SSE_S3 encryption.
      */
+    @Test
     public void testDataMigration() {
         try {
             String bucket = props.getProperty(S3Constants.S3_BUCKET);
@@ -62,7 +69,7 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
             byte[] data = new byte[dataLength];
             randomGen.nextBytes(data);
             DataRecord rec = s3ds.addRecord(new ByteArrayInputStream(data));
-            assertEquals(data.length, rec.getLength());
+            Assert.assertEquals(data.length, rec.getLength());
             assertRecord(data, rec);
             s3ds.close();
 
@@ -77,7 +84,7 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
             s3ds.init(dataStoreDir);
 
             rec = s3ds.getRecord(rec.getIdentifier());
-            assertEquals(data.length, rec.getLength());
+            Assert.assertEquals(data.length, rec.getLength());
             assertRecord(data, rec);
 
             randomGen.nextBytes(data);
