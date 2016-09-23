@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -48,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.wrap;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -91,7 +91,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
         // squeeze node state before it is passed to store (OAK-2411)
-        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
+        NodeState base = wrap(builder.getNodeState());
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
