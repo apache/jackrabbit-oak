@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 
 import com.google.common.collect.ImmutableList;
@@ -32,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
@@ -46,7 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.HasNativeNodeBuilder;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
@@ -59,7 +58,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
     private static NodeState createInitialContent() {
         NodeBuilder builder = EMPTY_NODE.builder();
         new InitialContent().initialize(builder);
-        return ModifiedNodeState.squeeze(builder.getNodeState());
+        return squeeze(builder.getNodeState());
     }
 
     /**
@@ -115,12 +114,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                             "to decide whether traversing or using an index is faster.");
         }
 
-        // squeeze node state before it is passed to store (OAK-2411)
-        
-        NodeState rawState = builder instanceof HasNativeNodeBuilder ? 
-                ((HasNativeNodeBuilder) builder).getNativeRootBuilder().getNodeState() : builder.getNodeState();
-        
-        NodeState base = ModifiedNodeState.squeeze(rawState);
+        NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
         NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(

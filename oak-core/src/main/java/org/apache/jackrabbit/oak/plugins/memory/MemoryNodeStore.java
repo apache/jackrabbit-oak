@@ -66,7 +66,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
     private final AtomicInteger checkpointCounter = new AtomicInteger();
 
     public MemoryNodeStore(NodeState state) {
-        this.root = new AtomicReference<NodeState>(state);
+        // squeeze node state before it is passed to store (OAK-2411)
+        this.root = new AtomicReference<NodeState>(MemoryNodeState.wrap(state));
     }
 
     public MemoryNodeStore() {
