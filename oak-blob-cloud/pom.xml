@@ -46,15 +46,6 @@
                     </instructions>
                 </configuration>
             </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <includes>
-                        <include>**/cloud/**/TestAll.java</include>
-                        <include>**/cloud/**/TestS3DataStore.java</include>
-                    </includes>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
