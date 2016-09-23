@@ -89,7 +89,6 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
-        // squeeze node state before it is passed to store (OAK-2411)
         NodeState base = builder.getNodeState();
         MemoryNodeStore store = new MemoryNodeStore(base);
 

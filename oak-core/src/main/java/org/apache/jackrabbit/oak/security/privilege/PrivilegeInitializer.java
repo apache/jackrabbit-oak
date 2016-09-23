@@ -53,7 +53,6 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeBuilder privileges = system.child(REP_PRIVILEGES);
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
-            // squeeze node state before it is passed to store (OAK-2411)
             NodeState base = builder.getNodeState();
             NodeStore store = new MemoryNodeStore(base);
             try {
