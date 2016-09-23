@@ -44,44 +44,37 @@ public class StoreArguments {
 
     private static final Logger log = LoggerFactory.getLogger(StoreArguments.class);
 
-    private final MigrationCliArguments parser;
+    private final MigrationOptions options;
 
     private final StoreDescriptor src;
 
     private final StoreDescriptor dst;
 
-    private final DatastoreArguments datastores;
-
     private Boolean srcHasExternalBlobRefs;
 
-    public StoreArguments(MigrationCliArguments parser) throws CliArgumentException {
-        this.parser = parser;
-
-        List<StoreDescriptor> descriptors = createStoreDescriptors(parser.getArguments());
+    public StoreArguments(MigrationOptions options, List<String> arguments) throws CliArgumentException {
+        this.options = options;
+        List<StoreDescriptor> descriptors = createStoreDescriptors(arguments);
 
         src = descriptors.get(0);
         dst = descriptors.get(1);
+    }
 
+    public void logOptions() {
         log.info("Source: {}", src);
         log.info("Destination: {}", dst);
 
         if (dst.getType() == SEGMENT) {
             logSegmentVersion();
         }
-
-        datastores = new DatastoreArguments(parser, this);
     }
 
     public StoreFactory getSrcStore() {
-        return src.getFactory(MigrationDirection.SRC, parser);
+        return src.getFactory(MigrationDirection.SRC, options);
     }
 
     public StoreFactory getDstStore() {
-        return dst.getFactory(MigrationDirection.DST, parser);
-    }
-
-    public DatastoreArguments getDatastores() {
-        return datastores;
+        return dst.getFactory(MigrationDirection.DST, options);
     }
 
     public StoreType getSrcType() {
@@ -111,11 +104,11 @@ public class StoreArguments {
         return src.getPaths();
     }
 
-    boolean srcHasExternalBlobReferences() throws IOException {
+    public boolean srcUsesEmbeddedDatastore() throws IOException {
         if (srcHasExternalBlobRefs == null) {
-            srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, parser).hasExternalBlobReferences();
+            srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, options).hasExternalBlobReferences();
         }
-        return srcHasExternalBlobRefs;
+        return !srcHasExternalBlobRefs;
     }
 
     private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments) throws CliArgumentException {
@@ -250,8 +243,8 @@ public class StoreArguments {
             return type;
         }
 
-        public StoreFactory getFactory(MigrationDirection direction, MigrationCliArguments arguments) {
-            return type.createFactory(paths, direction, arguments);
+        public StoreFactory getFactory(MigrationDirection direction, MigrationOptions options) {
+            return type.createFactory(paths, direction, options);
         }
 
         @Override
