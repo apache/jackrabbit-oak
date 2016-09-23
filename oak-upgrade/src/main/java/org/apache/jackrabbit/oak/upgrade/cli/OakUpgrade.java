@@ -25,8 +25,11 @@ import javax.jcr.RepositoryException;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 
+import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
@@ -35,19 +38,39 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 public class OakUpgrade {
 
     public static void main(String... args) throws IOException {
-        MigrationCliArguments cliArguments = CliUtils.parseOrExit(OptionParserFactory.create(), args);
-        if (cliArguments == null) {
-            return;
+        OptionSet options = OptionParserFactory.create().parse(args);
+        try {
+            MigrationCliArguments cliArguments = new MigrationCliArguments(options);
+            if (cliArguments.hasOption(OptionParserFactory.HELP) || cliArguments.getArguments().isEmpty()) {
+                CliUtils.displayUsage();
+                return;
+            }
+            migrate(cliArguments);
+        } catch(CliArgumentException e) {
+            if (e.getMessage() != null) {
+                System.err.println(e.getMessage());
+            }
+            System.exit(e.getExitCode());
         }
-        migrate(cliArguments);
     }
 
-    public static void migrate(MigrationCliArguments argumentParser) throws IOException {
-        MigrationOptions options = argumentParser.getOptions();
-        StoreArguments stores = argumentParser.getStoreArguments();
+    public static void migrate(MigrationCliArguments argumentParser) throws IOException, CliArgumentException {
+        MigrationOptions options = new MigrationOptions(argumentParser);
+        options.logOptions();
+
+        StoreArguments stores = new StoreArguments(options, argumentParser.getArguments());
+        stores.logOptions();
+
+        boolean srcEmbedded = stores.srcUsesEmbeddedDatastore();
+        DatastoreArguments datastores = new DatastoreArguments(options, stores, srcEmbedded);
+
+        migrate(options, stores, datastores);
+    }
+
+    public static void migrate(MigrationOptions options, StoreArguments stores, DatastoreArguments datastores) throws IOException, CliArgumentException {
         Closer closer = Closer.create();
         CliUtils.handleSigInt(closer);
-        MigrationFactory factory = new MigrationFactory(options, stores, closer);
+        MigrationFactory factory = new MigrationFactory(options, stores, datastores, closer);
         try {
             if (stores.getSrcStore().isJcr2()) {
                 upgrade(factory);
@@ -61,11 +84,11 @@ public class OakUpgrade {
         }
     }
 
-    private static void upgrade(MigrationFactory migrationFactory) throws IOException, RepositoryException {
+    private static void upgrade(MigrationFactory migrationFactory) throws IOException, RepositoryException, CliArgumentException {
         migrationFactory.createUpgrade().copy(createCompositeInitializer());
     }
 
-    private static void sidegrade(MigrationFactory migrationFactory) throws IOException, RepositoryException {
+    private static void sidegrade(MigrationFactory migrationFactory) throws IOException, RepositoryException, CliArgumentException {
         migrationFactory.createSidegrade().copy();
     }
 
