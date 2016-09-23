@@ -23,7 +23,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -34,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.wrap;
 
 /**
  * {@code RepositoryInitializer} that asserts the existence and node type of
@@ -55,7 +56,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
             // squeeze node state before it is passed to store (OAK-2411)
-            NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
+            NodeState base = wrap(builder.getNodeState());
             NodeStore store = new MemoryNodeStore(base);
             try {
                 Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null, null);
