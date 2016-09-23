@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 /**
  * Basic in-memory node state implementation.
  */
-public class MemoryNodeState extends AbstractNodeState {
+class MemoryNodeState extends AbstractNodeState {
 
     private final Map<String, PropertyState> properties;
 
@@ -174,7 +174,7 @@ public class MemoryNodeState extends AbstractNodeState {
         return true;
     }
 
-    public static MemoryNodeState wrap(NodeState state) {
+    static MemoryNodeState wrap(NodeState state) {
         if (state instanceof MemoryNodeState) {
             return (MemoryNodeState) state;
         }

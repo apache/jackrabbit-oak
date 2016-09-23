@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.wrap;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 
@@ -116,7 +115,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         }
 
         // squeeze node state before it is passed to store (OAK-2411)
-        NodeState base = wrap(builder.getNodeState());
+        NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
         NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
