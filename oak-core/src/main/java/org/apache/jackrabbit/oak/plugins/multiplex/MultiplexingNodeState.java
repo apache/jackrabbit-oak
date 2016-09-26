@@ -28,6 +28,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.util.List;
 import java.util.Map;
@@ -172,8 +173,8 @@ public class MultiplexingNodeState extends AbstractNodeState {
                 if (owningStore == mns) {
                     continue;
                 }
-                NodeState contributing = getNodeByPath(rootNodeStates.get(mns), path);
-                NodeState contributingBase = getNodeByPath(multiBase.rootNodeStates.get(mns), path);
+                NodeState contributing = getNode(rootNodeStates.get(mns), path);
+                NodeState contributingBase = getNode(multiBase.rootNodeStates.get(mns), path);
                 full = full && contributing.compareAgainstBaseState(contributingBase, childrenDiffFilter);
             }
             return full;
@@ -215,20 +216,7 @@ public class MultiplexingNodeState extends AbstractNodeState {
         }
         
         checkNotNull(root, "NodeState is null for mount named %s, nodePath %s", mountedNodeStore.getMount().getName(), nodePath);
-
-        return getNodeByPath(root, nodePath);
-    }
-
-    static NodeState getNodeByPath(NodeState root, String path) {
-        NodeState child = root;
-        for (String element : PathUtils.elements(path)) {
-            if (child.hasChildNode(element)) {
-                child = child.getChildNode(element);
-            } else {
-                return MISSING_NODE;
-            }
-        }
-        return child;
+        return getNode(root, nodePath);
     }
 
     private NodeState getWrappedNodeState() {

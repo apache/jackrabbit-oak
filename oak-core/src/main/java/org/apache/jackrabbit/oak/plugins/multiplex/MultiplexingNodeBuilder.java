@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -237,8 +253,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
         getNodeBuilder(owningStore, path).setChildNode(name, nodeState);
         return getChildNode(name);
     }
-    
-    // operations potentially affecting other mounts
+
     @Override
     public boolean remove() {
         return getWrappedNodeBuilder().remove();
@@ -248,8 +263,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     public boolean moveTo(NodeBuilder newParent, String newName) throws IllegalArgumentException {
         return getWrappedNodeBuilder().moveTo(newParent, newName);
     }
-    
-    // blobs
+
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return ctx.createBlob(stream);
@@ -263,11 +277,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     private static NodeBuilder getBuilderByPath(NodeBuilder root, String path) {
         NodeBuilder child = root;
         for (String element : PathUtils.elements(path)) {
-            if (child.hasChildNode(element)) {
-                child = child.getChildNode(element);
-            } else {
-                return MISSING_NODE.builder();
-            }
+            child = child.getChildNode(element);
         }
         return child;
     }
