@@ -33,6 +33,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.compression.SnappyFramedDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.CharsetUtil;
@@ -77,7 +78,7 @@ class StandbyClient implements AutoCloseable {
         final SslContext sslContext;
 
         if (secure) {
-            sslContext = SslContext.newClientContext(InsecureTrustManagerFactory.INSTANCE);
+            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         } else {
             sslContext = null;
         }
