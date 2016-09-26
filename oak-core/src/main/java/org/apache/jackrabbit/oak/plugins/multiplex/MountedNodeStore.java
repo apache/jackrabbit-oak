@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 class MountedNodeStore {
-    
+
     private final Mount mount;
 
     private final NodeStore nodeStore;
@@ -34,11 +34,11 @@ class MountedNodeStore {
         this.mount = mount;
         this.nodeStore = nodeStore;
     }
-    
+
     public Mount getMount() {
         return mount;
     }
-    
+
     public NodeStore getNodeStore() {
         return nodeStore;
     }

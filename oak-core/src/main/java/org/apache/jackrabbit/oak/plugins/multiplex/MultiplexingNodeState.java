@@ -43,10 +43,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import javax.annotation.Nullable;
 
-public class MultiplexingNodeState extends AbstractNodeState {
+class MultiplexingNodeState extends AbstractNodeState {
 
-    // A note on content held by node stores which is outside the mount boundries
+    // A note on content held by node stores which is outside the mount boundaries
     //
     // As a matter of design, mounted stores will definitely hold information _above_ 
     // their mounted, path, e.g. a store mounted at /a/b/c will definitely have nodes
@@ -155,7 +156,8 @@ public class MultiplexingNodeState extends AbstractNodeState {
         return transform(nativeChildren, new Function<ChildNodeEntry, ChildNodeEntry>() {
             @Override
             public ChildNodeEntry apply(ChildNodeEntry input) {
-                return new MemoryChildNodeEntry(input.getName(), wrapChild(input.getNodeState(), input.getName()));
+                NodeState wrapped = wrapChild(input.getNodeState(), input.getName());
+                return new MemoryChildNodeEntry(input.getName(), wrapped);
             }
         });
     }

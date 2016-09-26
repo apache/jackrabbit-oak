@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import javax.annotation.Nullable;
 
-public class MultiplexingNodeBuilder implements NodeBuilder {
+class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final String path;
 
@@ -73,7 +73,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     public NodeState getNodeState() {
         return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), newHashMap(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
-            public NodeState apply(@Nullable NodeBuilder input) {
+            public NodeState apply(NodeBuilder input) {
                 return input.getNodeState();
             }
         })));
@@ -83,7 +83,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     public NodeState getBaseState() {
         return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), newHashMap(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
-            public NodeState apply(@Nullable NodeBuilder input) {
+            public NodeState apply(NodeBuilder input) {
                 return input.getBaseState();
             }
         })));
