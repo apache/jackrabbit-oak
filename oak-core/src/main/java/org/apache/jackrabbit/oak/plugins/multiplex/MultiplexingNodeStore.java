@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Maps.newHashMap;
-import static java.util.Collections.singleton;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -47,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
@@ -69,19 +66,13 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     private static final Splitter CHECKPOINT_SPLITTER = Splitter.on(CHECKPOINT_MARKER);
 
     private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
-    
-    private final MountedNodeStore globalStore;
-
-    private final List<MountedNodeStore> nonDefaultStores;
 
     private final MultiplexingContext ctx;
     
     private final List<Observer> observers = new CopyOnWriteArrayList<>();
     
     private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
-        this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
-        this.nonDefaultStores = ImmutableList.copyOf(nonDefaultStore);
-        this.ctx = new MultiplexingContext(this, mip, this.globalStore, nonDefaultStores);
+        this.ctx = new MultiplexingContext(mip, globalStore, nonDefaultStore);
     }
 
     @Override
@@ -89,7 +80,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // the multiplexed root state exposes the node states as they are
         // at this certain point in time, so we eagerly retrieve them from all stores
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
         }
         return createRootNodeState(nodeStates);
@@ -159,12 +150,12 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
         // since there is no way to infer a path for a blob, we create all blobs in the root store
-        return globalStore.getNodeStore().createBlob(inputStream);
+        return ctx.createBlob(inputStream);
     }
 
     @Override
     public Blob getBlob(String reference) {
-        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
             Blob found = nodeStore.getNodeStore().getBlob(reference);
             if (found != null) {
                 return found;
@@ -178,7 +169,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // This implementation does a best-effort attempt to join all the returned checkpoints
         // In case of failure it bails out
         List<String> checkpoints = Lists.newArrayList();
-        for (MountedNodeStore mountedNodeStore : getAllMountedNodeStores()) {
+        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
             addCheckpoint(mountedNodeStore, lifetime, properties, checkpoints);
         }
         return CHECKPOINT_JOINER.join(checkpoints);
@@ -203,7 +194,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         List<String> checkpoints = splitCheckpoints(checkpoint);
         // since checkpoints are by design kept in sync between the stores
         // it's enough to query one. The root one is the most convenient
-        return globalStore.getNodeStore().checkpointInfo(checkpoints.get(0));
+        return ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoints.get(0));
     }
 
     @Override
@@ -212,7 +203,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         Iterator<String> checkpoints = checkpointList.iterator();
 
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
             NodeState rootState = nodeStore.getNodeStore().retrieve(checkpoints.next());
             if (rootState == null) {
                 return null;
@@ -228,20 +219,16 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         Iterator<String> checkpoints = splitCheckpoints(checkpoint).iterator();
 
         boolean result = true;
-        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
             result &= nodeStore.getNodeStore().release(checkpoints.next());
         }
         
         return result;
     }
 
-    private Iterable<MountedNodeStore> getAllMountedNodeStores() {
-        return concat(singleton(globalStore), nonDefaultStores);
-    }
-
     private List<String> splitCheckpoints(String checkpoint) {
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
-        checkArgument(checkpoints.size() == 1 + nonDefaultStores.size(),
+        checkArgument(checkpoints.size() == ctx.getStoresCount(),
                 "The checkpoint string [%s] splits to a wrong number of sub-checkpoints: %d, expected: %d.",
                 checkpoint, checkpoints.size(), ctx.getStoresCount());
         return checkpoints;

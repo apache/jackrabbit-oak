@@ -19,11 +19,15 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 class MountedNodeStore {
     
     private final Mount mount;
+
     private final NodeStore nodeStore;
     
     public MountedNodeStore(Mount mount, NodeStore nodeStore) {
@@ -37,5 +41,19 @@ class MountedNodeStore {
     
     public NodeStore getNodeStore() {
         return nodeStore;
+    }
+
+    boolean hasChildren(String parentPath, String checkpoint) {
+        // since we can't possibly know if a node matching the
+        // 'oak:mount-*' pattern exists below a given path
+        // we are forced to iterate for each node store
+        NodeState mountedRoot = checkpoint == null ? nodeStore.getRoot() : nodeStore.retrieve(checkpoint);
+        NodeState parent = getNode(mountedRoot, parentPath);
+        for (String childNodeName : parent.getChildNodeNames()) {
+            if (childNodeName.startsWith(getMount().getPathFragmentName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

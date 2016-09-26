@@ -252,7 +252,7 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     // blobs
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        return ctx.getMultiplexingNodeStore().createBlob(stream);
+        return ctx.createBlob(stream);
     }
 
     private NodeBuilder getNodeBuilder(MountedNodeStore nodeStore, String path) {

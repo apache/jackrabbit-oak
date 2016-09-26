@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -26,73 +29,77 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import com.google.common.collect.Lists;
+import static com.google.common.collect.ImmutableMap.copyOf;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.uniqueIndex;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 
 class MultiplexingContext {
-    
-    private final MultiplexingNodeStore multiplexingNodeStore;
-    private final MountInfoProvider mip;
-    private final MountedNodeStore globalStore;
-    private final List<MountedNodeStore> nonDefaultStores;
-    
-    public MultiplexingContext(MultiplexingNodeStore multiplexingNodeStore, MountInfoProvider mip,
-            MountedNodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
-        this.multiplexingNodeStore = multiplexingNodeStore;
-        this.mip = mip;
-        this.globalStore = globalStore;
-        this.nonDefaultStores = nonDefaultStores;
-    }
-    
-    public MountedNodeStore getOwningStore(String path) {
-        
-        Mount mount = mip.getMountByPath(path);
-        
-        if ( globalStore.getMount() == mount ) {
-            return globalStore;
-        }
-        
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if ( mountedNodeStore.getMount() == mount ) {
-                return mountedNodeStore;
-            }
-        }
 
-        throw new IllegalArgumentException("Unable to find an owning store for path " + path);
+    private final MountInfoProvider mip;
+
+    private final MountedNodeStore globalStore;
+
+    private final List<MountedNodeStore> nonDefaultStores;
+
+    private final Map<Mount, MountedNodeStore> nodeStoresByMount;
+    
+    MultiplexingContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
+        this.mip = mip;
+        this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
+        this.nonDefaultStores = nonDefaultStores;
+        this.nodeStoresByMount = copyOf(uniqueIndex(getAllMountedNodeStores(), new Function<MountedNodeStore, Mount>() {
+            @Override
+            public Mount apply(MountedNodeStore input) {
+                return input.getMount();
+            }
+        }));
+    }
+
+    MountedNodeStore getGlobalStore() {
+        return globalStore;
+    }
+
+    MountedNodeStore getOwningStore(String path) {
+        Mount mount = mip.getMountByPath(path);
+        if (nodeStoresByMount.containsKey(mount)) {
+            return nodeStoresByMount.get(mount);
+        } else {
+            throw new IllegalArgumentException("Unable to find an owning store for path " + path);
+        }
     }
     
-    public String getCheckpoint(NodeStore nodeStore, List<String> checkpoints) {
-        
-        if ( nodeStore == globalStore.getNodeStore() ) {
-            return checkpoints.get(0);
-        }
-        
-        for ( int i = 1 ; i < checkpoints.size(); i++ ) {
-            if (nonDefaultStores.get( i -1 ).getNodeStore() == nodeStore ) {
-                return checkpoints.get(i);
+    String getCheckpoint(NodeStore targetNodeStore, List<String> checkpointList) {
+        Iterator<String> checkpoints = checkpointList.iterator();
+        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+            String checkpoint = checkpoints.next();
+            if (nodeStore.getNodeStore() == targetNodeStore) {
+                return checkpoint;
             }
         }
-        
         // 'never' happens
-        throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + nodeStore);
+        throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + targetNodeStore);
     }
     
-    public List<MountedNodeStore> getContributingStores(String path, List<String> checkpoints) {
-        
+    List<MountedNodeStore> getContributingStores(String path, List<String> checkpoints) {
         Mount owningMount = mip.getMountByPath(path);
-        if ( owningMount != null && !owningMount.isDefault() ) {
-            for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-                if ( mountedNodeStore.getMount() == owningMount ) {
-                    return Collections.singletonList(mountedNodeStore);
-                }
+        if (!owningMount.isDefault() && nodeStoresByMount.containsKey(owningMount)) {
+            MountedNodeStore nodeStore = nodeStoresByMount.get(owningMount);
+            if (nodeStore != globalStore) {
+                return singletonList(nodeStore);
             }
         }
 
         // scenario 2 - multiple mounts participate
-        
-        List<MountedNodeStore> mountedStores = Lists.newArrayList();
-        
+        List<MountedNodeStore> mountedStores = newArrayList();
         mountedStores.add(globalStore);
 
         // we need mounts placed exactly one level beneath this path
@@ -100,41 +107,27 @@ class MultiplexingContext {
         
         // query the mounts next
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            
-            if ( mounts.contains(mountedNodeStore.getMount()) ) {
+            if (mounts.contains(mountedNodeStore.getMount())) {
                 mountedStores.add(mountedNodeStore);
             } else {
-                // TODO - suboptimal and also breaks encapsulation
-                //
-                // since we can't possibly know if a node matching the
-                // 'oak:mount-*' pattern exists below a given path
-                // we are forced to iterate for each node store 
-                
-                NodeStore mounted = mountedNodeStore.getNodeStore();
-                NodeState mountedRoot = checkpoints.isEmpty() ? 
-                        mounted.getRoot() : mounted.retrieve(getCheckpoint(mounted, checkpoints));
-                        
-                for ( String segment : PathUtils.elements(path) ) {
-                    mountedRoot = mountedRoot.getChildNode(segment);
-                }
-                
-                for ( String childNodeName : mountedRoot.getChildNodeNames() ) {
-                    if ( childNodeName.startsWith(mountedNodeStore.getMount().getPathFragmentName())) {
-                        mountedStores.add(mountedNodeStore);
-                    }
+                String checkpoint = checkpoints.isEmpty() ? null : getCheckpoint(mountedNodeStore.getNodeStore(), checkpoints);
+                if (mountedNodeStore.hasChildren(path, checkpoint)) {
+                    mountedStores.add(mountedNodeStore);
                 }
             }
         }
         
         return mountedStores;
     }
-    
-    // TODO - expose just the needed methods?
-    public MultiplexingNodeStore getMultiplexingNodeStore() {
-        return multiplexingNodeStore;
+
+    Iterable<MountedNodeStore> getAllMountedNodeStores() {
+        return concat(singleton(globalStore), nonDefaultStores);
     }
-    
-    // exposed for internal consistency checks
+
+    Blob createBlob(InputStream inputStream) throws IOException {
+        return globalStore.getNodeStore().createBlob(inputStream);
+    }
+
     int getStoresCount() {
         return nonDefaultStores.size() + 1;
     }
