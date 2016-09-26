@@ -24,8 +24,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -47,19 +47,19 @@ public class FailoverSslTestIT extends TestBase {
     public void testFailoverSecure() throws Exception {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServer server = new StandbyServer(port, storeS, true);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, true);
+        serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbySync cl = newStandbySync(storeC, port, true);
-        cl.run();
+        StandbyClientSync clientSync = newStandbyClientSync(storeC, port, true);
+        clientSync.run();
 
         try {
             assertEquals(storeS.getHead(), storeC.getHead());
         } finally {
-            server.close();
-            cl.close();
+            serverSync.close();
+            clientSync.close();
         }
     }
 
@@ -67,19 +67,19 @@ public class FailoverSslTestIT extends TestBase {
     public void testFailoverSecureServerPlainClient() throws Exception {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServer server = new StandbyServer(port, storeS, true);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, true);
+        serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbySync cl = newStandbySync(storeC);
-        cl.run();
+        StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        clientSync.run();
 
         try {
             assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
         } finally {
-            server.close();
-            cl.close();
+            serverSync.close();
+            clientSync.close();
         }
     }
 
@@ -87,19 +87,19 @@ public class FailoverSslTestIT extends TestBase {
     public void testFailoverPlainServerSecureClient() throws Exception {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServer server = new StandbyServer(port, storeS);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS);
+        serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbySync cl = newStandbySync(storeC, port, true);
-        cl.run();
+        StandbyClientSync clientSync = newStandbyClientSync(storeC, port, true);
+        clientSync.run();
 
         try {
             assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
         } finally {
-            server.close();
-            cl.close();
+            serverSync.close();
+            clientSync.close();
         }
     }
 }

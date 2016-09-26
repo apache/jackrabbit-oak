@@ -25,8 +25,8 @@ import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -121,13 +121,13 @@ public class BrokenNetworkTest extends TestBase {
         p.run();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServer server = new StandbyServer(port, storeS, ssl);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, ssl);
+        serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbySync cl = newStandbySync(storeC, proxyPort, ssl);
-        cl.run();
+        StandbyClientSync clientSync = newStandbyClientSync(storeC, proxyPort, ssl);
+        clientSync.run();
 
         try {
             if (skipBytes > 0 || flipPosition >= 0) {
@@ -139,12 +139,12 @@ public class BrokenNetworkTest extends TestBase {
                     addTestContent(store, "server2");
                     storeS.flush();
                 }
-                cl.run();
+                clientSync.run();
             }
             assertEquals(storeS.getHead(), storeC.getHead());
         } finally {
-            server.close();
-            cl.close();
+            serverSync.close();
+            clientSync.close();
             p.close();
         }
     }
