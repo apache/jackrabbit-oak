@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public class MultiplexingMemoryFixture extends NodeStoreFixture {
 
     private static final String MOUNT_PATH = "/tmp";
-    
+
     @Override
     public NodeStore createNodeStore() {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
@@ -38,7 +38,7 @@ public class MultiplexingMemoryFixture extends NodeStoreFixture {
 
         return new MultiplexingNodeStore.Builder(mip, globalStore).addMount("temp", tempMount).build();
     }
-    
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + " with a mount under " + MOUNT_PATH;

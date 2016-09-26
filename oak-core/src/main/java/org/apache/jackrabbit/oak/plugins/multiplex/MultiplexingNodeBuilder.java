@@ -59,14 +59,14 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         this.ctx = ctx;
         this.rootBuilders = rootBuilders;
         this.checkpoints = checkpoints;
-        
+
         checkArgument(rootBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", rootBuilders.size(), ctx.getStoresCount());
     }
-    
+
     Map<MountedNodeStore, NodeBuilder> getRootBuilders() {
         return rootBuilders;
     }
-    
+
     String getPath() {
         return path;
     }
@@ -90,7 +90,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
             }
         })));
     }
-    
+
     // node or property-related methods ; directly delegate to wrapped builder
 
     @Override
@@ -186,7 +186,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         getWrappedNodeBuilder().removeProperty(name);
         return this;
     }
-    
+
     // child-related methods, require multiplexing
     @Override
     public long getChildNodeCount(long max) {

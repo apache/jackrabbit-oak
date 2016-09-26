@@ -52,15 +52,15 @@ import com.google.common.collect.Lists;
  * mounted under paths defined by {@link MountInfo}.
  */
 public class MultiplexingNodeStore implements NodeStore, Observable {
-    
+
     // TODO - define concurrency model
     //
-    // This implementation operates on multiple mounted stores and is generally expected to be 
+    // This implementation operates on multiple mounted stores and is generally expected to be
     // thread safe. From a publication point of view this is achieved. It is up for debate
     // whether we need to make operations atomic, or rely on the internal consistency of the
     // mounted repositories. It's possible that there is some unfortunate interleaving of
     // operations which would ultimately require us to have some sort of global ordering.
-    
+
     private static final char CHECKPOINT_MARKER = '|';
 
     private static final Splitter CHECKPOINT_SPLITTER = Splitter.on(CHECKPOINT_MARKER);
@@ -68,9 +68,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
 
     private final MultiplexingContext ctx;
-    
+
     private final List<Observer> observers = new CopyOnWriteArrayList<>();
-    
+
     private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
         this.ctx = new MultiplexingContext(mip, globalStore, nonDefaultStore);
     }
@@ -89,7 +89,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     @Override
     public NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
-        
+
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         // since we maintain a mapping of _root_ NodeBuilder instances for all mounted stores
         // we need to check ourselves against merging a non-root node
@@ -174,12 +174,12 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         }
         return CHECKPOINT_JOINER.join(checkpoints);
     }
-    
+
     private void addCheckpoint(MountedNodeStore store, long lifetime, Map<String, String> properties, List<String> accumulator) {
         NodeStore nodeStore = store.getNodeStore();
         String checkpoint = nodeStore.checkpoint(lifetime, properties);
         checkArgument(checkpoint.indexOf(CHECKPOINT_MARKER) == -1,
-                "Checkpoint %s created by NodeStore %s mounted at %s contains the invalid entry %s. Unable to add checkpoint.", 
+                "Checkpoint %s created by NodeStore %s mounted at %s contains the invalid entry %s. Unable to add checkpoint.",
                 checkpoint, nodeStore, store.getMount().getName(), CHECKPOINT_MARKER);
         accumulator.add(checkpoint);
     }
@@ -222,7 +222,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
             result &= nodeStore.getNodeStore().release(checkpoints.next());
         }
-        
+
         return result;
     }
 
@@ -245,20 +245,20 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             }
         };
     }
-    
+
     public static class Builder {
-        
+
         private final MountInfoProvider mip;
 
         private final NodeStore globalStore;
-        
+
         private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
 
         public Builder(MountInfoProvider mip, NodeStore globalStore) {
             this.mip = checkNotNull(mip, "mountInfoProvider");
             this.globalStore = checkNotNull(globalStore, "globalStore");
         }
-        
+
         public Builder addMount(String mountName, NodeStore store) {
             checkNotNull(store, "store");
             checkNotNull(mountName, "mountName");
@@ -267,11 +267,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             nonDefaultStores.add(new MountedNodeStore(mount, store));
             return this;
         }
-        
+
         public MultiplexingNodeStore build() {
             int buildMountCount = nonDefaultStores.size();
             int mipMountCount = mip.getNonDefaultMounts().size();
-            checkArgument(buildMountCount == mipMountCount, 
+            checkArgument(buildMountCount == mipMountCount,
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
             return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);

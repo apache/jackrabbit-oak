@@ -49,17 +49,17 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     // A note on content held by node stores which is outside the mount boundaries
     //
-    // As a matter of design, mounted stores will definitely hold information _above_ 
+    // As a matter of design, mounted stores will definitely hold information _above_
     // their mounted, path, e.g. a store mounted at /a/b/c will definitely have nodes
     // /a and /a/b, which will not be visible through the multiplexing node store.
     //
-    // If a node store holds information _below_ a path which belongs to another 
-    // repository, the multiplexing node store will not consider that information. 
-    // 
+    // If a node store holds information _below_ a path which belongs to another
+    // repository, the multiplexing node store will not consider that information.
+    //
     // For instance, with a node store mounted at /libs and the root store
     // having a node at /libs/food, both the /libs and /libs/foo nodes from
     // the root store will be ignored
-    
+
     private final String path;
 
     private final MultiplexingContext ctx;
@@ -85,7 +85,7 @@ class MultiplexingNodeState extends AbstractNodeState {
     public boolean exists() {
         return getWrappedNodeState().exists();
     }
-    
+
     // delegate all property access to wrapped node
     @Override
     public boolean hasProperty(String name) {
@@ -108,7 +108,7 @@ class MultiplexingNodeState extends AbstractNodeState {
     }
 
     // child node operations
-    
+
     @Override
     public boolean hasChildNode(String name) {
         String childPath = PathUtils.concat(path, name);
@@ -122,7 +122,7 @@ class MultiplexingNodeState extends AbstractNodeState {
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
         return wrapChild(getNodeState(mountedStore, childPath), name);
     }
-    
+
     @Override
     public long getChildNodeCount(long max) {
         long count = 0;
@@ -141,7 +141,7 @@ class MultiplexingNodeState extends AbstractNodeState {
             }
             count += mountCount;
         }
-        
+
         return count;
     }
 
@@ -216,7 +216,7 @@ class MultiplexingNodeState extends AbstractNodeState {
             NodeStore nodeStore = mountedNodeStore.getNodeStore();
             root = nodeStore.retrieve(ctx.getCheckpoint(nodeStore, checkpoints));
         }
-        
+
         checkNotNull(root, "NodeState is null for mount named %s, nodePath %s", mountedNodeStore.getMount().getName(), nodePath);
         return getNode(root, nodePath);
     }

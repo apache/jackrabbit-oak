@@ -29,7 +29,7 @@ class MountedNodeStore {
     private final Mount mount;
 
     private final NodeStore nodeStore;
-    
+
     public MountedNodeStore(Mount mount, NodeStore nodeStore) {
         this.mount = mount;
         this.nodeStore = nodeStore;

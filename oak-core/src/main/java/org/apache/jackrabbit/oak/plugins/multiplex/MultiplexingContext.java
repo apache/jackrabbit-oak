@@ -51,7 +51,7 @@ class MultiplexingContext {
     private final List<MountedNodeStore> nonDefaultStores;
 
     private final Map<Mount, MountedNodeStore> nodeStoresByMount;
-    
+
     MultiplexingContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
@@ -76,7 +76,7 @@ class MultiplexingContext {
             throw new IllegalArgumentException("Unable to find an owning store for path " + path);
         }
     }
-    
+
     String getCheckpoint(NodeStore targetNodeStore, List<String> checkpointList) {
         Iterator<String> checkpoints = checkpointList.iterator();
         for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
@@ -88,7 +88,7 @@ class MultiplexingContext {
         // 'never' happens
         throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + targetNodeStore);
     }
-    
+
     List<MountedNodeStore> getContributingStores(String path, List<String> checkpoints) {
         Mount owningMount = mip.getMountByPath(path);
         if (!owningMount.isDefault() && nodeStoresByMount.containsKey(owningMount)) {
@@ -104,7 +104,7 @@ class MultiplexingContext {
 
         // we need mounts placed exactly one level beneath this path
         Collection<Mount> mounts = mip.getMountsPlacedDirectlyUnder(path);
-        
+
         // query the mounts next
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
             if (mounts.contains(mountedNodeStore.getMount())) {
@@ -116,7 +116,7 @@ class MultiplexingContext {
                 }
             }
         }
-        
+
         return mountedStores;
     }
 
