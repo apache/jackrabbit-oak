@@ -30,9 +30,9 @@ import java.util.Set;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +51,8 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testServerEmptyConfig() throws Exception {
-        final StandbyServer server = new StandbyServer(TestBase.port, this.storeS);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(TestBase.port, this.storeS);
+        serverSync.start();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
@@ -60,7 +60,7 @@ public class MBeanTest extends TestBase {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
             assertEquals(1, instances.size());
             status = instances.toArray(new ObjectName[0])[0];
-            assertEquals(new ObjectName(server.getMBeanName()), status);
+            assertEquals(new ObjectName(serverSync.getMBeanName()), status);
             assertTrue(jmxServer.isRegistered(status));
 
             assertEquals("primary", jmxServer.getAttribute(status, "Mode"));
@@ -78,7 +78,7 @@ public class MBeanTest extends TestBase {
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
             assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
         } finally {
-            server.close();
+            serverSync.close();
         }
 
         assertTrue(!jmxServer.isRegistered(status));
@@ -86,9 +86,9 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientEmptyConfigNoServer() throws Exception {
-        final StandbySync client = newStandbySync(storeC);
-        client.start();
-        client.run();
+        final StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        clientSync.start();
+        clientSync.run();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
@@ -96,7 +96,7 @@ public class MBeanTest extends TestBase {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
             assertEquals(1, instances.size());
             status = instances.toArray(new ObjectName[0])[0];
-            assertEquals(new ObjectName(client.getMBeanName()), status);
+            assertEquals(new ObjectName(clientSync.getMBeanName()), status);
             assertTrue(jmxServer.isRegistered(status));
 
             String m = jmxServer.getAttribute(status, "Mode").toString();
@@ -115,7 +115,7 @@ public class MBeanTest extends TestBase {
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
             assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
         } finally {
-            client.close();
+            clientSync.close();
         }
 
         assertTrue(!jmxServer.isRegistered(status));
@@ -123,13 +123,13 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientNoServer() throws Exception {
-        System.setProperty(StandbySync.CLIENT_ID_PROPERTY_NAME, "Foo");
-        final StandbySync client = newStandbySync(storeC);
-        client.start();
-        client.run();
+        System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Foo");
+        final StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        clientSync.start();
+        clientSync.run();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
-        ObjectName status = new ObjectName(client.getMBeanName());
+        ObjectName status = new ObjectName(clientSync.getMBeanName());
         try {
             assertTrue(jmxServer.isRegistered(status));
             assertEquals("client: Foo", jmxServer.getAttribute(status, "Mode"));
@@ -140,7 +140,7 @@ public class MBeanTest extends TestBase {
             assertEquals("1", jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
             assertEquals("-1", jmxServer.invoke(status, "calcSecondsSinceLastSuccess", null, null).toString());
         } finally {
-            client.close();
+            clientSync.close();
         }
 
         assertTrue(!jmxServer.isRegistered(status));
@@ -148,18 +148,18 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientAndServerEmptyConfig() throws Exception {
-        final StandbyServer server = new StandbyServer(port, this.storeS);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, this.storeS);
+        serverSync.start();
 
-        System.setProperty(StandbySync.CLIENT_ID_PROPERTY_NAME, "Bar");
-        final StandbySync client = newStandbySync(storeC);
-        client.start();
-        client.run();
+        System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Bar");
+        final StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        clientSync.start();
+        clientSync.run();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
-        ObjectName clientStatus = new ObjectName(client.getMBeanName());
-        ObjectName serverStatus = new ObjectName(server.getMBeanName());
+        ObjectName clientStatus = new ObjectName(clientSync.getMBeanName());
+        ObjectName serverStatus = new ObjectName(serverSync.getMBeanName());
         try {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
             assertEquals(3, instances.size());
@@ -224,8 +224,8 @@ public class MBeanTest extends TestBase {
             assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(clientStatus, "Status"));
 
         } finally {
-            client.close();
-            server.close();
+            clientSync.close();
+            serverSync.close();
         }
 
         assertTrue(!jmxServer.isRegistered(clientStatus));

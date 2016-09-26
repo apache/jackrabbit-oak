@@ -30,7 +30,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -149,16 +149,16 @@ public class TestBase {
         return timeout;
     }
 
-    public StandbySync newStandbySync(FileStore store) throws Exception {
-        return newStandbySync(store, port, false);
+    public StandbyClientSync newStandbyClientSync(FileStore store) throws Exception {
+        return newStandbyClientSync(store, port, false);
     }
 
-    public StandbySync newStandbySync(FileStore store, int port) throws Exception {
-        return newStandbySync(store, port, false);
+    public StandbyClientSync newStandbyClientSync(FileStore store, int port) throws Exception {
+        return newStandbyClientSync(store, port, false);
     }
 
-    public StandbySync newStandbySync(FileStore store, int port, boolean secure) throws Exception {
-        return new StandbySync(LOCALHOST, port, store, secure, timeout, false);
+    public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure) throws Exception {
+        return new StandbyClientSync(LOCALHOST, port, store, secure, timeout, false);
     }
 
 }

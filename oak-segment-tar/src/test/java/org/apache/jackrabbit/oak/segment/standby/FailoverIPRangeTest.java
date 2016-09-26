@@ -24,8 +24,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -141,13 +141,13 @@ public class FailoverIPRangeTest extends TestBase {
 
     private void createTestWithConfig(String host, String[] ipRanges, boolean expectedToWork) throws Exception {
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServer server = new StandbyServer(port, storeS, ipRanges);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, ipRanges);
+        serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbySync cl = new StandbySync(host, port, storeC, false, timeout, false);
-        cl.run();
+        StandbyClientSync clientSync = new StandbyClientSync(host, port, storeC, false, timeout, false);
+        clientSync.run();
 
         try {
             if (expectedToWork) {
@@ -157,8 +157,8 @@ public class FailoverIPRangeTest extends TestBase {
                 assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
             }
         } finally {
-            server.close();
-            cl.close();
+            serverSync.close();
+            clientSync.close();
         }
 
     }

@@ -27,9 +27,9 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -91,19 +91,19 @@ public class BulkTransferBenchmark extends BenchmarkBase {
         store.merge(rootbuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         storeS.flush();
 
-        final StandbyServer server = new StandbyServer(port, storeS, useSSL);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, useSSL);
+        serverSync.start();
 
-        System.setProperty(StandbySync.CLIENT_ID_PROPERTY_NAME, "Bar");
-        StandbySync cl = newStandbyClient(storeC, port, useSSL);
+        System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Bar");
+        StandbyClientSync clientSync = newStandbyClientSync(storeC, port, useSSL);
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
-        ObjectName clientStatus = new ObjectName(cl.getMBeanName());
-        ObjectName serverStatus = new ObjectName(server.getMBeanName());
+        ObjectName clientStatus = new ObjectName(clientSync.getMBeanName());
+        ObjectName serverStatus = new ObjectName(serverSync.getMBeanName());
 
         long start = System.currentTimeMillis();
-        cl.run();
+        clientSync.run();
 
         try {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
@@ -118,8 +118,8 @@ public class BulkTransferBenchmark extends BenchmarkBase {
 
             System.out.println("did transfer " + segments + " segments with " + bytes + " bytes in " + (System.currentTimeMillis() - start) / 1000 + " seconds.");
         } finally {
-            server.close();
-            cl.close();
+            serverSync.close();
+            clientSync.close();
         }
     }
     
