@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Collections.singleton;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -43,14 +46,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
- * A <tt>NodeStore</tt> implementation that multiplexes multiple <tt>MemoryNodeStore</tt> instances
- *
+ * A {@link NodeStore} implementation that multiplexes other {@link NodeStore} instances
+ * mounted under paths defined by {@link MountInfo}.
  */
 public class MultiplexingNodeStore implements NodeStore, Observable {
     
@@ -69,6 +71,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
     
     private final MountedNodeStore globalStore;
+
     private final List<MountedNodeStore> nonDefaultStores;
 
     private final MultiplexingContext ctx;
@@ -76,30 +79,20 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     private final List<Observer> observers = new CopyOnWriteArrayList<>();
     
     private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
-
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
         this.nonDefaultStores = ImmutableList.copyOf(nonDefaultStore);
-        
         this.ctx = new MultiplexingContext(this, mip, this.globalStore, nonDefaultStores);
     }
 
     @Override
     public NodeState getRoot() {
-        
         // the multiplexed root state exposes the node states as they are
         // at this certain point in time, so we eagerly retrieve them from all stores
-        
-        // register the initial builder as affected as it's already instantiated
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-        MountedNodeStore owningStore = ctx.getOwningStore("/");
-        NodeState rootState = owningStore.getNodeStore().getRoot();
-        nodeStates.put(owningStore, rootState);
-
-        for (MountedNodeStore nodeStore : nonDefaultStores) {
+        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
         }
-
-        return new MultiplexingNodeState("/", ctx, Collections.<String>emptyList(), nodeStates);
+        return createRootNodeState(nodeStates);
     }
 
     @Override
@@ -107,7 +100,6 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
         
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-
         // since we maintain a mapping of _root_ NodeBuilder instances for all mounted stores
         // we need to check ourselves against merging a non-root node
         checkArgument(nodeBuilder.getPath().equals("/"));
@@ -115,13 +107,15 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
         processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
 
+        Map<MountedNodeStore, NodeState> resultStates = newHashMap();
         for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
             NodeStore nodeStore = e.getKey().getNodeStore();
             NodeBuilder rootBuilder = e.getValue();
-            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, info);
+            NodeState result = nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, info);
+            resultStates.put(e.getKey(), result);
         }
-        
-        NodeState newRoot = getRoot();
+        MultiplexingNodeState newRoot = createRootNodeState(resultStates);
+
         for (Observer observer : observers) {
             observer.contentChanged(newRoot, info);
         }
@@ -131,80 +125,71 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     @Override
     public NodeState rebase(NodeBuilder builder) {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
+
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
+        Map<MountedNodeStore, NodeState> resultStates = newHashMap();
         for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
             NodeStore nodeStore = e.getKey().getNodeStore();
             NodeBuilder affectedBuilder = e.getValue();
-            nodeStore.rebase(affectedBuilder);
+            NodeState result = nodeStore.rebase(affectedBuilder);
+            resultStates.put(e.getKey(), result);
         }
-        return nodeBuilder.getNodeState();
+        return createRootNodeState(resultStates);
     }
 
     @Override
     public NodeState reset(NodeBuilder builder) {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
-        
+
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-        
-        for ( Map.Entry<MountedNodeStore, NodeBuilder> affectedBuilderEntry : nodeBuilder.getRootBuilders().entrySet() ) {
-            
-            NodeStore nodeStore = affectedBuilderEntry.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = affectedBuilderEntry.getValue();
-            
-            nodeStore.reset(affectedBuilder);
+        Map<MountedNodeStore, NodeState> resultStates = newHashMap();
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet()) {
+            NodeStore nodeStore = e.getKey().getNodeStore();
+            NodeBuilder affectedBuilder = e.getValue();
+            NodeState result = nodeStore.reset(affectedBuilder);
+            resultStates.put(e.getKey(), result);
         }
-        
-        // TODO - is this correct or do we need a specific path?
-        return getRoot();
+        return createRootNodeState(resultStates);
+    }
+
+    private MultiplexingNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {
+        return new MultiplexingNodeState("/", ctx, Collections.<String>emptyList(), rootStates);
     }
 
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
-        
         // since there is no way to infer a path for a blob, we create all blobs in the root store
         return globalStore.getNodeStore().createBlob(inputStream);
     }
 
     @Override
     public Blob getBlob(String reference) {
-        // blobs are searched in all stores
-        Blob found = globalStore.getNodeStore().getBlob(reference);
-        if ( found != null ) {
-            return found;
-        }
-        
-        for ( MountedNodeStore nodeStore : nonDefaultStores ) {
-            found = nodeStore.getNodeStore().getBlob(reference);
-            if ( found != null ) {
+        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+            Blob found = nodeStore.getNodeStore().getBlob(reference);
+            if (found != null) {
                 return found;
             }
         }
-        
         return null;
     }
 
     @Override
     public String checkpoint(long lifetime, Map<String, String> properties) {
-        
         // This implementation does a best-effort attempt to join all the returned checkpoints
         // In case of failure it bails out
         List<String> checkpoints = Lists.newArrayList();
-        addCheckpoint(globalStore, lifetime, properties, checkpoints);
-        for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
+        for (MountedNodeStore mountedNodeStore : getAllMountedNodeStores()) {
             addCheckpoint(mountedNodeStore, lifetime, properties, checkpoints);
         }
-        
         return CHECKPOINT_JOINER.join(checkpoints);
     }
     
     private void addCheckpoint(MountedNodeStore store, long lifetime, Map<String, String> properties, List<String> accumulator) {
-        
         NodeStore nodeStore = store.getNodeStore();
         String checkpoint = nodeStore.checkpoint(lifetime, properties);
-        Preconditions.checkArgument(checkpoint.indexOf(CHECKPOINT_MARKER) == -1, 
+        checkArgument(checkpoint.indexOf(CHECKPOINT_MARKER) == -1,
                 "Checkpoint %s created by NodeStore %s mounted at %s contains the invalid entry %s. Unable to add checkpoint.", 
-                checkpoint, nodeStore, store.getMount().getName(), CHECKPOINT_MARKER );
-        
+                checkpoint, nodeStore, store.getMount().getName(), CHECKPOINT_MARKER);
         accumulator.add(checkpoint);
     }
 
@@ -215,59 +200,57 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
-        
-        // TODO - proper validation of checkpoints size compared to mounts
-        Iterable<String> checkpoints = CHECKPOINT_SPLITTER.split(checkpoint);
-        
+        List<String> checkpoints = splitCheckpoints(checkpoint);
         // since checkpoints are by design kept in sync between the stores
         // it's enough to query one. The root one is the most convenient
-        return globalStore.getNodeStore().checkpointInfo(checkpoints.iterator().next());
+        return globalStore.getNodeStore().checkpointInfo(checkpoints.get(0));
     }
 
     @Override
     public NodeState retrieve(String checkpoint) {
-        // TODO - proper validation of checkpoints size compared to mounts
-        List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
+        List<String> checkpointList = splitCheckpoints(checkpoint);
+        Iterator<String> checkpoints = checkpointList.iterator();
+
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-
-        // global store is always first
-        NodeState globalStoreNodeState = globalStore.getNodeStore().retrieve(checkpoints.get(0));
-        if (globalStoreNodeState == null) {
-            return null;
+        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+            NodeState rootState = nodeStore.getNodeStore().retrieve(checkpoints.next());
+            if (rootState == null) {
+                return null;
+            }
+            nodeStates.put(nodeStore, rootState);
         }
-        nodeStates.put(globalStore, globalStoreNodeState);
 
-        int i = 1;
-        for (MountedNodeStore ns : nonDefaultStores) {
-            NodeState root = ns.getNodeStore().retrieve(checkpoints.get(i++));
-            nodeStates.put(ns, root);
-        }
-        
-        return new MultiplexingNodeState("/", ctx, checkpoints, nodeStates);
+        return new MultiplexingNodeState("/", ctx, checkpointList, nodeStates);
     }
 
     @Override
     public boolean release(String checkpoint) {
-        
-        boolean result = true;
-        // TODO - proper validation of checkpoints size compared to mounts
-        List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
+        Iterator<String> checkpoints = splitCheckpoints(checkpoint).iterator();
 
-        result &= globalStore.getNodeStore().release(checkpoints.get(0));
-        
-        for ( int i = 0 ; i < nonDefaultStores.size(); i++ ) {
-            result &= nonDefaultStores.get(i).getNodeStore().release(checkpoints.get(i + 1));
+        boolean result = true;
+        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
+            result &= nodeStore.getNodeStore().release(checkpoints.next());
         }
         
         return result;
     }
-    
+
+    private Iterable<MountedNodeStore> getAllMountedNodeStores() {
+        return concat(singleton(globalStore), nonDefaultStores);
+    }
+
+    private List<String> splitCheckpoints(String checkpoint) {
+        List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
+        checkArgument(checkpoints.size() == 1 + nonDefaultStores.size(),
+                "The checkpoint string [%s] splits to a wrong number of sub-checkpoints: %d, expected: %d.",
+                checkpoint, checkpoints.size(), ctx.getStoresCount());
+        return checkpoints;
+    }
+
+    @Override
     public Closeable addObserver(final Observer observer) {
-        
         observer.contentChanged(getRoot(), null);
-        
         observers.add(observer);
-        
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -279,6 +262,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     public static class Builder {
         
         private final MountInfoProvider mip;
+
         private final NodeStore globalStore;
         
         private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
@@ -289,25 +273,20 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         }
         
         public Builder addMount(String mountName, NodeStore store) {
-            
             checkNotNull(store, "store");
             checkNotNull(mountName, "mountName");
 
             Mount mount = checkNotNull(mip.getMountByName(mountName), "No mount with name %s found in %s", mountName, mip);
-            
             nonDefaultStores.add(new MountedNodeStore(mount, store));
-            
             return this;
         }
         
         public MultiplexingNodeStore build() {
-            
             int buildMountCount = nonDefaultStores.size();
             int mipMountCount = mip.getNonDefaultMounts().size();
             checkArgument(buildMountCount == mipMountCount, 
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
-            
             return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);
         }
     }
