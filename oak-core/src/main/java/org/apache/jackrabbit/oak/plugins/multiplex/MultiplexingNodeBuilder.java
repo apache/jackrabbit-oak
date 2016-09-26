@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeState.getNodeByPath;
@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeState.
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Function;
@@ -41,8 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import javax.annotation.Nullable;
-
 class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final String path;
@@ -51,27 +50,30 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final Map<MountedNodeStore, NodeBuilder> rootBuilders;
 
+    private final List<String> checkpoints;
+
     private NodeBuilder wrappedNodeBuilder;
 
-    public MultiplexingNodeBuilder(String path, MultiplexingContext ctx, Map<MountedNodeStore, NodeBuilder> rootBuilders) {
+    MultiplexingNodeBuilder(String path, MultiplexingContext ctx, List<String> checkpoints, Map<MountedNodeStore, NodeBuilder> rootBuilders) {
         this.path = path;
         this.ctx = ctx;
         this.rootBuilders = rootBuilders;
+        this.checkpoints = checkpoints;
         
         checkArgument(rootBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", rootBuilders.size(), ctx.getStoresCount());
     }
     
-    public Map<MountedNodeStore, NodeBuilder> getRootBuilders() {
+    Map<MountedNodeStore, NodeBuilder> getRootBuilders() {
         return rootBuilders;
     }
     
-    public String getPath() {
+    String getPath() {
         return path;
     }
 
     @Override
     public NodeState getNodeState() {
-        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), newHashMap(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
+        return new MultiplexingNodeState(path, ctx, checkpoints, copyOf(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
                 return input.getNodeState();
@@ -81,7 +83,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getBaseState() {
-        return new MultiplexingNodeState(path, ctx, Collections.<String>emptyList(), newHashMap(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
+        return new MultiplexingNodeState(path, ctx, checkpoints, copyOf(transformValues(rootBuilders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
                 return input.getBaseState();
@@ -233,12 +235,12 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         for (String element : PathUtils.elements(childPath)) {
             builder = builder.child(element);
         }
-        return new MultiplexingNodeBuilder(childPath, ctx, rootBuilders);
+        return wrapChild(builder, name);
     }
 
     @Override
-    public NodeBuilder getChildNode(String name) throws IllegalArgumentException {
-        return new MultiplexingNodeBuilder(PathUtils.concat(path, name), ctx, rootBuilders);
+    public MultiplexingNodeBuilder getChildNode(String name) throws IllegalArgumentException {
+        return new MultiplexingNodeBuilder(PathUtils.concat(path, name), ctx, checkpoints, rootBuilders);
     }
 
     @Override
@@ -250,8 +252,14 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     public NodeBuilder setChildNode(String name, NodeState nodeState) throws IllegalArgumentException {
         String childPath = PathUtils.concat(path, name);
         MountedNodeStore owningStore = ctx.getOwningStore(childPath);
-        getNodeBuilder(owningStore, path).setChildNode(name, nodeState);
-        return getChildNode(name);
+        NodeBuilder builder = getNodeBuilder(owningStore, path).setChildNode(name, nodeState);
+        return wrapChild(builder, name);
+    }
+
+    private NodeBuilder wrapChild(NodeBuilder builder, String name) {
+        MultiplexingNodeBuilder child = getChildNode(name);
+        child.wrappedNodeBuilder = builder;
+        return child;
     }
 
     @Override

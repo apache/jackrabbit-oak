@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.compose;
+import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
@@ -70,7 +70,7 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     private NodeState wrappedNodeState;
 
-    public MultiplexingNodeState(String path, MultiplexingContext ctx, List<String> checkpoints, Map<MountedNodeStore, NodeState> nodeStates) {
+    MultiplexingNodeState(String path, MultiplexingContext ctx, List<String> checkpoints, Map<MountedNodeStore, NodeState> nodeStates) {
         this.path = path;
         this.ctx = ctx;
         this.checkpoints = checkpoints;
@@ -188,13 +188,13 @@ class MultiplexingNodeState extends AbstractNodeState {
     // write operations
     @Override
     public NodeBuilder builder() {
-        Map<MountedNodeStore, NodeBuilder> rootBuilders = newHashMap(transformValues(rootNodeStates, new Function<NodeState, NodeBuilder>() {
+        Map<MountedNodeStore, NodeBuilder> rootBuilders = copyOf(transformValues(rootNodeStates, new Function<NodeState, NodeBuilder>() {
             @Override
             public NodeBuilder apply(NodeState input) {
                 return input.builder();
             }
         }));
-        return new MultiplexingNodeBuilder(path, ctx, rootBuilders);
+        return new MultiplexingNodeBuilder(path, ctx, checkpoints, rootBuilders);
     }
 
     // helper methods
