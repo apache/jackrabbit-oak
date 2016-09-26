@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Collections.emptyMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -46,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link NodeStore} implementation that multiplexes other {@link NodeStore} instances
@@ -60,6 +63,8 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     // whether we need to make operations atomic, or rely on the internal consistency of the
     // mounted repositories. It's possible that there is some unfortunate interleaving of
     // operations which would ultimately require us to have some sort of global ordering.
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private static final char CHECKPOINT_MARKER = '|';
 
@@ -192,6 +197,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
         List<String> checkpoints = splitCheckpoints(checkpoint);
+        if (checkpoints == null) {
+            return emptyMap();
+        }
         // since checkpoints are by design kept in sync between the stores
         // it's enough to query one. The root one is the most convenient
         return ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoints.get(0));
@@ -200,6 +208,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     @Override
     public NodeState retrieve(String checkpoint) {
         List<String> checkpointList = splitCheckpoints(checkpoint);
+        if (checkpointList == null) {
+            return null;
+        }
         Iterator<String> checkpoints = checkpointList.iterator();
 
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
@@ -216,7 +227,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     @Override
     public boolean release(String checkpoint) {
-        Iterator<String> checkpoints = splitCheckpoints(checkpoint).iterator();
+        List<String> checkpointList = splitCheckpoints(checkpoint);
+        if (checkpointList == null) {
+            return false;
+        }
+        Iterator<String> checkpoints = checkpointList.iterator();
 
         boolean result = true;
         for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
@@ -228,10 +243,12 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     private List<String> splitCheckpoints(String checkpoint) {
         List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
-        checkArgument(checkpoints.size() == ctx.getStoresCount(),
-                "The checkpoint string [%s] splits to a wrong number of sub-checkpoints: %d, expected: %d.",
-                checkpoint, checkpoints.size(), ctx.getStoresCount());
-        return checkpoints;
+        if (checkpoints.size() == ctx.getStoresCount()) {
+            return checkpoints;
+        } else {
+            log.debug("Illegal checkpoint string: [{}] for {} node stores", checkpoint, ctx.getStoresCount());
+            return null;
+        }
     }
 
     @Override
