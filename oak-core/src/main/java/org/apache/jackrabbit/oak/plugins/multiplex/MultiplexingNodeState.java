@@ -37,6 +37,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.compose;
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -172,8 +173,8 @@ class MultiplexingNodeState extends AbstractNodeState {
                 if (owningStore == mns) {
                     continue;
                 }
-                NodeState contributing = getNode(rootNodeStates.get(mns), path);
-                NodeState contributingBase = getNode(multiBase.rootNodeStates.get(mns), path);
+                NodeState contributing = getNodeByPath(rootNodeStates.get(mns), path);
+                NodeState contributingBase = getNodeByPath(multiBase.rootNodeStates.get(mns), path);
                 full = full && contributing.compareAgainstBaseState(contributingBase, childrenDiffFilter);
             }
             return full;
@@ -215,7 +216,7 @@ class MultiplexingNodeState extends AbstractNodeState {
         }
 
         checkNotNull(root, "NodeState is null for mount named %s, nodePath %s", mountedNodeStore.getMount().getName(), nodePath);
-        return getNode(root, nodePath);
+        return getNodeByPath(root, nodePath);
     }
 
     private NodeState getWrappedNodeState() {
@@ -223,6 +224,18 @@ class MultiplexingNodeState extends AbstractNodeState {
             wrappedNodeState = getNodeState(ctx.getOwningStore(path), path);
         }
         return wrappedNodeState;
+    }
+
+    private static NodeState getNodeByPath(NodeState root, String path) {
+        NodeState child = root;
+        for (String element : PathUtils.elements(path)) {
+            if (child.hasChildNode(element)) {
+                child = child.getChildNode(element);
+            } else {
+                return MISSING_NODE;
+            }
+        }
+        return child;
     }
 
     private class ChildrenDiffFilter implements NodeStateDiff {

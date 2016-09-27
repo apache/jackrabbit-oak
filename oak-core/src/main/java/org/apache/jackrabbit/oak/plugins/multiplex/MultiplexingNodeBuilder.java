@@ -282,7 +282,11 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     private static NodeBuilder getBuilderByPath(NodeBuilder root, String path) {
         NodeBuilder child = root;
         for (String element : PathUtils.elements(path)) {
-            child = child.getChildNode(element);
+            if (child.hasChildNode(element)) {
+                child = child.getChildNode(element);
+            } else {
+                return MISSING_NODE.builder();
+            }
         }
         return child;
     }
