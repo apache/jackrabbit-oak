@@ -189,7 +189,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     public long getChildNodeCount(long max) {
         long count = 0;
 
-        Iterable<NodeBuilder> allBuilders = transform(ctx.getContributingStores(path, Collections.<String>emptyList()), new Function<MountedNodeStore, NodeBuilder>() {
+        Iterable<NodeBuilder> allBuilders = transform(ctx.getContributingStores(path, checkpoints), new Function<MountedNodeStore, NodeBuilder>() {
             @Override
             public NodeBuilder apply(MountedNodeStore mountedNodeStore) {
                 return getNodeBuilder(mountedNodeStore, path);
