@@ -50,6 +50,9 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3RequestDecorator;
+import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

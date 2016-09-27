@@ -24,7 +24,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats.S3DataStoreStatsMBean;
+import org.apache.jackrabbit.oak.blob.cloud.s3.stats.S3DataStoreStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;

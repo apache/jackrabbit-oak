@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStoreStats;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats.S3DataStoreStatsMBean;
+import org.apache.jackrabbit.oak.blob.cloud.s3.stats.S3DataStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;

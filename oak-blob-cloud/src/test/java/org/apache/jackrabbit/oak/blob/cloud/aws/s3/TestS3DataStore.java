@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

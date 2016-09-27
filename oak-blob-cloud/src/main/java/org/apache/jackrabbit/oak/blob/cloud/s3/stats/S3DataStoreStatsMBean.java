@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats;
+package org.apache.jackrabbit.oak.blob.cloud.s3.stats;
 
 /**
  * MBean for JMX statistics pertaining to an S3DataStore.
