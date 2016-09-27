@@ -38,6 +38,7 @@ import static com.google.common.base.Predicates.compose;
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -122,25 +123,42 @@ class MultiplexingNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getChildNodeCount(long max) {
-        long count = 0;
-
-        Iterable<NodeState> allNodes = transform(ctx.getContributingStores(path, checkpoints), new Function<MountedNodeStore, NodeState>() {
-            @Override
-            public NodeState apply(MountedNodeStore mountedNodeStore) {
-                return getNodeState(mountedNodeStore, path);
-            }
-        });
-
-        for (NodeState parent : allNodes) {
-            long mountCount = parent.getChildNodeCount(max);
-            if (mountCount == Long.MAX_VALUE) {
-                return Long.MAX_VALUE;
-            }
-            count += mountCount;
+    public long getChildNodeCount(final long max) {
+        List<MountedNodeStore> contributingStores = ctx.getContributingStores(path, checkpoints);
+        if (contributingStores.isEmpty()) {
+            return 0; // this shouldn't happen
+        } else if (contributingStores.size() == 1) {
+            return getWrappedNodeState().getChildNodeCount(max);
+        } else {
+            // Count the children in each contributing store.
+            return accumulateChildSizes(transform(contributingStores, new Function<MountedNodeStore, Long>() {
+                @Override
+                public Long apply(MountedNodeStore input) {
+                    NodeState contributing = getNodeByPath(rootNodeStates.get(input), path);
+                    if (contributing.getChildNodeCount(max) == Long.MAX_VALUE) {
+                        return Long.MAX_VALUE;
+                    } else {
+                        return (long) size(filter(contributing.getChildNodeNames(), ctx.belongsToStore(input, path)));
+                    }
+                }
+            }), max);
         }
+    }
 
-        return count;
+    static long accumulateChildSizes(Iterable<Long> sizes, long max) {
+        long totalCount = 0;
+        for (Long size : sizes) {
+            if (size == Long.MAX_VALUE) {
+                return size;
+            } else {
+                totalCount += size;
+            }
+
+            if (totalCount >= max) {
+                break;
+            }
+        }
+        return totalCount;
     }
 
     @Override

@@ -35,9 +35,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeState.accumulateChildSizes;
 
 class MultiplexingNodeBuilder implements NodeBuilder {
 
@@ -186,25 +188,26 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     // child-related methods, require multiplexing
     @Override
-    public long getChildNodeCount(long max) {
-        long count = 0;
-
-        Iterable<NodeBuilder> allBuilders = transform(ctx.getContributingStores(path, checkpoints), new Function<MountedNodeStore, NodeBuilder>() {
-            @Override
-            public NodeBuilder apply(MountedNodeStore mountedNodeStore) {
-                return getNodeBuilder(mountedNodeStore, path);
-            }
-        });
-
-        for (NodeBuilder parent : allBuilders) {
-            long mountCount = parent.getChildNodeCount(max);
-            if (mountCount == Long.MAX_VALUE) {
-                return Long.MAX_VALUE;
-            }
-            count += mountCount;
+    public long getChildNodeCount(final long max) {
+        List<MountedNodeStore> contributingStores = ctx.getContributingStores(path, checkpoints);
+        if (contributingStores.isEmpty()) {
+            return 0; // this shouldn't happen
+        } else if (contributingStores.size() == 1) {
+            return getWrappedNodeBuilder().getChildNodeCount(max);
+        } else {
+            // Count the children in each contributing store.
+            return accumulateChildSizes(transform(contributingStores, new Function<MountedNodeStore, Long>() {
+                @Override
+                public Long apply(MountedNodeStore input) {
+                    NodeBuilder contributing = getBuilderByPath(rootBuilders.get(input), path);
+                    if (contributing.getChildNodeCount(max) == Long.MAX_VALUE) {
+                        return Long.MAX_VALUE;
+                    } else {
+                        return (long) size(filter(contributing.getChildNodeNames(), ctx.belongsToStore(input, path)));
+                    }
+                }
+            }), max);
         }
-
-        return count;
     }
 
     @Override
