@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,15 +129,18 @@ class Checkpoints {
         final long currentTime = nodeStore.getClock().getTime();
         UpdateOp op = new UpdateOp(ID, false);
         Revision lastAliveRevision = null;
-        long oldestExpiryTime = 0;
 
         for (Map.Entry<Revision, Info> e : checkpoints.entrySet()) {
-            final long expiryTime = e.getValue().getExpiryTime();
+            long expiryTime = e.getValue().getExpiryTime();
             if (currentTime > expiryTime) {
                 op.removeMapEntry(PROP_CHECKPOINT, e.getKey());
-            } else if (expiryTime > oldestExpiryTime) {
-                oldestExpiryTime = expiryTime;
-                lastAliveRevision = e.getKey();
+            } else {
+                Revision cpRev = e.getKey();
+                RevisionVector rv = e.getValue().getCheckpoint();
+                if (rv != null) {
+                    cpRev = rv.getRevision(cpRev.getClusterId());
+                }
+                lastAliveRevision = Utils.min(lastAliveRevision, cpRev);
             }
         }
 

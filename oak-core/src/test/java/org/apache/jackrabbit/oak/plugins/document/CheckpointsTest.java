@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -59,8 +60,9 @@ public class CheckpointsTest {
     @Test
     public void testCheckpointPurge() throws Exception {
         long expiryTime = 1000;
-        Revision r1 = Revision.fromString(store.checkpoint(expiryTime));
-        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+        String r1 = store.getHeadRevision().toString();
+        store.checkpoint(expiryTime);
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
 
         //Trigger expiry by forwarding the clock to future
         clock.waitUntil(clock.getTime() + expiryTime + 1);
@@ -70,12 +72,12 @@ public class CheckpointsTest {
     @Test
     public void testCheckpointPurgeByCount() throws Exception {
         long expiryTime = TimeUnit.HOURS.toMillis(1);
-        Revision r1 = null;
+        String head = store.getHeadRevision().toString();
         for(int i = 0; i < Checkpoints.CLEANUP_INTERVAL; i++){
-            r1 = Revision.fromString(store.checkpoint(expiryTime));
+            store.checkpoint(expiryTime);
             store.setRoot(new RevisionVector(Revision.newRevision(store.getClusterId())));
         }
-        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+        assertEquals(head, store.getCheckpoints().getOldestRevisionToKeep().toString());
         assertEquals(Checkpoints.CLEANUP_INTERVAL, store.getCheckpoints().size());
 
         //Trigger expiry by forwarding the clock to future
@@ -94,42 +96,51 @@ public class CheckpointsTest {
 
         //Create CP with higher expiry first and then one with
         //lower expiry
-        Revision r2 = Revision.fromString(store.checkpoint(e2));
-        Revision r1 = Revision.fromString(store.checkpoint(e1));
-
-        clock.waitUntil(clock.getTime() + e1 + 1);
-
-        //The older checkpoint was for greater duration so checkpoint
-        //must not be GC
-        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
-        // after getOldestRevisionToKeep() only one must be remaining
-        assertEquals(1, store.getCheckpoints().size());
-        assertNull(store.retrieve(r1.toString()));
-        assertNotNull(store.retrieve(r2.toString()));
-    }
-
-    @Test
-    public void testGetOldestRevisionToKeep() throws Exception {
-        long et1 = 1000, et2 = et1 + 1000;
-
-        Revision r1 = Revision.fromString(store.checkpoint(et1));
+        String r2 = store.getHeadRevision().toString();
+        String c2 = store.checkpoint(e2);
 
         //Do some commit to change headRevision
         NodeBuilder b2 = store.getRoot().builder();
         b2.child("x");
         store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        Revision r2 = Revision.fromString(store.checkpoint(et2));
-        assertNotSame(r1, r2);
+        String c1 = store.checkpoint(e1);
 
-        //r2 has the later expiry
-        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
+        clock.waitUntil(clock.getTime() + e1 + 1);
+
+        //The older checkpoint was for greater duration so checkpoint
+        //must not be GC
+        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep().toString());
+        // after getOldestRevisionToKeep() only one must be remaining
+        assertEquals(1, store.getCheckpoints().size());
+        assertNull(store.retrieve(c1));
+        assertNotNull(store.retrieve(c2));
+    }
+
+    @Test
+    public void testGetOldestRevisionToKeep() throws Exception {
+        long et1 = 1000, et2 = et1 + 1000;
+
+        String r1 = store.getHeadRevision().toString();
+        Revision c1 = Revision.fromString(store.checkpoint(et1));
+
+        //Do some commit to change headRevision
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x");
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        String r2 = store.getHeadRevision().toString();
+        Revision c2 = Revision.fromString(store.checkpoint(et2));
+        assertNotEquals(c1, c2);
+
+        // r1 is older
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
 
         long starttime = clock.getTime();
 
         //Trigger expiry by forwarding the clock to future e1
         clock.waitUntil(starttime + et1 + 1);
-        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
+        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep().toString());
 
         //Trigger expiry by forwarding the clock to future e2
         //This time no valid checkpoint
@@ -137,27 +148,53 @@ public class CheckpointsTest {
         assertNull(store.getCheckpoints().getOldestRevisionToKeep());
     }
 
+    // OAK-4552
+    @Test
+    public void testGetOldestRevisionToKeep2() throws Exception {
+        long lifetime = TimeUnit.HOURS.toMillis(1);
+
+        String r1 = store.getHeadRevision().toString();
+        String c1 = store.checkpoint(lifetime);
+
+        // Do some commit to change headRevision
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x");
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        String r2 = store.getHeadRevision().toString();
+        String c2 = store.checkpoint(lifetime);
+        assertNotEquals(r1, r2);
+        assertNotEquals(c1, c2);
+
+        // r1 is older
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
+    }
+
     @Test
     public void checkpointRemove() throws Exception{
-        long et1 = 1000, et2 = et1 + 1000;
-        String cp1 = store.checkpoint(et1);
-        Revision r1 = Revision.fromString(cp1);
+        long lifetime = TimeUnit.HOURS.toMillis(1);
+        String r1 = store.getHeadRevision().toString();
+        String cp1 = store.checkpoint(lifetime);
 
         //Do some commit to change headRevision
         NodeBuilder b2 = store.getRoot().builder();
         b2.child("x");
         store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        String cp2 = store.checkpoint(et2);
-        Revision r2 = Revision.fromString(cp2);
+        String r2 = store.getHeadRevision().toString();
+        String cp2 = store.checkpoint(lifetime);
 
         assertEquals(2, store.getCheckpoints().size());
-        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
 
-        store.release(cp2);
+        store.release(cp1);
 
         assertEquals(1, store.getCheckpoints().size());
-        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep().toString());
+
+        store.release(cp2);
+        assertEquals(0, store.getCheckpoints().size());
+        assertNull(store.getCheckpoints().getOldestRevisionToKeep());
     }
 
     @Test
