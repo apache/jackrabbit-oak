@@ -22,10 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
+
+import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 
 /**
  * The JournalGarbageCollector can clean up JournalEntries that are older than a
@@ -38,12 +41,27 @@ import com.google.common.base.Stopwatch;
  */
 public class JournalGarbageCollector {
 
+    private static final Logger log = LoggerFactory.getLogger(JournalGarbageCollector.class);
+
+    /**
+     * ID of the journalGC document in the settings collection.
+     */
+    private static final String JOURNAL_GC_ID = "journalGC";
+
+    /**
+     * Key name of the entry that contains the timestamp of the journal tail.
+     */
+    private static final String TAIL_TIMESTAMP = "tailTimestamp";
+
     private final DocumentNodeStore ns;
 
-    private static final Logger log = LoggerFactory.getLogger(JournalGarbageCollector.class);
+    private volatile long lastTailTimestampRefresh = Long.MIN_VALUE;
+
+    private Revision tailRevision;
 
     public JournalGarbageCollector(DocumentNodeStore nodeStore) {
         this.ns = nodeStore;
+        this.tailRevision = new Revision(0, 0, ns.getClusterId());
     }
 
     /**
@@ -88,6 +106,10 @@ public class JournalGarbageCollector {
         // if it's run on multiple concurrently, then they
         // will compete at deletion, which is not optimal
         // due to performance, but does not harm.
+
+        // update the tail timestamp in the journalGC document
+        // of the settings collection
+        updateTailTimestamp(gcOlderThan);
 
         // 1. get the list of cluster node ids
         final List<ClusterNodeInfoDocument> clusterNodeInfos = ClusterNodeInfoDocument.all(ds);
@@ -137,6 +159,36 @@ public class JournalGarbageCollector {
                     sw, numDeleted, TimeUnit.MILLISECONDS.toMinutes(now - gcOlderThan));
         }
         return numDeleted;
+    }
+
+    private void updateTailTimestamp(long gcOlderThan) {
+        UpdateOp op = new UpdateOp(JOURNAL_GC_ID, true);
+        op.max(TAIL_TIMESTAMP, gcOlderThan);
+        ns.getDocumentStore().createOrUpdate(SETTINGS, op);
+    }
+
+    public Revision getTailRevision() {
+        refreshTailRevisionIfNecessary();
+        return tailRevision;
+    }
+
+    private void refreshTailRevisionIfNecessary() {
+        // refresh once a minute
+        long now = ns.getClock().getTime();
+        if (lastTailTimestampRefresh + TimeUnit.MINUTES.toMillis(1) > now) {
+            return;
+        }
+        lastTailTimestampRefresh = now;
+
+        Document doc = ns.getDocumentStore().find(SETTINGS, JOURNAL_GC_ID);
+        if (doc == null) {
+            // no gc yet
+            return;
+        }
+        Long ts = Utils.asLong((Number) doc.get(TAIL_TIMESTAMP));
+        if (ts != null) {
+            tailRevision = Utils.max(tailRevision, new Revision(ts, 0, ns.getClusterId()));
+        }
     }
 
     private List<String> asKeys(List<JournalEntry> deletionBatch) {

@@ -136,6 +136,76 @@ public class JournalEntryTest {
     }
 
     @Test
+    public void fillExternalChanges2() throws Exception {
+        Revision r1 = new Revision(1, 0, 1);
+        Revision r2 = new Revision(2, 0, 1);
+        Revision r3 = new Revision(3, 0, 1);
+        Revision r4 = new Revision(4, 0, 1);
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+        entry.modified("/");
+        entry.modified("/foo");
+        UpdateOp op = entry.asUpdateOp(r2);
+        assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+
+        entry = JOURNAL.newDocument(store);
+        entry.modified("/");
+        entry.modified("/bar");
+        op = entry.asUpdateOp(r4);
+        assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+
+        StringSort sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r1, r1, store);
+        assertEquals(0, sort.getSize());
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r1, r2, store);
+        assertEquals(Sets.newHashSet("/", "/foo"), Sets.newHashSet(sort));
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r1, r3, store);
+        assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r1, r4, store);
+        assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r2, r2, store);
+        assertEquals(0, sort.getSize());
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r2, r3, store);
+        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r2, r4, store);
+        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r3, r3, store);
+        assertEquals(0, sort.getSize());
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r3, r4, store);
+        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        sort.close();
+
+        sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, r4, r4, store);
+        assertEquals(0, sort.getSize());
+        sort.close();
+    }
+
+    @Test
     public void getRevisionTimestamp() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry entry = JOURNAL.newDocument(store);

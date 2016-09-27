@@ -138,6 +138,26 @@ class UnmergedBranches {
     }
 
     /**
+     * Returns {@code true} if the given revision is the base of an unmerged
+     * branch.
+     *
+     * @param r the base revision of a branch.
+     * @return {@code true} if such a branch exists, {@code false} otherwise.
+     */
+    boolean isBranchBase(@Nonnull RevisionVector r) {
+        if (!r.isBranch()) {
+            return false;
+        }
+        RevisionVector base = r.asTrunkRevision();
+        for (Branch b : branches) {
+            if (b.getBase().equals(base)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns the branch commit with the given revision or {@code null} if
      * it doesn't exists.
      *
