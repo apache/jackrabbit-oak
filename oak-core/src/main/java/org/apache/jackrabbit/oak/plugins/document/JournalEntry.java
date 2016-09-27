@@ -70,9 +70,10 @@ public final class JournalEntry extends Document {
     private static final int READ_CHUNK_SIZE = 100;
 
     /**
-     * switch to disk after 1MB
+     * switch to disk after 2048 paths
      */
-    private static final int STRING_SORT_OVERFLOW_TO_DISK_THRESHOLD = 1024 * 1024;
+    private static final int STRING_SORT_OVERFLOW_TO_DISK_THRESHOLD
+            = Integer.getInteger("oak.overflowToDiskThreshold", StringSort.BATCH_SIZE);
 
     private final DocumentStore store;
 
