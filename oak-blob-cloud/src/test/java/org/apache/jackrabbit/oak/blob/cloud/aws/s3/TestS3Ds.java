@@ -23,6 +23,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
 import org.junit.After;
 import org.junit.Before;
