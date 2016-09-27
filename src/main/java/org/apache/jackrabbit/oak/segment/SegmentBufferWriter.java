@@ -23,6 +23,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
@@ -112,7 +113,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private final Map<RecordId, RecordType> roots = newLinkedHashMap();
 
-    private final Set<SegmentId> referencedSegmentIds = newHashSet();
+    private final Map<SegmentId, Integer> referencedSegmentIds = newHashMap();
 
     @Nonnull
     private final SegmentStore store;
@@ -286,19 +287,36 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         checkState(offset == align(offset, 1 << Segment.RECORD_ALIGN_BITS));
 
         SegmentId segmentId = recordId.getSegmentId();
+
         checkGCGeneration(segmentId);
 
-        writeLong(segmentId.getMostSignificantBits());
-        writeLong(segmentId.getLeastSignificantBits());
-        writeShort((short)((offset >> Segment.RECORD_ALIGN_BITS) & 0xffff));
-
-        if (!segmentId.equals(segment.getSegmentId())) {
-            referencedSegmentIds.add(segmentId);
-        }
+        writeInt(writeSegmentIdReference(segmentId));
+        writeShort((short) ((offset >> Segment.RECORD_ALIGN_BITS) & 0xffff));
 
         statistics.recordIdCount++;
 
         dirty = true;
+    }
+
+    private int writeSegmentIdReference(SegmentId id) {
+        if (id.equals(segment.getSegmentId())) {
+            return 0;
+        }
+
+        Integer reference = referencedSegmentIds.get(id);
+
+        if (reference != null) {
+            return reference;
+        }
+
+        reference = referencedSegmentIds.size() + 1;
+        referencedSegmentIds.put(id, reference);
+
+        BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET, reference);
+        BinaryUtils.writeLong(buffer, HEADER_SIZE + reference * 16 - 16, id.getMostSignificantBits());
+        BinaryUtils.writeLong(buffer, HEADER_SIZE + reference * 16 - 8, id.getLeastSignificantBits());
+
+        return reference;
     }
 
     /**
@@ -350,7 +368,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             BinaryUtils.writeShort(buffer, Segment.ROOT_COUNT_OFFSET, (short) rootcount);
 
             int referencedSegmentIdCount = referencedSegmentIds.size();
-            BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET, referencedSegmentIdCount);
             statistics.segmentIdCount = referencedSegmentIdCount;
 
             int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * 16 + rootcount * 3 + length, 16);
@@ -361,7 +378,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
             statistics.size = length = totalLength;
 
-            int pos = HEADER_SIZE;
+            int pos = HEADER_SIZE + referencedSegmentIdCount * 16;
             if (pos + length <= buffer.length) {
                 // the whole segment fits to the space *after* the referenced
                 // segment identifiers we've already written, so we can safely
@@ -375,11 +392,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 // segment is >252kB in size and the maximum overhead is <<4kB,
                 // which is acceptable
                 length = buffer.length;
-            }
-
-            for (SegmentId id : referencedSegmentIds) {
-                pos = BinaryUtils.writeLong(buffer, pos, id.getMostSignificantBits());
-                pos = BinaryUtils.writeLong(buffer, pos, id.getLeastSignificantBits());
             }
 
             for (Map.Entry<RecordId, RecordType> entry : roots.entrySet()) {
@@ -455,7 +467,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             // Adjust the estimation of the new referenced segment ID count.
 
             for (SegmentId segmentId : segmentIds) {
-                if (referencedSegmentIds.contains(segmentId.asUUID())) {
+                if (referencedSegmentIds.containsKey(segmentId)) {
                     referencedIdCount--;
                 }
             }

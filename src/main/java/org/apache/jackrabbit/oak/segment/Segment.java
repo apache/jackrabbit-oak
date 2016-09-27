@@ -67,7 +67,7 @@ public class Segment {
      * is used for identifying the segment and two for the record offset
      * within that segment.
      */
-    static final int RECORD_ID_BYTES = 8 + 8 + 2;
+    static final int RECORD_ID_BYTES = 4 + 2;
 
     /**
      * The limit on segment references within one segment. Since record
@@ -140,7 +140,7 @@ public class Segment {
     @Nonnull
     private final SegmentVersion version;
 
-    private final Map<Integer, RecordId> recordIdCache = newHashMap();
+    private final Map<Integer, SegmentId> segmentIdCache = newHashMap();
 
     /**
      * Unpacks a 4 byte aligned segment offset.
@@ -386,27 +386,39 @@ public class Segment {
     }
 
     private RecordId internalReadRecordId(int pos) {
-        RecordId recordId = recordIdCache.get(pos);
+        SegmentId segmentId = dereferenceSegmentId(data.getInt(pos));
+        int offset = (data.getShort(pos + 4) & 0xffff) << RECORD_ALIGN_BITS;
+        return new RecordId(segmentId, offset);
+    }
 
-        if (recordId != null) {
-            return recordId;
+    private SegmentId dereferenceSegmentId(int reference) {
+        if (reference == 0) {
+            return id;
         }
 
-        synchronized (recordIdCache) {
-            recordId = recordIdCache.get(pos);
+        SegmentId id = segmentIdCache.get(reference);
 
-            if (recordId != null) {
-                return recordId;
+        if (id != null) {
+            return id;
+        }
+
+        synchronized (segmentIdCache) {
+            id = segmentIdCache.get(reference);
+
+            if (id != null) {
+                return id;
             }
 
-            long msb = data.getLong(pos);
-            long lsb = data.getLong(pos + 8);
-            int offset = (data.getShort(pos + 16) & 0xffff) << RECORD_ALIGN_BITS;
-            recordId = new RecordId(store.newSegmentId(msb, lsb), offset);
+            int position = data.position() + HEADER_SIZE + (reference - 1) * 16;
 
-            recordIdCache.put(pos, recordId);
+            long msb = data.getLong(position);
+            long lsb = data.getLong(position + 8);
 
-            return recordId;
+            id = store.newSegmentId(msb, lsb);
+
+            segmentIdCache.put(reference, id);
+
+            return id;
         }
     }
 
