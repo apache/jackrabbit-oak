@@ -20,9 +20,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -136,5 +138,13 @@ class MultiplexingContext {
     int getStoresCount() {
         return nonDefaultStores.size() + 1;
     }
-    
+
+    Predicate<String> belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath) {
+        return new Predicate<String>() {
+            @Override
+            public boolean apply(String childName) {
+                return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
+            }
+        };
+    }
 }

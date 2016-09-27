@@ -2,10 +2,12 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeState.getNodeByPath;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +20,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -170,7 +174,14 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
     public long getChildNodeCount(long max) {
         long count = 0;
 
-        for (NodeBuilder parent : getBuildersForPath(path)) {
+        Iterable<NodeBuilder> allBuilders = transform(ctx.getContributingStores(path, Collections.<String>emptyList()), new Function<MountedNodeStore, NodeBuilder>() {
+            @Override
+            public NodeBuilder apply(MountedNodeStore mountedNodeStore) {
+                return getNodeBuilder(mountedNodeStore, path);
+            }
+        });
+
+        for (NodeBuilder parent : allBuilders) {
             long mountCount = parent.getChildNodeCount(max);
             if (mountCount == Long.MAX_VALUE) {
                 return Long.MAX_VALUE;
@@ -183,10 +194,10 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return concat(transform(getBuildersForPath(path), new Function<NodeBuilder, Iterable<? extends String>>(){
+        return concat(transform(ctx.getContributingStores(path, Collections.<String>emptyList()), new Function<MountedNodeStore, Iterable<String>>() {
             @Override
-            public Iterable<? extends String> apply(NodeBuilder input) {
-                return input.getChildNodeNames();
+            public Iterable<String> apply(final MountedNodeStore mountedNodeStore) {
+                return filter(getBuilderByPath(rootBuilders.get(mountedNodeStore), path).getChildNodeNames(), ctx.belongsToStore(mountedNodeStore, path));
             }
         }));
     }
@@ -259,15 +270,6 @@ public class MultiplexingNodeBuilder implements NodeBuilder {
             }
         }
         return child;
-    }
-
-    private Iterable<NodeBuilder> getBuildersForPath(final String path) {
-        return transform(ctx.getContributingStores(path, Collections.<String>emptyList()), new Function<MountedNodeStore, NodeBuilder>() {
-            @Override
-            public NodeBuilder apply(MountedNodeStore mountedNodeStore) {
-                return getNodeBuilder(mountedNodeStore, path);
-            }
-        });
     }
 
     private NodeBuilder getWrappedNodeBuilder() {
