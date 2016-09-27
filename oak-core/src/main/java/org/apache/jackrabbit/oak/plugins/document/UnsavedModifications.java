@@ -179,7 +179,7 @@ class UnsavedModifications {
             int size = pathList.size();
             if (updateOp == null) {
                 // create UpdateOp
-                Commit commit = new Commit(store, r, null, null);
+                Commit commit = new Commit(store, r, null);
                 updateOp = commit.getUpdateOperationForNode(p);
                 NodeDocument.setLastRev(updateOp, r);
                 lastRev = r;
