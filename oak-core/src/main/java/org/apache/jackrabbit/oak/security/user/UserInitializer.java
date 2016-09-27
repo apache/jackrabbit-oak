@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -89,7 +90,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
-        NodeState base = builder.getNodeState();
+        // squeeze node state before it is passed to store (OAK-2411)
+        NodeState base = squeeze(builder.getNodeState());
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
