@@ -100,6 +100,12 @@ public class TarNodeStore implements NodeStore {
         return ns.checkpointInfo(checkpoint);
     }
 
+    @Nonnull
+    @Override
+    public Iterable<String> checkpoints() {
+        return ns.checkpoints();
+    }
+
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
         return ns.retrieve(checkpoint);

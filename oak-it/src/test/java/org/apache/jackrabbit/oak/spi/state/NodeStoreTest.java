@@ -32,12 +32,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -545,6 +551,33 @@ public class NodeStoreTest extends OakBaseTest {
         NodeState root = store.merge(
                 rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         assertTrue(root.hasChildNode("bar"));
+    }
+
+    @Test
+    public void checkpoints() throws Exception {
+        assumeTrue(fixture != NodeStoreFixtures.SEGMENT_TAR);
+        int numCps = 3;
+        Map<String, String> info = Maps.newHashMap();
+        Set<String> cps = Sets.newHashSet();
+        for (int i = 0; i < numCps; i++) {
+            info.put("key", "" + i);
+            cps.add(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
+        }
+        assertEquals(numCps, cps.size());
+        assertEquals(cps, Sets.newHashSet(store.checkpoints()));
+        Set<String> keys = Sets.newHashSet();
+        for (String cp : cps) {
+            info = store.checkpointInfo(cp);
+            assertTrue(info.containsKey("key"));
+            keys.add(info.get("key"));
+        }
+        assertEquals(Sets.newHashSet("0", "1", "2"), keys);
+        while (!cps.isEmpty()) {
+            String cp = cps.iterator().next();
+            cps.remove(cp);
+            store.release(cp);
+            assertEquals(cps.size(), Iterables.size(store.checkpoints()));
+        }
     }
 
     private void compareAgainstBaseState(int childNodeCount) throws CommitFailedException {
