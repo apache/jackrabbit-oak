@@ -131,10 +131,17 @@ public class NodeStoreDiffTest {
                 //but less then lastRev of the of readRevision. Where readRevision is the rev of root node when
                 //rebase was performed
 
+                // remember paths accessed so far
+                List<String> paths = Lists.newArrayList(tds.paths);
+
                 //This is not to be done in actual cases as CommitHooks are invoked in critical sections
                 //and creating nodes from within CommitHooks would cause deadlock. This is done here to ensure
                 //that changes are done when rebase has been performed and merge is about to happen
                 createNodes("/oak:index/prop-b/b1");
+
+                // reset accessed paths
+                tds.reset();
+                tds.paths.addAll(paths);
 
                 //For now we the cache is disabled (size 0) so this is not required
                 //ns.nodeCache.invalidateAll();

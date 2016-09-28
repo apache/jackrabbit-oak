@@ -661,7 +661,7 @@ public class Commit {
                 // track intermediate node and root
                 tracker.track(path);
             }
-            nodeStore.applyChanges(after, path, isNew,
+            nodeStore.applyChanges(before, after, rev, path, isNew,
                     added, removed, changed, cacheEntry);
         }
         cacheEntry.done();
