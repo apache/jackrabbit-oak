@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -675,6 +676,77 @@ public class AsyncIndexUpdateTest {
             }
             assertNull("Temp checkpoint was already cleared from store",
                     store.retrieve(cp));
+        }
+    }
+
+    // OAK-4826
+    @Test
+    public void cpCleanupOrphaned() throws Exception {
+        Clock clock = Clock.SIMPLE;
+        MemoryNodeStore store = new MemoryNodeStore();
+        // prepare index and initial content
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue("Expecting no checkpoints",
+                store.listCheckpoints().size() == 0);
+
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        String cp = store.listCheckpoints().iterator().next();
+        Map<String, String> info = store.checkpointInfo(cp);
+
+        builder = store.getRoot().builder();
+        builder.child("testRoot").setProperty("foo", "def");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // wait until currentTimeMillis() changes. this ensures
+        // the created value for the checkpoint is different
+        // from the previous checkpoint.
+        clock.waitUntil(clock.getTime() + 1);
+        async.run();
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        cp = store.listCheckpoints().iterator().next();
+
+        // create a new checkpoint with the info from the first checkpoint
+        // this simulates an orphaned checkpoint that should be cleaned up
+        assertNotNull(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
+        assertTrue("Expecting two checkpoints",
+                store.listCheckpoints().size() == 2);
+
+        async.cleanUpCheckpoints();
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        assertEquals(cp, store.listCheckpoints().iterator().next());
+    }
+
+    @Test
+    public void disableCheckpointCleanup() throws Exception {
+        String propertyName = "oak.async.checkpointCleanupIntervalMinutes";
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        try {
+            System.setProperty(propertyName, "-1");
+            final AtomicBoolean cleaned = new AtomicBoolean();
+            AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+                @Override
+                void cleanUpCheckpoints() {
+                    cleaned.set(true);
+                    super.cleanUpCheckpoints();
+                }
+            };
+            async.run();
+            assertFalse(cleaned.get());
+        } finally {
+            System.clearProperty(propertyName);
         }
     }
 
