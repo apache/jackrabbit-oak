@@ -38,9 +38,10 @@ import static com.google.common.base.Predicates.compose;
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.transformValues;
+import static java.lang.Long.MAX_VALUE;
+import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
 
@@ -58,6 +59,8 @@ class MultiplexingNodeState extends AbstractNodeState {
     // For instance, with a node store mounted at /libs and the root store
     // having a node at /libs/food, both the /libs and /libs/foo nodes from
     // the root store will be ignored
+
+    static final String STOP_COUNTING_CHILDREN = new String(MultiplexingNodeState.class.getName() + ".stopCountingChildren");
 
     private final String path;
 
@@ -131,31 +134,26 @@ class MultiplexingNodeState extends AbstractNodeState {
             return getWrappedNodeState().getChildNodeCount(max);
         } else {
             // Count the children in each contributing store.
-            return accumulateChildSizes(transform(contributingStores, new Function<MountedNodeStore, Long>() {
+            return accumulateChildSizes(concat(transform(contributingStores, new Function<MountedNodeStore, Iterable<String>>() {
                 @Override
-                public Long apply(MountedNodeStore input) {
+                public Iterable<String> apply(MountedNodeStore input) {
                     NodeState contributing = getNodeByPath(rootNodeStates.get(input), path);
-                    if (contributing.getChildNodeCount(max) == Long.MAX_VALUE) {
-                        return Long.MAX_VALUE;
+                    if (contributing.getChildNodeCount(max) == MAX_VALUE) {
+                        return singleton(STOP_COUNTING_CHILDREN);
                     } else {
-                        return (long) size(filter(contributing.getChildNodeNames(), ctx.belongsToStore(input, path)));
+                        return filter(contributing.getChildNodeNames(), ctx.belongsToStore(input, path));
                     }
                 }
-            }), max);
+            })), max);
         }
     }
 
-    static long accumulateChildSizes(Iterable<Long> sizes, long max) {
+    static long accumulateChildSizes(Iterable<String> nodeNames, long max) {
         long totalCount = 0;
-        for (Long size : sizes) {
-            if (size == Long.MAX_VALUE) {
-                return size;
-            } else {
-                totalCount += size;
-            }
-
-            if (totalCount >= max) {
-                break;
+        for (String name : nodeNames) {
+            totalCount++;
+            if (name == STOP_COUNTING_CHILDREN || totalCount >= max) {
+                return MAX_VALUE;
             }
         }
         return totalCount;
