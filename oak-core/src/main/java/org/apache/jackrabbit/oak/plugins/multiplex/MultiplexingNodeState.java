@@ -183,14 +183,14 @@ class MultiplexingNodeState extends AbstractNodeState {
             NodeStateDiff wrappingDiff = new WrappingDiff(diff, multiBase);
             MountedNodeStore owningStore = ctx.getOwningStore(path);
 
-            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), wrappingDiff);
+            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), new ChildrenDiffFilter(wrappingDiff, owningStore, true));
             for (MountedNodeStore mns : ctx.getContributingStores(path, checkpoints)) {
-                NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(wrappingDiff, mns);
                 if (owningStore == mns) {
                     continue;
                 }
+                NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(wrappingDiff, mns, false);
                 NodeState contributing = getNodeByPath(rootNodeStates.get(mns), path);
-                NodeState contributingBase = getNodeByPath(multiBase.rootNodeStates.get(mns), path);
+                NodeState contributingBase = getNodeByPath(multiBase.rootNodeStates.get(mns), multiBase.path);
                 full = full && contributing.compareAgainstBaseState(contributingBase, childrenDiffFilter);
             }
             return full;
@@ -260,24 +260,39 @@ class MultiplexingNodeState extends AbstractNodeState {
 
         private final MountedNodeStore mns;
 
-        public ChildrenDiffFilter(NodeStateDiff diff, MountedNodeStore mns) {
+        private final boolean includeProperties;
+
+        public ChildrenDiffFilter(NodeStateDiff diff, MountedNodeStore mns, boolean includeProperties) {
             this.diff = diff;
             this.mns = mns;
+            this.includeProperties = includeProperties;
         }
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            return true;
+            if (includeProperties) {
+                return diff.propertyAdded(after);
+            } else {
+                return true;
+            }
         }
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            return true;
+            if (includeProperties) {
+                return diff.propertyChanged(before, after);
+            } else {
+                return true;
+            }
         }
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            return true;
+            if (includeProperties) {
+                return diff.propertyDeleted(before);
+            } else {
+                return true;
+            }
         }
 
         @Override
