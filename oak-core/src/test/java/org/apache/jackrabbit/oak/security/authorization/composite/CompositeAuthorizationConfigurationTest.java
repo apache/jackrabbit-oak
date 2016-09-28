@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.security.Principal;
 import java.util.Collections;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -79,7 +81,7 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     }
 
     @Test
-    public void testSlingRestrictionProvider() {
+    public void testSingleRestrictionProvider() {
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(new AuthorizationConfigurationImpl(getSecurityProvider()));
 
         RestrictionProvider rp = cc.getRestrictionProvider();
@@ -135,5 +137,38 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
 
         RestrictionProvider rp = cc.getRestrictionProvider();
         assertTrue(rp instanceof CompositeRestrictionProvider);
+    }
+
+    @Test
+    public void testMultipleWithEmptyRestrictionProvider() {
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
+                new AuthorizationConfigurationImpl(getSecurityProvider()),
+                new OpenAuthorizationConfiguration() {
+                    @Nonnull
+                    @Override
+                    public RestrictionProvider getRestrictionProvider() {
+                        return RestrictionProvider.EMPTY;
+                    }
+                });
+
+        RestrictionProvider rp = cc.getRestrictionProvider();
+        assertFalse(rp instanceof CompositeRestrictionProvider);
+        assertNotSame(RestrictionProvider.EMPTY, rp);
+    }
+
+    @Test
+    public void testOnlyEmptyRestrictionProvider() {
+        AuthorizationConfiguration ac = new OpenAuthorizationConfiguration() {
+            @Nonnull
+            @Override
+            public RestrictionProvider getRestrictionProvider() {
+                return RestrictionProvider.EMPTY;
+            }
+        };
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac, ac);
+
+        RestrictionProvider rp = cc.getRestrictionProvider();
+        assertFalse(rp instanceof CompositeRestrictionProvider);
+        assertSame(RestrictionProvider.EMPTY, rp);
     }
 }

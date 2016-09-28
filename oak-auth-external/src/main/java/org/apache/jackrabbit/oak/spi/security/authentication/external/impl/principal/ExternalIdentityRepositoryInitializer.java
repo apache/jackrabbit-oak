@@ -60,7 +60,10 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalIdentityRepositoryInitializer.class);
 
-    ExternalIdentityRepositoryInitializer() {
+    private final boolean enforceUniqueIds;
+
+    ExternalIdentityRepositoryInitializer(boolean enforceUniqueIds) {
+        this.enforceUniqueIds = enforceUniqueIds;
     }
 
     @Override
@@ -78,6 +81,12 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
             // create index definition for "rep:externalId" and "rep:externalPrincipalNames"
             NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTree("/")));
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
+
+            if (enforceUniqueIds && !index.hasChild("externalId")) {
+                NodeUtil definition = IndexUtils.createIndexDefinition(index, "externalId", true,
+                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_ID}, null);
+                definition.setString("info", "Oak index assuring uniqueness of rep:externalId properties.");
+            }
 
             if (!index.hasChild("externalPrincipalNames")) {
                 NodeUtil definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", false,

@@ -19,7 +19,10 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
@@ -34,16 +37,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RepExternalIdTest extends AbstractExternalAuthTest {
 
+    private Root r;
+    private UserManager userManager;
     private DefaultSyncContext syncCtx;
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        syncCtx = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory());
+        r = getSystemRoot();
+        userManager = getUserManager(r);
+        syncCtx = new DefaultSyncContext(syncConfig, idp, getUserManager(r), getValueFactory(r));
     }
 
     @Override
@@ -61,10 +69,10 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
         assertNotNull(si);
 
 
-        Authorizable authorizable = getUserManager(root).getAuthorizable(si.getId());
+        Authorizable authorizable = userManager.getAuthorizable(si.getId());
         assertNotNull(authorizable);
 
-        Tree userTree = root.getTree(authorizable.getPath());
+        Tree userTree = r.getTree(authorizable.getPath());
         assertTrue(userTree.hasProperty(DefaultSyncContext.REP_EXTERNAL_ID));
 
         PropertyState ps = userTree.getProperty(DefaultSyncContext.REP_EXTERNAL_ID);
@@ -86,5 +94,60 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
         SyncResult res = syncCtx.sync(idp.listGroups().next());
 
         assertRepExternalId(res);
+    }
+
+    @Test
+    public void testUniqueConstraint() throws Exception {
+        SyncResult res = syncCtx.sync(idp.getUser(USER_ID));
+
+        try {
+            Tree t = r.getTree(getTestUser().getPath());
+            t.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+            r.commit();
+            fail("Duplicate value for rep:externalId must be detected in the default setup.");
+        } catch (CommitFailedException e) {
+            // success: verify nature of the exception
+            assertTrue(e.isConstraintViolation());
+            assertEquals(30, e.getCode());
+        } finally {
+            r.refresh();
+        }
+    }
+
+    @Test
+    public void testUniqueConstraintSubsequentCommit() throws Exception {
+        SyncResult res = syncCtx.sync(idp.getUser(USER_ID));
+        r.commit();
+
+        try {
+            Tree t = r.getTree(getTestUser().getPath());
+            t.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+            r.commit();
+            fail("Duplicate value for rep:externalId must be detected in the default setup.");
+        } catch (CommitFailedException e) {
+            // success: verify nature of the exception
+            assertTrue(e.isConstraintViolation());
+            assertEquals(30, e.getCode());
+        } finally {
+            r.refresh();
+        }
+    }
+
+    @Test
+    public void testUniqueConstraintNonUserNode() throws Exception {
+        try {
+            SyncResult res = syncCtx.sync(idp.getUser(USER_ID));
+            Tree nonUserTree = r.getTree("/");
+            nonUserTree.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+            r.commit();
+
+            fail("Duplicate value for rep:externalId must be detected in the default setup.");
+        } catch (CommitFailedException e) {
+            // success: verify nature of the exception
+            assertTrue(e.isConstraintViolation());
+            assertEquals(30, e.getCode());
+        } finally {
+            r.refresh();
+        }
     }
 }
