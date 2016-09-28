@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import java.io.Closeable;
 import java.util.Calendar;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -174,6 +175,28 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private int softTimeOutSecs = Integer.getInteger("oak.async.softTimeOutSecs", 2 * 60);
 
     private boolean closed;
+
+    /**
+     * The checkpoint cleanup interval in minutes. Defaults to 5 minutes.
+     * Setting it to a negative value disables automatic cleanup. See OAK-4826.
+     */
+    private final int cleanupIntervalMinutes = getCleanupIntervalMinutes();
+
+    private static int getCleanupIntervalMinutes() {
+        int value = 5;
+        try {
+            value = Integer.parseInt(System.getProperty(
+                    "oak.async.checkpointCleanupIntervalMinutes", String.valueOf(value)));
+        } catch (NumberFormatException e) {
+            // use default
+        }
+        return value;
+    }
+
+    /**
+     * The time in minutes since the epoch when the last checkpoint cleanup ran.
+     */
+    private long lastCheckpointCleanUpTime;
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
@@ -457,6 +480,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         boolean threadNameChanged = false;
         String afterCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
                 "creator", AsyncIndexUpdate.class.getSimpleName(),
+                "created", afterTime,
                 "thread", oldThreadName,
                 "name", name));
         NodeState after = store.retrieve(afterCheckpoint);
@@ -509,9 +533,62 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                             checkpointToRelease);
                 }
             }
+            maybeCleanUpCheckpoints();
 
             if (updatePostRunStatus) {
                 postAsyncRunStatsStatus(indexStats);
+            }
+        }
+    }
+
+    private void maybeCleanUpCheckpoints() {
+        // clean up every five minutes
+        long currentMinutes = TimeUnit.MILLISECONDS.toMinutes(
+                System.currentTimeMillis());
+        if (!indexStats.isFailing()
+                && cleanupIntervalMinutes > -1
+                && lastCheckpointCleanUpTime + cleanupIntervalMinutes < currentMinutes) {
+            try {
+                cleanUpCheckpoints();
+            } catch (Throwable e) {
+                log.warn("Checkpoint clean up failed", e);
+            }
+            lastCheckpointCleanUpTime = currentMinutes;
+        }
+    }
+
+    void cleanUpCheckpoints() {
+        log.debug("Cleaning up orphaned checkpoints");
+        Set<String> keep = newHashSet();
+        String cp = indexStats.getReferenceCheckpoint();
+        if (cp == null) {
+            log.warn("No reference checkpoint set in index stats");
+            return;
+        }
+        keep.add(cp);
+        keep.addAll(indexStats.tempCps);
+        Map<String, String> info = store.checkpointInfo(cp);
+        String value = info.get("created");
+        if (value != null) {
+            // remove unreferenced AsyncIndexUpdate checkpoints:
+            // - without 'created' info (checkpoint created before OAK-4826)
+            // or
+            // - 'created' value older than the current reference
+            long current = ISO8601.parse(value).getTimeInMillis();
+            for (String checkpoint : store.checkpoints()) {
+                info = store.checkpointInfo(checkpoint);
+                String creator = info.get("creator");
+                String created = info.get("created");
+                String name = info.get("name");
+                if (!keep.contains(checkpoint)
+                        && this.name.equals(name)
+                        && AsyncIndexUpdate.class.getSimpleName().equals(creator)
+                        && (created == null || ISO8601.parse(created).getTimeInMillis() < current)) {
+                    if (store.release(checkpoint)) {
+                        log.info("Removed orphaned checkpoint '{}' {}",
+                                checkpoint, info);
+                    }
+                }
             }
         }
     }
