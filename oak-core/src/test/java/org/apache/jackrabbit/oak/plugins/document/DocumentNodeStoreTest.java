@@ -29,6 +29,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -64,6 +65,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -74,6 +76,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -91,6 +94,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -98,6 +102,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -2701,6 +2706,97 @@ public class DocumentNodeStoreTest {
         assertTrue(parent.hasChildNode("foo"));
         assertTrue(parent.hasChildNode("bar"));
         assertTrue(parent.hasChildNode("baz"));
+    }
+
+    @Ignore("OAK-4687")
+    @Test
+    public void exceptionHandlingInCommit() throws Exception{
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        final TestException testException = new TestException();
+        final AtomicBoolean failCommit = new AtomicBoolean();
+        ns.addObserver(new Observer() {
+            @Override
+            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+                if (failCommit.get()){
+                    throw testException;
+                }
+            }
+        });
+
+
+        NodeBuilder b1 = ns.getRoot().builder();
+        b1.child("parent");
+        failCommit.set(true);
+        try {
+            merge(ns, b1);
+            fail();
+        } catch(Exception e){
+            assertSame(testException, Throwables.getRootCause(e));
+        }
+    }
+
+    // OAK-4715
+    @Test
+    public void localChangesFromCache() throws Exception {
+        final AtomicInteger numQueries = new AtomicInteger();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      int limit) {
+                if (collection == Collection.NODES) {
+                    numQueries.incrementAndGet();
+                }
+                return super.query(collection, fromKey, toKey, limit);
+            }
+        };
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("node-1");
+        merge(ns1, builder);
+        ns1.runBackgroundOperations();
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+        builder = ns2.getRoot().builder();
+        builder.child("node-2");
+        merge(ns2, builder);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        NodeState before = ns1.getRoot();
+
+        builder = before.builder();
+        builder.child("node-1").child("foo").child("bar");
+        NodeState after = merge(ns1, builder);
+
+        numQueries.set(0);
+        JsopDiff.diffToJsop(before, after);
+        assertEquals(0, numQueries.get());
+
+        before = after;
+        builder = ns1.getRoot().builder();
+        builder.child("node-1").child("foo").child("bar").setProperty("p", 1);
+        after = merge(ns1, builder);
+
+        numQueries.set(0);
+        JsopDiff.diffToJsop(before, after);
+        assertEquals(0, numQueries.get());
+
+        before = after;
+        builder = ns1.getRoot().builder();
+        builder.child("node-1").child("foo").child("bar").remove();
+        after = merge(ns1, builder);
+
+        numQueries.set(0);
+        JsopDiff.diffToJsop(before, after);
+        assertEquals(0, numQueries.get());
+    }
+
+    private static class TestException extends RuntimeException {
+
     }
 
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
