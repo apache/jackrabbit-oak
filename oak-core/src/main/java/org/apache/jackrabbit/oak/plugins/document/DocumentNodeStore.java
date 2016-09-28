@@ -1619,6 +1619,24 @@ public final class DocumentNodeStore
         }
     }
 
+    @Nonnull
+    @Override
+    public Iterable<String> checkpoints() {
+        final long now = clock.getTime();
+        return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
+                new Predicate<Map.Entry<Revision,Checkpoints.Info>>() {
+            @Override
+            public boolean apply(Map.Entry<Revision,Checkpoints.Info> cp) {
+                return cp.getValue().getExpiryTime() > now;
+            }
+        }), new Function<Map.Entry<Revision,Checkpoints.Info>, String>() {
+            @Override
+            public String apply(Map.Entry<Revision,Checkpoints.Info> cp) {
+                return cp.getKey().toString();
+            }
+        });
+    }
+
     @CheckForNull
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {

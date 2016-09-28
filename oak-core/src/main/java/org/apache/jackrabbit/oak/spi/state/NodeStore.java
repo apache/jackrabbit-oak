@@ -158,6 +158,20 @@ public interface NodeStore {
     Map<String, String> checkpointInfo(@Nonnull String checkpoint);
 
     /**
+     * Returns all valid checkpoints. The returned {@code Iterable} provides a
+     * snapshot of valid checkpoints at the time this method is called. That
+     * is, the {@code Iterable} will not reflect checkpoints created after this
+     * method was called.
+     * <p>
+     * See {@link #checkpoint(long, Map)} for a definition of a valid
+     * checkpoint.
+     *
+     * @return valid checkpoints.
+     */
+    @Nonnull
+    Iterable<String> checkpoints();
+
+    /**
      * Retrieves the root node from a previously created repository checkpoint.
      *
      * @param checkpoint string reference of a checkpoint

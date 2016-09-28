@@ -80,6 +80,12 @@ public abstract class ProxyNodeStore implements NodeStore {
         return getNodeStore().checkpointInfo(checkpoint);
     }
 
+    @Nonnull
+    @Override
+    public Iterable<String> checkpoints() {
+        return getNodeStore().checkpoints();
+    }
+
     @Override
     public NodeState retrieve(String checkpoint) {
         return getNodeStore().retrieve(checkpoint);
