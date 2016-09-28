@@ -35,6 +35,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +75,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -717,7 +719,12 @@ public class AsyncIndexUpdateTest {
         cp = store.listCheckpoints().iterator().next();
 
         // create a new checkpoint with the info from the first checkpoint
-        // this simulates an orphaned checkpoint that should be cleaned up
+        // this simulates an orphaned checkpoint that should be cleaned up.
+        // the created timestamp is set back in time because cleanup preserves
+        // checkpoints within the lease time frame.
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(clock.getTime() - 2 * async.getLeaseTimeOut());
+        info.put("created", ISO8601.format(c));
         assertNotNull(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
         assertTrue("Expecting two checkpoints",
                 store.listCheckpoints().size() == 2);
