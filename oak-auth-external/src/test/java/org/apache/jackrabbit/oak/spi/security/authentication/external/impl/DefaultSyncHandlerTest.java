@@ -26,8 +26,7 @@ import javax.jcr.Value;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -50,6 +49,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * DefaultSyncHandlerTest
@@ -87,6 +87,8 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     private void sync(@Nonnull String id, boolean isGroup) throws Exception {
         SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
         ExternalIdentity exIdentity = (isGroup) ? idp.getGroup(id) : idp.getUser(id);
+        assertNotNull(exIdentity);
+
         SyncResult res = ctx.sync(exIdentity);
         assertSame(SyncResult.Status.ADD, res.getStatus());
         root.commit();
@@ -99,7 +101,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
     @Test
     public void testCreateContext() throws Exception {
-        SyncContext ctx = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
+        SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
         assertTrue(ctx instanceof DefaultSyncContext);
     }
 
@@ -123,7 +125,9 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
         SyncedIdentity id = syncHandler.findIdentity(userManager, USER_ID);
         assertNotNull("known authorizable should exist", id);
-        assertEquals("external user should have correct external ref.idp", idp.getName(), id.getExternalIdRef().getProviderName());
+        ExternalIdentityRef ref = id.getExternalIdRef();
+        assertNotNull(ref);
+        assertEquals("external user should have correct external ref.idp", idp.getName(), ref.getProviderName());
         assertEquals("external user should have correct external ref.id", USER_ID, id.getExternalIdRef().getId());
     }
 
@@ -144,12 +148,15 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     public void testFindIdentityWithRemovedExternalId() throws Exception {
         sync(USER_ID, false);
 
-        // NOTE: this is only possible as long the rep:externalId property is not protected
+        // NOTE: use system-root to remove the protected rep:externalId property (since Oak 1.5.8)
         Authorizable authorizable = userManager.getAuthorizable(USER_ID);
-        authorizable.removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
-        root.commit();
+        Root systemRoot = getSystemRoot();
+        systemRoot.getTree(authorizable.getPath()).removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
+        systemRoot.commit();
+        root.refresh();
 
         SyncedIdentity si = syncHandler.findIdentity(userManager, USER_ID);
+        assertNotNull(si);
         assertNull(si.getExternalIdRef());
     }
 
@@ -219,9 +226,9 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     @Test
     public void testListIdentitiesBeforeSync() throws Exception {
         Iterator<SyncedIdentity> identities = syncHandler.listIdentities(userManager);
-        while (identities.hasNext()) {
+        if (identities.hasNext()) {
             SyncedIdentity si = identities.next();
-            assertNull(si.getExternalIdRef());
+            fail("Sync handler returned unexpected identity: " + si);
         }
     }
 
@@ -242,7 +249,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
                 expected.remove(si.getId());
                 assertNotNull(si.getExternalIdRef());
             } else {
-                assertNull(si.getExternalIdRef());
+                fail("Sync handler returned unexpected identity: " + si);
             }
         }
         assertTrue(expected.isEmpty());

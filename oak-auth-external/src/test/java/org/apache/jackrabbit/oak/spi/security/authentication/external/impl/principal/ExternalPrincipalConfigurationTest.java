@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -154,6 +156,24 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
 
         validatorProviders = principalConfiguration.getValidators(cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertFalse(validatorProviders.isEmpty());
+        assertEquals(1, validatorProviders.size());
+        assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
+
+        enable();
+
+        validatorProviders = principalConfiguration.getValidators(cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals(), new MoveTracker());
+        assertFalse(validatorProviders.isEmpty());
+        assertEquals(1, validatorProviders.size());
+        assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
+    }
+
+    @Test
+    public void testGetValidatorsOmitIdProtection() throws Exception {
+        principalConfiguration.setParameters(ConfigurationParameters.of(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, false));
+        ContentSession cs = root.getContentSession();
+
+        List<? extends ValidatorProvider> validatorProviders = principalConfiguration.getValidators(cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals(), new MoveTracker());
         assertFalse(validatorProviders.isEmpty());
         assertEquals(1, validatorProviders.size());
         assertTrue(validatorProviders.get(0) instanceof ExternalIdentityValidatorProvider);
