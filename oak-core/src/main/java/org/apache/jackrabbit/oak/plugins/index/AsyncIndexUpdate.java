@@ -553,7 +553,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             // remove unreferenced AsyncIndexUpdate checkpoints:
             // - without 'created' info (checkpoint created before OAK-4826)
             // or
-            // - 'created' value older than the current reference
+            // - 'created' value older than the current reference and
+            //   not within the lease time frame
             long current = ISO8601.parse(value).getTimeInMillis();
             for (String checkpoint : store.checkpoints()) {
                 info = store.checkpointInfo(checkpoint);
@@ -563,7 +564,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 if (!keep.contains(checkpoint)
                         && this.name.equals(name)
                         && AsyncIndexUpdate.class.getSimpleName().equals(creator)
-                        && (created == null || ISO8601.parse(created).getTimeInMillis() < current)) {
+                        && (created == null || ISO8601.parse(created).getTimeInMillis() + leaseTimeOut < current)) {
                     if (store.release(checkpoint)) {
                         log.info("Removed orphaned checkpoint '{}' {}",
                                 checkpoint, info);
@@ -710,6 +711,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     protected AsyncIndexUpdate setLeaseTimeOut(long leaseTimeOut) {
         this.leaseTimeOut = leaseTimeOut;
         return this;
+    }
+
+    protected long getLeaseTimeOut() {
+        return leaseTimeOut;
     }
 
     protected AsyncIndexUpdate setCloseTimeOut(int timeOutInSec) {
