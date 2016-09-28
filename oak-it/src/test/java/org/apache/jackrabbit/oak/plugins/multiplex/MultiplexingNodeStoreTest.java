@@ -18,8 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
+import static com.google.common.base.Predicates.compose;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItems;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -41,8 +46,11 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -79,7 +87,7 @@ public class MultiplexingNodeStoreTest {
     private final NodeStoreKind root;
     private final NodeStoreKind mounts;
 
-    private final List<NodeStoreRegistration> registrations = Lists.newArrayList();
+    private final List<NodeStoreRegistration> registrations = newArrayList();
 
     private MultiplexingNodeStore store;
     private NodeStore globalStore;
@@ -753,9 +761,57 @@ public class MultiplexingNodeStoreTest {
     }
 
     @Test
-    @Ignore("Not implemented")
-    public void builderBasedOnCheckpoint() {
+    public void builderBasedOnCheckpoint() throws CommitFailedException {
+        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(1));
 
+        assertNotNull("checkpoint reference is null", checkpoint);
+
+        // create a new child /new in the root store
+        NodeBuilder globalBuilder = globalStore.getRoot().builder();
+        globalBuilder.child("new");
+        globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // create a new child /tmp/new in the mounted store
+        NodeBuilder mountedBuilder = mountedStore.getRoot().builder();
+        mountedBuilder.getChildNode("tmp").child("new");
+        mountedStore.merge(mountedBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // create a new child /libs/mount/new in the deeply mounted store
+        NodeBuilder deepMountBuilder = deepMountedStore.getRoot().builder();
+        deepMountBuilder.getChildNode("libs").getChildNode("mount").child("new");
+        deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        NodeBuilder rootCheckpointBuilder = store.retrieve(checkpoint).builder();
+        assertFalse("store incorrectly exposes child at /new", rootCheckpointBuilder.hasChildNode("new"));
+        assertFalse("store incorrectly exposes child at /tmp/new", rootCheckpointBuilder.getChildNode("tmp").hasChildNode("new"));
+        assertFalse("store incorrectly exposes child at /libs/mount/new", rootCheckpointBuilder.getChildNode("libs").getChildNode("mount").hasChildNode("new"));
+    }
+
+    @Test
+    public void duplicatedChildren() throws CommitFailedException {
+        // create a new child /new in the root store
+        NodeBuilder globalBuilder = globalStore.getRoot().builder();
+        globalBuilder.child("new").setProperty("store", "global", Type.STRING);
+        globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // create a new child /tmp/new in the mounted store
+        NodeBuilder mountedBuilder = mountedStore.getRoot().builder();
+        mountedBuilder.child("new").setProperty("store", "mounted", Type.STRING);
+        mountedStore.merge(mountedBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // create a new child /libs/mount/new in the deeply mounted store
+        NodeBuilder deepMountBuilder = deepMountedStore.getRoot().builder();
+        deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
+        deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME)));
+        assertEquals(1, children.size());
+        assertEquals("global", children.get(0).getNodeState().getString("store"));
+
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        List<String> childNames = newArrayList(filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
+        assertEquals(1, childNames.size());
+        assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
     }
 
     private static enum NodeStoreKind {
