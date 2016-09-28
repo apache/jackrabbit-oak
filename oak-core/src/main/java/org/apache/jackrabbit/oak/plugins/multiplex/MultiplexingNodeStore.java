@@ -71,7 +71,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
 
-    private final MultiplexingContext ctx;
+    final MultiplexingContext ctx;
 
     private final List<Observer> observers = new CopyOnWriteArrayList<>();
 

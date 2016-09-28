@@ -68,7 +68,7 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     private final List<String> checkpoints;
 
-    private final Map<MountedNodeStore, NodeState> rootNodeStates;
+    final Map<MountedNodeStore, NodeState> rootNodeStates;
 
     private NodeState wrappedNodeState;
 
