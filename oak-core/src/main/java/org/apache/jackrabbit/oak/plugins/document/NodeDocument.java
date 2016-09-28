@@ -1872,6 +1872,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         } else {
             // branch commit (not merged)
+            // read as RevisionVector, even though this should be
+            // a Revision only. See OAK-4840
             RevisionVector branchCommit = RevisionVector.fromString(commitValue);
             if (branchCommit.getBranchRevision().getClusterId() != context.getClusterId()) {
                 // this is an unmerged branch commit from another cluster node,
