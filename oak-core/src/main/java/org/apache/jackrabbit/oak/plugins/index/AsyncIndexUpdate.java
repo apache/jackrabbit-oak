@@ -102,18 +102,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * timed out. Another node in cluster would wait for timeout before
      * taking over a running job
      */
-    private static final long DEFAULT_ASYNC_TIMEOUT;
-
-    static {
-        int value = 15;
-        try {
-            value = Integer.parseInt(System.getProperty(
-                    "oak.async.lease.timeout", "15"));
-        } catch (NumberFormatException e) {
-            // use default
-        }
-        DEFAULT_ASYNC_TIMEOUT = TimeUnit.MINUTES.toMillis(value);
-    }
+    private static final long DEFAULT_ASYNC_TIMEOUT = TimeUnit.MINUTES.toMillis(
+            Integer.getInteger("oak.async.lease.timeout", 15));
 
     private final String name;
 
@@ -180,18 +170,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * The checkpoint cleanup interval in minutes. Defaults to 5 minutes.
      * Setting it to a negative value disables automatic cleanup. See OAK-4826.
      */
-    private final int cleanupIntervalMinutes = getCleanupIntervalMinutes();
-
-    private static int getCleanupIntervalMinutes() {
-        int value = 5;
-        try {
-            value = Integer.parseInt(System.getProperty(
-                    "oak.async.checkpointCleanupIntervalMinutes", String.valueOf(value)));
-        } catch (NumberFormatException e) {
-            // use default
-        }
-        return value;
-    }
+    private final int cleanupIntervalMinutes
+            = Integer.getInteger("oak.async.checkpointCleanupIntervalMinutes", 5);
 
     /**
      * The time in minutes since the epoch when the last checkpoint cleanup ran.
