@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -325,21 +326,75 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     }
 
     private void annotateSourcePath() {
-        if (!isTransientlyAdded(path)) {
-            setProperty(MoveDetector.SOURCE_PATH, path);
+        String sourcePath = getSourcePath();
+        if (!isTransientlyAdded(sourcePath)) {
+            setProperty(MoveDetector.SOURCE_PATH, sourcePath);
         }
     }
 
-    private boolean isTransientlyAdded(String path) {
+    private final String getSourcePath() {
+        // Traverse up the hierarchy until we encounter the first builder
+        // having a source path annotation or until we hit the root
+        MultiplexingNodeBuilder builder = this;
+        String sourcePath = getSourcePathAnnotation(builder);
+        while (sourcePath == null && !"/".equals(builder.path)) {
+            String parentPath = PathUtils.getParentPath(builder.path);
+            builder = getBuilderByPath(parentPath);
+            sourcePath = getSourcePathAnnotation(builder);
+        }
+
+        if (sourcePath == null) {
+            // Neither self nor any parent has a source path annotation. The source
+            // path is just the path of this builder
+            return path;
+        } else {
+            // The source path is the source path of the first parent having a source
+            // path annotation with the relative path from this builder up to that
+            // parent appended.
+            return PathUtils.concat(sourcePath,
+                    PathUtils.relativize(builder.path, path));
+        }
+    }
+
+    private static String getSourcePathAnnotation(MultiplexingNodeBuilder builder) {
+        PropertyState base = builder.getBaseState().getProperty(MoveDetector.SOURCE_PATH);
+        PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
+        if (Objects.equal(base, head)) {
+            // Both null: no source path annotation
+            // Both non null but equals: source path annotation is from a previous commit
+            return null;
+        } else {
+            return head.getValue(Type.STRING);
+        }
+    }
+
+    private boolean isTransientlyAdded(String sourcePath) {
         NodeState node = rootBuilders.get(owningStore).getBaseState();
-        for (String name : PathUtils.elements(path)) {
-            if (node.hasChildNode(name)) {
-                node = node.getChildNode(name);
-            } else {
-                return true;
-            }
+        for (String name : PathUtils.elements(sourcePath)) {
+            node = node.getChildNode(name);
         }
-        return false;
+        return !node.exists();
     }
 
+    private MultiplexingNodeBuilder getBuilderByPath(String path) {
+        return new MultiplexingNodeBuilder(path, getBuildersByPath(rootBuilders, path), rootBuilders, ctx);
+    }
+
+    private static Map<MountedNodeStore, NodeBuilder> getBuildersByPath(Map<MountedNodeStore, NodeBuilder> rootNodes, final String path) {
+        return copyOf(transformValues(rootNodes, new Function<NodeBuilder, NodeBuilder>() {
+            @Override
+            public NodeBuilder apply(NodeBuilder input) {
+                NodeBuilder result = input;
+                for (String element : PathUtils.elements(path)) {
+                    if (result.hasChildNode(element)) {
+                        result = result.getChildNode(element);
+                    } else {
+                        result = MISSING_NODE.builder();
+                        break;
+                    }
+                }
+                return result;
+            }
+        }));
+    }
 }
