@@ -63,7 +63,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
         this.path = path;
         this.ctx = ctx;
-        this.nodeBuilders = nodeBuilders;
+        this.nodeBuilders = newHashMap(nodeBuilders);
         this.rootBuilders = rootBuilders;
         this.owningStore = ctx.getOwningStore(path);
     }
@@ -74,12 +74,14 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        return new MultiplexingNodeState(path, buildersToNodeStates(nodeBuilders), buildersToNodeStates(rootBuilders), ctx);
+        Map<MountedNodeStore, NodeState> rootNodes = buildersToNodeStates(rootBuilders);
+        return new MultiplexingNodeState(path, rootNodes, ctx);
     }
 
     @Override
     public NodeState getBaseState() {
-        return new MultiplexingNodeState(path, buildersToBaseStates(nodeBuilders), buildersToBaseStates(rootBuilders), ctx);
+        Map<MountedNodeStore, NodeState> rootNodes = buildersToBaseStates(rootBuilders);
+        return new MultiplexingNodeState(path, rootNodes, ctx);
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToNodeStates(Map<MountedNodeStore, NodeBuilder> builders) {

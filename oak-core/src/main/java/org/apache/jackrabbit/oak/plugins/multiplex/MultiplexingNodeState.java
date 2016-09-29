@@ -71,6 +71,10 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     final Map<MountedNodeStore, NodeState> nodeStates;
 
+    MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
+        this(path, getNodesByPath(rootStates, path), rootStates, ctx);
+    }
+
     MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
         checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", nodeStates.size(), ctx.getStoresCount());
         checkArgument(rootStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", rootStates.size(), ctx.getStoresCount());
@@ -232,6 +236,24 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     private NodeState getWrappedNodeState() {
         return nodeStates.get(owningStore);
+    }
+
+    private static Map<MountedNodeStore, NodeState> getNodesByPath(Map<MountedNodeStore, NodeState> rootNodes, final String path) {
+        return copyOf(transformValues(rootNodes, new Function<NodeState, NodeState>() {
+            @Override
+            public NodeState apply(NodeState input) {
+                NodeState result = input;
+                for (String element : PathUtils.elements(path)) {
+                    if (result.hasChildNode(element)) {
+                        result = result.getChildNode(element);
+                    } else {
+                        result = MISSING_NODE;
+                        break;
+                    }
+                }
+                return result;
+            }
+        }));
     }
 
     private class ChildrenDiffFilter implements NodeStateDiff {
