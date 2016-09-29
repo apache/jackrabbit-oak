@@ -36,9 +36,12 @@ import org.junit.Test;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import java.util.Map;
+
 import static com.google.common.collect.Iterables.cycle;
 import static com.google.common.collect.Iterables.limit;
 import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -52,15 +55,13 @@ public class MultiplexingChildrenCountTest {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder().build();
         NodeStore globalStore = new MemoryNodeStore();
         MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).build();
-        MountedNodeStore mountedStore = multiplexingNodeStore.ctx.getOwningStore("/");
 
-        MultiplexingNodeState mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
-        mns.nodeStates.put(mountedStore, new TestingNodeState(MAX_VALUE));
-        assertEquals(MAX_VALUE, mns.getChildNodeCount(123));
+        MultiplexingNodeStateBuilder b = new MultiplexingNodeStateBuilder(multiplexingNodeStore.ctx);
+        b.configureMount("/", MAX_VALUE);
+        assertEquals(MAX_VALUE, b.getNodeState().getChildNodeCount(123));
 
-        mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
-        mns.nodeStates.put(mountedStore, new TestingNodeState(10));
-        assertEquals(10, mns.getChildNodeCount(200));
+        b.clear().configureMount("/", 10);
+        assertEquals(10, b.getNodeState().getChildNodeCount(200));
     }
 
     @Test
@@ -70,14 +71,11 @@ public class MultiplexingChildrenCountTest {
         NodeStore libsStore = new MemoryNodeStore();
         MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("libs", libsStore).build();
 
-        MountedNodeStore globalMountedNS = multiplexingNodeStore.ctx.getOwningStore("/");
-        MountedNodeStore libsMountedNS = multiplexingNodeStore.ctx.getOwningStore("/libs");
+        MultiplexingNodeStateBuilder b = new MultiplexingNodeStateBuilder(multiplexingNodeStore.ctx);
+        TestingNodeState globalTestingNS = b.configureMount("/", 5);
+        TestingNodeState libsTestingNS = b.configureMount("/libs", "libs", "libs1", "libs2");
 
-        MultiplexingNodeState mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
-        TestingNodeState globalTestingNS = new TestingNodeState(5);
-        TestingNodeState libsTestingNS = new TestingNodeState("libs", "libs1", "libs2");
-        mns.nodeStates.put(globalMountedNS, globalTestingNS);
-        mns.nodeStates.put(libsMountedNS, libsTestingNS);
+        MultiplexingNodeState mns = b.getNodeState();
 
         assertEquals(8, mns.getChildNodeCount(9));
         assertEquals(5, globalTestingNS.fetchedChildren);
@@ -121,14 +119,11 @@ public class MultiplexingChildrenCountTest {
         NodeStore libsStore = new MemoryNodeStore();
         MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("libs", libsStore).build();
 
-        MountedNodeStore globalMountedNS = multiplexingNodeStore.ctx.getOwningStore("/");
-        MountedNodeStore libsMountedNS = multiplexingNodeStore.ctx.getOwningStore("/libs");
+        MultiplexingNodeStateBuilder b = new MultiplexingNodeStateBuilder(multiplexingNodeStore.ctx);
+        TestingNodeState globalTestingNS = b.configureMount("/", 5);
+        TestingNodeState libsTestingNS = b.configureMount("/libs", MAX_VALUE);
 
-        MultiplexingNodeState mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
-        TestingNodeState globalTestingNS = new TestingNodeState(5);
-        TestingNodeState libsTestingNS = new TestingNodeState(Long.MAX_VALUE);
-        mns.nodeStates.put(globalMountedNS, globalTestingNS);
-        mns.nodeStates.put(libsMountedNS, libsTestingNS);
+        MultiplexingNodeState mns = b.getNodeState();
 
         assertEquals(MAX_VALUE, mns.getChildNodeCount(100));
         assertEquals(5, globalTestingNS.fetchedChildren);
@@ -139,6 +134,38 @@ public class MultiplexingChildrenCountTest {
         assertEquals(MAX_VALUE, mns.builder().getChildNodeCount(100));
         assertEquals(5, globalTestingNS.fetchedChildren);
         assertEquals(0, libsTestingNS.fetchedChildren);
+    }
+
+    private static class MultiplexingNodeStateBuilder {
+
+        private final Map<MountedNodeStore, NodeState> rootStates = newHashMap();
+
+        private final MultiplexingContext ctx;
+
+        public MultiplexingNodeStateBuilder(MultiplexingContext ctx) {
+            this.ctx = ctx;
+        }
+
+        public TestingNodeState configureMount(String mountPath, long children) {
+            TestingNodeState nodeState = new TestingNodeState(children);
+            rootStates.put(ctx.getOwningStore(mountPath), nodeState);
+            return nodeState;
+        }
+
+        public TestingNodeState configureMount(String mountPath, String... children) {
+            TestingNodeState nodeState = new TestingNodeState(children);
+            rootStates.put(ctx.getOwningStore(mountPath), nodeState);
+            return nodeState;
+        }
+
+        public MultiplexingNodeState getNodeState() {
+            return new MultiplexingNodeState("/", rootStates, ctx);
+        }
+
+        public MultiplexingNodeStateBuilder clear() {
+            rootStates.clear();
+            return this;
+        }
     }
 
     private static class TestingNodeState extends AbstractNodeState {
