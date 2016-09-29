@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupImpl;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 
@@ -51,7 +52,9 @@ public class Backup implements Runnable {
 
         private File target;
 
-        private boolean fakeBlobStore = FileStoreBackup.USE_FAKE_BLOBSTORE;
+        private boolean fakeBlobStore = FileStoreBackupImpl.USE_FAKE_BLOBSTORE;
+
+        private final FileStoreBackup fileStoreBackup = new FileStoreBackupImpl();
 
         private Builder() {
             // Prevent external instantiation.
@@ -114,16 +117,19 @@ public class Backup implements Runnable {
 
     private final boolean fakeBlobStore;
 
+    private final FileStoreBackup fileStoreBackup;
+
     private Backup(Builder builder) {
         this.source = builder.source;
         this.target = builder.target;
         this.fakeBlobStore = builder.fakeBlobStore;
+        this.fileStoreBackup = builder.fileStoreBackup;
     }
 
     @Override
     public void run() {
         try (FileStore fs = newFileStore()) {
-            FileStoreBackup.backup(fs.getReader(), fs.getRevisions(), target);
+            fileStoreBackup.backup(fs.getReader(), fs.getRevisions(), target);
         } catch (Exception e) {
             e.printStackTrace();
         }
