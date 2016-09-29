@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.hamcrest.CoreMatchers.instanceOf;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -43,7 +41,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import junit.framework.Assert;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -53,9 +50,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -73,18 +67,14 @@ public class SharedDataStoreUtilsTest {
 
     protected DataStoreBlobStore dataStore;
 
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        try {
-            Assume.assumeThat(getBlobStore(), instanceOf(SharedDataStore.class));
-        } catch (Exception e) {
-            Assume.assumeNoException(e);
-        }
+    protected DataStoreBlobStore getBlobStore(File root) throws Exception {
+        return DataStoreUtils.getBlobStore(root);
     }
 
     @Test
     public void test() throws Exception {
-        dataStore = getBlobStore();
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
         String repoId1 = UUID.randomUUID().toString();
         String repoId2 = UUID.randomUUID().toString();
 
@@ -163,7 +153,8 @@ public class SharedDataStoreUtilsTest {
 
     @Test
     public void testAddMetadata() throws Exception {
-        dataStore = getBlobStore();
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
         String repoId = UUID.randomUUID().toString();
         Set<String> refs = Sets.newHashSet("1_1", "1_2");
         File f = folder.newFile();
@@ -189,8 +180,9 @@ public class SharedDataStoreUtilsTest {
 
     @Test
     public void testGetAllChunkIds() throws Exception {
-        dataStore = getBlobStore();
-        int number = 1010;
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+        int number = 10;
         Set<String> added = newHashSet();
         for (int i = 0; i < number; i++) {
             String rec = dataStore.writeBlob(randomStream(i, 16516));
@@ -203,8 +195,9 @@ public class SharedDataStoreUtilsTest {
 
     @Test
     public void testGetAllRecords() throws Exception {
-        dataStore = getBlobStore();
-        int number = 1010;
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+        int number = 10;
         Set<String> added = newHashSet();
         for (int i = 0; i < number; i++) {
             String rec = dataStore.addRecord(randomStream(i, 16516))
@@ -223,7 +216,8 @@ public class SharedDataStoreUtilsTest {
 
     @Test
     public void testStreamFromGetAllRecords() throws Exception {
-        dataStore = getBlobStore();
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
         int number = 10;
         Set<DataRecord> added = newHashSet();
         for (int i = 0; i < number; i++) {
@@ -236,7 +230,8 @@ public class SharedDataStoreUtilsTest {
 
     @Test
     public void testGetRecordForId() throws Exception {
-        dataStore = getBlobStore();
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
         int number = 10;
         Set<DataRecord> added = newHashSet();
         for (int i = 0; i < number; i++) {
@@ -275,11 +270,6 @@ public class SharedDataStoreUtilsTest {
         byte[] data = new byte[size];
         r.nextBytes(data);
         return new ByteArrayInputStream(data);
-    }
-
-    @After
-    public void close() throws IOException {
-        FileUtils.cleanDirectory(new File(DataStoreUtils.getHomeDir()));
     }
 }
 

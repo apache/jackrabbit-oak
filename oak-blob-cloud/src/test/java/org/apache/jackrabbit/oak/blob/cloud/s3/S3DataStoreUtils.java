@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud;
+package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -33,6 +33,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.Backend;
@@ -40,8 +41,6 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3Backend;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
-import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
@@ -54,6 +53,10 @@ public class S3DataStoreUtils extends DataStoreUtils {
     private static final Logger log = LoggerFactory.getLogger(S3DataStoreUtils.class);
 
     private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
+
+    public static List<String> getFixtures() {
+        return ImmutableList.of(SharedS3DataStore.class.getName());
+    }
 
     public static boolean isS3DataStore() {
         String dsName = System.getProperty(DS_CLASS_NAME);
@@ -113,11 +116,20 @@ public class S3DataStoreUtils extends DataStoreUtils {
         return props;
     }
 
-    public static DataStore getS3DataStore(String className, String homeDir) throws Exception {
+    public static DataStore getS3DataStore(String className, Properties props, String homeDir) throws Exception {
         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
-        PropertiesUtil.populate(ds, Maps.fromProperties(getS3Config()), false);
+        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        // Set the props object
+        if (SharedS3DataStore.class.getName().equals(className)) {
+            ((SharedS3DataStore) ds).setProperties(props);
+        }
         ds.init(homeDir);
+
         return ds;
+    }
+
+    public static DataStore getS3DataStore(String className, String homeDir) throws Exception {
+        return getS3DataStore(className, getS3Config(), homeDir);
     }
 
     /**
@@ -137,7 +149,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
         }
     }
 
-    private static void deleteBucket(String bucket, Date date) throws Exception {
+    public static void deleteBucket(String bucket, Date date) throws Exception {
         log.info("cleaning bucket [" + bucket + "]");
         Properties props = getS3Config();
         AmazonS3Client s3service = Utils.openService(props);

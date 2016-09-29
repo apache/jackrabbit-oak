@@ -19,9 +19,17 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
+import java.io.File;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.junit.After;
 import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
@@ -30,19 +38,36 @@ import static org.junit.Assume.assumeTrue;
 /**
  * Tests for SegmentNodeStore on S3DataStore GC
  */
+@RunWith(Parameterized.class)
 public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
+    @Parameterized.Parameter
+    public String s3Class;
+
+    protected String bucket;
+
+    @Parameterized.Parameters(name = "{index}: ({0})")
+    public static List<String> fixtures() {
+        return S3DataStoreUtils.getFixtures();
+    }
 
     @BeforeClass
     public static void assumptions() {
         assumeTrue(getFixtures().contains(SEGMENT_TAR));
-        assumeTrue(S3DataStoreUtils.isS3DataStore());
+        assumeTrue(S3DataStoreUtils.isS3Configured());
     }
 
+    protected DataStoreBlobStore getBlobStore(File rootFolder) throws Exception {
+        Properties props = S3DataStoreUtils.getS3Config();
+        bucket = rootFolder.getName();
+        props.setProperty(S3Constants.S3_BUCKET, bucket);
+        return new DataStoreBlobStore(
+            S3DataStoreUtils.getS3DataStore(s3Class, props, rootFolder.getAbsolutePath()));
+    }
 
     @After
     public void close() throws Exception {
         super.close();
-        S3DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
+        S3DataStoreUtils.deleteBucket(bucket, startDate);
     }
 }
 

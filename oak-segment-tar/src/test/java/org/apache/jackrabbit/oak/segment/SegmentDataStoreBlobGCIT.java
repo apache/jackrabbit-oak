@@ -119,9 +119,13 @@ public class SegmentDataStoreBlobGCIT {
         return setUp(10);
     }
 
+    protected DataStoreBlobStore getBlobStore(File folder) throws Exception {
+        return DataStoreUtils.getBlobStore(folder);
+    }
+
     public DataStoreState setUp(int count) throws Exception {
         if (blobStore == null) {
-            blobStore = DataStoreUtils.getBlobStore(folder.newFolder());
+            blobStore = getBlobStore(folder.newFolder());
         }
         nodeStore = getNodeStore(blobStore);
         startDate = new Date();

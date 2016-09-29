@@ -16,12 +16,20 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
+import java.util.List;
+
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.data.CachingDataStore;
-import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.TestS3Ds;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
+
 /**
  * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with
  * {@link org.apache.jackrabbit.core.data.CachingDataStore#setTouchAsync(boolean) set to true.
@@ -34,12 +42,17 @@ public class TestS3DSAsyncTouch extends TestS3Ds {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSAsyncTouch.class);
 
+    @Parameterized.Parameters(name = "{index}: ({0})")
+    public static List<String> fixtures() {
+        return Lists.newArrayList(getFixtures().get(0));
+    }
+
     @Override
     protected CachingDataStore createDataStore() throws RepositoryException {
         S3DataStore s3ds = new S3DataStore();
         s3ds.setProperties(props);
-        s3ds.setTouchAsync(true);
         s3ds.setSecret("123456");
+        s3ds.setTouchAsync(true);
         s3ds.setAsyncUploadLimit(0);
         s3ds.init(dataStoreDir);
         s3ds.updateModifiedDateOnAccess(System.currentTimeMillis() + 50 * 1000);

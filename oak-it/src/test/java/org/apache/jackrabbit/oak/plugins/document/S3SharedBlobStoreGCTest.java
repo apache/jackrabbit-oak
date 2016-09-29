@@ -18,25 +18,54 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
+import java.io.File;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.junit.After;
 import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.junit.Assume.assumeTrue;
 
 /**
  * Shared BlobStoreGCTest for S3.
  */
+@RunWith(Parameterized.class)
 public class S3SharedBlobStoreGCTest extends SharedBlobStoreGCTest {
+
+    @Parameterized.Parameter
+    public String s3Class;
+
+    protected String bucket;
+
+    @Parameterized.Parameters(name = "{index}: ({0})")
+    public static List<String> fixtures() {
+        return S3DataStoreUtils.getFixtures();
+    }
+
     @BeforeClass
     public static void assumptions() {
-        assumeTrue(S3DataStoreUtils.isS3DataStore());
+        assumeTrue(S3DataStoreUtils.isS3Configured());
     }
 
     @After
     public void tearDown() throws Exception {
-        S3DataStoreUtils.cleanup(cluster1.getDataStore(), cluster1.getDate());
+        S3DataStoreUtils.deleteBucket(bucket, cluster1.getDate());
         super.tearDown();
+    }
+
+    @Override
+    protected DataStoreBlobStore getBlobStore(File rootFolder) throws Exception {
+        Properties props = S3DataStoreUtils.getS3Config();
+        bucket = rootFolder.getName();
+        props.setProperty(S3Constants.S3_BUCKET, bucket);
+        return new DataStoreBlobStore(
+            S3DataStoreUtils.getS3DataStore(s3Class, props, rootFolder.getAbsolutePath()));
     }
 
     @Override
