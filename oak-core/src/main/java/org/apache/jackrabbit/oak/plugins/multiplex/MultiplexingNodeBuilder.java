@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -303,6 +304,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
             return false;
         } else {
             if (newParent.exists()) {
+                annotateSourcePath();
                 NodeState nodeState = getNodeState();
                 newParent.setChildNode(newName, nodeState);
                 remove();
@@ -321,4 +323,23 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     private NodeBuilder getWrappedNodeBuilder() {
         return nodeBuilders.get(owningStore);
     }
+
+    private void annotateSourcePath() {
+        if (!isTransientlyAdded(path)) {
+            setProperty(MoveDetector.SOURCE_PATH, path);
+        }
+    }
+
+    private boolean isTransientlyAdded(String path) {
+        NodeState node = rootBuilders.get(owningStore).getBaseState();
+        for (String name : PathUtils.elements(path)) {
+            if (node.hasChildNode(name)) {
+                node = node.getChildNode(name);
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
