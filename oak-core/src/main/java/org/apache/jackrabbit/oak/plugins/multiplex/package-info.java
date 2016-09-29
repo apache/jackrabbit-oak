@@ -38,8 +38,8 @@
  *  is found.</p>
  *
  *  <p>The current implementation naively queries all stores whenever the child node list is prepared.
- *  This is obviously correct but painfully slow.
- *  {@link org.apache.jackrabbit.oak.plugins.multiplex.MountedNodeStore#hasChildren(java.lang.String, java.lang.String)}</p>
+ *  This is obviously correct but may be slow.</p>
+ *  {@link org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingContext#getContributingStores(java.lang.String, com.google.common.base.Function)}</p>
  */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
