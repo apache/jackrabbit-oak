@@ -170,7 +170,7 @@ public class SegmentStream extends InputStream {
 
                 if (id != null
                         && id.getSegmentId().equals(first.getSegmentId())
-                        && id.getOffset() == first.getOffset() + count * BLOCK_SIZE) {
+                        && id.getRecordNumber() == first.getRecordNumber() + count * BLOCK_SIZE) {
                     count++;
                 } else {
                     int blockSize = Math.min(
