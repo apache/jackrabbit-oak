@@ -197,7 +197,7 @@ public class NodeRecordTest {
                 continue;
             }
 
-            if (segment.getRootOffset(i) != sns.getRecordId().getOffset()) {
+            if (segment.getRootOffset(i) != sns.getRecordId().getRecordNumber()) {
                 continue;
             }
 

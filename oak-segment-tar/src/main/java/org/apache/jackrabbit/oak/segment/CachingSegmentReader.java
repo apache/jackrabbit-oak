@@ -87,7 +87,7 @@ public class CachingSegmentReader implements SegmentReader {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
-        return stringCache.get(msb, lsb, id.getOffset(), new Function<Integer, String>() {
+        return stringCache.get(msb, lsb, id.getRecordNumber(), new Function<Integer, String>() {
             @Nonnull
             @Override
             public String apply(Integer offset) {
@@ -111,7 +111,7 @@ public class CachingSegmentReader implements SegmentReader {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
-        return templateCache.get(msb, lsb, id.getOffset(), new Function<Integer, Template>() {
+        return templateCache.get(msb, lsb, id.getRecordNumber(), new Function<Integer, Template>() {
             @Nonnull
             @Override
             public Template apply(Integer offset) {
