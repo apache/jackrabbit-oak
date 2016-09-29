@@ -65,7 +65,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         this.path = path;
         this.ctx = ctx;
         this.nodeBuilders = newHashMap(nodeBuilders);
-        this.rootBuilders = rootBuilders;
+        this.rootBuilders = copyOf(rootBuilders);
         this.owningStore = ctx.getOwningStore(path);
     }
 

@@ -69,10 +69,16 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     private final Map<MountedNodeStore, NodeState> rootStates;
 
-    final Map<MountedNodeStore, NodeState> nodeStates;
+    private final Map<MountedNodeStore, NodeState> nodeStates;
 
     MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
-        this(path, getNodesByPath(rootStates, path), rootStates, ctx);
+        checkArgument(rootStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", rootStates.size(), ctx.getStoresCount());
+
+        this.path = path;
+        this.ctx = ctx;
+        this.rootStates = copyOf(rootStates);
+        this.nodeStates = copyOf(getNodesByPath(this.rootStates, path));
+        this.owningStore = ctx.getOwningStore(path);
     }
 
     MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
@@ -81,8 +87,8 @@ class MultiplexingNodeState extends AbstractNodeState {
 
         this.path = path;
         this.ctx = ctx;
-        this.rootStates = rootStates;
-        this.nodeStates = nodeStates;
+        this.rootStates = copyOf(rootStates);
+        this.nodeStates = copyOf(nodeStates);
         this.owningStore = ctx.getOwningStore(path);
     }
 
