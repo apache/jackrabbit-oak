@@ -141,7 +141,7 @@ public class SegmentId implements Comparable<SegmentId> {
             sb.append(",").append(gcInfo);
         }
         if (gcGeneration >= 0) {
-            sb.append(",").append("segment-generation").append(gcGeneration);
+            sb.append(",").append("segment-generation=").append(gcGeneration);
         }
         return sb.toString();
     }
