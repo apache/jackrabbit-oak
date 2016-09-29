@@ -14,34 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
+package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.core.data.CachingDataStore;
-import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
-import org.junit.After;
+import org.junit.After;;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.mockito.internal.matchers.Equals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils.getS3Config;
-import static org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils.isS3Configured;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
 import static org.junit.Assume.assumeTrue;
 
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend and local cache on.
+ * Test {@link S3DataStore} with S3Backend and local cache on.
  * It requires to pass aws config file via system property or system properties by prefixing with 'ds.'.
  * See details @ {@link S3DataStoreUtils}.
  * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
  */
+@RunWith(Parameterized.class)
 public class TestS3Ds extends AbstractDataStoreTest {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3Ds.class);
@@ -49,6 +56,16 @@ public class TestS3Ds extends AbstractDataStoreTest {
     private Date startTime = null;
 
     protected Properties props;
+
+    protected String bucket;
+
+    @Parameterized.Parameter
+    public String s3Class;
+
+    @Parameterized.Parameters(name = "{index}: ({0})")
+    public static List<String> fixtures() {
+        return getFixtures();
+    }
 
     @BeforeClass
     public static void assumptions() {
@@ -64,6 +81,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
             String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
                 + "-test";
         props.setProperty(S3Constants.S3_BUCKET, bucket);
+        props.setProperty("secret", "123456");
         super.setUp();
     }
 
@@ -72,19 +90,33 @@ public class TestS3Ds extends AbstractDataStoreTest {
     public void tearDown() {
         try {
             super.tearDown();
-            S3DataStoreUtils.cleanup(ds, startTime);
+            S3DataStoreUtils.deleteBucket(bucket, startTime);
         } catch (Exception ignore) {
 
         }
     }
 
-    @Override
-    protected CachingDataStore createDataStore() throws RepositoryException {
-        S3DataStore s3ds = new S3DataStore();
-        s3ds.setProperties(props);
-        s3ds.setSecret("123456");
-        s3ds.init(dataStoreDir);
+    protected DataStore createDataStore() throws RepositoryException {
+        DataStore s3ds = null;
+        try {
+            s3ds = getS3DataStore(s3Class, props, dataStoreDir);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         sleep(1000);
         return s3ds;
+    }
+
+    /**----------Only run with org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore-----------**/
+    @Override
+    public void testUpdateLastModifiedOnAccess() {
+        Assume.assumeThat(s3Class, new Equals(fixtures().get(0)));
+        super.testUpdateLastModifiedOnAccess();
+    }
+
+    @Override
+    public void testDeleteAllOlderThan() {
+        Assume.assumeThat(s3Class, new Equals(fixtures().get(0)));
+        super.testDeleteAllOlderThan();
     }
 }

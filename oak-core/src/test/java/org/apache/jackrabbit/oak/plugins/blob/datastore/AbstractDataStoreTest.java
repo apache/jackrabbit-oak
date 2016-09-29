@@ -171,6 +171,7 @@ public abstract class AbstractDataStoreTest {
                 + (System.currentTimeMillis() - start) + "]ms");
         } catch (Exception e) {
             LOG.error("error:", e);
+            fail(e.getMessage());
         }
     }
 
