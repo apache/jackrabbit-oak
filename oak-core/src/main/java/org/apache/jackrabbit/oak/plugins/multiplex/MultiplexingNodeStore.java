@@ -95,15 +95,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
 
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
-        // since we maintain a mapping of _root_ NodeBuilder instances for all mounted stores
-        // we need to check ourselves against merging a non-root node
-        checkArgument(nodeBuilder.getPath().equals("/"));
-
         NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
         processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
 
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getBuilders().entrySet() ) {
             NodeStore nodeStore = e.getKey().getNodeStore();
             NodeBuilder rootBuilder = e.getValue();
             NodeState result = nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, info);
@@ -123,7 +119,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet() ) {
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getBuilders().entrySet() ) {
             NodeStore nodeStore = e.getKey().getNodeStore();
             NodeBuilder affectedBuilder = e.getValue();
             NodeState result = nodeStore.rebase(affectedBuilder);
@@ -138,7 +134,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getRootBuilders().entrySet()) {
+        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getBuilders().entrySet()) {
             NodeStore nodeStore = e.getKey().getNodeStore();
             NodeBuilder affectedBuilder = e.getValue();
             NodeState result = nodeStore.reset(affectedBuilder);
@@ -148,7 +144,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     }
 
     private MultiplexingNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {
-        return new MultiplexingNodeState("/", ctx, Collections.<String>emptyList(), rootStates);
+        return new MultiplexingNodeState("/", rootStates, rootStates, ctx, Collections.<String>emptyList());
     }
 
     @Override
@@ -221,7 +217,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             nodeStates.put(nodeStore, rootState);
         }
 
-        return new MultiplexingNodeState("/", ctx, checkpointList, nodeStates);
+        return new MultiplexingNodeState("/", nodeStates, nodeStates, ctx, checkpointList);
     }
 
     @Override

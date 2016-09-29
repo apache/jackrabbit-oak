@@ -55,11 +55,11 @@ public class MultiplexingChildrenCountTest {
         MountedNodeStore mountedStore = multiplexingNodeStore.ctx.getOwningStore("/");
 
         MultiplexingNodeState mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
-        mns.rootNodeStates.put(mountedStore, new TestingNodeState(MAX_VALUE));
+        mns.nodeStates.put(mountedStore, new TestingNodeState(MAX_VALUE));
         assertEquals(MAX_VALUE, mns.getChildNodeCount(123));
 
         mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
-        mns.rootNodeStates.put(mountedStore, new TestingNodeState(10));
+        mns.nodeStates.put(mountedStore, new TestingNodeState(10));
         assertEquals(10, mns.getChildNodeCount(200));
     }
 
@@ -76,8 +76,8 @@ public class MultiplexingChildrenCountTest {
         MultiplexingNodeState mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
         TestingNodeState globalTestingNS = new TestingNodeState(5);
         TestingNodeState libsTestingNS = new TestingNodeState("libs", "libs1", "libs2");
-        mns.rootNodeStates.put(globalMountedNS, globalTestingNS);
-        mns.rootNodeStates.put(libsMountedNS, libsTestingNS);
+        mns.nodeStates.put(globalMountedNS, globalTestingNS);
+        mns.nodeStates.put(libsMountedNS, libsTestingNS);
 
         assertEquals(8, mns.getChildNodeCount(9));
         assertEquals(5, globalTestingNS.fetchedChildren);
@@ -127,8 +127,8 @@ public class MultiplexingChildrenCountTest {
         MultiplexingNodeState mns = (MultiplexingNodeState) multiplexingNodeStore.getRoot();
         TestingNodeState globalTestingNS = new TestingNodeState(5);
         TestingNodeState libsTestingNS = new TestingNodeState(Long.MAX_VALUE);
-        mns.rootNodeStates.put(globalMountedNS, globalTestingNS);
-        mns.rootNodeStates.put(libsMountedNS, libsTestingNS);
+        mns.nodeStates.put(globalMountedNS, globalTestingNS);
+        mns.nodeStates.put(libsMountedNS, libsTestingNS);
 
         assertEquals(MAX_VALUE, mns.getChildNodeCount(100));
         assertEquals(5, globalTestingNS.fetchedChildren);

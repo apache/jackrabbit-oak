@@ -46,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -685,11 +684,11 @@ public class MultiplexingNodeStoreTest {
 
     @Test
     public void resetOnMountedStore() {
-
-        NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder builder = rootBuilder.getChildNode("tmp");
         builder.child("newChild");
 
-        store.reset(builder);
+        store.reset(rootBuilder);
 
         assertFalse("Newly added child should no longer be visible after reset", builder.getChildNode("tmp").hasChildNode("newChild"));
     }
