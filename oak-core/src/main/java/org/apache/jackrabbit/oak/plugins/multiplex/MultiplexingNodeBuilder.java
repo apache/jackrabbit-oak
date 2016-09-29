@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
@@ -43,6 +44,7 @@ import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeState.STOP_COUNTING_CHILDREN;
 import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeState.accumulateChildSizes;
+import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 class MultiplexingNodeBuilder implements NodeBuilder {
 
@@ -297,7 +299,20 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
-        return getWrappedNodeBuilder().moveTo(newParent, newName);
+        checkNotNull(newParent);
+        checkValidName(newName);
+        if ("/".equals(path) || !exists() || newParent.hasChildNode(newName)) {
+            return false;
+        } else {
+            if (newParent.exists()) {
+                NodeState nodeState = getNodeState();
+                newParent.setChildNode(newName, nodeState);
+                remove();
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     @Override
