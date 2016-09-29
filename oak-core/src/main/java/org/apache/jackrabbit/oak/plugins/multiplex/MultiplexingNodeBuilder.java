@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -56,11 +55,9 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final Map<MountedNodeStore, NodeBuilder> rootBuilders;
 
-    private final List<String> checkpoints;
-
     private final MountedNodeStore owningStore;
 
-    MultiplexingNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, Map<MountedNodeStore, NodeBuilder> rootBuilders, MultiplexingContext ctx, List<String> checkpoints) {
+    MultiplexingNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, Map<MountedNodeStore, NodeBuilder> rootBuilders, MultiplexingContext ctx) {
         checkArgument(nodeBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", nodeBuilders.size(), ctx.getStoresCount());
         checkArgument(rootBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", rootBuilders.size(), ctx.getStoresCount());
 
@@ -68,7 +65,6 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         this.ctx = ctx;
         this.nodeBuilders = nodeBuilders;
         this.rootBuilders = rootBuilders;
-        this.checkpoints = checkpoints;
         this.owningStore = ctx.getOwningStore(path);
     }
 
@@ -78,12 +74,12 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        return new MultiplexingNodeState(path, buildersToNodeStates(nodeBuilders), buildersToNodeStates(rootBuilders), ctx, checkpoints);
+        return new MultiplexingNodeState(path, buildersToNodeStates(nodeBuilders), buildersToNodeStates(rootBuilders), ctx);
     }
 
     @Override
     public NodeState getBaseState() {
-        return new MultiplexingNodeState(path, buildersToBaseStates(nodeBuilders), buildersToBaseStates(rootBuilders), ctx, checkpoints);
+        return new MultiplexingNodeState(path, buildersToBaseStates(nodeBuilders), buildersToBaseStates(rootBuilders), ctx);
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToNodeStates(Map<MountedNodeStore, NodeBuilder> builders) {
@@ -202,7 +198,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     // child-related methods, require multiplexing
     @Override
     public long getChildNodeCount(final long max) {
-        List<MountedNodeStore> contributingStores = ctx.getContributingStores(path, checkpoints);
+        List<MountedNodeStore> contributingStores = ctx.getContributingStoresForBuilders(path, nodeBuilders);
         if (contributingStores.isEmpty()) {
             return 0; // this shouldn't happen
         } else if (contributingStores.size() == 1) {
@@ -225,7 +221,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return concat(transform(ctx.getContributingStores(path, Collections.<String>emptyList()), new Function<MountedNodeStore, Iterable<String>>() {
+        return concat(transform(ctx.getContributingStoresForBuilders(path, nodeBuilders), new Function<MountedNodeStore, Iterable<String>>() {
             @Override
             public Iterable<String> apply(final MountedNodeStore mountedNodeStore) {
                 return filter(nodeBuilders.get(mountedNodeStore).getChildNodeNames(), ctx.belongsToStore(mountedNodeStore, path));
@@ -275,7 +271,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
             newNodeBuilders.put(mns, nodeBuilders.get(mns).getChildNode(name));
         }
-        return new MultiplexingNodeBuilder(childPath, newNodeBuilders, rootBuilders, ctx, checkpoints);
+        return new MultiplexingNodeBuilder(childPath, newNodeBuilders, rootBuilders, ctx);
     }
 
     @Override

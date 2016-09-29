@@ -22,12 +22,13 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -73,19 +74,25 @@ class MultiplexingContext {
         }
     }
 
-    String getCheckpoint(NodeStore targetNodeStore, List<String> checkpointList) {
-        Iterator<String> checkpoints = checkpointList.iterator();
-        for (MountedNodeStore nodeStore : getAllMountedNodeStores()) {
-            String checkpoint = checkpoints.next();
-            if (nodeStore.getNodeStore() == targetNodeStore) {
-                return checkpoint;
+    List<MountedNodeStore> getContributingStoresForNodes(String path, final Map<MountedNodeStore, NodeState> nodeStates) {
+        return getContributingStores(path, new Function<MountedNodeStore, Iterable<String>>() {
+            @Override
+            public Iterable<String> apply(MountedNodeStore input) {
+                return nodeStates.get(input).getChildNodeNames();
             }
-        }
-        // 'never' happens
-        throw new IllegalArgumentException("Could not find checkpoint for nodeStore " + targetNodeStore);
+        });
     }
 
-    List<MountedNodeStore> getContributingStores(String path, List<String> checkpoints) {
+    List<MountedNodeStore> getContributingStoresForBuilders(String path, final Map<MountedNodeStore, NodeBuilder> nodeBuilders) {
+        return getContributingStores(path, new Function<MountedNodeStore, Iterable<String>>() {
+            @Override
+            public Iterable<String> apply(MountedNodeStore input) {
+                return nodeBuilders.get(input).getChildNodeNames();
+            }
+        });
+    }
+
+    private List<MountedNodeStore> getContributingStores(String path, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
         Mount owningMount = mip.getMountByPath(path);
         if (!owningMount.isDefault() && nodeStoresByMount.containsKey(owningMount)) {
             MountedNodeStore nodeStore = nodeStoresByMount.get(owningMount);
@@ -106,8 +113,7 @@ class MultiplexingContext {
             if (mounts.contains(mountedNodeStore.getMount())) {
                 mountedStores.add(mountedNodeStore);
             } else {
-                String checkpoint = checkpoints.isEmpty() ? null : getCheckpoint(mountedNodeStore.getNodeStore(), checkpoints);
-                if (mountedNodeStore.hasChildren(path, checkpoint)) {
+                if (mountedNodeStore.hasChildren(childrenProvider.apply(mountedNodeStore))) {
                     mountedStores.add(mountedNodeStore);
                 }
             }

@@ -65,21 +65,18 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     private final MultiplexingContext ctx;
 
-    private final List<String> checkpoints;
-
     private final MountedNodeStore owningStore;
 
     private final Map<MountedNodeStore, NodeState> rootStates;
 
     final Map<MountedNodeStore, NodeState> nodeStates;
 
-    MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx, List<String> checkpoints) {
+    MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
         checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", nodeStates.size(), ctx.getStoresCount());
         checkArgument(rootStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", rootStates.size(), ctx.getStoresCount());
 
         this.path = path;
         this.ctx = ctx;
-        this.checkpoints = checkpoints;
         this.rootStates = rootStates;
         this.nodeStates = nodeStates;
         this.owningStore = ctx.getOwningStore(path);
@@ -131,12 +128,12 @@ class MultiplexingNodeState extends AbstractNodeState {
         for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
             newNodeStates.put(mns, nodeStates.get(mns).getChildNode(name));
         }
-        return new MultiplexingNodeState(childPath, newNodeStates, rootStates, ctx, checkpoints);
+        return new MultiplexingNodeState(childPath, newNodeStates, rootStates, ctx);
     }
 
     @Override
     public long getChildNodeCount(final long max) {
-        List<MountedNodeStore> contributingStores = ctx.getContributingStores(path, checkpoints);
+        List<MountedNodeStore> contributingStores = ctx.getContributingStoresForNodes(path, nodeStates);
         if (contributingStores.isEmpty()) {
             return 0; // this shouldn't happen
         } else if (contributingStores.size() == 1) {
@@ -170,7 +167,7 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        Iterable<? extends ChildNodeEntry> nativeChildren = concat(transform(ctx.getContributingStores(path, checkpoints), new Function<MountedNodeStore, Iterable<? extends ChildNodeEntry>>() {
+        Iterable<? extends ChildNodeEntry> nativeChildren = concat(transform(ctx.getContributingStoresForNodes(path, nodeStates), new Function<MountedNodeStore, Iterable<? extends ChildNodeEntry>>() {
             @Override
             public Iterable<? extends ChildNodeEntry> apply(final MountedNodeStore mountedNodeStore) {
                 return filter(nodeStates.get(mountedNodeStore).getChildNodeEntries(), compose(ctx.belongsToStore(mountedNodeStore, path), GET_NAME));
@@ -191,7 +188,7 @@ class MultiplexingNodeState extends AbstractNodeState {
             MultiplexingNodeState multiBase = (MultiplexingNodeState) base;
             NodeStateDiff wrappingDiff = new WrappingDiff(diff, multiBase);
             boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), new ChildrenDiffFilter(wrappingDiff, owningStore, true));
-            for (MountedNodeStore mns : ctx.getContributingStores(path, checkpoints)) {
+            for (MountedNodeStore mns : ctx.getContributingStoresForNodes(path, nodeStates)) {
                 if (owningStore == mns) {
                     continue;
                 }
@@ -230,7 +227,7 @@ class MultiplexingNodeState extends AbstractNodeState {
                 return result;
             }
         }));
-        return new MultiplexingNodeBuilder(path, nodeBuilders, rootBuilders, ctx, checkpoints);
+        return new MultiplexingNodeBuilder(path, nodeBuilders, rootBuilders, ctx);
     }
 
     private NodeState getWrappedNodeState() {

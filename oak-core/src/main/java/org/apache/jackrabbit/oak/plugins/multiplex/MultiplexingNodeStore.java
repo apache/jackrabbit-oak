@@ -144,7 +144,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     }
 
     private MultiplexingNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {
-        return new MultiplexingNodeState("/", rootStates, rootStates, ctx, Collections.<String>emptyList());
+        return new MultiplexingNodeState("/", rootStates, rootStates, ctx);
     }
 
     @Override
@@ -217,7 +217,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             nodeStates.put(nodeStore, rootState);
         }
 
-        return new MultiplexingNodeState("/", nodeStates, nodeStates, ctx, checkpointList);
+        return new MultiplexingNodeState("/", nodeStates, nodeStates, ctx);
     }
 
     @Override
