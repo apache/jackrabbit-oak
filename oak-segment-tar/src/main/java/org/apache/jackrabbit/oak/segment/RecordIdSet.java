@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.binarySearch;
-import static org.apache.jackrabbit.oak.segment.Segment.pack;
 
 import java.util.Map;
 
@@ -33,7 +32,7 @@ import java.util.Map;
  * it contains.
  */
 public class RecordIdSet {
-    private final Map<String, ShortSet> seenIds = newHashMap();
+    private final Map<String, IntSet> seenIds = newHashMap();
 
     /**
      * Add {@code id} to this set if not already present
@@ -42,12 +41,12 @@ public class RecordIdSet {
      */
     public boolean addIfNotPresent(RecordId id) {
         String segmentId = id.getSegmentId().toString();
-        ShortSet offsets = seenIds.get(segmentId);
+        IntSet offsets = seenIds.get(segmentId);
         if (offsets == null) {
-            offsets = new ShortSet();
+            offsets = new IntSet();
             seenIds.put(segmentId, offsets);
         }
-        return offsets.add(pack(id.getOffset()));
+        return offsets.add(id.getRecordNumber());
     }
 
     /**
@@ -57,23 +56,23 @@ public class RecordIdSet {
      */
     public boolean contains(RecordId id) {
         String segmentId = id.getSegmentId().toString();
-        ShortSet offsets = seenIds.get(segmentId);
-        return offsets != null && offsets.contains(pack(id.getOffset()));
+        IntSet offsets = seenIds.get(segmentId);
+        return offsets != null && offsets.contains(id.getRecordNumber());
     }
 
-    static class ShortSet {
-        short[] elements;
+    static class IntSet {
+        int[] elements;
 
-        boolean add(short n) {
+        boolean add(int n) {
             if (elements == null) {
-                elements = new short[1];
+                elements = new int[1];
                 elements[0] = n;
                 return true;
             } else {
                 int k = binarySearch(elements, n);
                 if (k < 0) {
                     int l = -k - 1;
-                    short[] e = new short[elements.length + 1];
+                    int[] e = new int[elements.length + 1];
                     arraycopy(elements, 0, e, 0, l);
                     e[l] = n;
                     int c = elements.length - l;
@@ -88,7 +87,7 @@ public class RecordIdSet {
             }
         }
 
-        boolean contains(short n) {
+        boolean contains(int n) {
             return elements != null && binarySearch(elements, n) >= 0;
         }
     }

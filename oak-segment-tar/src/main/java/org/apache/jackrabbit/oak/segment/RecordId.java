@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ALIGN_BITS;
-import static org.apache.jackrabbit.oak.segment.Segment.pack;
+import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -38,7 +38,9 @@ public final class RecordId implements Comparable<RecordId> {
 
     private static final Pattern PATTERN = Pattern.compile(
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-            + "(:(0|[1-9][0-9]*)|\\.([0-9a-f]{4}))");
+            + "(:(0|[1-9][0-9]*)|\\.([0-9a-f]{8}))");
+
+    static final int SERIALIZED_RECORD_ID_BYTES = 20;
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
@@ -54,7 +56,7 @@ public final class RecordId implements Comparable<RecordId> {
             if (matcher.group(3) != null) {
                 offset = parseInt(matcher.group(3));
             } else {
-                offset = parseInt(matcher.group(4), 16) << RECORD_ALIGN_BITS;
+                offset = parseInt(matcher.group(4), 16);
             }
 
             return new RecordId(segmentId, offset);
@@ -68,8 +70,6 @@ public final class RecordId implements Comparable<RecordId> {
     private final int offset;
 
     public RecordId(SegmentId segmentId, int offset) {
-        checkArgument(offset < Segment.MAX_SEGMENT_SIZE);
-        checkArgument((offset % (1 << RECORD_ALIGN_BITS)) == 0);
         this.segmentId = checkNotNull(segmentId);
         this.offset = offset;
     }
@@ -78,7 +78,7 @@ public final class RecordId implements Comparable<RecordId> {
         return segmentId;
     }
 
-    public int getOffset() {
+    public int getRecordNumber() {
         return offset;
     }
 
@@ -94,27 +94,16 @@ public final class RecordId implements Comparable<RecordId> {
         return segmentId.getSegment();
     }
 
-    private static void writeLong(byte[] buffer, int pos, long value) {
-        for (int k = 0; k < 8; k++) {
-            buffer[pos + k] = (byte) (value >> (56 - (k << 3)));
-        }
-    }
-
-    private static void writeShort(byte[] buffer, int pos, short value) {
-        buffer[pos] = (byte) (value >> 8);
-        buffer[pos + 1] = (byte) value;
-    }
-
     /**
      * Serialise this record id into an array of bytes: {@code (msb, lsb, offset >> 2)}
      * @return  this record id as byte array
      */
     @Nonnull
     byte[] getBytes() {
-        byte[] buffer = new byte[18];
-        writeLong(buffer, 0, segmentId.getMostSignificantBits());
-        writeLong(buffer, 8, segmentId.getLeastSignificantBits());
-        writeShort(buffer, 16, pack(offset));
+        byte[] buffer = new byte[SERIALIZED_RECORD_ID_BYTES];
+        BinaryUtils.writeLong(buffer, 0, segmentId.getMostSignificantBits());
+        BinaryUtils.writeLong(buffer, 8, segmentId.getLeastSignificantBits());
+        BinaryUtils.writeInt(buffer, 16, offset);
         return buffer;
     }
 
@@ -134,7 +123,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     @Override
     public String toString() {
-        return String.format("%s.%04x", segmentId, offset >> RECORD_ALIGN_BITS);
+        return String.format("%s.%08x", segmentId, offset);
     }
 
     /**

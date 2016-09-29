@@ -31,7 +31,6 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
-import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.align;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
@@ -45,6 +44,7 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +73,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     /**
      * Enable an extra check logging warnings should this writer create segments
      * referencing segments from an older generation.
+     *
      * @see #checkGCGeneration(SegmentId)
      */
     private static final boolean ENABLE_GENERATION_CHECK = Boolean.getBoolean("enable-generation-check");
@@ -114,6 +115,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private final Map<RecordId, RecordType> roots = newLinkedHashMap();
 
     private final Map<SegmentId, Integer> referencedSegmentIds = newHashMap();
+
+    private MutableRecordNumbers recordNumbers = new MutableRecordNumbers();
 
     @Nonnull
     private final SegmentStore store;
@@ -215,13 +218,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         position = buffer.length;
         roots.clear();
         referencedSegmentIds.clear();
+        recordNumbers = new MutableRecordNumbers();
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
             ",\"sno\":" + tracker.getSegmentCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
-            segment = new Segment(store, reader, buffer, metaInfo);
+            segment = new Segment(store, reader, buffer, recordNumbers, metaInfo);
 
             statistics = new Statistics();
             statistics.id = segment.getSegmentId();
@@ -281,17 +285,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             roots.remove(recordId);
         }
 
-        int offset = recordId.getOffset();
+        checkGCGeneration(recordId.getSegmentId());
 
-        checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
-        checkState(offset == align(offset, 1 << Segment.RECORD_ALIGN_BITS));
-
-        SegmentId segmentId = recordId.getSegmentId();
-
-        checkGCGeneration(segmentId);
-
-        writeInt(writeSegmentIdReference(segmentId));
-        writeShort((short) ((offset >> Segment.RECORD_ALIGN_BITS) & 0xffff));
+        writeInt(writeSegmentIdReference(recordId.getSegmentId()));
+        writeInt(recordId.getRecordNumber());
 
         statistics.recordIdCount++;
 
@@ -370,7 +367,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int referencedSegmentIdCount = referencedSegmentIds.size();
             statistics.segmentIdCount = referencedSegmentIdCount;
 
-            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * 16 + rootcount * 3 + length, 16);
+            int recordNumberCount = recordNumbers.size();
+            BinaryUtils.writeInt(buffer, Segment.RECORD_NUMBER_COUNT_OFFSET, recordNumberCount);
+
+            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * 16 + rootcount * 5 + recordNumberCount * 8 + length, 16);
 
             if (totalLength > buffer.length) {
                 throw new IllegalStateException("too much data for a segment");
@@ -394,9 +394,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 length = buffer.length;
             }
 
+            for (Entry entry : recordNumbers) {
+                pos = BinaryUtils.writeInt(buffer, pos, entry.getRecordNumber());
+                pos = BinaryUtils.writeInt(buffer, pos, entry.getOffset());
+            }
+
             for (Map.Entry<RecordId, RecordType> entry : roots.entrySet()) {
                 pos = BinaryUtils.writeByte(buffer, pos, (byte) entry.getValue().ordinal());
-                pos = BinaryUtils.writeShort(buffer, pos, (short) (entry.getKey().getOffset() >> Segment.RECORD_ALIGN_BITS));
+                pos = BinaryUtils.writeInt(buffer, pos, entry.getKey().getRecordNumber());
             }
 
             SegmentId segmentId = segment.getSegmentId();
@@ -435,8 +440,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         // unreferenced segments.
 
         int rootCount = roots.size() + 1;
+        int recordNumbersCount = recordNumbers.size() + 1;
         int referencedIdCount = referencedSegmentIds.size() + ids.size();
-        int headerSize = HEADER_SIZE + rootCount * 3 + referencedIdCount * 16;
+        int headerSize = HEADER_SIZE + rootCount * 5 + referencedIdCount * 16 + recordNumbersCount * 8;
         int segmentSize = align(headerSize + recordSize + length, 16);
 
         // If the size estimate looks too big, recompute it with a more
@@ -472,7 +478,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 }
             }
 
-            headerSize = HEADER_SIZE + rootCount * 3 + referencedIdCount * 16;
+            headerSize = HEADER_SIZE + rootCount * 5 + referencedIdCount * 16 + recordNumbersCount * 8;
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 
@@ -486,7 +492,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         position = buffer.length - length;
         checkState(position >= 0);
 
-        RecordId id = new RecordId(segment.getSegmentId(), position);
+        int recordNumber = recordNumbers.addOffset(position);
+        RecordId id = new RecordId(segment.getSegmentId(), recordNumber);
         roots.put(id, type);
         return id;
     }

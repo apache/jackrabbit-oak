@@ -104,26 +104,26 @@ public class MapRecord extends Record {
 
     boolean isLeaf() {
         Segment segment = getSegment();
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            RecordId base = segment.readRecordId(getOffset(8, 2));
+            RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
             return reader.readMap(base).isLeaf();
         }
         return !isBranch(head);
     }
 
     public boolean isDiff() {
-        return isDiff(getSegment().readInt(getOffset(0)));
+        return isDiff(getSegment().readInt(getRecordNumber()));
     }
 
     MapRecord[] getBuckets() {
         Segment segment = getSegment();
         MapRecord[] buckets = new MapRecord[BUCKETS_PER_LEVEL];
-        int bitmap = segment.readInt(getOffset(4));
+        int bitmap = segment.readInt(getRecordNumber(), 4);
         int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if ((bitmap & (1 << i)) != 0) {
-                buckets[i] = reader.readMap(segment.readRecordId(getOffset(8, ids++)));
+                buckets[i] = reader.readMap(segment.readRecordId(getRecordNumber(), 8, ids++));
             } else {
                 buckets[i] = null;
             }
@@ -133,11 +133,11 @@ public class MapRecord extends Record {
 
     private List<MapRecord> getBucketList(Segment segment) {
         List<MapRecord> buckets = newArrayListWithCapacity(BUCKETS_PER_LEVEL);
-        int bitmap = segment.readInt(getOffset(4));
+        int bitmap = segment.readInt(getRecordNumber(), 4);
         int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if ((bitmap & (1 << i)) != 0) {
-                RecordId id = segment.readRecordId(getOffset(8, ids++));
+                RecordId id = segment.readRecordId(getRecordNumber(), 8, ids++);
                 buckets.add(reader.readMap(id));
             }
         }
@@ -146,9 +146,9 @@ public class MapRecord extends Record {
 
     int size() {
         Segment segment = getSegment();
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            RecordId base = segment.readRecordId(getOffset(8, 2));
+            RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
             return reader.readMap(base).size();
         }
         return getSize(head);
@@ -159,16 +159,16 @@ public class MapRecord extends Record {
         int hash = getHash(name);
         Segment segment = getSegment();
 
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            if (hash == segment.readInt(getOffset(4))) {
-                RecordId key = segment.readRecordId(getOffset(8));
+            if (hash == segment.readInt(getRecordNumber(), 4)) {
+                RecordId key = segment.readRecordId(getRecordNumber(), 8);
                 if (name.equals(reader.readString(key))) {
-                    RecordId value = segment.readRecordId(getOffset(8, 1));
+                    RecordId value = segment.readRecordId(getRecordNumber(), 8, 1);
                     return new MapEntry(reader, name, key, value);
                 }
             }
-            RecordId base = segment.readRecordId(getOffset(8, 2));
+            RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
             return reader.readMap(base).getEntry(name);
         }
 
@@ -181,14 +181,14 @@ public class MapRecord extends Record {
         if (isBranch(size, level)) {
             // this is an intermediate branch record
             // check if a matching bucket exists, and recurse 
-            int bitmap = segment.readInt(getOffset(4));
+            int bitmap = segment.readInt(getRecordNumber(), 4);
             int mask = (1 << BITS_PER_LEVEL) - 1;
             int shift = 32 - (level + 1) * BITS_PER_LEVEL;
             int index = (hash >> shift) & mask;
             int bit = 1 << index;
             if ((bitmap & bit) != 0) {
                 int ids = bitCount(bitmap & (bit - 1));
-                RecordId id = segment.readRecordId(getOffset(8, ids));
+                RecordId id = segment.readRecordId(getRecordNumber(), 8, ids);
                 return reader.readMap(id).getEntry(name);
             } else {
                 return null;
@@ -211,13 +211,11 @@ public class MapRecord extends Record {
             int i = p + (int) ((q - p) * (h - pH) / (qH - pH));
             assert p <= i && i <= q;
 
-            long iH = segment.readInt(getOffset(4 + i * 4)) & HASH_MASK;
+            long iH = segment.readInt(getRecordNumber(), 4 + i * 4) & HASH_MASK;
             int diff = Long.valueOf(iH).compareTo(Long.valueOf(h));
             if (diff == 0) {
-                RecordId keyId = segment.readRecordId(
-                        getOffset(4 + size * 4, i * 2));
-                RecordId valueId = segment.readRecordId(
-                        getOffset(4 + size * 4, i * 2 + 1));
+                RecordId keyId = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2);
+                RecordId valueId = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
                 diff = reader.readString(keyId).compareTo(name);
                 if (diff == 0) {
                     return new MapEntry(reader, name, keyId, valueId);
@@ -239,13 +237,13 @@ public class MapRecord extends Record {
         checkNotNull(key);
         Segment segment = getSegment();
 
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            if (hash == segment.readInt(getOffset(4))
-                    && key.equals(segment.readRecordId(getOffset(8)))) {
-                return segment.readRecordId(getOffset(8, 1));
+            if (hash == segment.readInt(getRecordNumber(), 4)
+                    && key.equals(segment.readRecordId(getRecordNumber(), 8))) {
+                return segment.readRecordId(getRecordNumber(), 8, 1);
             }
-            RecordId base = segment.readRecordId(getOffset(8, 2));
+            RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
             return reader.readMap(base).getValue(hash, key);
         }
 
@@ -258,14 +256,14 @@ public class MapRecord extends Record {
         if (isBranch(size, level)) {
             // this is an intermediate branch record
             // check if a matching bucket exists, and recurse
-            int bitmap = segment.readInt(getOffset(4));
+            int bitmap = segment.readInt(getRecordNumber(), 4);
             int mask = (1 << BITS_PER_LEVEL) - 1;
             int shift = 32 - (level + 1) * BITS_PER_LEVEL;
             int index = (hash >> shift) & mask;
             int bit = 1 << index;
             if ((bitmap & bit) != 0) {
                 int ids = bitCount(bitmap & (bit - 1));
-                RecordId id = segment.readRecordId(getOffset(8, ids));
+                RecordId id = segment.readRecordId(getRecordNumber(), 8, ids);
                 return reader.readMap(id).getValue(hash, key);
             } else {
                 return null;
@@ -275,15 +273,12 @@ public class MapRecord extends Record {
         // this is a leaf record; scan the list to find a matching entry
         Long h = hash & HASH_MASK;
         for (int i = 0; i < size; i++) {
-            int hashOffset = getOffset(4 + i * 4);
-            int diff = h.compareTo(segment.readInt(hashOffset) & HASH_MASK);
+            int diff = h.compareTo(segment.readInt(getRecordNumber(), 4 + i * 4) & HASH_MASK);
             if (diff > 0) {
                 return null;
             } else if (diff == 0) {
-                int keyOffset = getOffset(4 + size * 4, i * 2);
-                if (key.equals(segment.readRecordId(keyOffset))) {
-                    int valueOffset = getOffset(4 + size * 4, i * 2 + 1);
-                    return segment.readRecordId(valueOffset);
+                if (key.equals(segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2))) {
+                    return segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
                 }
             }
         }
@@ -293,9 +288,9 @@ public class MapRecord extends Record {
     Iterable<String> getKeys() {
         Segment segment = getSegment();
 
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            RecordId base = segment.readRecordId(getOffset(8, 2));
+            RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
             return reader.readMap(base).getKeys();
         }
 
@@ -317,7 +312,7 @@ public class MapRecord extends Record {
 
         RecordId[] ids = new RecordId[size];
         for (int i = 0; i < size; i++) {
-            ids[i] = segment.readRecordId(getOffset(4 + size * 4, i * 2));
+            ids[i] = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2);
         }
 
         String[] keys = new String[size];
@@ -335,11 +330,11 @@ public class MapRecord extends Record {
             final RecordId diffKey, final RecordId diffValue) {
         Segment segment = getSegment();
 
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            RecordId key = segment.readRecordId(getOffset(8));
-            RecordId value = segment.readRecordId(getOffset(8, 1));
-            RecordId base = segment.readRecordId(getOffset(8, 2));
+            RecordId key = segment.readRecordId(getRecordNumber(), 8);
+            RecordId value = segment.readRecordId(getRecordNumber(), 8, 1);
+            RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
             return reader.readMap(base).getEntries(key, value);
         }
 
@@ -366,12 +361,12 @@ public class MapRecord extends Record {
 
         MapEntry[] entries = new MapEntry[size];
         for (int i = 0; i < size; i++) {
-            RecordId key = segment.readRecordId(getOffset(4 + size * 4, i * 2));
+            RecordId key = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2);
             RecordId value;
             if (key.equals(diffKey)) {
                 value = diffValue;
             } else {
-                value = segment.readRecordId(getOffset(4 + size * 4, i * 2 + 1));
+                value = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
             }
             String name = reader.readString(key);
             entries[i] = new MapEntry(reader, name, key, value);
@@ -385,13 +380,13 @@ public class MapRecord extends Record {
         }
 
         Segment segment = getSegment();
-        int head = segment.readInt(getOffset(0));
+        int head = segment.readInt(getRecordNumber());
         if (isDiff(head)) {
-            int hash = segment.readInt(getOffset(4));
-            RecordId keyId = segment.readRecordId(getOffset(8));
+            int hash = segment.readInt(getRecordNumber(), 4);
+            RecordId keyId = segment.readRecordId(getRecordNumber(), 8);
             final String key = reader.readString(keyId);
-            final RecordId value = segment.readRecordId(getOffset(8, 1));
-            MapRecord base = reader.readMap(segment.readRecordId(getOffset(8, 2)));
+            final RecordId value = segment.readRecordId(getRecordNumber(), 8, 1);
+            MapRecord base = reader.readMap(segment.readRecordId(getRecordNumber(), 8, 2));
 
             boolean rv = base.compare(before, new DefaultNodeStateDiff() {
                 @Override
@@ -427,13 +422,13 @@ public class MapRecord extends Record {
         }
 
         Segment beforeSegment = before.getSegment();
-        int beforeHead = beforeSegment.readInt(before.getOffset(0));
+        int beforeHead = beforeSegment.readInt(before.getRecordNumber());
         if (isDiff(beforeHead)) {
-            int hash = beforeSegment.readInt(before.getOffset(4));
-            RecordId keyId = beforeSegment.readRecordId(before.getOffset(8));
+            int hash = beforeSegment.readInt(before.getRecordNumber(), 4);
+            RecordId keyId = beforeSegment.readRecordId(before.getRecordNumber(), 8);
             final String key = reader.readString(keyId);
-            final RecordId value = beforeSegment.readRecordId(before.getOffset(8, 1));
-            MapRecord base = reader.readMap(beforeSegment.readRecordId(before.getOffset(8, 2)));
+            final RecordId value = beforeSegment.readRecordId(before.getRecordNumber(), 8, 1);
+            MapRecord base = reader.readMap(beforeSegment.readRecordId(before.getRecordNumber(), 8, 2));
 
             boolean rv = this.compare(base, new DefaultNodeStateDiff() {
                 @Override
