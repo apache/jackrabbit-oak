@@ -16,96 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.backup;
-
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Suppliers;
-import org.apache.jackrabbit.oak.segment.Compactor;
-import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
-import org.apache.jackrabbit.oak.segment.WriterCacheManager;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class FileStoreRestore {
+public interface FileStoreRestore {
 
-    private static final Logger log = LoggerFactory
-            .getLogger(FileStoreRestore.class);
+    void restore(File source, File destination) throws IOException, InvalidFileStoreVersionException;
 
-    static int MAX_FILE_SIZE = 256;
+    void restore(File source);
 
-    private static final String JOURNAL_FILE_NAME = "journal.log";
-
-    public static void restore(File source, File destination)
-            throws IOException, InvalidFileStoreVersionException {
-        if (!validFileStore(source)) {
-            throw new IOException("Folder " + source
-                    + " is not a valid FileStore directory");
-        }
-
-        FileStore restore = fileStoreBuilder(source).buildReadOnly();
-        Stopwatch watch = Stopwatch.createStarted();
-
-        FileStore store = fileStoreBuilder(destination).build();
-        SegmentNodeState current = store.getHead();
-        try {
-            SegmentNodeState head = restore.getHead();
-            int gen = head.getRecordId().getSegmentId().getGcGeneration();
-            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
-                    store,
-                    store.getTracker(),
-                    store.getReader(),
-                    "r",
-                    gen
-            );
-            SegmentWriter writer = new SegmentWriter(
-                    store,
-                    store.getReader(),
-                    store.getBlobStore(),
-                    new WriterCacheManager.Default(),
-                    bufferWriter,
-                    store.getBinaryReferenceConsumer()
-            );
-            SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
-            Compactor compactor = new Compactor(store.getReader(), writer,
-                    store.getBlobStore(), Suppliers.ofInstance(false),
-                    gcOptions);
-            compactor.setContentEqualityCheck(true);
-            SegmentNodeState after = compactor.compact(current, head, current);
-            store.getRevisions().setHead(current.getRecordId(),
-                    after.getRecordId());
-        } finally {
-            restore.close();
-            store.close();
-        }
-        watch.stop();
-        log.info("Restore finished in {}.", watch);
-    }
-
-    public static void restore(File source) {
-        log.warn("Restore not available as an online operation.");
-    }
-
-    private static boolean validFileStore(File source) {
-        if (source == null || !source.isDirectory()) {
-            return false;
-        }
-        for (String f : source.list()) {
-            if (JOURNAL_FILE_NAME.equals(f)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
