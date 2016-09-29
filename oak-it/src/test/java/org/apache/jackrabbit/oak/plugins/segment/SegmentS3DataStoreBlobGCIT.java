@@ -75,7 +75,7 @@ public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
     @After
     public void close() throws Exception {
         super.close();
-        S3DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
+        S3DataStoreUtils.deleteBucket(bucket, startDate);
     }
 }
 
