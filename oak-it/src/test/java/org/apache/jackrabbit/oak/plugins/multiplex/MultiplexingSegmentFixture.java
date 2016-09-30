@@ -29,24 +29,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public class MultiplexingSegmentFixture extends NodeStoreFixture {
 
     private static final String MOUNT_PATH = "/tmp";
-    
+
     @Override
     public NodeStore createNodeStore() {
-        
         try {
             MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
                     .mount("temp", MOUNT_PATH)
                     .build();
-            
+
             NodeStore globalStore = SegmentNodeStore.builder(new MemoryStore()).build();
             NodeStore tempMount = SegmentNodeStore.builder(new MemoryStore()).build();
-            
+
             return new MultiplexingNodeStore.Builder(mip, globalStore).addMount("temp", tempMount).build();
         } catch (IOException e) {
             throw new RuntimeException();
         }
     }
-    
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + " with a mount under " + MOUNT_PATH;

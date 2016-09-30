@@ -22,20 +22,33 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class MountedNodeStore {
-    
+
     private final Mount mount;
+
     private final NodeStore nodeStore;
-    
+
     public MountedNodeStore(Mount mount, NodeStore nodeStore) {
         this.mount = mount;
         this.nodeStore = nodeStore;
     }
-    
+
     public Mount getMount() {
         return mount;
     }
-    
+
     public NodeStore getNodeStore() {
         return nodeStore;
+    }
+
+    boolean hasChildren(Iterable<String> children) {
+        // since we can't possibly know if a node matching the
+        // 'oak:mount-*' pattern exists below a given path
+        // we are forced to iterate for each node store
+        for (String childNodeName : children) {
+            if (childNodeName.startsWith(getMount().getPathFragmentName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

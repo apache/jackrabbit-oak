@@ -68,7 +68,7 @@ public class MultiplexingNodeStoreService {
     private ServiceRegistration nsReg;
 
     @Activate
-    protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
+    protected void activate(ComponentContext context) {
         this.context = context;
         registerMultiplexingNodeStore();
     }

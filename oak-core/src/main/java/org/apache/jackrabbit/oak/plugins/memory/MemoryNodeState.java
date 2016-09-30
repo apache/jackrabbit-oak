@@ -186,7 +186,7 @@ class MemoryNodeState extends AbstractNodeState {
 
         Map<String, NodeState> nodes = newHashMap();
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
-            nodes.put(child.getName(), wrap(child.getNodeState()));
+            nodes.put(child.getName(), child.getNodeState());
         }
 
         return new MemoryNodeState(properties, nodes);

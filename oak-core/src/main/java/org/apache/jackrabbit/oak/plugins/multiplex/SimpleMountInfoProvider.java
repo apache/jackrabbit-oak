@@ -83,7 +83,7 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
         }
         return mounts;
     }
-    
+
     @Override
     public Collection<Mount> getMountsPlacedDirectlyUnder(String path) {
         Collection<Mount> mounts = Lists.newArrayList();
@@ -93,7 +93,7 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
             }
         }
         return mounts;
-    }    
+    }
 
     @Override
     public Mount getDefaultMount() {
