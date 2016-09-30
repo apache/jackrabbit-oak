@@ -77,7 +77,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
     public void setUp() throws Exception {
         props = getS3Config();
         startTime = new Date();
-        String bucket =
+        bucket =
             String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
                 + "-test";
         props.setProperty(S3Constants.S3_BUCKET, bucket);
