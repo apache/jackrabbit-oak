@@ -17,11 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.junit.Test;
 
@@ -35,7 +37,7 @@ public class ImmutableRecordNumbersTest {
         entries.put(3, 4);
         entries.put(5, 6);
 
-        ImmutableRecordNumbers table = new ImmutableRecordNumbers(entries);
+        ImmutableRecordNumbers table = new ImmutableRecordNumbers(recordEntries(entries));
 
         assertEquals(2, table.getOffset(1));
         assertEquals(4, table.getOffset(3));
@@ -50,7 +52,7 @@ public class ImmutableRecordNumbersTest {
         entries.put(3, 4);
         entries.put(5, 6);
 
-        ImmutableRecordNumbers table = new ImmutableRecordNumbers(entries);
+        ImmutableRecordNumbers table = new ImmutableRecordNumbers(recordEntries(entries));
 
         entries.put(1, 3);
         entries.put(7, 8);
@@ -69,7 +71,7 @@ public class ImmutableRecordNumbersTest {
         entries.put(3, 4);
         entries.put(5, 6);
 
-        ImmutableRecordNumbers table = new ImmutableRecordNumbers(entries);
+        ImmutableRecordNumbers table = new ImmutableRecordNumbers(recordEntries(entries));
 
         Map<Integer, Integer> iterated = new HashMap<>();
 
@@ -78,6 +80,16 @@ public class ImmutableRecordNumbersTest {
         }
 
         assertEquals(entries, iterated);
+    }
+
+    private Map<Integer, RecordEntry> recordEntries(Map<Integer, Integer> offsets) {
+        Map<Integer, RecordEntry> entries = newHashMap();
+
+        for (Map.Entry<Integer, Integer> entry : offsets.entrySet()) {
+            entries.put(entry.getKey(), new RecordEntry(RecordType.VALUE, entry.getValue()));
+        }
+
+        return entries;
     }
 
 }

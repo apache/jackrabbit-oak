@@ -17,45 +17,45 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.collect.Maps.newHashMap;
+
 import java.util.Iterator;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
-
 /**
- * An immutable record number to offset table. It is initialized at construction
- * time and can never be changed afterwards.
+ * An immutable record table. It is initialized at construction time and can
+ * never be changed afterwards.
  * <p>
  * This implementation is trivially thread-safe.
  */
 class ImmutableRecordNumbers implements RecordNumbers {
 
-    private final Map<Integer, Integer> recordNumbers;
+    private final Map<Integer, RecordEntry> records;
 
     /**
-     * Create a new immutable record number to offset table.
+     * Create a new immutable record table.
      *
-     * @param recordNumbers a map of record numbers to offsets. It can't be
-     *                      {@code null}.
+     * @param records a map of record numbers to record entries. It can't be
+     *                {@code null}.
      */
-    ImmutableRecordNumbers(Map<Integer, Integer> recordNumbers) {
-        this.recordNumbers = Maps.newHashMap(recordNumbers);
+    ImmutableRecordNumbers(Map<Integer, RecordEntry> records) {
+        this.records = newHashMap(records);
     }
 
     @Override
     public int getOffset(int recordNumber) {
-        Integer offset = recordNumbers.get(recordNumber);
+        RecordEntry entry = records.get(recordNumber);
 
-        if (offset == null) {
+        if (entry == null) {
             return -1;
         }
 
-        return offset;
+        return entry.getOffset();
     }
 
     @Override
     public Iterator<Entry> iterator() {
-        return new RecordNumbersIterator(recordNumbers.entrySet().iterator());
+        return new RecordNumbersIterator(records.entrySet().iterator());
     }
 
 }

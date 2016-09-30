@@ -195,8 +195,7 @@ public class MBeanTest extends TestBase {
             assertEquals("1", jmxServer.invoke(clientStatus, "calcSecondsSinceLastSuccess", null, null).toString());
 
             assertEquals(1L, jmxServer.getAttribute(connectionStatus, "TransferredSegments"));
-            assertEquals(192L, jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes"));
-            
+
             // stop the master
             jmxServer.invoke(serverStatus, "stop", null, null);
             assertEquals(false, jmxServer.getAttribute(serverStatus, "Running"));

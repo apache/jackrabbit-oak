@@ -216,7 +216,7 @@ public class Segment {
      * @return An instance of {@link RecordNumbers}, never {@code null}.
      */
     private RecordNumbers readRecordNumberOffsets() {
-        Map<Integer, Integer> recordNumberOffsets = newHashMapWithExpectedSize(getRecordNumberCount());
+        Map<Integer, RecordEntry> recordNumberOffsets = newHashMapWithExpectedSize(getRecordNumberCount());
 
         int position = data.position();
 
@@ -226,9 +226,11 @@ public class Segment {
         for (int i = 0; i < getRecordNumberCount(); i++) {
             int recordNumber = data.getInt(position);
             position += 4;
+            int type = data.getInt(position);
+            position += 4;
             int offset = data.getInt(position);
             position += 4;
-            recordNumberOffsets.put(recordNumber, offset);
+            recordNumberOffsets.put(recordNumber, new RecordEntry(RecordType.values()[type], offset));
         }
 
         return new ImmutableRecordNumbers(recordNumberOffsets);
@@ -358,7 +360,7 @@ public class Segment {
 
         position += HEADER_SIZE;
         position += getReferencedSegmentIdCount() * 16;
-        position += getRecordNumberCount() * 8;
+        position += getRecordNumberCount() * 12;
         position += index * 5;
 
         return RecordType.values()[data.get(position) & 0xff];
@@ -371,7 +373,7 @@ public class Segment {
 
         position += HEADER_SIZE;
         position += getReferencedSegmentIdCount() * 16;
-        position += getRecordNumberCount() * 8;
+        position += getRecordNumberCount() * 12;
         position += index * 5;
         position += 1;
 

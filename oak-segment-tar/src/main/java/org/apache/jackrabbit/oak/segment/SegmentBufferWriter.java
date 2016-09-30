@@ -358,7 +358,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int recordNumberCount = recordNumbers.size();
             BinaryUtils.writeInt(buffer, Segment.RECORD_NUMBER_COUNT_OFFSET, recordNumberCount);
 
-            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * 16 + rootcount * 5 + recordNumberCount * 8 + length, 16);
+            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * 16 + rootcount * 5 + recordNumberCount * 12 + length, 16);
 
             if (totalLength > buffer.length) {
                 throw new IllegalStateException("too much data for a segment");
@@ -389,6 +389,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
             for (Entry entry : recordNumbers) {
                 pos = BinaryUtils.writeInt(buffer, pos, entry.getRecordNumber());
+                pos = BinaryUtils.writeInt(buffer, pos, entry.getType().ordinal());
                 pos = BinaryUtils.writeInt(buffer, pos, entry.getOffset());
             }
 
@@ -435,7 +436,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         int rootCount = roots.size() + 1;
         int recordNumbersCount = recordNumbers.size() + 1;
         int referencedIdCount = segmentReferences.size() + ids.size();
-        int headerSize = HEADER_SIZE + rootCount * 5 + referencedIdCount * 16 + recordNumbersCount * 8;
+        int headerSize = HEADER_SIZE + rootCount * 5 + referencedIdCount * 16 + recordNumbersCount * 12;
         int segmentSize = align(headerSize + recordSize + length, 16);
 
         // If the size estimate looks too big, recompute it with a more
@@ -471,7 +472,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                 }
             }
 
-            headerSize = HEADER_SIZE + rootCount * 5 + referencedIdCount * 16 + recordNumbersCount * 8;
+            headerSize = HEADER_SIZE + rootCount * 5 + referencedIdCount * 16 + recordNumbersCount * 12;
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 
@@ -485,7 +486,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         position = buffer.length - length;
         checkState(position >= 0);
 
-        int recordNumber = recordNumbers.addOffset(position);
+        int recordNumber = recordNumbers.addRecord(type, position);
         RecordId id = new RecordId(segment.getSegmentId(), recordNumber);
         roots.put(id, type);
         return id;

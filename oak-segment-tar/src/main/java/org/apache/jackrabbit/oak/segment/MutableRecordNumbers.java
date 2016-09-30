@@ -23,27 +23,27 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 
 /**
- * A thread-safe, mutable record numbers to offset table.
+ * A thread-safe, mutable record table.
  */
 class MutableRecordNumbers implements RecordNumbers {
 
     private final Object lock = new Object();
 
-    private final Map<Integer, Integer> recordNumbers = Maps.newHashMap();
+    private final Map<Integer, RecordEntry> records = Maps.newHashMap();
 
     @Override
     public int getOffset(int recordNumber) {
-        Integer offset = recordNumbers.get(recordNumber);
+        RecordEntry entry = records.get(recordNumber);
 
-        if (offset != null) {
-            return offset;
+        if (entry != null) {
+            return entry.getOffset();
         }
 
         synchronized (lock) {
-            offset = recordNumbers.get(recordNumber);
+            entry = records.get(recordNumber);
 
-            if (offset != null) {
-                return offset;
+            if (entry != null) {
+                return entry.getOffset();
             }
 
             return -1;
@@ -52,10 +52,10 @@ class MutableRecordNumbers implements RecordNumbers {
 
     @Override
     public Iterator<Entry> iterator() {
-        Map<Integer, Integer> recordNumbers;
+        Map<Integer, RecordEntry> recordNumbers;
 
         synchronized (lock) {
-            recordNumbers = Maps.newHashMap(this.recordNumbers);
+            recordNumbers = Maps.newHashMap(this.records);
         }
 
         return new RecordNumbersIterator(recordNumbers.entrySet().iterator());
@@ -68,22 +68,23 @@ class MutableRecordNumbers implements RecordNumbers {
      */
     public int size() {
         synchronized (lock) {
-            return recordNumbers.size();
+            return records.size();
         }
     }
 
     /**
      * Add a new offset to this table and generate a record number for it.
      *
+     * @param type   the type of the record.
      * @param offset an offset to be added to this table.
      * @return the record number associated to the offset.
      */
-    int addOffset(int offset) {
+    int addRecord(RecordType type, int offset) {
         int recordNumber;
 
         synchronized (lock) {
-            recordNumber = recordNumbers.size();
-            recordNumbers.put(recordNumber, offset);
+            recordNumber = records.size();
+            records.put(recordNumber, new RecordEntry(type, offset));
         }
 
         return recordNumber;
