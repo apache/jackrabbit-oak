@@ -70,7 +70,7 @@ public class S3SharedBlobStoreGCTest extends SharedBlobStoreGCTest {
 
     @Override
     protected void sleep() throws InterruptedException {
-        if (S3DataStoreUtils.isS3DataStore()) {
+        if (S3DataStoreUtils.isS3Configured()) {
             Thread.sleep(1000);
         }
     }
