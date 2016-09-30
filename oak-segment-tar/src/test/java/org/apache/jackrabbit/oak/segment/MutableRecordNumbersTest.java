@@ -35,7 +35,7 @@ public class MutableRecordNumbersTest {
     @Test
     public void lookupShouldReturnOffset() {
         MutableRecordNumbers table = new MutableRecordNumbers();
-        int recordNumber = table.addOffset(42);
+        int recordNumber = table.addRecord(RecordType.VALUE, 42);
         assertEquals(42, table.getOffset(recordNumber));
     }
 
@@ -43,7 +43,7 @@ public class MutableRecordNumbersTest {
     public void sizeShouldBeValid() {
         MutableRecordNumbers table = new MutableRecordNumbers();
         assertEquals(0, table.size());
-        table.addOffset(42);
+        table.addRecord(RecordType.VALUE, 42);
         assertEquals(1, table.size());
     }
 
@@ -54,7 +54,7 @@ public class MutableRecordNumbersTest {
         Map<Integer, Integer> expected = new HashMap<>();
 
         for (int i = 0; i < 10; i++) {
-            expected.put(table.addOffset(i), i);
+            expected.put(table.addRecord(RecordType.VALUE, i), i);
         }
 
         Map<Integer, Integer> iterated = new HashMap<>();

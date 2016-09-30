@@ -23,17 +23,17 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 
 /**
- * Utility class implementing an iterator over record numbers to offset pairs.
- * It wraps an underlying iterator looping over map entries, where each entry is
- * a tuple of integers.
+ * Utility class implementing an iterator over a record table. It wraps an
+ * underlying iterator looping over map entries, where each entry is a
+ * representation of a record entry.
  */
 class RecordNumbersIterator implements Iterator<Entry> {
 
     private static class Entry implements RecordNumbers.Entry {
 
-        private final Map.Entry<Integer, Integer> entry;
+        private final Map.Entry<Integer, RecordEntry> entry;
 
-        public Entry(Map.Entry<Integer, Integer> entry) {
+        public Entry(Map.Entry<Integer, RecordEntry> entry) {
             this.entry = entry;
         }
 
@@ -44,14 +44,19 @@ class RecordNumbersIterator implements Iterator<Entry> {
 
         @Override
         public int getOffset() {
-            return entry.getValue();
+            return entry.getValue().getOffset();
+        }
+
+        @Override
+        public RecordType getType() {
+            return entry.getValue().getType();
         }
 
     }
 
-    private final Iterator<Map.Entry<Integer, Integer>> iterator;
+    private final Iterator<Map.Entry<Integer, RecordEntry>> iterator;
 
-    RecordNumbersIterator(Iterator<Map.Entry<Integer, Integer>> iterator) {
+    RecordNumbersIterator(Iterator<Map.Entry<Integer, RecordEntry>> iterator) {
         this.iterator = iterator;
     }
 

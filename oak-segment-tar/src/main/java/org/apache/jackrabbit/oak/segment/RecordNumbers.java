@@ -34,23 +34,30 @@ interface RecordNumbers extends Iterable<Entry> {
     int getOffset(int recordNumber);
 
     /**
-     * Represents a pair of a record number and its corresponding offset.
+     * Represents an entry in the record table.
      */
     interface Entry {
 
         /**
-         * The record number part of this pair.
+         * The record number.
          *
          * @return a record number.
          */
         int getRecordNumber();
 
         /**
-         * The offset part of this pair.
+         * The offset of this record..
          *
          * @return an offset.
          */
         int getOffset();
+
+        /**
+         * The type of this record.
+         *
+         * @return a record type.
+         */
+        RecordType getType();
 
     }
 
