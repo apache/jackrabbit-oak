@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.10
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.11
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.10 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.11 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,66 +15,71 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.10
+Changes in Oak 1.5.11
 ---------------------
 
 Technical task
 
-    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
+    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
+    [OAK-4793] - Check usage of DocumentStoreException in
+    RDBDocumentStore
+    [OAK-4838] - Move S3 classes to oak-blob-cloud module
+    [OAK-4848] - Improve oak-blob-cloud tests
 
 Bug
 
-    [OAK-4705] - Fulltext parser doesn't allow stand-alone hyphen in
-    search expression
-    [OAK-4721] - Switch to oak-segment-tar by default when using CLI
-    tools
-    [OAK-4722] - Adapt the primary and standby commands in oak-run
-    [OAK-4770] - Missing exception handling in
-    ClusterNodeInfo.renewLease()
-    [OAK-4776] - Query engine: "like" conditions with only escaped
-    wildcards
-    [OAK-4779] - ClusterNodeInfo may renew lease while recovery is
-    running
+    [OAK-4734] - AsyncIndexUpdateClusterTestIT fails occasionally
+    [OAK-4805] - Misconfigured lucene index definition can render the
+    whole system unusable
+    [OAK-4807] - SecondaryStoreConfigIT intermittently failing due to
+    incorrect MongoURL
+    [OAK-4830] - StringUtils.estimateMemoryUsage() can throw
+    NullPointerException
+    [OAK-4832] - Upgrade breaks if the SecurityManager section in
+    repository.xml is empty
+    [OAK-4840] - Incorrect branch commit value
+    [OAK-4841] - Error during MongoDB initialization
+    [OAK-4842] - Upgrade breaks if there's no SearchManager configured
+    in repository.xml
 
 Improvement
 
-    [OAK-4639] - Enable --missingblobstore by default for the
-    sidegrade
-    [OAK-4674] - Log a message when asynchronous persistent cache is
-    enabled
-    [OAK-4723] - Optimize PathRev as/from String
-    [OAK-4724] - Prefetch external changes
-    [OAK-4725] - Enable mmap mode by default for migration to
-    SegmentNodeStore
-    [OAK-4733] - Reduce DocumentStore reads for local changes (2)
-    [OAK-4748] - Migration tool should check if the source and
-    destination repositories are different
-    [OAK-4749] - Include initial cost in stats for observation
-    processing
-    [OAK-4750] - Leaderboard in ConsolidatedListenerMBean
-    [OAK-4751] - Improve the checkpoint migration performance
-    [OAK-4757] - Adjust default timeout values for MongoDocumentStore
-    [OAK-4758] - Allow tweaking of node migration logs threshold
-    [OAK-4761] - Reduce the number of calls to
-    /jcr:system/jcr:versionStorage during the upgrade
-    [OAK-4762] - Rebuild indexes only for partial sidegrades
-    [OAK-4764] - Update httpclient to 4.3.6
-    [OAK-4767] - Provide a way to report additional stats as part of
-    benchmark run
-    [OAK-4768] - Provide an option to enable Metrics collection for
-    benchmark run
-    [OAK-4769] - Update Jackrabbit version to 2.13.3
-    [OAK-4771] - Clarify exceptions in DocumentStore
-    [OAK-4792] - Replace usage of AssertionError in ClusterNodeInfo
-    [OAK-4799] - Unnecessary unboxing in ClusterNodeInfo
-    [OAK-4800] - Log info message when background operation is
-    successful again
+    [OAK-3858] - Review slow running tests
+    [OAK-4043] - Oak run checkpoints needs to account for multiple
+    index lanes
+    [OAK-4580] - Update to Mongo Java Driver 3.2.x
+    [OAK-4806] - Remove usage of Tree in LuceneIndexEditor
+    [OAK-4815] - ReferenceIndex slowdown due to OAK-3403
+    [OAK-4819] - Improve revision GC resilience
+    [OAK-4826] - Auto removal of orphaned checkpoints
+    [OAK-4831] - Don't break the upgrade tests if the directory can't
+    be cleaned-up
+    [OAK-4847] - Support any types of node builders in the
+    initializers
+    [OAK-4854] - Simplify TarNodeStore
+    [OAK-4858] - Use Integer.getInteger() to read system property
+    [OAK-4863] - Reduce query batch size for deleted documents
+    [OAK-4867] - Avoid queries for first level previous documents
+    during GC
+
+New Feature
+
+    [OAK-3574] - Query engine: support p=lowercase('x') and other
+    function-based indexes
+    [OAK-4412] - Lucene hybrid index
+    [OAK-4655] - Enable configuring multiple segment nodestore
+    instances in same setup
+    [OAK-4712] - Publish S3DataStore stats in JMX MBean
+    [OAK-4850] - List checkpoints
 
 Task
 
-    [OAK-4753] - Add nrt as another index mode
-    [OAK-4755] - Change default log of test to info
-    [OAK-4791] - Enable animal sniffer plugin
+    [OAK-4774] - Check usage of DocumentStoreException in
+    MongoDocumentStore
+
+Test
+
+    [OAK-4802] - Basic cache consistency test on exception
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
