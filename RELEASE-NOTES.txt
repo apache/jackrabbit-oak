@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.33
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.34
 
 Introduction
 ------------
@@ -8,42 +8,38 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.33 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.34 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.33
+Changes in Oak 1.0.34
 ---------------------
 
 Technical task
 
-    [OAK-3662] - Add bulk createOrUpdate method to the DocumentStore API
-    [OAK-4477] - RDBDatasourceFactory should use pool config similar to sling datasource defaults
-    [OAK-4559] - RDB*Store: failures with Tomcat JDBC pool's StatementCache interceptor
-    [OAK-4562] - BasicDocumentStore max id test might return misleading results
-    [OAK-4629] - Make it possible to override blob accessing methods in DataStoreBlobStore
+    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
+    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
 
 Bug
 
-    [OAK-3131] - DocumentNodeStore doesn't serialize blobs that have been created in a different store
-    [OAK-4503] - Update count increases with rebase
-    [OAK-4575] - Oak 1.0.x fulltext search with ideographic space (U+3000) as separator
-    [OAK-4600] - In case of branch commits, nodeChildrenCache gets entries for branch revision without "br" prefix
-    [OAK-4676] - Index definition on nt:base with analyzed property incorrectly matches query with different property
+    [OAK-4153] - segment's compareAgainstBaseState wont call childNodeDeleted when deleting last and adding n nodes
+    [OAK-4675] - SNFE thrown while testing FileStore.cleanup() running concurrently with writes
+
 
 Improvement
 
-    [OAK-3361] - Reduce PerfLogger isDebugEnabled overhead
-    [OAK-4542] - PerfLogger should also allow a threshold to log at INFO
-    [OAK-4563] - Specify thread pool name which should be used by Async Indexing task
-    [OAK-4636] - PropertyIndexLookup#getIndexNode should be more tolerant towards property types
+    [OAK-3648] - Use StandardTokenizer instead of ClassicTokenizer in OakAnalyzer
+    [OAK-4623] - Log more information when null DocumentNodeState is read for a child while fetching children
+    [OAK-4851] - Update httpclient to 4.3.6 in Oak 1.4- branches
+
 
 Task
 
-    [OAK-3611] - upgrade H2DB dependency to 1.4.190
+    [OAK-4783] - Update Oak 1.0 to Jackrabbit 2.8.3
+    [OAK-4791] - Enable animal sniffer plugin
 
 
 In addition to the above-mentioned changes, this release contains
