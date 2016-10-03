@@ -99,11 +99,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
 
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getBuilders().entrySet() ) {
-            NodeStore nodeStore = e.getKey().getNodeStore();
-            NodeBuilder rootBuilder = e.getValue();
-            NodeState result = nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, info);
-            resultStates.put(e.getKey(), result);
+        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
+            NodeStore nodeStore = mountedNodeStore.getNodeStore();
+            NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
+            NodeState result = nodeStore.merge(partialBuilder, EmptyHook.INSTANCE, info);
+            resultStates.put(mountedNodeStore, result);
         }
         MultiplexingNodeState newRoot = createRootNodeState(resultStates);
 
@@ -119,11 +119,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getBuilders().entrySet() ) {
-            NodeStore nodeStore = e.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = e.getValue();
-            NodeState result = nodeStore.rebase(affectedBuilder);
-            resultStates.put(e.getKey(), result);
+        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
+            NodeStore nodeStore = mountedNodeStore.getNodeStore();
+            NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
+            NodeState result = nodeStore.rebase(partialBuilder);
+            resultStates.put(mountedNodeStore, result);
         }
         return createRootNodeState(resultStates);
     }
@@ -134,11 +134,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : nodeBuilder.getBuilders().entrySet()) {
-            NodeStore nodeStore = e.getKey().getNodeStore();
-            NodeBuilder affectedBuilder = e.getValue();
-            NodeState result = nodeStore.reset(affectedBuilder);
-            resultStates.put(e.getKey(), result);
+        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
+            NodeStore nodeStore = mountedNodeStore.getNodeStore();
+            NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
+            NodeState result = nodeStore.reset(partialBuilder);
+            resultStates.put(mountedNodeStore, result);
         }
         return createRootNodeState(resultStates);
     }
