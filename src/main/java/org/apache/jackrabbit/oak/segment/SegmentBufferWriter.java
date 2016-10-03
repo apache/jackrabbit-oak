@@ -23,7 +23,6 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
@@ -36,7 +35,6 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -422,30 +420,11 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         // avoid the somewhat expensive list and set traversals.
 
         if (segmentSize > buffer.length) {
-
-            // The set of old record ids in this segment
-            // that were previously root record ids, but will no longer be,
-            // because the record to be written references them.
-            // This needs to be a set, because the list of ids can
-            // potentially reference the same record multiple times
-
-            Set<SegmentId> segmentIds = newHashSet();
-
-            for (RecordId recordId : ids) {
-                SegmentId segmentId = recordId.getSegmentId();
-                if (!(segmentId.equals(segment.getSegmentId()))) {
-                    segmentIds.add(segmentId);
-                }
-            }
-
-            // Adjust the estimation of the new referenced segment ID count.
-
-            for (SegmentId segmentId : segmentIds) {
-                if (segmentReferences.contains(segmentId)) {
+            for (RecordId id : ids) {
+                if (segmentReferences.contains(id.getSegmentId())) {
                     referencedIdCount--;
                 }
             }
-
             headerSize = HEADER_SIZE + referencedIdCount * 16 + recordNumbersCount * 12;
             segmentSize = align(headerSize + recordSize + length, 16);
         }
