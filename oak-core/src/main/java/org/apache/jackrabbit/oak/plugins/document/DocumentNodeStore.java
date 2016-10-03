@@ -72,6 +72,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -1655,6 +1656,24 @@ public final class DocumentNodeStore
         } else {
             return info.get();
         }
+    }
+
+    @Nonnull
+    @Override
+    public Iterable<String> checkpoints() {
+        final long now = clock.getTime();
+        return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
+                new Predicate<Map.Entry<Revision,Checkpoints.Info>>() {
+            @Override
+            public boolean apply(Map.Entry<Revision,Checkpoints.Info> cp) {
+                return cp.getValue().getExpiryTime() > now;
+            }
+        }), new Function<Map.Entry<Revision,Checkpoints.Info>, String>() {
+            @Override
+            public String apply(Map.Entry<Revision,Checkpoints.Info> cp) {
+                return cp.getKey().toString();
+            }
+        });
     }
 
     @CheckForNull

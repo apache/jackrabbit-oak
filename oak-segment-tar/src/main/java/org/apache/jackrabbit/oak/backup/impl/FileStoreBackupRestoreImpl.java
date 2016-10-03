@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.backup;
+package org.apache.jackrabbit.oak.backup.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
@@ -33,89 +33,117 @@ import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
+import org.apache.jackrabbit.oak.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 
 /**
- * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
+ * Default implementation of {@link FileStoreBackupRestoreMBean} based on a
+ * file.
  */
-public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
+public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
 
-    public static final String BACKUP_OP_NAME = "Backup";
-    public static final String RESTORE_OP_NAME = "Restore";
+    private static final String BACKUP_OP_NAME = "Backup";
+
+    private static final String RESTORE_OP_NAME = "Restore";
 
     private final SegmentNodeStore store;
+
     private final Revisions revisions;
+
     private final SegmentReader reader;
+
     private final File file;
+
     private final Executor executor;
 
     private ManagementOperation<String> backupOp = done(BACKUP_OP_NAME, "");
+
     private ManagementOperation<String> restoreOp = done(RESTORE_OP_NAME, "");
 
+    private final FileStoreBackup fileStoreBackup;
+
+    private final FileStoreRestore fileStoreRestore;
+
     /**
-     * @param store  store to back up from or restore to
-     * @param file   file to back up to or restore from
-     * @param executor  executor for running the back up or restore operation
+     * @param store    store to back up from or restore to
+     * @param file     file to back up to or restore from
+     * @param executor executor for running the back up or restore operation
      */
-    public FileStoreBackupRestore(
+    public FileStoreBackupRestoreImpl(
             @Nonnull SegmentNodeStore store,
             @Nonnull Revisions revisions,
             @Nonnull SegmentReader reader,
             @Nonnull File file,
-            @Nonnull Executor executor) {
+            @Nonnull Executor executor
+    ) {
         this.store = checkNotNull(store);
         this.revisions = checkNotNull(revisions);
         this.reader = checkNotNull(reader);
         this.file = checkNotNull(file);
         this.executor = checkNotNull(executor);
+
+        this.fileStoreBackup = new FileStoreBackupImpl();
+        this.fileStoreRestore = new FileStoreRestoreImpl();
     }
 
     @Override
+    @Nonnull
     public synchronized CompositeData startBackup() {
         if (backupOp.isDone()) {
             backupOp = newManagementOperation("Backup", new Callable<String>() {
+
                 @Override
                 public String call() throws Exception {
                     long t0 = nanoTime();
-                    FileStoreBackup.backup(reader, revisions, file);
+                    fileStoreBackup.backup(reader, revisions, file);
                     return "Backup completed in " + formatTime(nanoTime() - t0);
                 }
+
             });
             executor.execute(backupOp);
         }
+
         return getBackupStatus();
     }
 
     @Override
+    @Nonnull
     public synchronized CompositeData getBackupStatus() {
         return backupOp.getStatus().toCompositeData();
     }
 
     @Override
+    @Nonnull
     public synchronized CompositeData startRestore() {
         if (restoreOp.isDone()) {
             restoreOp = newManagementOperation("Restore", new Callable<String>() {
+
                 @Override
                 public String call() throws Exception {
                     long t0 = nanoTime();
-                    FileStoreRestore.restore(file);
+                    fileStoreRestore.restore(file);
                     return "Restore completed in " + formatTime(nanoTime() - t0);
                 }
+
             });
             executor.execute(restoreOp);
         }
+
         return getRestoreStatus();
     }
 
     @Override
+    @Nonnull
     public synchronized CompositeData getRestoreStatus() {
         return restoreOp.getStatus().toCompositeData();
     }
 
     @Override
+    @Nonnull
     public String checkpoint(long lifetime) {
         return store.checkpoint(lifetime);
     }

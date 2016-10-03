@@ -90,7 +90,8 @@ import org.slf4j.LoggerFactory;
 public class SegmentDataStoreBlobGCIT {
     private static final Logger log = LoggerFactory.getLogger(SegmentDataStoreBlobGCIT.class);
 
-    private final boolean usePersistedMap;
+    @Parameterized.Parameter
+    public boolean usePersistedMap;
 
     SegmentNodeStore nodeStore;
     FileStore store;
@@ -110,8 +111,8 @@ public class SegmentDataStoreBlobGCIT {
         return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
     }
 
-    public SegmentDataStoreBlobGCIT(boolean usePersistedMap) {
-        this.usePersistedMap = usePersistedMap;
+    protected DataStoreBlobStore getBlobStore(File rootFolder) throws Exception {
+        return DataStoreUtils.getBlobStore(rootFolder);
     }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws Exception {
@@ -145,7 +146,7 @@ public class SegmentDataStoreBlobGCIT {
 
     public DataStoreState setUp(int count) throws Exception {
         if (blobStore == null) {
-            blobStore = DataStoreUtils.getBlobStore(folder.newFolder());
+            blobStore = getBlobStore(folder.newFolder());
         }
         nodeStore = getNodeStore(blobStore);
         startDate = new Date();
@@ -275,7 +276,7 @@ public class SegmentDataStoreBlobGCIT {
             .filter(Level.TRACE)
             .create();
 
-        DataStoreState state = setUp(2000);
+        DataStoreState state = setUp(5);
         log.info("{} blobs available : {}", state.blobsPresent.size(), state.blobsPresent);
         customLogs.starting();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);

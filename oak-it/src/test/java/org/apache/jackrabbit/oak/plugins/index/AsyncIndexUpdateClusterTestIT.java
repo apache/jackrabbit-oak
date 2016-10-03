@@ -110,6 +110,9 @@ public class AsyncIndexUpdateClusterTestIT {
 
         // Trigger indexing on NS1
         async1.run();
+        // make sure initial index is visible on both cluster nodes
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
         l.initDone();
 
         ScheduledExecutorService executorService = Executors

@@ -29,7 +29,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
+import static com.google.common.collect.Iterables.all;
 import static com.google.common.collect.Iterators.partition;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -231,10 +234,7 @@ public class VersionGarbageCollector {
             if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
                 addDocument(id);
                 // Collect id of all previous docs also
-                Iterator<NodeDocument> it = doc.getAllPreviousDocs();
-                while (it.hasNext()) {
-                    addPreviousDocument(it.next().getId());
-                }
+                addPreviousDocuments(previousDocIdsFor(doc));
             }
         }
 
@@ -267,6 +267,35 @@ public class VersionGarbageCollector {
 
         //------------------------------< internal >----------------------------
 
+        private Iterator<String> previousDocIdsFor(NodeDocument doc) {
+            Map<Revision, Range> prevRanges = doc.getPreviousRanges(true);
+            if (prevRanges.isEmpty()) {
+                return Iterators.emptyIterator();
+            } else if (all(prevRanges.values(), FIRST_LEVEL)) {
+                // all previous document ids can be constructed from the
+                // previous ranges map. this works for first level previous
+                // documents only.
+                final String path = doc.getPath();
+                return Iterators.transform(prevRanges.entrySet().iterator(),
+                        new Function<Map.Entry<Revision, Range>, String>() {
+                    @Override
+                    public String apply(Map.Entry<Revision, Range> input) {
+                        int h = input.getValue().getHeight();
+                        return Utils.getPreviousIdFor(path, input.getKey(), h);
+                    }
+                });
+            } else {
+                // need to fetch the previous documents to get their ids
+                return Iterators.transform(doc.getAllPreviousDocs(),
+                        new Function<NodeDocument, String>() {
+                    @Override
+                    public String apply(NodeDocument input) {
+                        return input.getId();
+                    }
+                });
+            }
+        }
+
         private void addDocument(String id) throws IOException {
             docIdsToDelete.add(id);
         }
@@ -275,8 +304,10 @@ public class VersionGarbageCollector {
             return prevDocIdsToDelete.getSize() - exclude.size();
         }
 
-        private void addPreviousDocument(String id) throws IOException {
-            prevDocIdsToDelete.add(id);
+        private void addPreviousDocuments(Iterator<String> ids) throws IOException {
+            while (ids.hasNext()) {
+                prevDocIdsToDelete.add(ids.next());
+            }
         }
 
         private Iterator<String> getDocIdsToDelete() throws IOException {
@@ -402,4 +433,11 @@ public class VersionGarbageCollector {
         return new StringSort(overflowToDiskThreshold,
                 NodeDocumentIdComparator.INSTANCE);
     }
+
+    private static final Predicate<Range> FIRST_LEVEL = new Predicate<Range>() {
+        @Override
+        public boolean apply(@Nullable Range input) {
+            return input != null && input.height == 0;
+        }
+    };
 }

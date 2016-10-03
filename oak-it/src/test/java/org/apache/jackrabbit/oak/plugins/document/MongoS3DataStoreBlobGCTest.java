@@ -18,26 +18,64 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.blob.cloud.S3DataStoreUtils;
+import java.io.File;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.blob.ds.MongoDataStoreBlobGCTest;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests DataStoreGC with Mongo and S3
  */
+@RunWith(Parameterized.class)
 public class MongoS3DataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
+
     @BeforeClass
     public static void assumptions() {
-        assumeTrue(S3DataStoreUtils.isS3DataStore());
+        assumeTrue(S3DataStoreUtils.isS3Configured());
+    }
+
+    @Parameterized.Parameter
+    public String s3Class;
+
+    @Parameterized.Parameters(name = "{index}: ({0})")
+    public static List<String> fixtures() {
+        return S3DataStoreUtils.getFixtures();
+    }
+
+    protected String bucket;
+
+    @Before
+    @Override
+    public void setUpConnection() throws Exception {
+        Properties props = S3DataStoreUtils.getS3Config();
+        startDate = new Date();
+        mongoConnection = connectionFactory.getConnection();
+        MongoUtils.dropCollections(mongoConnection.getDB());
+        File root = folder.newFolder();
+        bucket = root.getName();
+        props.setProperty(S3Constants.S3_BUCKET, bucket);
+        blobStore = new DataStoreBlobStore(
+            S3DataStoreUtils.getS3DataStore(s3Class, props, root.getAbsolutePath()));
+        mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB())
+            .setBlobStore(blobStore).open();
     }
 
     @After
     @Override
     public void tearDownConnection() throws Exception {
-        S3DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
+        S3DataStoreUtils.deleteBucket(bucket, startDate);
         super.tearDownConnection();
     }
 }

@@ -36,7 +36,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -220,6 +222,12 @@ public class MemoryNodeStore implements NodeStore, Observable {
         }
     }
 
+    @Nonnull
+    @Override
+    public synchronized Iterable<String> checkpoints() {
+        return Lists.newArrayList(checkpoints.keySet());
+    }
+
     @Override @CheckForNull
     public synchronized NodeState retrieve(@Nonnull String checkpoint) {
         Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
@@ -237,8 +245,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     /** test purpose only! */
-    public synchronized Set<String> listCheckpoints() {
-        return checkpoints.keySet();
+    public Set<String> listCheckpoints() {
+        return Sets.newHashSet(checkpoints());
     }
 
     //------------------------------------------------------------< private >---

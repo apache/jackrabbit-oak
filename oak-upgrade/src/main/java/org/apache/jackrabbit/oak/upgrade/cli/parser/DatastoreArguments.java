@@ -32,16 +32,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.COPY_BINARIES;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FBS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FDS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3_CONFIG;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.IGNORE_MISSING_BINARIES;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FBS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FDS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_S3;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_S3_CONFIG;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 
 /**
@@ -84,11 +74,14 @@ public class DatastoreArguments {
 
     private final BlobMigrationCase blobMigrationCase;
 
-    private final MigrationCliArguments parser;
+    private final MigrationOptions options;
 
-    public DatastoreArguments(MigrationCliArguments parser, StoreArguments storeArguments) throws CliArgumentException {
+    private final boolean srcEmbedded;
+
+    public DatastoreArguments(MigrationOptions options, StoreArguments storeArguments, boolean srcEmbedded) throws CliArgumentException {
         this.storeArguments = storeArguments;
-        this.parser = parser;
+        this.options = options;
+        this.srcEmbedded = srcEmbedded;
 
         try {
             blobMigrationCase = discoverBlobMigrationCase();
@@ -102,8 +95,8 @@ public class DatastoreArguments {
         }
 
         try {
-            definedSrcBlob = isSrcBlobStoreDefined() ? getDefinedSrcBlobStore() : null;
-            definedDstBlob = isDstBlobStoreDefined() ? getDefinedDstBlobStore() : null;
+            definedSrcBlob = options.isSrcBlobStoreDefined() ? getDefinedSrcBlobStore() : null;
+            definedDstBlob = options.isDstBlobStoreDefined() ? getDefinedDstBlobStore() : null;
         } catch(IOException e) {
             log.error("Can't read the blob configuration", e);
             throw new CliArgumentException(1);
@@ -114,7 +107,7 @@ public class DatastoreArguments {
 
     public BlobStoreFactory getSrcBlobStore() throws IOException {
         BlobStoreFactory result;
-        if (isSrcBlobStoreDefined()) {
+        if (options.isSrcBlobStoreDefined()) {
             result = definedSrcBlob;
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES) {
             result = new MissingBlobStoreFactory();
@@ -127,9 +120,9 @@ public class DatastoreArguments {
 
     public BlobStoreFactory getDstBlobStore(BlobStore srcBlobStore) throws IOException {
         BlobStoreFactory result;
-        if (isDstBlobStoreDefined()) {
+        if (options.isDstBlobStoreDefined()) {
             result = definedDstBlob;
-        } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML)) {
+        } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML)) {
             result = new ConstantBlobStoreFactory(srcBlobStore);
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES) {
             result = new MissingBlobStoreFactory();
@@ -141,34 +134,26 @@ public class DatastoreArguments {
         return result;
     }
 
-    public boolean isSrcBlobStoreDefined() {
-        return parser.hasOption(SRC_FBS) || (parser.hasOption(SRC_S3_CONFIG) && parser.hasOption(SRC_S3)) || (parser.hasOption(SRC_FDS));
-    }
-
-    public boolean isDstBlobStoreDefined() {
-        return parser.hasOption(DST_FBS) || (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) || parser.hasOption(DST_FDS);
-    }
-
     private BlobStoreFactory getDefinedSrcBlobStore() throws IOException {
-        boolean ignoreMissingBinaries = parser.hasOption(IGNORE_MISSING_BINARIES);
-        if (parser.hasOption(SRC_FBS)) {
-            return new FileBlobStoreFactory(parser.getOption(SRC_FBS));
-        } else if (parser.hasOption(SRC_S3_CONFIG) && parser.hasOption(SRC_S3)) {
-            return new S3DataStoreFactory(parser.getOption(SRC_S3_CONFIG), parser.getOption(SRC_S3), ignoreMissingBinaries);
-        } else if (parser.hasOption(SRC_FDS)) {
-            return new FileDataStoreFactory(parser.getOption(SRC_FDS), ignoreMissingBinaries);
+        boolean ignoreMissingBinaries = options.isIgnoreMissingBinaries();
+        if (options.isSrcFbs()) {
+            return new FileBlobStoreFactory(options.getSrcFbs());
+        } else if (options.isSrcS3()) {
+            return new S3DataStoreFactory(options.getSrcS3Config(), options.getSrcS3(), ignoreMissingBinaries);
+        } else if (options.isSrcFds()) {
+            return new FileDataStoreFactory(options.getSrcFds(), ignoreMissingBinaries);
         } else {
             return null;
         }
     }
 
     private BlobStoreFactory getDefinedDstBlobStore() throws IOException {
-        if (parser.hasOption(DST_FBS)) {
-            return new FileBlobStoreFactory(parser.getOption(DST_FBS));
-        } else if (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) {
-            return new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3), false);
-        } else if (parser.hasOption(DST_FDS)) {
-            return new FileDataStoreFactory(parser.getOption(DST_FDS), false);
+        if (options.isDstFbs()) {
+            return new FileBlobStoreFactory(options.getDstFbs());
+        } else if (options.isDstS3()) {
+            return new S3DataStoreFactory(options.getDstS3Config(), options.getDstS3(), false);
+        } else if (options.isDstFds()) {
+            return new FileDataStoreFactory(options.getDstFds(), false);
         } else {
             return null;
         }
@@ -211,10 +196,9 @@ public class DatastoreArguments {
     }
 
     private BlobMigrationCase discoverBlobMigrationCase() throws IOException {
-        boolean srcDefined = isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML;
-        boolean dstDefined = isDstBlobStoreDefined();
-        boolean srcEmbedded = !storeArguments.srcHasExternalBlobReferences();
-        boolean copyBinaries = parser.hasOption(COPY_BINARIES);
+        boolean srcDefined = options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML;
+        boolean dstDefined = options.isDstBlobStoreDefined();
+        boolean copyBinaries = options.isCopyBinaries();
 
         boolean srcSegment = storeArguments.getSrcType().isSegment();
         boolean dstSegment = storeArguments.getDstType().isSegment();

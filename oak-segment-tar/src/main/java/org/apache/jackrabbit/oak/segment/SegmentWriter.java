@@ -488,12 +488,12 @@ public class SegmentWriter {
         throws IOException {
             if (base != null && base.isDiff()) {
                 Segment segment = base.getSegment();
-                RecordId key = segment.readRecordId(base.getOffset(8));
+                RecordId key = segment.readRecordId(base.getRecordNumber(), 8);
                 String name = reader.readString(key);
                 if (!changes.containsKey(name)) {
-                    changes.put(name, segment.readRecordId(base.getOffset(8, 1)));
+                    changes.put(name, segment.readRecordId(base.getRecordNumber(), 8, 1));
                 }
-                base = new MapRecord(reader, segment.readRecordId(base.getOffset(8, 2)));
+                base = new MapRecord(reader, segment.readRecordId(base.getRecordNumber(), 8, 2));
             }
 
             if (base != null && changes.size() == 1) {
@@ -871,12 +871,11 @@ public class SegmentWriter {
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
                 SegmentId bulkId = store.newBulkSegmentId();
-                int len = Segment.align(n, 1 << Segment.RECORD_ALIGN_BITS);
                 LOG.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
-                store.writeSegment(bulkId, data, 0, len);
+                store.writeSegment(bulkId, data, 0, n);
 
                 for (int i = 0; i < n; i += BLOCK_SIZE) {
-                    blockIds.add(new RecordId(bulkId, data.length - len + i));
+                    blockIds.add(new RecordId(bulkId, data.length - n + i));
                 }
 
                 n = read(stream, data, 0, data.length);

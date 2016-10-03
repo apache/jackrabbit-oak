@@ -20,34 +20,14 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
-import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
-import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-
 public class CliUtils {
 
     private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);
-
-    public static MigrationCliArguments parseOrExit(OptionParser op, String... args) {
-        try {
-            OptionSet options = op.parse(args);
-            if (options.has(OptionParserFactory.HELP) || options.nonOptionArguments().isEmpty()) {
-                displayUsage();
-                return null;
-            }
-            return new MigrationCliArguments(options);
-        } catch (Exception e) {
-            System.exit(getReturnCode(e));
-            return null;
-        }
-    }
 
     public static void displayUsage() throws IOException {
         System.out.println(getUsage().replace("${command}", "java -jar oak-run-*-jr2.jar upgrade"));
@@ -59,18 +39,6 @@ public class CliUtils {
             return IOUtils.toString(is);
         } finally {
             IOUtils.closeQuietly(is);
-        }
-    }
-
-    public static int getReturnCode(Exception e) {
-        if (e.getMessage() != null) {
-            System.err.println(e.getMessage());
-        }
-        if (e instanceof CliArgumentException) {
-            return ((CliArgumentException) e).getExitCode();
-        } else {
-            e.printStackTrace(System.err);
-            return 1;
         }
     }
 

@@ -44,9 +44,9 @@ import org.slf4j.LoggerFactory;
  * temporary state that is supposed to be used for the lifetime of a
  * synchronization run.
  */
-class StandbySyncExecution {
+class StandbyClientSyncExecution {
 
-    private static final Logger log = LoggerFactory.getLogger(StandbySyncExecution.class);
+    private static final Logger log = LoggerFactory.getLogger(StandbyClientSyncExecution.class);
 
     private final FileStore store;
 
@@ -58,7 +58,7 @@ class StandbySyncExecution {
 
     private final Map<UUID, Segment> cache = newHashMap();
 
-    StandbySyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
+    StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
         this.store = store;
         this.client = client;
         this.running = running;

@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
@@ -42,37 +43,40 @@ public class MigrationFactory {
 
     protected final StoreArguments stores;
 
+    protected final DatastoreArguments datastores;
+
     protected final Closer closer;
 
-    public MigrationFactory(MigrationOptions options, StoreArguments stores, Closer closer) {
+    public MigrationFactory(MigrationOptions options, StoreArguments stores, DatastoreArguments datastores, Closer closer) {
         this.options = options;
         this.stores = stores;
+        this.datastores = datastores;
         this.closer = closer;
     }
 
-    public RepositoryUpgrade createUpgrade() throws IOException, RepositoryException {
+    public RepositoryUpgrade createUpgrade() throws IOException, RepositoryException, CliArgumentException {
         RepositoryContext src = stores.getSrcStore().create(closer);
         BlobStore srcBlobStore = new DataStoreBlobStore(src.getDataStore());
         NodeStore dstStore = createTarget(closer, srcBlobStore);
         return createUpgrade(src, dstStore);
     }
 
-    public RepositorySidegrade createSidegrade() throws IOException {
-        BlobStore srcBlobStore = stores.getDatastores().getSrcBlobStore().create(closer);
+    public RepositorySidegrade createSidegrade() throws IOException, CliArgumentException {
+        BlobStore srcBlobStore = datastores.getSrcBlobStore().create(closer);
         NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
         NodeStore dstStore = createTarget(closer, srcBlobStore);
         return createSidegrade(srcStore, dstStore);
     }
 
     protected NodeStore createTarget(Closer closer, BlobStore srcBlobStore) throws IOException {
-        BlobStore dstBlobStore = stores.getDatastores().getDstBlobStore(srcBlobStore).create(closer);
+        BlobStore dstBlobStore = datastores.getDstBlobStore(srcBlobStore).create(closer);
         NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
         return dstStore;
     }
 
     protected RepositoryUpgrade createUpgrade(RepositoryContext source, NodeStore dstStore) {
         RepositoryUpgrade upgrade = new RepositoryUpgrade(source, dstStore);
-        upgrade.setCopyBinariesByReference(stores.getDatastores().getBlobMigrationCase() == DatastoreArguments.BlobMigrationCase.COPY_REFERENCES);
+        upgrade.setCopyBinariesByReference(datastores.getBlobMigrationCase() == DatastoreArguments.BlobMigrationCase.COPY_REFERENCES);
         upgrade.setCopyVersions(options.getCopyVersions());
         upgrade.setCopyOrphanedVersions(options.getCopyOrphanedVersions());
         if (options.getIncludePaths() != null) {

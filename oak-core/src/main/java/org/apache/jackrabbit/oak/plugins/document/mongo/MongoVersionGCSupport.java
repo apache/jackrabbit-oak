@@ -63,6 +63,12 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private final boolean disableIndexHint =
             Boolean.getBoolean("oak.mongo.disableVersionGCIndexHint");
 
+    /**
+     * The batch size for the query of possibly deleted docs.
+     */
+    private final int batchSize = Integer.getInteger(
+            "oak.mongo.queryDeletedDocsBatchSize", 1000);
+
     public MongoVersionGCSupport(MongoDocumentStore store) {
         super(store);
         this.store = store;
@@ -76,6 +82,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                                 .put(NodeDocument.MODIFIED_IN_SECS).lessThan(NodeDocument.getModifiedInSecs(lastModifiedTime))
                         .get();
         DBCursor cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
+        cursor.batchSize(batchSize);
         if (!disableIndexHint) {
             cursor.hint(new BasicDBObject(NodeDocument.DELETED_ONCE, 1));
         }

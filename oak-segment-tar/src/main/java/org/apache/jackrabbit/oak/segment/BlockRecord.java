@@ -54,7 +54,7 @@ class BlockRecord extends Record {
             length = size - position;
         }
         if (length > 0) {
-            getSegment().readBytes(getOffset(position), buffer, offset, length);
+            getSegment().readBytes(getRecordNumber(), position, buffer, offset, length);
         }
         return length;
     }

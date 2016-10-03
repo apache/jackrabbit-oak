@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
+import org.apache.jackrabbit.oak.backup.impl.FileStoreRestoreImpl;
 
 /**
  * Restore a backup of a segment store into an existing segment store.
@@ -45,6 +46,8 @@ public class Restore implements Runnable {
         private File source;
 
         private File target;
+
+        private final FileStoreRestore fileStoreRestore = new FileStoreRestoreImpl();
 
         private Builder() {
             // Prevent external instantiation.
@@ -89,15 +92,18 @@ public class Restore implements Runnable {
 
     private final File target;
 
+    private final FileStoreRestore fileStoreRestore;
+
     private Restore(Builder builder) {
         this.source = builder.source;
         this.target = builder.target;
+        this.fileStoreRestore = builder.fileStoreRestore;
     }
 
     @Override
     public void run() {
         try {
-            FileStoreRestore.restore(source, target);
+            fileStoreRestore.restore(source, target);
         } catch (Exception e) {
             e.printStackTrace();
         }

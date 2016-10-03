@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,6 +31,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
@@ -46,7 +44,6 @@ import com.google.common.io.Closeables;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import junit.framework.Assert;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -71,7 +68,10 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils
+    .SharedStoreRecordType.REPOSITORY;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for MongoMK GC
@@ -200,17 +200,17 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     @Test
     public void checkMark() throws Exception {
+        String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
             .forLogger(MarkSweepGarbageCollector.class.getName())
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();
 
-        DataStoreState state = setUp(true, 1000);
+        DataStoreState state = setUp(true, 10);
         log.info("{} blobs available : {}", state.blobsPresent.size(), state.blobsPresent);
         customLogs.starting();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        String rootFolder = folder.newFolder().getAbsolutePath();
         MarkSweepGarbageCollector gcObj = init(0, executor, rootFolder);
         gcObj.collectGarbage(true);
         customLogs.finished();
@@ -334,9 +334,10 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
         }
-        TestGarbageCollector gc = new TestGarbageCollector(
-            new DocumentBlobReferenceRetriever(store),
-            (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, 5000, repoId);
+        TestGarbageCollector gc =
+            new TestGarbageCollector(new DocumentBlobReferenceRetriever(store),
+                (GarbageCollectableBlobStore) store.getBlobStore(), executor,
+                folder.newFolder().getAbsolutePath(), 5, 5000, repoId);
         gc.collectGarbage(false);
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
@@ -347,6 +348,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     @Test
     public void checkGcPathLogging() throws Exception {
+        String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
             .forLogger(MarkSweepGarbageCollector.class.getName())
             .enable(Level.TRACE)
@@ -356,7 +358,6 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         setUp(false);
         customLogs.starting();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        String rootFolder = folder.newFolder().getAbsolutePath();
         MarkSweepGarbageCollector gcObj = init(0, executor, rootFolder);
         gcObj.collectGarbage(true);
         customLogs.finished();
@@ -366,6 +367,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     @Test
     public void checkConsistencyPathLogging() throws Exception {
+        String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
             .forLogger(MarkSweepGarbageCollector.class.getName())
             .enable(Level.TRACE)
@@ -375,7 +377,6 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         setUp(false);
         customLogs.starting();
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        String rootFolder = folder.newFolder().getAbsolutePath();
         MarkSweepGarbageCollector gcObj = init(86400, executor, rootFolder);
         gcObj.checkConsistency();
         customLogs.finished();
@@ -443,7 +444,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 REPOSITORY.getNameFromId(repoId));
         }
         if (Strings.isNullOrEmpty(root)) {
-            root = "./target";
+            root = folder.newFolder().getAbsolutePath();
         }
 
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(

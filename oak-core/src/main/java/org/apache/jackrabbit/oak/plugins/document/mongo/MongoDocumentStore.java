@@ -234,7 +234,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
         CommandResult serverStatus = db.command("serverStatus");
-        String version = checkVersion(serverStatus);
+        String version = checkVersion(db, serverStatus);
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
                 .put("version", version)
@@ -301,8 +301,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @Nonnull
-    private static String checkVersion(CommandResult serverStatus) {
+    private static String checkVersion(DB db, CommandResult serverStatus) {
         String version = serverStatus.getString("version");
+        if (version == null) {
+            // OAK-4841: serverStatus was probably unauthorized,
+            // use buildInfo command to get version
+            version = db.command("buildInfo").getString("version");
+        }
         Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(version);
         if (!m.matches()) {
             throw new IllegalArgumentException("Malformed MongoDB version: " + version);
