@@ -29,7 +29,7 @@ class MutableRecordNumbers implements RecordNumbers {
 
     private final Object lock = new Object();
 
-    private final Map<Integer, RecordEntry> records = Maps.newHashMap();
+    private final Map<Integer, RecordEntry> records = Maps.newLinkedHashMap();
 
     @Override
     public int getOffset(int recordNumber) {
@@ -55,7 +55,7 @@ class MutableRecordNumbers implements RecordNumbers {
         Map<Integer, RecordEntry> recordNumbers;
 
         synchronized (lock) {
-            recordNumbers = Maps.newHashMap(this.records);
+            recordNumbers = Maps.newLinkedHashMap(this.records);
         }
 
         return new RecordNumbersIterator(recordNumbers.entrySet().iterator());

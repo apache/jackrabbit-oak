@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -39,7 +39,7 @@ class ImmutableRecordNumbers implements RecordNumbers {
      *                {@code null}.
      */
     ImmutableRecordNumbers(Map<Integer, RecordEntry> records) {
-        this.records = newHashMap(records);
+        this.records = newLinkedHashMap(records);
     }
 
     @Override
