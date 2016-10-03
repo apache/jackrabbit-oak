@@ -533,8 +533,7 @@ public class DefaultSyncContext implements SyncContext {
             if (a == null) {
                 grp = createGroup(extGroup);
                 log.debug("- created new group");
-            } else if (a.isGroup() && (getIdentityRef(a) == null || isSameIDP(a))) {
-                // limit to same IDP or local (no IDP ref) groups, see OAK-4845
+            } else if (a.isGroup() && isSameIDP(a)) {
                 grp = (Group) a;
             } else {
                 log.warn("Existing authorizable '{}' is not a group from this IDP '{}'.", extGroup.getId(), idp.getName());
