@@ -427,13 +427,13 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             Set<SegmentId> segmentIds = newHashSet();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
-                if (segmentReferences.contains(segmentId)) {
+                if (!segmentReferences.contains(segmentId)) {
                     segmentIds.add(segmentId);
                 }
             }
 
             // Adjust the estimation of the new referenced segment ID count.
-            referencedIdCount -= segmentIds.size();
+            referencedIdCount =  segmentReferences.size() + segmentIds.size();
 
             headerSize = HEADER_SIZE + referencedIdCount * 16 + recordNumbersCount * 12;
             segmentSize = align(headerSize + recordSize + length, 16);
