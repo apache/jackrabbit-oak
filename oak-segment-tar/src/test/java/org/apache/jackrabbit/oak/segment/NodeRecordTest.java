@@ -21,7 +21,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import javax.annotation.Nonnull;
 
@@ -63,7 +62,6 @@ public class NodeRecordTest {
             SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
             SegmentNodeState state = writer.writeNode(EmptyNodeState.EMPTY_NODE);
             writer.flush();
-            assertTrue(isRootRecord(state));
         }
     }
 
@@ -187,24 +185,6 @@ public class NodeRecordTest {
                 return defaultCache.getNodeCache(generation);
             }
         };
-    }
-
-    private boolean isRootRecord(SegmentNodeState sns) {
-        Segment segment = sns.getRecordId().getSegment();
-
-        for (int i = 0; i < segment.getRootCount(); i++) {
-            if (segment.getRootType(i) != RecordType.NODE) {
-                continue;
-            }
-
-            if (segment.getRootOffset(i) != sns.getRecordId().getRecordNumber()) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
 }

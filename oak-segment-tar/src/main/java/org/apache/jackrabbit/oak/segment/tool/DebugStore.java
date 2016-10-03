@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
@@ -35,8 +36,10 @@ import java.util.UUID;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 
@@ -170,16 +173,26 @@ public class DebugStore implements Runnable {
         System.out.format("%s in %6d bulk segments%n", byteCountToDisplaySize(bulkSize), bulkCount);
     }
 
-    private static void analyseSegment(Segment segment, RecordUsageAnalyser analyser) {
-        for (int k = 0; k < segment.getRootCount(); k++) {
-            if (segment.getRootType(k) == NODE) {
-                RecordId nodeId = new RecordId(segment.getSegmentId(), segment.getRootOffset(k));
-                try {
-                    analyser.analyseNode(nodeId);
-                } catch (Exception e) {
-                    System.err.format("Error while processing node at %s", nodeId);
-                    e.printStackTrace();
+    private static void analyseSegment(final Segment segment, final RecordUsageAnalyser analyser) {
+        final List<RecordId> ids = newArrayList();
+
+        segment.forEachRecord(new RecordConsumer() {
+
+            @Override
+            public void consume(int number, RecordType type, int offset) {
+                if (type == NODE) {
+                    ids.add(new RecordId(segment.getSegmentId(), number));
                 }
+            }
+
+        });
+
+        for (RecordId id : ids) {
+            try {
+                analyser.analyseNode(id);
+            } catch (Exception e) {
+                System.err.format("Error while processing node at %s", id);
+                e.printStackTrace();
             }
         }
     }
