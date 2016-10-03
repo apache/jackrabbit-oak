@@ -639,12 +639,27 @@ public class Segment {
         }
     }
 
+    /**
+     * A consumer of record data.
+     */
     public interface RecordConsumer {
 
+        /**
+         * Consume data about a record.
+         *
+         * @param number the record number.
+         * @param type   the record type.
+         * @param offset the offset where the record is stored.
+         */
         void consume(int number, RecordType type, int offset);
 
     }
 
+    /**
+     * Iterate over the records contained in this segment.
+     *
+     * @param consumer an instance of {@link RecordConsumer}.
+     */
     public void forEachRecord(RecordConsumer consumer) {
         for (Entry entry : recordNumbers) {
             consumer.consume(entry.getRecordNumber(), entry.getType(), entry.getOffset());
