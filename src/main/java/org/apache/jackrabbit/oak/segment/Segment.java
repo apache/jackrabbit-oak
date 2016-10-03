@@ -62,7 +62,7 @@ import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
  */
 public class Segment {
 
-    static final int HEADER_SIZE = 22;
+    static final int HEADER_SIZE = 32;
 
     /**
      * Number of bytes used for storing a record identifier. One byte
