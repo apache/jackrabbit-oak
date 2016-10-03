@@ -65,6 +65,17 @@ public class Segment {
     static final int HEADER_SIZE = 32;
 
     /**
+     * Size of a line in the table of references to external segments.
+     */
+    static final int SEGMENT_REFERENCE_SIZE = 16;
+
+    /**
+     * Size of a line in the table mapping record numbers to their type and
+     * offset.
+     */
+    static final int RECORD_SIZE = 9;
+
+    /**
      * Number of bytes used for storing a record identifier. One byte
      * is used for identifying the segment and two for the record offset
      * within that segment.
@@ -218,13 +229,13 @@ public class Segment {
         int position = data.position();
 
         position += HEADER_SIZE;
-        position += getReferencedSegmentIdCount() * 16;
+        position += getReferencedSegmentIdCount() * SEGMENT_REFERENCE_SIZE;
 
         for (int i = 0; i < getRecordNumberCount(); i++) {
             int recordNumber = data.getInt(position);
             position += 4;
-            int type = data.getInt(position);
-            position += 4;
+            int type = data.get(position);
+            position += 1;
             int offset = data.getInt(position);
             position += 4;
             recordNumberOffsets.put(recordNumber, new RecordEntry(RecordType.values()[type], offset));
