@@ -423,28 +423,17 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         if (segmentSize > buffer.length) {
 
-            // The set of old record ids in this segment
-            // that were previously root record ids, but will no longer be,
-            // because the record to be written references them.
-            // This needs to be a set, because the list of ids can
-            // potentially reference the same record multiple times
-
+            // Collect the newly referenced segment ids
             Set<SegmentId> segmentIds = newHashSet();
-
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
-                if (!(segmentId.equals(segment.getSegmentId()))) {
+                if (segmentReferences.contains(segmentId)) {
                     segmentIds.add(segmentId);
                 }
             }
 
             // Adjust the estimation of the new referenced segment ID count.
-
-            for (SegmentId segmentId : segmentIds) {
-                if (segmentReferences.contains(segmentId)) {
-                    referencedIdCount--;
-                }
-            }
+            referencedIdCount -= segmentIds.size();
 
             headerSize = HEADER_SIZE + referencedIdCount * 16 + recordNumbersCount * 12;
             segmentSize = align(headerSize + recordSize + length, 16);
