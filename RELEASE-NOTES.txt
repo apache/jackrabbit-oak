@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.8
 
 Introduction
 ------------
@@ -7,90 +7,68 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.7 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.8 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.7
+Changes in Oak 1.4.8
 ---------------------
+
+Technical task
+
+    [OAK-4257] - Findbug issues in security modules
+    [OAK-4539] - Calculate children cache entry on commit
+    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
+    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
 
 Bug
 
-    [OAK-4153] - segment's compareAgainstBaseState wont call
-    childNodeDeleted when deleting last and adding n nodes
-    [OAK-4219] - ExternalLoginModuleTestBase doesn't remove synced
-    User/Group accounts
-    [OAK-4224] - DefaultSyncContext.sync(ExternalIdentity) should
-    verify IDP
-    [OAK-4231] - DefaultSyncContext creates Value of type String for
-    Binary|Inputstream Object
-    [OAK-4267] - SyncedIdentity for foreign authorizable always has
-    isGroup set to false
-    [OAK-4302] - DefaultSyncContextTest contains duplicate test
-    [OAK-4431] - Index path property should be considered optional for
-    copy on read logic
-    [OAK-4448] - Test failures that rely on expiration time to
-    experience a re-sync.
-    [OAK-4600] - In case of branch commits, nodeChildrenCache gets
-    entries for branch revision without "br" prefix
-    [OAK-4658] - Outer join: name(b) and localname(b) can throw a NPE
-    [OAK-4675] - SNFE thrown while testing FileStore.cleanup() running
-    concurrently with writes
-    [OAK-4676] - Index definition on nt:base with analyzed property
-    incorrectly matches query with different property
-    [OAK-4679] - Backport OAK-4119, OAK-4101, OAK-4087 and OAK-4344
-    [OAK-4682] - ConcurrentModificationException in
-    JournalEntry.TreeNode
-    [OAK-4684] - RepositorySidegrade should also run commit hooks as
-    they are run in upgrade
+    [OAK-4048] - [regression] SyncHandler.listIdentities() returns all
+    users, not only external ones
+    [OAK-4174] - SegmentToJdbcTest failing with improvements of
+    OAK-4119
+    [OAK-4301] - Missing protection for system-maintained
+    rep:externalId
+    [OAK-4552] - Checkpoints.getOldestRevisionToKeep() returns newest
+    valid revision
+    [OAK-4568] - JournalEntry.applyTo() creates complete change tree
+    in memory
+    [OAK-4572] - Overflow to disk threshold too high
+    [OAK-4790] - Compilation error with JDK 6 in FileIOUtils
+    [OAK-4805] - Misconfigured lucene index definition can render the
+    whole system unusable
+    [OAK-4811] - MongoToMongoFbsTest fails
+    [OAK-4832] - Upgrade breaks if the SecurityManager section in
+    repository.xml is empty
+    [OAK-4840] - Incorrect branch commit value
+    [OAK-4845] - Regression: DefaultSyncContext does not sync
+    membership to a local group
 
 Improvement
 
-    [OAK-3563] - Improve DefaultSyncContext
-    [OAK-4001] - ExternalLoginModule: Make max sync attempts
-    configurable
-    [OAK-4005] - LdapIdentityProvider.getEntries() is prone to OOME.
-    [OAK-4087] - Replace Sync of configured AutoMembership by Dynamic
-    Principal Generation
-    [OAK-4119] - Improvements Take 1
-    [OAK-4152] - Expose the index path to IndexEditor
-    [OAK-4320] - Use the cache tracker in the RDB Document Store
-    [OAK-4347] - Use the indexPath from hidden property instead of
-    taking this as input as part of index config
-    [OAK-4384] - Benchmarks: add support 'automembership' config
-    option
-    [OAK-4385] - Benchmarks: proper init of
-    ExternalPrincipalConfiguration with dynamicMembership
-    [OAK-4516] - Configurable option to lucene index defs to index
-    original (unanalyzed value as well)
-    [OAK-4585] - Text extraction: runtime status monitoring
-    [OAK-4623] - Log more information when null DocumentNodeState is
-    read for a child while fetching children
-    [OAK-4677] - stop oak-core bundle only transiently on lease
-    failure
-    [OAK-4678] - Backport OAK-4344 and OAK-4005
+    [OAK-4043] - Oak run checkpoints needs to account for multiple
+    index lanes
+    [OAK-4528] - diff calculation in DocumentNodeStore should try to
+    re-use journal info on diff cache miss
+    [OAK-4553] - Retain journal entries for valid checkpoints
+    [OAK-4556] - Track branch on newBranchCommit()
+    [OAK-4715] - Reduce DocumentStore reads for local changes
+    [OAK-4819] - Improve revision GC resilience
+    [OAK-4826] - Auto removal of orphaned checkpoints
+    [OAK-4851] - Update httpclient to 4.3.6 in Oak 1.4- branches
 
 New Feature
 
-    [OAK-4101] - Consider separate external (group) principal
-    management
+    [OAK-4712] - Publish S3DataStore stats in JMX MBean
+    [OAK-4850] - List checkpoints
 
 Task
 
-    [OAK-3211] - Document External Identity Management
-    [OAK-4364] - Initial Benchmarks for oak-auth-external
-    [OAK-4671] - Update 1.4 to JR 2.12.3
-    [OAK-4743] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.4
-
-Test
-
-    [OAK-4226] - Improve testing of DefaultSyncContext
-    [OAK-4248] - More tests for the exposed 'basic' package
-    [OAK-4382] - Test failure in
-    ExternalGroupPrincipalProviderTest.testFindPrincipalsByHintTypeGroup
+    [OAK-4791] - Enable animal sniffer plugin
+    [OAK-4821] - Allow use of Java 7 in Oak 1.4
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
