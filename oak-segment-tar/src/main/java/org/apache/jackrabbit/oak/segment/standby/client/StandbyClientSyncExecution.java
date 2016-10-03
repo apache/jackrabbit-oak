@@ -56,6 +56,8 @@ class StandbyClientSyncExecution {
 
     private final Set<UUID> visited = newHashSet();
 
+    private final Set<UUID> queued = newHashSet();
+
     private final Map<UUID, Segment> cache = newHashMap();
 
     StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
@@ -125,16 +127,34 @@ class StandbyClientSyncExecution {
             for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
                 UUID referenced = segment.getReferencedSegmentId(i);
 
+                // Short circuit for the "back reference problem". The segment
+                // graph might or might not be acyclic. The following check
+                // prevents processing segment that were already traversed.
+
                 if (visited.contains(referenced)) {
                     continue;
                 }
 
+                // Short circuit for the "diamond problem". Imagine that segment S1
+                // references S2 and S3 and both S2 and S3 reference S4. These
+                // references form the shape of a diamond. If the segments are
+                // processed in the order S1, S2, S3, then S4 is added twice to the
+                // 'batch' queue. The following check prevents processing S4 twice
+                // or more.
+
+                if (queued.contains(referenced)) {
+                    continue;
+                }
+
                 log.info("Found reference from {} to {}", current, referenced);
+
                 if (SegmentId.isDataSegmentId(referenced.getLeastSignificantBits())) {
                     batch.add(referenced);
                 } else {
                     batch.addFirst(referenced);
                 }
+
+                queued.add(referenced);
             }
         }
     }
