@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
@@ -118,8 +117,6 @@ public class Segment {
      * stored in the length field.
      */
     public static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
-
-    static final int ROOT_COUNT_OFFSET = 6;
 
     public static final int GC_GENERATION_OFFSET = 10;
 
@@ -216,7 +213,7 @@ public class Segment {
      * @return An instance of {@link RecordNumbers}, never {@code null}.
      */
     private RecordNumbers readRecordNumberOffsets() {
-        Map<Integer, RecordEntry> recordNumberOffsets = newHashMapWithExpectedSize(getRecordNumberCount());
+        Map<Integer, RecordEntry> recordNumberOffsets = newLinkedHashMap();
 
         int position = data.position();
 
@@ -314,10 +311,6 @@ public class Segment {
         return id;
     }
 
-    public int getRootCount() {
-        return data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
-    }
-
     public int getReferencedSegmentIdCount() {
         return data.getInt(REFERENCED_SEGMENT_ID_COUNT_OFFSET);
     }
@@ -353,33 +346,6 @@ public class Segment {
         return getGcGeneration(data, id.asUUID());
     }
 
-    public RecordType getRootType(int index) {
-        checkArgument(index < getRootCount());
-
-        int position = data.position();
-
-        position += HEADER_SIZE;
-        position += getReferencedSegmentIdCount() * 16;
-        position += getRecordNumberCount() * 12;
-        position += index * 5;
-
-        return RecordType.values()[data.get(position) & 0xff];
-    }
-
-    public int getRootOffset(int index) {
-        checkArgument(index < getRootCount());
-
-        int position = data.position();
-
-        position += HEADER_SIZE;
-        position += getReferencedSegmentIdCount() * 16;
-        position += getRecordNumberCount() * 12;
-        position += index * 5;
-        position += 1;
-
-        return data.getInt(position);
-    }
-
     private volatile String info;
 
     /**
@@ -400,7 +366,7 @@ public class Segment {
     @CheckForNull
     public String getSegmentInfo() {
         if (info == null && id.isDataSegmentId()) {
-            info = readString(getRootOffset(0));
+            info = readString(recordNumbers.iterator().next().getRecordNumber());
         }
         return info;
     }
@@ -628,10 +594,6 @@ public class Segment {
                 for (Entry entry : recordNumbers) {
                     writer.format("record number %08x: %08x", entry.getRecordNumber(), entry.getOffset());
                 }
-
-                for (i = 0; i < getRootCount(); i++) {
-                    writer.format("root %d: %s at %04x%n", i, getRootType(i), getRootOffset(i));
-                }
             }
             writer.println("--------------------------------------------------------------------------");
             int pos = data.limit() - ((length + 15) & ~15);
@@ -674,6 +636,18 @@ public class Segment {
         WritableByteChannel channel = Channels.newChannel(stream);
         while (buffer.hasRemaining()) {
             channel.write(buffer);
+        }
+    }
+
+    public interface RecordConsumer {
+
+        void consume(int number, RecordType type, int offset);
+
+    }
+
+    public void forEachRecord(RecordConsumer consumer) {
+        for (Entry entry : recordNumbers) {
+            consumer.consume(entry.getRecordNumber(), entry.getType(), entry.getOffset());
         }
     }
 
