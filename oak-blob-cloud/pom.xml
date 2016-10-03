@@ -41,18 +41,9 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3,org.apache.jackrabbit.oak.blob.cloud.aws.s3.stats</Export-Package>
+                        <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3,org.apache.jackrabbit.oak.blob.cloud.s3.stats</Export-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                     </instructions>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <includes>
-                        <include>**/cloud/**/TestAll.java</include>
-                        <include>**/cloud/**/TestS3DataStore.java</include>
-                    </includes>
                 </configuration>
             </plugin>
         </plugins>

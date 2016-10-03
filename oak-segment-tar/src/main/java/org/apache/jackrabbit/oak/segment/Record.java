@@ -34,7 +34,7 @@ class Record {
     }
 
     private static boolean fastEquals(@Nonnull Record a, @Nonnull Record b) {
-        return a == b || (a.offset == b.offset && a.segmentId.equals(b.segmentId));
+        return a == b || (a.recordNumber == b.recordNumber && a.segmentId.equals(b.segmentId));
     }
 
     /**
@@ -43,9 +43,9 @@ class Record {
     private final SegmentId segmentId;
 
     /**
-     * Segment offset of this record.
+     * Segment recordNumber of this record.
      */
-    private final int offset;
+    private final int recordNumber;
 
     /**
      * Creates a new object for the identified record.
@@ -53,12 +53,12 @@ class Record {
      * @param id record identified
      */
     protected Record(@Nonnull RecordId id) {
-        this(id.getSegmentId(), id.getOffset());
+        this(id.getSegmentId(), id.getRecordNumber());
     }
 
-    protected Record(@Nonnull SegmentId segmentId, int offset) {
+    protected Record(@Nonnull SegmentId segmentId, int recordNumber) {
         this.segmentId = segmentId;
-        this.offset = offset;
+        this.recordNumber = recordNumber;
     }
 
     /**
@@ -70,45 +70,17 @@ class Record {
         return segmentId.getSegment();
     }
 
+    protected int getRecordNumber() {
+        return recordNumber;
+    }
+
     /**
      * Returns the identifier of this record.
      *
      * @return record identifier
      */
     public RecordId getRecordId() {
-        return new RecordId(segmentId, offset);
-    }
-
-    /**
-     * Returns the segment offset of this record.
-     *
-     * @return segment offset of this record
-     */
-    protected final int getOffset() {
-        return offset;
-    }
-
-    /**
-     * Returns the segment offset of the given byte position in this record.
-     *
-     * @param position byte position within this record
-     * @return segment offset of the given byte position
-     */
-    protected final int getOffset(int position) {
-        return getOffset() + position;
-    }
-
-    /**
-     * Returns the segment offset of a byte position in this record.
-     * The position is calculated from the given number of raw bytes and
-     * record identifiers.
-     *
-     * @param bytes number of raw bytes before the position
-     * @param ids number of record identifiers before the position
-     * @return segment offset of the specified byte position
-     */
-    protected final int getOffset(int bytes, int ids) {
-        return getOffset(bytes + ids * Segment.RECORD_ID_BYTES);
+        return new RecordId(segmentId, recordNumber);
     }
 
     //------------------------------------------------------------< Object >--
@@ -120,7 +92,7 @@ class Record {
 
     @Override
     public int hashCode() {
-        return segmentId.hashCode() ^ offset;
+        return segmentId.hashCode() ^ recordNumber;
     }
 
     @Override

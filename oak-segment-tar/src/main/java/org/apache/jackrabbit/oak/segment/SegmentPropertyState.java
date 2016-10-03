@@ -87,9 +87,9 @@ public class SegmentPropertyState extends Record implements PropertyState {
         RecordId listId = getRecordId();
         int size = 1;
         if (isArray()) {
-            size = segment.readInt(getOffset());
+            size = segment.readInt(getRecordNumber());
             if (size > 0) {
-                listId = segment.readRecordId(getOffset(4));
+                listId = segment.readRecordId(getRecordNumber(), 4);
             }
         }
         return new ListRecord(listId, size);
@@ -132,7 +132,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     @Override
     public int count() {
         if (isArray()) {
-            return getSegment().readInt(getOffset());
+            return getSegment().readInt(getRecordNumber());
         } else {
             return 1;
         }

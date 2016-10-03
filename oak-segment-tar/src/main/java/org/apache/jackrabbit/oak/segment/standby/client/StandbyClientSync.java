@@ -40,11 +40,11 @@ import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class StandbySync implements ClientStandbyStatusMBean, Runnable, Closeable {
+public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnable, Closeable {
 
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
-    private static final Logger log = LoggerFactory.getLogger(StandbySync.class);
+    private static final Logger log = LoggerFactory.getLogger(StandbyClientSync.class);
 
     private final String host;
 
@@ -76,7 +76,7 @@ public final class StandbySync implements ClientStandbyStatusMBean, Runnable, Cl
 
     private long syncEndTimestamp;
 
-    public StandbySync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) throws SSLException {
+    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) throws SSLException {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;
@@ -103,6 +103,7 @@ public final class StandbySync implements ClientStandbyStatusMBean, Runnable, Cl
         return StandbyStatusMBean.JMX_NAME + ",id=\"" + this.observer.getID() + "\"";
     }
 
+    @Override
     public void close() {
         stop();
         state = STATUS_CLOSING;
@@ -116,6 +117,7 @@ public final class StandbySync implements ClientStandbyStatusMBean, Runnable, Cl
         state = STATUS_CLOSED;
     }
 
+    @Override
     public void run() {
         if (!isRunning()) {
             // manually stopped
@@ -138,7 +140,7 @@ public final class StandbySync implements ClientStandbyStatusMBean, Runnable, Cl
                 client.connect(host, port);
 
                 long sizeBefore = fileStore.getStats().getApproximateSize();
-                new StandbySyncExecution(fileStore, client, newRunningSupplier()).execute();
+                new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
                 long sizeAfter = fileStore.getStats().getApproximateSize();
 
                 if (autoClean && sizeBefore > 0) {

@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.base.Joiner;
-import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
@@ -38,7 +37,9 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContai
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -180,10 +181,12 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
         String[] args = getArgs();
         log.info("oak2oak {}", Joiner.on(' ').join(args));
         try {
-            OptionSet options = OptionParserFactory.create().parse(args);
-            MigrationCliArguments cliArgs = new MigrationCliArguments(options);
-            OakUpgrade.migrate(cliArgs);
-            assertEquals(blobMigrationCase, cliArgs.getStoreArguments().getDatastores().getBlobMigrationCase());
+            MigrationCliArguments cliArgs = new MigrationCliArguments(OptionParserFactory.create().parse(args));
+            MigrationOptions options = new MigrationOptions(cliArgs);
+            StoreArguments stores = new StoreArguments(options, cliArgs.getArguments());
+            DatastoreArguments datastores = new DatastoreArguments(options, stores, stores.srcUsesEmbeddedDatastore());
+            OakUpgrade.migrate(options, stores, datastores);
+            assertEquals(blobMigrationCase, datastores.getBlobMigrationCase());
         } catch(CliArgumentException e) {
             if (blobMigrationCase == DatastoreArguments.BlobMigrationCase.UNSUPPORTED) {
                 return;

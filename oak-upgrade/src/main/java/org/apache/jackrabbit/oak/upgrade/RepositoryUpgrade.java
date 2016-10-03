@@ -975,6 +975,9 @@ public class RepositoryUpgrade {
         boolean longNameFound = false;
         try {
             IndexReader reader = IndexAccessor.getReader(source);
+            if (reader == null) {
+                return;
+            }
             TermEnum terms = reader.terms(new Term(FieldNames.LOCAL_NAME));
             while (terms.next()) {
                 Term t = terms.term();

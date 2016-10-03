@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.CIHelper.travis;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assume.assumeTrue;
 
@@ -56,7 +57,11 @@ public class HeavyWriteIT {
 
     @Test
     public void heavyWrite() throws Exception {
-        final FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(128).withMemoryMapping(false).build();
+        final FileStore store = fileStoreBuilder(getFileStoreFolder())
+                .withMaxFileSize(128)
+                .withMemoryMapping(false)
+                .withGCOptions(defaultGCOptions().setRetainedGenerations(42))
+                .build();
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         int writes = 100;

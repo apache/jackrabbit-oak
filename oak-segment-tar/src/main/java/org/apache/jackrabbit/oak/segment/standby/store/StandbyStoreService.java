@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -94,9 +94,9 @@ public class StandbyStoreService {
 
     private FileStore fileStore;
 
-    private StandbyServer primary = null;
+    private StandbyServerSync serverSync = null;
 
-    private StandbySync sync = null;
+    private StandbyClientSync clientSync = null;
 
     private ServiceRegistration syncReg = null;
 
@@ -128,12 +128,14 @@ public class StandbyStoreService {
 
     @Deactivate
     public synchronized void deactivate() {
-        if (primary != null) {
-            primary.close();
+        if (serverSync != null) {
+            serverSync.close();
         }
-        if (sync != null) {
-            sync.close();
+
+        if (clientSync != null) {
+            clientSync.close();
         }
+
         if (syncReg != null) {
             syncReg.unregister();
         }
@@ -144,8 +146,8 @@ public class StandbyStoreService {
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         String[] ranges = PropertiesUtil.toStringArray(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
         boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
-        primary = new StandbyServer(port, fileStore, ranges, secure);
-        primary.start();
+        serverSync = new StandbyServerSync(port, fileStore, ranges, secure);
+        serverSync.start();
         log.info("started primary on port {} with allowed ip ranges {}.", port, ranges);
     }
 
@@ -158,14 +160,14 @@ public class StandbyStoreService {
         int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
         boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
 
-        sync = new StandbySync(host, port, fileStore, secure, readTimeout, clean);
+        clientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean);
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);
         // dictionary.put("scheduler.runOn", "SINGLE");
 
         syncReg = context.getBundleContext().registerService(
-                Runnable.class.getName(), sync, dictionary);
+                Runnable.class.getName(), clientSync, dictionary);
         log.info("started standby sync with {}:{} at {} sec.", host,
                 port, interval);
     }

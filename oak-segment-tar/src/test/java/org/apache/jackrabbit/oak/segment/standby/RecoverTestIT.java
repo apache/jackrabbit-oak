@@ -24,8 +24,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -49,19 +49,19 @@ public class RecoverTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(storeC).build();
         addTestContent(store, "client");
 
-        final StandbyServer server = new StandbyServer(port, storeS);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS);
+        serverSync.start();
         store = SegmentNodeStoreBuilders.builder(storeS).build();
         addTestContent(store, "server");
         storeS.flush();
 
-        StandbySync cl = newStandbySync(storeC);
+        StandbyClientSync cl = newStandbyClientSync(storeC);
         try {
             assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
             cl.run();
             assertEquals(storeS.getHead(), storeC.getHead());
         } finally {
-            server.close();
+            serverSync.close();
             cl.close();
         }
 

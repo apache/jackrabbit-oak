@@ -23,8 +23,8 @@ import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentTestUtils;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbySync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -45,13 +45,13 @@ public class FailoverMultipleClientsTestIT extends TestBase {
     @Test
     public void testMultipleClients() throws Exception {
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServer server = new StandbyServer(port, storeS);
-        server.start();
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS);
+        serverSync.start();
         SegmentTestUtils.addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbySync cl1 = newStandbySync(storeC);
-        StandbySync cl2 = newStandbySync(storeC2);
+        StandbyClientSync cl1 = newStandbyClientSync(storeC);
+        StandbyClientSync cl2 = newStandbyClientSync(storeC2);
 
         try {
             assertFalse("first client has invalid initial store!", storeS.getHead().equals(storeC.getHead()));
@@ -77,7 +77,7 @@ public class FailoverMultipleClientsTestIT extends TestBase {
             cl1.run();
             assertEquals(storeS.getHead(), storeC.getHead());
         } finally {
-            server.close();
+            serverSync.close();
             cl1.close();
             cl2.close();
         }

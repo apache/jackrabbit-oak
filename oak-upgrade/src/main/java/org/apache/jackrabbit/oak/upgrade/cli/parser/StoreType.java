@@ -37,7 +37,7 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -53,7 +53,7 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -69,7 +69,7 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             return new StoreFactory(new Jackrabbit2Factory(paths[0], paths[1]));
         }
 
@@ -85,17 +85,17 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             String username, password;
             if (direction == MigrationDirection.SRC) {
-                username = arguments.getOption(OptionParserFactory.SRC_USER);
-                password = arguments.getOption(OptionParserFactory.SRC_PASSWORD);
+                username = migrationOptions.getSrcUser();
+                password = migrationOptions.getSrcPassword();
             } else {
-                username = arguments.getOption(OptionParserFactory.DST_USER);
-                password = arguments.getOption(OptionParserFactory.DST_PASSWORD);
+                username = migrationOptions.getDstUser();
+                password = migrationOptions.getDstPassword();
             }
             return new StoreFactory(
-                    new JdbcFactory(paths[0], arguments.getOptions().getCacheSizeInMB(), username, password));
+                    new JdbcFactory(paths[0], migrationOptions.getCacheSizeInMB(), username, password));
         }
 
         @Override
@@ -110,8 +110,8 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new MongoFactory(paths[0], arguments.getOptions().getCacheSizeInMB()));
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new StoreFactory(new MongoFactory(paths[0], migrationOptions.getCacheSizeInMB()));
         }
 
         @Override
@@ -126,9 +126,9 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             String path = removeStart(paths[0], SEGMENT_OLD_PREFIX);
-            return new StoreFactory(new SegmentFactory(path, arguments.getOptions().isDisableMmap()));
+            return new StoreFactory(new SegmentFactory(path, migrationOptions.isDisableMmap()));
         }
 
         @Override
@@ -143,8 +143,8 @@ public enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new SegmentTarFactory(paths[0], arguments.getOptions().isDisableMmap()));
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap()));
         }
 
         @Override
@@ -164,7 +164,7 @@ public enum StoreType {
 
     public abstract boolean matches(String argument);
 
-    public abstract StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments);
+    public abstract StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions);
 
     public abstract boolean isSupportLongNames();
 

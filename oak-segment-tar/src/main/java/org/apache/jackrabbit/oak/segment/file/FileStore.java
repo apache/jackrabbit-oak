@@ -95,7 +95,6 @@ import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -981,16 +980,6 @@ public class FileStore implements SegmentStore, Closeable {
         Stopwatch watch = Stopwatch.createStarted();
 
         SegmentNodeState before = getHead();
-        long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
-                .getChildNodeCount(Long.MAX_VALUE);
-        if (existing > 1) {
-            // FIXME OAK-4371: Overly zealous warning about checkpoints on compaction
-            // Make the number of checkpoints configurable above which the warning should be issued?
-            gcListener.warn(
-                    "TarMK GC #{}: compaction found {} checkpoints, you might need to run checkpoint cleanup",
-                    GC_COUNT, existing);
-        }
-
         final int newGeneration = getGcGeneration() + 1;
         SegmentBufferWriter bufferWriter = new SegmentBufferWriter(this, tracker, segmentReader, "c", newGeneration);
         Supplier<Boolean> cancel = newCancelCompactionCondition();

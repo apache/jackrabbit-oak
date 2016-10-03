@@ -34,7 +34,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.segment.Segment.unpack;
+import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 import java.nio.ByteBuffer;
@@ -91,7 +91,7 @@ public class SegmentNodeState extends Record implements NodeState {
         if (templateId == null) {
             // no problem if updated concurrently,
             // as each concurrent thread will just get the same value
-            templateId = getSegment().readRecordId(getOffset(0, 1));
+            templateId = getSegment().readRecordId(getRecordNumber(), 0, 1);
         }
         return templateId;
     }
@@ -107,7 +107,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     MapRecord getChildNodeMap() {
         Segment segment = getSegment();
-        return reader.readMap(segment.readRecordId(getOffset(0, 2)));
+        return reader.readMap(segment.readRecordId(getRecordNumber(), 0, 2));
     }
 
     /**
@@ -122,7 +122,7 @@ public class SegmentNodeState extends Record implements NodeState {
         ByteBuffer buffer = ByteBuffer.wrap(getStableIdBytes());
         long msb = buffer.getLong();
         long lsb = buffer.getLong();
-        int offset = unpack(buffer.getShort());
+        int offset = buffer.getInt();
         return new UUID(msb, lsb) + ":" + offset;
     }
 
@@ -136,7 +136,7 @@ public class SegmentNodeState extends Record implements NodeState {
      */
     byte[] getStableIdBytes() {
         // The first record id of this node points to the stable id.
-        RecordId id = getSegment().readRecordId(getOffset());
+        RecordId id = getSegment().readRecordId(getRecordNumber());
 
         if (id.equals(getRecordId())) {
             // If that id is equal to the record id of this node then the stable
@@ -146,8 +146,8 @@ public class SegmentNodeState extends Record implements NodeState {
         } else {
             // Otherwise that id points to the serialised (msb, lsb, offset)
             // stable id.
-            byte[] buffer = new byte[18];
-            id.getSegment().readBytes(id.getOffset(), buffer, 0, buffer.length);
+            byte[] buffer = new byte[RecordId.SERIALIZED_RECORD_ID_BYTES];
+            id.getSegment().readBytes(id.getRecordNumber(), buffer, 0, buffer.length);
             return buffer;
         }
     }
@@ -214,9 +214,8 @@ public class SegmentNodeState extends Record implements NodeState {
         if (template.getChildName() != Template.ZERO_CHILD_NODES) {
             ids++;
         }
-        RecordId rid = segment.readRecordId(getOffset(0, ids));
-        ListRecord pIds = new ListRecord(rid,
-                template.getPropertyTemplates().length);
+        RecordId rid = segment.readRecordId(getRecordNumber(), 0, ids);
+        ListRecord pIds = new ListRecord(rid, template.getPropertyTemplates().length);
         return pIds.getEntry(propertyTemplate.getIndex());
     }
 
@@ -244,9 +243,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         if (propertyTemplates.length > 0) {
-            ListRecord pIds = new ListRecord(
-                    segment.readRecordId(getOffset(0, ids)),
-                    propertyTemplates.length);
+            ListRecord pIds = new ListRecord(segment.readRecordId(getRecordNumber(), 0, ids), propertyTemplates.length);
             for (int i = 0; i < propertyTemplates.length; i++) {
                 RecordId propertyId = pIds.getEntry(i);
                 list.add(reader.readProperty(propertyId, propertyTemplates[i]));
@@ -367,12 +364,12 @@ public class SegmentNodeState extends Record implements NodeState {
         Segment segment = getSegment();
         RecordId id = getRecordId(segment, template, propertyTemplate);
         segment = id.getSegment();
-        int size = segment.readInt(id.getOffset());
+        int size = segment.readInt(id.getRecordNumber());
         if (size == 0) {
             return emptyList();
         }
 
-        id = segment.readRecordId(id.getOffset() + 4);
+        id = segment.readRecordId(id.getRecordNumber(), 4);
         if (size == 1) {
             return singletonList(reader.readString(id));
         }
@@ -419,8 +416,7 @@ public class SegmentNodeState extends Record implements NodeState {
             }
         } else if (childName != Template.ZERO_CHILD_NODES
                 && childName.equals(name)) {
-            Segment segment = getSegment();
-            RecordId childNodeId = segment.readRecordId(getOffset(0, 2));
+            RecordId childNodeId = getSegment().readRecordId(getRecordNumber(), 0, 2);
             return reader.readNode(childNodeId);
         }
         checkValidName(name);
@@ -447,8 +443,7 @@ public class SegmentNodeState extends Record implements NodeState {
         } else if (childName == Template.MANY_CHILD_NODES) {
             return getChildNodeMap().getEntries();
         } else {
-            Segment segment = getSegment();
-            RecordId childNodeId = segment.readRecordId(getOffset(0, 2));
+            RecordId childNodeId = getSegment().readRecordId(getRecordNumber(), 0, 2);
             return Collections.singletonList(new MemoryChildNodeEntry(
                     childName, reader.readNode(childNodeId)));
         }

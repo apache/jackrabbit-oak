@@ -62,7 +62,7 @@ class ListRecord extends Record {
             int bucketIndex = index / bucketSize;
             int bucketOffset = index % bucketSize;
             Segment segment = getSegment();
-            RecordId id = segment.readRecordId(getOffset(0, bucketIndex));
+            RecordId id = segment.readRecordId(getRecordNumber(), 0, bucketIndex);
             ListRecord bucket = new ListRecord(
                     id, Math.min(bucketSize, size - bucketIndex * bucketSize));
             return bucket.getEntry(bucketOffset);
@@ -95,13 +95,13 @@ class ListRecord extends Record {
             ids.add(getRecordId());
         } else if (bucketSize == 1) {
             for (int i = 0; i < count; i++) {
-                ids.add(segment.readRecordId(getOffset(0, index + i)));
+                ids.add(segment.readRecordId(getRecordNumber(), 0, index + i));
             }
         } else {
             while (count > 0) {
                 int bucketIndex = index / bucketSize;
                 int bucketOffset = index % bucketSize;
-                RecordId id = segment.readRecordId(getOffset(0, bucketIndex));
+                RecordId id = segment.readRecordId(getRecordNumber(), 0, bucketIndex);
                 ListRecord bucket = new ListRecord(
                         id, Math.min(bucketSize, size - bucketIndex * bucketSize));
                 int n = Math.min(bucket.size() - bucketOffset, count);

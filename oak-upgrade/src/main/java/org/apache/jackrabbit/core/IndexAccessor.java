@@ -31,6 +31,9 @@ public final class IndexAccessor {
     public static IndexReader getReader(RepositoryContext ctx) throws RepositoryException, IOException {
         RepositoryImpl repo = ctx.getRepository();
         SearchManager searchMgr = repo.getSearchManager(ctx.getRepositoryConfig().getDefaultWorkspaceName());
+        if (searchMgr == null) {
+            return null;
+        }
         QueryHandler handler = searchMgr.getQueryHandler();
         SearchIndex index = (SearchIndex) handler;
         return index.getIndexReader();
