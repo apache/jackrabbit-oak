@@ -65,6 +65,10 @@ class MultiplexingContext {
         return globalStore;
     }
 
+    List<MountedNodeStore> getNonDefaultStores() {
+        return nonDefaultStores;
+    }
+
     MountedNodeStore getOwningStore(String path) {
         Mount mount = mip.getMountByPath(path);
         if (nodeStoresByMount.containsKey(mount)) {

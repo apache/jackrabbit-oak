@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -35,19 +34,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.isNull;
+import static com.google.common.collect.ImmutableMap.copyOf;
+import static com.google.common.collect.Iterables.any;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.newHashMap;
-import static java.util.Collections.emptyMap;
 
 /**
  * A {@link NodeStore} implementation that multiplexes other {@link NodeStore} instances
@@ -65,11 +68,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final char CHECKPOINT_MARKER = '|';
-
-    private static final Splitter CHECKPOINT_SPLITTER = Splitter.on(CHECKPOINT_MARKER);
-
-    private static final Joiner CHECKPOINT_JOINER = Joiner.on(CHECKPOINT_MARKER);
+    private static final String CHECKPOINT_ID_PREFIX = "multiplexing.checkpoint.";
 
     final MultiplexingContext ctx;
 
@@ -164,25 +163,39 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         return null;
     }
 
-    @Override
-    public String checkpoint(long lifetime, Map<String, String> properties) {
-        // This implementation does a best-effort attempt to join all the returned checkpoints
-        // In case of failure it bails out
-        List<String> checkpoints = Lists.newArrayList();
-        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
-            addCheckpoint(mountedNodeStore, lifetime, properties, checkpoints);
-        }
-        return CHECKPOINT_JOINER.join(checkpoints);
+    public Iterable<String> checkpoints() {
+        final NodeStore globalNodeStore = ctx.getGlobalStore().getNodeStore();
+        return filter(globalNodeStore.checkpoints(), new Predicate<String>() {
+            @Override
+            public boolean apply(String checkpoint) {
+                return isMultiplexingCheckpoint(checkpoint);
+            }
+        });
     }
 
-    private void addCheckpoint(MountedNodeStore store, long lifetime, Map<String, String> properties, List<String> accumulator) {
-        NodeStore nodeStore = store.getNodeStore();
-        String checkpoint = nodeStore.checkpoint(lifetime, properties);
-        checkArgument(checkpoint.indexOf(CHECKPOINT_MARKER) == -1,
-                "Checkpoint %s created by NodeStore %s mounted at %s contains the invalid entry %s. Unable to add checkpoint.",
-                checkpoint, nodeStore, store.getMount().getName(), CHECKPOINT_MARKER);
-        accumulator.add(checkpoint);
+    private boolean isMultiplexingCheckpoint(String checkpoint) {
+        Map<String, String> props = ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint);
+        if (props == null) {
+            return false;
+        }
+        for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
+            if (!props.containsKey(CHECKPOINT_ID_PREFIX + mns.getMount().getName())) {
+                return false;
+            }
+        }
+        return true;
     }
+
+    @Override
+    public String checkpoint(long lifetime, Map<String, String> properties) {
+        Map<String, String> globalProperties = newHashMap(properties);
+        for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
+            String checkpoint = mns.getNodeStore().checkpoint(lifetime, properties);
+            globalProperties.put(CHECKPOINT_ID_PREFIX + mns.getMount().getName(), checkpoint);
+        }
+        return ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
+    }
+
 
     @Override
     public String checkpoint(long lifetime) {
@@ -191,59 +204,52 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
-        List<String> checkpoints = splitCheckpoints(checkpoint);
-        if (checkpoints == null) {
-            return emptyMap();
-        }
-        // since checkpoints are by design kept in sync between the stores
-        // it's enough to query one. The root one is the most convenient
-        return ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoints.get(0));
+        return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint), new Predicate<String>() {
+            @Override
+            public boolean apply(String input) {
+                return !input.startsWith(CHECKPOINT_ID_PREFIX);
+            }
+        }));
     }
 
     @Override
     public NodeState retrieve(String checkpoint) {
-        List<String> checkpointList = splitCheckpoints(checkpoint);
-        if (checkpointList == null) {
+        Map<String, String> props = ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint);
+        if (props == null) {
             return null;
         }
-        Iterator<String> checkpoints = checkpointList.iterator();
-
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
-            NodeState rootState = nodeStore.getNodeStore().retrieve(checkpoints.next());
-            if (rootState == null) {
+        nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
+        for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
+            String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
+            if (partialCheckpoint == null) {
                 return null;
+            } else {
+                nodeStates.put(nodeStore, nodeStore.getNodeStore().retrieve(partialCheckpoint));
             }
-            nodeStates.put(nodeStore, rootState);
         }
-
+        if (any(nodeStates.values(), isNull())) {
+            return null;
+        }
         return new MultiplexingNodeState("/", nodeStates, ctx);
     }
 
     @Override
     public boolean release(String checkpoint) {
-        List<String> checkpointList = splitCheckpoints(checkpoint);
-        if (checkpointList == null) {
+        Map<String, String> props = ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint);
+        if (props == null) {
             return false;
         }
-        Iterator<String> checkpoints = checkpointList.iterator();
-
-        boolean result = true;
-        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
-            result &= nodeStore.getNodeStore().release(checkpoints.next());
+        boolean result = ctx.getGlobalStore().getNodeStore().release(checkpoint);
+        for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
+            String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
+            if (partialCheckpoint == null) {
+                result = false;
+            } else {
+                result = nodeStore.getNodeStore().release(partialCheckpoint) && result;
+            }
         }
-
         return result;
-    }
-
-    private List<String> splitCheckpoints(String checkpoint) {
-        List<String> checkpoints = CHECKPOINT_SPLITTER.splitToList(checkpoint);
-        if (checkpoints.size() == ctx.getStoresCount()) {
-            return checkpoints;
-        } else {
-            log.debug("Illegal checkpoint string: [{}] for {} node stores", checkpoint, ctx.getStoresCount());
-            return null;
-        }
     }
 
     @Override
