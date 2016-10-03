@@ -592,7 +592,8 @@ public class Segment {
                 }
 
                 for (Entry entry : recordNumbers) {
-                    writer.format("record number %08x: %08x", entry.getRecordNumber(), entry.getOffset());
+                    writer.format("%10s record %08x: %08x%n",
+                            entry.getType(), entry.getRecordNumber(), entry.getOffset());
                 }
             }
             writer.println("--------------------------------------------------------------------------");
