@@ -99,7 +99,7 @@ class StandbyClientSyncExecution {
             try {
                 return current.compareAgainstBaseState(before, new StandbyDiff(builder, store, client, running));
             } catch (SegmentNotFoundException e) {
-                log.info("Found missing segment {}", e.getSegmentId());
+                log.debug("Found missing segment {}", e.getSegmentId());
                 copySegmentHierarchyFromPrimary(UUID.fromString(e.getSegmentId()));
             }
         }
@@ -113,17 +113,17 @@ class StandbyClientSyncExecution {
         while (batch.size() > 0) {
             UUID current = batch.remove();
 
-            log.info("Loading segment {}", current);
+            log.debug("Loading segment {}", current);
             Segment segment = copySegmentFromPrimary(current);
 
-            log.info("Marking segment {} as loaded", current);
+            log.debug("Marking segment {} as loaded", current);
             visited.add(current);
 
             if (!SegmentId.isDataSegmentId(current.getLeastSignificantBits())) {
                 continue;
             }
 
-            log.info("Inspecting segment {} for references", current);
+            log.debug("Inspecting segment {} for references", current);
             for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
                 UUID referenced = segment.getReferencedSegmentId(i);
 
@@ -146,7 +146,7 @@ class StandbyClientSyncExecution {
                     continue;
                 }
 
-                log.info("Found reference from {} to {}", current, referenced);
+                log.debug("Found reference from {} to {}", current, referenced);
 
                 if (SegmentId.isDataSegmentId(referenced.getLeastSignificantBits())) {
                     batch.add(referenced);
@@ -163,7 +163,7 @@ class StandbyClientSyncExecution {
         Segment result = cache.get(uuid);
 
         if (result != null) {
-            log.info("Segment {} was found in the local cache", uuid);
+            log.debug("Segment {} was found in the local cache", uuid);
             return result;
         }
 
