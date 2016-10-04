@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.osgi;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -25,21 +24,21 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This component is activated when a configuration for the deprecated {@code
- * SegmentNodeStoreService} from {@code oak-segment} is detected. When this
+ * StandbyStoreService} from {@code oak-segment} is detected. When this
  * component is activated, it prints a detailed error message describing the
  * detected problem and hinting at a possible solution.
  */
 @Component(
         policy = ConfigurationPolicy.REQUIRE,
-        configurationPid = "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService"
+        configurationPid = "org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService"
 )
-public class SegmentNodeStoreServiceDeprecationError {
+public class StandbyStoreServiceDeprecationError {
 
-    private static final Logger logger = LoggerFactory.getLogger(SegmentNodeStoreServiceDeprecationError.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandbyStoreServiceDeprecationError.class);
 
-    private static final String OLD_PID = "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService";
+    private static final String OLD_PID = "org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService";
 
-    private static final String NEW_PID = "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService";
+    private static final String NEW_PID = "org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService";
 
     @Activate
     public void activate() {
