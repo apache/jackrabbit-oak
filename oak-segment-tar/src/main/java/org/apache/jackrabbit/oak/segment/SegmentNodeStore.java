@@ -429,6 +429,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return properties;
     }
 
+    @Nonnull
+    @Override
+    public Iterable<String> checkpoints() {
+        return getCheckpoints().getChildNodeNames();
+    }
+
     @Override @CheckForNull
     public NodeState retrieve(@Nonnull String checkpoint) {
         checkNotNull(checkpoint);
