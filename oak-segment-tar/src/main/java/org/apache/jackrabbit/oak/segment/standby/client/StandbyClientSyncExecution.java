@@ -54,8 +54,6 @@ class StandbyClientSyncExecution {
 
     private final Supplier<Boolean> running;
 
-    private final Set<UUID> visited = newHashSet();
-
     private final Set<UUID> queued = newHashSet();
 
     private final Set<UUID> local = newHashSet();
@@ -119,7 +117,7 @@ class StandbyClientSyncExecution {
             Segment segment = copySegmentFromPrimary(current);
 
             log.debug("Marking segment {} as loaded", current);
-            visited.add(current);
+            local.add(current);
 
             if (!SegmentId.isDataSegmentId(current.getLeastSignificantBits())) {
                 continue;
@@ -129,11 +127,22 @@ class StandbyClientSyncExecution {
             for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
                 UUID referenced = segment.getReferencedSegmentId(i);
 
-                // Short circuit for the "back reference problem". The segment
-                // graph might or might not be acyclic. The following check
-                // prevents processing segment that were already traversed.
+                // Short circuit for the "sharing-is-caring problem". If many
+                // new segments are sharing segments that are already locally
+                // available, we should not issue a request for it to the
+                // server. Moreover, if a segment was visited and persisted
+                // during this synchronization process, it will end up in the
+                // 'local' set as well.
 
-                if (visited.contains(referenced)) {
+                if (local.contains(referenced)) {
+                    continue;
+                }
+
+                if (isLocal(referenced)) {
+                    local.add(referenced);
+                }
+
+                if (local.contains(referenced)) {
                     continue;
                 }
 
@@ -145,20 +154,6 @@ class StandbyClientSyncExecution {
                 // or more.
 
                 if (queued.contains(referenced)) {
-                    continue;
-                }
-
-                // Short circuit for the "sharing-is-caring problem". If many
-                // new segments are sharing segments that are already locally
-                // available, we should not issue a request for it to the
-                // server.
-
-                if (local.contains(referenced)) {
-                    continue;
-                }
-
-                if (isLocal(referenced)) {
-                    local.add(referenced);
                     continue;
                 }
 
