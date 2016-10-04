@@ -176,7 +176,7 @@ class StandbyServer implements AutoCloseable {
     public void start() {
         channelFuture = b.bind(port);
 
-        if (channelFuture.awaitUninterruptibly(10, TimeUnit.SECONDS)) {
+        if (channelFuture.awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             onTimelyConnect();
         } else {
             onConnectTimeOut();
@@ -184,19 +184,32 @@ class StandbyServer implements AutoCloseable {
     }
 
     public void stop() {
-        channelFuture.channel().disconnect();
+        if (channelFuture.channel().disconnect().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+            log.debug("Channel disconnected");
+        } else {
+            log.debug("Channel disconnect timed out");
+        }
     }
 
     @Override
     public void close() {
         stop();
 
-        if (bossGroup != null && !bossGroup.isShuttingDown()) {
-            bossGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
+        if (shutDown(bossGroup)) {
+            log.debug("Boss group shut down");
+        } else {
+            log.debug("Boss group shutdown timed out");
         }
-        if (workerGroup != null && !workerGroup.isShuttingDown()) {
-            workerGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
+
+        if (shutDown(workerGroup)) {
+            log.debug("Worker group shut down");
+        } else {
+            log.debug("Worker group shutdown timed out");
         }
+    }
+
+    private boolean shutDown(EventLoopGroup group) {
+        return group.shutdownGracefully(0, 1, TimeUnit.SECONDS).awaitUninterruptibly(1, TimeUnit.SECONDS);
     }
 
     private void onTimelyConnect() {
