@@ -555,7 +555,6 @@ public class NodeStoreTest extends OakBaseTest {
 
     @Test
     public void checkpoints() throws Exception {
-        assumeTrue(fixture != NodeStoreFixtures.SEGMENT_TAR);
         int numCps = 3;
         Map<String, String> info = Maps.newHashMap();
         Set<String> cps = Sets.newHashSet();
