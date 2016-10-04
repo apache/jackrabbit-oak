@@ -58,6 +58,8 @@ class StandbyClientSyncExecution {
 
     private final Set<UUID> queued = newHashSet();
 
+    private final Set<UUID> local = newHashSet();
+
     private final Map<UUID, Segment> cache = newHashMap();
 
     StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
@@ -146,6 +148,25 @@ class StandbyClientSyncExecution {
                     continue;
                 }
 
+                // Short circuit for the "sharing-is-caring problem". If many
+                // new segments are sharing segments that are already locally
+                // available, we should not issue a request for it to the
+                // server.
+
+                if (local.contains(referenced)) {
+                    continue;
+                }
+
+                if (isLocal(referenced)) {
+                    local.add(referenced);
+                    continue;
+                }
+
+                // If we arrive at this point, the referenced segment is 1) not
+                // present locally, 2) not already queued for retrieval and 3)
+                // never visited before. We can safely add the reference to the
+                // queue and transfer the segment later.
+
                 log.debug("Found reference from {} to {}", current, referenced);
 
                 if (SegmentId.isDataSegmentId(referenced.getLeastSignificantBits())) {
@@ -157,6 +178,23 @@ class StandbyClientSyncExecution {
                 queued.add(referenced);
             }
         }
+    }
+
+    private boolean isLocal(UUID id) {
+        SegmentId referencedId = store.newSegmentId(
+                id.getMostSignificantBits(),
+                id.getLeastSignificantBits()
+        );
+
+        boolean persisted = true;
+
+        try {
+            referencedId.getSegment();
+        } catch(SegmentNotFoundException e) {
+            persisted = false;
+        }
+
+        return persisted;
     }
 
     private Segment copySegmentFromPrimary(UUID uuid) throws Exception {
