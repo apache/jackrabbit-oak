@@ -47,8 +47,12 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequestEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.apache.jackrabbit.oak.segment.standby.codec.ResponseDecoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class StandbyClient implements AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(StandbyClient.class);
 
     private final BlockingQueue<GetHeadResponse> headQueue = new LinkedBlockingDeque<>();
 
@@ -135,10 +139,20 @@ class StandbyClient implements AutoCloseable {
 
     @Override
     public void close() throws InterruptedException {
-        channel.close().sync();
+        if (channel.close().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+            log.debug("Channel closed");
+        } else {
+            log.debug("Channel close timed out");
+        }
+
         channel = null;
 
-        group.shutdownGracefully();
+        if (group.shutdownGracefully().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+            log.debug("Group shut down");
+        } else {
+            log.debug("Group shutdown timed out");
+        }
+
         group = null;
     }
 
