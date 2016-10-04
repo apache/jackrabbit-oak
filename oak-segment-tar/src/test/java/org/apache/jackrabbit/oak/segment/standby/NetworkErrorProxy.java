@@ -17,8 +17,9 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment;
+package org.apache.jackrabbit.oak.segment.standby;
 
+import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.bootstrap.Bootstrap;
@@ -37,10 +38,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NetworkErrorProxy {
+public class NetworkErrorProxy implements Closeable {
 
-    static final Logger log = LoggerFactory
-            .getLogger(NetworkErrorProxy.class);
+    static final Logger log = LoggerFactory.getLogger(NetworkErrorProxy.class);
 
     private final int inboundPort;
 
@@ -52,9 +52,9 @@ public class NetworkErrorProxy {
 
     private ForwardHandler fh;
 
-    EventLoopGroup bossGroup = new NioEventLoopGroup();
+    private final EventLoopGroup bossGroup = new NioEventLoopGroup();
 
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
+    private final EventLoopGroup workerGroup = new NioEventLoopGroup();
 
     public NetworkErrorProxy(int inboundPort, String outboundHost, int outboundPort) {
         this.inboundPort = inboundPort;
@@ -74,22 +74,21 @@ public class NetworkErrorProxy {
 
     public void run() throws Exception {
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
+            ServerBootstrap b = new ServerBootstrap()
+                    .group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
 
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(NetworkErrorProxy.this.fh);
+                            ch.pipeline().addLast(fh);
                         }
+
                     });
 
             f = b.bind(this.inboundPort).sync();
         } catch (Exception e) {
-            log.warn(
-                    "Unable to start proxy on port " + inboundPort + ": "
-                            + e.getMessage(), e);
+            log.warn(String.format("Unable to start proxy on port %d", inboundPort), e);
         }
     }
 
@@ -97,20 +96,38 @@ public class NetworkErrorProxy {
         if (f == null) {
             throw new Exception("proxy not started");
         }
-        f.channel().disconnect();
-        this.fh = new ForwardHandler(NetworkErrorProxy.this.host, NetworkErrorProxy.this.outboundPort);
+
+        if (f.channel().disconnect().awaitUninterruptibly(10, TimeUnit.SECONDS)) {
+            log.debug("Channel disconnected");
+        } else {
+            log.debug("Channel disconnect timed out");
+        }
+
+        fh = new ForwardHandler(NetworkErrorProxy.this.host, NetworkErrorProxy.this.outboundPort);
+
         run();
     }
 
+    @Override
     public void close() {
         if (f != null) {
-            f.channel().close().syncUninterruptibly();
+            if (f.channel().close().awaitUninterruptibly(10, TimeUnit.SECONDS)) {
+                log.debug("Channel closed");
+            } else {
+                log.debug("Channel close timed out");
+            }
         }
-        if (bossGroup != null && !bossGroup.isShuttingDown()) {
-            bossGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).syncUninterruptibly();
+
+        if (bossGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+            log.debug("Boss group shut down");
+        } else {
+            log.debug("Boss group shutdown timed out");
         }
-        if (workerGroup != null && !workerGroup.isShuttingDown()) {
-            workerGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).syncUninterruptibly();
+
+        if (workerGroup.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+            log.debug("Worker group shut down");
+        } else {
+            log.debug("Worker group shutdown timed out");
         }
     }
 }
