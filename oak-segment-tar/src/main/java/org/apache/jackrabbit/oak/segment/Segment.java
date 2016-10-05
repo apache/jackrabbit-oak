@@ -76,11 +76,11 @@ public class Segment {
     static final int RECORD_SIZE = 9;
 
     /**
-     * Number of bytes used for storing a record identifier. One byte
-     * is used for identifying the segment and two for the record offset
+     * Number of bytes used for storing a record identifier. Two bytes
+     * are used for identifying the segment and four for the record offset
      * within that segment.
      */
-    static final int RECORD_ID_BYTES = 4 + 4;
+    static final int RECORD_ID_BYTES = 2 + 4;
 
     /**
      * The limit on segment references within one segment. Since record
@@ -245,6 +245,9 @@ public class Segment {
     }
 
     private SegmentReferences readReferencedSegments() {
+        checkState(getReferencedSegmentIdCount() + 1 < 0xffff,
+                "Segment cannot have more than 0xffff references");
+
         List<SegmentId> referencedSegments = newArrayListWithCapacity(getReferencedSegmentIdCount());
 
         int position = data.position();
@@ -444,8 +447,12 @@ public class Segment {
     }
 
     private RecordId internalReadRecordId(int pos) {
-        SegmentId segmentId = dereferenceSegmentId(data.getInt(pos));
-        return new RecordId(segmentId, data.getInt(pos + 4));
+        SegmentId segmentId = dereferenceSegmentId(asUnsigned(data.getShort(pos)));
+        return new RecordId(segmentId, data.getInt(pos + 2));
+    }
+
+    private static int asUnsigned(short value) {
+        return value & 0xffff;
     }
 
     private SegmentId dereferenceSegmentId(int reference) {
