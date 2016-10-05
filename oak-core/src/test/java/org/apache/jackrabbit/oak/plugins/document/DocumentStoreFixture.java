@@ -212,7 +212,6 @@ public abstract class DocumentStoreFixture {
                 MongoConnection connection = new MongoConnection(uri);
                 connections.add(connection);
                 DB db = connection.getDB();
-                MongoUtils.dropCollections(db);
                 return new MongoDocumentStore(db, new DocumentMK.Builder().setClusterId(clusterId));
             } catch (Exception e) {
                 throw new RuntimeException(e);

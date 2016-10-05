@@ -46,11 +46,15 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -59,7 +63,6 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -113,6 +116,8 @@ public class VersionGarbageCollectorIT {
     public void setUp() throws InterruptedException {
         execService = Executors.newCachedThreadPool();
         clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
         store = new DocumentMK.Builder()
                 .clock(clock)
                 .setLeaseCheck(false)
@@ -120,9 +125,6 @@ public class VersionGarbageCollectorIT {
                 .setAsyncDelay(0)
                 .getNodeStore();
         gc = store.getVersionGarbageCollector();
-
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
     }
 
     @After
@@ -131,6 +133,7 @@ public class VersionGarbageCollectorIT {
         Revision.resetClockToDefault();
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
+        fixture.dispose();
     }
 
     @Test
@@ -529,6 +532,65 @@ public class VersionGarbageCollectorIT {
         // gc must not fail
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
+    }
+
+    @Test
+    public void invalidateCacheOnMissingPreviousDocument() throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+
+        DocumentStore ds = store.getDocumentStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        for (int i = 0; i < 60; i++) {
+            builder = store.getRoot().builder();
+            builder.child("foo").setProperty("p", i);
+            merge(store, builder);
+            RevisionVector head = store.getHeadRevision();
+            for (UpdateOp op : SplitOperations.forDocument(
+                    ds.find(NODES, Utils.getIdFromPath("/foo")), store, head,
+                    Predicates.<String>alwaysFalse(), 2)) {
+                ds.createOrUpdate(NODES, op);
+            }
+            clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+        }
+        store.runBackgroundOperations();
+        NodeDocument foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        Long modCount = foo.getModCount();
+        assertNotNull(modCount);
+        List<String> prevIds = Lists.newArrayList(Iterators.transform(
+                foo.getPreviousDocLeaves(), new Function<NodeDocument, String>() {
+            @Override
+            public String apply(NodeDocument input) {
+                return input.getId();
+            }
+        }));
+
+        // run gc on another document node store
+        DocumentStore ds2 = fixture.createDocumentStore(2);
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setClusterId(2)
+                .clock(clock).setAsyncDelay(0).setDocumentStore(ds2).getNodeStore();
+        try {
+            VersionGarbageCollector gc = ns2.getVersionGarbageCollector();
+            // collect about half of the changes
+            gc.gc(30, TimeUnit.MINUTES);
+        } finally {
+            ns2.dispose();
+        }
+        // evict prev docs from cache and force DocumentStore
+        // to check with storage again
+        for (String id : prevIds) {
+            ds.invalidateCache(NODES, id);
+        }
+
+        foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        Iterators.size(foo.getAllPreviousDocs());
+
+        // foo must now reflect state after GC
+        foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotEquals(modCount, foo.getModCount());
     }
 
     private void createTestNode(String name) throws CommitFailedException {
