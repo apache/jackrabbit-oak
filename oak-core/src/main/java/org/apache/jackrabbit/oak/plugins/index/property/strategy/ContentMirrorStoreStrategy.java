@@ -295,7 +295,16 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             if (totalNodesCount != -1) {
                 long filterPathCount = NodeCounter.getEstimatedNodeCount(root, filterRootPath, true);
                 if (filterPathCount != -1) {
-                    count = (long) ((double) count / totalNodesCount * filterPathCount);
+                    // assume nodes in the index are evenly distributed in the repository (old idea)
+                    long countScaledDown = (long) ((double) count / totalNodesCount * filterPathCount);
+                    // assume 80% of the indexed nodes are in this subtree
+                    long mostNodesFromThisSubtree = (long) (filterPathCount * 0.8);
+                    // count can at most be the assumed subtree size
+                    count = Math.min(count, mostNodesFromThisSubtree);
+                    // this in theory should not have any effect, 
+                    // except if the above estimates are incorrect,
+                    // so this is just for safety feature
+                    count = Math.max(count, countScaledDown);
                 }
             }
         }
