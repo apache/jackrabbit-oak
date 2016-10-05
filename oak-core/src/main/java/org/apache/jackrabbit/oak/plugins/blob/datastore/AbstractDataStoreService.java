@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -50,6 +51,8 @@ public abstract class AbstractDataStoreService {
     private DataStore dataStore;
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
+        // change to mutable map. may be modified in createDS call
+        config = Maps.newHashMap(config);
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
