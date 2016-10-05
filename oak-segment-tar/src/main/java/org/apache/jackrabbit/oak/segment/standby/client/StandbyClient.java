@@ -147,7 +147,7 @@ class StandbyClient implements AutoCloseable {
 
         channel = null;
 
-        if (group.shutdownGracefully().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+        if (group.shutdownGracefully(2, 15, TimeUnit.SECONDS).awaitUninterruptibly(20, TimeUnit.SECONDS)) {
             log.debug("Group shut down");
         } else {
             log.debug("Group shutdown timed out");
