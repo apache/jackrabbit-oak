@@ -18,14 +18,12 @@
 package org.apache.jackrabbit.oak.segment.standby.client;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -54,10 +52,6 @@ class StandbyClientSyncExecution {
 
     private final Supplier<Boolean> running;
 
-    private final Set<UUID> queued = newHashSet();
-
-    private final Set<UUID> local = newHashSet();
-
     private final Map<UUID, Segment> cache = newHashMap();
 
     StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
@@ -78,7 +72,8 @@ class StandbyClientSyncExecution {
         SegmentNodeBuilder builder = before.builder();
         SegmentNodeState current = newSegmentNodeState(remoteHead);
         compareAgainstBaseState(current, before, builder);
-        boolean ok = setHead(before, builder.getNodeState());
+        boolean ok = store.getRevisions().setHead(before.getRecordId(), remoteHead);
+        store.flush();
         log.debug("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
     }
 
@@ -88,10 +83,6 @@ class StandbyClientSyncExecution {
 
     private SegmentNodeState newSegmentNodeState(RecordId id) {
         return store.getReader().readNode(id);
-    }
-
-    private boolean setHead(@Nonnull SegmentNodeState expected, @Nonnull SegmentNodeState head) {
-        return store.getRevisions().setHead(expected.getRecordId(), head.getRecordId());
     }
 
     private boolean compareAgainstBaseState(SegmentNodeState current, SegmentNodeState before, SegmentNodeBuilder builder) throws Exception {
@@ -110,22 +101,54 @@ class StandbyClientSyncExecution {
 
         batch.offer(segmentId);
 
+        LinkedList<UUID> bulk = new LinkedList<>();
+        LinkedList<UUID> data = new LinkedList<>();
+
+        Set<UUID> visited = new HashSet<>();
+        Set<UUID> queued = new HashSet<>();
+        Set<UUID> local = new HashSet<>();
+
         while (batch.size() > 0) {
             UUID current = batch.remove();
 
-            log.debug("Loading segment {}", current);
-            Segment segment = copySegmentFromPrimary(current);
+            log.debug("Inspecting segment {}", current);
+            visited.add(current);
 
-            log.debug("Marking segment {} as loaded", current);
-            local.add(current);
+            // Add the current segment ID at the beginning of the respective
+            // list, depending on its type. This allows to process those
+            // segments in an optimal topological order later on. If the current
+            // segment is a bulk segment, we can skip the rest of the loop,
+            // since bulk segments don't reference any other segment.
 
-            if (!SegmentId.isDataSegmentId(current.getLeastSignificantBits())) {
+            if (SegmentId.isDataSegmentId(current.getLeastSignificantBits())) {
+                data.addFirst(current);
+            } else {
+                bulk.addFirst(current);
                 continue;
             }
 
-            log.debug("Inspecting segment {} for references", current);
-            for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-                UUID referenced = segment.getReferencedSegmentId(i);
+            for (String s : readReferences(current)) {
+                UUID referenced = UUID.fromString(s);
+
+                // Short circuit for the "backward reference". The segment graph
+                // is not guaranteed to be acyclic, so there might be segments
+                // pointing back to a previously visited (but locally
+                // unavailable) segment.
+
+                if (visited.contains(referenced)) {
+                    continue;
+                }
+
+                // Short circuit for the "diamond problem". Imagine that segment
+                // S1 references S2 and S3 and both S2 and S3 reference S4.
+                // These references form the shape of a diamond. If the segments
+                // are processed in the order S1, S2, S3, then S4 is added twice
+                // to the 'batch' queue. The following check prevents processing
+                // S4 twice or more.
+
+                if (queued.contains(referenced)) {
+                    continue;
+                }
 
                 // Short circuit for the "sharing-is-caring problem". If many
                 // new segments are sharing segments that are already locally
@@ -140,20 +163,6 @@ class StandbyClientSyncExecution {
 
                 if (isLocal(referenced)) {
                     local.add(referenced);
-                }
-
-                if (local.contains(referenced)) {
-                    continue;
-                }
-
-                // Short circuit for the "diamond problem". Imagine that segment S1
-                // references S2 and S3 and both S2 and S3 reference S4. These
-                // references form the shape of a diamond. If the segments are
-                // processed in the order S1, S2, S3, then S4 is added twice to the
-                // 'batch' queue. The following check prevents processing S4 twice
-                // or more.
-
-                if (queued.contains(referenced)) {
                     continue;
                 }
 
@@ -163,16 +172,31 @@ class StandbyClientSyncExecution {
                 // queue and transfer the segment later.
 
                 log.debug("Found reference from {} to {}", current, referenced);
-
-                if (SegmentId.isDataSegmentId(referenced.getLeastSignificantBits())) {
-                    batch.add(referenced);
-                } else {
-                    batch.addFirst(referenced);
-                }
-
+                batch.add(referenced);
                 queued.add(referenced);
             }
         }
+
+        for (UUID id : bulk) {
+            log.info("Copying bulk segment {} from primary", id);
+            copySegmentFromPrimary(id);
+        }
+
+        for (UUID id : data) {
+            log.info("Copying data segment {} from primary", id);
+            copySegmentFromPrimary(id);
+        }
+
+    }
+
+    private Iterable<String> readReferences(UUID id) throws InterruptedException {
+        Iterable<String> references = client.getReferences(id.toString());
+
+        if (references == null) {
+            throw new IllegalStateException(String.format("Unable to read references of segment %s from primary", id));
+        }
+
+        return references;
     }
 
     private boolean isLocal(UUID id) {
@@ -192,12 +216,12 @@ class StandbyClientSyncExecution {
         return persisted;
     }
 
-    private Segment copySegmentFromPrimary(UUID uuid) throws Exception {
+    private void copySegmentFromPrimary(UUID uuid) throws Exception {
         Segment result = cache.get(uuid);
 
         if (result != null) {
             log.debug("Segment {} was found in the local cache", uuid);
-            return result;
+            return;
         }
 
         byte[] data = client.getSegment(uuid.toString());
@@ -212,7 +236,6 @@ class StandbyClientSyncExecution {
         store.writeSegment(segmentId, data, 0, data.length);
         result = segmentId.getSegment();
         cache.put(uuid, result);
-        return result;
     }
 
 }

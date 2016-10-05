@@ -44,6 +44,9 @@ public class RequestDecoder extends MessageToMessageDecoder<String> {
         } else if (request.startsWith(Messages.GET_SEGMENT)) {
             log.debug("Parsed 'get segment' message");
             out.add(new GetSegmentRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_SEGMENT.length())));
+        } else if (request.startsWith(Messages.GET_REFERENCES)) {
+            log.debug("Parsed 'get references' message");
+            out.add(new GetReferencesRequest(Messages.extractClientFrom(msg), request.substring(Messages.GET_REFERENCES.length())));
         } else {
             log.debug("Received unrecognizable message {}, dropping", msg);
         }
