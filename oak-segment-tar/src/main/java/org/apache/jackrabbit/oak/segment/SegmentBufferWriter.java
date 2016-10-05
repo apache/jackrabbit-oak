@@ -272,15 +272,20 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     public void writeRecordId(RecordId recordId, boolean reference) {
         checkNotNull(recordId);
-
+        checkState(segmentReferences.size() + 1 < 0xffff,
+                "Segment cannot have more than 0xffff references");
         checkGCGeneration(recordId.getSegmentId());
 
-        writeInt(writeSegmentIdReference(recordId.getSegmentId()));
+        writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));
         writeInt(recordId.getRecordNumber());
 
         statistics.recordIdCount++;
 
         dirty = true;
+    }
+
+    private static short toShort(int value) {
+        return (short) value;
     }
 
     private int writeSegmentIdReference(SegmentId id) {
