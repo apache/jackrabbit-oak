@@ -81,12 +81,12 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
                 .withGroups("_gr_u_", "g%r%"));
     }
 
-    private void addUser(TestIdentity user) {
-        externalUsers.put(user.getId().toLowerCase(), (TestUser) user);
+    public void addUser(TestIdentity user) {
+        externalUsers.put(user.getId().toLowerCase(), (ExternalUser) user);
     }
 
     private void addGroup(TestIdentity group) {
-        externalGroups.put(group.getId().toLowerCase(), (TestGroup) group);
+        externalGroups.put(group.getId().toLowerCase(), (ExternalGroup) group);
     }
 
     @Nonnull
