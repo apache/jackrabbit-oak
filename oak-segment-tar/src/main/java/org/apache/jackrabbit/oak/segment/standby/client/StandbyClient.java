@@ -43,6 +43,9 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequestEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponse;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesRequest;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesRequestEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponse;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequestEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
@@ -59,6 +62,8 @@ class StandbyClient implements AutoCloseable {
     private final BlockingQueue<GetSegmentResponse> segmentQueue = new LinkedBlockingDeque<>();
 
     private final BlockingQueue<GetBlobResponse> blobQueue = new LinkedBlockingDeque<>();
+
+    private final BlockingQueue<GetReferencesResponse> referencesQueue = new LinkedBlockingDeque<>();
 
     private final boolean secure;
 
@@ -124,12 +129,14 @@ class StandbyClient implements AutoCloseable {
                         p.addLast(new GetHeadRequestEncoder());
                         p.addLast(new GetSegmentRequestEncoder());
                         p.addLast(new GetBlobRequestEncoder());
+                        p.addLast(new GetReferencesRequestEncoder());
 
                         // Handlers
 
                         p.addLast(new GetHeadResponseHandler(headQueue));
                         p.addLast(new GetSegmentResponseHandler(segmentQueue));
                         p.addLast(new GetBlobResponseHandler(blobQueue));
+                        p.addLast(new GetReferencesResponseHandler(referencesQueue));
                     }
 
                 });
@@ -190,6 +197,18 @@ class StandbyClient implements AutoCloseable {
         }
 
         return response.getBlobData();
+    }
+
+    Iterable<String> getReferences(String segmentId) throws InterruptedException {
+        channel.writeAndFlush(new GetReferencesRequest(clientId, segmentId));
+
+        GetReferencesResponse response = referencesQueue.poll(readTimeoutMs, TimeUnit.MILLISECONDS);
+
+        if (response == null) {
+            return null;
+        }
+
+        return response.getReferences();
     }
 
 }
