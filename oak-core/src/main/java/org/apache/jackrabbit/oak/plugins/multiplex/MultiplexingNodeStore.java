@@ -99,11 +99,13 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     @Override
     public NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
-
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
+        
+        // run commit hooks and apply the changes to the builder instance
         NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
         processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
 
+        // apply the accumulated changes on individual NodeStore instances
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
         for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
             NodeStore nodeStore = mountedNodeStore.getNodeStore();
