@@ -52,6 +52,8 @@ public class DocumentNodeStoreStatsCollectorIT {
                 .setAsyncDelay(0)
                 .setNodeStoreStatsCollector(statsCollector)
                 .getNodeStore();
+        // do not retry failed merges
+        nodeStore.setMaxBackOffMillis(0);
     }
 
     @Test
