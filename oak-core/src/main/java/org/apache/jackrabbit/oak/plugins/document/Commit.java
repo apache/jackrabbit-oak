@@ -179,9 +179,12 @@ public class Commit {
                 success = true;
             } finally {
                 if (!success) {
-                    b.removeCommit(rev.asBranchRevision());
-                    if (!b.hasCommits()) {
-                        nodeStore.getBranches().remove(b);
+                    Branch branch = getBranch();
+                    if (branch != null) {
+                        branch.removeCommit(rev.asBranchRevision());
+                        if (!branch.hasCommits()) {
+                            nodeStore.getBranches().remove(branch);
+                        }
                     }
                 }
             }
