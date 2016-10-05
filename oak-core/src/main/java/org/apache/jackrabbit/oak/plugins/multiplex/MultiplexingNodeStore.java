@@ -55,16 +55,23 @@ import static com.google.common.collect.Maps.newHashMap;
 /**
  * A {@link NodeStore} implementation that multiplexes other {@link NodeStore} instances
  * mounted under paths defined by {@link MountInfo}.
+ * 
+ * <p>The main objective of this implementation is to multiplex operations working on
+ * at most single read-write store with any number of read-only stores. While the
+ * multiplexing would technically work at the NodeStore level there are several
+ * less-than-obvious issues which prevent it:
+ * <ol>
+ *   <li>Thread safety of the write operation can be quite costly, and will come on top
+ *   of the thread safety measures already put in place by the multiplexed node stores.</li>
+ *   <li>Many JCR subsystems require global state, e.g. the versioning store. This global state
+ *   can become corrupt if multiple mounts operate on it or if mounts are added and removed.</li>
+ * </ol>
+ * 
+ * As such, the only supported configuration is at most a single write-enabled store.
+ * </p>
+ * 
  */
 public class MultiplexingNodeStore implements NodeStore, Observable {
-
-    // TODO - define concurrency model
-    //
-    // This implementation operates on multiple mounted stores and is generally expected to be
-    // thread safe. From a publication point of view this is achieved. It is up for debate
-    // whether we need to make operations atomic, or rely on the internal consistency of the
-    // mounted repositories. It's possible that there is some unfortunate interleaving of
-    // operations which would ultimately require us to have some sort of global ordering.
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
