@@ -344,6 +344,12 @@ final class Delegatee {
             case DELETE:
                 op = "del";
                 break;
+            case ENABLE:
+                op = "ena";
+                break;
+            case DISABLE:
+                op = "dis";
+                break;
             case NO_SUCH_AUTHORIZABLE:
                 op = "nsa";
                 break;

@@ -64,6 +64,16 @@ public interface SyncResult {
         DELETE,
 
         /**
+         * authorizable enabled
+         */
+        ENABLE,
+
+        /**
+         * authorizable disabled
+         */
+        DISABLE,
+
+        /**
          * nothing changed. no such authorizable found.
          */
         NO_SUCH_AUTHORIZABLE,
