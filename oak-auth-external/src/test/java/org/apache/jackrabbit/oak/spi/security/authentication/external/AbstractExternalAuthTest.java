@@ -144,6 +144,10 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         // nothing to do
     }
 
+    protected void addIDPUser(String id) {
+        ((TestIdentityProvider) idp).addUser(new TestIdentityProvider.TestUser(id, idp.getName()));
+    }
+
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig syncConfig = new DefaultSyncConfig();
         Map<String, String> mapping = new HashMap<String, String>();

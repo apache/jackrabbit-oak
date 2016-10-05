@@ -178,6 +178,22 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_DYNAMIC_MEMBERSHIP = "user.dynamicMembership";
 
     /**
+     * @see User#getDisableMissing()
+     */
+    public static final boolean PARAM_DISABLE_MISSING_USERS_DEFAULT = false;
+
+    /**
+     * @see User#getDisableMissing()
+     */
+    @Property(
+        label = "Disable missing users",
+        description = "If true, users that no longer exist on the external provider will be locally disabled, " +
+            "and re-enabled if they become valid again. If false (default) they will be removed.",
+        boolValue = false
+    )
+    public static final String PARAM_DISABLE_MISSING_USERS = "user.disableMissing";
+
+    /**
      * @see DefaultSyncConfig.Group#getExpirationTime()
      */
     public static final String PARAM_GROUP_EXPIRATION_TIME_DEFAULT = "1d";
@@ -268,6 +284,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
                 .setName(params.getConfigValue(PARAM_NAME, PARAM_NAME_DEFAULT));
 
         cfg.user()
+                .setDisableMissing(params.getConfigValue(PARAM_DISABLE_MISSING_USERS, PARAM_DISABLE_MISSING_USERS_DEFAULT))
                 .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
                 .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
