@@ -17,10 +17,15 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
+import static com.google.common.collect.Iterables.elementsEqual;
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
 
@@ -119,6 +124,54 @@ public class ResponseDecoderTest {
         GetSegmentResponse response = (GetSegmentResponse) channel.readInbound();
         assertEquals(uuid, UUID.fromString(response.getSegmentId()));
         assertArrayEquals(data, response.getSegmentData());
+    }
+
+    @Test
+    public void shouldDecodeValidGetReferencesResponses() throws Exception {
+        byte[] data = "a:b,c".getBytes(Charsets.UTF_8);
+
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeInt(data.length + 1);
+        buf.writeByte(Messages.HEADER_REFERENCES);
+        buf.writeBytes(data);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        channel.writeInbound(buf);
+        GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
+        assertEquals("a", response.getSegmentId());
+        assertTrue(elementsEqual(asList("b", "c"), response.getReferences()));
+    }
+
+    @Test
+    public void shouldDecodeValidSingleElementGetReferencesResponses() throws Exception {
+        byte[] data = "a:b".getBytes(Charsets.UTF_8);
+
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeInt(data.length + 1);
+        buf.writeByte(Messages.HEADER_REFERENCES);
+        buf.writeBytes(data);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        channel.writeInbound(buf);
+        GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
+        assertEquals("a", response.getSegmentId());
+        assertTrue(elementsEqual(newArrayList("b"), response.getReferences()));
+    }
+
+    @Test
+    public void shouldDecodeValidZeroElementsGetReferencesResponses() throws Exception {
+        byte[] data = "a:".getBytes(Charsets.UTF_8);
+
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeInt(data.length + 1);
+        buf.writeByte(Messages.HEADER_REFERENCES);
+        buf.writeBytes(data);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        channel.writeInbound(buf);
+        GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
+        assertEquals("a", response.getSegmentId());
+        assertTrue(elementsEqual(emptyList(), response.getReferences()));
     }
 
     @Test

@@ -40,8 +40,10 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
@@ -162,13 +164,17 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new GetHeadResponseEncoder());
                 p.addLast(new GetSegmentResponseEncoder());
                 p.addLast(new GetBlobResponseEncoder());
+                p.addLast(new GetReferencesResponseEncoder());
                 p.addLast(new ResponseObserverHandler(builder.observer));
 
                 // Handlers
 
-                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(builder.storeProvider.provideStore())));
-                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(builder.storeProvider.provideStore())));
-                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(builder.storeProvider.provideStore())));
+                FileStore store = builder.storeProvider.provideStore();
+
+                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
+                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
+                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store)));
+                p.addLast(new GetReferencesRequestHandler(new DefaultStandbyReferencesReader(store)));
             }
         });
     }

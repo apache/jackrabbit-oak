@@ -27,11 +27,15 @@ class Messages {
 
     static final byte HEADER_BLOB = 0x02;
 
+    static final byte HEADER_REFERENCES = 0x03;
+
     static final String GET_HEAD = "h";
 
     static final String GET_SEGMENT = "s.";
 
     static final String GET_BLOB = "b.";
+
+    static final String GET_REFERENCES = "r.";
 
     private static final String MAGIC = "Standby-CMD@";
 
@@ -68,6 +72,14 @@ class Messages {
 
     static String newGetSegmentRequest(String clientId, String segmentId) {
         return newGetSegmentRequest(clientId, segmentId, true);
+    }
+
+    static String newGetReferencesRequest(String clientId, String segmentId, boolean delimited) {
+        return newRequest(clientId, GET_REFERENCES + segmentId, delimited);
+    }
+
+    static String newGetReferencesRequest(String clientId, String segmentId) {
+        return newGetReferencesRequest(clientId, segmentId, true);
     }
 
     static String newGetBlobRequest(String clientId, String blobId, boolean delimited) {
