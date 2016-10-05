@@ -53,7 +53,9 @@ public class FileDataStoreService extends AbstractDataStoreService {
             String fsBackendPath = PropertiesUtil.toString(config.get(PATH), null);
             Preconditions.checkNotNull(fsBackendPath, "Cannot create " +
                     "FileDataStoreService with caching. [{path}] property not configured.");
-            CachingFDS dataStore = new CachingFDS();
+            OakCachingFDS dataStore = new OakCachingFDS();
+            dataStore.setFsBackendPath(fsBackendPath);
+
             // Disabling asyncUpload by default
             dataStore.setAsyncUploadLimit(PropertiesUtil.toInteger(config.get("asyncUploadLimit"), 0));
             config.remove(PATH);
