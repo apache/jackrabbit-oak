@@ -147,8 +147,8 @@ public class SegmentCompactionIT {
     private volatile int maxWriters = 10;
     private volatile long maxStoreSize = 200000000000L;
     private volatile int maxBlobSize = 1000000;
-    private volatile int maxStringSize = 10000;
-    private volatile int maxReferences = 10;
+    private volatile int maxStringSize = 100;
+    private volatile int maxReferences = 0;
     private volatile int maxWriteOps = 10000;
     private volatile int maxNodeCount = 1000;
     private volatile int maxPropertyCount = 1000;
@@ -156,8 +156,8 @@ public class SegmentCompactionIT {
     private volatile int propertyRemoveRatio = 10;
     private volatile int nodeAddRatio = 40;
     private volatile int addStringRatio = 20;
-    private volatile int addBinaryRatio = 20;
-    private volatile int compactionInterval = 1;
+    private volatile int addBinaryRatio = 0;
+    private volatile int compactionInterval = 60;
     private volatile boolean stopping;
     private volatile Reference rootReference;
     private volatile long fileStoreSize;
@@ -221,8 +221,10 @@ public class SegmentCompactionIT {
     public void setUp() throws Exception {
         assumeTrue(ENABLED);
 
-        SegmentGCOptions gcOptions = defaultGCOptions();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        SegmentGCOptions gcOptions = defaultGCOptions()
+                .setGainThreshold(0)
+                .setForceTimeout(3600);
         fileStore = fileStoreBuilder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
@@ -664,7 +666,7 @@ public class SegmentCompactionIT {
                         @Override
                         public Void call() throws Exception {
                             gcMonitor.resetCleaned();
-                            fileStore.maybeCompact(true);
+                            fileStore.getGCRunner().run();
                             return null;
                         }
                     });

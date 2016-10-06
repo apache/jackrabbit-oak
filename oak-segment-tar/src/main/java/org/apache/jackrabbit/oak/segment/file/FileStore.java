@@ -180,11 +180,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final TarRevisions revisions;
 
     /**
-     * Scheduler for running compaction and cleanup in the background
-     */
-    private final Scheduler gcScheduler = new Scheduler("GC Scheduler");
-
-    /**
      * Scheduler for running <em>short</em> background operations
      */
     private final Scheduler fileStoreScheduler = new Scheduler("FileStore background tasks");
@@ -329,13 +324,6 @@ public class FileStore implements SegmentStore, Closeable {
         } else {
             this.tarWriter = null;
         }
-
-        // FIXME OAK-4621: External invocation of background operations
-        // The following background operations are historically part of
-        // the implementation of the FileStore, but they should better be
-        // scheduled and invoked by an external agent. The code deploying the
-        // FileStore might have better insights on when and how these background
-        // operations should be invoked. See also OAK-3468.
 
         sufficientDiskSpace = new AtomicBoolean(true);
 
@@ -482,7 +470,27 @@ public class FileStore implements SegmentStore, Closeable {
         return segmentWriter.getNodeCacheStats();
     }
 
-    public void maybeCompact(boolean cleanup) throws IOException {
+    /**
+     * @return  a runnable for running garbage collection
+     */
+    public Runnable getGCRunner() {
+        return new SafeRunnable(format("TarMK revision gc [%s]", directory), new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    gc();
+                } catch (IOException e) {
+                    log.error("Error running compaction", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Run garbage collection: estimation, compaction, cleanup
+     * @throws IOException
+     */
+    public void gc() throws IOException {
         gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
         Stopwatch watch = Stopwatch.createStarted();
 
@@ -1190,8 +1198,7 @@ public class FileStore implements SegmentStore, Closeable {
         shutdown = true;
 
         // avoid deadlocks by closing (and joining) the background
-        // threads before acquiring the synchronization lock
-        gcScheduler.close();
+        // thread before acquiring the synchronization lock
         fileStoreScheduler.close();
 
         try {
@@ -1442,22 +1449,6 @@ public class FileStore implements SegmentStore, Closeable {
         return blobStore;
     }
 
-    /**
-     * Trigger a garbage collection cycle
-     */
-    public void gc() {
-        gcScheduler.execute(format("TarMK compaction [%s]", directory), new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    maybeCompact(true);
-                } catch (IOException e) {
-                    log.error("Error running compaction", e);
-                }
-            }
-        });
-    }
-
     public Map<String, Set<UUID>> getTarReaderIndex() {
         Map<String, Set<UUID>> index = new HashMap<String, Set<UUID>>();
         for (TarReader reader : readers) {
@@ -1593,7 +1584,7 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         @Override
-        public void gc() {
+        public SafeRunnable getGCRunner() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
@@ -1603,7 +1594,7 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         @Override
-        public void maybeCompact(boolean cleanup) {
+        public void gc() {
             throw new UnsupportedOperationException("Read Only Store");
         }
     }
