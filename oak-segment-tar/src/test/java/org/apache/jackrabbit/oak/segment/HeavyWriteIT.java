@@ -70,12 +70,14 @@ public class HeavyWriteIT {
             @Override
             public void run() {
                 for (int k = 1; run.get(); k++) {
-                    store.gc();
                     try {
+                        store.gc();
                         Thread.sleep(5000);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         break;
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             }
