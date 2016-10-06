@@ -26,7 +26,7 @@ public class SmallFileWriteTest extends AbstractTest {
 
     private static final int FILE_COUNT = 100;
 
-    private static final int FILE_SIZE = 10;
+    private static final int FILE_SIZE = Integer.getInteger("file.size", 10);
 
     private Session session;
 

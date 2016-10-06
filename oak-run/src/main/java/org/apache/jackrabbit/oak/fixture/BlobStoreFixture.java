@@ -21,14 +21,19 @@ package org.apache.jackrabbit.oak.fixture;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Enumeration;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
@@ -39,6 +44,8 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
+import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfS3DataStore;
 
 public abstract class BlobStoreFixture implements Closeable{
     private final String name;
@@ -69,14 +76,16 @@ public abstract class BlobStoreFixture implements Closeable{
      */
     @CheckForNull
     public static BlobStoreFixture create(File basedir, boolean fallbackToFDS,
+                                          int fdsCacheInMB,
                                           StatisticsProvider statisticsProvider) {
-        String className = System.getProperty("dataStore");
-        if (className != null) {
-            return getDataStore();
+
+        if(basedir == null) {
+            basedir = FileUtils.getTempDirectory();
         }
 
-        if(basedir == null){
-            basedir = FileUtils.getTempDirectory();
+        String className = System.getProperty("dataStore");
+        if (className != null) {
+            return getDataStore(basedir, fdsCacheInMB);
         }
 
         String blobStore = System.getProperty("blobStoreType");
@@ -169,10 +178,12 @@ public abstract class BlobStoreFixture implements Closeable{
         };
     }
 
-    public static BlobStoreFixture getDataStore() {
+    public static BlobStoreFixture getDataStore(final File basedir, final int fdsCacheInMB) {
         return new BlobStoreFixture("DS") {
             private DataStore dataStore;
             private BlobStore blobStore;
+            private File storeDir;
+            private Map<String, ?> config;
 
             @Override
             public BlobStore setUp() {
@@ -180,9 +191,12 @@ public abstract class BlobStoreFixture implements Closeable{
                 checkNotNull(className, "No system property named 'dataStore' defined");
                 try {
                     dataStore = Class.forName(className).asSubclass(DataStore.class).newInstance();
-                    configure(dataStore);
-                    dataStore.init(null);
-                    blobStore = new DataStoreBlobStore(dataStore);
+                    config = getConfig();
+                    configure(dataStore, config);
+                    dataStore = configureIfS3DataStore(className, dataStore, config, unique.toLowerCase());
+                    storeDir = new File(basedir, unique);
+                    dataStore.init(storeDir.getAbsolutePath());
+                    blobStore = new DataStoreBlobStore(dataStore, true, fdsCacheInMB);
                     configure(blobStore);
                     return blobStore;
                 } catch (Exception e) {
@@ -193,11 +207,10 @@ public abstract class BlobStoreFixture implements Closeable{
             @Override
             public void tearDown() {
                 if (blobStore instanceof DataStoreBlobStore) {
-                    ((DataStoreBlobStore) blobStore).clearInUse();
                     try {
-                        ((DataStoreBlobStore) blobStore).deleteAllOlderThan(
-                                System.currentTimeMillis() + 10000000);
-                    } catch (DataStoreException e) {
+                        ((DataStoreBlobStore) blobStore).close();
+                        cleanup(storeDir, config);
+                    } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -221,8 +234,32 @@ public abstract class BlobStoreFixture implements Closeable{
         PropertiesUtil.populate(o, getConfig(), false);
     }
 
-    private static Map<String, ?> getConfig() {
+    private static void configure(Object o, Map<String, ?> config) {
+        PropertiesUtil.populate(o, config, false);
+    }
+
+    public static Map<String, Object> loadAndTransformProps(String cfgPath) throws IOException {
+        Dictionary dict = ConfigurationHandler.read(new FileInputStream(cfgPath));
+        Map<String, Object> props = Maps.newHashMap();
+        Enumeration keys = dict.keys();
+        while (keys.hasMoreElements()) {
+            String key = (String) keys.nextElement();
+            props.put(key, dict.get(key));
+        }
+        return props;
+    }
+
+    public static Map<String, ?> getConfig() {
+        // try loading the props from the config file if configured
+        String cfgFile = System.getProperty("ds.config");
         Map<String, Object> result = Maps.newHashMap();
+        if (!Strings.isNullOrEmpty(cfgFile)) {
+            try {
+                result = loadAndTransformProps(cfgFile);
+            } catch (IOException e) {
+            }
+        }
+
         for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
             String key = e.getKey();
             if (key.startsWith("ds.") || key.startsWith("bs.")) {

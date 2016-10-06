@@ -45,13 +45,17 @@ class SegmentTarFixture extends OakFixture {
 
     private final boolean useBlobStore;
 
-    public SegmentTarFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping, boolean useBlobStore) {
+    private final int dsCacheSizeInMB;
+
+    public SegmentTarFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
+        boolean memoryMapping, boolean useBlobStore, int dsCacheSizeInMB) {
         super(name);
         this.base = base;
         this.maxFileSizeMB = maxFileSizeMB;
         this.cacheSizeMB = cacheSizeMB;
         this.memoryMapping = memoryMapping;
         this.useBlobStore = useBlobStore;
+        this.dsCacheSizeInMB = dsCacheSizeInMB;
     }
 
     @Override
@@ -75,7 +79,7 @@ class SegmentTarFixture extends OakFixture {
         for (int i = 0; i < cluster.length; i++) {
             BlobStore blobStore = null;
             if (useBlobStore) {
-                blobStoreFixtures[i] = BlobStoreFixture.create(base, true, statsProvider);
+                blobStoreFixtures[i] = BlobStoreFixture.create(base, true, dsCacheSizeInMB, statsProvider);
                 blobStore = blobStoreFixtures[i].setUp();
             }
 
