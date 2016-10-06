@@ -179,23 +179,14 @@ public class FileStore implements SegmentStore, Closeable {
     private final TarRevisions revisions;
 
     /**
-     * The background flush thread. Automatically flushes the TarMK state
-     * once every five seconds.
-     */
-    private final PeriodicOperation flushOperation;
-
-    /**
      * Scheduler for running compaction and cleanup in the background
      */
     private final Scheduler gcScheduler = new Scheduler("GC Scheduler");
 
     /**
-     * This background thread periodically asks the {@code SegmentGCOptions}
-     * to compare the approximate size of the repository with the available disk
-     * space. The result of this comparison is stored in the state of this
-     * {@code FileStore}.
+     * Scheduler for running <em>short</em> background operations
      */
-    private final PeriodicOperation diskSpaceOperation;
+    private final Scheduler fileStoreScheduler = new Scheduler("FileStore background tasks");
 
     private final SegmentGCOptions gcOptions;
 
@@ -340,34 +331,29 @@ public class FileStore implements SegmentStore, Closeable {
         // FileStore might have better insights on when and how these background
         // operations should be invoked. See also OAK-3468.
 
-        flushOperation = new PeriodicOperation(format("TarMK flush thread [%s]", directory), 5, SECONDS, new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    flush();
-                } catch (IOException e) {
-                    log.warn("Failed to flush the TarMK at {}", directory, e);
-                }
-            }
-
-        });
-
-        diskSpaceOperation = new PeriodicOperation(format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
-
-            @Override
-            public void run() {
-                checkDiskSpace();
-            }
-
-        });
+        sufficientDiskSpace = new AtomicBoolean(true);
 
         if (!readOnly) {
-            flushOperation.start();
-            diskSpaceOperation.start();
-        }
+            fileStoreScheduler.scheduleAtFixedRate(
+                    format("TarMK flush [%s]", directory), 5, SECONDS, new Runnable() {;
+                @Override
+                public void run() {
+                    try {
+                        flush();
+                    } catch (IOException e) {
+                        log.warn("Failed to flush the TarMK at {}", directory, e);
+                    }
+                }
 
-        sufficientDiskSpace = new AtomicBoolean(true);
+            });
+            fileStoreScheduler.scheduleAtFixedRate(
+                    format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
+                @Override
+                public void run() {
+                    checkDiskSpace();
+                }
+            });
+        }
 
         if (readOnly) {
             log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
@@ -1171,30 +1157,10 @@ public class FileStore implements SegmentStore, Closeable {
         // Flag the store as shutting / shut down
         shutdown = true;
 
-        gcScheduler.close();
-
         // avoid deadlocks by closing (and joining) the background
         // threads before acquiring the synchronization lock
-
-        try {
-            if (flushOperation.stop(5, SECONDS)) {
-                log.debug("The flush background thread was successfully shut down");
-            } else {
-                log.warn("The flush background thread takes too long to shutdown");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        try {
-            if (diskSpaceOperation.stop(5, SECONDS)) {
-                log.debug("The disk space check background thread was successfully shut down");
-            } else {
-                log.warn("The disk space check background thread takes too long to shutdown");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        gcScheduler.close();
+        fileStoreScheduler.close();
 
         try {
             flush();
