@@ -59,9 +59,27 @@ public class CommitRateLimiterTest {
     }
 
     @Test(expected = CommitFailedException.class)
-    public void blockCommits() throws CommitFailedException {
+    public void blockCommits() throws CommitFailedException, InterruptedException {
         limiter.blockCommits();
-        limiter.processCommit(EMPTY_NODE, AFTER, null);
+        final Thread mainThread = Thread.currentThread();
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                mainThread.interrupt();
+            }
+        };
+        t.start();
+        try {
+            limiter.processCommit(EMPTY_NODE, AFTER, null);
+        } finally {
+            t.join();
+            assertTrue(Thread.interrupted());
+        }
     }
 
     @Test
