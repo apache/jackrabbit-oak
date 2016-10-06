@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -104,6 +105,29 @@ public class CommitTest {
                 // expected
                 assertTrue("Unexpected exception message: " + e.getMessage(),
                         e.getMessage().contains("older than base"));
+            }
+        } finally {
+            ns.canceled(c);
+        }
+    }
+
+    // OAK-4894
+    @Test
+    public void branchCommitFails() throws Exception {
+        // prepare node store
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+
+        // this branch commit must fail with a DocumentStoreException
+        Commit c = ns.newCommit(ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
+        try {
+            c.removeNode("/foo", EMPTY_NODE);
+            try {
+                c.apply();
+                fail("commit must fail");
+            } catch (DocumentStoreException e) {
+                // expected
+                assertTrue("Unexpected exception message: " + e.getMessage(),
+                        e.getMessage().contains("does not exist"));
             }
         } finally {
             ns.canceled(c);
