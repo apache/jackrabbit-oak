@@ -465,19 +465,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         // Expose an MBean to trigger garbage collection
 
-        Runnable triggerGarbageCollection = new Runnable() {
-
-            @Override
-            public void run() {
-                store.gc();
-            }
-
-        };
-
         registrations.add(registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
-                new RevisionGC(triggerGarbageCollection, executor),
+                new RevisionGC(store.getGCRunner(), executor),
                 RevisionGCMBean.TYPE,
                 "Segment node store revision garbage collection"
         ));
