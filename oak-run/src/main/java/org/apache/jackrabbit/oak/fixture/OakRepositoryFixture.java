@@ -45,17 +45,17 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return getMongoNS(uri, dropDBAfterTest, cacheSize);
     }
 
-    public static RepositoryFixture getMongoWithFDS(String host, int port, String database,
+    public static RepositoryFixture getMongoWithDS(String host, int port, String database,
                                              boolean dropDBAfterTest, long cacheSize,
                                              final File base, int fdsCacheInMB) {
-        return getMongo(OakFixture.OAK_MONGO_FDS, host, port, database,
+        return getMongo(OakFixture.OAK_MONGO_DS, host, port, database,
                 dropDBAfterTest, cacheSize, true, base, fdsCacheInMB);
     }
 
-    public static RepositoryFixture getMongoWithFDS(String uri,
+    public static RepositoryFixture getMongoWithDS(String uri,
                                                     boolean dropDBAfterTest, long cacheSize,
                                                     final File base, int fdsCacheInMB) {
-        return new OakRepositoryFixture(OakFixture.getMongo(OakFixture.OAK_MONGO_FDS, uri, dropDBAfterTest,
+        return new OakRepositoryFixture(OakFixture.getMongo(OakFixture.OAK_MONGO_DS, uri, dropDBAfterTest,
                 cacheSize, true, base, fdsCacheInMB));
     }
 
@@ -79,32 +79,46 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 cacheSize, useFileDataStore, base, fdsCacheInMB));
     }
 
-    public static RepositoryFixture getRDB(String jdbcuri, String jdbcuser, String jdbcpasswd, String jdbctableprefix,
-            boolean dropDBAfterTest, long cacheSize) {
-        return new OakRepositoryFixture(OakFixture.getRDB(OakFixture.OAK_RDB, jdbcuri, jdbcuser, jdbcpasswd, jdbctableprefix,
+    public static RepositoryFixture getRDB(String jdbcuri, String jdbcuser, String jdbcpasswd,
+        String jdbctableprefix, boolean dropDBAfterTest, long cacheSize) {
+        return new OakRepositoryFixture(OakFixture
+            .getRDB(OakFixture.OAK_RDB, jdbcuri, jdbcuser, jdbcpasswd, jdbctableprefix,
                 dropDBAfterTest, cacheSize));
     }
 
-    public static RepositoryFixture getRDBWithFDS(String jdbcuri, String jdbcuser, String jdbcpasswd, String jdbctableprefix,
-        boolean dropDBAfterTest, long cacheSize, final File base, final int fdsCacheInMB) {
-        return new OakRepositoryFixture(OakFixture.getRDB(OakFixture.OAK_RDB_FDS, jdbcuri, jdbcuser, jdbcpasswd, jdbctableprefix,
+    public static RepositoryFixture getRDBWithDS(String jdbcuri, String jdbcuser, String jdbcpasswd,
+        String jdbctableprefix, boolean dropDBAfterTest, long cacheSize, final File base,
+        final int fdsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture
+            .getRDB(OakFixture.OAK_RDB_DS, jdbcuri, jdbcuser, jdbcpasswd, jdbctableprefix,
                 dropDBAfterTest, cacheSize, true, base, fdsCacheInMB));
     }
 
-    public static RepositoryFixture getTar(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
-        return new OakRepositoryFixture(OakFixture.getTar(OakFixture.OAK_TAR ,base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
+    public static RepositoryFixture getTar(File base, int maxFileSizeMB, int cacheSizeMB,
+        boolean memoryMapping) {
+        return new OakRepositoryFixture(OakFixture
+            .getTar(OakFixture.OAK_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
     }
 
-    public static RepositoryFixture getTarWithBlobStore(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
-        return new OakRepositoryFixture(OakFixture.getTar(OakFixture.OAK_TAR_FDS,base, maxFileSizeMB, cacheSizeMB, memoryMapping, true));
+    public static RepositoryFixture getTarWithBlobStore(File base, int maxFileSizeMB,
+        int cacheSizeMB, boolean memoryMapping, int dsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture
+            .getTar(OakFixture.OAK_TAR_DS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, true,
+                dsCacheInMB));
     }
 
-    public static RepositoryFixture getSegmentTar(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
-        return new OakRepositoryFixture(OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
+    public static RepositoryFixture getSegmentTar(File base, int maxFileSizeMB, int cacheSizeMB,
+        boolean memoryMapping) {
+        return new OakRepositoryFixture(OakFixture
+            .getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB,
+                memoryMapping, false));
     }
 
-    public static RepositoryFixture getSegmentTarWithBlobStore(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
-        return new OakRepositoryFixture(OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR_FDS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, true));
+    public static RepositoryFixture getSegmentTarWithBlobStore(File base, int maxFileSizeMB,
+        int cacheSizeMB, boolean memoryMapping, int dsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture
+            .getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB,
+                memoryMapping, true, dsCacheInMB));
     }
 
     private final OakFixture oakFixture;

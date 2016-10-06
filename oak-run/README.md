@@ -399,10 +399,10 @@ to be used. The following fixtures are currently supported:
 | Oak-Memory    | Oak with default in-memory storage                    |
 | Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
 | Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
+| Oak-Mongo-DS  | Oak with the default Mongo backend and DataStore      |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
+| Oak-Tar-DS    | Oak with the Tar backend and DataStore                |
 
 Jackrabbit fixture requires [Oak Runnable JR2 jar](#jr2)
 
@@ -502,16 +502,18 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
+| Fixture       | Description                                                    |
+|---------------|----------------------------------------------------------------|
+| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM          |
+| Oak-Memory    | Oak with default in-memory storage                             |
+| Oak-MemoryNS  | Oak with default in-memory NodeStore                           |
+| Oak-Mongo     | Oak with the default Mongo backend                             |
+| Oak-Mongo-DS  | Oak with the default Mongo backend and DataStore               |
+| Oak-MongoNS   | Oak with the Mongo NodeStore                                   |
+| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)               |
+| Oak-Tar-DS    | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
+| Oak-RDB       | Oak with the DocumentMK/RDB persistence                        |
+| Oak-RDB-DS    | Oak with the DocumentMK/RDB persistence and DataStore          |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path. Furthermode, 
@@ -677,15 +679,17 @@ suites in the scalability command line, and oak-run will execute each suite in s
 
 Finally the scalability runner supports the following repository fixtures:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
+| Fixture       | Description                                                    |
+|---------------|----------------------------------------------------------------|
+| Oak-Memory    | Oak with default in-memory storage                             |
+| Oak-MemoryNS  | Oak with default in-memory NodeStore                           |
+| Oak-Mongo     | Oak with the default Mongo backend                             |
+| Oak-Mongo-DS  | Oak with the default Mongo backend and DataStore               |
+| Oak-MongoNS   | Oak with the Mongo NodeStore                                   |
+| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)               |
+| Oak-Tar-DS    | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
+| Oak-RDB       | Oak with the DocumentMK/RDB persistence                        |
+| Oak-RDB-DS    | Oak with the DocumentMK/RDB persistence and DataStore          |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path.)
