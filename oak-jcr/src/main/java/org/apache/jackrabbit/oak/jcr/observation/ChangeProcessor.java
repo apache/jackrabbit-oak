@@ -131,7 +131,7 @@ class ChangeProcessor implements Observer {
     private final AtomicReference<FilterProvider> filterProvider;
     private final MeterStats eventCount;
     private final TimerStats eventDuration;
-    private final TimeSeriesMax maxQueueLength;
+    private final TimeSeriesMax maxQueueLengthRecorder;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
 
@@ -162,7 +162,7 @@ class ChangeProcessor implements Observer {
         filterProvider = new AtomicReference<FilterProvider>(filter);
         this.eventCount = statisticManager.getMeter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getTimer(OBSERVATION_EVENT_DURATION);
-        this.maxQueueLength = statisticManager.maxQueLengthRecorder();
+        this.maxQueueLengthRecorder = statisticManager.maxQueLengthRecorder();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
     }
@@ -226,11 +226,19 @@ class ChangeProcessor implements Observer {
             private volatile boolean blocking;
 
             @Override
-            protected void added(int queueSize) {
-                maxQueueLength.recordValue(queueSize);
-                tracker.recordQueueLength(queueSize);
-
-                if (queueSize == queueLength) {
+            protected void added(int newQueueSize) {
+                queueSizeChanged(newQueueSize);
+            }
+            
+            @Override
+            protected void removed(int newQueueSize, long created) {
+                queueSizeChanged(newQueueSize);
+            }
+            
+            private void queueSizeChanged(int newQueueSize) {
+                maxQueueLengthRecorder.recordValue(newQueueSize);
+                tracker.recordQueueLength(newQueueSize);
+                if (newQueueSize >= queueLength) {
                     if (commitRateLimiter != null) {
                         if (!blocking) {
                             LOG.warn("Revision queue is full. Further commits will be blocked.");
@@ -241,7 +249,7 @@ class ChangeProcessor implements Observer {
                     }
                     blocking = true;
                 } else {
-                    double fillRatio = (double) queueSize / queueLength;
+                    double fillRatio = (double) newQueueSize / queueLength;
                     if (fillRatio > DELAY_THRESHOLD) {
                         if (commitRateLimiter != null) {
                             if (delay == 0) {
@@ -274,11 +282,6 @@ class ChangeProcessor implements Observer {
                 }
             }
 
-            @Override
-            protected void removed(int queueSize, long created) {
-                maxQueueLength.recordValue(queueSize);
-                tracker.recordQueueLength(queueSize, created);
-            }
         };
     }
 
@@ -347,11 +350,17 @@ class ChangeProcessor implements Observer {
                     boolean hasEvents = events.hasNext();
                     tracker.recordProducerTime(System.nanoTime() - time, TimeUnit.NANOSECONDS);
                     if (hasEvents && runningMonitor.enterIf(running)) {
+                        if (commitRateLimiter != null) {
+                            commitRateLimiter.beforeNonBlocking();
+                        }
                         try {
                             CountingIterator countingEvents = new CountingIterator(events);
                             eventListener.onEvent(countingEvents);
                             countingEvents.updateCounters(eventCount, eventDuration);
                         } finally {
+                            if (commitRateLimiter != null) {
+                                commitRateLimiter.afterNonBlocking();
+                            }
                             runningMonitor.leave();
                         }
                     }
