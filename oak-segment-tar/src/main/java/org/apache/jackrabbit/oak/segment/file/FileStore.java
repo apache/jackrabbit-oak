@@ -95,6 +95,7 @@ import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.segment.SegmentIdTable;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
@@ -765,8 +766,18 @@ public class FileStore implements SegmentStore, Closeable {
      * Those tar files that shrink by at least 25% are rewritten to a new tar generation
      * skipping the reclaimed segments.
      */
-    public List<File> cleanup() throws IOException {
-        int gcGeneration = getGcGeneration();
+    public void cleanup() throws IOException {
+        fileReaper.add(cleanupOldGenerations(getGcGeneration()));
+    }
+
+    /**
+     * Cleanup segments that are from an old generation. That segments whose generation
+     * is {@code gcGeneration - SegmentGCOptions.getRetainedGenerations()} or older.
+     * @param gcGeneration
+     * @return list of files to be removed
+     * @throws IOException
+     */
+    private List<File> cleanupOldGenerations(int gcGeneration) throws IOException {
         final int reclaimGeneration = gcGeneration - gcOptions.getRetainedGenerations();
 
         Predicate<Integer> reclaimPredicate = new Predicate<Integer>() {
@@ -782,6 +793,33 @@ public class FileStore implements SegmentStore, Closeable {
             ",reclaim-predicate=(generation<=" + reclaimGeneration + ")");
     }
 
+    /**
+     * Cleanup segments of the given generation {@code gcGeneration}.
+     * @param gcGeneration
+     * @return list of files to be removed
+     * @throws IOException
+     */
+    private List<File> cleanupGeneration(final int gcGeneration) throws IOException {
+        Predicate<Integer> cleanupPredicate = new Predicate<Integer>() {
+            @Override
+            public boolean apply(Integer generation) {
+                return generation == gcGeneration;
+            }
+        };
+        return cleanup(cleanupPredicate,
+            "gc-count=" + GC_COUNT +
+            ",gc-status=failed" +
+            ",store-generation=" + (gcGeneration - 1) +
+            ",reclaim-predicate=(generation==" + gcGeneration + ")");
+    }
+
+    /**
+     * Cleanup segments whose generation matches the {@code reclaimGeneration} predicate.
+     * @param reclaimGeneration
+     * @param gcInfo  gc information to be passed to {@link SegmentIdTable#clearSegmentIdTables(Set, String)}
+     * @return list of files to be removed
+     * @throws IOException
+     */
     private List<File> cleanup(
             @Nonnull Predicate<Integer> reclaimGeneration,
             @Nonnull String gcInfo)
@@ -1048,7 +1086,7 @@ public class FileStore implements SegmentStore, Closeable {
                     @Override
                     public void run() {
                         try {
-                            fileReaper.add(cleanup());
+                            fileReaper.add(cleanupOldGenerations(newGeneration));
                         } catch (IOException e) {
                             gcListener.error("TarMK GC #" + GC_COUNT + ": cleanup failed", e);
                         }
@@ -1063,17 +1101,7 @@ public class FileStore implements SegmentStore, Closeable {
                     public void run() {
                         try {
                             gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
-                            Predicate<Integer> cleanupPredicate = new Predicate<Integer>() {
-                                @Override
-                                public boolean apply(Integer generation) {
-                                    return generation == newGeneration;
-                                }
-                            };
-                            fileReaper.add(cleanup(cleanupPredicate,
-                                "gc-count=" + GC_COUNT +
-                                ",gc-status=failed" +
-                                ",store-generation=" + (newGeneration - 1) +
-                                ",reclaim-predicate=(generation==" + newGeneration + ")"));
+                            fileReaper.add(cleanupGeneration(newGeneration));
                         } catch (IOException e) {
                             gcListener.error("TarMK GC #" + GC_COUNT + ": cleanup failed", e);
                         }
@@ -1226,6 +1254,8 @@ public class FileStore implements SegmentStore, Closeable {
                     "Failed to close the TarMK at " + directory, e);
         }
 
+        // Try removing pending files in case the scheduler didn't have a chance to run yet
+        fileReaper.reap();
         System.gc(); // for any memory-mappings that are no longer used
 
         log.info("TarMK closed: {}", directory);
@@ -1579,7 +1609,7 @@ public class FileStore implements SegmentStore, Closeable {
         public void flush() { /* nop */ }
 
         @Override
-        public LinkedList<File> cleanup() {
+        public void cleanup() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 

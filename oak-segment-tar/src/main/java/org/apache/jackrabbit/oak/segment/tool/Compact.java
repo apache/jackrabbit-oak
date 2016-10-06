@@ -119,18 +119,9 @@ public class Compact implements Runnable {
 
         System.out.println("    -> cleaning up");
         try (FileStore store = newFileStore()) {
-            for (File file : store.cleanup()) {
-                if (!file.exists() || file.delete()) {
-                    System.out.println("    -> removed old file " + file.getName());
-                } else {
-                    System.out.println("    -> failed to remove old file " + file.getName());
-                }
-            }
-
-            String head;
-
+            store.cleanup();
             File journal = new File(path, "journal.log");
-
+            String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
                 head = journalReader.next() + " root " + System.currentTimeMillis() + "\n";
             }
