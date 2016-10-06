@@ -63,6 +63,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -191,6 +192,11 @@ public class FileStore implements SegmentStore, Closeable {
     private final SegmentGCOptions gcOptions;
 
     private final GCJournal gcJournal;
+
+    /**
+     * Semaphore guarding overlapping calls to {@link #compact()} and {@link #cleanup()}
+     */
+    private final Semaphore gcSemaphore = new Semaphore(1);
 
     /**
      * List of old tar file generations that are waiting to be removed. They can
@@ -512,7 +518,10 @@ public class FileStore implements SegmentStore, Closeable {
             if (!gcOptions.isPaused()) {
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                 log(segmentWriter.getNodeCacheOccupancyInfo());
-                compact();
+                Runnable cleanupTask = compact();
+                if (cleanupTask != null) {
+                    cleanupTask.run();
+                }
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                 log(segmentWriter.getNodeCacheOccupancyInfo());
             } else {
@@ -724,6 +733,24 @@ public class FileStore implements SegmentStore, Closeable {
     }
 
     /**
+     * Try to acquire the passed {@code semaphore}
+     * @param semaphore
+     * @return  a closable for releasing the {@code semaphore}
+     * @throws  IllegalStateException if acquiring the {@code semaphore} failed.
+     */
+    private static Closeable withSemaphore(@Nonnull final Semaphore semaphore) {
+        if (!semaphore.tryAcquire()) {
+            throw new IllegalStateException("Compaction or cleanup already in progress");
+        }
+        return new Closeable() {
+            @Override
+            public void close() {
+                semaphore.release();
+            }
+        };
+    }
+
+    /**
      * Run garbage collection on the segment level: reclaim those data segments
      * that are from an old segment generation and those bulk segments that are not
      * reachable anymore.
@@ -751,105 +778,107 @@ public class FileStore implements SegmentStore, Closeable {
             @Nonnull Predicate<Integer> reclaimGeneration,
             @Nonnull String gcInfo)
     throws IOException {
-        Stopwatch watch = Stopwatch.createStarted();
-        Set<UUID> bulkRefs = newHashSet();
-        Map<TarReader, TarReader> cleaned = newLinkedHashMap();
+        try (Closeable s = withSemaphore(gcSemaphore)) {
+            Stopwatch watch = Stopwatch.createStarted();
+            Set<UUID> bulkRefs = newHashSet();
+            Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
-        long initialSize = 0;
-        fileStoreLock.writeLock().lock();
-        try {
-            gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
+            long initialSize = 0;
+            fileStoreLock.writeLock().lock();
+            try {
+                gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
 
-            newWriter();
-            segmentCache.clear();
+                newWriter();
+                segmentCache.clear();
 
-            // Suggest to the JVM that now would be a good time
-            // to clear stale weak references in the SegmentTracker
-            System.gc();
+                // Suggest to the JVM that now would be a good time
+                // to clear stale weak references in the SegmentTracker
+                System.gc();
 
-            collectBulkReferences(bulkRefs);
+                collectBulkReferences(bulkRefs);
 
-            for (TarReader reader : readers) {
-                cleaned.put(reader, reader);
-                initialSize += reader.size();
+                for (TarReader reader : readers) {
+                    cleaned.put(reader, reader);
+                    initialSize += reader.size();
+                }
+            } finally {
+                fileStoreLock.writeLock().unlock();
             }
-        } finally {
-            fileStoreLock.writeLock().unlock();
-        }
-        
-        gcListener.info("TarMK GC #{}: current repository size is {} ({} bytes)",
-                GC_COUNT, humanReadableByteCount(initialSize), initialSize);
-        
-        Set<UUID> reclaim = newHashSet();
-        for (TarReader reader : cleaned.keySet()) {
-            reader.mark(bulkRefs, reclaim, reclaimGeneration);
-            log.info("{}: size of bulk references/reclaim set {}/{}",
-                    reader, bulkRefs.size(), reclaim.size());
-            if (shutdown) {
-                gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
-                break;
-            }
-        }
-        Set<UUID> reclaimed = newHashSet();
-        for (TarReader reader : cleaned.keySet()) {
-            cleaned.put(reader, reader.sweep(reclaim, reclaimed));
-            if (shutdown) {
-                gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
-                break;
-            }
-        }
 
-        // it doesn't account for concurrent commits that might have happened
-        long afterCleanupSize = 0;
-        
-        List<TarReader> oldReaders = newArrayList();
-        fileStoreLock.writeLock().lock();
-        try {
-            // Replace current list of reader with the cleaned readers taking care not to lose
-            // any new reader that might have come in through concurrent calls to newWriter()
-            List<TarReader> sweptReaders = newArrayList();
-            for (TarReader reader : readers) {
-                if (cleaned.containsKey(reader)) {
-                    TarReader newReader = cleaned.get(reader);
-                    if (newReader != null) {
-                        sweptReaders.add(newReader);
-                        afterCleanupSize += newReader.size();
-                    }
-                    // if these two differ, the former represents the swept version of the latter
-                    if (newReader != reader) {
-                        oldReaders.add(reader);
-                    }
-                } else {
-                    sweptReaders.add(reader);
+            gcListener.info("TarMK GC #{}: current repository size is {} ({} bytes)",
+                    GC_COUNT, humanReadableByteCount(initialSize), initialSize);
+
+            Set<UUID> reclaim = newHashSet();
+            for (TarReader reader : cleaned.keySet()) {
+                reader.mark(bulkRefs, reclaim, reclaimGeneration);
+                log.info("{}: size of bulk references/reclaim set {}/{}",
+                        reader, bulkRefs.size(), reclaim.size());
+                if (shutdown) {
+                    gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
+                    break;
                 }
             }
-            readers = sweptReaders;
-        } finally {
-            fileStoreLock.writeLock().unlock();
-        }
-        tracker.clearSegmentIdTables(reclaimed, gcInfo);
+            Set<UUID> reclaimed = newHashSet();
+            for (TarReader reader : cleaned.keySet()) {
+                cleaned.put(reader, reader.sweep(reclaim, reclaimed));
+                if (shutdown) {
+                    gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
+                    break;
+                }
+            }
 
-        // Close old readers *after* setting readers to the new readers to avoid accessing
-        // a closed reader from readSegment()
-        LinkedList<File> toRemove = newLinkedList();
-        for (TarReader oldReader : oldReaders) {
-            closeAndLogOnFail(oldReader);
-            File file = oldReader.getFile();
-            gcListener.info("TarMK GC #{}: cleanup marking file for deletion: {}", GC_COUNT, file.getName());
-            toRemove.addLast(file);
-        }
+            // it doesn't account for concurrent commits that might have happened
+            long afterCleanupSize = 0;
 
-        long finalSize = size();
-        long reclaimedSize = initialSize - afterCleanupSize; 
-        stats.reclaimed(reclaimedSize);
-        gcJournal.persist(reclaimedSize, finalSize);
-        gcListener.cleaned(reclaimedSize, finalSize);
-        gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
-                " and space reclaimed {} ({} bytes).",
-                GC_COUNT, watch, watch.elapsed(MILLISECONDS),
-                humanReadableByteCount(finalSize), finalSize,
-                humanReadableByteCount(reclaimedSize), reclaimedSize);
-        return toRemove;
+            List<TarReader> oldReaders = newArrayList();
+            fileStoreLock.writeLock().lock();
+            try {
+                // Replace current list of reader with the cleaned readers taking care not to lose
+                // any new reader that might have come in through concurrent calls to newWriter()
+                List<TarReader> sweptReaders = newArrayList();
+                for (TarReader reader : readers) {
+                    if (cleaned.containsKey(reader)) {
+                        TarReader newReader = cleaned.get(reader);
+                        if (newReader != null) {
+                            sweptReaders.add(newReader);
+                            afterCleanupSize += newReader.size();
+                        }
+                        // if these two differ, the former represents the swept version of the latter
+                        if (newReader != reader) {
+                            oldReaders.add(reader);
+                        }
+                    } else {
+                        sweptReaders.add(reader);
+                    }
+                }
+                readers = sweptReaders;
+            } finally {
+                fileStoreLock.writeLock().unlock();
+            }
+            tracker.clearSegmentIdTables(reclaimed, gcInfo);
+
+            // Close old readers *after* setting readers to the new readers to avoid accessing
+            // a closed reader from readSegment()
+            LinkedList<File> toRemove = newLinkedList();
+            for (TarReader oldReader : oldReaders) {
+                closeAndLogOnFail(oldReader);
+                File file = oldReader.getFile();
+                gcListener.info("TarMK GC #{}: cleanup marking file for deletion: {}", GC_COUNT, file.getName());
+                toRemove.addLast(file);
+            }
+
+            long finalSize = size();
+            long reclaimedSize = initialSize - afterCleanupSize;
+            stats.reclaimed(reclaimedSize);
+            gcJournal.persist(reclaimedSize, finalSize);
+            gcListener.cleaned(reclaimedSize, finalSize);
+            gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
+                            " and space reclaimed {} ({} bytes).",
+                    GC_COUNT, watch, watch.elapsed(MILLISECONDS),
+                    humanReadableByteCount(finalSize), finalSize,
+                    humanReadableByteCount(reclaimedSize), reclaimedSize);
+            return toRemove;
+        }
     }
 
     private void collectBulkReferences(Set<UUID> bulkRefs) {
@@ -938,26 +967,27 @@ public class FileStore implements SegmentStore, Closeable {
      * Copy every referenced record in data (non-bulk) segments. Bulk segments
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
-     * @return {@code true} if compaction succeeded, {@code false} otherwise.
+     * @return A {@code Runnable} for cleaning up or {@code null} when compact failed.
      */
-    public boolean compact() throws IOException {
-        gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
-        Stopwatch watch = Stopwatch.createStarted();
+    @CheckForNull
+    public Runnable compact() throws IOException {
+        try (Closeable s = withSemaphore(gcSemaphore)) {
+            Stopwatch watch = Stopwatch.createStarted();
+            gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
 
-        SegmentNodeState before = getHead();
-        final int newGeneration = getGcGeneration() + 1;
-        SegmentBufferWriter bufferWriter = new SegmentBufferWriter(this, tracker, segmentReader, "c", newGeneration);
-        Supplier<Boolean> cancel = newCancelCompactionCondition();
-        SegmentNodeState after = compact(bufferWriter, before, cancel);
-        if (after == null) {
-            gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
-            return false;
-        }
+            SegmentNodeState before = getHead();
+            final int newGeneration = getGcGeneration() + 1;
+            SegmentBufferWriter bufferWriter = new SegmentBufferWriter(this, tracker, segmentReader, "c", newGeneration);
+            Supplier<Boolean> cancel = newCancelCompactionCondition();
+            SegmentNodeState after = compact(bufferWriter, before, cancel);
+            if (after == null) {
+                gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
+                return null;
+            }
 
-        gcListener.info("TarMK GC #{}: compacted {} to {}",
-                GC_COUNT, before.getRecordId(), after.getRecordId());
+            gcListener.info("TarMK GC #{}: compacted {} to {}",
+                    GC_COUNT, before.getRecordId(), after.getRecordId());
 
-        try {
             int cycles = 0;
             boolean success = false;
             while (cycles < gcOptions.getRetryCount() &&
@@ -973,7 +1003,7 @@ public class FileStore implements SegmentStore, Closeable {
                 after = compact(bufferWriter, head, cancel);
                 if (after == null) {
                     gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
-                    return false;
+                    return null;
                 }
 
                 gcListener.info("TarMK GC #{}: compacted {} against {} to {}",
@@ -991,7 +1021,7 @@ public class FileStore implements SegmentStore, Closeable {
                     cycles++;
                     success = forceCompact(bufferWriter, or(cancel, timeOut(forceTimeout, SECONDS)));
                     if (!success) {
-                        if(cancel.get()) {
+                        if (cancel.get()) {
                             gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
                                     "Compaction was cancelled: {}.", GC_COUNT, cancel);
                         } else {
@@ -1003,7 +1033,10 @@ public class FileStore implements SegmentStore, Closeable {
             }
 
             if (success) {
-                gcScheduler.execute(format("TarMK cleanup [%s]", directory), new Runnable() {
+                gcListener.compacted(SUCCESS, newGeneration);
+                gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
+                return new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -1012,14 +1045,12 @@ public class FileStore implements SegmentStore, Closeable {
                             gcListener.error("TarMK GC #" + GC_COUNT + ": cleanup failed", e);
                         }
                     }
-                });
-
-                gcListener.compacted(SUCCESS, newGeneration);
-                gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
-                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
-                return true;
+                };
             } else {
-                gcScheduler.execute(format("TarMK cleanup [%s]", directory), new Runnable() {
+                gcListener.compacted(FAILURE, newGeneration);
+                gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
+                return new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -1039,19 +1070,15 @@ public class FileStore implements SegmentStore, Closeable {
                             gcListener.error("TarMK GC #" + GC_COUNT + ": cleanup failed", e);
                         }
                     }
-                });
-                gcListener.compacted(FAILURE, newGeneration);
-                gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
-                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
-                return false;
+                };
             }
         } catch (InterruptedException e) {
             gcListener.error("TarMK GC #" + GC_COUNT + ": compaction interrupted", e);
             currentThread().interrupt();
-            return false;
+            return null;
         } catch (Exception e) {
             gcListener.error("TarMK GC #" + GC_COUNT + ": compaction encountered an error", e);
-            return false;
+            return null;
         }
     }
 
@@ -1571,7 +1598,7 @@ public class FileStore implements SegmentStore, Closeable {
         }
 
         @Override
-        public boolean compact() {
+        public Runnable compact() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
