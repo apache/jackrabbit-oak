@@ -22,10 +22,8 @@ package org.apache.jackrabbit.oak.segment.standby.client;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -165,15 +163,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
     }
 
     private void cleanupAndRemove() throws IOException {
-        for (File file : fileStore.cleanup()) {
-            log.info("Removing file {}", file);
-
-            try {
-                Files.deleteIfExists(file.toPath());
-            } catch (IOException e) {
-                log.warn(String.format("Unable to remove file %s", file), e);
-            }
-        }
+        fileStore.cleanup();
     }
 
     private Supplier<Boolean> newRunningSupplier() {
