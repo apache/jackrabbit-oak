@@ -347,6 +347,13 @@ public class FileStore implements SegmentStore, Closeable {
 
             });
             fileStoreScheduler.scheduleAtFixedRate(
+                    format("TarMK filer reaper [%s]", directory), 5, SECONDS, new Runnable() {
+                        @Override
+                        public void run() {
+                            fileReaper.reap();
+                        }
+                    });
+            fileStoreScheduler.scheduleAtFixedRate(
                     format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
                 @Override
                 public void run() {
@@ -714,8 +721,6 @@ public class FileStore implements SegmentStore, Closeable {
                 return null;
             }
         });
-
-        fileReaper.reap();
     }
 
     /**
