@@ -185,10 +185,9 @@ public class FileStore implements SegmentStore, Closeable {
     private final PeriodicOperation flushOperation;
 
     /**
-     * The background compaction thread. Compacts the TarMK contents whenever
-     * triggered by the {@link #gc()} method.
+     * Scheduler for running compaction and cleanup in the background
      */
-    private final TriggeredOperation compactionOperation;
+    private final Scheduler gcScheduler = new Scheduler("GC Scheduler");
 
     /**
      * This background thread periodically asks the {@code SegmentGCOptions}
@@ -354,19 +353,6 @@ public class FileStore implements SegmentStore, Closeable {
                     flush();
                 } catch (IOException e) {
                     log.warn("Failed to flush the TarMK at {}", directory, e);
-                }
-            }
-
-        });
-
-        compactionOperation = new TriggeredOperation(format("TarMK compaction thread [%s]", directory), new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    maybeCompact(true);
-                } catch (IOException e) {
-                    log.error("Error running compaction", e);
                 }
             }
 
@@ -1179,18 +1165,10 @@ public class FileStore implements SegmentStore, Closeable {
         // Flag the store as shutting / shut down
         shutdown = true;
 
+        gcScheduler.close();
+
         // avoid deadlocks by closing (and joining) the background
         // threads before acquiring the synchronization lock
-
-        try {
-            if (compactionOperation.stop(5, SECONDS)) {
-                log.debug("The compaction background thread was successfully shut down");
-            } else {
-                log.warn("The compaction background thread takes too long to shutdown");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
 
         try {
             if (flushOperation.stop(5, SECONDS)) {
@@ -1464,7 +1442,16 @@ public class FileStore implements SegmentStore, Closeable {
      * Trigger a garbage collection cycle
      */
     public void gc() {
-        compactionOperation.trigger();
+        gcScheduler.execute(format("TarMK compaction thread [%s]", directory), new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    maybeCompact(true);
+                } catch (IOException e) {
+                    log.error("Error running compaction", e);
+                }
+            }
+        });
     }
 
     public Map<String, Set<UUID>> getTarReaderIndex() {
