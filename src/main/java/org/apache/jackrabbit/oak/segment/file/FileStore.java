@@ -202,11 +202,6 @@ public class FileStore implements SegmentStore, Closeable {
     private final GCJournal gcJournal;
 
     /**
-     * Flag to request revision cleanup during the next flush.
-     */
-    private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
-
-    /**
      * List of old tar file generations that are waiting to be removed. They can
      * not be removed immediately, because they first need to be closed, and the
      * JVM needs to release the memory mapped file references.
@@ -524,9 +519,7 @@ public class FileStore implements SegmentStore, Closeable {
             if (!gcOptions.isPaused()) {
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                 log(segmentWriter.getNodeCacheOccupancyInfo());
-                if (compact()) {
-                    cleanupNeeded.set(cleanup);
-                }
+                compact();
                 logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                 log(segmentWriter.getNodeCacheOccupancyInfo());
             } else {
@@ -735,11 +728,6 @@ public class FileStore implements SegmentStore, Closeable {
                 return null;
             }
         });
-
-        if (cleanupNeeded.getAndSet(false)) {
-            // FIXME OAK-4138: Decouple revision cleanup from the flush thread
-            fileReaper.add(cleanup());
-        }
 
         fileReaper.reap();
     }
@@ -1024,25 +1012,43 @@ public class FileStore implements SegmentStore, Closeable {
             }
 
             if (success) {
+                gcScheduler.execute(format("TarMK cleanup [%s]", directory), new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            fileReaper.add(cleanup());
+                        } catch (IOException e) {
+                            gcListener.error("TarMK GC #" + GC_COUNT + ": cleanup failed", e);
+                        }
+                    }
+                });
+
                 gcListener.compacted(SUCCESS, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
                         GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                 return true;
             } else {
-                gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
-
-                Predicate<Integer> cleanupPredicate = new Predicate<Integer>() {
+                gcScheduler.execute(format("TarMK cleanup [%s]", directory), new Runnable() {
                     @Override
-                    public boolean apply(Integer generation) {
-                        return generation == newGeneration;
+                    public void run() {
+                        try {
+                            gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
+                            Predicate<Integer> cleanupPredicate = new Predicate<Integer>() {
+                                @Override
+                                public boolean apply(Integer generation) {
+                                    return generation == newGeneration;
+                                }
+                            };
+                            fileReaper.add(cleanup(cleanupPredicate,
+                                "gc-count=" + GC_COUNT +
+                                ",gc-status=failed" +
+                                ",store-generation=" + (newGeneration - 1) +
+                                ",reclaim-predicate=(generation==" + newGeneration + ")"));
+                        } catch (IOException e) {
+                            gcListener.error("TarMK GC #" + GC_COUNT + ": cleanup failed", e);
+                        }
                     }
-                };
-                fileReaper.add(cleanup(cleanupPredicate,
-                    "gc-count=" + GC_COUNT +
-                    ",gc-status=failed" +
-                    ",store-generation=" + (newGeneration - 1) +
-                    ",reclaim-predicate=(generation==" + newGeneration + ")"));
-
+                });
                 gcListener.compacted(FAILURE, newGeneration);
                 gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
                         GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
@@ -1442,7 +1448,7 @@ public class FileStore implements SegmentStore, Closeable {
      * Trigger a garbage collection cycle
      */
     public void gc() {
-        gcScheduler.execute(format("TarMK compaction thread [%s]", directory), new Runnable() {
+        gcScheduler.execute(format("TarMK compaction [%s]", directory), new Runnable() {
             @Override
             public void run() {
                 try {
