@@ -102,7 +102,7 @@ public class SegmentTarNodeStoreContainer implements NodeStoreContainer {
         return directory;
     }
 
-    static void deleteRecursive(File directory) {
+    public static void deleteRecursive(File directory) {
         try {
             Files.walkFileTree(directory.toPath(), new SimpleFileVisitor<Path>() {
                 @Override
