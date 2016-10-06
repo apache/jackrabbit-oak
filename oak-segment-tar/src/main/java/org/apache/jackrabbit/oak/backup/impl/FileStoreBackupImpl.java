@@ -117,12 +117,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
 
     @Override
     public boolean cleanup(FileStore f) throws IOException {
-        boolean ok = true;
-
-        for (File file : f.cleanup()) {
-            ok = ok && file.delete();
-        }
-
+        f.cleanup();
         return true;
     }
 
