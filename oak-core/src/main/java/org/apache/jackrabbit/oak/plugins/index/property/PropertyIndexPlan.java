@@ -54,7 +54,7 @@ public class PropertyIndexPlan {
     /**
      * The cost overhead to use the index in number of read operations.
      */
-    static final double COST_OVERHEAD = 2;
+    public static final double COST_OVERHEAD = 2;
 
     /**
      * The maximum cost when the index can be used.
@@ -83,6 +83,8 @@ public class PropertyIndexPlan {
 
     private final PathFilter pathFilter;
 
+    private final boolean unique;
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
@@ -91,6 +93,7 @@ public class PropertyIndexPlan {
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter, MountInfoProvider mountInfoProvider) {
         this.name = name;
+        this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
         pathFilter = PathFilter.from(definition.builder());
@@ -107,7 +110,7 @@ public class PropertyIndexPlan {
         Set<String> bestValues = emptySet();
         int bestDepth = 1;
 
-        if (matchesNodeTypes && 
+        if (matchesNodeTypes &&
                 pathFilter.areAllDescendantsIncluded(filter.getPath())) {
             for (String property : properties) {
                 PropertyRestriction restriction =
@@ -145,10 +148,20 @@ public class PropertyIndexPlan {
                         cost += strategy.count(filter, root, definition,
                                 values, MAX_COST);
                     }
+                    if (unique && cost <= 1) {
+                        // for unique index, for the normal case
+                        // (that is, for a regular lookup)
+                        // no further reads are needed
+                        cost = 0;
+                    }
                     if (cost < bestCost) {
                         bestDepth = depth;
                         bestValues = values;
                         bestCost = cost;
+                        if (bestCost == 0) {
+                            // shortcut: not possible to top this
+                            break;
+                        }
                     }
                 }
             }
@@ -207,8 +220,6 @@ public class PropertyIndexPlan {
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition,
             MountInfoProvider mountInfoProvider) {
-        boolean unique = definition
-                .getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         return Multiplexers.getStrategies(unique, mountInfoProvider,
                 definition, INDEX_CONTENT_NODE_NAME);
     }
