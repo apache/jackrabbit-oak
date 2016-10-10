@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
-import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -392,16 +391,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             return false;
         }
 
-        // Expose an MBean to provide information about the gc options
-
-        registrations.add(registerMBean(
-                whiteboard,
-                SegmentRevisionGC.class,
-                new SegmentRevisionGCMBean(store, gcOptions),
-                SegmentRevisionGC.TYPE,
-                "Segment node store gc options"
-        ));
-
         // Expose stats about the segment cache
 
         CacheStatsMBean segmentCacheStats = store.getSegmentCacheStats();
@@ -463,14 +452,25 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
-        // Expose an MBean to trigger garbage collection
+        // Expose an MBean to managing and monitoring garbage collection
+
+        FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
+        registrations.add(new CompositeRegistration(
+            whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
+            registerMBean(
+                whiteboard,
+                SegmentRevisionGC.class,
+                new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
+                SegmentRevisionGC.TYPE,
+                "Segment node store revision garbage collection"
+            )));
 
         registrations.add(registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
                 new RevisionGC(store.getGCRunner(), executor),
                 RevisionGCMBean.TYPE,
-                "Segment node store revision garbage collection"
+                "Revision garbage collection"
         ));
 
         // Expose statistics about the FileStore
@@ -482,21 +482,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 FileStoreStatsMBean.TYPE,
                 "FileStore statistics"
         ));
-
-        // Register a monitor for the garbage collection of the FileStore
-
-        FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
-
-        registrations.add((new CompositeRegistration(
-                whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
-                registerMBean(
-                        whiteboard,
-                        GCMonitorMBean.class,
-                        fsgcm,
-                        GCMonitorMBean.TYPE,
-                        "File Store garbage collection monitor"
-                )
-        )));
 
         // Register a factory service to expose the FileStore
 
