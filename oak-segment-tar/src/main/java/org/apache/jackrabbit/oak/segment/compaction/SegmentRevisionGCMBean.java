@@ -19,18 +19,30 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 
 // FIXME OAK-4617: Align SegmentRevisionGC MBean with new generation based GC
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
         implements SegmentRevisionGC {
 
+    @Nonnull
+    private final FileStore fileStore;
+
+    @Nonnull
     private final SegmentGCOptions gcOptions;
 
-    public SegmentRevisionGCMBean(SegmentGCOptions gcOptions) {
+    public SegmentRevisionGCMBean(@Nonnull FileStore fileStore, @Nonnull SegmentGCOptions gcOptions) {
         super(SegmentRevisionGC.class);
-        this.gcOptions = gcOptions;
+        this.fileStore = checkNotNull(fileStore);
+        this.gcOptions = checkNotNull(gcOptions);
     }
 
     @Override
@@ -94,8 +106,13 @@ public class SegmentRevisionGCMBean
     }
 
     @Override
-    public void stopCompaction() {
-        gcOptions.setStopCompaction(true);
+    public void startRevisionGC() {
+        fileStore.getGCRunner().run();
+    }
+
+    @Override
+    public void cancelRevisionGC() {
+        fileStore.cancelGC();
     }
 
 }

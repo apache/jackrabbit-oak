@@ -397,7 +397,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         registrations.add(registerMBean(
                 whiteboard,
                 SegmentRevisionGC.class,
-                new SegmentRevisionGCMBean(gcOptions),
+                new SegmentRevisionGCMBean(store, gcOptions),
                 SegmentRevisionGC.TYPE,
                 "Segment node store gc options"
         ));
