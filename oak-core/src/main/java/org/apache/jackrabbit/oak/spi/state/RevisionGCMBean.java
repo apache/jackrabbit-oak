@@ -40,6 +40,15 @@ public interface RevisionGCMBean {
     CompositeData startRevisionGC();
 
     /**
+     * Cancel a running revision garbage collection operation. Does nothing
+     * if revision garbage collection is not running.
+     *
+     * @return  the status of the operation right after it was initiated
+     */
+    @Nonnull
+    CompositeData cancelRevisionGC();
+
+    /**
      * Revision garbage collection status
      *
      * @return  the status of the ongoing operation or if none the terminal

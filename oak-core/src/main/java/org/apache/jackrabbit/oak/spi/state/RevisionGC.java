@@ -41,19 +41,24 @@ public class RevisionGC implements RevisionGCMBean {
 
     public static final String OP_NAME = "Revision garbage collection";
 
-    private final Runnable gc;
+    @Nonnull
+    private final Runnable runGC;
+    private final Runnable cancelGC;
     private final Executor executor;
 
     private ManagementOperation<String> gcOp = done(OP_NAME, "");
 
     /**
-     * @param gc               Revision garbage collector
-     * @param executor         executor for running the garbage collection task
+     * @param runGC        Revision garbage collector
+     * @param cancelGC     Executor for cancelling the garbage collection task
+     * @param executor     Executor for initiating the garbage collection task
      */
     public RevisionGC(
-            @Nonnull Runnable gc,
+            @Nonnull Runnable runGC,
+            @Nonnull Runnable cancelGC,
             @Nonnull Executor executor) {
-        this.gc = checkNotNull(gc);
+        this.runGC = checkNotNull(runGC);
+        this.cancelGC = checkNotNull(cancelGC);
         this.executor = checkNotNull(executor);
     }
 
@@ -64,11 +69,26 @@ public class RevisionGC implements RevisionGCMBean {
             gcOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
                 public String call() throws Exception {
-                    gc.run();
+                    runGC.run();
                     return "Revision GC initiated";
                 }
             });
             executor.execute(gcOp);
+        }
+        return getRevisionGCStatus();
+    }
+
+    @Nonnull
+    @Override
+    public CompositeData cancelRevisionGC() {
+        if (!gcOp.isDone()) {
+            executor.execute(newManagementOperation(OP_NAME, new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    cancelGC.run();
+                    return "Revision GC cancelled";
+                }
+            }));
         }
         return getRevisionGCStatus();
     }

@@ -174,6 +174,18 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
         }).toCompositeData();
     }
 
+    @Nonnull
+    @Override
+    public CompositeData cancelRevisionGC() {
+        return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(RevisionGCMBean revisionGCService) {
+                return fromCompositeData(revisionGCService.cancelRevisionGC());
+            }
+        }).toCompositeData();
+    }
+
     @Override
     public CompositeData getRevisionGCStatus() {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
