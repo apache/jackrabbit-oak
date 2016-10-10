@@ -75,22 +75,26 @@ public class SizeDeltaGcEstimation implements GCEstimation {
                     delta);
         } else if (getPreviousCleanupSize() < 0) {
             gcNeeded = true;
-            gcInfo = format("Estimation skipped because of missing gc journal data");
+            gcInfo = "Estimation skipped because of missing gc journal data (expected on first run)";
         } else {
             long lastGc = getPreviousCleanupSize();
             long gain = totalSize - lastGc;
             long gainP = 100 * (totalSize - lastGc) / totalSize;
             gcNeeded = gain > delta;
+            gcInfo = format(
+                    "Segmentstore size has increased since the last compaction from %s (%s bytes) to %s (%s bytes), " +
+                    "an increase of %s (%s bytes) or %s%%. ",
+                    humanReadableByteCount(lastGc), lastGc,
+                    humanReadableByteCount(totalSize), totalSize,
+                    humanReadableByteCount(gain), gain, gainP);
             if (gcNeeded) {
-                gcInfo = format(
-                        "Size delta is %s%% or %s/%s (%s/%s bytes), so running compaction",
-                        gainP, humanReadableByteCount(lastGc),
-                        humanReadableByteCount(totalSize), lastGc, totalSize);
+                gcInfo = gcInfo + format(
+                        "This is greater than sizeDeltaEstimation=%s (%s bytes), so running compaction",
+                        humanReadableByteCount(delta), delta);
             } else {
-                gcInfo = format(
-                        "Size delta is %s%% or %s/%s (%s/%s bytes), so skipping compaction for now",
-                        gainP, humanReadableByteCount(lastGc),
-                        humanReadableByteCount(totalSize), lastGc, totalSize);
+                gcInfo = gcInfo + format(
+                        "This is less than sizeDeltaEstimation=%s (%s bytes), so skipping compaction",
+                        humanReadableByteCount(delta), delta);
             }
         }
         finished = true;
