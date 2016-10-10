@@ -82,7 +82,6 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -109,7 +108,6 @@ import org.slf4j.LoggerFactory;
  * All of which can be interactively modified through the accompanying
  * {@link SegmentCompactionITMBean}, the
  * {@link SegmentRevisionGC} and the
- * {@link GCMonitorMBean}.</p>
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
@@ -236,10 +234,8 @@ public class SegmentCompactionIT {
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
-        registrations.add(registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions),
+        registrations.add(registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions, fileStoreGCMonitor),
                 new ObjectName("IT:TYPE=Segment Revision GC")));
-        registrations.add(registerMBean(fileStoreGCMonitor,
-                new ObjectName("IT:TYPE=GC Monitor")));
         CacheStatsMBean segmentCacheStats = fileStore.getSegmentCacheStats();
         registrations.add(registerMBean(segmentCacheStats,
                 new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
