@@ -24,10 +24,10 @@ This HOWTO explains how to release Oak Segment Tar. I describe the steps require
 1. Execute `mvn release:prepare`.
 2. Execute `mvn release:perform`.
 3. Close the staged Maven repository.
-  1. Log in to https://repository.apache.org.
-  2. Click on "Staging Repositories".
-  3. Click on the repository.
-  4. Click on "Close".
+    1. Log in to https://repository.apache.org.
+    2. Click on "Staging Repositories".
+    3. Click on the repository.
+    4. Click on "Close".
 4. Start the vote on oak-dev. See the vote template below.
 5. Wait 72 hours.
 
@@ -37,35 +37,35 @@ A vote is successful if it has at least three +1 and if the number of -1 is less
 
 1. Close the vote on oak-dev. See the results template below.
 2. Copy the artifacts to the release repository.
-  1. Execute the `check_staged_release.sh` script if you haven't already.
-  2. Move to the temporary folder created by the script where the artifacts are.
-  3. Execute `svn import https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$VERSION`.
+    1. Execute the `check_staged_release.sh` script if you haven't already.
+    2. Move to the temporary folder created by the script where the artifacts are.
+    3. Execute `svn import https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$VERSION`.
 3. Delete the old release.
-  1. Execute `svn rm https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$PREV`.
+    1. Execute `svn rm https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$PREV`.
 4. Release the staged Maven repository.
-  1. Log in to https://repository.apache.org.
-  2. Click on "Staging Repositories".
-  3. Click on the repository.
-  4. Click on "Release".
+    1. Log in to https://repository.apache.org.
+    2. Click on "Staging Repositories".
+    3. Click on the repository.
+    4. Click on "Release".
 5. Release the version on Jira.
-  1. Go to https://issues.apache.org/jira/plugins/servlet/project-config/OAK/versions.
-  2. Create version $NEXT if it doesn't already exist.
-  3. Move your mouse on the $VERSION version.
-  4. Click on the gear icon.
-  5. Click on release.
-  6. Select "Move issues to version:".
-  7. Select version $NEXT from the dropdown box.
-  8. Enter the release date. The release date is the day the vote ended.
+    1. Go to https://issues.apache.org/jira/plugins/servlet/project-config/OAK/versions.
+    2. Create version $NEXT if it doesn't already exist.
+    3. Move your mouse on the $VERSION version.
+    4. Click on the gear icon.
+    5. Click on release.
+    6. Select "Move issues to version:".
+    7. Select version $NEXT from the dropdown box.
+    8. Enter the release date. The release date is the day the vote ended.
 
 ## Unsuccessful vote
 
 1. Remove the release tag from Subversion.
-  1. Execute `svn rm http://svn.apache.org/repos/asf/jackrabbit/oak/tags/oak-segment-tar-$VERSION`.
+    1. Execute `svn rm http://svn.apache.org/repos/asf/jackrabbit/oak/tags/oak-segment-tar-$VERSION`.
 2. Drop the staged Maven repository.
-  1. Log in to https://repository.apache.org.
-  2. Click on "Staging Repositories".
-  3. Click on the repository.
-  4. Click on "Drop".
+    1. Log in to https://repository.apache.org.
+    2. Click on "Staging Repositories".
+    3. Click on the repository.
+    4. Click on "Drop".
 3. Rollback the version information in `pom.xml`.
 
 ## Vote template
