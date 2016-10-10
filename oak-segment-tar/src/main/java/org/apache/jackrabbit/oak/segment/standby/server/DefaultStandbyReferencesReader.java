@@ -21,6 +21,7 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -62,11 +63,23 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
     }
 
     private Segment readSegment(SegmentId id) {
-        try {
-            return store.readSegment(id);
-        } catch (SegmentNotFoundException e) {
-            log.warn(String.format("Unable to read segment %s", id), e);
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                return store.readSegment(id);
+            } catch (SegmentNotFoundException e) {
+                log.warn("Unable to read segment, waiting...", e);
+            }
+
+            try {
+                TimeUnit.MILLISECONDS.sleep(2000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
         }
+
+        log.warn("Unable to read segment %s", id);
 
         return null;
     }
