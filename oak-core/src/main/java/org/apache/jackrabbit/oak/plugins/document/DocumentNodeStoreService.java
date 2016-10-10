@@ -796,7 +796,7 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        RevisionGC revisionGC = new RevisionGC(new Runnable() {
+        Runnable startGC = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -805,7 +805,14 @@ public class DocumentNodeStoreService {
                     log.warn("Error occurred while executing the Version Garbage Collector", e);
                 }
             }
-        }, executor);
+        };
+        Runnable cancelGC = new Runnable() {
+            @Override
+            public void run() {
+                throw new UnsupportedOperationException("Cancelling revision garbage collection is not supported");
+            }
+        };
+        RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, executor);
         registrations.add(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 
