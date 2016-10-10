@@ -38,6 +38,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class NRTIndexFactory implements Closeable{
+    /**
+     * Maximum numbers of NRTIndex to keep at a time. At runtime for a given index
+     * /oak:index/fooIndex at max 2 IndexNode would be opened at a time and those 2
+     * IndexNode would keep reference to at max 3 NRT Indexes
+     */
+    private static final int MAX_INDEX_COUNT = 3;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ListMultimap<String, NRTIndex> indexes = LinkedListMultimap.create();
     private final IndexCopier indexCopier;
@@ -82,7 +88,7 @@ public class NRTIndexFactory implements Closeable{
 
     private void closeLast(String indexPath) {
         List<NRTIndex> existing = indexes.get(indexPath);
-        if (existing.size() < 3){
+        if (existing.size() <= MAX_INDEX_COUNT){
             return;
         }
         NRTIndex oldest = existing.remove(0);
@@ -98,7 +104,7 @@ public class NRTIndexFactory implements Closeable{
         if (existing.isEmpty()){
             return null;
         }
-        checkArgument(existing.size() <= 2, "Found [%s] more than 3 index", existing.size());
+        checkArgument(existing.size() <= MAX_INDEX_COUNT, "Found [%s] more than 3 index", existing.size());
         return existing.get(existing.size() - 1);
     }
 
