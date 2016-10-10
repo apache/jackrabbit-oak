@@ -529,7 +529,7 @@ public class CompactionAndCleanupIT {
             public Boolean call() throws IOException {
                 boolean cancelled = false;
                 for (int k = 0; !cancelled && k < 1000; k++) {
-                    cancelled = fileStore.compact() == null;
+                    cancelled = !fileStore.compact();
                 }
                 return cancelled;
             }
@@ -1080,10 +1080,7 @@ public class CompactionAndCleanupIT {
             Callable<Void> concurrentCleanupTask = new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    // Concurrent cleanup calls are not supported by the file store
-                    synchronized (fileStore) {
-                        fileStore.cleanup();
-                    }
+                    fileStore.cleanup();
                     return null;
                 }
             };
@@ -1143,10 +1140,7 @@ public class CompactionAndCleanupIT {
             final Callable<Void> concurrentCleanTask = new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    // Concurrent cleanup calls are not supported by the file store
-                    synchronized (fileStore) {
-                        fileStore.cleanup();
-                    }
+                    fileStore.cleanup();
                     return null;
                 }
             };

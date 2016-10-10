@@ -102,7 +102,13 @@ public interface SegmentRevisionGC {
     void setGcSizeDeltaEstimation(long gcSizeDeltaEstimation);
 
     /**
-     * Raise the flag to signal compaction to stop as soon as possible.
+     * Initiate a revision garbage collection operation
      */
-    void stopCompaction();
+    void startRevisionGC();
+
+    /**
+     * Cancel a running revision garbage collection operation. Does nothing
+     * if revision garbage collection is not running.
+     */
+    void cancelRevisionGC();
 }
