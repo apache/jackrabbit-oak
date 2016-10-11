@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.11
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.12
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.11 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.12 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,71 +15,45 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.11
+Changes in Oak 1.5.12
 ---------------------
 
 Technical task
 
-    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
-    [OAK-4793] - Check usage of DocumentStoreException in
-    RDBDocumentStore
-    [OAK-4838] - Move S3 classes to oak-blob-cloud module
-    [OAK-4848] - Improve oak-blob-cloud tests
+    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to
+    5.1.40
+    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to
+    9.4.1211
 
 Bug
 
-    [OAK-4734] - AsyncIndexUpdateClusterTestIT fails occasionally
-    [OAK-4805] - Misconfigured lucene index definition can render the
-    whole system unusable
-    [OAK-4807] - SecondaryStoreConfigIT intermittently failing due to
-    incorrect MongoURL
-    [OAK-4830] - StringUtils.estimateMemoryUsage() can throw
-    NullPointerException
-    [OAK-4832] - Upgrade breaks if the SecurityManager section in
-    repository.xml is empty
-    [OAK-4840] - Incorrect branch commit value
-    [OAK-4841] - Error during MongoDB initialization
-    [OAK-4842] - Upgrade breaks if there's no SearchManager configured
-    in repository.xml
+    [OAK-4082] - RDBDocumentStore on MySQL may fail when using
+    useServerPrepStmts=true
+    [OAK-4828] - oak-ugrade tests fail with segment tar 0.0.12 (on
+    Windows)
+    [OAK-4894] - Potential NPE in Commit.apply()
+    [OAK-4909] - NRTIndex can get closed while in use
 
 Improvement
 
-    [OAK-3858] - Review slow running tests
-    [OAK-4043] - Oak run checkpoints needs to account for multiple
-    index lanes
-    [OAK-4580] - Update to Mongo Java Driver 3.2.x
-    [OAK-4806] - Remove usage of Tree in LuceneIndexEditor
-    [OAK-4815] - ReferenceIndex slowdown due to OAK-3403
-    [OAK-4819] - Improve revision GC resilience
-    [OAK-4826] - Auto removal of orphaned checkpoints
-    [OAK-4831] - Don't break the upgrade tests if the directory can't
-    be cleaned-up
-    [OAK-4847] - Support any types of node builders in the
-    initializers
-    [OAK-4854] - Simplify TarNodeStore
-    [OAK-4858] - Use Integer.getInteger() to read system property
-    [OAK-4863] - Reduce query batch size for deleted documents
-    [OAK-4867] - Avoid queries for first level previous documents
-    during GC
+    [OAK-4816] - Property index: cost estimate with path restriction
+    is too optimistic
+    [OAK-4890] - Invalidate cache on missing previous document
+    [OAK-4892] - Speed up DocumentNodeStoreStatsCollectorIT
+    [OAK-4904] - For unique indexes avoid consulting indexes other
+    than property index
+    [OAK-4910] - Update segment tar to 0.0.14
 
 New Feature
 
-    [OAK-3574] - Query engine: support p=lowercase('x') and other
-    function-based indexes
-    [OAK-4412] - Lucene hybrid index
-    [OAK-4655] - Enable configuring multiple segment nodestore
-    instances in same setup
-    [OAK-4712] - Publish S3DataStore stats in JMX MBean
-    [OAK-4850] - List checkpoints
+    [OAK-4265] - XPath: support limited form of "union"
+    [OAK-4522] - Improve CommitRateLimiter to optionally block some
+    commits
 
 Task
 
-    [OAK-4774] - Check usage of DocumentStoreException in
-    MongoDocumentStore
-
-Test
-
-    [OAK-4802] - Basic cache consistency test on exception
+    [OAK-4823] - Upgrade Oak Segment Tar dependency to 0.0.12
+    [OAK-4889] - Update Oak trunk to Jackrabbit 2.13.4
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
