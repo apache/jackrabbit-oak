@@ -289,6 +289,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         static final String[] FIELD_NAMES = new String[]{
                 "index",
                 "className",
+                "toString",
                 "isDeep",
                 "nodeTypeNames",
                 "deliveries",
@@ -314,6 +315,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
                 SimpleType.INTEGER,
+                SimpleType.STRING,
                 SimpleType.STRING,
                 SimpleType.BOOLEAN,
                 SimpleType.STRING,
@@ -362,6 +364,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             Object[] values = new Object[]{
                     index,
                     mbeans.eventListenerMBean.getClassName(),
+                    mbeans.eventListenerMBean.getToString(),
                     mbeans.eventListenerMBean.isDeep(),
                     Arrays.toString(mbeans.eventListenerMBean.getNodeTypeName()),
                     mbeans.eventListenerMBean.getEventDeliveries(),
