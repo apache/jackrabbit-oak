@@ -335,18 +335,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private synchronized void registerNodeStore() throws IOException {
-        if (registerSegmentStore()) {
-            if (toBoolean(property(STANDBY), false)) {
-                return;
-            }
-
-            if (registerSegmentNodeStore()) {
-                Dictionary<String, Object> props = new Hashtable<String, Object>();
-                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
-                storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
-            }
+        if (!registerSegmentStore()) {
+            return;
         }
+        if (toBoolean(property(STANDBY), false)) {
+            return;
+        }
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+        props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
+        storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
     }
 
     private boolean registerSegmentStore() throws IOException {
@@ -483,34 +481,19 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 "FileStore statistics"
         ));
 
-        // Register a factory service to expose the FileStore
+        // register segment node store
 
-        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
-
-        return true;
-    }
-
-    private SegmentGCOptions newGCOptions() {
-        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
-        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
-        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
-
-        byte gainThreshold = getGainThreshold();
-        long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
-
-        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
-                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
-    }
-
-    private boolean registerSegmentNodeStore() throws IOException {
         Dictionary<?, ?> properties = context.getProperties();
         name = String.valueOf(properties.get(NAME));
 
         final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
-        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(store).build();
+        SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder =
+                SegmentNodeStoreBuilders.builder(store);
+        if (toBoolean(property(STANDBY), false)) {
+            segmentNodeStoreBuilder.dispatchChanges(false);
+        }
+        segmentNodeStore = segmentNodeStoreBuilder.build();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());
@@ -550,7 +533,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
             if (blobStore instanceof BlobTrackingStore) {
                 final long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL),
-                    DEFAULT_BLOB_SNAPSHOT_INTERVAL);
+                        DEFAULT_BLOB_SNAPSHOT_INTERVAL);
                 String root = property(DIRECTORY);
                 if (Strings.isNullOrEmpty(root)) {
                     root = "repository";
@@ -561,8 +544,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     trackingStore.getTracker().close();
                 }
                 ((BlobTrackingStore) blobStore).addTracker(
-                    new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
-                        blobStore));
+                        new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
+                                blobStore));
             }
         }
 
@@ -585,7 +568,24 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         log.info("SegmentNodeStore initialized");
+
+        // Register a factory service to expose the FileStore
+
+        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
+
         return true;
+    }
+
+    private SegmentGCOptions newGCOptions() {
+        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
+        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
+        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
+
+        byte gainThreshold = getGainThreshold();
+        long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
+
+        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
+                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
     }
 
     private void unregisterNodeStore() {
