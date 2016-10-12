@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Stack;
 
+import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
