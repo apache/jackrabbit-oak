@@ -200,20 +200,10 @@ class StandbyClientSyncExecution {
     }
 
     private boolean isLocal(UUID id) {
-        SegmentId referencedId = store.newSegmentId(
+        return store.containsSegment(store.newSegmentId(
                 id.getMostSignificantBits(),
                 id.getLeastSignificantBits()
-        );
-
-        boolean persisted = true;
-
-        try {
-            referencedId.getSegment();
-        } catch(SegmentNotFoundException e) {
-            persisted = false;
-        }
-
-        return persisted;
+        ));
     }
 
     private void copySegmentFromPrimary(UUID uuid) throws Exception {
