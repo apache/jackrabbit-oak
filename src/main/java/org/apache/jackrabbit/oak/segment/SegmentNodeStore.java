@@ -72,6 +72,15 @@ import org.slf4j.LoggerFactory;
  */
 public class SegmentNodeStore implements NodeStore, Observable {
 
+    private static final Closeable NOOP = new Closeable() {
+
+        @Override
+        public void close() throws IOException {
+            // This method was intentionally left blank.
+        }
+
+    };
+
     public static class SegmentNodeStoreBuilder {
         private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeStoreBuilder.class);
 
@@ -89,6 +98,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
         private boolean isCreated;
 
+        private boolean dispatchChanges = true;
+
         private SegmentNodeStoreBuilder(
                 @Nonnull Revisions revisions,
                 @Nonnull SegmentReader reader,
@@ -98,6 +109,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
             this.reader = reader;
             this.writer = writer;
             this.blobStore = blobStore;
+        }
+
+        @Nonnull
+        public SegmentNodeStoreBuilder dispatchChanges(boolean dispatchChanges) {
+            this.dispatchChanges = dispatchChanges;
+            return this;
         }
 
         @Nonnull
@@ -188,7 +205,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         this.writer = builder.writer;
         this.blobStore = builder.blobStore;
         this.head = new AtomicReference<SegmentNodeState>(reader.readHeadState(revisions));
-        this.changeDispatcher = new ChangeDispatcher(getRoot());
+        if (builder.dispatchChanges) {
+            this.changeDispatcher = new ChangeDispatcher(getRoot());
+        } else {
+            this.changeDispatcher = null;
+        }
     }
 
     void setMaximumBackoff(long max) {
@@ -228,13 +249,16 @@ public class SegmentNodeStore implements NodeStore, Observable {
         SegmentNodeState state = reader.readHeadState(revisions);
         if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
-            changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
+            contentChanged(state.getChildNode(ROOT), null);
         }
     }
 
     @Override
     public Closeable addObserver(Observer observer) {
-        return changeDispatcher.addObserver(observer);
+        if (changeDispatcher != null) {
+            return changeDispatcher.addObserver(observer);
+        }
+        return NOOP;
     }
 
     @Override @Nonnull
@@ -509,7 +533,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             refreshHead();
             if (revisions.setHead(before.getRecordId(), after.getRecordId())) {
                 head.set(after);
-                changeDispatcher.contentChanged(after.getChildNode(ROOT), info);
+                contentChanged(after.getChildNode(ROOT), info);
                 refreshHead();
                 return true;
             } else {
@@ -624,6 +648,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
      */
     void setCheckpointsLockWaitTime(int checkpointsLockWaitTime) {
         this.checkpointsLockWaitTime = checkpointsLockWaitTime;
+    }
+
+    private void contentChanged(NodeState root, CommitInfo info) {
+        if (changeDispatcher != null) {
+            changeDispatcher.contentChanged(root, info);
+        }
     }
 
 }
