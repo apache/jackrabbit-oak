@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.19
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.20
 
 Introduction
 ------------
@@ -7,85 +7,51 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.19 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.20 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.19
+Changes in Oak 1.2.20
 ---------------------
 
 Technical task
 
-   [OAK-4615] - RDBDocumentStore: in 1.0, cache invalidation is slightly different from 1.2
+    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
+    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
+    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to 5.1.40
+    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to 9.4.1211
 
 
 Bug
 
-    [OAK-3522] - DefaultSyncContext exposes internal path-utility method
-    [OAK-3523] - DefaultSyncContext catches ClassCastException
-    [OAK-4153] - segment's compareAgainstBaseState wont call childNodeDeleted when deleting last and adding n nodes
-    [OAK-4219] - ExternalLoginModuleTestBase doesn't remove synced User/Group accounts
-    [OAK-4224] - DefaultSyncContext.sync(ExternalIdentity) should verify IDP
-    [OAK-4231] - DefaultSyncContext creates Value of type String for Binary|Inputstream Object
-    [OAK-4267] - SyncedIdentity for foreign authorizable always has isGroup set to false
-    [OAK-4302] - DefaultSyncContextTest contains duplicate test
-    [OAK-4448] - Test failures that rely on expiration time to experience a re-sync.
-    [OAK-4600] - In case of branch commits, nodeChildrenCache gets entries for branch revision without "br" prefix
-    [OAK-4675] - SNFE thrown while testing FileStore.cleanup() running concurrently with writes
-    [OAK-4676] - Index definition on nt:base with analyzed property incorrectly matches query with different property
-    [OAK-4679] - Backport OAK-4119, OAK-4101, OAK-4087 and OAK-4344
-    [OAK-4790] - Compilation error with JDK 6 in FileIOUtils
+    [OAK-3917] - SuggestionHelper creating unnecessary temporary directories
+    [OAK-4082] - RDBDocumentStore on MySQL may fail when using useServerPrepStmts=true
+    [OAK-4805] - Misconfigured lucene index definition can render the whole system unusable
+    [OAK-4879] - Proper implementation of getOrCreateReferenceKey in CachingFDS
 
 
 Improvement
 
-    [OAK-2690] - Add optional UserConfiguration#getUserPrincipalProvider()
-    [OAK-2994] - AbstractSecurityTest#getUserManager(Root) doesn't create new instances
-    [OAK-3003] - Improve login performance with huge group membership
-    [OAK-3274] - DefaultSyncConfigImpl: add information to "user.membershipExpTime" about minimum expiration time
-    [OAK-3518] - Consistently add annotations to DefaultSync* classes
-    [OAK-3563] - Improve DefaultSyncContext
-    [OAK-3648] - Use StandardTokenizer instead of ClassicTokenizer in OakAnalyzer
-    [OAK-3721] - Reduce code duplication in MembershipProvider
-    [OAK-3728] - Document indexes in the index itself
-    [OAK-4001] - ExternalLoginModule: Make max sync attempts configurable
-    [OAK-4005] - LdapIdentityProvider.getEntries() is prone to OOME.
-    [OAK-4087] - Replace Sync of configured AutoMembership by Dynamic Principal Generation
-    [OAK-4119] - Improvements Take 1
-    [OAK-4384] - Benchmarks: add support 'automembership' config option
-    [OAK-4385] - Benchmarks: proper init of ExternalPrincipalConfiguration with dynamicMembership
-    [OAK-4516] - Configurable option to lucene index defs to index original (unanalyzed value as well)
-    [OAK-4623] - Log more information when null DocumentNodeState is read for a child while fetching children
-    [OAK-4678] - Backport OAK-4344 and OAK-4005
-
-
-New Feature
-
-    [OAK-3170] - Implement Group extensions as proposed in JCR-3880
-    [OAK-4003] - Add support for Group-Membership actions
-    [OAK-4101] - Consider separate external (group) principal management
+    [OAK-3253] - Support caching in FileDataStoreService
+    [OAK-4819] - Improve revision GC resilience
+    [OAK-4851] - Update httpclient to 4.3.6 in Oak 1.4- branches
 
 
 Task
 
-    [OAK-3211] - Document External Identity Management
-    [OAK-4364] - Initial Benchmarks for oak-auth-external
-    [OAK-4743] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.4
-    [OAK-4791] - Enable animal sniffer plugin
+    [OAK-4827] - Backport OAK-3415 into 1.2.x
+
 
 Test
 
-    [OAK-2742] - Add UserImport tests that run with a non-admin session
-    [OAK-4226] - Improve testing of DefaultSyncContext
-    [OAK-4248] - More tests for the exposed 'basic' package
-    [OAK-4382] - Test failure in ExternalGroupPrincipalProviderTest.testFindPrincipalsByHintTypeGroup
+    [OAK-3277] - Turn VersionGarbageCollectorTest into an integration test
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.18 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.19 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
