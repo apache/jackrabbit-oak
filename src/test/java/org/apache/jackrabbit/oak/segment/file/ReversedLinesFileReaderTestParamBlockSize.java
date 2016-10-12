@@ -27,6 +27,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
