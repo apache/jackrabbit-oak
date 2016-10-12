@@ -267,8 +267,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 threw = false;
 
                 long maxTime = getLastMaxModifiedTime(markStart) > 0 ? getLastMaxModifiedTime(markStart) : markStart;
-                LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}] with max modification time of [{}]",
-                        sw.toString(), deleteCount, timestampToString(maxTime));
+                sw.stop();
+
+                LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
+                        sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
             }
         } catch (Exception e) {
             LOG.error("Blob garbage collection error", e);
