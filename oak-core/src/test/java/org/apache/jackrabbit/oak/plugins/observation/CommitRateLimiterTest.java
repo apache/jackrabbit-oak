@@ -24,6 +24,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -60,13 +61,31 @@ public class CommitRateLimiterTest {
 
     @Test(expected = CommitFailedException.class)
     public void blockCommits() throws CommitFailedException, InterruptedException {
+        // using a latch to avoid having to rely on timing
+        final CountDownLatch latch = new CountDownLatch(1);
+        CommitRateLimiter limiter = new CommitRateLimiter() {
+            @Override
+            public boolean getBlockCommits() {
+                // this method is called in the 'try' loop, so it
+                // that InterruptedException will be converted
+                // to CommitFailedException as expected
+                // (sure, this is an implementation detail, 
+                // but I don't see a good alternative here)
+                latch.countDown();
+                return super.getBlockCommits();
+            }
+        };
         limiter.blockCommits();
         final Thread mainThread = Thread.currentThread();
         Thread t = new Thread() {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(1000);
+                    // wait forever to avoid timing problems
+                    // (if the CommitRateLimiter is changed to not call
+                    // getBlockCommits(), then this wouldn't work - but
+                    // how could it not call getBlockCommits()?)
+                    latch.await();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
