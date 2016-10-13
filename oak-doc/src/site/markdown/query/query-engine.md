@@ -44,7 +44,7 @@ and then restart the application:
 Please note this only works with the Lucene `compatVersion=2` right now.
 Example code to show how this work (where `test` is a common word in the index):
 
-    String query = "//element(*, cq:Page)[jcr:contains(., 'test')]";
+    String qs = "//element(*, cq:Page)[jcr:contains(., 'test')]";
     Query query = queryManager.createQuery(qs, "xpath");
     QueryResult result = query.execute();
     long size = result.getRows().getSize();
