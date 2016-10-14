@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncRe
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryEngineSettingsMBeanImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -132,7 +133,7 @@ public class Oak {
     
     private final List<RepositoryInitializer> initializers = newArrayList();
 
-    private QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+    private QueryEngineSettingsMBeanImpl queryEngineSettings = new QueryEngineSettingsMBeanImpl();
 
     private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
 
@@ -380,7 +381,7 @@ public class Oak {
 
     @Nonnull
     public Oak with(@Nonnull QueryEngineSettings queryEngineSettings) {
-        this.queryEngineSettings = queryEngineSettings;
+        this.queryEngineSettings = new QueryEngineSettingsMBeanImpl(queryEngineSettings);
         return this;
     }
 
@@ -526,7 +527,7 @@ public class Oak {
         }
         QueryEngineSettings queryEngineSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
         if (queryEngineSettings != null) {
-            this.queryEngineSettings = queryEngineSettings;
+            this.queryEngineSettings = new QueryEngineSettingsMBeanImpl(queryEngineSettings);
         }
         return this;
     }
@@ -701,7 +702,7 @@ public class Oak {
                 store,
                 composite,
                 defaultWorkspaceName,
-                queryEngineSettings,
+                queryEngineSettings.unwrap(),
                 indexProvider,
                 securityProvider,
                 new AggregatingDescriptors(t)) {

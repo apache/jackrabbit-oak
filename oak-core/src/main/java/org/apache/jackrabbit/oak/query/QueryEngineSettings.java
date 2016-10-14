@@ -19,12 +19,11 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
-import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 
 /**
  * Settings of the query engine.
  */
-public class QueryEngineSettings extends AnnotatedStandardMBean implements QueryEngineSettingsMBean {
+public class QueryEngineSettings implements QueryEngineSettingsMBean {
     
     /**
      * the flag used to turn on/off the optimisations on top of the {@link Query} object.
@@ -49,56 +48,25 @@ public class QueryEngineSettings extends AnnotatedStandardMBean implements Query
             DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
     
     private boolean sql2Optimisation = Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
-
-    /**
-     * Create a new query engine settings object. Creating the object is
-     * relatively slow, and at runtime, as few such objects as possible should
-     * be created (ideally, only one per Oak instance). Creating new instances
-     * also means they can not be configured using JMX, as one would expect.
-     */
+    
     public QueryEngineSettings() {
-        super(QueryEngineSettingsMBean.class);
     }
-
-    /**
-     * Get the limit on how many nodes a query may read at most into memory, for
-     * "order by" and "distinct" queries. If this limit is exceeded, the query
-     * throws an exception.
-     * 
-     * @return the limit
-     */
+    
     @Override
     public long getLimitInMemory() {
         return limitInMemory;
     }
     
-    /**
-     * Change the limit.
-     * 
-     * @param limitInMemory the new limit
-     */
     @Override
     public void setLimitInMemory(long limitInMemory) {
         this.limitInMemory = limitInMemory;
     }
     
-    /**
-     * Get the limit on how many nodes a query may read at most (raw read
-     * operations, including skipped nodes). If this limit is exceeded, the
-     * query throws an exception.
-     * 
-     * @return the limit
-     */
     @Override
     public long getLimitReads() {
         return limitReads;
     }
     
-    /**
-     * Change the limit.
-     * 
-     * @param limitReads the new limit
-     */
     @Override
     public void setLimitReads(long limitReads) {
         this.limitReads = limitReads;
@@ -115,4 +83,5 @@ public class QueryEngineSettings extends AnnotatedStandardMBean implements Query
     public boolean isSql2Optimisation() {
         return sql2Optimisation;
     }
+
 }
