@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -32,7 +31,6 @@ public class JournalGCIT  extends AbstractDocumentStoreTest {
         super(dsf);
     }
 
-    @Ignore("OAK-4937")
     @Test
     public void journalGCSimpleInvocation() throws Exception{
         DocumentNodeStore ns1 = new DocumentMK.Builder()
