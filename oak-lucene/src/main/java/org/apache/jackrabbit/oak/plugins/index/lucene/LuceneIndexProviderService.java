@@ -569,8 +569,7 @@ public class LuceneIndexProviderService {
             final IndexTracker tracker) {
         GCMonitor gcMonitor = new GCMonitor.Empty() {
             @Override
-            public void compacted(long[] segmentCounts, long[] recordCounts,
-                    long[] compactionMapWeights) {
+            public void compacted() {
                 tracker.refresh();
             }
         };
