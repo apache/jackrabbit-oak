@@ -25,10 +25,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -38,7 +37,7 @@ class Utils {
 
     private static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
 
-    static FileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
+    static ReadOnlyFileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
@@ -46,7 +45,7 @@ class Utils {
                 .buildReadOnly();
     }
 
-    static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
+    static ReadOnlyFileStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)

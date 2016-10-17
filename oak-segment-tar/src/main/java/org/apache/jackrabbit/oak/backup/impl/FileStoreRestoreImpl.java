@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +52,7 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
             throw new IOException("Folder " + source + " is not a valid FileStore directory");
         }
 
-        FileStore restore = fileStoreBuilder(source).buildReadOnly();
+        ReadOnlyFileStore restore = fileStoreBuilder(source).buildReadOnly();
         Stopwatch watch = Stopwatch.createStarted();
 
         FileStore store = fileStoreBuilder(destination).build();

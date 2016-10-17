@@ -25,7 +25,7 @@ import java.io.File;
 import java.io.OutputStream;
 import java.util.Date;
 
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 
 /**
  * Generates a segment collection generation graph. The graph is written in <a
@@ -134,7 +134,7 @@ public class SegmentGraph implements Runnable {
 
     @Override
     public void run() {
-        try (ReadOnlyStore store = openReadOnlyFileStore(path)) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             writeSegmentGraph(store, out, epoch, filter);
         } catch (Exception e) {
             e.printStackTrace();

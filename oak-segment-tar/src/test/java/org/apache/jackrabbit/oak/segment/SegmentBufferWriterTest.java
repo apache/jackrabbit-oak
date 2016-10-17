@@ -27,6 +27,7 @@ import java.io.File;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -40,18 +41,28 @@ public class SegmentBufferWriterTest {
         return fileStoreBuilder(folder.getRoot()).build();
     }
 
+    private ReadOnlyFileStore openReadOnlyFileStore() throws Exception {
+        return fileStoreBuilder(folder.getRoot()).buildReadOnly();
+    }
+
     @Test
     public void nonDirtyBuffersShouldNotBeFlushed() throws Exception {
         List<SegmentId> before;
 
         try (FileStore store = openFileStore()) {
+            // init
+        }
+        try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
             before = newArrayList(store.getSegmentIds());
+        }
+
+        try (FileStore store = openFileStore()) {
             segmentWriterBuilder("t").build(store).flush();
         }
 
         List<SegmentId> after;
 
-        try (FileStore store = openFileStore()) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
             after = newArrayList(store.getSegmentIds());
         }
 
@@ -63,7 +74,13 @@ public class SegmentBufferWriterTest {
         List<SegmentId> before;
 
         try (FileStore store = openFileStore()) {
+            // init
+        }
+        try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
             before = newArrayList(store.getSegmentIds());
+        }
+
+        try (FileStore store = openFileStore()) {
             SegmentWriter writer = segmentWriterBuilder("t").build(store);
             writer.writeString("test");
             writer.flush();
@@ -71,7 +88,7 @@ public class SegmentBufferWriterTest {
 
         List<SegmentId> after;
 
-        try (FileStore store = openFileStore()) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
             after = newArrayList(store.getSegmentIds());
         }
 

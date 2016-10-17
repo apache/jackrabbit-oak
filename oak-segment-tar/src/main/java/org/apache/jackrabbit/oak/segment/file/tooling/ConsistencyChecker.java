@@ -42,9 +42,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
 public class ConsistencyChecker implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ConsistencyChecker.class);
 
-    private final ReadOnlyStore store;
+    private final ReadOnlyFileStore store;
     private final long debugInterval;
 
     /**

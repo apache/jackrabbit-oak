@@ -35,13 +35,14 @@ import java.util.UUID;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 
 /**
  * Print debugging information about a segment store.
@@ -99,14 +100,14 @@ public class DebugStore implements Runnable {
 
     @Override
     public void run() {
-        try (FileStore store = openReadOnlyFileStore(path)) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugFileStore(store);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static List<SegmentId> getReferencedSegmentIds(FileStore store, Segment segment) {
+    private static List<SegmentId> getReferencedSegmentIds(ReadOnlyFileStore store, Segment segment) {
         List<SegmentId> result = new ArrayList<>();
 
         for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
@@ -119,7 +120,7 @@ public class DebugStore implements Runnable {
         return result;
     }
 
-    private static void debugFileStore(FileStore store) {
+    private static void debugFileStore(ReadOnlyFileStore store) {
         Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
         int dataCount = 0;
         long dataSize = 0;

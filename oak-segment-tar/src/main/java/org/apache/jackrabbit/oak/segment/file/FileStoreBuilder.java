@@ -36,13 +36,13 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Template;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -55,6 +55,9 @@ import org.slf4j.LoggerFactory;
  */
 public class FileStoreBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
+
+    private static final boolean MEMORY_MAPPING_DEFAULT =
+            "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
     @Nonnull
     private final File directory;
@@ -76,7 +79,7 @@ public class FileStoreBuilder {
 
     private int nodeDeduplicationCacheSize = DEFAULT_NODE_CACHE_SIZE;
 
-    private boolean memoryMapping = FileStore.MEMORY_MAPPING_DEFAULT;
+    private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
@@ -141,8 +144,7 @@ public class FileStoreBuilder {
         }
     };
 
-    @CheckForNull
-    private TarRevisions revisions;
+    private boolean built;
 
     /**
      * Create a new instance of a {@code FileStoreBuilder} for a file store.
@@ -264,7 +266,7 @@ public class FileStoreBuilder {
      */
     @Nonnull
     public FileStoreBuilder withDefaultMemoryMapping() {
-        this.memoryMapping = FileStore.MEMORY_MAPPING_DEFAULT;
+        this.memoryMapping = MEMORY_MAPPING_DEFAULT;
         return this;
     }
 
@@ -320,15 +322,16 @@ public class FileStoreBuilder {
      */
     @Nonnull
     public FileStore build() throws InvalidFileStoreVersionException, IOException {
-        checkState(revisions == null, "Cannot re-use builder");
+        checkState(!built, "Cannot re-use builder");
+        built = true;
         directory.mkdirs();
-        revisions = new TarRevisions(false, directory);
+        TarRevisions revisions = new TarRevisions(directory);
         LOG.info("Creating file store {}", this);
-        return new FileStore(this, false).bind(revisions);
+        return new FileStore(this).bind(revisions);
     }
 
     /**
-     * Create a new {@link ReadOnlyStore} instance with the settings specified in this
+     * Create a new {@link ReadOnlyFileStore} instance with the settings specified in this
      * builder. If none of the {@code with} methods have been called before calling
      * this method, a file store with the following default settings is returned:
      * <ul>
@@ -345,12 +348,13 @@ public class FileStoreBuilder {
      * @throws IOException
      */
     @Nonnull
-    public ReadOnlyStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
-        checkState(revisions == null, "Cannot re-use builder");
+    public ReadOnlyFileStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
+        checkState(!built, "Cannot re-use builder");
         checkState(directory.exists() && directory.isDirectory());
-        revisions = new TarRevisions(true, directory);
+        built = true;
+        ReadOnlyRevisions revisions = new ReadOnlyRevisions(directory);
         LOG.info("Creating file store {}", this);
-        return new ReadOnlyStore(this).bind(revisions);
+        return new ReadOnlyFileStore(this).bind(revisions);
     }
 
     @Nonnull
@@ -396,12 +400,6 @@ public class FileStoreBuilder {
     @Nonnull
     SegmentGCOptions getGcOptions() {
         return gcOptions;
-    }
-
-    @Nonnull
-    TarRevisions getRevisions() {
-        checkState(revisions != null, "File store not yet built");
-        return revisions;
     }
 
     @Nonnull

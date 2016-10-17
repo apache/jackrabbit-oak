@@ -33,7 +33,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -211,7 +211,7 @@ public class Diff implements Runnable {
             return;
         }
 
-        try (ReadOnlyStore store = fileStoreBuilder(path).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly()) {
+        try (ReadOnlyFileStore store = fileStoreBuilder(path).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly()) {
             RecordId idL;
 
             try {
@@ -281,7 +281,7 @@ public class Diff implements Runnable {
         }
     }
 
-    private boolean diff(ReadOnlyStore store, RecordId idL, RecordId idR, PrintWriter pw) throws IOException {
+    private boolean diff(ReadOnlyFileStore store, RecordId idL, RecordId idR, PrintWriter pw) throws IOException {
         pw.println("rev " + idL + ".." + idR);
         try {
             NodeState before = store.getReader().readNode(idL).getChildNode("root");
