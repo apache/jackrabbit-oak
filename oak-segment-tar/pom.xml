@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.5.10</version>
+        <version>1.5.12</version>
         <relativePath />
     </parent>
 
@@ -34,7 +34,7 @@
     <name>Oak Segment Tar</name>
 
     <properties>
-        <oak.version>1.5.11</oak.version>
+        <oak.version>1.5.12</oak.version>
         <netty.version>4.0.41.Final</netty.version>
     </properties>
 
