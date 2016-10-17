@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.failed;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.succeeded;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 
@@ -29,6 +31,8 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +46,37 @@ public class RevisionGC implements RevisionGCMBean {
     public static final String OP_NAME = "Revision garbage collection";
 
     @Nonnull
+    private ManagementOperation<Void> gcOp = done(OP_NAME, null);
+
+    @Nonnull
     private final Runnable runGC;
+
+    @Nonnull
     private final Runnable cancelGC;
+
+    @Nonnull
+    private final Supplier<String> statusMessage;
+
+    @Nonnull
     private final Executor executor;
 
-    private ManagementOperation<String> gcOp = done(OP_NAME, "");
+    /**
+     * @param runGC          Revision garbage collector
+     * @param cancelGC       Executor for cancelling the garbage collection task
+     * @param statusMessage  an informal status message describing the status of the background
+     *                       operation at the time of invocation.
+     * @param executor       Executor for initiating the garbage collection task
+     */
+    public RevisionGC(
+            @Nonnull Runnable runGC,
+            @Nonnull Runnable cancelGC,
+            @Nonnull Supplier<String> statusMessage,
+            @Nonnull Executor executor) {
+        this.runGC = checkNotNull(runGC);
+        this.cancelGC = checkNotNull(cancelGC);
+        this.statusMessage = checkNotNull(statusMessage);
+        this.executor = checkNotNull(executor);
+    }
 
     /**
      * @param runGC        Revision garbage collector
@@ -57,40 +87,43 @@ public class RevisionGC implements RevisionGCMBean {
             @Nonnull Runnable runGC,
             @Nonnull Runnable cancelGC,
             @Nonnull Executor executor) {
-        this.runGC = checkNotNull(runGC);
-        this.cancelGC = checkNotNull(cancelGC);
-        this.executor = checkNotNull(executor);
+        this(runGC, cancelGC, Suppliers.ofInstance(""), executor);
     }
 
     @Nonnull
     @Override
     public CompositeData startRevisionGC() {
         if (gcOp.isDone()) {
-            gcOp = newManagementOperation(OP_NAME, new Callable<String>() {
+            gcOp = newManagementOperation(OP_NAME, statusMessage, new Callable<Void>() {
                 @Override
-                public String call() throws Exception {
+                public Void call() throws Exception {
                     runGC.run();
-                    return "Revision GC initiated";
+                    return null;
                 }
             });
             executor.execute(gcOp);
+            return succeeded(OP_NAME + " started").toCompositeData();
+        } else {
+            return failed(OP_NAME + " already running").toCompositeData();
         }
-        return getRevisionGCStatus();
     }
 
     @Nonnull
     @Override
     public CompositeData cancelRevisionGC() {
         if (!gcOp.isDone()) {
-            executor.execute(newManagementOperation(OP_NAME, new Callable<String>() {
+            executor.execute(newManagementOperation(OP_NAME, new Callable<Void>() {
                 @Override
-                public String call() throws Exception {
+                public Void call() throws Exception {
+                    gcOp.cancel(false);
                     cancelGC.run();
-                    return "Revision GC cancelled";
+                    return null;
                 }
             }));
+            return succeeded("Revision garbage collection cancelled").toCompositeData();
+        } else {
+            return failed(OP_NAME + " not running").toCompositeData();
         }
-        return getRevisionGCStatus();
     }
 
     @Nonnull
