@@ -1500,8 +1500,7 @@ public class FileStore implements SegmentStore {
                 tracker.getWriter().dropCache();
                 tracker.getWriter().flush();
 
-                CompactionMap cm = tracker.getCompactionMap();
-                gcMonitor.compacted(cm.getSegmentCounts(), cm.getRecordCounts(), cm.getEstimatedWeights());
+                gcMonitor.compacted();
                 tracker.clearSegmentIdTables(compactionStrategy);
                 return true;
             } else {
@@ -1552,8 +1551,8 @@ public class FileStore implements SegmentStore {
         }
 
         @Override
-        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
-            delegatee.compacted(segmentCounts, recordCounts, compactionMapWeights);
+        public void compacted() {
+            delegatee.compacted();
         }
 
         @Override

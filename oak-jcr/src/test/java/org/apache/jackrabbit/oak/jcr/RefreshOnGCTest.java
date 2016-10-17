@@ -82,8 +82,9 @@ public class RefreshOnGCTest {
     public static List<Fixture[]> fixtures() {
         return ImmutableList.of(
                 new Fixture[] {Fixture.SEGMENT_PERSISTED_MAP},
-                new Fixture[] {Fixture.SEGMENT_MEMORY_MAP},
-                new Fixture[] {Fixture.SEGMENT_TAR});
+                new Fixture[] {Fixture.SEGMENT_MEMORY_MAP});
+               // TODO OAK-4944 enable fixture
+               // , new Fixture[] {Fixture.SEGMENT_TAR});
     }
 
     public RefreshOnGCTest(Fixture fixtures) {
