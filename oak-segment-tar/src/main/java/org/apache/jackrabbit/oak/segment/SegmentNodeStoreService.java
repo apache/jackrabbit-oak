@@ -463,10 +463,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 "Segment node store revision garbage collection"
             )));
 
+        Runnable cancelGC = new Runnable() {
+            @Override
+            public void run() {
+                store.cancelGC();
+            }
+        };
         registrations.add(registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
-                new RevisionGC(store.getGCRunner(), executor),
+                new RevisionGC(store.getGCRunner(), cancelGC, executor),
                 RevisionGCMBean.TYPE,
                 "Revision garbage collection"
         ));
