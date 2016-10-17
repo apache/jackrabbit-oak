@@ -35,6 +35,7 @@ import java.util.UUID;
 import javax.jcr.PropertyType;
 
 import com.google.common.escape.Escapers;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -43,7 +44,7 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -128,20 +129,20 @@ public class DebugTars implements Runnable {
 
     @Override
     public void run() {
-        try (FileStore store = openReadOnlyFileStore(path)) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugTarFiles(store);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void debugTarFiles(FileStore store) {
+    private void debugTarFiles(ReadOnlyFileStore store) {
         for (String tar : tars) {
             debugTarFile(store, tar);
         }
     }
 
-    private void debugTarFile(FileStore store, String t) {
+    private void debugTarFile(ReadOnlyFileStore store, String t) {
         File tar = new File(path, t);
 
         if (!tar.exists()) {

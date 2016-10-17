@@ -18,20 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteBuffer.wrap;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -45,7 +40,6 @@ import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.SUCCESS;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -55,7 +49,6 @@ import java.nio.channels.OverlappingFileLockException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +61,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -81,25 +72,19 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.BinaryReferenceConsumer;
-import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
-import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdTable;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
-import org.apache.jackrabbit.oak.segment.SegmentReader;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Default;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -112,61 +97,26 @@ import org.slf4j.LoggerFactory;
 /**
  * The storage implementation for tar files.
  */
-public class FileStore implements SegmentStore, Closeable {
+public class FileStore extends AbstractFileStore {
 
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final int MB = 1024 * 1024;
 
-    /**
-     * This value can be used as an invalid store version, since the store
-     * version is defined to be strictly greater than zero.
-     */
-    private static final int INVALID_STORE_VERSION = 0;
-
-    /**
-     * The store version is an always incrementing number, strictly greater than
-     * zero, that is changed every time there is a backwards incompatible
-     * modification to the format of the segment store.
-     */
-    private static final int CURRENT_STORE_VERSION = 1;
-
-    private static final Pattern FILE_NAME_PATTERN =
-            Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
-
-    static final String FILE_NAME_FORMAT = "data%05d%s.tar";
-
-    private static final String LOCK_FILE_NAME = "repo.lock";
-
-    private static final String MANIFEST_FILE_NAME = "manifest";
+    static final String LOCK_FILE_NAME = "repo.lock";
 
     /**
      * GC counter for logging purposes
      */
     private static final AtomicLong GC_COUNT = new AtomicLong(0);
 
-    static final boolean MEMORY_MAPPING_DEFAULT =
-            "64".equals(System.getProperty("sun.arch.data.model", "32"));
-
-    @Nonnull
-    private final SegmentTracker tracker;
-
     @Nonnull
     private final SegmentWriter segmentWriter;
 
     @Nonnull
-    private final CachingSegmentReader segmentReader;
-
-    @Nonnull
     private final BinaryReferenceConsumer binaryReferenceConsumer;
 
-    private final File directory;
-
-    private final BlobStore blobStore;
-
     private final int maxFileSize;
-
-    private final boolean memoryMapping;
 
     @Nonnull
     private final GarbageCollector garbageCollector;
@@ -179,8 +129,7 @@ public class FileStore implements SegmentStore, Closeable {
 
     private final FileLock lock;
 
-    @Nonnull
-    private final TarRevisions revisions;
+    private TarRevisions revisions;
 
     /**
      * Scheduler for running <em>short</em> background operations
@@ -198,7 +147,7 @@ public class FileStore implements SegmentStore, Closeable {
      * This flag is periodically updated by calling the {@code SegmentGCOptions}
      * at regular intervals.
      */
-    private final AtomicBoolean sufficientDiskSpace;
+    private final AtomicBoolean sufficientDiskSpace = new AtomicBoolean(true);
 
     /**
      * Flag signalling shutdown of the file store
@@ -209,44 +158,16 @@ public class FileStore implements SegmentStore, Closeable {
 
     private final FileStoreStats stats;
 
-    @Nonnull
-    private final SegmentCache segmentCache;
+    FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
+        super(builder);
 
-    private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
-
-        @Override
-        @Nonnull
-        public SegmentId newSegmentId(long msb, long lsb) {
-            return new SegmentId(FileStore.this, msb, lsb);
+        lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
+        try {
+            lock = lockFile.getChannel().lock();
+        } catch (OverlappingFileLockException ex) {
+            throw new IllegalStateException(directory.getAbsolutePath()
+                    + " is in use by another store.", ex);
         }
-
-    };
-
-    // FIXME OAK-4450: Properly split the FileStore into read-only and r/w variants
-    FileStore(final FileStoreBuilder builder, boolean readOnly) throws InvalidFileStoreVersionException, IOException {
-        this.directory = builder.getDirectory();
-        if (!readOnly) {
-            lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
-            try {
-                lock = lockFile.getChannel().lock();
-            } catch (OverlappingFileLockException ex) {
-                throw new IllegalStateException(directory.getAbsolutePath()
-                        + " is in use by another store.", ex);
-            }
-        } else {
-            lockFile = null;
-            lock = null;
-        }
-        this.tracker = new SegmentTracker();
-        this.revisions = builder.getRevisions();
-        this.blobStore = builder.getBlobStore();
-        this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
-        this.segmentReader = new CachingSegmentReader(new Supplier<SegmentWriter>() {
-            @Override
-            public SegmentWriter get() {
-                return segmentWriter;
-            }
-        }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
 
         this.binaryReferenceConsumer = new BinaryReferenceConsumer() {
             @Override
@@ -271,7 +192,6 @@ public class FileStore implements SegmentStore, Closeable {
                 .with(builder.getCacheManager())
                 .build(this);
         this.maxFileSize = builder.getMaxFileSize() * MB;
-        this.memoryMapping = builder.getMemoryMapping();
         this.garbageCollector = new GarbageCollector(builder.getGcOptions(), builder.getGcListener(), new GCJournal(directory));
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
@@ -288,112 +208,55 @@ public class FileStore implements SegmentStore, Closeable {
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
         for (int i = indices.length - 1; i >= 0; i--) {
-            if (!readOnly) {
-                readers.add(TarReader.open(map.get(indices[i]), memoryMapping));
-            } else {
-                // only try to read-only recover the latest file as that might
-                // be the *only* one still being accessed by a writer
-                boolean recover = i == indices.length - 1;
-                readers.add(TarReader.openRO(map.get(indices[i]),
-                        memoryMapping, recover));
-            }
+            readers.add(TarReader.open(map.get(indices[i]), memoryMapping));
         }
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
 
-        if (!readOnly) {
-            int writeNumber = 0;
-            if (indices.length > 0) {
-                writeNumber = indices[indices.length - 1] + 1;
-            }
-            this.tarWriter = new TarWriter(directory, stats, writeNumber);
-        } else {
-            this.tarWriter = null;
+        int writeNumber = 0;
+        if (indices.length > 0) {
+            writeNumber = indices[indices.length - 1] + 1;
         }
+        this.tarWriter = new TarWriter(directory, stats, writeNumber);
 
-        sufficientDiskSpace = new AtomicBoolean(true);
-
-        if (!readOnly) {
-            fileStoreScheduler.scheduleAtFixedRate(
-                    format("TarMK flush [%s]", directory), 5, SECONDS, new Runnable() {;
-                @Override
-                public void run() {
-                    try {
-                        flush();
-                    } catch (IOException e) {
-                        log.warn("Failed to flush the TarMK at {}", directory, e);
-                    }
-                }
-
-            });
-            fileStoreScheduler.scheduleAtFixedRate(
-                    format("TarMK filer reaper [%s]", directory), 5, SECONDS, new Runnable() {
-                        @Override
-                        public void run() {
-                            fileReaper.reap();
+        fileStoreScheduler.scheduleAtFixedRate(
+                format("TarMK flush [%s]", directory), 5, SECONDS,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            flush();
+                        } catch (IOException e) {
+                            log.warn("Failed to flush the TarMK at {}",
+                                    directory, e);
                         }
-                    });
-            fileStoreScheduler.scheduleAtFixedRate(
-                    format("TarMK disk space check [%s]", directory), 1, MINUTES, new Runnable() {
-                        SegmentGCOptions gcOptions = builder.getGcOptions();
-                @Override
-                public void run() {
-                    checkDiskSpace(gcOptions);
-                }
-            });
-        }
+                    }
+                });
+        fileStoreScheduler.scheduleAtFixedRate(
+                format("TarMK filer reaper [%s]", directory), 5, SECONDS,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        fileReaper.reap();
+                    }
+                });
+        fileStoreScheduler.scheduleAtFixedRate(
+                format("TarMK disk space check [%s]", directory), 1, MINUTES,
+                new Runnable() {
+                    SegmentGCOptions gcOptions = builder.getGcOptions();
 
-        if (readOnly) {
-            log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
-                    memoryMapping);
-        } else {
-            log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
-        }
+                    @Override
+                    public void run() {
+                        checkDiskSpace(gcOptions);
+                    }
+                });
+        log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
         log.debug("TarMK readers {}", this.readers);
     }
 
     FileStore bind(TarRevisions revisions) throws IOException {
-        revisions.bind(this, initialNode());
+        this.revisions = revisions;
+        this.revisions.bind(this, initialNode());
         return this;
-    }
-
-    private File getManifestFile() {
-        return new File(directory, MANIFEST_FILE_NAME);
-    }
-
-    private Manifest openManifest() throws IOException {
-        File file = getManifestFile();
-
-        if (file.exists()) {
-            return Manifest.load(file);
-        }
-
-        return null;
-    }
-
-    private Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
-        if (manifest == null) {
-            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
-        }
-
-        int storeVersion = manifest.getStoreVersion(INVALID_STORE_VERSION);
-
-        // A store version less than or equal to the highest invalid value means
-        // that something or someone is messing up with the manifest. This error
-        // is not recoverable and is thus represented as an ISE.
-
-        if (storeVersion <= INVALID_STORE_VERSION) {
-            throw new IllegalStateException("Invalid store version");
-        }
-
-        if (storeVersion < CURRENT_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
-        }
-
-        if (storeVersion > CURRENT_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
-        }
-
-        return manifest;
     }
 
     private void saveManifest(Manifest manifest) throws IOException {
@@ -426,21 +289,6 @@ public class FileStore implements SegmentStore, Closeable {
         return revisions.getHead().getSegmentId().getGcGeneration();
     }
 
-    @Nonnull
-    public CacheStatsMBean getSegmentCacheStats() {
-        return segmentCache.getCacheStats();
-    }
-
-    @Nonnull
-    public CacheStatsMBean getStringCacheStats() {
-        return segmentReader.getStringCacheStats();
-    }
-
-    @Nonnull
-    public CacheStatsMBean getTemplateCacheStats() {
-        return segmentReader.getTemplateCacheStats();
-    }
-
     @CheckForNull
     public CacheStatsMBean getStringDeduplicationCacheStats() {
         return segmentWriter.getStringCacheStats();
@@ -470,77 +318,6 @@ public class FileStore implements SegmentStore, Closeable {
                 }
             }
         });
-    }
-
-    static Map<Integer, Map<Character, File>> collectFiles(File directory) {
-        Map<Integer, Map<Character, File>> dataFiles = newHashMap();
-        Map<Integer, File> bulkFiles = newHashMap();
-
-        for (File file : directory.listFiles()) {
-            Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
-            if (matcher.matches()) {
-                Integer index = Integer.parseInt(matcher.group(2));
-                if ("data".equals(matcher.group(1))) {
-                    Map<Character, File> files = dataFiles.get(index);
-                    if (files == null) {
-                        files = newHashMap();
-                        dataFiles.put(index, files);
-                    }
-                    Character generation = 'a';
-                    if (matcher.group(4) != null) {
-                        generation = matcher.group(4).charAt(0);
-                    }
-                    checkState(files.put(generation, file) == null);
-                } else {
-                    checkState(bulkFiles.put(index, file) == null);
-                }
-            }
-        }
-
-        if (!bulkFiles.isEmpty()) {
-            log.info("Upgrading TarMK file names in {}", directory);
-
-            if (!dataFiles.isEmpty()) {
-                // first put all the data segments at the end of the list
-                Integer[] indices =
-                        dataFiles.keySet().toArray(new Integer[dataFiles.size()]);
-                Arrays.sort(indices);
-                int position = Math.max(
-                        indices[indices.length - 1] + 1,
-                        bulkFiles.size());
-                for (Integer index : indices) {
-                    Map<Character, File> files = dataFiles.remove(index);
-                    Integer newIndex = position++;
-                    for (Character generation : newHashSet(files.keySet())) {
-                        File file = files.get(generation);
-                        File newFile = new File(
-                                directory,
-                                format(FILE_NAME_FORMAT, newIndex, generation));
-                        log.info("Renaming {} to {}", file, newFile);
-                        file.renameTo(newFile);
-                        files.put(generation, newFile);
-                    }
-                    dataFiles.put(newIndex, files);
-                }
-            }
-
-            // then add all the bulk segments at the beginning of the list
-            Integer[] indices =
-                    bulkFiles.keySet().toArray(new Integer[bulkFiles.size()]);
-            Arrays.sort(indices);
-            int position = 0;
-            for (Integer index : indices) {
-                File file = bulkFiles.remove(index);
-                Integer newIndex = position++;
-                File newFile = new File(
-                        directory, format(FILE_NAME_FORMAT, newIndex, "a"));
-                log.info("Renaming {} to {}", file, newFile);
-                file.renameTo(newFile);
-                dataFiles.put(newIndex, singletonMap('a', newFile));
-            }
-        }
-
-        return dataFiles;
     }
 
     /**
@@ -675,43 +452,10 @@ public class FileStore implements SegmentStore, Closeable {
         garbageCollector.cancel();
     }
 
-    public Iterable<SegmentId> getSegmentIds() {
-        fileStoreLock.readLock().lock();
-        try {
-            List<SegmentId> ids = newArrayList();
-            if (tarWriter != null) {
-                for (UUID uuid : tarWriter.getUUIDs()) {
-                    long msb = uuid.getMostSignificantBits();
-                    long lsb = uuid.getLeastSignificantBits();
-                    ids.add(newSegmentId(msb, lsb));
-                }
-            }
-            for (TarReader reader : readers) {
-                for (UUID uuid : reader.getUUIDs()) {
-                    long msb = uuid.getMostSignificantBits();
-                    long lsb = uuid.getLeastSignificantBits();
-                    ids.add(newSegmentId(msb, lsb));
-                }
-            }
-            return ids;
-        } finally {
-            fileStoreLock.readLock().unlock();
-        }
-    }
-
-    @Nonnull
-    public SegmentTracker getTracker() {
-        return tracker;
-    }
-
+    @Override
     @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
-    }
-
-    @Nonnull
-    public SegmentReader getReader() {
-        return segmentReader;
     }
 
     @Nonnull
@@ -719,22 +463,10 @@ public class FileStore implements SegmentStore, Closeable {
         return binaryReferenceConsumer;
     }
 
+    @Override
     @Nonnull
     public TarRevisions getRevisions() {
         return revisions;
-    }
-
-    /**
-     * Convenience method for accessing the root node for the current head.
-     * This is equivalent to
-     * <pre>
-     * fileStore.getReader().readHeadState(fileStore.getRevisions())
-     * </pre>
-     * @return the current head node state
-     */
-    @Nonnull
-    public SegmentNodeState getHead() {
-        return segmentReader.readHeadState(revisions);
     }
 
     @Override
@@ -952,24 +684,6 @@ public class FileStore implements SegmentStore, Closeable {
         }
     }
 
-    @Override
-    @Nonnull
-    public SegmentId newSegmentId(long msb, long lsb) {
-        return tracker.newSegmentId(msb, lsb, segmentIdFactory);
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newBulkSegmentId() {
-        return tracker.newBulkSegmentId(segmentIdFactory);
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newDataSegmentId() {
-        return tracker.newDataSegmentId(segmentIdFactory);
-    }
-
     /**
      * Switch to a new tar writer.
      * This method may only be called when holding the write lock of {@link #fileStoreLock}
@@ -988,39 +702,6 @@ public class FileStore implements SegmentStore, Closeable {
         }
     }
 
-    /**
-     * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
-     */
-    @CheckForNull
-    public BlobStore getBlobStore() {
-        return blobStore;
-    }
-
-    public Map<String, Set<UUID>> getTarReaderIndex() {
-        Map<String, Set<UUID>> index = new HashMap<String, Set<UUID>>();
-        for (TarReader reader : readers) {
-            index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
-        }
-        return index;
-    }
-
-    public Map<UUID, List<UUID>> getTarGraph(String fileName) throws IOException {
-        for (TarReader reader : readers) {
-            if (fileName.equals(reader.getFile().getName())) {
-                Map<UUID, List<UUID>> graph = newHashMap();
-                for (UUID uuid : reader.getUUIDs()) {
-                    graph.put(uuid, null);
-                }
-                Map<UUID, List<UUID>> g = reader.getGraph(false);
-                if (g != null) {
-                    graph.putAll(g);
-                }
-                return graph;
-            }
-        }
-        return emptyMap();
-    }
-
     private void checkDiskSpace(SegmentGCOptions gcOptions) {
         long repositoryDiskSpace = size();
         long availableDiskSpace = directory.getFreeSpace();
@@ -1037,123 +718,6 @@ public class FileStore implements SegmentStore, Closeable {
             log.info("Available disk space ({}) is sufficient again for repository operations, current repository size is approx. {}",
                     humanReadableByteCount(availableDiskSpace),
                     humanReadableByteCount(repositoryDiskSpace));
-        }
-    }
-
-    /**
-     * A read only {@link FileStore} implementation that supports
-     * going back to old revisions.
-     * <p>
-     * All write methods are no-ops.
-     */
-    public static class ReadOnlyStore extends FileStore {
-        private RecordId currentHead;
-
-        ReadOnlyStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
-            super(builder, true);
-        }
-
-        @Override
-        ReadOnlyStore bind(@Nonnull TarRevisions revisions) throws IOException {
-            revisions.bind(this, new Supplier<RecordId>() {
-                @Override
-                public RecordId get() {
-                    throw new IllegalStateException("Cannot start readonly store from empty journal");
-                }
-            });
-            currentHead = revisions.getHead();
-            return this;
-        }
-
-        /**
-         * Go to the specified {@code revision}
-         *
-         * @param revision
-         */
-        public void setRevision(String revision) {
-            RecordId newHead = RecordId.fromString(this, revision);
-            if (super.revisions.setHead(currentHead, newHead)) {
-                currentHead = newHead;
-            }
-        }
-
-        /**
-         * Include the ids of all segments transitively reachable through forward references from
-         * {@code referencedIds}. See OAK-3864.
-         */
-        private static void includeForwardReferences(Iterable<TarReader> readers, Set<UUID> referencedIds)
-            throws IOException {
-            Set<UUID> fRefs = newHashSet(referencedIds);
-            do {
-                // Add direct forward references
-                for (TarReader reader : readers) {
-                    reader.calculateForwardReferences(fRefs);
-                    if (fRefs.isEmpty()) {
-                        break;  // Optimisation: bail out if no references left
-                    }
-                }
-                // ... as long as new forward references are found.
-            } while (referencedIds.addAll(fRefs));
-        }
-
-        /**
-         * Build the graph of segments reachable from an initial set of segments
-         * @param roots     the initial set of segments
-         * @param visitor   visitor receiving call back while following the segment graph
-         * @throws IOException
-         */
-        public void traverseSegmentGraph(
-            @Nonnull Set<UUID> roots,
-            @Nonnull SegmentGraphVisitor visitor) throws IOException {
-
-            List<TarReader> readers = super.readers;
-            includeForwardReferences(readers, roots);
-            for (TarReader reader : readers) {
-                reader.traverseSegmentGraph(checkNotNull(roots), checkNotNull(visitor));
-            }
-        }
-
-        @Override
-        public void writeSegment(SegmentId id, byte[] data,
-                int offset, int length) {
-            throw new UnsupportedOperationException("Read Only Store");
-        }
-
-        /**
-         * no-op
-         */
-        @Override
-        public void flush() { /* nop */ }
-
-        @Override
-        public void cleanup() {
-            throw new UnsupportedOperationException("Read Only Store");
-        }
-
-        @Override
-        public SafeRunnable getGCRunner() {
-            throw new UnsupportedOperationException("Read Only Store");
-        }
-
-        @Override
-        public boolean compact() {
-            throw new UnsupportedOperationException("Read Only Store");
-        }
-
-        @Override
-        public void gc() {
-            throw new UnsupportedOperationException("Read Only Store");
-        }
-    }
-
-    private static void closeAndLogOnFail(Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException ioe) {
-                // ignore and log
-                log.error(ioe.getMessage(), ioe);
-            }
         }
     }
 
@@ -1411,6 +975,7 @@ public class FileStore implements SegmentStore, Closeable {
                                          Supplier<Boolean> cancel)
         throws IOException {
             if (gcOptions.isOffline()) {
+                BlobStore blobStore = getBlobStore();
                 SegmentWriter writer = new SegmentWriter(FileStore.this, segmentReader, blobStore, new Default(), bufferWriter, binaryReferenceConsumer);
                 return new Compactor(segmentReader, writer, blobStore, cancel, gcOptions)
                         .compact(EMPTY_NODE, head, EMPTY_NODE);

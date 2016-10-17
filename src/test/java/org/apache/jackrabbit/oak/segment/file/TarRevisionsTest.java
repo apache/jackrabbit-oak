@@ -78,7 +78,7 @@ public class TarRevisionsTest {
 
     @Test(expected = IllegalStateException.class)
     public void unboundRevisions() throws IOException {
-        try (TarRevisions tarRevisions = new TarRevisions(false, folder.getRoot())) {
+        try (TarRevisions tarRevisions = new TarRevisions(folder.getRoot())) {
             tarRevisions.getHead();
         }
     }

@@ -41,9 +41,10 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
+
 import org.apache.jackrabbit.oak.segment.SegmentGraph.Graph;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -127,7 +128,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraph() throws Exception {
-        ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
+        ReadOnlyFileStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store, Predicates.<UUID>alwaysTrue());
             assertEquals(segments, newHashSet(segmentGraph.vertices()));
@@ -143,7 +144,7 @@ public class SegmentGraphTest {
 
     @Test
     public void testSegmentGraphWithFilter() throws Exception {
-        ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
+        ReadOnlyFileStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Predicate<UUID> filter = createRegExpFilter(".*(writer2|writer3).*", store);
             Graph<UUID> segmentGraph = parseSegmentGraph(store, filter);
@@ -163,7 +164,7 @@ public class SegmentGraphTest {
         // TODO Improve test coverage to non trivial cases with more than a single generation
         // This is quite tricky as there is no easy way to construct a file store with
         // a segment graphs having edges between generations (OAK-3348)
-        ReadOnlyStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
+        ReadOnlyFileStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
             Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
             assertEquals(ImmutableSet.of("0"), newHashSet(gcGraph.vertices()));

@@ -24,7 +24,8 @@ import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore
 import java.io.File;
 import java.io.OutputStream;
 
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+
 
 /**
  * Generates a garbage collection generation graph. The graph is written in <a
@@ -103,7 +104,7 @@ public class GenerationGraph implements Runnable {
 
     @Override
     public void run() {
-        try (ReadOnlyStore store = openReadOnlyFileStore(path)) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             writeGCGraph(store, out);
         } catch (Exception e) {
             e.printStackTrace();

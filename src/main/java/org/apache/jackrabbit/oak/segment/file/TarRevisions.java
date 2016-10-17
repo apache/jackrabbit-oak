@@ -46,7 +46,6 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,21 +128,16 @@ public class TarRevisions implements Revisions, Closeable {
         return new TimeOutOption(time, unit);
     }
 
-    // FIXME OAK-4465: Remove the read-only concern from TarRevisions: this should be possible once
-    // the ReadOnlyStore is properly separated from the FileStore. See OAK-4450.
     /**
      * Create a new instance placing the journal log file into the passed
      * {@code directory}.
-     * @param readOnly      safeguard for {@link ReadOnlyStore}: open the journal
-     *                      file in read only mode.
      * @param directory     directory of the journal file
      * @throws IOException
      */
-    public TarRevisions(boolean readOnly, @Nonnull File directory)
-    throws IOException {
+    public TarRevisions(@Nonnull File directory) throws IOException {
         this.directory = checkNotNull(directory);
-        this.journalFile = new RandomAccessFile(new File(directory, JOURNAL_FILE_NAME),
-                readOnly ? "r" : "rw");
+        this.journalFile = new RandomAccessFile(new File(directory,
+                JOURNAL_FILE_NAME), "rw");
         this.journalFile.seek(journalFile.length());
         this.head = new AtomicReference<>(null);
         this.persistedHead = new AtomicReference<>(null);
