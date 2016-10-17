@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -204,7 +203,7 @@ public class FileStoreIT {
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
         store.flush(); // second 1kB
 
-        ReadOnlyStore ro = null;
+        ReadOnlyFileStore ro = null;
         try {
             ro = fileStoreBuilder(getFileStoreFolder()).buildReadOnly();
             assertEquals(store.getRevisions().getHead(), ro.getRevisions().getHead());
@@ -227,7 +226,7 @@ public class FileStoreIT {
             RecordId id2 = store.getRevisions().getHead();
             store.flush();
 
-            try (ReadOnlyStore roStore = fileStoreBuilder(getFileStoreFolder()).buildReadOnly()) {
+            try (ReadOnlyFileStore roStore = fileStoreBuilder(getFileStoreFolder()).buildReadOnly()) {
                 assertEquals(id2, roStore.getRevisions().getHead());
 
                 roStore.setRevision(id1.toString());

@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -131,20 +131,20 @@ public class DebugSegments implements Runnable {
 
     @Override
     public void run() {
-        try (FileStore store = openReadOnlyFileStore(path)) {
+        try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugSegments(store);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void debugSegments(FileStore store) {
+    private void debugSegments(ReadOnlyFileStore store) {
         for (String segment : segments) {
             debugSegment(store, segment);
         }
     }
 
-    private void debugSegment(FileStore store, String segment) {
+    private void debugSegment(ReadOnlyFileStore store, String segment) {
         Matcher matcher = SEGMENT_REGEX.matcher(segment);
 
         if (!matcher.matches()) {
