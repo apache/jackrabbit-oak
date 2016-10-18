@@ -44,7 +44,6 @@ import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.segment.BinaryReferences.newReference;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.segment.RecordWriters.newNodeStateWriter;
 
@@ -115,9 +114,6 @@ public class SegmentWriter {
     private final WriteOperationHandler writeOperationHandler;
 
     @Nonnull
-    private final BinaryReferenceConsumer binaryReferenceConsumer;
-
-    @Nonnull
     private final SynchronizedDescriptiveStatistics nodeCompactTimeStats =
             new SynchronizedDescriptiveStatistics(NODE_WRITER_STATS_WINDOW);
 
@@ -135,19 +131,18 @@ public class SegmentWriter {
      * @param cacheManager  cache manager instance for the de-duplication caches used by this writer
      * @param writeOperationHandler  handler for write operations.
      */
-    public SegmentWriter(@Nonnull SegmentStore store,
-                         @Nonnull SegmentReader reader,
-                         @Nullable BlobStore blobStore,
-                         @Nonnull WriterCacheManager cacheManager,
-            @Nonnull WriteOperationHandler writeOperationHandler,
-            @Nonnull BinaryReferenceConsumer binaryReferenceConsumer
+    public SegmentWriter(
+            @Nonnull SegmentStore store,
+            @Nonnull SegmentReader reader,
+            @Nullable BlobStore blobStore,
+            @Nonnull WriterCacheManager cacheManager,
+            @Nonnull WriteOperationHandler writeOperationHandler
     ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
         this.blobStore = blobStore;
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
-        this.binaryReferenceConsumer = checkNotNull(binaryReferenceConsumer);
     }
 
     /**
@@ -801,15 +796,11 @@ public class SegmentWriter {
 
             String binaryReference;
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
-                binaryReference = newReference(blobId);
                 recordId = RecordWriters.newBlobIdWriter(data).write(writer);
             } else {
                 RecordId refId = writeString(blobId);
-                binaryReference = newReference(refId);
                 recordId = RecordWriters.newBlobIdWriter(refId).write(writer);
             }
-
-            binaryReferenceConsumer.consume(writer.getGeneration(), recordId.asUUID(), binaryReference);
 
             return recordId;
         }

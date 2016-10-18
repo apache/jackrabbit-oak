@@ -29,8 +29,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
-import org.apache.jackrabbit.oak.segment.BinaryReferenceConsumer;
-import org.apache.jackrabbit.oak.segment.BinaryReferences;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -105,11 +103,6 @@ public class MemoryStore implements SegmentStore {
     @Nonnull
     public Revisions getRevisions() {
         return revisions;
-    }
-
-    @Nonnull
-    public BinaryReferenceConsumer getBinaryReferenceConsumer() {
-        return BinaryReferences.newDiscardBinaryReferenceConsumer();
     }
 
     @Override

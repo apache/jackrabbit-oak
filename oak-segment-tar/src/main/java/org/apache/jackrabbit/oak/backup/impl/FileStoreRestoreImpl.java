@@ -73,8 +73,7 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
                     store.getReader(),
                     store.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter,
-                    store.getBinaryReferenceConsumer()
+                    bufferWriter
             );
             SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
             Compactor compactor = new Compactor(

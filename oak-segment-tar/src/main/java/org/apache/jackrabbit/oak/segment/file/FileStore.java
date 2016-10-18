@@ -32,7 +32,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.BinaryReferences.newReferenceReader;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.FAILURE;
@@ -72,14 +71,15 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.segment.BinaryReferenceConsumer;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
+import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdTable;
@@ -112,9 +112,6 @@ public class FileStore extends AbstractFileStore {
 
     @Nonnull
     private final SegmentWriter segmentWriter;
-
-    @Nonnull
-    private final BinaryReferenceConsumer binaryReferenceConsumer;
 
     private final int maxFileSize;
 
@@ -168,18 +165,6 @@ public class FileStore extends AbstractFileStore {
             throw new IllegalStateException(directory.getAbsolutePath()
                     + " is in use by another store.", ex);
         }
-
-        this.binaryReferenceConsumer = new BinaryReferenceConsumer() {
-            @Override
-            public void consume(int generation, UUID segmentId, String binaryReference) {
-                fileStoreLock.writeLock().lock();
-                try {
-                    tarWriter.addBinaryReference(generation, segmentId, binaryReference);
-                } finally {
-                    fileStoreLock.writeLock().unlock();
-                }
-            }
-        };
 
         this.segmentWriter = segmentWriterBuilder("sys")
                 .withGeneration(new Supplier<Integer>() {
@@ -458,11 +443,6 @@ public class FileStore extends AbstractFileStore {
         return segmentWriter;
     }
 
-    @Nonnull
-    public BinaryReferenceConsumer getBinaryReferenceConsumer() {
-        return binaryReferenceConsumer;
-    }
-
     @Override
     @Nonnull
     public TarRevisions getRevisions() {
@@ -661,11 +641,8 @@ public class FileStore extends AbstractFileStore {
             // (potentially) flushing the TAR file.
 
             if (segment != null) {
-                UUID from = segment.getSegmentId().asUUID();
-
-                for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-                    tarWriter.addGraphEdge(from, segment.getReferencedSegmentId(i));
-                }
+                populateTarGraph(segment);
+                populateTarBinaryReferences(segment);
             }
 
             // Close the TAR file if the size exceeds the maximum.
@@ -682,6 +659,28 @@ public class FileStore extends AbstractFileStore {
         if (segment != null) {
             segmentCache.putSegment(segment);
         }
+    }
+
+    private void populateTarGraph(Segment segment) {
+        UUID from = segment.getSegmentId().asUUID();
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            tarWriter.addGraphEdge(from, segment.getReferencedSegmentId(i));
+        }
+    }
+
+    private void populateTarBinaryReferences(final Segment segment) {
+        final int generation = segment.getGcGeneration();
+        final UUID id = segment.getSegmentId().asUUID();
+        segment.forEachRecord(new RecordConsumer() {
+
+            @Override
+            public void consume(int number, RecordType type, int offset) {
+                if (type == RecordType.BLOB_ID) {
+                    tarWriter.addBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
+                }
+            }
+
+        });
     }
 
     /**
@@ -976,7 +975,7 @@ public class FileStore extends AbstractFileStore {
         throws IOException {
             if (gcOptions.isOffline()) {
                 BlobStore blobStore = getBlobStore();
-                SegmentWriter writer = new SegmentWriter(FileStore.this, segmentReader, blobStore, new Default(), bufferWriter, binaryReferenceConsumer);
+                SegmentWriter writer = new SegmentWriter(FileStore.this, segmentReader, blobStore, new Default(), bufferWriter);
                 return new Compactor(segmentReader, writer, blobStore, cancel, gcOptions)
                         .compact(EMPTY_NODE, head, EMPTY_NODE);
             } else {
@@ -1209,7 +1208,7 @@ public class FileStore extends AbstractFileStore {
 
             int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
             for (TarReader tarReader : tarReaders) {
-                tarReader.collectBlobReferences(collector, newReferenceReader(FileStore.this), minGeneration);
+                tarReader.collectBlobReferences(collector, minGeneration);
             }
         }
 
