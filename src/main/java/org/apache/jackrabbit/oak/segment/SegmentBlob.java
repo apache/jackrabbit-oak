@@ -157,7 +157,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     @CheckForNull
-    static String readBlobId(@Nonnull Segment segment, int recordNumber) {
+    public static String readBlobId(@Nonnull Segment segment, int recordNumber) {
         byte head = segment.readByte(recordNumber);
         if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value, small blob ID

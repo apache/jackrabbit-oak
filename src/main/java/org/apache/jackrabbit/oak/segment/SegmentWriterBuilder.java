@@ -148,8 +148,7 @@ public final class SegmentWriterBuilder {
                 store.getReader(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled),
-                store.getBinaryReferenceConsumer()
+                createWriter(store, pooled)
         );
     }
 
@@ -163,8 +162,7 @@ public final class SegmentWriterBuilder {
                 store.getReader(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled),
-                store.getBinaryReferenceConsumer()
+                createWriter(store, pooled)
         );
     }
 
@@ -178,8 +176,7 @@ public final class SegmentWriterBuilder {
                 store.getReader(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled),
-                store.getBinaryReferenceConsumer()
+                createWriter(store, pooled)
         );
     }
 
