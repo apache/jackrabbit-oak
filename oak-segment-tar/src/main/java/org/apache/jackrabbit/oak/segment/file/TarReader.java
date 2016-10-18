@@ -29,7 +29,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.segment.Segment.getGcGeneration;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.file.TarWriter.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.TarWriter.GRAPH_MAGIC;
@@ -68,8 +67,6 @@ class TarReader implements Closeable {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
-
-    private static final Logger GC_LOG = LoggerFactory.getLogger(TarReader.class.getName() + "-GC");
 
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
@@ -817,7 +814,6 @@ class TarReader implements Closeable {
       
         if (afterCount == 0) {
             log.debug("None of the entries of {} are referenceable.", name);
-            logCleanedSegments(cleaned);
             return null;
         }
         if (afterSize >= beforeSize * 3 / 4 && hasGraph()) {
@@ -900,31 +896,12 @@ class TarReader implements Closeable {
         TarReader reader = openFirstFileWithValidIndex(
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
-            logCleanedSegments(cleaned);
             reclaimed.addAll(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
             return this;
         }
-    }
-
-    private void logCleanedSegments(Set<UUID> cleaned) {
-        StringBuilder uuids = new StringBuilder();
-        String newLine = System.getProperty("line.separator", "\n") + "        ";
-
-        int c = 0;
-        String sep = "";
-        for (UUID uuid : cleaned) {
-            uuids.append(sep);
-            if (c++ % 4 == 0) {
-                uuids.append(newLine);
-            }
-            uuids.append(uuid);
-            sep = ", ";
-        }
-
-        GC_LOG.info("TarMK cleaned segments from {}: {}", file.getName(), uuids);
     }
 
     /**
