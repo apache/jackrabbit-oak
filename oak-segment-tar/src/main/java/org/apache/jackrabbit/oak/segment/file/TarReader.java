@@ -71,18 +71,6 @@ class TarReader implements Closeable {
 
     private static final Logger GC_LOG = LoggerFactory.getLogger(TarReader.class.getName() + "-GC");
 
-    private static final TarRecovery DEFAULT_TAR_RECOVERY = new TarRecovery() {
-
-        @Override
-        public void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException {
-            int generation = getGcGeneration(wrap(data), uuid);
-            long msb = uuid.getMostSignificantBits();
-            long lsb = uuid.getLeastSignificantBits();
-            writer.writeEntry(msb, lsb, data, 0, data.length, generation);
-        }
-
-    };
-
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
 
@@ -126,8 +114,7 @@ class TarReader implements Closeable {
      * @return
      * @throws IOException
      */
-    static TarReader open(Map<Character, File> files, boolean memoryMapping)
-            throws IOException {
+    static TarReader open(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery) throws IOException {
         SortedMap<Character, File> sorted = newTreeMap();
         sorted.putAll(files);
 
@@ -148,7 +135,7 @@ class TarReader implements Closeable {
 
         // regenerate the first generation based on the recovered data
         File file = sorted.values().iterator().next();
-        generateTarFile(entries, file, DEFAULT_TAR_RECOVERY);
+        generateTarFile(entries, file, recovery);
 
         reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
         if (reader != null) {
@@ -158,8 +145,7 @@ class TarReader implements Closeable {
         }
     }
 
-    static TarReader openRO(Map<Character, File> files, boolean memoryMapping,
-            boolean recover) throws IOException {
+    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, boolean recover, TarRecovery recovery) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         File file = files.get(Collections.max(files.keySet()));
@@ -178,7 +164,7 @@ class TarReader implements Closeable {
             LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
             collectFileEntries(file, entries, false);
             file = findAvailGen(file, ".ro.bak");
-            generateTarFile(entries, file, DEFAULT_TAR_RECOVERY);
+            generateTarFile(entries, file, recovery);
             reader = openFirstFileWithValidIndex(singletonList(file),
                     memoryMapping);
             if (reader != null) {

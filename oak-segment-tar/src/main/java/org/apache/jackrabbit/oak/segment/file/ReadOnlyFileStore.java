@@ -82,8 +82,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
             // only try to read-only recover the latest file as that might
             // be the *only* one still being accessed by a writer
             boolean recover = i == indices.length - 1;
-            readers.add(TarReader.openRO(map.get(indices[i]), memoryMapping,
-                    recover));
+            readers.add(TarReader.openRO(map.get(indices[i]), memoryMapping, recover, recovery));
         }
         log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
                 memoryMapping);
