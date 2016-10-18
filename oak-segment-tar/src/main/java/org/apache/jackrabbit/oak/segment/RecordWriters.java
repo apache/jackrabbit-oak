@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.sort;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.segment.MapRecord.SIZE_BITS;
+import static org.apache.jackrabbit.oak.segment.RecordType.BLOB_ID;
 import static org.apache.jackrabbit.oak.segment.RecordType.BLOCK;
 import static org.apache.jackrabbit.oak.segment.RecordType.BRANCH;
 import static org.apache.jackrabbit.oak.segment.RecordType.BUCKET;
@@ -381,13 +382,13 @@ final class RecordWriters {
      * {@code Segment#BLOB_ID_SMALL_LIMIT}.
      *
      * @see Segment#BLOB_ID_SMALL_LIMIT
-     * @see RecordType#VALUE
+     * @see RecordType#BLOB_ID
      */
     private static class LargeBlobIdWriter extends RecordWriter {
         private final RecordId stringRecord;
 
         private LargeBlobIdWriter(RecordId stringRecord) {
-            super(VALUE, 1, stringRecord);
+            super(BLOB_ID, 1, stringRecord);
             this.stringRecord = stringRecord;
         }
 
@@ -408,13 +409,13 @@ final class RecordWriters {
      * its binary representation is less than {@code Segment#BLOB_ID_SMALL_LIMIT}.
 
      * @see Segment#BLOB_ID_SMALL_LIMIT
-     * @see RecordType#VALUE
+     * @see RecordType#BLOB_ID
      */
     private static class SmallBlobIdWriter extends RecordWriter {
         private final byte[] blobId;
 
         private SmallBlobIdWriter(byte[] blobId) {
-            super(VALUE, 2 + blobId.length);
+            super(BLOB_ID, 2 + blobId.length);
             checkArgument(blobId.length < Segment.BLOB_ID_SMALL_LIMIT);
             this.blobId = blobId;
         }
