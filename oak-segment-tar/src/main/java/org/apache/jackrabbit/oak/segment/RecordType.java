@@ -123,6 +123,11 @@ public enum RecordType {
      * pointer to the list record)</li>
      * </ul>
      */
-    NODE
+    NODE,
+
+    /**
+     * A reference to an external binary object.
+     */
+    BLOB_ID,
 
 }
