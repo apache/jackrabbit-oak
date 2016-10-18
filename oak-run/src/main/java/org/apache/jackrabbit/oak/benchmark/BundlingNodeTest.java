@@ -25,6 +25,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
@@ -63,6 +64,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.apache.jackrabbit.JcrConstants.NT_RESOURCE;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrAddNode;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_RESOURCE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -121,6 +123,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
                     if (bundlingEnabled) {
                         jcr.with(bundlingInitializer);
                     }
+                    jcr.with(FixNodeTypeIndexInitializer.INSTANCE);
                     return jcr;
                 }
             });
@@ -325,6 +328,18 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
             NodeBuilder child = builder.child(name);
             child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
             return child;
+        }
+    }
+
+    enum FixNodeTypeIndexInitializer implements RepositoryInitializer {
+        INSTANCE;
+
+        @Override
+        public void initialize(@Nonnull NodeBuilder builder) {
+            NodeBuilder nodetype = builder.getChildNode("oak:index").getChildNode("nodetype");
+            if (nodetype.exists()){
+                nodetype.setProperty(DECLARING_NODE_TYPES, Collections.singleton("rep:Authorizable"), Type.NAMES);
+            }
         }
     }
 
