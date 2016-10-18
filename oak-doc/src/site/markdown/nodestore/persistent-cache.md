@@ -42,7 +42,10 @@ The first element is the directory where the cache is stored. Example:
     ./cache
 
 In this case, the data is stored in the directory "cache", 
-relative to the current working directory.
+relative to the `repository.home` directory. If no repository home directory is
+configured, the directory is relative to the current working directory. Oak
+versions prior to 1.6 always resolve to the current working directory and ignore
+the `repository.home` configuration.
 By default, there are at most two files (two generations) with the name "cache-x.data", 
 where x is an incrementing number (0, 1,...). 
 A file is at most 1 GB by default. 
