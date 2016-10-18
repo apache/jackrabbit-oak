@@ -55,7 +55,6 @@ import java.util.zip.CRC32;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
@@ -735,13 +734,9 @@ class TarReader implements Closeable {
      * Collect the references of those blobs that are reachable from any segment with a
      * generation at or above {@code minGeneration}.
      * @param collector
-     * @param referenceDecoder
      * @param minGeneration
      */
-    void collectBlobReferences(
-            @Nonnull ReferenceCollector collector,
-            @Nonnull Function<String, String> referenceDecoder,
-            int minGeneration) {
+    void collectBlobReferences(@Nonnull ReferenceCollector collector, int minGeneration) {
         Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
         if (generations == null) {
@@ -755,7 +750,7 @@ class TarReader implements Closeable {
 
             for (Set<String> references : entry.getValue().values()) {
                 for (String reference : references) {
-                    collector.addReference(referenceDecoder.apply(reference), null);
+                    collector.addReference(reference, null);
                 }
             }
         }

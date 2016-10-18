@@ -79,8 +79,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     backup.getReader(),
                     backup.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter,
-                    backup.getBinaryReferenceConsumer()
+                    bufferWriter
             );
             Compactor compactor = new Compactor(
                     backup.getReader(),
