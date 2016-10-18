@@ -44,8 +44,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+import com.google.common.base.Strings;
 import com.mongodb.MongoClientURI;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -421,8 +423,8 @@ public class DocumentNodeStoreService {
         int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
         int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
-        String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
-        String journalCache = PropertiesUtil.toString(prop(PROP_JOURNAL_CACHE), DEFAULT_JOURNAL_CACHE);
+        String persistentCache = getPath(PROP_PERSISTENT_CACHE, DEFAULT_PERSISTENT_CACHE);
+        String journalCache = getPath(PROP_JOURNAL_CACHE, DEFAULT_JOURNAL_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
         int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
         boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
@@ -461,10 +463,10 @@ public class DocumentNodeStoreService {
                 }).
                 setPrefetchExternalChanges(prefetchExternalChanges);
 
-        if (persistentCache != null && persistentCache.length() > 0) {
+        if (!Strings.isNullOrEmpty(persistentCache)) {
             mkBuilder.setPersistentCache(persistentCache);
         }
-        if (journalCache != null && journalCache.length() > 0) {
+        if (!Strings.isNullOrEmpty(journalCache)) {
             mkBuilder.setJournalCache(journalCache);
         }
 
@@ -861,12 +863,25 @@ public class DocumentNodeStoreService {
                 true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
-    private Object prop(String propName) {
+    private String prop(String propName) {
         return prop(propName, PREFIX + propName);
     }
 
-    private Object prop(String propName, String fwkPropName) {
+    private String prop(String propName, String fwkPropName) {
         return lookupFrameworkThenConfiguration(context, propName, fwkPropName);
+    }
+
+    private String getPath(String propName, String defaultValue) {
+        String path = PropertiesUtil.toString(prop(propName), defaultValue);
+        if (Strings.isNullOrEmpty(path)) {
+            return path;
+        }
+        // resolve as relative to repository.home if available
+        String repoHome = prop(PROP_HOME);
+        if (!Strings.isNullOrEmpty(repoHome)) {
+            path = FilenameUtils.concat(repoHome, path);
+        }
+        return path;
     }
 
     private static String[] getMetadata(DocumentStore ds) {
