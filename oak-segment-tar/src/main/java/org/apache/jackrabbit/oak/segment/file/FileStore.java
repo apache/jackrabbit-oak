@@ -193,7 +193,7 @@ public class FileStore extends AbstractFileStore {
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
         for (int i = indices.length - 1; i >= 0; i--) {
-            readers.add(TarReader.open(map.get(indices[i]), memoryMapping));
+            readers.add(TarReader.open(map.get(indices[i]), memoryMapping, recovery));
         }
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
 
@@ -641,8 +641,8 @@ public class FileStore extends AbstractFileStore {
             // (potentially) flushing the TAR file.
 
             if (segment != null) {
-                populateTarGraph(segment);
-                populateTarBinaryReferences(segment);
+                populateTarGraph(segment, tarWriter);
+                populateTarBinaryReferences(segment, tarWriter);
             }
 
             // Close the TAR file if the size exceeds the maximum.
@@ -659,28 +659,6 @@ public class FileStore extends AbstractFileStore {
         if (segment != null) {
             segmentCache.putSegment(segment);
         }
-    }
-
-    private void populateTarGraph(Segment segment) {
-        UUID from = segment.getSegmentId().asUUID();
-        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-            tarWriter.addGraphEdge(from, segment.getReferencedSegmentId(i));
-        }
-    }
-
-    private void populateTarBinaryReferences(final Segment segment) {
-        final int generation = segment.getGcGeneration();
-        final UUID id = segment.getSegmentId().asUUID();
-        segment.forEachRecord(new RecordConsumer() {
-
-            @Override
-            public void consume(int number, RecordType type, int offset) {
-                if (type == RecordType.BLOB_ID) {
-                    tarWriter.addBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
-                }
-            }
-
-        });
     }
 
     /**

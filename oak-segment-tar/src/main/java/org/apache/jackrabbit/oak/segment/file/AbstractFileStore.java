@@ -27,8 +27,10 @@ import static java.util.Collections.singletonMap;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,7 +39,11 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
+import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Revisions;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
+import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
@@ -93,6 +99,15 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     @Nonnull
     final SegmentCache segmentCache;
+
+    final TarRecovery recovery = new TarRecovery() {
+
+        @Override
+        public void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException {
+            writeSegment(uuid, data, writer);
+        }
+
+    };
 
     @Nonnull
     private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
@@ -301,6 +316,41 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return blobStore;
     }
 
+    private void writeSegment(UUID id, byte[] data, TarWriter w) throws IOException {
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        int generation = Segment.getGcGeneration(buffer, id);
+        w.writeEntry(msb, lsb, data, 0, data.length, generation);
+        if (SegmentId.isDataSegmentId(lsb)) {
+            Segment segment = new Segment(this, segmentReader, newSegmentId(msb, lsb), buffer);
+            populateTarGraph(segment, w);
+            populateTarBinaryReferences(segment, w);
+        }
+    }
+
+    final void populateTarGraph(Segment segment, TarWriter w) {
+        UUID from = segment.getSegmentId().asUUID();
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            w.addGraphEdge(from, segment.getReferencedSegmentId(i));
+        }
+    }
+
+    final void populateTarBinaryReferences(final Segment segment, final TarWriter w) {
+        final int generation = segment.getGcGeneration();
+        final UUID id = segment.getSegmentId().asUUID();
+        segment.forEachRecord(new RecordConsumer() {
+
+            @Override
+            public void consume(int number, RecordType type, int offset) {
+                if (type == RecordType.BLOB_ID) {
+                    w.addBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
+                }
+            }
+
+        });
+    }
+
     static void closeAndLogOnFail(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -311,4 +361,5 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             }
         }
     }
+
 }
