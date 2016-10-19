@@ -24,10 +24,11 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.cache.RemovalCause;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.google.common.cache.Weigher;
-import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
@@ -41,42 +42,46 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
  * As a consequence this cache is actually only queried for segments it does not contain,
  * which are then loaded through the loader passed to {@link #getSegment(SegmentId, Callable)}.
  * This behaviour is eventually reflected in the cache statistics (see {@link #getCacheStats()}),
- * which always reports a {@link CacheStats#getMissRate() miss rate} of 1.
+ * which always reports a {@link CacheStats#getHitRate()} () miss rate} of 1.
  */
 public class SegmentCache {
     public static final int DEFAULT_SEGMENT_CACHE_MB = 256;
 
     private final Weigher<SegmentId, Segment> weigher = new Weigher<SegmentId, Segment>() {
         @Override
-        public int weigh(SegmentId id, Segment segment) {
+        public int weigh(@Nonnull SegmentId id, @Nonnull Segment segment) {
             return 224 + segment.size();
         }
     };
+
+    private final long maximumWeight;
 
     /**
      * Cache of recently accessed segments
      */
     @Nonnull
-    private final CacheLIRS<SegmentId, Segment> cache;
+    private final Cache<SegmentId, Segment> cache;
 
     /**
      * Create a new segment cache of the given size.
      * @param cacheSizeMB  size of the cache in megabytes.
      */
     public SegmentCache(long cacheSizeMB) {
-        this.cache = CacheLIRS.<SegmentId, Segment>newBuilder()
-            .module("SegmentCache")
-            .maximumWeight(cacheSizeMB * 1024 * 1024)
-            .averageWeight(Segment.MAX_SEGMENT_SIZE / 2)
-            .weigher(weigher)
-            .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
-                @Override
-                public void evicted(SegmentId id, Segment segment, RemovalCause cause) {
-                    if (segment != null) {
-                        id.unloaded();
+        this.maximumWeight = cacheSizeMB * 1024 * 1024;
+        this.cache = CacheBuilder.newBuilder()
+                .concurrencyLevel(16)
+                .recordStats()
+                .maximumWeight(maximumWeight)
+                .weigher(weigher)
+                .removalListener(new RemovalListener<SegmentId, Segment>() {
+                    @Override
+                    public void onRemoval(@Nonnull RemovalNotification<SegmentId, Segment> notification) {
+                        SegmentId id = notification.getKey();
+                        if (id != null) {
+                            id.unloaded();
+                        }
                     }
-                } })
-            .build();
+                }).build();
     }
 
     /**
@@ -87,9 +92,16 @@ public class SegmentCache {
      * @throws ExecutionException  when {@code loader} failed to load an segment
      */
     @Nonnull
-    public Segment getSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader)
+    public Segment getSegment(@Nonnull final SegmentId id, @Nonnull final Callable<Segment> loader)
     throws ExecutionException {
-        return cache.get(id, loader);
+        try {
+            Segment segment = loader.call();
+            cache.put(id, segment);
+            id.loaded(segment);
+            return segment;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
     }
 
     /**
@@ -97,8 +109,9 @@ public class SegmentCache {
      * @param segment  the segment to cache
      */
     public void putSegment(@Nonnull Segment segment) {
-        cache.put(segment.getSegmentId(), segment);
-        segment.getSegmentId().loaded(segment);
+        SegmentId segmentId = segment.getSegmentId();
+        cache.put(segmentId, segment);
+        segmentId.loaded(segment);
     }
 
     /**
@@ -114,6 +127,6 @@ public class SegmentCache {
      */
     @Nonnull
     public CacheStats getCacheStats() {
-        return new CacheStats(cache, "Segment Cache", weigher, cache.getMaxMemory());
+        return new CacheStats(cache, "Segment Cache", weigher, maximumWeight);
     }
 }
