@@ -190,6 +190,9 @@ class StandbyServer implements AutoCloseable {
     }
 
     public void stop() {
+        if (channelFuture == null) {
+            return;
+        }
         if (channelFuture.channel().disconnect().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             log.debug("Channel disconnected");
         } else {

@@ -150,26 +150,22 @@ public class FailoverIPRangeIT extends TestBase {
         FileStore storeC = clientFileStore.fileStore();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, ipRanges);
-        serverSync.start();
-        addTestContent(store, "server");
-        storeS.flush();  // this speeds up the test a little bit...
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, ipRanges);
+                StandbyClientSync clientSync = new StandbyClientSync(host, getServerPort(), storeC, false, getClientTimeout(), false)
+        ) {
+            serverSync.start();
+            addTestContent(store, "server");
+            storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClientSync clientSync = new StandbyClientSync(host, getServerPort(), storeC, false, getClientTimeout(), false);
-        clientSync.run();
+            clientSync.run();
 
-        try {
             if (expectedToWork) {
                 assertEquals(storeS.getHead(), storeC.getHead());
-            }
-            else {
+            } else {
                 assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
             }
-        } finally {
-            serverSync.close();
-            clientSync.close();
         }
-
     }
 
 }

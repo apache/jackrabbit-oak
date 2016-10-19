@@ -20,8 +20,8 @@
 package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.addTestContent;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
@@ -53,20 +53,11 @@ public class FailoverSslTestIT extends TestBase {
     public void testFailoverSecure() throws Exception {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
-        NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, true);
-        serverSync.start();
-        addTestContent(store, "server");
-        storeS.flush();  // this speeds up the test a little bit...
-
-        StandbyClientSync clientSync = newStandbyClientSync(storeC, getServerPort(), true);
-        clientSync.run();
-
-        try {
-            assertEquals(storeS.getHead(), storeC.getHead());
-        } finally {
-            serverSync.close();
-            clientSync.close();
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, true);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, getServerPort(), true);
+        ) {
+            assertTrue(synchronizeAndCompareHead(serverSync, clientSync));
         }
     }
 
@@ -74,20 +65,11 @@ public class FailoverSslTestIT extends TestBase {
     public void testFailoverSecureServerPlainClient() throws Exception {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
-        NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, true);
-        serverSync.start();
-        addTestContent(store, "server");
-        storeS.flush();  // this speeds up the test a little bit...
-
-        StandbyClientSync clientSync = newStandbyClientSync(storeC);
-        clientSync.run();
-
-        try {
-            assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
-        } finally {
-            serverSync.close();
-            clientSync.close();
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, true);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        ) {
+            assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }
     }
 
@@ -95,20 +77,23 @@ public class FailoverSslTestIT extends TestBase {
     public void testFailoverPlainServerSecureClient() throws Exception {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, getServerPort(), true);
+        ) {
+            assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
+        }
+    }
+
+    private boolean synchronizeAndCompareHead(StandbyServerSync serverSync, StandbyClientSync clientSync) throws Exception {
+        FileStore storeS = serverFileStore.fileStore();
+        FileStore storeC = clientFileStore.fileStore();
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
         serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
-
-        StandbyClientSync clientSync = newStandbyClientSync(storeC, getServerPort(), true);
         clientSync.run();
-
-        try {
-            assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
-        } finally {
-            serverSync.close();
-            clientSync.close();
-        }
+        return storeS.getHead().equals(storeC.getHead());
     }
+
 }
