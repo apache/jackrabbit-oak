@@ -124,6 +124,9 @@ public class BundlingHandler {
             removeDeletedChildProperties(state, childContext);
         } else {
             childContext = getBundlorContext(childPath, state);
+            if (childContext.isBundling()){
+                removeBundlingMetaProps(state, childContext);
+            }
         }
         return new BundlingHandler(registry, childContext, childPath, state);
     }
@@ -146,6 +149,15 @@ public class BundlingHandler {
             return ctx.bundlingPath.equals(path);
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        String result = path;
+        if (isBundledNode()){
+            result = path + "( Bundling root - " + getRootBundlePath() + ")";
+        }
+        return result;
     }
 
     private String childPath(String name){
@@ -172,8 +184,19 @@ public class BundlingHandler {
             String propName = ps.getName();
             //In deletion never touch child status related meta props
             //as they are not to be changed once set
-            if (!propName.startsWith(DocumentBundlor.HAS_CHILD_PROP_PREFIX))
+            if (!propName.startsWith(DocumentBundlor.HAS_CHILD_PROP_PREFIX)) {
                 childContext.removeProperty(ps.getName());
+            }
+        }
+    }
+
+    private static void removeBundlingMetaProps(NodeState state, BundlingContext childContext) {
+        //Explicitly remove meta prop related to bundling as it would not
+        //be part of normal listing of properties and hence would not be deleted
+        //as part of diff
+        PropertyState bundlorConfig = state.getProperty(DocumentBundlor.META_PROP_PATTERN);
+        if (bundlorConfig != null){
+            childContext.removeProperty(DocumentBundlor.META_PROP_PATTERN);
         }
     }
 

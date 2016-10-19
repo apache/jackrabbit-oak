@@ -218,7 +218,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return properties.values();
+        //Filter out the meta properties related to bundling from
+        //generic listing of props
+        return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS);
     }
 
     @Override
@@ -272,6 +274,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     @Override
     public long getPropertyCount() {
+        if (bundlingContext.isBundled()){
+            return Iterables.size(getProperties());
+        }
         return properties.size();
     }
 
@@ -780,6 +785,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 return BundlorUtils.getMatchingProperties(rootProperties, matcher);
             }
             return rootProperties;
+        }
+
+        public boolean isBundled(){
+            return matcher.isMatch();
         }
 
         public Map<String, PropertyState> getAllProperties(){

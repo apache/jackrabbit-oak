@@ -35,6 +35,10 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 public class DocumentBundlor {
     /**
+     * Prefix used for various meta properties used for bundling
+     */
+    public static final String BUNDLOR_META_PROP_PREFIX = ":doc-";
+    /**
      * Hidden property to store the pattern as part of NodeState
      * TODO - Also store the NodeType
      */

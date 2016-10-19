@@ -90,7 +90,7 @@ class CommitDiff implements NodeStateDiff {
             commit.addNode(new DocumentNodeState(store, child.getRootBundlePath(),
                     new RevisionVector(commit.getRevision())));
         }
-        setChildrenFlagOnAdd(child);
+        setOrTouchChildrenFlag(child);
         return after.compareAgainstBaseState(EMPTY_NODE,
                 new CommitDiff(store, commit, child, builder, blobs));
     }
@@ -113,6 +113,7 @@ class CommitDiff implements NodeStateDiff {
         if (child.isBundlingRoot()) {
             commit.removeNode(child.getRootBundlePath(), before);
         }
+        setOrTouchChildrenFlag(child);
         return MISSING_NODE.compareAgainstBaseState(before,
                 new CommitDiff(store, commit, child, builder, blobs));
     }
@@ -144,7 +145,7 @@ class CommitDiff implements NodeStateDiff {
         }
     }
 
-    private void setChildrenFlagOnAdd(BundlingHandler child) {
+    private void setOrTouchChildrenFlag(BundlingHandler child) {
         //Add hasChildren marker for bundling case
         String propName = null;
         if (child.isBundledNode()){

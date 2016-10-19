@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -110,7 +109,11 @@ public class DocumentBundlingTest {
         NodeState root = store.getRoot();
         NodeState fileNodeState = root.getChildNode("test");
         assertTrue(fileNodeState.getChildNode("book.jpg").exists());
-        assertTrue(fileNodeState.getChildNode("book.jpg").getChildNode("jcr:content").exists());
+        NodeState contentNode = fileNodeState.getChildNode("book.jpg").getChildNode("jcr:content");
+        assertTrue(contentNode.exists());
+
+        assertEquals(1, contentNode.getPropertyCount());
+        assertEquals(1, Iterables.size(contentNode.getProperties()));
 
         assertNull(getNodeDocument("/test/book.jpg/jcr:content"));
         assertNotNull(getNodeDocument("/test/book.jpg"));
@@ -498,7 +501,6 @@ public class DocumentBundlingTest {
 
     }
 
-    @Ignore("FIXEME")
     @Test
     public void recreatedBundledNode() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
@@ -567,6 +569,42 @@ public class DocumentBundlingTest {
 
         //New pattern should be effective
         assertTrue(hasNodeProperty("/test/book.jpg", concat("metadata", DocumentBundlor.META_PROP_NODE)));
+        assertFalse(hasNodeProperty("/test/book.jpg", concat("comments", DocumentBundlor.META_PROP_NODE)));
+    }
+
+    @Test
+    public void bundlingPatternRemovedAndBundledNodeRecreated() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        assertTrue(hasNodeProperty("/test/book.jpg", concat("jcr:content", DocumentBundlor.META_PROP_NODE)));
+
+        //Delete the bundled node structure
+        builder = store.getRoot().builder();
+        builder.child("test").child("book.jpg").remove();
+        merge(builder);
+
+        //Change bundling pattern
+        builder = store.getRoot().builder();
+        NodeBuilder ntfile = childBuilder(builder, BundlingConfigHandler.CONFIG_PATH+"/nt:file");
+        ntfile.remove();
+        merge(builder);
+
+        //Create a new node with same path
+        builder = store.getRoot().builder();
+        fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        fileNode.child("metadata").setProperty("jcr:data", "foo");
+        fileNode.child("comments").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        //New pattern should be effective
+        assertNotNull(getNodeDocument("/test/book.jpg"));
+        assertFalse(hasNodeProperty("/test/book.jpg", concat("metadata", DocumentBundlor.META_PROP_NODE)));
         assertFalse(hasNodeProperty("/test/book.jpg", concat("comments", DocumentBundlor.META_PROP_NODE)));
     }
 
