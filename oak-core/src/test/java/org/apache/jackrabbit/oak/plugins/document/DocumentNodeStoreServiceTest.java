@@ -53,6 +53,7 @@ public class DocumentNodeStoreServiceTest {
     public void setUp() throws  Exception {
         assumeTrue(MongoUtils.isAvailable());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        MockOsgi.injectServices(service, context.bundleContext());
         repoHome = target.newFolder().getAbsolutePath();
     }
 
@@ -69,25 +70,112 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
+    public void journalCache() {
+        String journalCache = FilenameUtils.concat(repoHome, "diff-cache");
+        assertJournalCachePath(journalCache, journalCache, "");
+    }
+
+    @Test
     public void persistentCacheWithRepositoryHome() {
         assertPersistentCachePath(FilenameUtils.concat(repoHome, "cache"),
                 "cache", repoHome);
     }
 
+    @Test
+    public void journalCacheWithRepositoryHome() {
+        assertJournalCachePath(FilenameUtils.concat(repoHome, "diff-cache"),
+                "diff-cache", repoHome);
+    }
+
+    @Test
+    public void defaultPersistentCacheWithRepositoryHome() {
+        String persistentCache = FilenameUtils.concat(repoHome, "cache");
+        assertPersistentCachePath(persistentCache, "", repoHome);
+    }
+
+    @Test
+    public void defaultJournalCacheWithRepositoryHome() {
+        String journalCache = FilenameUtils.concat(repoHome, "diff-cache");
+        assertJournalCachePath(journalCache, "", repoHome);
+    }
+
+    @Test
+    public void disablePersistentCacheWithRepositoryHome() {
+        String persistentCache = FilenameUtils.concat(repoHome, "cache");
+        assertNoPersistentCachePath(persistentCache, "-", repoHome);
+
+    }
+
+    @Test
+    public void disableJournalCacheWithRepositoryHome() {
+        String journalCache = FilenameUtils.concat(repoHome, "diff-cache");
+        assertNoJournalCachePath(journalCache, "-", repoHome);
+
+    }
+
     private void assertPersistentCachePath(String expectedPath,
                                            String persistentCache,
                                            String repoHome) {
-        MockOsgi.injectServices(service, context.bundleContext());
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("persistentCache", persistentCache);
+        config.put("journalCache", "-");
+        assertCachePath(expectedPath, config);
+    }
 
+    private void assertJournalCachePath(String expectedPath,
+                                        String journalCache,
+                                        String repoHome) {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("journalCache", journalCache);
+        config.put("persistentCache", "-");
+        assertCachePath(expectedPath, config);
+    }
+
+    private void assertCachePath(String expectedPath,
+                                 Map<String, Object> config) {
         assertFalse(new File(expectedPath).exists());
 
-        Map<String, Object> config = Maps.newHashMap();
-        config.put("repository.home", repoHome);
-        config.put("persistentCache", persistentCache);
-        config.put("db", MongoUtils.DB);
         MockOsgi.activate(service, context.bundleContext(), config);
 
         assertNotNull(context.getService(NodeStore.class));
+        // must exist after service was activated
         assertTrue(new File(expectedPath).exists());
+    }
+
+    private void assertNoPersistentCachePath(String unexpectedPath,
+                                             String persistentCache,
+                                             String repoHome) {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("persistentCache", persistentCache);
+        assertNoCachePath(unexpectedPath, config);
+    }
+
+    private void assertNoJournalCachePath(String unexpectedPath,
+                                          String journalCache,
+                                          String repoHome) {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("journalCache", journalCache);
+        assertNoCachePath(unexpectedPath, config);
+    }
+
+    private void assertNoCachePath(String unexpectedPath,
+                                   Map<String, Object> config) {
+        assertFalse(new File(unexpectedPath).exists());
+
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        assertNotNull(context.getService(NodeStore.class));
+        // must not exist after service was activated
+        assertFalse(new File(unexpectedPath).exists());
+        // also assert there is no dash directory
+        // the dash character is used to disable a persistent cache
+        assertFalse(new File(repoHome, "-").exists());
+    }
+
+    private Map<String, Object> newConfig(String repoHome) {
+        Map<String, Object> config = Maps.newHashMap();
+        config.put("repository.home", repoHome);
+        config.put("db", MongoUtils.DB);
+        return config;
     }
 }

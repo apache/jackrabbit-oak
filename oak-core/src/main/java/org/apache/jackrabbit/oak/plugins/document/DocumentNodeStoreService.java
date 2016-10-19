@@ -117,8 +117,8 @@ public class DocumentNodeStoreService {
     private static final int DEFAULT_CACHE = 256;
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
-    private static final String DEFAULT_PERSISTENT_CACHE = "";
-    private static final String DEFAULT_JOURNAL_CACHE = "";
+    private static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
+    private static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
     private static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
     private static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
     private static final String PREFIX = "oak.documentstore.";
@@ -875,6 +875,10 @@ public class DocumentNodeStoreService {
         String path = PropertiesUtil.toString(prop(propName), defaultValue);
         if (Strings.isNullOrEmpty(path)) {
             return path;
+        }
+        if ("-".equals(path)) {
+            // disable this path configuration
+            return "";
         }
         // resolve as relative to repository.home if available
         String repoHome = prop(PROP_HOME);
