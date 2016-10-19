@@ -98,19 +98,15 @@ public abstract class DataStoreTestBase extends TestBase {
         FileStore secondary = getSecondary();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-        serverSync.start();
         byte[] data = addTestContent(store, "server", blobSize);
-        primary.flush();
-
-        StandbyClientSync cl = newStandbyClientSync(secondary);
-        cl.run();
-
-        try {
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
+                StandbyClientSync cl = newStandbyClientSync(secondary)
+        ) {
+            serverSync.start();
+            primary.flush();
+            cl.run();
             assertEquals(primary.getHead(), secondary.getHead());
-        } finally {
-            serverSync.close();
-            cl.close();
         }
 
         assertTrue(primary.getStats().getApproximateSize() < mb);
@@ -168,21 +164,22 @@ public abstract class DataStoreTestBase extends TestBase {
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
-        NetworkErrorProxy p = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
-        p.skipBytes(skipPosition, skipBytes);
-        p.flipByte(flipPosition);
-        p.run();
-
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-        serverSync.start();
         byte[] data = addTestContent(store, "server", blobSize);
-        primary.flush();
+        try (
+                NetworkErrorProxy p = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary, getProxyPort())
+        ) {
+            p.skipBytes(skipPosition, skipBytes);
+            p.flipByte(flipPosition);
+            p.run();
 
-        StandbyClientSync clientSync = newStandbyClientSync(secondary, getProxyPort());
-        clientSync.run();
+            serverSync.start();
+            primary.flush();
 
-        try {
+            clientSync.run();
+
             if (skipBytes > 0 || flipPosition >= 0) {
                 if (!storesShouldBeEqual()) {
                     assertFalse("stores are not expected to be equal", primary.getHead().equals(secondary.getHead()));
@@ -196,10 +193,6 @@ public abstract class DataStoreTestBase extends TestBase {
                 clientSync.run();
             }
             assertEquals(primary.getHead(), secondary.getHead());
-        } finally {
-            serverSync.close();
-            clientSync.close();
-            p.close();
         }
 
         assertTrue(primary.getStats().getApproximateSize() < mb);

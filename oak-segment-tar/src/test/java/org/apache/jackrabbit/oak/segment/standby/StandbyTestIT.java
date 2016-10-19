@@ -26,12 +26,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
 import java.util.Random;
 
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -69,35 +67,32 @@ public class StandbyTestIT extends TestBase {
         FileStore secondary = clientFileStore.fileStore();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-        serverSync.start();
-        byte[] data = addTestContent(store, "server", blobSize, 150);
-        primary.flush();
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary)
+        ) {
+            serverSync.start();
+            byte[] data = addTestContent(store, "server", blobSize, 150);
+            primary.flush();
 
-        StandbyClientSync clientSync = newStandbyClientSync(secondary);
-        clientSync.run();
+            clientSync.run();
 
-        try {
             assertEquals(primary.getHead(), secondary.getHead());
-        } finally {
-            serverSync.close();
-            clientSync.close();
+
+            assertTrue(primary.getStats().getApproximateSize() > blobSize);
+            assertTrue(secondary.getStats().getApproximateSize() > blobSize);
+
+            PropertyState ps = secondary.getHead().getChildNode("root")
+                    .getChildNode("server").getProperty("testBlob");
+            assertNotNull(ps);
+            assertEquals(Type.BINARY.tag(), ps.getType().tag());
+            Blob b = ps.getValue(Type.BINARY);
+            assertEquals(blobSize, b.length());
+
+            byte[] testData = new byte[blobSize];
+            ByteStreams.readFully(b.getNewStream(), testData);
+            assertArrayEquals(data, testData);
         }
-
-        assertTrue(primary.getStats().getApproximateSize() > blobSize);
-        assertTrue(secondary.getStats().getApproximateSize() > blobSize);
-
-        PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
-        assertNotNull(ps);
-        assertEquals(Type.BINARY.tag(), ps.getType().tag());
-        Blob b = ps.getValue(Type.BINARY);
-        assertEquals(blobSize, b.length());
-
-        byte[] testData = new byte[blobSize];
-        ByteStreams.readFully(b.getNewStream(), testData);
-        assertArrayEquals(data, testData);
-
     }
 
     /**
@@ -112,14 +107,13 @@ public class StandbyTestIT extends TestBase {
         FileStore secondary = clientFileStore.fileStore();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-        serverSync.start();
-        byte[] data = addTestContent(store, "server", blobSize, dataNodes);
-        primary.flush();
-
-        StandbyClientSync clientSync = newStandbyClientSync(secondary);
-
-        try {
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary)
+        ) {
+            serverSync.start();
+            byte[] data = addTestContent(store, "server", blobSize, dataNodes);
+            primary.flush();
 
             for (int i = 0; i < 5; i++) {
                 String cp = store.checkpoint(Long.MAX_VALUE);
@@ -131,28 +125,23 @@ public class StandbyTestIT extends TestBase {
                 assertTrue(secondary.getStats().getApproximateSize() > blobSize);
             }
 
-        } finally {
-            serverSync.close();
-            clientSync.close();
+            assertTrue(primary.getStats().getApproximateSize() > blobSize);
+            assertTrue(secondary.getStats().getApproximateSize() > blobSize);
+
+            PropertyState ps = secondary.getHead().getChildNode("root")
+                    .getChildNode("server").getProperty("testBlob");
+            assertNotNull(ps);
+            assertEquals(Type.BINARY.tag(), ps.getType().tag());
+            Blob b = ps.getValue(Type.BINARY);
+            assertEquals(blobSize, b.length());
+
+            byte[] testData = new byte[blobSize];
+            ByteStreams.readFully(b.getNewStream(), testData);
+            assertArrayEquals(data, testData);
         }
-
-        assertTrue(primary.getStats().getApproximateSize() > blobSize);
-        assertTrue(secondary.getStats().getApproximateSize() > blobSize);
-
-        PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
-        assertNotNull(ps);
-        assertEquals(Type.BINARY.tag(), ps.getType().tag());
-        Blob b = ps.getValue(Type.BINARY);
-        assertEquals(blobSize, b.length());
-
-        byte[] testData = new byte[blobSize];
-        ByteStreams.readFully(b.getNewStream(), testData);
-        assertArrayEquals(data, testData);
     }
 
-    private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes)
-            throws CommitFailedException, IOException {
+    private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes) throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder content = builder.child(child);
         content.setProperty("ts", System.currentTimeMillis());

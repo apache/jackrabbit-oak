@@ -58,15 +58,15 @@ public class FailoverMultipleClientsTestIT extends TestBase {
         FileStore storeC2 = clientFileStore2.fileStore();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
-        serverSync.start();
-        SegmentTestUtils.addTestContent(store, "server");
-        storeS.flush();  // this speeds up the test a little bit...
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
+                StandbyClientSync cl1 = newStandbyClientSync(storeC);
+                StandbyClientSync cl2 = newStandbyClientSync(storeC2)
+        ) {
+            serverSync.start();
+            SegmentTestUtils.addTestContent(store, "server");
+            storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClientSync cl1 = newStandbyClientSync(storeC);
-        StandbyClientSync cl2 = newStandbyClientSync(storeC2);
-
-        try {
             assertFalse("first client has invalid initial store!", storeS.getHead().equals(storeC.getHead()));
             assertFalse("second client has invalid initial store!", storeS.getHead().equals(storeC2.getHead()));
             assertEquals(storeC.getHead(), storeC2.getHead());
@@ -89,10 +89,6 @@ public class FailoverMultipleClientsTestIT extends TestBase {
             cl1.start();
             cl1.run();
             assertEquals(storeS.getHead(), storeC.getHead());
-        } finally {
-            serverSync.close();
-            cl1.close();
-            cl2.close();
         }
     }
 
