@@ -78,6 +78,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
 public class MultiplexingNodeStoreTest {
@@ -173,12 +174,14 @@ public class MultiplexingNodeStoreTest {
         
         readOnlyStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        store = new MultiplexingNodeStore.Builder(mip, globalStore)
-                .addMount("temp", mountedStore)
-                .addMount("deep", deepMountedStore)
-                .addMount("empty", emptyStore)
-                .addMount("readOnly", readOnlyStore)
-                .build();
+        // don't use the builder since it would fail due to too many read-write stores
+        // but for the purposes of testing the general correctness it's fine
+        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("temp"), mountedStore));
+        nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("deep"), deepMountedStore));
+        nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("empty"), emptyStore));
+        nonDefaultStores.add(new MountedNodeStore(mip.getMountByName("readOnly"), readOnlyStore));
+        store = new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);
     }
 
     @After

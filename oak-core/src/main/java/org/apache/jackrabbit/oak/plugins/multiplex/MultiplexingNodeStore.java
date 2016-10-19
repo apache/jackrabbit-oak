@@ -77,7 +77,8 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     private final List<Observer> observers = new CopyOnWriteArrayList<>();
 
-    private MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
+    // visible for testing only
+    MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
         this.ctx = new MultiplexingContext(mip, globalStore, nonDefaultStore);
     }
 
@@ -315,12 +316,34 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         }
 
         public MultiplexingNodeStore build() {
+            
+            checkReadWriteMountsNumber();
+            checkMountsAreConsistentWithMounts();
+            
+            return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);
+        }
+
+        private void checkReadWriteMountsNumber() {
+            List<String> readWriteMountNames = Lists.newArrayList();
+            readWriteMountNames.add(mip.getDefaultMount().getName());
+            
+            for ( Mount mount : mip.getNonDefaultMounts() ) {
+                if ( !mount.isReadOnly() ) {
+                    readWriteMountNames.add(mount.getName());
+                }
+            }
+            
+            checkArgument(readWriteMountNames.size() <= 1, 
+                    "Expected at most 1 write-enabled mount, but got %s: %s.", readWriteMountNames.size(), readWriteMountNames);
+        }
+        
+        private void checkMountsAreConsistentWithMounts() {
             int buildMountCount = nonDefaultStores.size();
             int mipMountCount = mip.getNonDefaultMounts().size();
             checkArgument(buildMountCount == mipMountCount,
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
-            return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);
         }
+
     }
 }
