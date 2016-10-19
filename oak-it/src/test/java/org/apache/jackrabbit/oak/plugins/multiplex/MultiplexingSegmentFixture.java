@@ -34,7 +34,7 @@ public class MultiplexingSegmentFixture extends NodeStoreFixture {
     public NodeStore createNodeStore() {
         try {
             MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
-                    .mount("temp", MOUNT_PATH)
+                    .readOnlyMount("temp", MOUNT_PATH)
                     .build();
 
             NodeStore globalStore = SegmentNodeStore.builder(new MemoryStore()).build();
