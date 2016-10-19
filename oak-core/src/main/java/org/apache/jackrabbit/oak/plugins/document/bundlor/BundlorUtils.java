@@ -91,6 +91,7 @@ public final class BundlorUtils {
             int depth = elements.size() - 1;
 
             if (depth == expectedDepth
+                    && key.startsWith(matcher.getMatchedPath())
                     && elements.get(elements.size() - 1).equals(META_PROP_NODE)){
                 //Child node name is the second last element
                 //[jcr:content/:self -> [jcr:content, :self]

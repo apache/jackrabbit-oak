@@ -94,6 +94,9 @@ public class BundlorUtilsTest {
 
         names = BundlorUtils.getChildNodeNames(testData, m.next("jcr:content"));
         assertThat(names, hasItems("metadata", "comments"));
+
+        names = BundlorUtils.getChildNodeNames(testData, m.next("jcr:content").next("metadata"));
+        assertTrue(names.isEmpty());
     }
 
     private Map<String, PropertyState> create(String ... keyNames){
