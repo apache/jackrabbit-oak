@@ -25,6 +25,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -46,10 +47,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class DocumentBundlingTest {
@@ -108,14 +112,61 @@ public class DocumentBundlingTest {
                 "jcr:content", //Bundled
                 "jcr:content/comments" //Not bundled. Parent bundled
         );
+        dump(appNB.getNodeState());
         builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertTrue(PartialEqualsDiff.equals(appNB.getNodeState(), getNode(store.getRoot(), "/test/book.jpg")));
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+    
+    @Test
+    public void queryChildren() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content", 
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        NodeState appNode = getNode(store.getRoot(), "test/book.jpg");
+
+        ds.reset();
+
+        int childCount = Iterables.size(appNode.getChildNodeEntries());
+        assertEquals(1, childCount);
+        assertEquals(1, ds.queryPaths.size());
+
+        assertThat(childNames(appNode, "jcr:content"), hasItems("comments", "metadata", "renditions"));
+        assertEquals(3, getNode(appNode, "jcr:content").getChildNodeCount(100));
+
+        assertThat(childNames(appNode, "jcr:content/metadata"), hasItems("xmp"));
+        assertEquals(1, getNode(appNode, "jcr:content/metadata").getChildNodeCount(100));
+
+        ds.reset();
+        //For bundled case no query should be fired
+        assertThat(childNames(appNode, "jcr:content/renditions"), hasItems("original"));
+        assertEquals(1, getNode(appNode, "jcr:content/renditions").getChildNodeCount(100));
+        assertEquals(0, ds.queryPaths.size());
+
+        assertThat(childNames(appNode, "jcr:content/renditions/original"), hasItems("jcr:content"));
+        assertEquals(1, getNode(appNode, "jcr:content/renditions/original").getChildNodeCount(100));
+        assertEquals(0, ds.queryPaths.size());
+
+        assertTrue(PartialEqualsDiff.equals(appNB.getNodeState(), appNode));
     }
 
     private static void dump(NodeState state){
         System.out.println(NodeStateUtils.toString(state));
+    }
+
+    private static List<String> childNames(NodeState state, String path){
+        return copyOf(getNode(state, path).getChildNodeNames());
     }
 
     private static NodeBuilder newNode(String typeName){
