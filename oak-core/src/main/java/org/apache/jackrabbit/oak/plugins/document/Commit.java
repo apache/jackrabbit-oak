@@ -32,10 +32,9 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -384,7 +383,7 @@ public class Commit {
             }
 
             //Ignore setting children path for bundled nodes
-            if (bundledNodes.contains(parentPath)){
+            if (isBundled(parentPath)){
                 continue;
             }
 
@@ -664,7 +663,9 @@ public class Commit {
             boolean isNew = op != null && op.isNew();
             if (op == null || !hasContentChanges(op) || denotesRoot(path)) {
                 // track intermediate node and root
-                tracker.track(path);
+                if (!isBundled(path)) {
+                    tracker.track(path);
+                }
             }
             nodeStore.applyChanges(before, after, rev, path, isNew,
                     added, removed, changed, cacheEntry);
@@ -695,6 +696,10 @@ public class Commit {
         for (PropertyState p : state.getProperties()) {
             updateProperty(path, p.getName(), null);
         }
+    }
+
+    private boolean isBundled(String parentPath) {
+        return bundledNodes.contains(parentPath);
     }
 
     private static final Function<UpdateOp.Key, String> KEY_TO_NAME =

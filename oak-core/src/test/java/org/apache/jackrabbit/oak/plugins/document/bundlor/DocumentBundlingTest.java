@@ -452,6 +452,23 @@ public class DocumentBundlingTest {
         AssertingDiff.assertEquals(appNode, appNode2);
     }
 
+    @Test
+    public void bundledDocsShouldNotBePartOfBackgroundUpdate() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+
+        merge(builder);
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content/vlt:definition").setProperty("foo", "bar");
+        merge(builder);
+
+        //2 for /test, /test/book.jpg and /test/book.jpg/jcr:content should be there
+        //TODO If UnsavedModification is made public we can assert on path itself
+        assertEquals(2, store.getPendingWriteCount());
+    }
+
     private void createTestNode(String path, NodeState state) throws CommitFailedException {
         String parentPath = PathUtils.getParentPath(path);
         NodeBuilder builder = store.getRoot().builder();
