@@ -621,7 +621,7 @@ public final class DocumentNodeStore
         try {
             bundlingConfigHandler.close();
         } catch (IOException e) {
-            LOG.warn("Error closing bundlingConfigHandler", bundlingConfigHandler);
+            LOG.warn("Error closing bundlingConfigHandler", bundlingConfigHandler, e);
         }
 
         // notify background threads waiting on isDisposed
@@ -1124,10 +1124,6 @@ public final class DocumentNodeStore
         final DocumentNodeState result = doc.getNodeAtRevision(this, readRevision, lastRevision);
         PERFLOG.end(start, 1, "readNode: path={}, readRevision={}", path, readRevision);
         return result;
-    }
-
-    public BundlingHandler getBundlingHandler() {
-        return bundlingConfigHandler.newBundlingHandler();
     }
 
     public BundlingConfigHandler getBundlingConfigHandler() {
