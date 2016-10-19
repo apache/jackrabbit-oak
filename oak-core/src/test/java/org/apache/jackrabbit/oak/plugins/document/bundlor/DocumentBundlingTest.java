@@ -41,9 +41,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -548,7 +548,7 @@ public class DocumentBundlingTest {
         }
     }
 
-    private static class AssertingDiff extends EqualsDiff {
+    private static class AssertingDiff implements NodeStateDiff {
         private final Set<String> ignoredProps = ImmutableSet.of(
                 DocumentBundlor.META_PROP_PATTERN,
                 META_PROP_BUNDLED_CHILD,
@@ -583,6 +583,11 @@ public class DocumentBundlingTest {
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
             throw new AssertionError(format("Added child: %s -  %s", name, after));
+        }
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            return AbstractNodeState.compareAgainstBaseState(after, before, new AssertingDiff());
         }
 
         @Override
