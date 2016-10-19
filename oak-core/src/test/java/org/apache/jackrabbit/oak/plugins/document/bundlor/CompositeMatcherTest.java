@@ -70,8 +70,8 @@ public class CompositeMatcherTest {
                 new Include("x/*").createMatcher())
         );
 
-        assertFalse(m.matchesChildren());
-        assertTrue(m.next("x").matchesChildren());
+        assertFalse(m.matchesAllChildren());
+        assertTrue(m.next("x").matchesAllChildren());
     }
 
 }

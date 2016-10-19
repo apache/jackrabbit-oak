@@ -40,12 +40,12 @@ public class MatcherTest {
     public void includeAll() throws Exception{
         Matcher m = new IncludeAllMatcher("x", 1);
         assertTrue(m.isMatch());
-        assertTrue(m.matchesChildren());
+        assertTrue(m.matchesAllChildren());
         assertEquals("x", m.getMatchedPath());
         assertEquals(1, m.depth());
 
         assertTrue(m.next("y").isMatch());
-        assertTrue(m.next("y").matchesChildren());
+        assertTrue(m.next("y").matchesAllChildren());
         assertEquals("x/y", m.next("y").getMatchedPath());
         assertEquals(2, m.next("y").depth());
     }

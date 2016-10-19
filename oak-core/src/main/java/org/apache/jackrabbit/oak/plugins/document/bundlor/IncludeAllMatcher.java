@@ -56,7 +56,7 @@ class IncludeAllMatcher implements Matcher {
     }
 
     @Override
-    public boolean matchesChildren() {
+    public boolean matchesAllChildren() {
         return true;
     }
 

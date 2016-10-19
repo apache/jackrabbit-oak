@@ -258,7 +258,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
 
         int bundledChildCount = bundlingContext.getBundledChildNodeNames().size();
-        if (bundlingContext.matcher.matchesChildren()){
+        if (bundlingContext.matcher.matchesAllChildren()){
             return bundledChildCount;
         }
 
@@ -295,7 +295,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
-                if (bundlingContext.matcher.matchesChildren()){
+                if (bundlingContext.matcher.matchesAllChildren()){
                     return getBundledChildren();
                 }
                 return Iterators.concat(getBundledChildren(), new ChildNodeEntryIterator());
