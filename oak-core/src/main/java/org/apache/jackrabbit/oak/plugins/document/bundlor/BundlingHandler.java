@@ -33,26 +33,26 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 public class BundlingHandler {
     private final BundledTypesRegistry registry;
     private final String path;
-    private final BundlingRoot root;
+    private final BundlingContext ctx;
     private final Set<PropertyState> metaProps;
 
     public BundlingHandler(BundledTypesRegistry registry) {
-        this(registry, new BundlingRoot(), ROOT_PATH, Collections.<PropertyState>emptySet());
+        this(registry, BundlingContext.NULL, ROOT_PATH, Collections.<PropertyState>emptySet());
     }
 
-    private BundlingHandler(BundledTypesRegistry registry, BundlingRoot root, String path) {
-        this(registry, root, path, Collections.<PropertyState>emptySet());
+    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path) {
+        this(registry, ctx, path, Collections.<PropertyState>emptySet());
     }
 
-    private BundlingHandler(BundledTypesRegistry registry, BundlingRoot root, String path, Set<PropertyState> metaProps) {
+    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path, Set<PropertyState> metaProps) {
         this.registry = registry;
         this.path = path;
-        this.root = root;
+        this.ctx = ctx;
         this.metaProps = metaProps;
     }
 
     public String getPropertyPath(String propertyName) {
-        return root.getPropertyPath(path, propertyName);
+        return ctx.isBundling() ? ctx.getPropertyPath(propertyName) : propertyName;
     }
 
     public Set<PropertyState> getMetaProps() {
@@ -60,67 +60,101 @@ public class BundlingHandler {
     }
 
     public String getRootBundlePath() {
-        return root.bundlingEnabled() ? root.getPath() : path;
+        return ctx.isBundling() ? ctx.bundlingPath : path;
     }
 
     public BundlingHandler childAdded(String name, NodeState state){
         String childPath = childPath(name);
-        BundlingRoot childRoot;
+        BundlingContext childContext;
         Set<PropertyState> metaProps = Collections.emptySet();
-        if (root.isBundled(childPath)) {
+        Matcher childMatcher = ctx.matcher.next(name);
+        if (childMatcher.isMatch()) {
             //TODO Add meta prop for bundled child node
-            childRoot = root;
+            childContext = createChildContext(childMatcher);
         } else {
             DocumentBundlor bundlor = registry.getBundlor(state);
             if (bundlor != null){
                 PropertyState bundlorConfig = bundlor.asPropertyState();
                 metaProps = Collections.singleton(bundlorConfig);
+                childContext = new BundlingContext(childPath, bundlor.createMatcher());
+            } else {
+                childContext = BundlingContext.NULL;
             }
-            childRoot = new BundlingRoot(childPath, bundlor);
         }
-
-        return new BundlingHandler(registry, childRoot, childPath, metaProps);
+        return new BundlingHandler(registry, childContext, childPath, metaProps);
     }
 
     public BundlingHandler childDeleted(String name, NodeState state){
         String childPath = childPath(name);
-        BundlingRoot childRoot;
-        if (root.isBundled(childPath)) {
+        BundlingContext childContext;
+        Matcher childMatcher = ctx.matcher.next(name);
+        if (childMatcher.isMatch()) {
             //TODO Add meta prop for bundled child node
-            childRoot = root;
+            childContext = createChildContext(childMatcher);
         } else {
-            childRoot = new BundlingRoot(childPath, getBundlorFromEmbeddedConfig(state));
+            childContext = getBundlorContext(childPath, state);
         }
-        return new BundlingHandler(registry, childRoot, childPath);
+        return new BundlingHandler(registry, childContext, childPath);
     }
 
     public BundlingHandler childChanged(String name, NodeState state){
         String childPath = childPath(name);
-        BundlingRoot childRoot;
-        if (root.isBundled(childPath)) {
-            childRoot = root;
+        BundlingContext childContext;
+        Matcher childMatcher = ctx.matcher.next(name);
+        if (childMatcher.isMatch()) {
+            childContext = createChildContext(childMatcher);
         } else {
-            childRoot = new BundlingRoot(childPath, getBundlorFromEmbeddedConfig(state));
+            childContext = getBundlorContext(childPath, state);
         }
 
-        return new BundlingHandler(registry, childRoot,  childPath);
+        return new BundlingHandler(registry, childContext,  childPath);
     }
 
     public boolean isBundlingRoot() {
-        return root.getPath().equals(path);
+        if (ctx.isBundling()){
+            return ctx.bundlingPath.equals(path);
+        }
+        return true;
     }
 
     private String childPath(String name){
         return PathUtils.concat(path, name);
     }
 
-    @CheckForNull
-    private static DocumentBundlor getBundlorFromEmbeddedConfig(NodeState state) {
+    private BundlingContext createChildContext(Matcher childMatcher) {
+        return ctx.child(childMatcher);
+    }
+
+    private static BundlingContext getBundlorContext(String path, NodeState state) {
+        BundlingContext result = BundlingContext.NULL;
         PropertyState bundlorConfig = state.getProperty(DocumentBundlor.META_PROP_PATTERN);
-        DocumentBundlor bundlor = null;
         if (bundlorConfig != null){
-            bundlor = DocumentBundlor.from(bundlorConfig);
+            DocumentBundlor bundlor = DocumentBundlor.from(bundlorConfig);
+            result = new BundlingContext(path, bundlor.createMatcher());
         }
-        return bundlor;
+        return result;
+    }
+
+    private static class BundlingContext {
+        static final BundlingContext NULL = new BundlingContext("", Matcher.FAILED);
+        final String bundlingPath;
+        final Matcher matcher;
+
+        public BundlingContext(String bundlingPath, Matcher matcher) {
+            this.bundlingPath = bundlingPath;
+            this.matcher = matcher;
+        }
+
+        public BundlingContext child(Matcher matcher){
+            return new BundlingContext(bundlingPath, matcher);
+        }
+
+        public boolean isBundling(){
+            return matcher.isMatch();
+        }
+
+        public String getPropertyPath(String propertyName) {
+            return PathUtils.concat(matcher.getMatchedPath(), propertyName);
+        }
     }
 }
