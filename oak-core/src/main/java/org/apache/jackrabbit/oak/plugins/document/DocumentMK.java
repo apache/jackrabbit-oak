@@ -583,7 +583,7 @@ public class DocumentMK {
         private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
         private Map<CacheType, PersistentCacheStats> persistentCacheStats =
                 new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
-        private boolean bundlingEnabled = true;
+        private boolean bundlingDisabled;
 
         public Builder() {
         }
@@ -1029,13 +1029,13 @@ public class DocumentMK {
             return disableBranches;
         }
 
-        public Builder setBundlingEnabled(boolean enabled) {
-            bundlingEnabled = enabled;
+        public Builder setBundlingDisabled(boolean enabled) {
+            bundlingDisabled = enabled;
             return this;
         }
 
-        public boolean isBundlingEnabled() {
-            return bundlingEnabled;
+        public boolean isBundlingDisabled() {
+            return bundlingDisabled;
         }
 
         public Builder setPrefetchExternalChanges(boolean b) {

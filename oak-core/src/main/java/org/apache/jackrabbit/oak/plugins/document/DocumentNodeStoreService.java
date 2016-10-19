@@ -378,12 +378,12 @@ public class DocumentNodeStoreService {
     )
     public static final String PROP_DS_TYPE = "documentStoreType";
 
-    private static final boolean DEFAULT_BUNDLING_ENABLED = true;
-    @Property(boolValue = DEFAULT_BUNDLING_ENABLED,
-            label = "Bundling Enabled",
-            description = "Boolean value indicating that Node bundling is enabled"
+    private static final boolean DEFAULT_BUNDLING_DISABLED = false;
+    @Property(boolValue = DEFAULT_BUNDLING_DISABLED,
+            label = "Bundling Disabled",
+            description = "Boolean value indicating that Node bundling is disabled"
     )
-    public static final String PROP_BUNDLING_ENABLED = "bundlingEnabled";
+    private static final String PROP_BUNDLING_DISABLED = "bundlingDisabled";
 
     private DocumentStoreType documentStoreType;
 
@@ -440,7 +440,7 @@ public class DocumentNodeStoreService {
         String journalCache = getPath(PROP_JOURNAL_CACHE, DEFAULT_JOURNAL_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
         int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
-        boolean bundlingEnabled = toBoolean(prop(PROP_BUNDLING_ENABLED), DEFAULT_BUNDLING_ENABLED);
+        boolean bundlingDisabled = toBoolean(prop(PROP_BUNDLING_DISABLED), DEFAULT_BUNDLING_DISABLED);
         boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
@@ -453,7 +453,7 @@ public class DocumentNodeStoreService {
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
-                setBundlingEnabled(bundlingEnabled).
+                setBundlingDisabled(bundlingDisabled).
                 setLeaseCheck(true /* OAK-2739: enabled by default */).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
                     
@@ -842,7 +842,7 @@ public class DocumentNodeStoreService {
                     ds.getClass().getSimpleName()));
         }
 
-        if (mkBuilder.isBundlingEnabled()){
+        if (!mkBuilder.isBundlingDisabled()){
             registrations.add(registerMBean(whiteboard,
                     BackgroundObserverMBean.class,
                     store.getBundlingConfigHandler().getMBean(),

@@ -86,7 +86,6 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
@@ -420,8 +419,6 @@ public final class DocumentNodeStore
 
     private final BundlingConfigHandler bundlingConfigHandler = new BundlingConfigHandler();
 
-    private final boolean bundlingEnabled;
-
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         this.statisticsProvider = builder.getStatisticsProvider();
@@ -578,8 +575,7 @@ public final class DocumentNodeStore
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
                 getClusterNodeInfoDisplayString());
 
-        bundlingEnabled = builder.isBundlingEnabled();
-        if (bundlingEnabled) {
+        if (!builder.isBundlingDisabled()) {
             bundlingConfigHandler.initialize(this, executor);
         }
     }
