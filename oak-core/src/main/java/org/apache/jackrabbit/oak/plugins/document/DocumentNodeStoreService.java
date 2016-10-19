@@ -207,14 +207,14 @@ public class DocumentNodeStoreService {
 
     @Property(value = DEFAULT_PERSISTENT_CACHE,
             label = "Persistent Cache Config",
-            description = "Configuration for enabling Persistent cache. By default it is not enabled. Refer to " +
+            description = "Configuration for persistent cache. Refer to " +
                     "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
     )
     private static final String PROP_PERSISTENT_CACHE = "persistentCache";
 
     @Property(value = DEFAULT_JOURNAL_CACHE,
             label = "Journal Cache Config",
-            description = "Configuration for enabling journal cache. By default it is not enabled. Refer to " +
+            description = "Configuration for journal cache. Refer to " +
                     "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
     )
     private static final String PROP_JOURNAL_CACHE = "journalCache";
