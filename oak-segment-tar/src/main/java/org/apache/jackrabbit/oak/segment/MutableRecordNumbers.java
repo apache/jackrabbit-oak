@@ -17,48 +17,74 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import java.util.Iterator;
-import java.util.Map;
+import static java.util.Arrays.copyOf;
+import static java.util.Arrays.fill;
 
-import com.google.common.collect.Maps;
+import java.util.Iterator;
+
+import com.google.common.collect.AbstractIterator;
 
 /**
  * A thread-safe, mutable record table.
  */
 class MutableRecordNumbers implements RecordNumbers {
+    private int[] recordEntries;
+    private int size;
 
-    private final Object lock = new Object();
-
-    private final Map<Integer, RecordEntry> records = Maps.newLinkedHashMap();
-
-    @Override
-    public int getOffset(int recordNumber) {
-        RecordEntry entry = records.get(recordNumber);
-
-        if (entry != null) {
-            return entry.getOffset();
-        }
-
-        synchronized (lock) {
-            entry = records.get(recordNumber);
-
-            if (entry != null) {
-                return entry.getOffset();
-            }
-
-            return -1;
-        }
+    public MutableRecordNumbers() {
+        recordEntries = new int[16384];
+        fill(recordEntries, -1);
     }
 
     @Override
-    public Iterator<Entry> iterator() {
-        Map<Integer, RecordEntry> recordNumbers;
+    public int getOffset(int recordNumber) {
+        int recordEntry;
+        recordEntry = recordNumber * 2 >= recordEntries.length
+            ? -1
+            : recordEntries[recordNumber * 2];
 
-        synchronized (lock) {
-            recordNumbers = Maps.newLinkedHashMap(this.records);
+        if (recordEntry == -1) {
+            synchronized (this) {
+                recordEntry = recordEntries[recordNumber * 2];
+            }
         }
+        return recordEntry;
+    }
 
-        return new RecordNumbersIterator(recordNumbers.entrySet().iterator());
+    @Override
+    public synchronized Iterator<Entry> iterator() {
+        return new AbstractIterator<Entry>() {
+            int[] entries = copyOf(recordEntries, size * 2);
+            int index = 0;
+
+            @Override
+            protected Entry computeNext() {
+                if (index < entries.length) {
+                    return new Entry() {
+                        final int recordNumber = index/2;
+                        final int offset = entries[index++];
+                        final RecordType type = RecordType.values()[entries[index++]];
+
+                        @Override
+                        public int getRecordNumber() {
+                            return recordNumber;
+                        }
+
+                        @Override
+                        public int getOffset() {
+                            return offset;
+                        }
+
+                        @Override
+                        public RecordType getType() {
+                            return type;
+                        }
+                    };
+                } else {
+                    return endOfData();
+                }
+            }
+        };
     }
 
     /**
@@ -66,10 +92,8 @@ class MutableRecordNumbers implements RecordNumbers {
      *
      * @return the size of this table.
      */
-    public int size() {
-        synchronized (lock) {
-            return records.size();
-        }
+    public synchronized int size() {
+        return size;
     }
 
     /**
@@ -79,15 +103,14 @@ class MutableRecordNumbers implements RecordNumbers {
      * @param offset an offset to be added to this table.
      * @return the record number associated to the offset.
      */
-    int addRecord(RecordType type, int offset) {
-        int recordNumber;
-
-        synchronized (lock) {
-            recordNumber = records.size();
-            records.put(recordNumber, new RecordEntry(type, offset));
+    synchronized int addRecord(RecordType type, int offset) {
+        if (recordEntries.length <= size * 2) {
+            recordEntries = copyOf(recordEntries, recordEntries.length * 2);
+            fill(recordEntries, recordEntries.length/2, recordEntries.length, -1);
         }
-
-        return recordNumber;
+        recordEntries[2 * size] = offset;
+        recordEntries[2 * size + 1] = type.ordinal();
+        return size++;
     }
 
 }
