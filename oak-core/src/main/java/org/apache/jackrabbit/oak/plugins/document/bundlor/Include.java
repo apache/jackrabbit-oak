@@ -19,12 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+
+import static com.google.common.base.Preconditions.checkElementIndex;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * Include represents a single path pattern which captures the path which
@@ -71,29 +73,11 @@ public class Include {
     }
 
     public boolean match(String relativePath) {
-        int targetDepth = 0;
+        Matcher m = createMatcher();
         for (String e : PathUtils.elements(relativePath)){
-            if (targetDepth == elements.length){
-                //TODO exception when leaf but have extra elements
-                if (directive == Directive.ALL){
-                    return true;
-                }
-                return false;
-            }
-
-            String pe = elements[targetDepth++];
-            if ("*".equals(pe) || pe.equals(e)){
-                continue;
-            }
-
-            return false;
+            m = m.next(e);
         }
-
-        //Number of elements in target < pattern then match not possible
-        if (targetDepth < elements.length){
-            return false;
-        }
-        return true;
+        return m.isMatch();
     }
 
     public String getPattern() {
@@ -105,7 +89,22 @@ public class Include {
         return pattern;
     }
 
+    public Matcher createMatcher() {
+        return new IncludeMatcher(this);
+    }
+
     Directive getDirective() {
         return directive;
     }
+
+    public boolean match(String nodeName, int depth) {
+        checkElementIndex(depth, elements.length);
+        String e = elements[depth];
+        return "*".equals(e) || nodeName.equals(e);
+    }
+
+    public int size() {
+        return elements.length;
+    }
+
 }

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -61,17 +62,15 @@ public class DocumentBundlor {
     }
 
     private DocumentBundlor(List<Include> includes) {
-        //TODO Have assertion for that all intermediate paths are included
         this.includes = ImmutableList.copyOf(includes);
     }
 
     public boolean isBundled(String relativePath) {
-        for (Include include : includes){
-            if (include.match(relativePath)){
-                return true;
-            }
+        Matcher m = createMatcher();
+        for (String e : PathUtils.elements(relativePath)){
+            m = m.next(e);
         }
-        return false;
+        return m.isMatch();
     }
 
     public PropertyState asPropertyState(){
@@ -82,8 +81,17 @@ public class DocumentBundlor {
         return createProperty(META_PROP_PATTERN, includePatterns, STRINGS);
     }
 
+    public Matcher createMatcher(){
+        List<Matcher> matchers = Lists.newArrayListWithCapacity(includes.size());
+        for(Include include : includes){
+            matchers.add(include.createMatcher());
+        }
+        return CompositeMatcher.compose(matchers);
+    }
+
     @Override
     public String toString() {
         return includes.toString();
     }
+
 }

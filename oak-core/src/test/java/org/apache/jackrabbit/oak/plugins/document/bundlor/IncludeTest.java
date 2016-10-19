@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -40,7 +41,8 @@ public class IncludeTest {
         assertTrue(new Include("x").match("x"));
         assertFalse(new Include("x").match("y"));
 
-        assertFalse(new Include("x/y").match("x"));
+        assertTrue(new Include("x/y").match("x"));
+        assertFalse(new Include("x/y").match("y"));
         assertTrue(new Include("x/y").match("x/y"));
     }
 
@@ -69,6 +71,14 @@ public class IncludeTest {
         assertTrue(i2.match("x/y"));
         assertTrue(i2.match("x/y/z"));
         assertTrue(i2.match("x/y/z/x"));
+    }
+
+    private boolean match(Include i, String path){
+        Matcher m = i.createMatcher();
+        for (String e : PathUtils.elements(path)){
+            m = m.next(e);
+        }
+        return m.isMatch();
     }
 
 }
