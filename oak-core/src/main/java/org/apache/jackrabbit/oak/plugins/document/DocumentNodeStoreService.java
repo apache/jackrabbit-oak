@@ -348,9 +348,13 @@ public class DocumentNodeStoreService {
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
     private static final String DEFAULT_PROP_HOME = "./repository";
-    @Property(value = DEFAULT_PROP_HOME,
+    @Property(
         label = "Root directory",
-        description = "Root directory for local tracking of blob ids"
+        description = "Root directory for local tracking of blob ids. This service " +
+                "will first lookup the 'repository.home' framework property and " +
+                "then a component context property with the same name. If none " +
+                "of them is defined, a sub directory 'repository' relative to " +
+                "the current working directory is used."
     )
     private static final String PROP_HOME = "repository.home";
 
@@ -549,7 +553,7 @@ public class DocumentNodeStoreService {
             if (blobStore instanceof BlobTrackingStore) {
                 final long trackSnapshotInterval = toLong(prop(PROP_BLOB_SNAPSHOT_INTERVAL),
                     DEFAULT_BLOB_SNAPSHOT_INTERVAL);
-                String root = PropertiesUtil.toString(prop(PROP_HOME), DEFAULT_PROP_HOME);
+                String root = getRepositoryHome();
 
                 BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
                 if (trackingStore.getTracker() != null) {
@@ -880,12 +884,16 @@ public class DocumentNodeStoreService {
             // disable this path configuration
             return "";
         }
-        // resolve as relative to repository.home if available
-        String repoHome = prop(PROP_HOME);
-        if (!Strings.isNullOrEmpty(repoHome)) {
-            path = FilenameUtils.concat(repoHome, path);
+        // resolve as relative to repository.home
+        return FilenameUtils.concat(getRepositoryHome(), path);
+    }
+
+    private String getRepositoryHome() {
+        String repoHome = prop(PROP_HOME, PROP_HOME);
+        if (Strings.isNullOrEmpty(repoHome)) {
+            repoHome = DEFAULT_PROP_HOME;
         }
-        return path;
+        return repoHome;
     }
 
     private static String[] getMetadata(DocumentStore ds) {
