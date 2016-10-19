@@ -170,6 +170,8 @@ public class BundlingHandler {
         childContext.removeProperty(DocumentBundlor.META_PROP_NODE);
         for (PropertyState ps : state.getProperties()){
             String propName = ps.getName();
+            //In deletion never touch child status related meta props
+            //as they are not to be changed once set
             if (!propName.startsWith(DocumentBundlor.HAS_CHILD_PROP_PREFIX))
                 childContext.removeProperty(ps.getName());
         }
