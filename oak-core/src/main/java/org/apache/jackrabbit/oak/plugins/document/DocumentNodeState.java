@@ -85,7 +85,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     private final boolean hasChildren;
 
     private final DocumentNodeStore store;
-    private BundlingContext bundlingContext;
+    private final BundlingContext bundlingContext;
 
     private AbstractDocumentNodeState cachedSecondaryState;
 
@@ -128,7 +128,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         this.fromExternalChange = fromExternalChange;
         this.properties = bundlingContext.getProperties();
         this.bundlingContext = bundlingContext;
-        this.hasChildren = this.bundlingContext.hasChildren();
+        this.hasChildren = bundlingContext.hasChildren();
     }
 
     /**
