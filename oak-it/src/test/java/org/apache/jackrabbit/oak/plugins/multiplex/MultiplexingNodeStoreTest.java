@@ -51,10 +51,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.util.CountingDiff;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -92,6 +94,7 @@ public class MultiplexingNodeStoreTest {
     private NodeStore globalStore;
     private NodeStore mountedStore;
     private NodeStore deepMountedStore;
+    private NodeStore readOnlyStore;
 
     @Parameters(name="Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
@@ -117,11 +120,13 @@ public class MultiplexingNodeStoreTest {
                 .mount("temp", "/tmp")
                 .mount("deep", "/libs/mount")
                 .mount("empty", "/nowhere")
+                .readOnlyMount("readOnly", "/readOnly")
                 .build();
 
         globalStore = register(root.create(null));
         mountedStore = register(mounts.create("temp"));
         deepMountedStore = register(mounts.create("deep"));
+        readOnlyStore = register(mounts.create("readOnly"));
         NodeStore emptyStore = register(mounts.create("empty")); // this NodeStore will always be empty
 
         // create a property on the root node
@@ -165,10 +170,17 @@ public class MultiplexingNodeStoreTest {
 
         assertTrue(deepMountedStore.getRoot().getChildNode("libs").getChildNode("mount").getChildNode("third").hasProperty("mounted"));
 
+        // populate /readonly with a single node
+        builder = readOnlyStore.getRoot().builder();
+        builder.child("readOnly");
+        
+        readOnlyStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
         store = new MultiplexingNodeStore.Builder(mip, globalStore)
                 .addMount("temp", mountedStore)
                 .addMount("deep", deepMountedStore)
                 .addMount("empty", emptyStore)
+                .addMount("readOnly", readOnlyStore)
                 .build();
     }
 
@@ -206,7 +218,7 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void mixedMountsChildNodes() {
 
-        assertThat("root(childCount)", store.getRoot().getChildNodeCount(100), equalTo(3l));
+        assertThat("root(childCount)", store.getRoot().getChildNodeCount(100), equalTo(4l));
     }
 
     @Test
@@ -423,7 +435,7 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void builderChildrenCountInRootStore() throws Exception {
 
-        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100), equalTo(3l));
+        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100), equalTo(4l));
     }
 
     @Test
@@ -435,7 +447,7 @@ public class MultiplexingNodeStoreTest {
     @Test
     public void builderChildNodeNamesInRootStore() throws Exception {
 
-        assertChildNodeNames(store.getRoot().builder(), "libs", "apps", "tmp");
+        assertChildNodeNames(store.getRoot().builder(), "libs", "apps", "tmp", "readOnly");
     }
 
     @Test
@@ -754,11 +766,29 @@ public class MultiplexingNodeStoreTest {
     }
 
     @Test
-    @Ignore("Not implemented")
-    public void readOnlyMountRejectsChanges() {
+    public void readOnlyMountRejectsChanges() throws Exception {
 
+        NodeState oldState = store.getRoot();
+        
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            
+            builder.getChildNode("readOnly").child("newChild");
+            builder.getChildNode("libs").child("otherChild");
+
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        } catch (CommitFailedException e) {
+            // expected
+            
+            // validate that changes were not applied
+            CountingDiff countingDiff = new CountingDiff();
+            store.getRoot().compareAgainstBaseState(oldState, countingDiff);
+            assertThat("Unexpected number of changes", countingDiff.getNumChanges(), equalTo(0));
+        } catch ( Exception e ) {
+            throw e;
+        }
     }
-
+    
     @Test
     public void builderBasedOnCheckpoint() throws CommitFailedException {
         String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(1));

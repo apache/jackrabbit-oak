@@ -20,6 +20,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.util.CountingDiff;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -104,6 +105,8 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         // run commit hooks and apply the changes to the builder instance
         NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
         processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
+        
+        assertNoChangesOnReadOnlyMounts(nodeBuilder);        
 
         // apply the accumulated changes on individual NodeStore instances
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
@@ -120,6 +123,27 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         }
         return newRoot;
    }
+
+    private void assertNoChangesOnReadOnlyMounts(MultiplexingNodeBuilder nodeBuilder) throws CommitFailedException {
+
+        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
+            
+            if ( !mountedNodeStore.getMount().isReadOnly() ) {
+                continue;
+            }
+            
+            NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
+            
+            // TODO - might be slow, should introduce special-purpose variant which bails on first found difference
+            CountingDiff diff = new CountingDiff();
+            
+            partialBuilder.getNodeState().compareAgainstBaseState(partialBuilder.getBaseState(), diff);
+            
+            if ( diff.getNumChanges() != 0 ) {
+                throw new CommitFailedException("Multiplex", -1, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount());
+            }
+        }
+    }
 
     @Override
     public NodeState rebase(NodeBuilder builder) {
