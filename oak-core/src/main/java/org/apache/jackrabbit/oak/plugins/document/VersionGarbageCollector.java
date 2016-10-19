@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,6 +52,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static com.google.common.collect.Iterables.all;
 import static com.google.common.collect.Iterators.partition;
+import static com.google.common.util.concurrent.Atomics.newReference;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -66,6 +69,7 @@ public class VersionGarbageCollector {
     private final DocumentStore ds;
     private final VersionGCSupport versionStore;
     private int overflowToDiskThreshold = 100000;
+    private final AtomicReference<GCJob> collector = newReference();
 
     private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
 
@@ -84,87 +88,32 @@ public class VersionGarbageCollector {
 
     public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) throws IOException {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
-        Stopwatch sw = Stopwatch.createStarted();
-        VersionGCStats stats = new VersionGCStats();
-        final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
-        final RevisionVector headRevision = nodeStore.getHeadRevision();
-
-        log.info("Starting revision garbage collection. Revisions older than [{}] will be " +
-                "removed", Utils.timestampToString(oldestRevTimeStamp));
-
-        //Check for any registered checkpoint which prevent the GC from running
-        Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
-        if (checkpoint != null && checkpoint.getTimestamp() < oldestRevTimeStamp) {
-            log.info("Ignoring revision garbage collection because a valid " +
-                            "checkpoint [{}] was found, which is older than [{}].",
-                    checkpoint.toReadableString(),
-                    Utils.timestampToString(oldestRevTimeStamp)
-            );
-            stats.ignoredGCDueToCheckPoint = true;
-            return stats;
+        GCJob job = new GCJob(maxRevisionAgeInMillis);
+        if (collector.compareAndSet(null, job)) {
+            try {
+                return job.run();
+            } finally {
+                collector.set(null);
+            }
+        } else {
+            throw new IOException("Revision garbage collection is already running");
         }
+    }
 
-        collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
-        collectSplitDocuments(stats, oldestRevTimeStamp);
-
-        sw.stop();
-        log.info("Revision garbage collection finished in {}. {}", sw, stats);
-        return stats;
+    public void cancel() {
+        GCJob job = collector.get();
+        if (job != null) {
+            job.cancel();
+        }
     }
 
     public void setOverflowToDiskThreshold(int overflowToDiskThreshold) {
         this.overflowToDiskThreshold = overflowToDiskThreshold;
     }
 
-    private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
-        stats.collectAndDeleteSplitDocs.start();
-        versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, stats);
-        stats.collectAndDeleteSplitDocs.stop();
-    }
-
-    private void collectDeletedDocuments(VersionGCStats stats,
-                                         RevisionVector headRevision,
-                                         long oldestRevTimeStamp)
-            throws IOException {
-        int docsTraversed = 0;
-        DeletedDocsGC gc = new DeletedDocsGC(headRevision);
-        try {
-            stats.collectDeletedDocs.start();
-            Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
-            try {
-                for (NodeDocument doc : itr) {
-                    // Check if node is actually deleted at current revision
-                    // As node is not modified since oldestRevTimeStamp then
-                    // this node has not be revived again in past maxRevisionAge
-                    // So deleting it is safe
-                    docsTraversed++;
-                    if (docsTraversed % PROGRESS_BATCH_SIZE == 0){
-                        log.info("Iterated through {} documents so far. {} found to be deleted",
-                                docsTraversed, gc.getNumDocuments());
-                    }
-                    gc.possiblyDeleted(doc);
-                }
-            } finally {
-                Utils.closeIfCloseable(itr);
-            }
-            stats.collectDeletedDocs.stop();
-
-            if (gc.getNumDocuments() == 0){
-                return;
-            }
-
-            stats.deleteDeletedDocs.start();
-
-            gc.removeDocuments(stats);
-
-            stats.deleteDeletedDocs.stop();
-        } finally {
-            gc.close();
-        }
-    }
-
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
+        boolean canceled;
         int deletedDocGCCount;
         int splitDocGCCount;
         int intermediateSplitDocGCCount;
@@ -176,6 +125,7 @@ public class VersionGarbageCollector {
         public String toString() {
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
+                    ", canceled=" + canceled+
                     ", deletedDocGCCount=" + deletedDocGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
@@ -186,19 +136,122 @@ public class VersionGarbageCollector {
         }
     }
 
+    private class GCJob {
+
+        private final long maxRevisionAgeMillis;
+        private AtomicBoolean cancel = new AtomicBoolean();
+
+        GCJob(long maxRevisionAgeMillis) {
+            this.maxRevisionAgeMillis = maxRevisionAgeMillis;
+        }
+
+        VersionGCStats run() throws IOException {
+            return gc(maxRevisionAgeMillis);
+        }
+
+        void cancel() {
+            log.info("Canceling revision garbage collection.");
+            cancel.set(true);
+        }
+
+        private VersionGCStats gc(long maxRevisionAgeInMillis) throws IOException {
+            Stopwatch sw = Stopwatch.createStarted();
+            VersionGCStats stats = new VersionGCStats();
+            final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
+            final RevisionVector headRevision = nodeStore.getHeadRevision();
+
+            log.info("Starting revision garbage collection. Revisions older than [{}] will be " +
+                    "removed", Utils.timestampToString(oldestRevTimeStamp));
+
+            //Check for any registered checkpoint which prevent the GC from running
+            Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
+            if (checkpoint != null && checkpoint.getTimestamp() < oldestRevTimeStamp) {
+                log.info("Ignoring revision garbage collection because a valid " +
+                                "checkpoint [{}] was found, which is older than [{}].",
+                        checkpoint.toReadableString(),
+                        Utils.timestampToString(oldestRevTimeStamp)
+                );
+                stats.ignoredGCDueToCheckPoint = true;
+                return stats;
+            }
+
+            collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
+            collectSplitDocuments(stats, oldestRevTimeStamp);
+
+            sw.stop();
+            stats.canceled = cancel.get();
+            log.info("Revision garbage collection finished in {}. {}", sw, stats);
+            return stats;
+        }
+
+        private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
+            stats.collectAndDeleteSplitDocs.start();
+            versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, stats);
+            stats.collectAndDeleteSplitDocs.stop();
+        }
+
+        private void collectDeletedDocuments(VersionGCStats stats,
+                                             RevisionVector headRevision,
+                                             long oldestRevTimeStamp)
+                throws IOException {
+            int docsTraversed = 0;
+            DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel);
+            try {
+                stats.collectDeletedDocs.start();
+                Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
+                try {
+                    for (NodeDocument doc : itr) {
+                        // continue with GC?
+                        if (cancel.get()) {
+                            break;
+                        }
+                        // Check if node is actually deleted at current revision
+                        // As node is not modified since oldestRevTimeStamp then
+                        // this node has not be revived again in past maxRevisionAge
+                        // So deleting it is safe
+                        docsTraversed++;
+                        if (docsTraversed % PROGRESS_BATCH_SIZE == 0){
+                            log.info("Iterated through {} documents so far. {} found to be deleted",
+                                    docsTraversed, gc.getNumDocuments());
+                        }
+                        gc.possiblyDeleted(doc);
+                    }
+                } finally {
+                    Utils.closeIfCloseable(itr);
+                }
+                stats.collectDeletedDocs.stop();
+
+                if (gc.getNumDocuments() == 0){
+                    return;
+                }
+
+                stats.deleteDeletedDocs.start();
+
+                gc.removeDocuments(stats);
+
+                stats.deleteDeletedDocs.stop();
+            } finally {
+                gc.close();
+            }
+        }
+    }
+
     /**
      * A helper class to remove document for deleted nodes.
      */
     private class DeletedDocsGC implements Closeable {
 
         private final RevisionVector headRevision;
+        private final AtomicBoolean cancel;
         private final StringSort docIdsToDelete = newStringSort();
         private final StringSort prevDocIdsToDelete = newStringSort();
         private final Set<String> exclude = Sets.newHashSet();
         private boolean sorted = false;
 
-        public DeletedDocsGC(@Nonnull RevisionVector headRevision) {
+        public DeletedDocsGC(@Nonnull RevisionVector headRevision,
+                             @Nonnull AtomicBoolean cancel) {
             this.headRevision = checkNotNull(headRevision);
+            this.cancel = checkNotNull(cancel);
         }
 
         /**
@@ -341,7 +394,7 @@ public class VersionGarbageCollector {
             int deletedCount = 0;
             int lastLoggedCount = 0;
             int recreatedCount = 0;
-            while (idListItr.hasNext()) {
+            while (idListItr.hasNext() && !cancel.get()) {
                 Map<String, Map<Key, Condition>> deletionBatch = Maps.newLinkedHashMap();
                 for (String s : idListItr.next()) {
                     int idx = s.lastIndexOf('/');
@@ -395,7 +448,7 @@ public class VersionGarbageCollector {
             int lastLoggedCount = 0;
             Iterator<List<String>> idListItr =
                     partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
-            while (idListItr.hasNext()) {
+            while (idListItr.hasNext() && !cancel.get()) {
                 List<String> deletionBatch = idListItr.next();
                 deletedCount += deletionBatch.size();
 
