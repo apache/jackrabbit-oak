@@ -289,27 +289,6 @@ public class DocumentBundlingTest {
     }
 
     @Test
-    public void hasChildren_SingleVersion() throws Exception{
-        createTestNode("/test/book.jpg", createChild(newNode("app:Asset"),
-                "jcr:content/metadata"
-        ).getNodeState());
-
-        assertEquals(1, getNodeDocument("/test/book.jpg").getValueMap(concat("jcr:content", META_PROP_BUNDLED_CHILD)).size());
-
-        NodeBuilder builder = store.getRoot().builder();
-        childBuilder(builder, "/test/book.jpg/jcr:content/renditions");
-        merge(builder);
-
-        ds.reset();
-
-        //Assert that there is only one revision for meta :doc-has-child-bundled
-        //Even on adding multiple child node there is only version kept
-        assertEquals(1, getNodeDocument("/test/book.jpg").getValueMap(concat("jcr:content", META_PROP_BUNDLED_CHILD)).size());
-        assertEquals(2, Iterables.size(getLatestNode("test/book.jpg/jcr:content").getChildNodeNames()));
-        assertEquals(0, ds.queryPaths.size());
-    }
-
-    @Test
     public void addBundledNodePostInitialCreation() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder appNB = newNode("app:Asset");

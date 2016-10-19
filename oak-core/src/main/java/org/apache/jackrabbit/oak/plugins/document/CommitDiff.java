@@ -144,7 +144,6 @@ class CommitDiff implements NodeStateDiff {
     }
 
     private void setChildrenFlagOnAdd(BundlingHandler child) {
-        NodeState currentNode = bundlingHandler.getNodeState();
         //Add hasChildren marker for bundling case
         String propName = null;
         if (child.isBundledNode()){
@@ -160,9 +159,9 @@ class CommitDiff implements NodeStateDiff {
             propName = DocumentBundlor.META_PROP_NON_BUNDLED_CHILD;
         }
 
-        //Avoid having multiple revision of same prop i.e. once
-        //child related flag is set its not touched
-        if (propName != null && !currentNode.hasProperty(propName)){
+        //Retouch the property if already present to enable
+        //hierarchy conflict detection
+        if (propName != null){
             setProperty(createProperty(propName, Boolean.TRUE));
         }
     }
