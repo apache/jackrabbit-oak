@@ -85,7 +85,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
@@ -114,7 +114,6 @@ import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -419,6 +418,8 @@ public final class DocumentNodeStore
 
     private final StatisticsProvider statisticsProvider;
 
+    private final BundlingConfigHandler bundlingConfigHandler = new BundlingConfigHandler();
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         this.statisticsProvider = builder.getStatisticsProvider();
@@ -574,7 +575,10 @@ public final class DocumentNodeStore
         this.mbean = createMBean();
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
                 getClusterNodeInfoDisplayString());
+
+        bundlingConfigHandler.initialize(this, executor);
     }
+
 
     /**
      * Recover _lastRev recovery if needed.
@@ -608,6 +612,13 @@ public final class DocumentNodeStore
             // only dispose once
             return;
         }
+
+        try {
+            bundlingConfigHandler.close();
+        } catch (IOException e) {
+            LOG.warn("Error closing bundlingConfigHandler", bundlingConfigHandler);
+        }
+
         // notify background threads waiting on isDisposed
         synchronized (isDisposed) {
             isDisposed.notifyAll();
@@ -1111,9 +1122,7 @@ public final class DocumentNodeStore
     }
 
     public BundlingHandler getBundlingHandler() {
-        //TODO Move this to observor based
-        NodeState registryState = NodeStateUtils.getNode(getRoot(), "/jcr:system/documentstore/bundlor");
-        return new BundlingHandler(BundledTypesRegistry.from(registryState));
+        return bundlingConfigHandler.newBundlingHandler();
     }
 
     /**
