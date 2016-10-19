@@ -132,7 +132,7 @@ class CommitDiff implements NodeStateDiff {
 
     private void informCommitAboutBundledNodes() {
         if (bundlingHandler.isBundledNode()){
-            commit.addBundledNode(bundlingHandler.getNodeFullPath());
+            commit.addBundledNode(bundlingHandler.getNodeFullPath(), bundlingHandler.getRootBundlePath());
         }
     }
 

@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -75,7 +76,7 @@ public class Commit {
 
     /** Set of all nodes which have binary properties. **/
     private HashSet<String> nodesWithBinaries = Sets.newHashSet();
-    private HashSet<String> bundledNodes = Sets.newHashSet();
+    private HashMap<String, String> bundledNodes = Maps.newHashMap();
 
     /**
      * Create a new Commit.
@@ -143,8 +144,8 @@ public class Commit {
         op.setMapEntry(key, revision, value);
     }
 
-    void addBundledNode(String path) {
-        bundledNodes.add(path);
+    void addBundledNode(String path, String bundlingRootPath) {
+        bundledNodes.put(path, bundlingRootPath);
     }
 
     void markNodeHavingBinary(String path) {
@@ -660,10 +661,19 @@ public class Commit {
                 }
             }
             UpdateOp op = operations.get(path);
+
+            //In case its bundled the op would be the one for
+            //bundling root
+            boolean bundled = isBundled(path);
+            if (bundled){
+                String bundlingRoot = bundledNodes.get(path);
+                op = operations.get(bundlingRoot);
+            }
+
             boolean isNew = op != null && op.isNew();
             if (op == null || !hasContentChanges(op) || denotesRoot(path)) {
                 // track intermediate node and root
-                if (!isBundled(path)) {
+                if (!bundled) {
                     tracker.track(path);
                 }
             }
@@ -698,8 +708,8 @@ public class Commit {
         }
     }
 
-    private boolean isBundled(String parentPath) {
-        return bundledNodes.contains(parentPath);
+    private boolean isBundled(String path) {
+        return bundledNodes.containsKey(path);
     }
 
     private static final Function<UpdateOp.Key, String> KEY_TO_NAME =

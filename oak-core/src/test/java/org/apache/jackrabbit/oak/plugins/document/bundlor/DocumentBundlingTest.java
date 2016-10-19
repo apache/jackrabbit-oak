@@ -30,13 +30,13 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -52,6 +52,7 @@ import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 import static java.lang.String.format;
+import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLED_CHILD;
@@ -467,6 +468,31 @@ public class DocumentBundlingTest {
         //2 for /test, /test/book.jpg and /test/book.jpg/jcr:content should be there
         //TODO If UnsavedModification is made public we can assert on path itself
         assertEquals(2, store.getPendingWriteCount());
+    }
+
+    @Test
+    public void bundledNodeAndNodeCache() throws Exception{
+        store.dispose();
+        store = builderProvider
+                .newBuilder()
+                .setDocumentStore(ds)
+                .memoryCacheSize(ONE_MB * 10)
+                .getNodeStore();
+
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+
+        //Make some modifications under the bundled node
+        //This would cause an entry for bundled node in Commit modified set
+        childBuilder(builder, "/test/book.jpg/jcr:content/vlt:definition").setProperty("foo", "bar");
+
+        TestNodeObserver o = new TestNodeObserver("test");
+        store.addObserver(o);
+        merge(builder);
+        assertEquals(4, o.added.size());
+
     }
 
     private void createTestNode(String path, NodeState state) throws CommitFailedException {
