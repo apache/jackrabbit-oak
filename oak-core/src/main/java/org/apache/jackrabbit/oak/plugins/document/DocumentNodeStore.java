@@ -420,6 +420,8 @@ public final class DocumentNodeStore
 
     private final BundlingConfigHandler bundlingConfigHandler = new BundlingConfigHandler();
 
+    private final boolean bundlingEnabled;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         this.statisticsProvider = builder.getStatisticsProvider();
@@ -576,7 +578,10 @@ public final class DocumentNodeStore
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
                 getClusterNodeInfoDisplayString());
 
-        bundlingConfigHandler.initialize(this, executor);
+        bundlingEnabled = builder.isBundlingEnabled();
+        if (bundlingEnabled) {
+            bundlingConfigHandler.initialize(this, executor);
+        }
     }
 
 
@@ -1123,6 +1128,10 @@ public final class DocumentNodeStore
 
     public BundlingHandler getBundlingHandler() {
         return bundlingConfigHandler.newBundlingHandler();
+    }
+
+    public BundlingConfigHandler getBundlingConfigHandler() {
+        return bundlingConfigHandler;
     }
 
     /**
