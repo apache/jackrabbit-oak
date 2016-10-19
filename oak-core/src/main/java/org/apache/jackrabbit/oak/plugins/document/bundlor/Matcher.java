@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 public interface Matcher {
-    Matcher FAILED = new Matcher() {
+    Matcher NON_MATCHING = new Matcher() {
         @Override
         public Matcher next(String name) {
-            return FAILED;
+            return NON_MATCHING;
         }
 
         @Override

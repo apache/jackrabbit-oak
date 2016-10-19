@@ -31,7 +31,7 @@ class CompositeMatcher implements Matcher {
     public static Matcher compose(List<Matcher> matchers){
         switch (matchers.size()) {
             case 0:
-                return Matcher.FAILED;
+                return Matcher.NON_MATCHING;
             case 1:
                 return matchers.get(0);
             default:

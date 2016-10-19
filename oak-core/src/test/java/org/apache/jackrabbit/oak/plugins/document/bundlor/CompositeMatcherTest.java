@@ -36,7 +36,7 @@ public class CompositeMatcherTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void multiWithFailing() throws Exception{
-        CompositeMatcher.compose(asList(new Include("x").createMatcher(), Matcher.FAILED));
+        CompositeMatcher.compose(asList(new Include("x").createMatcher(), Matcher.NON_MATCHING));
     }
 
     @Test
