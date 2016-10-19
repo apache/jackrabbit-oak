@@ -111,7 +111,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                               boolean hasChildren,
                               @Nullable RevisionVector lastRevision,
                               boolean fromExternalChange) {
-        this(store, path, rootRevision, lastRevision,
+        this(store, path, lastRevision, rootRevision,
                 fromExternalChange, createBundlingContext(checkNotNull(properties), hasChildren));
     }
 

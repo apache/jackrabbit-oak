@@ -106,12 +106,10 @@ public class DocumentBundlingTest {
 
         assertNull(getNodeDocument("/test/book.jpg/jcr:content"));
         assertNotNull(getNodeDocument("/test/book.jpg"));
+        assertTrue(hasNodeProperty("/test/book.jpg", concat("jcr:content", DocumentBundlor.META_PROP_NODE)));
 
         AssertingDiff.assertEquals(fileNode.getNodeState(), fileNodeState.getChildNode("book.jpg"));
     }
-
-    //TODO Test _bin being set
-    //TODO Test with asserts on expected properties present in NodeDocument like :self etc
 
     @Test
     public void bundledParent() throws Exception{
@@ -419,6 +417,29 @@ public class DocumentBundlingTest {
 
         assertTrue(AssertingDiff.assertEquals(appNode_v3, getLatestNode("/test/book.jpg")));
 
+    }
+
+    @Test
+    public void binaryFlagSet() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+
+
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+        merge(builder);
+
+        assertFalse(getNodeDocument("/test/book.jpg").hasBinary());
+
+        builder = store.getRoot().builder();
+        childBuilder(builder, "test/book.jpg/jcr:content/renditions/original/jcr:content").setProperty("foo", "bar".getBytes());
+        merge(builder);
+        assertTrue(getNodeDocument("/test/book.jpg").hasBinary());
     }
 
     private void createTestNode(String path, NodeState state) throws CommitFailedException {
