@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -27,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -57,7 +60,8 @@ public class BundlingConfigHandlerTest {
     private void addBundlorConfigForAsset() throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         NodeBuilder bundlor = builder.child("jcr:system").child("documentstore").child("bundlor");
-        bundlor.child("app:Asset").setProperty(DocumentBundlor.PROP_PATTERN, "metadata");
+        bundlor.child("app:Asset").setProperty(DocumentBundlor.PROP_PATTERN,
+                singletonList("metadata"), Type.STRINGS);
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

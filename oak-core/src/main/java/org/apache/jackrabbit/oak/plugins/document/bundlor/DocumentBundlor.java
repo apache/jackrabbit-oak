@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
@@ -67,7 +67,7 @@ public class DocumentBundlor {
     private final List<Include> includes;
 
     public static DocumentBundlor from(NodeState nodeState){
-        Preconditions.checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeState [%s] does not have required " +
+        checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeState [%s] does not have required " +
                 "property [%s]", nodeState, PROP_PATTERN);
        return DocumentBundlor.from(nodeState.getStrings(PROP_PATTERN));
     }
@@ -81,11 +81,12 @@ public class DocumentBundlor {
     }
 
     public static DocumentBundlor from(PropertyState prop){
-        Preconditions.checkArgument(META_PROP_PATTERN.equals(prop.getName()));
+        checkArgument(META_PROP_PATTERN.equals(prop.getName()));
         return from(prop.getValue(Type.STRINGS));
     }
 
     private DocumentBundlor(List<Include> includes) {
+        checkArgument(!includes.isEmpty(), "Include list cannot be empty");
         this.includes = ImmutableList.copyOf(includes);
     }
 

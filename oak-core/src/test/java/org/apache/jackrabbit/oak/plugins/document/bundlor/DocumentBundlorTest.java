@@ -19,8 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.Collections;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
@@ -51,6 +52,11 @@ public class DocumentBundlorTest {
     @Test(expected = IllegalArgumentException.class)
     public void invalid() throws Exception{
         DocumentBundlor.from(builder.getNodeState());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void invalid2() throws Exception{
+        DocumentBundlor.from(Collections.<String>emptyList());
     }
 
     @Test
