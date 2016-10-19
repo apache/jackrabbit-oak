@@ -30,21 +30,20 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class BundlingConfigHandler implements Observer, Closeable {
@@ -53,6 +52,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
     private NodeState root = EMPTY_NODE;
     private BackgroundObserver backgroundObserver;
     private Closeable observerRegistration;
+    private boolean enabled;
 
     private volatile BundledTypesRegistry registry = BundledTypesRegistry.NOOP;
 
@@ -75,6 +75,11 @@ public class BundlingConfigHandler implements Observer, Closeable {
 
     public void initialize(NodeStore nodeStore, Executor executor) {
         registerObserver(nodeStore, executor);
+        //If bundling is disabled then initialize would not be invoked
+        //NOOP registry would get used effectively disabling bundling for
+        //new nodes
+        enabled = true;
+        log.info("Bundling of nodes enabled");
     }
 
     @Override
@@ -83,6 +88,14 @@ public class BundlingConfigHandler implements Observer, Closeable {
             observerRegistration.close();
             backgroundObserver.close();
         }
+    }
+
+    public BackgroundObserverMBean getMBean(){
+        return checkNotNull(backgroundObserver).getMBean();
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     BundledTypesRegistry getRegistry() {

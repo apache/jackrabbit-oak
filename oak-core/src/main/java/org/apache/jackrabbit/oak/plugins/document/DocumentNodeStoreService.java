@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
@@ -376,6 +377,14 @@ public class DocumentNodeStoreService {
             description = "Type of DocumentStore to use for persistence. Defaults to MONGO"
     )
     public static final String PROP_DS_TYPE = "documentStoreType";
+
+    private static final boolean DEFAULT_BUNDLING_ENABLED = true;
+    @Property(boolValue = DEFAULT_BUNDLING_ENABLED,
+            label = "Bundling Enabled",
+            description = "Boolean value indicating that Node bundling is enabled"
+    )
+    public static final String PROP_BUNDLING_ENABLED = "bundlingEnabled";
+
     private DocumentStoreType documentStoreType;
 
     @Reference
@@ -431,6 +440,7 @@ public class DocumentNodeStoreService {
         String journalCache = getPath(PROP_JOURNAL_CACHE, DEFAULT_JOURNAL_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
         int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
+        boolean bundlingEnabled = toBoolean(prop(PROP_BUNDLING_ENABLED), DEFAULT_BUNDLING_ENABLED);
         boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
@@ -443,6 +453,7 @@ public class DocumentNodeStoreService {
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
+                setBundlingEnabled(bundlingEnabled).
                 setLeaseCheck(true /* OAK-2739: enabled by default */).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
                     
@@ -829,6 +840,14 @@ public class DocumentNodeStoreService {
                     blobStoreStats,
                     BlobStoreStatsMBean.TYPE,
                     ds.getClass().getSimpleName()));
+        }
+
+        if (mkBuilder.isBundlingEnabled()){
+            registrations.add(registerMBean(whiteboard,
+                    BackgroundObserverMBean.class,
+                    store.getBundlingConfigHandler().getMBean(),
+                    BackgroundObserverMBean.TYPE,
+                    "BundlingConfigObserver"));
         }
     }
 

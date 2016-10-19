@@ -265,6 +265,45 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         testDocumentStoreStats(ns)
     }
 
+    @Test
+    public void testBundlingEnabledByDefault() throws Exception {
+        registry = repositoryFactory.initializeServiceRegistry(config)
+
+        //1. Register the DataSource as a service
+        DataSource ds = createDS("jdbc:h2:mem:testRDB;DB_CLOSE_DELAY=-1")
+        registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+
+        //2. Create config for DocumentNodeStore with RDB enabled
+        createConfig([
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
+                        documentStoreType: 'RDB'
+                ]
+        ])
+
+        DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+        assert ns.bundlingConfigHandler.enabled
+    }
+
+    @Test
+    public void testBundlingDisabled() throws Exception {
+        registry = repositoryFactory.initializeServiceRegistry(config)
+
+        //1. Register the DataSource as a service
+        DataSource ds = createDS("jdbc:h2:mem:testRDB;DB_CLOSE_DELAY=-1")
+        registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+
+        //2. Create config for DocumentNodeStore with RDB enabled
+        createConfig([
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
+                        documentStoreType: 'RDB',
+                        bundlingEnabled : false
+                ]
+        ])
+
+        DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+        assert !ns.bundlingConfigHandler.enabled
+    }
+
     private void testDocumentStoreStats(DocumentNodeStore store) {
         DocumentStoreStatsMBean stats = getService(DocumentStoreStatsMBean.class)
 
