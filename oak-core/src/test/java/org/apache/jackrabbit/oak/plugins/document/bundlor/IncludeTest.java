@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -73,12 +72,21 @@ public class IncludeTest {
         assertTrue(i2.match("x/y/z/x"));
     }
 
-    private boolean match(Include i, String path){
-        Matcher m = i.createMatcher();
-        for (String e : PathUtils.elements(path)){
-            m = m.next(e);
-        }
-        return m.isMatch();
-    }
+    @Test
+    public void depth() throws Exception{
+        Include i0 = new Include("x/*");
+        assertEquals(0, i0.createMatcher().depth());
+        assertEquals(1, i0.createMatcher().next("x").depth());
+        assertEquals(2, i0.createMatcher().next("x").next("y").depth());
 
+        // x/y/z would not match so depth should be 0
+        assertEquals(0, i0.createMatcher().next("x").next("y").next("z").depth());
+
+        Include i2 = new Include("x/y;all");
+        assertEquals(0, i2.createMatcher().depth());
+        assertEquals(1, i2.createMatcher().next("x").depth());
+        assertEquals(2, i2.createMatcher().next("x").next("y").depth());
+        assertEquals(3, i2.createMatcher().next("x").next("y").next("z").depth());
+
+    }
 }

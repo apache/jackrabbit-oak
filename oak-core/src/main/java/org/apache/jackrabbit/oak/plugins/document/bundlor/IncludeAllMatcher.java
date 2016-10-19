@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
@@ -26,14 +27,17 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
  */
 class IncludeAllMatcher implements Matcher {
     private final String matchingPath;
+    private final int depth;
 
-    IncludeAllMatcher(String matchingPath) {
+    IncludeAllMatcher(String matchingPath, int depth) {
+        checkArgument(depth > 0);
         this.matchingPath = matchingPath;
+        this.depth = depth;
     }
 
     @Override
     public Matcher next(String name) {
-        return new IncludeAllMatcher(concat(matchingPath, name));
+        return new IncludeAllMatcher(concat(matchingPath, name), depth + 1);
     }
 
     @Override
@@ -44,5 +48,10 @@ class IncludeAllMatcher implements Matcher {
     @Override
     public String getMatchedPath() {
         return matchingPath;
+    }
+
+    @Override
+    public int depth() {
+        return depth;
     }
 }

@@ -43,7 +43,7 @@ class IncludeMatcher implements Matcher {
             if (include.match(name, depth)) {
                 String nextPath = concat(matchedPath, name);
                 if (lastEntry() && include.getDirective() == Include.Directive.ALL) {
-                    return new IncludeAllMatcher(nextPath);
+                    return new IncludeAllMatcher(nextPath, depth + 1);
                 }
                 return new IncludeMatcher(include, depth + 1, nextPath);
             } else {
@@ -61,6 +61,11 @@ class IncludeMatcher implements Matcher {
     @Override
     public String getMatchedPath() {
         return matchedPath;
+    }
+
+    @Override
+    public int depth() {
+        return depth;
     }
 
     @Override

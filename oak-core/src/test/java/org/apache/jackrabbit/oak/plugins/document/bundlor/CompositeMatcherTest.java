@@ -49,12 +49,14 @@ public class CompositeMatcherTest {
         Matcher m2 = m.next("x");
         assertTrue(m2.isMatch());
         assertEquals("x", m2.getMatchedPath());
+        assertEquals(1, m2.depth());
 
         assertFalse(m.next("a").isMatch());
 
         Matcher m3 = m2.next("y");
         assertTrue(m3.isMatch());
         assertEquals("x/y", m3.getMatchedPath());
+        assertEquals(2, m3.depth());
 
         Matcher m4 = m3.next("a");
         assertFalse(m4.isMatch());

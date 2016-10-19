@@ -35,6 +35,11 @@ public interface Matcher {
         public String getMatchedPath() {
             throw new IllegalStateException("No matching path for non matching matcher");
         }
+
+        @Override
+        public int depth() {
+            return 0;
+        }
     };
 
     /**
@@ -55,4 +60,9 @@ public interface Matcher {
      * there was a match
      */
     String getMatchedPath();
+
+    /**
+     * Matcher depth. For match done for 'x/y' depth is 2
+     */
+    int depth();
 }
