@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.query.xpath;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.QueryOptions;
+import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Statement.UnionStatement;
 import org.apache.jackrabbit.util.ISO9075;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * This class can can convert a XPATH query to a SQL2 query.
@@ -324,11 +327,21 @@ public class XPathToSQL2Converter {
                 statement.addOrderBy(order);
             } while (readIf(","));
         }
+        QueryOptions options = new QueryOptions();
+        if (readIf("option")) {
+            read("(");
+            if (readIf("traversal")) {
+                String type = readIdentifier().toUpperCase(Locale.ENGLISH);
+                options.traversal = Traversal.valueOf(type);
+            }
+            read(")");
+        }
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
         statement.setColumnSelector(currentSelector);
         statement.setSelectors(selectors);
+        statement.setQueryOptions(options);
         
         Expression where = null;
         for (Selector s : selectors) {
@@ -1105,10 +1118,14 @@ public class XPathToSQL2Converter {
             } else {
                 UnionStatement union = new UnionStatement(result, stat);
                 union.orderList = stat.orderList;
+                union.queryOptions = stat.queryOptions;
                 result = union;
             }
-            // can not use clear, because it is shared
+            // reset fields that are used in the union,
+            // but no longer in the individual statements
+            // (can not use clear, because it is shared)
             stat.orderList = new ArrayList<Order>();
+            stat.queryOptions = new QueryOptions();
         }
         return result;
     }

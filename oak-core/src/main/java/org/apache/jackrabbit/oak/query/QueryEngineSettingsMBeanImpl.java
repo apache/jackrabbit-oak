@@ -70,6 +70,16 @@ public class QueryEngineSettingsMBeanImpl extends AnnotatedStandardMBean
         settings.setLimitReads(limitReads);
     }
     
+    @Override
+    public boolean getFailTraversal() {
+        return settings.getFailTraversal();
+    }
+
+    @Override
+    public void setFailTraversal(boolean failQueriesWithoutIndex) {
+        settings.setFailTraversal(failQueriesWithoutIndex);
+    }
+    
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
         settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
     }
