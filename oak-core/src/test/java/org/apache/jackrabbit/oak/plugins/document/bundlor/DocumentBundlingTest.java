@@ -233,6 +233,45 @@ public class DocumentBundlingTest {
         assertTrue(PartialEqualsDiff.equals(state, getLatestNode("/test/book.jpg")));
     }
 
+    @Test
+    public void deleteBundledNode() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+
+        childBuilder(appNB, "jcr:content/metadata").setProperty("foo", "bar");
+        childBuilder(appNB, "jcr:content/comments").setProperty("foo", "bar");
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Delete a bundled node jcr:content/metadata
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content/metadata").remove();
+        NodeState appNode_v2 = childBuilder(builder, "/test/book.jpg").getNodeState();
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue(PartialEqualsDiff.equals(appNode_v2, getLatestNode("/test/book.jpg")));
+
+
+        //Delete unbundled child jcr:content/comments
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content/comments").remove();
+        NodeState appNode_v3 = childBuilder(builder, "/test/book.jpg").getNodeState();
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue(PartialEqualsDiff.equals(appNode_v3, getLatestNode("/test/book.jpg")));
+
+    }
+
     private NodeState getLatestNode(String path){
         return getNode(store.getRoot(), path);
     }
