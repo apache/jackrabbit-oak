@@ -26,7 +26,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import static com.google.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * Include represents a single path pattern which captures the path which
@@ -35,7 +34,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
  *     <li>* - Match any immediate child</li>
  *     <li>*\/* - Match child with any name upto 2 levels of depth</li>
  *     <li>jcr:content - Match immediate child with name jcr:content</li>
- *     <li>jcr:content\/*;all - Match jcr:content and all its child</li>
+ *     <li>jcr:content\/** - Match jcr:content and all its child</li>
  * </ul>
  *
  * The last path element can specify a directive. Supported directive
@@ -44,6 +43,9 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
  * </ul>
  */
 public class Include {
+    private static final String STAR = "*";
+    private static final String STAR_STAR = "**";
+
     enum Directive {ALL, NONE}
     private final String[] elements;
     private final Directive directive;
@@ -60,6 +62,12 @@ public class Include {
                 directive = Directive.valueOf(e.substring(indexOfColon + 1).toUpperCase());
                 e = e.substring(0, indexOfColon);
             }
+
+            if (STAR_STAR.equals(e)){
+                e = STAR;
+                directive = Directive.ALL;
+            }
+
             elementList.add(e);
 
             if (directive != Directive.NONE && i < pathElements.size() - 1){
@@ -100,7 +108,7 @@ public class Include {
     public boolean match(String nodeName, int depth) {
         checkElementIndex(depth, elements.length);
         String e = elements[depth];
-        return "*".equals(e) || nodeName.equals(e);
+        return STAR.equals(e) || nodeName.equals(e);
     }
 
     public int size() {

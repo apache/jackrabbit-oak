@@ -41,7 +41,7 @@ public class IncludeMatcherTest {
 
     @Test
     public void includeAll() throws Exception{
-        Matcher m = new Include("x/*;all").createMatcher();
+        Matcher m = new Include("x/**").createMatcher();
 
         assertTrue(m.isMatch());
         assertTrue(m.next("x").isMatch());
