@@ -24,12 +24,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Implementation of a {@link NodeStateDiff}, which translates the diffs into
@@ -85,10 +87,10 @@ class CommitDiff implements NodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         BundlingHandler child = bundlingHandler.childAdded(name, after);
         if (child.isBundlingRoot()) {
-            //TODO Handle case for leaf node optimization
             commit.addNode(new DocumentNodeState(store, child.getRootBundlePath(),
                     new RevisionVector(commit.getRevision())));
         }
+        setChildrenFlagOnAdd(child);
         return after.compareAgainstBaseState(EMPTY_NODE,
                 new CommitDiff(store, commit, child, builder, blobs));
     }
@@ -138,6 +140,30 @@ class CommitDiff implements NodeStateDiff {
         for (String propName : bundlingHandler.getRemovedProps()){
             commit.updateProperty(bundlingHandler.getRootBundlePath(),
                     bundlingHandler.getPropertyPath(propName), null);
+        }
+    }
+
+    private void setChildrenFlagOnAdd(BundlingHandler child) {
+        NodeState currentNode = bundlingHandler.getNodeState();
+        //Add hasChildren marker for bundling case
+        String propName = null;
+        if (child.isBundledNode()){
+            //1. Child is a bundled node. In that case current node would be part
+            //   same NodeDocument in which the child would be saved
+            propName = DocumentBundlor.META_PROP_BUNDLED_CHILD;
+        } else if (bundlingHandler.isBundledNode()){
+            //2. Child is a non bundled node but current node was bundled. This would
+            //   be the case where child node is not covered by bundling pattern. In
+            //   that case also add marker to current node
+            //   For case when current node is bundled  but is bundling root
+            //   this info is already captured in _hasChildren flag
+            propName = DocumentBundlor.META_PROP_NON_BUNDLED_CHILD;
+        }
+
+        //Avoid having multiple revision of same prop i.e. once
+        //child related flag is set its not touched
+        if (propName != null && !currentNode.hasProperty(propName)){
+            setProperty(createProperty(propName, Boolean.TRUE));
         }
     }
 
