@@ -96,7 +96,15 @@ public class CommitRateLimiterTest {
         try {
             limiter.processCommit(EMPTY_NODE, AFTER, null);
         } finally {
-            t.join();
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                // once in a while, we get a spurious 
+                // wakeup in the CommitRateLimiter,
+                // so that the Thresd.interrupt() above
+                // will reach t.join().
+                Thread.currentThread().interrupt();
+            }
             assertTrue(Thread.interrupted());
         }
     }
