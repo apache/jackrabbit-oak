@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -36,6 +38,7 @@ import org.junit.Test;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
 import static com.google.common.collect.Iterables.cycle;
@@ -69,7 +72,10 @@ public class MultiplexingChildrenCountTest {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
-        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("libs", libsStore).build();
+
+        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore(mip, globalStore, mounts);
 
         MultiplexingNodeStateBuilder b = new MultiplexingNodeStateBuilder(multiplexingNodeStore.ctx);
         TestingNodeState globalTestingNS = b.configureMount("/", 5);
@@ -117,7 +123,10 @@ public class MultiplexingChildrenCountTest {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
-        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("libs", libsStore).build();
+
+        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore(mip, globalStore, mounts);
 
         MultiplexingNodeStateBuilder b = new MultiplexingNodeStateBuilder(multiplexingNodeStore.ctx);
         TestingNodeState globalTestingNS = b.configureMount("/", 5);

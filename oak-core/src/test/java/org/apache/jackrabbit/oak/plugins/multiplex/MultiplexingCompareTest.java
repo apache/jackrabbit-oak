@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -91,7 +94,10 @@ public class MultiplexingCompareTest {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
-        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("libs", libsStore).build();
+
+        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore(mip, globalStore, mounts);
 
         NodeState empty = multiplexingNodeStore.getRoot();
 
@@ -123,7 +129,10 @@ public class MultiplexingCompareTest {
         MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
-        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).addMount("libs", libsStore).build();
+        
+        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore(mip, globalStore, mounts);
 
         NodeState empty = multiplexingNodeStore.getRoot();
 
