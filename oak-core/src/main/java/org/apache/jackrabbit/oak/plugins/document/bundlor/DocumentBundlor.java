@@ -39,11 +39,18 @@ public class DocumentBundlor {
      */
     public static final String META_PROP_PATTERN = ":pattern";
 
+    /**
+     * Hidden property name used as suffix for relative node path
+     * to indicate presence of that node. So for a relative node 'jcr:content'
+     * the parent node must have a property 'jcr:content/:self
+     */
+    public static final String META_PROP_NODE = ":self";
+
     public static final String PROP_PATTERN = "pattern";
     private final List<Include> includes;
 
     public static DocumentBundlor from(NodeState nodeState){
-        Preconditions.checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeStated [%s] does not have required " +
+        Preconditions.checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeState [%s] does not have required " +
                 "property [%s]", nodeState, PROP_PATTERN);
        return DocumentBundlor.from(nodeState.getStrings(PROP_PATTERN));
     }

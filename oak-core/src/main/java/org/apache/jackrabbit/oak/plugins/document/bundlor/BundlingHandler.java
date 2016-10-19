@@ -24,11 +24,18 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 
 public class BundlingHandler {
+    /**
+     * True property which is used to mark the presence of relative node
+     * This needs to be set when a bundled relative node is added
+     */
+    private static final PropertyState NODE_PRESENCE_MARKER =
+            PropertyStates.createProperty(DocumentBundlor.META_PROP_NODE, Boolean.TRUE);
     private final BundledTypesRegistry registry;
     private final String path;
     private final BundlingContext ctx;
@@ -67,7 +74,7 @@ public class BundlingHandler {
         Set<PropertyState> metaProps = Collections.emptySet();
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
-            //TODO Add meta prop for bundled child node
+            metaProps = Collections.singleton(NODE_PRESENCE_MARKER);
             childContext = createChildContext(childMatcher);
         } else {
             DocumentBundlor bundlor = registry.getBundlor(state);
