@@ -220,7 +220,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     public Iterable<? extends PropertyState> getProperties() {
         //Filter out the meta properties related to bundling from
         //generic listing of props
-        return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS);
+        if (bundlingContext.isBundled()){
+            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS);
+        }
+        return properties.values();
     }
 
     @Override
@@ -295,11 +298,15 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
-                //If all the children are bundled
-                if (bundlingContext.hasOnlyBundledChildren()){
-                    return getBundledChildren();
+                if (bundlingContext.isBundled()) {
+                    //If all the children are bundled
+                    if (bundlingContext.hasOnlyBundledChildren()){
+                        return getBundledChildren();
+                    }
+                    return Iterators.concat(getBundledChildren(), new ChildNodeEntryIterator());
                 }
-                return Iterators.concat(getBundledChildren(), new ChildNodeEntryIterator());
+
+                return new ChildNodeEntryIterator();
             }
         };
     }
@@ -809,21 +816,21 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
 
         public List<String> getBundledChildNodeNames(){
-            if (matcher.isMatch()) {
+            if (isBundled()) {
                 return BundlorUtils.getChildNodeNames(rootProperties.keySet(), matcher);
             }
             return Collections.emptyList();
         }
 
         private boolean hasBundledChildren(Matcher matcher){
-            if (matcher.isMatch()){
+            if (isBundled()){
                 return hasBundledProperty(rootProperties, matcher, DocumentBundlor.META_PROP_BUNDLED_CHILD);
             }
             return false;
         }
 
         private boolean hasNonBundledChildren(Matcher matcher){
-            if (matcher.isMatch()){
+            if (isBundled()){
                 return hasBundledProperty(rootProperties, matcher, DocumentBundlor.META_PROP_NON_BUNDLED_CHILD);
             }
             return false;

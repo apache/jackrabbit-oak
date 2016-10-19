@@ -44,11 +44,11 @@ public class BundlingHandler {
     private final NodeState nodeState;
 
     public BundlingHandler(BundledTypesRegistry registry) {
-        this(registry, BundlingContext.NULL, ROOT_PATH, EMPTY_NODE);
+        this(checkNotNull(registry), BundlingContext.NULL, ROOT_PATH, EMPTY_NODE);
     }
 
     private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path, NodeState nodeState) {
-        this.registry = checkNotNull(registry);
+        this.registry = registry;
         this.path = path;
         this.ctx = ctx;
         this.nodeState = nodeState;
