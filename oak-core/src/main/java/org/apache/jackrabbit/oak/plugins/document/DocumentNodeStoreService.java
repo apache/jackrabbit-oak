@@ -826,7 +826,7 @@ public class DocumentNodeStoreService {
         Runnable cancelGC = new Runnable() {
             @Override
             public void run() {
-                throw new UnsupportedOperationException("Cancelling revision garbage collection is not supported");
+                store.getVersionGarbageCollector().cancel();
             }
         };
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, executor);
