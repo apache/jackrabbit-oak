@@ -334,7 +334,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     String getPropertyAsString(String propertyName) {
-        PropertyState prop = properties.get(propertyName);
+        return asString(properties.get(propertyName));
+    }
+
+    private String asString(PropertyState prop) {
         if (prop == null) {
             return null;
         } else if (prop instanceof DocumentPropertyState) {
@@ -514,11 +517,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         if (hasChildren) {
             json.key("hasChildren").value(true);
         }
-        //TODO [bundling] Handle serialization
         if (properties.size() > 0) {
             json.key("prop").object();
-            for (String k : properties.keySet()) {
-                json.key(k).value(getPropertyAsString(k));
+            for (Map.Entry<String, PropertyState> e : bundlingContext.getAllProperties().entrySet()) {
+                json.key(e.getKey()).value(asString(e.getValue()));
             }
             json.endObject();
         }
@@ -779,6 +781,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             if (matcher.isMatch()){
                 return BundlorUtils.getMatchingProperties(rootProperties, matcher);
             }
+            return rootProperties;
+        }
+
+        public Map<String, PropertyState> getAllProperties(){
             return rootProperties;
         }
 
