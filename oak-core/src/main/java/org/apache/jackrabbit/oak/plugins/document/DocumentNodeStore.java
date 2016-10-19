@@ -85,6 +85,8 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
@@ -112,6 +114,7 @@ import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -1105,6 +1108,12 @@ public final class DocumentNodeStore
         final DocumentNodeState result = doc.getNodeAtRevision(this, readRevision, lastRevision);
         PERFLOG.end(start, 1, "readNode: path={}, readRevision={}", path, readRevision);
         return result;
+    }
+
+    public BundlingHandler getBundlingRoot() {
+        //TODO Move this to observor based
+        NodeState registryState = NodeStateUtils.getNode(getRoot(), "/jcr:system/documentstore/bundlor");
+        return new BundlingHandler(BundledTypesRegistry.from(registryState));
     }
 
     /**

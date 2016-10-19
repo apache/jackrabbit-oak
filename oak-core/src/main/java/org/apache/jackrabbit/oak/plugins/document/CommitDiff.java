@@ -21,9 +21,9 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -41,23 +41,23 @@ class CommitDiff implements NodeStateDiff {
 
     private final Commit commit;
 
-    private final String path;
-
     private final JsopBuilder builder;
 
     private final BlobSerializer blobs;
 
+    private final BundlingHandler bundlingHandler;
+
     CommitDiff(@Nonnull DocumentNodeStore store, @Nonnull Commit commit,
                @Nonnull BlobSerializer blobs) {
-        this(checkNotNull(store), checkNotNull(commit), "/",
+        this(checkNotNull(store), checkNotNull(commit), store.getBundlingRoot(),
                 new JsopBuilder(), checkNotNull(blobs));
     }
 
-    private CommitDiff(DocumentNodeStore store, Commit commit, String path,
+    private CommitDiff(DocumentNodeStore store, Commit commit, BundlingHandler bundlingHandler,
                JsopBuilder builder, BlobSerializer blobs) {
         this.store = store;
         this.commit = commit;
-        this.path = path;
+        this.bundlingHandler = bundlingHandler;
         this.builder = builder;
         this.blobs = blobs;
     }
@@ -76,34 +76,42 @@ class CommitDiff implements NodeStateDiff {
 
     @Override
     public boolean propertyDeleted(PropertyState before) {
-        commit.updateProperty(path, before.getName(), null);
+        commit.updateProperty(bundlingHandler.getRootBundlePath(), bundlingHandler.getPropertyPath(before.getName()), null);
         return true;
     }
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        String p = PathUtils.concat(path, name);
-        commit.addNode(new DocumentNodeState(store, p,
-                new RevisionVector(commit.getRevision())));
+        BundlingHandler child = bundlingHandler.childHandler(name, after);
+        if (child.isBundlingRoot()) {
+            //TODO Seed in the bundling pattern
+            //TODO Handle case for leaf node optimization
+            commit.addNode(new DocumentNodeState(store, child.getRootBundlePath(),
+                    new RevisionVector(commit.getRevision())));
+        }
         return after.compareAgainstBaseState(EMPTY_NODE,
-                new CommitDiff(store, commit, p, builder, blobs));
+                new CommitDiff(store, commit, child, builder, blobs));
     }
 
     @Override
     public boolean childNodeChanged(String name,
                                     NodeState before,
                                     NodeState after) {
-        String p = PathUtils.concat(path, name);
+        //TODO [bundling] Handle change of primaryType
+        BundlingHandler child = bundlingHandler.childHandler(name, after);
         return after.compareAgainstBaseState(before,
-                new CommitDiff(store, commit, p, builder, blobs));
+                new CommitDiff(store, commit, child, builder, blobs));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        String p = PathUtils.concat(path, name);
-        commit.removeNode(p, before);
+        BundlingHandler child = bundlingHandler.childHandler(name, before);
+        if (child.isBundlingRoot()) {
+            //TODO [bundling] Handle delete
+            commit.removeNode(child.getRootBundlePath(), before);
+        }
         return MISSING_NODE.compareAgainstBaseState(before,
-                new CommitDiff(store, commit, p, builder, blobs));
+                new CommitDiff(store, commit, child, builder, blobs));
     }
 
     //----------------------------< internal >----------------------------------
@@ -112,10 +120,11 @@ class CommitDiff implements NodeStateDiff {
         builder.resetWriter();
         JsonSerializer serializer = new JsonSerializer(builder, blobs);
         serializer.serialize(property);
-        commit.updateProperty(path, property.getName(), serializer.toString());
+        commit.updateProperty(bundlingHandler.getRootBundlePath(), bundlingHandler.getPropertyPath(property.getName()),
+                 serializer.toString());
         if ((property.getType() == Type.BINARY)
                 || (property.getType() == Type.BINARIES)) {
-            this.commit.markNodeHavingBinary(this.path);
+            this.commit.markNodeHavingBinary(bundlingHandler.getRootBundlePath());
         }
     }
 }
