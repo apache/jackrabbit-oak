@@ -80,9 +80,9 @@ class CompositeMatcher implements Matcher {
     }
 
     @Override
-    public boolean matchesChildren() {
+    public boolean matchesAllChildren() {
         for (Matcher m : matchers){
-            if (m.matchesChildren()){
+            if (m.matchesAllChildren()){
                 return true;
             }
         }

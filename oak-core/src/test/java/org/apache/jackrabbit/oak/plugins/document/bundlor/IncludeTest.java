@@ -93,13 +93,13 @@ public class IncludeTest {
     public void matchChildren() throws Exception{
         Include i0 = new Include("x/*");
         Matcher m = i0.createMatcher();
-        assertFalse(m.matchesChildren());
-        assertTrue(m.next("x").matchesChildren());
+        assertFalse(m.matchesAllChildren());
+        assertTrue(m.next("x").matchesAllChildren());
 
         Include i1 = new Include("x/**");
         m = i1.createMatcher();
-        assertFalse(m.matchesChildren());
-        assertTrue(m.next("x").matchesChildren());
+        assertFalse(m.matchesAllChildren());
+        assertTrue(m.next("x").matchesAllChildren());
 
     }
 }

@@ -42,7 +42,7 @@ public interface Matcher {
         }
 
         @Override
-        public boolean matchesChildren() {
+        public boolean matchesAllChildren() {
             return false;
         }
 
@@ -82,5 +82,5 @@ public interface Matcher {
      * case if IncludeMatcher with '*' or '**' as pattern for
      * child nodes
      */
-    boolean matchesChildren();
+    boolean matchesAllChildren();
 }

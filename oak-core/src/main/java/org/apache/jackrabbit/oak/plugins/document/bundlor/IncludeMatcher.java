@@ -73,7 +73,7 @@ class IncludeMatcher implements Matcher {
     }
 
     @Override
-    public boolean matchesChildren() {
+    public boolean matchesAllChildren() {
         if (hasMore()){
             return include.matchAny(nextElementIndex());
         }

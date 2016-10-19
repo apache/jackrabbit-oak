@@ -43,6 +43,7 @@ import static com.google.common.base.Preconditions.checkElementIndex;
  * </ul>
  */
 public class Include {
+    //TODO Restrict to * and have * == **
     private static final String STAR = "*";
     private static final String STAR_STAR = "**";
 
