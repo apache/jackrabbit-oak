@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -63,6 +64,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class DocumentBundlingTest {
     @Rule
@@ -111,7 +113,12 @@ public class DocumentBundlingTest {
         assertTrue(hasNodeProperty("/test/book.jpg", concat("jcr:content", DocumentBundlor.META_PROP_NODE)));
 
         AssertingDiff.assertEquals(fileNode.getNodeState(), fileNodeState.getChildNode("book.jpg"));
+
+        DocumentNodeState dns = asDocumentState(fileNodeState.getChildNode("book.jpg"));
+        AssertingDiff.assertEquals(fileNode.getNodeState(), dns.withRootRevision(dns.getRootRevision(), true));
+        AssertingDiff.assertEquals(fileNode.getNodeState(), dns.fromExternalChange());
     }
+
 
     @Test
     public void bundledParent() throws Exception{
@@ -468,6 +475,14 @@ public class DocumentBundlingTest {
 
     private void merge(NodeBuilder builder) throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private static DocumentNodeState asDocumentState(NodeState state){
+        if (state instanceof DocumentNodeState){
+            return (DocumentNodeState) state;
+        }
+        fail("Not of type AbstractDoucmentNodeState");
+        return null;
     }
 
     private static void dump(NodeState state){
