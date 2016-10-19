@@ -50,7 +50,7 @@ public class IncludeTest {
         Include i0 = new Include("x/*");
         assertEquals(Include.Directive.NONE, i0.getDirective());
 
-        Include i = new Include("x/*;all");
+        Include i = new Include("x/**");
         assertEquals(Include.Directive.ALL, i.getDirective());
     }
 
@@ -61,12 +61,12 @@ public class IncludeTest {
 
     @Test
     public void directiveAll() throws Exception{
-        Include i = new Include("x/*;all");
+        Include i = new Include("x/**");
         assertTrue(i.match("x/y"));
         assertTrue(i.match("x/y/z"));
         assertTrue(i.match("x/y/z/x"));
 
-        Include i2 = new Include("x/y;all");
+        Include i2 = new Include("x/y/**");
         assertTrue(i2.match("x/y"));
         assertTrue(i2.match("x/y/z"));
         assertTrue(i2.match("x/y/z/x"));
@@ -82,7 +82,7 @@ public class IncludeTest {
         // x/y/z would not match so depth should be 0
         assertEquals(0, i0.createMatcher().next("x").next("y").next("z").depth());
 
-        Include i2 = new Include("x/y;all");
+        Include i2 = new Include("x/y/**");
         assertEquals(0, i2.createMatcher().depth());
         assertEquals(1, i2.createMatcher().next("x").depth());
         assertEquals(2, i2.createMatcher().next("x").next("y").depth());
