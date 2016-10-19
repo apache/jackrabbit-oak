@@ -30,6 +30,11 @@ public class SimpleCommitContext implements CommitContext {
     private final Map<String, Object> attrs = Maps.newHashMap();
 
     @Override
+    public String toString() {
+    	return "CommitContext[attrs="+attrs+"]";
+    }
+    
+    @Override
     public void set(String name, Object value) {
         attrs.put(checkNotNull(name), value);
     }

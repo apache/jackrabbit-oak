@@ -280,7 +280,7 @@ public class Jcr {
     public Jcr with(@Nonnull String defaultWorkspaceName) {
         ensureRepositoryIsNotCreated();
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
-	return this;
+        return this;
     }
 
     @Nonnull

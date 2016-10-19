@@ -486,7 +486,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         }
 
         @Override
-        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
+        public void compacted() {
             compacted = true;
         }
 

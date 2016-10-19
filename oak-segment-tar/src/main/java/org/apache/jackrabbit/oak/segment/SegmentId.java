@@ -121,8 +121,6 @@ public class SegmentId implements Comparable<SegmentId> {
                     try {
                         log.debug("Loading segment {}", this);
                         segment = store.readSegment(this);
-                        gcGeneration = segment.getGcGeneration();
-                        this.segment = segment;
                     } catch (SegmentNotFoundException snfe) {
                         log.error("Segment not found: {}. {}", this, gcInfo(), snfe);
                         throw snfe;

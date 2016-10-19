@@ -79,8 +79,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     backup.getReader(),
                     backup.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter,
-                    backup.getBinaryReferenceConsumer()
+                    bufferWriter
             );
             Compactor compactor = new Compactor(
                     backup.getReader(),
@@ -117,12 +116,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
 
     @Override
     public boolean cleanup(FileStore f) throws IOException {
-        boolean ok = true;
-
-        for (File file : f.cleanup()) {
-            ok = ok && file.delete();
-        }
-
+        f.cleanup();
         return true;
     }
 

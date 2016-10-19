@@ -391,6 +391,8 @@ final class Delegatee {
                     case ADD:
                     case DELETE:
                     case UPDATE:
+                    case ENABLE:
+                    case DISABLE:
                         append(list, result.getIdentity(), e);
                         break;
                     default:
@@ -414,6 +416,12 @@ final class Delegatee {
                 break;
             case DELETE:
                 op = "del";
+                break;
+            case ENABLE:
+                op = "ena";
+                break;
+            case DISABLE:
+                op = "dis";
                 break;
             case NO_SUCH_AUTHORIZABLE:
                 op = "nsa";

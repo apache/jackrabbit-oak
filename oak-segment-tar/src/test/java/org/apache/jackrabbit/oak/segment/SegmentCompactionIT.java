@@ -82,7 +82,6 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -109,7 +108,6 @@ import org.slf4j.LoggerFactory;
  * All of which can be interactively modified through the accompanying
  * {@link SegmentCompactionITMBean}, the
  * {@link SegmentRevisionGC} and the
- * {@link GCMonitorMBean}.</p>
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
@@ -147,8 +145,8 @@ public class SegmentCompactionIT {
     private volatile int maxWriters = 10;
     private volatile long maxStoreSize = 200000000000L;
     private volatile int maxBlobSize = 1000000;
-    private volatile int maxStringSize = 10000;
-    private volatile int maxReferences = 10;
+    private volatile int maxStringSize = 100;
+    private volatile int maxReferences = 0;
     private volatile int maxWriteOps = 10000;
     private volatile int maxNodeCount = 1000;
     private volatile int maxPropertyCount = 1000;
@@ -156,8 +154,8 @@ public class SegmentCompactionIT {
     private volatile int propertyRemoveRatio = 10;
     private volatile int nodeAddRatio = 40;
     private volatile int addStringRatio = 20;
-    private volatile int addBinaryRatio = 20;
-    private volatile int compactionInterval = 1;
+    private volatile int addBinaryRatio = 0;
+    private volatile int compactionInterval = 60;
     private volatile boolean stopping;
     private volatile Reference rootReference;
     private volatile long fileStoreSize;
@@ -221,8 +219,10 @@ public class SegmentCompactionIT {
     public void setUp() throws Exception {
         assumeTrue(ENABLED);
 
-        SegmentGCOptions gcOptions = defaultGCOptions();
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        SegmentGCOptions gcOptions = defaultGCOptions()
+                .setGainThreshold(0)
+                .setForceTimeout(3600);
         fileStore = fileStoreBuilder(folder.getRoot())
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
@@ -234,10 +234,8 @@ public class SegmentCompactionIT {
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
-        registrations.add(registerMBean(new SegmentRevisionGCMBean(gcOptions),
+        registrations.add(registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions, fileStoreGCMonitor),
                 new ObjectName("IT:TYPE=Segment Revision GC")));
-        registrations.add(registerMBean(fileStoreGCMonitor,
-                new ObjectName("IT:TYPE=GC Monitor")));
         CacheStatsMBean segmentCacheStats = fileStore.getSegmentCacheStats();
         registrations.add(registerMBean(segmentCacheStats,
                 new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
@@ -664,7 +662,7 @@ public class SegmentCompactionIT {
                         @Override
                         public Void call() throws Exception {
                             gcMonitor.resetCleaned();
-                            fileStore.maybeCompact(true);
+                            fileStore.getGCRunner().run();
                             return null;
                         }
                     });

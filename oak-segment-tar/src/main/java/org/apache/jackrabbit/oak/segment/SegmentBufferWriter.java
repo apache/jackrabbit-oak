@@ -30,6 +30,8 @@ import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
+import static org.apache.jackrabbit.oak.segment.Segment.RECORD_SIZE;
+import static org.apache.jackrabbit.oak.segment.Segment.SEGMENT_REFERENCE_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.align;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
@@ -270,15 +272,20 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     public void writeRecordId(RecordId recordId, boolean reference) {
         checkNotNull(recordId);
-
+        checkState(segmentReferences.size() + 1 < 0xffff,
+                "Segment cannot have more than 0xffff references");
         checkGCGeneration(recordId.getSegmentId());
 
-        writeInt(writeSegmentIdReference(recordId.getSegmentId()));
+        writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));
         writeInt(recordId.getRecordNumber());
 
         statistics.recordIdCount++;
 
         dirty = true;
+    }
+
+    private static short toShort(int value) {
+        return (short) value;
     }
 
     private int writeSegmentIdReference(SegmentId id) {
@@ -342,7 +349,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int recordNumberCount = recordNumbers.size();
             BinaryUtils.writeInt(buffer, Segment.RECORD_NUMBER_COUNT_OFFSET, recordNumberCount);
 
-            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * 16 + recordNumberCount * 12 + length, 16);
+            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE + recordNumberCount * RECORD_SIZE + length, 16);
 
             if (totalLength > buffer.length) {
                 throw new IllegalStateException("too much data for a segment");
@@ -373,7 +380,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
             for (Entry entry : recordNumbers) {
                 pos = BinaryUtils.writeInt(buffer, pos, entry.getRecordNumber());
-                pos = BinaryUtils.writeInt(buffer, pos, entry.getType().ordinal());
+                pos = BinaryUtils.writeByte(buffer, pos, (byte) entry.getType().ordinal());
                 pos = BinaryUtils.writeInt(buffer, pos, entry.getOffset());
             }
 
@@ -414,7 +421,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         int recordNumbersCount = recordNumbers.size() + 1;
         int referencedIdCount = segmentReferences.size() + ids.size();
-        int headerSize = HEADER_SIZE + referencedIdCount * 16 + recordNumbersCount * 12;
+        int headerSize = HEADER_SIZE + referencedIdCount * SEGMENT_REFERENCE_SIZE + recordNumbersCount * RECORD_SIZE;
         int segmentSize = align(headerSize + recordSize + length, 16);
 
         // If the size estimate looks too big, recompute it with a more
@@ -427,15 +434,15 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             Set<SegmentId> segmentIds = newHashSet();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
-                if (segmentReferences.contains(segmentId)) {
+                if (!segmentReferences.contains(segmentId)) {
                     segmentIds.add(segmentId);
                 }
             }
 
             // Adjust the estimation of the new referenced segment ID count.
-            referencedIdCount -= segmentIds.size();
+            referencedIdCount =  segmentReferences.size() + segmentIds.size();
 
-            headerSize = HEADER_SIZE + referencedIdCount * 16 + recordNumbersCount * 12;
+            headerSize = HEADER_SIZE + referencedIdCount * SEGMENT_REFERENCE_SIZE + recordNumbersCount * RECORD_SIZE;
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 

@@ -75,7 +75,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1141,10 +1140,7 @@ public class CompactionAndCleanupIT {
             final Callable<Void> concurrentCleanTask = new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    // FIXME OAK-4685: Explicitly avoid concurrent cleanup calls until OAK-4685 is fixed
-                    synchronized (nodeStore) {
-                        fileStore.cleanup();
-                    }
+                    fileStore.cleanup();
                     return null;
                 }
             };

@@ -83,25 +83,25 @@ public class SegmentCacheTest {
         // load
         cache.getSegment(id, loader);
         assertEquals(1, stats.getElementCount());
-        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.getLoadCount());
         assertEquals(0, stats.getHitCount());
-        assertEquals(1, stats.getMissCount());
-        assertEquals(1, stats.getRequestCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
 
         // cache hit
         cache.getSegment(id, loader);
         assertEquals(1, stats.getElementCount());
-        assertEquals(1, stats.getLoadCount());
-        assertEquals(1, stats.getHitCount());
-        assertEquals(1, stats.getMissCount());
-        assertEquals(2, stats.getRequestCount());
+        assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
 
         cache.clear();
         assertEquals(0, stats.getElementCount());
-        assertEquals(1, stats.getLoadCount());
-        assertEquals(1, stats.getHitCount());
-        assertEquals(1, stats.getMissCount());
-        assertEquals(2, stats.getRequestCount());
+        assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
 
         stats.resetStats();
         assertEquals(0, stats.getElementCount());

@@ -69,6 +69,34 @@ public class QueryTest extends AbstractRepositoryTest {
     }
     
     @Test
+    public void traversalOption() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        try {
+            qm.createQuery("//*[@test] option(traversal fail)", 
+                    "xpath").execute();
+            fail();
+        } catch (InvalidQueryException e) {
+            // expected
+        }
+        try {
+            qm.createQuery("select * from [nt:base] option(traversal fail)", 
+                    Query.JCR_SQL2).execute();
+            fail();
+        } catch (InvalidQueryException e) {
+            // expected
+        }
+        qm.createQuery("//*[@test] option(traversal ok)", 
+                "xpath").execute();
+        qm.createQuery("//*[@test] option(traversal warn)", 
+                "xpath").execute();
+        qm.createQuery("select * from [nt:base] option(traversal ok)", 
+                Query.JCR_SQL2).execute();
+        qm.createQuery("select * from [nt:base] option(traversal warn)", 
+                Query.JCR_SQL2).execute();
+    }    
+    
+    @Test
     public void firstSelector() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();

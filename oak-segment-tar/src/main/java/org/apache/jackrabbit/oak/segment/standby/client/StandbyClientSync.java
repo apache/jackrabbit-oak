@@ -143,12 +143,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
                 long sizeAfter = fileStore.getStats().getApproximateSize();
 
-                if (autoClean && sizeBefore > 0) {
-                    // if size gain is over 25% call cleanup
-                    if (sizeAfter - sizeBefore > 0.25 * sizeBefore) {
-                        log.info("Store size increased from {} to {}, will run cleanup.", humanReadableByteCount(sizeBefore), humanReadableByteCount(sizeAfter));
-                        fileStore.cleanup();
-                    }
+                if (autoClean && sizeAfter > 1.25 * sizeBefore) {
+                    log.info("Store size increased from {} to {}, will run cleanup.", humanReadableByteCount(sizeBefore), humanReadableByteCount(sizeAfter));
+                    cleanupAndRemove();
                 }
             }
             this.failedRequests = 0;
@@ -163,6 +160,10 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 this.active = false;
             }
         }
+    }
+
+    private void cleanupAndRemove() throws IOException {
+        fileStore.cleanup();
     }
 
     private Supplier<Boolean> newRunningSupplier() {
@@ -229,7 +230,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
     @Override
     public void cleanup() {
         try {
-            fileStore.cleanup();
+            cleanupAndRemove();
         } catch (IOException e) {
             log.error("Error while cleaning up", e);
         }

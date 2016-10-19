@@ -37,8 +37,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -47,10 +46,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Utility for tracing a node back through the revision history.
  */
 public class RevisionHistory {
-    private final ReadOnlyStore store;
+    private final ReadOnlyFileStore store;
 
     /**
-     * Create a new instance for a {@link FileStore} in the given {@code directory}.
+     * Create a new instance for a {@link ReadOnlyFileStore} in the given {@code directory}.
      *
      * @param directory
      * @throws IOException

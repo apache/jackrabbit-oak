@@ -52,6 +52,15 @@ public class RequestDecoderTest {
     }
 
     @Test
+    public void shouldDecodeValidGetReferencesRequests() throws Exception {
+        EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
+        channel.writeInbound(Messages.newGetReferencesRequest("clientId", "segmentId", false));
+        GetReferencesRequest request = (GetReferencesRequest) channel.readInbound();
+        assertEquals("clientId", request.getClientId());
+        assertEquals("segmentId", request.getSegmentId());
+    }
+
+    @Test
     public void shouldDropInvalidMessages() throws Exception {
         EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
         channel.writeInbound("Standby-CMD@clientId:z");

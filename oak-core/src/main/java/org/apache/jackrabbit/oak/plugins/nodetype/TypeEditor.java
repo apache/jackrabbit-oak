@@ -144,7 +144,7 @@ class TypeEditor extends DefaultEditor {
      */
     private void constraintViolation(int code, String message) throws CommitFailedException {
         String path = getPath();
-        path = path + '[' + getEffective() + ']';
+        path = path + '[' + effective + ']';
 
         CommitFailedException exception = new CommitFailedException(CONSTRAINT, code, path + ": " + message);
         if (strict) {

@@ -395,3 +395,22 @@ for example attempt a conversion of OR conditions into UNION
 [OAK-1617](https://issues.apache.org/jira/browse/OAK-1617).
 
 To disable it provide `-Doak.query.sql2optimisation=false` at the start-up.
+
+### Additional XPath and SQL-2 Features
+
+The Oak implementation supports some features that are not part of the JCR specification:
+
+    @since 1.5.12
+    
+Union for XPath and SQL-2 queries. Examples:
+
+    /jcr:root/(content|lib)/*
+    /jcr:root/content//*[@a] | /jcr:root/lib//*[@b]) order by @c
+    select * from [nt:base] as a where issamenode(a, '/content') 
+    union select * from [nt:base] as a where issamenode(a, '/lib')
+
+XPath functions "fn:string-length" and "fn:local-name".
+
+    
+
+    

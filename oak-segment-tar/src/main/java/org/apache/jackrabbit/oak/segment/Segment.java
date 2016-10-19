@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -45,6 +45,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -62,14 +63,25 @@ import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
  */
 public class Segment {
 
-    static final int HEADER_SIZE = 22;
+    static final int HEADER_SIZE = 32;
 
     /**
-     * Number of bytes used for storing a record identifier. One byte
-     * is used for identifying the segment and two for the record offset
+     * Size of a line in the table of references to external segments.
+     */
+    static final int SEGMENT_REFERENCE_SIZE = 16;
+
+    /**
+     * Size of a line in the table mapping record numbers to their type and
+     * offset.
+     */
+    static final int RECORD_SIZE = 9;
+
+    /**
+     * Number of bytes used for storing a record identifier. Two bytes
+     * are used for identifying the segment and four for the record offset
      * within that segment.
      */
-    static final int RECORD_ID_BYTES = 4 + 4;
+    static final int RECORD_ID_BYTES = 2 + 4;
 
     /**
      * The limit on segment references within one segment. Since record
@@ -218,13 +230,13 @@ public class Segment {
         int position = data.position();
 
         position += HEADER_SIZE;
-        position += getReferencedSegmentIdCount() * 16;
+        position += getReferencedSegmentIdCount() * SEGMENT_REFERENCE_SIZE;
 
         for (int i = 0; i < getRecordNumberCount(); i++) {
             int recordNumber = data.getInt(position);
             position += 4;
-            int type = data.getInt(position);
-            position += 4;
+            int type = data.get(position);
+            position += 1;
             int offset = data.getInt(position);
             position += 4;
             recordNumberOffsets.put(recordNumber, new RecordEntry(RecordType.values()[type], offset));
@@ -234,21 +246,47 @@ public class Segment {
     }
 
     private SegmentReferences readReferencedSegments() {
-        List<SegmentId> referencedSegments = newArrayListWithCapacity(getReferencedSegmentIdCount());
+        checkState(getReferencedSegmentIdCount() + 1 < 0xffff,
+                "Segment cannot have more than 0xffff references");
 
-        int position = data.position();
+        final int referencedSegmentIdCount = getReferencedSegmentIdCount();
+        final int refOffset = data.position() + HEADER_SIZE;
+        final SegmentId[] refIds = new SegmentId[referencedSegmentIdCount];
+        return new SegmentReferences() {
+            @Override
+            public SegmentId getSegmentId(int reference) {
+                checkArgument(reference <= referencedSegmentIdCount);
+                SegmentId id = refIds[reference - 1];
+                if (id == null) {
+                    synchronized(refIds) {
+                        id = refIds[reference - 1];
+                        if (id == null) {
+                            int position = refOffset + (reference - 1) * SEGMENT_REFERENCE_SIZE;
+                            long msb = data.getLong(position);
+                            long lsb = data.getLong(position + 8);
+                            id = store.newSegmentId(msb, lsb);
+                            refIds[reference - 1] = id;
+                        }
+                    }
+                }
+                return id;
+            }
 
-        position += HEADER_SIZE;
-
-        for (int i = 0; i < getReferencedSegmentIdCount(); i++) {
-            long msb = data.getLong(position);
-            position += 8;
-            long lsb = data.getLong(position);
-            position += 8;
-            referencedSegments.add(store.newSegmentId(msb, lsb));
-        }
-
-        return new ImmutableSegmentReferences(referencedSegments);
+            @Override
+            public Iterator<SegmentId> iterator() {
+                return new AbstractIterator<SegmentId>() {
+                    private int reference = 1;
+                    @Override
+                    protected SegmentId computeNext() {
+                        if (reference <= referencedSegmentIdCount) {
+                            return getSegmentId(reference++);
+                        } else {
+                            return endOfData();
+                        }
+                    }
+                };
+            }
+        };
     }
 
     Segment(@Nonnull SegmentStore store,
@@ -433,8 +471,12 @@ public class Segment {
     }
 
     private RecordId internalReadRecordId(int pos) {
-        SegmentId segmentId = dereferenceSegmentId(data.getInt(pos));
-        return new RecordId(segmentId, data.getInt(pos + 4));
+        SegmentId segmentId = dereferenceSegmentId(asUnsigned(data.getShort(pos)));
+        return new RecordId(segmentId, data.getInt(pos + 2));
+    }
+
+    private static int asUnsigned(short value) {
+        return value & 0xffff;
     }
 
     private SegmentId dereferenceSegmentId(int reference) {

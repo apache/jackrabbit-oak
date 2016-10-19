@@ -244,18 +244,16 @@ public class ContentMirrorStoreStrategyTest {
         assertInRange(
                 "Approximate count not used for is-not-null query",
                 approxNodeCount,
-                filteredNodeFactor *
-                        store.count(filter, root, indexMeta.getNodeState(),
-                                null, maxTraversal));
+                store.count(filter, root, indexMeta.getNodeState(),
+                            null, maxTraversal));
 
         // prop=value query without entryCount
         key.setProperty(approxPropName, approxKeyCount, Type.LONG);
         assertInRange(
                 "Approximate count not used for key=value query",
                 approxKeyCount,
-                filteredNodeFactor *
-                        store.count(filter, root, indexMeta.getNodeState(),
-                                KEY, maxTraversal));
+                store.count(filter, root, indexMeta.getNodeState(),
+                            KEY, maxTraversal));
 
         // is-not-null query with entryCount
         indexMeta
@@ -284,10 +282,10 @@ public class ContentMirrorStoreStrategyTest {
     }
 
     private static void assertInRange(String msg, double expected, double actual) {
-        final double allowedError = 0.1;
-
+        double allowedError = 0.1;
         double diff = Math.abs(expected - actual);
-        Assert.assertTrue(msg, diff < expected * allowedError);
+        Assert.assertTrue(msg + "; expected about " + expected + ", got " + actual, 
+                diff < expected * allowedError);
     }
 
 }

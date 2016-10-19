@@ -19,11 +19,14 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static java.nio.charset.Charset.defaultCharset;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
 import com.google.common.collect.AbstractIterator;
+import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +40,7 @@ public final class JournalReader extends AbstractIterator<String> implements Clo
     private final ReversedLinesFileReader journal;
 
     public JournalReader(File journalFile) throws IOException {
-        journal = new ReversedLinesFileReader(journalFile);
+        journal = new ReversedLinesFileReader(journalFile, defaultCharset());
     }
 
     /**

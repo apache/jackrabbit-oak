@@ -29,17 +29,13 @@ import java.util.Date;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
- * {@link GCMonitor} implementation providing the file store gc status
- * as {@link GCMonitorMBean}.
- *
+ * {@link GCMonitor} implementation providing the file store gc status.
  */
-public class FileStoreGCMonitor extends AnnotatedStandardMBean
-        implements GCMonitor, GCMonitorMBean {
+public class FileStoreGCMonitor implements GCMonitor {
     private final Clock clock;
 
     private long lastCompaction;
@@ -50,7 +46,6 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     private String status = "NA";
 
     public FileStoreGCMonitor(@Nonnull Clock clock) {
-        super(GCMonitorMBean.class);
         this.clock = checkNotNull(clock);
     }
 
@@ -91,24 +86,18 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
         lastRepositorySize = current;
     }
 
-    //------------------------------------------------------------< GCMonitorMBean >---
-
-    @Override
     public String getLastCompaction() {
         return toString(lastCompaction);
     }
 
-    @Override
     public String getLastCleanup() {
         return toString(lastCleanup);
     }
 
-    @Override
     public long getLastRepositorySize() {
         return lastRepositorySize;
     }
 
-    @Override
     public long getLastReclaimedSize() {
         return lastReclaimedSize;
     }
@@ -121,13 +110,11 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
         }
     }
 
-    @Override
     public String getLastError() {
         return lastError;
     }
 
     @Nonnull
-    @Override
     public String getStatus() {
         return status;
     }

@@ -29,7 +29,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.segment.Segment.getGcGeneration;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.file.TarWriter.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.TarWriter.GRAPH_MAGIC;
@@ -55,7 +54,6 @@ import java.util.zip.CRC32;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
@@ -69,20 +67,6 @@ class TarReader implements Closeable {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
-
-    private static final Logger GC_LOG = LoggerFactory.getLogger(TarReader.class.getName() + "-GC");
-
-    private static final TarRecovery DEFAULT_TAR_RECOVERY = new TarRecovery() {
-
-        @Override
-        public void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException {
-            int generation = getGcGeneration(wrap(data), uuid);
-            long msb = uuid.getMostSignificantBits();
-            long lsb = uuid.getLeastSignificantBits();
-            writer.writeEntry(msb, lsb, data, 0, data.length, generation);
-        }
-
-    };
 
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
@@ -127,8 +111,7 @@ class TarReader implements Closeable {
      * @return
      * @throws IOException
      */
-    static TarReader open(Map<Character, File> files, boolean memoryMapping)
-            throws IOException {
+    static TarReader open(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery) throws IOException {
         SortedMap<Character, File> sorted = newTreeMap();
         sorted.putAll(files);
 
@@ -149,7 +132,7 @@ class TarReader implements Closeable {
 
         // regenerate the first generation based on the recovered data
         File file = sorted.values().iterator().next();
-        generateTarFile(entries, file, DEFAULT_TAR_RECOVERY);
+        generateTarFile(entries, file, recovery);
 
         reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
         if (reader != null) {
@@ -159,8 +142,7 @@ class TarReader implements Closeable {
         }
     }
 
-    static TarReader openRO(Map<Character, File> files, boolean memoryMapping,
-            boolean recover) throws IOException {
+    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, boolean recover, TarRecovery recovery) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         File file = files.get(Collections.max(files.keySet()));
@@ -179,7 +161,7 @@ class TarReader implements Closeable {
             LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
             collectFileEntries(file, entries, false);
             file = findAvailGen(file, ".ro.bak");
-            generateTarFile(entries, file, DEFAULT_TAR_RECOVERY);
+            generateTarFile(entries, file, recovery);
             reader = openFirstFileWithValidIndex(singletonList(file),
                     memoryMapping);
             if (reader != null) {
@@ -735,13 +717,9 @@ class TarReader implements Closeable {
      * Collect the references of those blobs that are reachable from any segment with a
      * generation at or above {@code minGeneration}.
      * @param collector
-     * @param referenceDecoder
      * @param minGeneration
      */
-    void collectBlobReferences(
-            @Nonnull ReferenceCollector collector,
-            @Nonnull Function<String, String> referenceDecoder,
-            int minGeneration) {
+    void collectBlobReferences(@Nonnull ReferenceCollector collector, int minGeneration) {
         Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
         if (generations == null) {
@@ -755,7 +733,7 @@ class TarReader implements Closeable {
 
             for (Set<String> references : entry.getValue().values()) {
                 for (String reference : references) {
-                    collector.addReference(referenceDecoder.apply(reference), null);
+                    collector.addReference(reference, null);
                 }
             }
         }
@@ -836,7 +814,6 @@ class TarReader implements Closeable {
       
         if (afterCount == 0) {
             log.debug("None of the entries of {} are referenceable.", name);
-            logCleanedSegments(cleaned);
             return null;
         }
         if (afterSize >= beforeSize * 3 / 4 && hasGraph()) {
@@ -919,31 +896,12 @@ class TarReader implements Closeable {
         TarReader reader = openFirstFileWithValidIndex(
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
-            logCleanedSegments(cleaned);
             reclaimed.addAll(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
             return this;
         }
-    }
-
-    private void logCleanedSegments(Set<UUID> cleaned) {
-        StringBuilder uuids = new StringBuilder();
-        String newLine = System.getProperty("line.separator", "\n") + "        ";
-
-        int c = 0;
-        String sep = "";
-        for (UUID uuid : cleaned) {
-            uuids.append(sep);
-            if (c++ % 4 == 0) {
-                uuids.append(newLine);
-            }
-            uuids.append(uuid);
-            sep = ", ";
-        }
-
-        GC_LOG.info("TarMK cleaned segments from {}: {}", file.getName(), uuids);
     }
 
     /**

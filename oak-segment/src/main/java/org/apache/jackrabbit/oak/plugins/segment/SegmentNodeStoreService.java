@@ -502,10 +502,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         };
 
+        Runnable cancelGarbageCollection = new Runnable() {
+            @Override
+            public void run() {
+                throw new UnsupportedOperationException("Cancelling revision garbage collection is not supported");
+            }
+        };
         revisionGCRegistration = registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
-                new RevisionGC(triggerGarbageCollection, executor),
+                new RevisionGC(triggerGarbageCollection, cancelGarbageCollection, executor),
                 RevisionGCMBean.TYPE,
                 "Segment node store revision garbage collection"
         );

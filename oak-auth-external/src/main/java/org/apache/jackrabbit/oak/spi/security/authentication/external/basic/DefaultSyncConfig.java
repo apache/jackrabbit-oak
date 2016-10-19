@@ -229,6 +229,8 @@ public class DefaultSyncConfig {
 
         private boolean dynamicMembership;
 
+        private boolean disableMissing;
+
         /**
          * Returns the duration in milliseconds until the group membership of a user is expired. If the
          * membership information is expired it is re-synced according to the maximum nesting depth.
@@ -310,6 +312,22 @@ public class DefaultSyncConfig {
             return this;
         }
 
+        /**
+         * Controls the behavior for users that no longer exist on the external provider. The default is to delete the repository users
+         * if they no longer exist on the external provider. If set to true, they will be disabled instead, and re-enabled once they appear
+         * again.
+         */
+        public boolean getDisableMissing() {
+            return disableMissing;
+        }
+
+        /**
+         * @see #getDisableMissing()
+         */
+        public User setDisableMissing(boolean disableMissing) {
+            this.disableMissing = disableMissing;
+            return this;
+        }
     }
 
     /**

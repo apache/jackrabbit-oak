@@ -15,33 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment;
+package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.Iterator;
-import java.util.List;
+public class GetReferencesRequest {
 
-import com.google.common.collect.Lists;
+    private final String clientId;
 
-/**
- * An immutable and trivially thread-safe implementation of {@link
- * SegmentReferences}.
- */
-class ImmutableSegmentReferences implements SegmentReferences {
+    private final String segmentId;
 
-    private final List<SegmentId> ids;
-
-    ImmutableSegmentReferences(List<SegmentId> ids) {
-        this.ids = Lists.newArrayList(ids);
+    public GetReferencesRequest(String clientId, String segmentId) {
+        this.clientId = clientId;
+        this.segmentId = segmentId;
     }
 
-    @Override
-    public SegmentId getSegmentId(int reference) {
-        return ids.get(reference - 1);
+    public String getClientId() {
+        return clientId;
     }
 
-    @Override
-    public Iterator<SegmentId> iterator() {
-        return ids.iterator();
+    public String getSegmentId() {
+        return segmentId;
     }
 
 }

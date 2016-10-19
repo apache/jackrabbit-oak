@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
-import org.apache.jackrabbit.oak.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -336,18 +335,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private synchronized void registerNodeStore() throws IOException {
-        if (registerSegmentStore()) {
-            if (toBoolean(property(STANDBY), false)) {
-                return;
-            }
-
-            if (registerSegmentNodeStore()) {
-                Dictionary<String, Object> props = new Hashtable<String, Object>();
-                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
-                storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
-            }
+        if (!registerSegmentStore()) {
+            return;
         }
+        if (toBoolean(property(STANDBY), false)) {
+            return;
+        }
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+        props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
+        storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
     }
 
     private boolean registerSegmentStore() throws IOException {
@@ -391,16 +388,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             log.error("The segment store data is not compatible with the current version. Please use oak-segment or a different version of oak-segment-tar.");
             return false;
         }
-
-        // Expose an MBean to provide information about the gc options
-
-        registrations.add(registerMBean(
-                whiteboard,
-                SegmentRevisionGC.class,
-                new SegmentRevisionGCMBean(gcOptions),
-                SegmentRevisionGC.TYPE,
-                "Segment node store gc options"
-        ));
 
         // Expose stats about the segment cache
 
@@ -463,23 +450,31 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
-        // Expose an MBean to trigger garbage collection
+        // Expose an MBean to managing and monitoring garbage collection
 
-        Runnable triggerGarbageCollection = new Runnable() {
+        FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
+        registrations.add(new CompositeRegistration(
+            whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
+            registerMBean(
+                whiteboard,
+                SegmentRevisionGC.class,
+                new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
+                SegmentRevisionGC.TYPE,
+                "Segment node store revision garbage collection"
+            )));
 
+        Runnable cancelGC = new Runnable() {
             @Override
             public void run() {
-                store.gc();
+                store.cancelGC();
             }
-
         };
-
         registrations.add(registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
-                new RevisionGC(triggerGarbageCollection, executor),
+                new RevisionGC(store.getGCRunner(), cancelGC, executor),
                 RevisionGCMBean.TYPE,
-                "Segment node store revision garbage collection"
+                "Revision garbage collection"
         ));
 
         // Expose statistics about the FileStore
@@ -492,49 +487,19 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 "FileStore statistics"
         ));
 
-        // Register a monitor for the garbage collection of the FileStore
+        // register segment node store
 
-        FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
-
-        registrations.add((new CompositeRegistration(
-                whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
-                registerMBean(
-                        whiteboard,
-                        GCMonitorMBean.class,
-                        fsgcm,
-                        GCMonitorMBean.TYPE,
-                        "File Store garbage collection monitor"
-                )
-        )));
-
-        // Register a factory service to expose the FileStore
-
-        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
-
-        return true;
-    }
-
-    private SegmentGCOptions newGCOptions() {
-        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
-        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
-        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
-
-        byte gainThreshold = getGainThreshold();
-        long sizeDeltaEstimation = toLong(COMPACTION_SIZE_DELTA_ESTIMATION, SIZE_DELTA_ESTIMATION_DEFAULT);
-
-        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
-                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
-    }
-
-    private boolean registerSegmentNodeStore() throws IOException {
         Dictionary<?, ?> properties = context.getProperties();
         name = String.valueOf(properties.get(NAME));
 
         final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
-        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(store).build();
+        SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder =
+                SegmentNodeStoreBuilders.builder(store);
+        if (toBoolean(property(STANDBY), false)) {
+            segmentNodeStoreBuilder.dispatchChanges(false);
+        }
+        segmentNodeStore = segmentNodeStoreBuilder.build();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());
@@ -574,7 +539,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
             if (blobStore instanceof BlobTrackingStore) {
                 final long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL),
-                    DEFAULT_BLOB_SNAPSHOT_INTERVAL);
+                        DEFAULT_BLOB_SNAPSHOT_INTERVAL);
                 String root = property(DIRECTORY);
                 if (Strings.isNullOrEmpty(root)) {
                     root = "repository";
@@ -585,8 +550,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     trackingStore.getTracker().close();
                 }
                 ((BlobTrackingStore) blobStore).addTracker(
-                    new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
-                        blobStore));
+                        new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
+                                blobStore));
             }
         }
 
@@ -609,7 +574,24 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         log.info("SegmentNodeStore initialized");
+
+        // Register a factory service to expose the FileStore
+
+        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
+
         return true;
+    }
+
+    private SegmentGCOptions newGCOptions() {
+        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
+        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
+        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
+
+        byte gainThreshold = getGainThreshold();
+        long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
+
+        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
+                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
     }
 
     private void unregisterNodeStore() {

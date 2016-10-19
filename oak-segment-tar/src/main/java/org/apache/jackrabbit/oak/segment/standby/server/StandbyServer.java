@@ -40,8 +40,10 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
+import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.RequestDecoder;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
@@ -162,13 +164,17 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new GetHeadResponseEncoder());
                 p.addLast(new GetSegmentResponseEncoder());
                 p.addLast(new GetBlobResponseEncoder());
+                p.addLast(new GetReferencesResponseEncoder());
                 p.addLast(new ResponseObserverHandler(builder.observer));
 
                 // Handlers
 
-                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(builder.storeProvider.provideStore())));
-                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(builder.storeProvider.provideStore())));
-                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(builder.storeProvider.provideStore())));
+                FileStore store = builder.storeProvider.provideStore();
+
+                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
+                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
+                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store)));
+                p.addLast(new GetReferencesRequestHandler(new DefaultStandbyReferencesReader(store)));
             }
         });
     }
@@ -176,7 +182,7 @@ class StandbyServer implements AutoCloseable {
     public void start() {
         channelFuture = b.bind(port);
 
-        if (channelFuture.awaitUninterruptibly(10, TimeUnit.SECONDS)) {
+        if (channelFuture.awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             onTimelyConnect();
         } else {
             onConnectTimeOut();
@@ -184,19 +190,32 @@ class StandbyServer implements AutoCloseable {
     }
 
     public void stop() {
-        channelFuture.channel().disconnect();
+        if (channelFuture.channel().disconnect().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
+            log.debug("Channel disconnected");
+        } else {
+            log.debug("Channel disconnect timed out");
+        }
     }
 
     @Override
     public void close() {
         stop();
 
-        if (bossGroup != null && !bossGroup.isShuttingDown()) {
-            bossGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
+        if (shutDown(bossGroup)) {
+            log.debug("Boss group shut down");
+        } else {
+            log.debug("Boss group shutdown timed out");
         }
-        if (workerGroup != null && !workerGroup.isShuttingDown()) {
-            workerGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
+
+        if (shutDown(workerGroup)) {
+            log.debug("Worker group shut down");
+        } else {
+            log.debug("Worker group shutdown timed out");
         }
+    }
+
+    private boolean shutDown(EventLoopGroup group) {
+        return group.shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly(10, TimeUnit.SECONDS);
     }
 
     private void onTimelyConnect() {

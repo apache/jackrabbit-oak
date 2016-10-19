@@ -326,10 +326,16 @@ public class DefaultSyncContext implements SyncContext {
             log.info("won't remove local group with members: {}", id);
             status = SyncResult.Status.NOP;
         } else if (!keepMissing) {
-            authorizable.remove();
-            log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
+            if (config.user().getDisableMissing() && !authorizable.isGroup()) {
+                ((User) authorizable).disable("No longer exists on external identity provider '" + idp.getName() + "'");
+                log.debug("disabling user '{}' that no longer exists on IDP {}", id, idp.getName());
+                status = SyncResult.Status.DISABLE;
+            } else {
+                authorizable.remove();
+                log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
+                status = SyncResult.Status.DELETE;
+            }
             timer.mark("remove");
-            status = SyncResult.Status.DELETE;
         } else {
             status = SyncResult.Status.MISSING;
             log.info("external identity missing for {}, but purge == false.", id);
@@ -432,9 +438,14 @@ public class DefaultSyncContext implements SyncContext {
                 // synchronize external memberships
                 syncMembership(external, user, config.user().getMembershipNestingDepth());
             }
+            if (this.config.user().getDisableMissing() && user.isDisabled()) {
+                status = SyncResult.Status.ENABLE;
+                user.disable(null);
+            } else {
+                status = SyncResult.Status.UPDATE;
+            }
             // finally "touch" the sync property
             user.setProperty(REP_LAST_SYNCED, nowValue);
-            status = SyncResult.Status.UPDATE;
         }
         return new DefaultSyncResultImpl(createSyncedIdentity(user), status);
     }

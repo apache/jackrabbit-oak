@@ -44,18 +44,17 @@ public abstract class OakFixture {
     public static final String OAK_MEMORY_NS = "Oak-MemoryNS";
 
     public static final String OAK_MONGO = "Oak-Mongo";
-    public static final String OAK_MONGO_FDS = "Oak-Mongo-FDS";
+    public static final String OAK_MONGO_DS = "Oak-Mongo-DS";
     public static final String OAK_MONGO_NS = "Oak-MongoNS";
 
     public static final String OAK_RDB = "Oak-RDB";
-    public static final String OAK_RDB_FDS = "Oak-RDB-FDS";
+    public static final String OAK_RDB_DS = "Oak-RDB-DS";
 
     public static final String OAK_TAR = "Oak-Tar";
-    public static final String OAK_TAR_FDS = "Oak-Tar-FDS";
+    public static final String OAK_TAR_DS = "Oak-Tar-DS";
 
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
-
-    public static final String OAK_SEGMENT_TAR_FDS = "Oak-Segment-Tar-FDS";
+    public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
 
 
     private final String name;
@@ -156,8 +155,8 @@ public abstract class OakFixture {
 
     public static OakFixture getMongo(final String name, final String uri,
                                       final boolean dropDBAfterTest, final long cacheSize,
-                                      final boolean useFileDataStore,
-                                      final File base, final int fdsCacheInMB) {
+                                      final boolean useDataStore,
+                                      final File base, final int dsCacheInMB) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStoreFixture blobStoreFixture;
@@ -229,10 +228,9 @@ public abstract class OakFixture {
                     return;
                 }
 
-                if (useFileDataStore) {
-                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB, statsProvider);
-                } else {
-                    blobStoreFixture = BlobStoreFixture.create(base, false, statsProvider);
+                if (useDataStore) {
+                    blobStoreFixture =
+                        BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
                 }
             }
         };
@@ -245,7 +243,7 @@ public abstract class OakFixture {
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
                                     final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize,
-                                    final boolean useFileDataStore, final File base, final int fdsCacheInMB) {
+                                    final boolean useDataStore, final File base, final int dsCacheInMB) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStoreFixture blobStoreFixture;
@@ -256,7 +254,7 @@ public abstract class OakFixture {
 
             private BlobStore getBlobStore(StatisticsProvider statsProvider) {
                 try {
-                    if (useFileDataStore) {
+                    if (useDataStore) {
                         initializeBlobStoreFixture(statsProvider);
                         return blobStoreFixture.setUp();
                     } else {
@@ -325,8 +323,8 @@ public abstract class OakFixture {
             }
 
             private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
-                if (useFileDataStore && blobStoreFixture == null) {
-                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB, statsProvider);
+                if (useDataStore && blobStoreFixture == null) {
+                    blobStoreFixture = BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
                 }
             }
         };
@@ -335,11 +333,25 @@ public abstract class OakFixture {
     public static OakFixture getTar(
             final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
             final boolean memoryMapping, final boolean useBlobStore) {
-        return new SegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore);
+        return getTar(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, 0);
     }
 
-    public static OakFixture getSegmentTar(final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final boolean useBlobStore) {
-        return new SegmentTarFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore);
+    public static OakFixture getSegmentTar(final String name, final File base,
+        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
+        final boolean useBlobStore) {
+        return getSegmentTar(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, 0);
+    }
+
+    public static OakFixture getTar(
+        final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
+        final boolean memoryMapping, final boolean useBlobStore, int dsCacheInMB) {
+        return new SegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, dsCacheInMB);
+    }
+
+    public static OakFixture getSegmentTar(final String name, final File base,
+        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
+        final boolean useBlobStore, final int dsCacheInMB) {
+        return new SegmentTarFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, dsCacheInMB);
     }
 
     public static class SegmentFixture extends OakFixture {
@@ -350,15 +362,17 @@ public abstract class OakFixture {
         private final int cacheSizeMB;
         private final boolean memoryMapping;
         private final boolean useBlobStore;
+        private final int dsCacheSizeInMB;
 
         public SegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                              boolean memoryMapping, boolean useBlobStore) {
+                              boolean memoryMapping, boolean useBlobStore, int dsCacheSizeInMB) {
             super(name);
             this.base = base;
             this.maxFileSizeMB = maxFileSizeMB;
             this.cacheSizeMB = cacheSizeMB;
             this.memoryMapping = memoryMapping;
             this.useBlobStore = useBlobStore;
+            this.dsCacheSizeInMB = dsCacheSizeInMB;
         }
 
         @Override
@@ -382,7 +396,8 @@ public abstract class OakFixture {
             for (int i = 0; i < cluster.length; i++) {
                 BlobStore blobStore = null;
                 if (useBlobStore) {
-                    blobStoreFixtures[i] = BlobStoreFixture.create(base, true, statsProvider);
+                    blobStoreFixtures[i] =
+                        BlobStoreFixture.create(base, true, dsCacheSizeInMB, statsProvider);
                     blobStore = blobStoreFixtures[i].setUp();
                 }
 

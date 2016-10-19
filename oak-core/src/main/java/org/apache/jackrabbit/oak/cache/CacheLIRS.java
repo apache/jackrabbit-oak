@@ -78,7 +78,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
     static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
     private static final AtomicInteger NEXT_CACHE_ID = new AtomicInteger();
-
+    private static final boolean PUT_HOT = Boolean.parseBoolean(System.getProperty("oak.cacheLIRS.putHot", "true"));
+    
     /**
      * Listener for items that are evicted from the cache. The listener
      * is called for both, resident and non-resident items. In the
@@ -1137,9 +1138,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             }
             V old;
             Entry<K, V> e = find(key, hash);
+            boolean existed;
             if (e == null) {
+                existed = false;
                 old = null;
             } else {
+                existed = true;
                 old = e.value;
                 invalidate(key, hash, RemovalCause.REPLACED);
             }
@@ -1160,6 +1164,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             mapSize++;
             // added entries are always added to the stack
             addToStack(e);
+            if (existed) {
+                // if it was there before (even non-resident), it becomes hot
+                if (PUT_HOT) {
+                    access(key, hash);
+                }
+            }
             return old;
         }
 

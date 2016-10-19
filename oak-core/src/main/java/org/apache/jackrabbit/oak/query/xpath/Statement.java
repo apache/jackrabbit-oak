@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.query.xpath;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.QueryOptions;
+import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
@@ -50,6 +52,8 @@ public class Statement {
     
     String xpathQuery;
     
+    QueryOptions queryOptions = new QueryOptions();
+    
     public Statement optimize() {
         ignoreOrderByScoreDesc();
         if (where == null) {
@@ -80,6 +84,7 @@ public class Statement {
         union.xpathQuery = xpathQuery;
         union.measure = measure;
         union.explain = explain;
+        union.queryOptions = queryOptions;
 
         return union;
     }
@@ -209,6 +214,9 @@ public class Statement {
                 buff.append(orderList.get(i));
             }
         }
+        if (queryOptions.traversal != Traversal.DEFAULT) {
+            buff.append(" option(traversal " + queryOptions.traversal +")");
+        }
         // leave original xpath string as a comment
         appendXPathAsComment(buff, xpathQuery);
         return buff.toString();        
@@ -296,6 +304,9 @@ public class Statement {
                     buff.append(orderList.get(i));
                 }
             }
+            if (queryOptions.traversal != Traversal.DEFAULT) {
+                buff.append(" option(traversal " + queryOptions.traversal +")");
+            }
             // leave original xpath string as a comment
             appendXPathAsComment(buff, xpathQuery);
             return buff.toString();
@@ -312,6 +323,10 @@ public class Statement {
         String xpathEscaped = xpath.replaceAll("\\*\\/", "* /");
         buff.append(xpathEscaped);
         buff.append(" */");        
+    }
+
+    public  void setQueryOptions(QueryOptions options) {
+        this.queryOptions = options;
     }
 
 }

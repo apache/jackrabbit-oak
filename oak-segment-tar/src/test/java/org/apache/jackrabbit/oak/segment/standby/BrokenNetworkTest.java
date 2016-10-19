@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import org.apache.jackrabbit.oak.segment.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
@@ -115,21 +114,23 @@ public class BrokenNetworkTest extends TestBase {
     }
 
     private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
-        NetworkErrorProxy p = new NetworkErrorProxy(proxyPort, LOCALHOST, port);
-        p.skipBytes(skipPosition, skipBytes);
-        p.flipByte(flipPosition);
-        p.run();
-
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, ssl);
-        serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClientSync clientSync = newStandbyClientSync(storeC, proxyPort, ssl);
-        clientSync.run();
+        try (
+                NetworkErrorProxy p = new NetworkErrorProxy(proxyPort, LOCALHOST, port);
+                StandbyServerSync serverSync = new StandbyServerSync(port, storeS, ssl);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, proxyPort, ssl);
+        ) {
+            p.skipBytes(skipPosition, skipBytes);
+            p.flipByte(flipPosition);
+            p.run();
 
-        try {
+            serverSync.start();
+
+            clientSync.run();
+
             if (skipBytes > 0 || flipPosition >= 0) {
                 assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
                 assertEquals(storeC2.getHead(), storeC.getHead());
@@ -141,11 +142,9 @@ public class BrokenNetworkTest extends TestBase {
                 }
                 clientSync.run();
             }
+
             assertEquals(storeS.getHead(), storeC.getHead());
-        } finally {
-            serverSync.close();
-            clientSync.close();
-            p.close();
         }
     }
+
 }

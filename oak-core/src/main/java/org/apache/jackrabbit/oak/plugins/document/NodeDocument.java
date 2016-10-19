@@ -342,12 +342,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Time at which this object was check for cache consistency
      */
-    private final AtomicLong lastCheckTime = new AtomicLong(System.currentTimeMillis());
+    private final AtomicLong lastCheckTime = new AtomicLong(Revision.getCurrentTimestamp());
 
     private final long creationTime;
 
     NodeDocument(@Nonnull DocumentStore store) {
-        this(store, System.currentTimeMillis());
+        this(store, Revision.getCurrentTimestamp());
     }
 
     /**
@@ -1316,7 +1316,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                         return Collections.singleton(prev);
                     }
                 } else {
-                    LOG.warn("Document with previous revisions not found: " + prevId);
+                    previousDocumentNotFound(prevId, revision);
                 }
             }
 
@@ -1433,7 +1433,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         if (prev != null) {
             return prev;
         } else {
-            LOG.warn("Document with previous revisions not found: " + prevId);
+            previousDocumentNotFound(prevId, rev);
         }
         return null;
     }
@@ -1760,6 +1760,32 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     //----------------------------< internal >----------------------------------
+
+    private void previousDocumentNotFound(String prevId, Revision rev) {
+        LOG.warn("Document with previous revisions not found: " + prevId);
+        // main document may be stale, evict it from the cache if it is
+        // older than one minute. We don't want to invalidate a document
+        // too frequently if the document structure is really broken.
+        String path = getMainPath();
+        String id = Utils.getIdFromPath(path);
+        NodeDocument doc = store.getIfCached(NODES, id);
+        long now = Revision.getCurrentTimestamp();
+        while (doc != null
+                && doc.getCreated() + TimeUnit.MINUTES.toMillis(1) < now) {
+            LOG.info("Invalidated cached document {}", id);
+            store.invalidateCache(NODES, id);
+            // also invalidate intermediate docs if there are any matching
+            Iterable<Range> ranges = doc.getPreviousRanges().values();
+            doc = null;
+            for (Range range : ranges) {
+                if (range.includes(rev)) {
+                    id = Utils.getPreviousIdFor(path, range.high, range.height);
+                    doc = store.getIfCached(NODES, id);
+                    break;
+                }
+            }
+        }
+    }
 
     private LastRevs createLastRevs(@Nonnull RevisionVector readRevision,
                                     @Nonnull Map<Revision, String> validRevisions,

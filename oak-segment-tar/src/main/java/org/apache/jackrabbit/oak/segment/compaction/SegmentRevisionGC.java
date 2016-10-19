@@ -19,8 +19,14 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+
 /**
- * This MBean exposes the settings from {@link SegmentGCOptions}.
+ * This MBean exposes the settings from {@link SegmentGCOptions} and
+ * reflects the GC status as reported by the {@link GCMonitor}.
  */
 public interface SegmentRevisionGC {
     String TYPE = "SegmentRevisionGarbageCollection";
@@ -102,7 +108,48 @@ public interface SegmentRevisionGC {
     void setGcSizeDeltaEstimation(long gcSizeDeltaEstimation);
 
     /**
-     * Raise the flag to signal compaction to stop as soon as possible.
+     * Initiate a revision garbage collection operation
      */
-    void stopCompaction();
+    void startRevisionGC();
+
+    /**
+     * Cancel a running revision garbage collection operation. Does nothing
+     * if revision garbage collection is not running.
+     */
+    void cancelRevisionGC();
+
+    /**
+     * @return  timestamp of the last compaction or {@code null} if none.
+     */
+    @CheckForNull
+    String getLastCompaction();
+
+    /**
+     * @return  timestamp of the last cleanup or {@code null} if none.
+     */
+    @CheckForNull
+    String getLastCleanup();
+
+    /**
+     * @return  repository size after the last cleanup.
+     */
+    long getLastRepositorySize();
+
+    /**
+     * @return  reclaimed size during the last cleanup.
+     */
+    long getLastReclaimedSize();
+
+    /**
+     * @return  last error or {@code null} if none.
+     */
+    @CheckForNull
+    String getLastError();
+
+    /**
+     * @return  current status.
+     */
+    @Nonnull
+    String getStatus();
+
 }

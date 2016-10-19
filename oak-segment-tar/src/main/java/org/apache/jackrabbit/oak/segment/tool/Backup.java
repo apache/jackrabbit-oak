@@ -26,8 +26,8 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupImpl;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 
 /**
  * Perform a backup of a segment store into a specified folder.
@@ -128,14 +128,14 @@ public class Backup implements Runnable {
 
     @Override
     public void run() {
-        try (FileStore fs = newFileStore()) {
+        try (ReadOnlyFileStore fs = newFileStore()) {
             fileStoreBackup.backup(fs.getReader(), fs.getRevisions(), target);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private FileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
+    private ReadOnlyFileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
         if (fakeBlobStore) {
             return openReadOnlyFileStore(source, newBasicReadOnlyBlobStore());
         }

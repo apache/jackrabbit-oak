@@ -15,26 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment;
+package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.util.UUID;
+interface StandbyReferencesReader {
 
-/**
- * A consumer for references to external binaries. An implementor of this
- * interface is called every time an external binary reference is written in the
- * store.
- */
-public interface BinaryReferenceConsumer {
-
-    /**
-     * Consume the reference to an external binary.
-     *
-     * @param generation      The generation of the record referencing the
-     *                        binary.
-     * @param segmentId       The ID of the segment this reference belongs to.
-     * @param binaryReference The opaque string representation of the binary
-     *                        reference.
-     */
-    void consume(int generation, UUID segmentId, String binaryReference);
+    Iterable<String> readReferences(String segmentId);
 
 }

@@ -171,19 +171,19 @@ public class PropertyIndexTest {
         double cost;
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString("x1"));
-        assertTrue("cost: " + cost, cost >= 7.5 && cost <= 8.5);
+        assertTrue("cost: " + cost, cost >= 10 && cost <= 14);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
                 Arrays.asList("x1", "x2")));
-        assertTrue("cost: " + cost, cost >= 14.5 && cost <= 15.5);
+        assertTrue("cost: " + cost, cost >= 20 && cost <= 24);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
                 Arrays.asList("x1", "x2", "x3", "x4", "x5")));
-        assertTrue("cost: " + cost, cost >= 34.5 && cost <= 35.5);
+        assertTrue("cost: " + cost, cost >= 50 && cost <= 54);
 
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
                 Arrays.asList("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x0")));
-        assertTrue("cost: " + cost, cost >= 81.5 && cost <= 82.5);
+        assertTrue("cost: " + cost, cost >= 120 && cost <= 124);
 
         cost = lookup.getCost(f, "foo", null);
         assertTrue("cost: " + cost, cost >= MANY);

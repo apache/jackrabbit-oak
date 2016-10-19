@@ -19,19 +19,42 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 
 // FIXME OAK-4617: Align SegmentRevisionGC MBean with new generation based GC
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
         implements SegmentRevisionGC {
 
+    @Nonnull
+    private final FileStore fileStore;
+
+    @Nonnull
     private final SegmentGCOptions gcOptions;
 
-    public SegmentRevisionGCMBean(SegmentGCOptions gcOptions) {
+    @Nonnull
+    private final FileStoreGCMonitor fileStoreGCMonitor;
+
+    public SegmentRevisionGCMBean(
+            @Nonnull FileStore fileStore,
+            @Nonnull SegmentGCOptions gcOptions,
+            @Nonnull FileStoreGCMonitor fileStoreGCMonitor) {
         super(SegmentRevisionGC.class);
-        this.gcOptions = gcOptions;
+        this.fileStore = checkNotNull(fileStore);
+        this.gcOptions = checkNotNull(gcOptions);
+        this.fileStoreGCMonitor = checkNotNull(fileStoreGCMonitor);
     }
+
+    //------------------------------------------------------------< SegmentRevisionGC >---
 
     @Override
     public boolean isPausedCompaction() {
@@ -94,8 +117,46 @@ public class SegmentRevisionGCMBean
     }
 
     @Override
-    public void stopCompaction() {
-        gcOptions.setStopCompaction(true);
+    public void startRevisionGC() {
+        fileStore.getGCRunner().run();
     }
 
+    @Override
+    public void cancelRevisionGC() {
+        fileStore.cancelGC();
+    }
+
+    @CheckForNull
+    @Override
+    public String getLastCompaction() {
+        return fileStoreGCMonitor.getLastCompaction();
+    }
+
+    @CheckForNull
+    @Override
+    public String getLastCleanup() {
+        return fileStoreGCMonitor.getLastCleanup();
+    }
+
+    @Override
+    public long getLastRepositorySize() {
+        return fileStoreGCMonitor.getLastReclaimedSize();
+    }
+
+    @Override
+    public long getLastReclaimedSize() {
+        return fileStoreGCMonitor.getLastReclaimedSize();
+    }
+
+    @CheckForNull
+    @Override
+    public String getLastError() {
+        return fileStoreGCMonitor.getLastError();
+    }
+
+    @Nonnull
+    @Override
+    public String getStatus() {
+        return fileStoreGCMonitor.getStatus();
+    }
 }

@@ -183,4 +183,11 @@ public interface Query {
      */    
     boolean containsUnfilteredFullTextCondition();
 
+    /**
+     * Set the query option to be used for this query.
+     * 
+     * @param options the options
+     */
+    void setQueryOptions(QueryOptions options);
+
 }

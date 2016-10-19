@@ -37,17 +37,13 @@ public class SegmentNodeStoreServiceDeprecationError {
 
     private static final Logger logger = LoggerFactory.getLogger(SegmentNodeStoreServiceDeprecationError.class);
 
-    private static final String msg = "Deprecated configuration detected!\n\n" +
-            "  A configuration for org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService\n" +
-            "  was detected. The oak-segment bundle used to contain this component,\n" +
-            "  but the bundle is now deprecated and should not be included in your\n" +
-            "  deployment. The oak-segment-tar bundle exposes an equivalent and improved\n" +
-            "  functionality but you need to rename your configuration to target the\n" +
-            "  new component using the PID org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.\n";
+    private static final String OLD_PID = "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService";
+
+    private static final String NEW_PID = "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService";
 
     @Activate
     public void activate() {
-        logger.error(msg);
+        logger.error(DeprecationMessage.movedPid(OLD_PID, NEW_PID));
     }
 
 }

@@ -244,7 +244,7 @@ public class CacheTest {
         assertTrue(test.containsValue(50));
         verify(test, "mem: 4 stack: 5 4 3 2 cold: 5 non-resident: 1");
         test.put(1, 10);
-        verify(test, "mem: 4 stack: 1 5 4 3 2 cold: 1 non-resident: 5");
+        verify(test, "mem: 4 stack: 1 5 4 3 cold: 2 non-resident: 5");
         assertFalse(test.containsValue(50));
         test.remove(2);
         test.remove(3);
@@ -353,6 +353,21 @@ public class CacheTest {
         assertEquals(100, test.size());
         assertEquals(99, test.sizeNonResident());
         assertEquals(93, test.sizeHot());
+    }
+    
+    @Test
+    public void testNonResidentBecomeHot() throws ExecutionException {
+        CacheLIRS<Integer, Integer> test = createCache(4);
+        for (int i = 0; i < 20; i++) {
+            test.put(i, 1);
+        }
+        verify(test, "mem: 4 stack: 19 18 17 16 3 2 1 cold: 19 non-resident: 18 17 16");
+        // 18 is a non-resident entry, so should become hot
+        test.put(18, 1);
+        verify(test, "mem: 4 stack: 18 19 17 16 3 2 cold: 1 non-resident: 19 17 16");
+        // 28 was never seen before, so should become cold
+        test.put(28, 1);
+        verify(test, "mem: 4 stack: 28 18 19 3 2 cold: 28 non-resident: 1 19");
     }
 
     @Test

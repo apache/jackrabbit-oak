@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -48,6 +51,10 @@ public class ResponseDecoder extends ByteToMessageDecoder {
             case Messages.HEADER_BLOB:
                 log.debug("Decoding 'get blob' response");
                 decodeGetBlobResponse(length, in, out);
+                break;
+            case Messages.HEADER_REFERENCES:
+                log.debug("Decoding 'get references' response");
+                decodeGetReferencesResponse(length, in, out);
                 break;
             default:
                 log.debug("Invalid type, dropping message");
@@ -99,6 +106,33 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         }
 
         out.add(new GetBlobResponse(null, blobId, blobData));
+    }
+
+    private void decodeGetReferencesResponse(int length, ByteBuf in, List<Object> out) {
+        byte[] data = new byte[length - 1];
+
+        in.readBytes(data);
+
+        String body = new String(data, Charsets.UTF_8);
+
+        int colon = body.indexOf(":");
+
+        if (colon < 0) {
+            return;
+        }
+
+        String segmentId = body.substring(0, colon);
+        String referencesList = body.substring(colon + 1);
+
+        List<String> references;
+
+        if (referencesList.isEmpty()) {
+            references = emptyList();
+        } else {
+            references = asList(referencesList.split(","));
+        }
+
+        out.add(new GetReferencesResponse(null, segmentId, references));
     }
 
     private long hash(byte[] data) {
