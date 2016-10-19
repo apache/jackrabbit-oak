@@ -39,7 +39,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class MBeanTest extends TestBase {
+public class MBeanIT extends TestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
