@@ -19,39 +19,60 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class DocumentBundlingTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     private DocumentNodeStore store;
+    private RecordingDocumentStore ds = new RecordingDocumentStore();
 
     @Before
     public void setUpBundlor() throws CommitFailedException {
-        store = builderProvider.newBuilder().getNodeStore();
+        store = builderProvider
+                .newBuilder()
+                .setDocumentStore(ds)
+                .memoryCacheSize(0)
+                .getNodeStore();
         NodeState registryState = BundledTypesRegistry.builder()
                 .forType("nt:file", "jcr:content")
                 .registry()
-                .forType("app:Asset", "jcr:content", "jcr:content/metadata")
+                .forType("app:Asset")
+                    .include("jcr:content")
+                    .include("jcr:content/metadata")
+                    .include("jcr:content/renditions")
+                    .include("jcr:content/renditions/**")
                 .build();
 
         NodeBuilder builder = store.getRoot().builder();
@@ -77,11 +98,68 @@ public class DocumentBundlingTest {
 
         assertTrue(PartialEqualsDiff.equals(fileNode.getNodeState(), fileNodeState.getChildNode("book.jpg")));
     }
+    //TODO Test _bin being set
+
+    @Test
+    public void bundledParent() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content", //Bundled
+                "jcr:content/comments" //Not bundled. Parent bundled
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue(PartialEqualsDiff.equals(appNB.getNodeState(), getNode(store.getRoot(), "/test/book.jpg")));
+    }
+
+    private static void dump(NodeState state){
+        System.out.println(NodeStateUtils.toString(state));
+    }
 
     private static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
         return builder;
+    }
+
+    private static NodeBuilder createChild(NodeBuilder root, String ... paths){
+        for (String path : paths){
+            NodeBuilder nb = root;
+            for (String nodeName : PathUtils.elements(path)){
+                nb = nb.child(nodeName);
+            }
+        }
+        return root;
+    }
+
+    private static class RecordingDocumentStore extends MemoryDocumentStore {
+        final List<String> queryPaths = new ArrayList<>();
+        final List<String> findPaths = new ArrayList<>();
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
+            if (collection == Collection.NODES){
+                findPaths.add(Utils.getPathFromId(key));
+            }
+            return super.find(collection, key);
+        }
+
+        @Nonnull
+        @Override
+        public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
+                                                  String indexedProperty, long startValue, int limit) {
+            if (collection == Collection.NODES){
+                queryPaths.add(Utils.getPathFromId(Utils.getParentIdFromLowerLimit(fromKey)));
+            }
+            return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+        }
+
+        public void reset(){
+            queryPaths.clear();
+            findPaths.clear();
+        }
     }
 
     private static class PartialEqualsDiff extends EqualsDiff {
