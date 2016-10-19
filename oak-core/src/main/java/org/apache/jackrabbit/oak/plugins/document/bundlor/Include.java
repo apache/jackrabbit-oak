@@ -45,6 +45,7 @@ public class Include {
     enum Directive {ALL, NONE}
     private final String[] elements;
     private final Directive directive;
+    private final String pattern;
 
     public Include(String pattern){
         List<String> pathElements = ImmutableList.copyOf(PathUtils.elements(pattern));
@@ -66,6 +67,7 @@ public class Include {
 
         this.elements = elementList.toArray(new String[0]);
         this.directive = directive;
+        this.pattern = pattern;
     }
 
     public boolean match(String relativePath) {
@@ -94,9 +96,13 @@ public class Include {
         return true;
     }
 
+    public String getPattern() {
+        return pattern;
+    }
+
     @Override
     public String toString() {
-        return String.format("%s(%s)", Arrays.toString(elements), directive);
+        return pattern;
     }
 
     Directive getDirective() {

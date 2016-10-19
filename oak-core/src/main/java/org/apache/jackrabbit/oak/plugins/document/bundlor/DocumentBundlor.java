@@ -19,21 +19,27 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 public class DocumentBundlor {
+    /**
+     * Hidden property to store the pattern as part of NodeState
+     */
+    public static final String META_PROP_PATTERN = ":pattern";
+
     public static final String PROP_PATTERN = "pattern";
     private final List<Include> includes;
-
-    public DocumentBundlor(List<Include> includes) {
-        //TODO Have assertion for that all intermediate paths are included
-        this.includes = ImmutableList.copyOf(includes);
-    }
 
     public static DocumentBundlor from(NodeState nodeState){
         Preconditions.checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeStated [%s] does not have required " +
@@ -49,6 +55,16 @@ public class DocumentBundlor {
         return new DocumentBundlor(includes);
     }
 
+    public static DocumentBundlor from(PropertyState prop){
+        Preconditions.checkArgument(META_PROP_PATTERN.equals(prop.getName()));
+        return from(prop.getValue(Type.STRINGS));
+    }
+
+    private DocumentBundlor(List<Include> includes) {
+        //TODO Have assertion for that all intermediate paths are included
+        this.includes = ImmutableList.copyOf(includes);
+    }
+
     public boolean isBundled(String relativePath) {
         for (Include include : includes){
             if (include.match(relativePath)){
@@ -56,6 +72,14 @@ public class DocumentBundlor {
             }
         }
         return false;
+    }
+
+    public PropertyState asPropertyState(){
+        List<String> includePatterns = new ArrayList<>(includes.size());
+        for (Include i : includes){
+            includePatterns.add(i.getPattern());
+        }
+        return createProperty(META_PROP_PATTERN, includePatterns, STRINGS);
     }
 
     @Override
