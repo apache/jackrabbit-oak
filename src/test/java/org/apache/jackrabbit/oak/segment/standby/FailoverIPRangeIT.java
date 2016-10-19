@@ -36,7 +36,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-public class FailoverIPRangeTest extends TestBase {
+public class FailoverIPRangeIT extends TestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 

@@ -36,7 +36,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
-public class BrokenNetworkTest extends TestBase {
+public class BrokenNetworkIT extends TestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 

@@ -88,7 +88,7 @@
                         <goals>
                             <goal>reserve-network-port</goal>
                         </goals>
-                        <phase>process-test-resources</phase>
+                        <phase>pre-integration-test</phase>
                         <configuration>
                             <portNames>
                                 <portName>standby.server.port</portName>
@@ -103,10 +103,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
-                    <systemPropertyVariables>
-                        <standby.server.port>${standby.server.port}</standby.server.port>
-                        <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
-                    </systemPropertyVariables>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
             </plugin>
