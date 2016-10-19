@@ -364,6 +364,9 @@ public class FileStore extends AbstractFileStore {
     }
 
     public void flush() throws IOException {
+        if (revisions == null) {
+            return;
+        }
         revisions.flush(new Callable<Void>() {
             @Override
             public Void call() throws Exception {

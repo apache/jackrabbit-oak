@@ -195,7 +195,9 @@ public class TarRevisions implements Revisions, Closeable {
      * @throws IOException
      */
     public void flush(@Nonnull Callable<Void> persisted) throws IOException {
-        checkBound();
+        if (head.get() == null) {
+            return;
+        }
         if (flushLock.tryLock()) {
             try {
                 RecordId before = persistedHead.get();
