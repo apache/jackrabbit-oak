@@ -92,6 +92,8 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
         }
     }
 
+    private enum BundlingMode {ALL, EXCLUDE_RENDITIONS}
+
     private static final String NT_OAK_ASSET = "oak:Asset";
 
     private static final String ASSET_NODE_TYPE_DEFN = "[oak:Asset]\n" +
@@ -105,6 +107,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
     private boolean bundlingEnabled = Boolean.parseBoolean(System.getProperty("bundlingEnabled", "false"));
     private boolean oakResourceEnabled = Boolean.parseBoolean(System.getProperty("oakResourceEnabled", "false"));
     private boolean readerEnabled = Boolean.parseBoolean(System.getProperty("readerEnabled", "true"));
+    private BundlingMode bundlingMode = BundlingMode.valueOf(System.getProperty("bundlingMode", "all").toUpperCase());
     private RepositoryInitializer bundlingInitializer = new BundlingConfigInitializer();
     private TestContext defaultContext;
     private Reader reader;
@@ -212,8 +215,8 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
 
     @Override
     protected void afterSuite() throws Exception {
-        System.out.printf("bundlingEnabled: %s, oakResourceEnabled: %s, readerEnabled: %s%n",
-                bundlingEnabled, oakResourceEnabled, readerEnabled);
+        System.out.printf("bundlingEnabled: %s, oakResourceEnabled: %s, readerEnabled: %s, bundlingMode: %s%n",
+                bundlingEnabled, oakResourceEnabled, readerEnabled, bundlingMode);
     }
 
     @Override
@@ -238,6 +241,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
             commentElements.add("bundling");
         }
         commentElements.add(contentNodeType);
+        commentElements.add(bundlingMode.name());
         return Joiner.on(',').join(commentElements);
     }
 
@@ -309,12 +313,21 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
                     NodeBuilder bundlor = jcrChild(dns, BUNDLOR);
 
                     addPattern(bundlor, "nt:file", "jcr:content");
-                    addPattern(bundlor, "oak:Asset", "jcr:content",
-                            "jcr:content/metadata",
-                            "jcr:content/renditions",
-                            "jcr:content/renditions/**"
-                    );
 
+                    switch (bundlingMode) {
+                        case ALL :
+                            addPattern(bundlor, "oak:Asset", "jcr:content",
+                                    "jcr:content/metadata",
+                                    "jcr:content/renditions",
+                                    "jcr:content/renditions/**"
+                            );
+                            break;
+                        case EXCLUDE_RENDITIONS:
+                            addPattern(bundlor, "oak:Asset", "jcr:content",
+                                    "jcr:content/metadata"
+                            );
+                            break;
+                    }
                 }
             }
         }
@@ -331,7 +344,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
         }
     }
 
-    enum FixNodeTypeIndexInitializer implements RepositoryInitializer {
+    private enum FixNodeTypeIndexInitializer implements RepositoryInitializer {
         INSTANCE;
 
         @Override
