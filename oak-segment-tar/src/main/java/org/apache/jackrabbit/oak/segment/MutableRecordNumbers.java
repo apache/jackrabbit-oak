@@ -38,17 +38,20 @@ class MutableRecordNumbers implements RecordNumbers {
 
     @Override
     public int getOffset(int recordNumber) {
-        int recordEntry;
-        recordEntry = recordNumber * 2 >= recordEntries.length
-            ? -1
-            : recordEntries[recordNumber * 2];
+        int recordEntry = getRecordEntry(recordEntries, recordNumber);
 
         if (recordEntry == -1) {
             synchronized (this) {
-                recordEntry = recordEntries[recordNumber * 2];
+                recordEntry = getRecordEntry(recordEntries, recordNumber);
             }
         }
         return recordEntry;
+    }
+
+    private static int getRecordEntry(int[] entries, int index) {
+        return index * 2 >= entries.length
+            ? -1
+            : entries[index * 2];
     }
 
     @Override
