@@ -26,6 +26,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -35,6 +36,13 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_NODE;
 
 public final class BundlorUtils {
+    public static final Predicate<PropertyState> NOT_BUNDLOR_PROPS = new Predicate<PropertyState>() {
+        @Override
+        public boolean apply(PropertyState input) {
+            return !input.getName().startsWith(DocumentBundlor.BUNDLOR_META_PROP_PREFIX);
+        }
+    };
+
 
     public static Map<String, PropertyState> getMatchingProperties(Map<String, PropertyState> props, Matcher matcher){
         if (!matcher.isMatch()){
@@ -54,10 +62,6 @@ public final class BundlorUtils {
             }
 
             if (depth != matcher.depth()){
-                continue;
-            }
-
-            if (propertyPath.endsWith(META_PROP_NODE)){
                 continue;
             }
 
