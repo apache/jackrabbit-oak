@@ -257,7 +257,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return 0;
         }
 
-        //TODO [bundling] Optimize if matcher matches all child
+        int bundledChildCount = bundlingContext.getBundledChildNodeNames().size();
+        if (bundlingContext.matcher.matchesChildren()){
+            return bundledChildCount;
+        }
 
         if (max > DocumentNodeStore.NUM_CHILDREN_CACHE_LIMIT) {
             // count all
@@ -268,7 +271,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return Long.MAX_VALUE;
         } else {
             // we know the exact value
-            return c.children.size();
+            return c.children.size() + bundledChildCount;
         }
     }
 
@@ -289,11 +292,12 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return secondaryState.getChildNodeEntries();
         }
 
-        //TODO [bundling] Optimize if matcher matches all child
-
         return new Iterable<ChildNodeEntry>() {
             @Override
             public Iterator<ChildNodeEntry> iterator() {
+                if (bundlingContext.matcher.matchesChildren()){
+                    return getBundledChildren();
+                }
                 return Iterators.concat(getBundledChildren(), new ChildNodeEntryIterator());
             }
         };
