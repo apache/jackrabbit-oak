@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -90,6 +88,7 @@ public class BundlingHandler {
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
             //TODO Add meta prop for bundled child node
+            //TODO Delete should nullify all properties
             childContext = createChildContext(childMatcher);
         } else {
             childContext = getBundlorContext(childPath, state);
@@ -136,7 +135,7 @@ public class BundlingHandler {
     }
 
     private static class BundlingContext {
-        static final BundlingContext NULL = new BundlingContext("", Matcher.FAILED);
+        static final BundlingContext NULL = new BundlingContext("", Matcher.NON_MATCHING);
         final String bundlingPath;
         final Matcher matcher;
 

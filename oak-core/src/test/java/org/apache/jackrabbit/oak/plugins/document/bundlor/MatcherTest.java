@@ -27,13 +27,13 @@ public class MatcherTest {
 
     @Test
     public void failingMatcher() throws Exception{
-        assertFalse(Matcher.FAILED.isMatch());
-        assertFalse(Matcher.FAILED.next("x").isMatch());
+        assertFalse(Matcher.NON_MATCHING.isMatch());
+        assertFalse(Matcher.NON_MATCHING.next("x").isMatch());
     }
 
     @Test(expected = IllegalStateException.class)
     public void failingMatcherInvalidPath() throws Exception{
-        Matcher.FAILED.getMatchedPath();
+        Matcher.NON_MATCHING.getMatchedPath();
     }
 
     @Test

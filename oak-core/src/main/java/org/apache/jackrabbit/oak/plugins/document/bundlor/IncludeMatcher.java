@@ -47,10 +47,10 @@ class IncludeMatcher implements Matcher {
                 }
                 return new IncludeMatcher(include, depth + 1, nextPath);
             } else {
-                return Matcher.FAILED;
+                return Matcher.NON_MATCHING;
             }
         }
-        return Matcher.FAILED;
+        return Matcher.NON_MATCHING;
     }
 
     @Override
