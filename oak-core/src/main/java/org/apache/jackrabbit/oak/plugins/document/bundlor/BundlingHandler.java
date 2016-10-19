@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class BundlingHandler {
     /**
@@ -39,17 +40,23 @@ public class BundlingHandler {
     private final BundledTypesRegistry registry;
     private final String path;
     private final BundlingContext ctx;
+    private final NodeState nodeState;
 
     public BundlingHandler(BundledTypesRegistry registry) {
-        this(registry, BundlingContext.NULL, ROOT_PATH);
+        this(registry, BundlingContext.NULL, ROOT_PATH, EMPTY_NODE);
     }
 
-    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path) {
+    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path, NodeState nodeState) {
         this.registry = registry;
         this.path = path;
         this.ctx = ctx;
+        this.nodeState = nodeState;
     }
 
+    /**
+     * Returns property path. For non bundling case this is the actual property name
+     * while for bundling case this is the relative path from bundling root
+     */
     public String getPropertyPath(String propertyName) {
         return ctx.isBundling() ? ctx.getPropertyPath(propertyName) : propertyName;
     }
@@ -68,10 +75,17 @@ public class BundlingHandler {
         return path;
     }
 
+    public NodeState getNodeState() {
+        return nodeState;
+    }
+
     public Set<PropertyState> getMetaProps() {
         return ctx.metaProps;
     }
 
+    /**
+     * Returns name of properties which needs to be removed or marked as deleted
+     */
     public Set<String> getRemovedProps(){
         return ctx.removedProps;
     }
@@ -97,7 +111,7 @@ public class BundlingHandler {
                 childContext = BundlingContext.NULL;
             }
         }
-        return new BundlingHandler(registry, childContext, childPath);
+        return new BundlingHandler(registry, childContext, childPath, state);
     }
 
     public BundlingHandler childDeleted(String name, NodeState state){
@@ -106,14 +120,11 @@ public class BundlingHandler {
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
             childContext = createChildContext(childMatcher);
-            childContext.removeProperty(DocumentBundlor.META_PROP_NODE);
-            for (PropertyState ps : state.getProperties()){
-                childContext.removeProperty(ps.getName());
-            }
+            removeDeletedChildProperties(state, childContext);
         } else {
             childContext = getBundlorContext(childPath, state);
         }
-        return new BundlingHandler(registry, childContext, childPath);
+        return new BundlingHandler(registry, childContext, childPath, state);
     }
 
     public BundlingHandler childChanged(String name, NodeState state){
@@ -126,7 +137,7 @@ public class BundlingHandler {
             childContext = getBundlorContext(childPath, state);
         }
 
-        return new BundlingHandler(registry, childContext,  childPath);
+        return new BundlingHandler(registry, childContext,  childPath, state);
     }
 
     public boolean isBundlingRoot() {
@@ -152,6 +163,15 @@ public class BundlingHandler {
             result = new BundlingContext(path, bundlor.createMatcher());
         }
         return result;
+    }
+
+    private static void removeDeletedChildProperties(NodeState state, BundlingContext childContext) {
+        childContext.removeProperty(DocumentBundlor.META_PROP_NODE);
+        for (PropertyState ps : state.getProperties()){
+            String propName = ps.getName();
+            if (!propName.startsWith(DocumentBundlor.HAS_CHILD_PROP_PREFIX))
+                childContext.removeProperty(ps.getName());
+        }
     }
 
     private static class BundlingContext {
