@@ -60,8 +60,7 @@ class CommitDiff implements NodeStateDiff {
         this.bundlingHandler = bundlingHandler;
         this.builder = builder;
         this.blobs = blobs;
-        setMetaProperties();
-        informCommitAboutBundledNodes();
+        performBundlingRelatedOperations();
     }
 
     @Override
@@ -117,6 +116,12 @@ class CommitDiff implements NodeStateDiff {
 
     //----------------------------< internal >----------------------------------
 
+    private void performBundlingRelatedOperations() {
+        setMetaProperties();
+        informCommitAboutBundledNodes();
+        removeRemovedProps();
+    }
+
     private void setMetaProperties() {
         for (PropertyState ps : bundlingHandler.getMetaProps()){
             setProperty(ps);
@@ -126,6 +131,13 @@ class CommitDiff implements NodeStateDiff {
     private void informCommitAboutBundledNodes() {
         if (bundlingHandler.isBundledNode()){
             commit.addBundledNode(bundlingHandler.getNodeFullPath());
+        }
+    }
+
+    private void removeRemovedProps() {
+        for (String propName : bundlingHandler.getRemovedProps()){
+            commit.updateProperty(bundlingHandler.getRootBundlePath(),
+                    bundlingHandler.getPropertyPath(propName), null);
         }
     }
 

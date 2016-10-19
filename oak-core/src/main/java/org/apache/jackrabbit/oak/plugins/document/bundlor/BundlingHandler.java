@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import java.util.Collections;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -39,21 +39,15 @@ public class BundlingHandler {
     private final BundledTypesRegistry registry;
     private final String path;
     private final BundlingContext ctx;
-    private final Set<PropertyState> metaProps;
 
     public BundlingHandler(BundledTypesRegistry registry) {
-        this(registry, BundlingContext.NULL, ROOT_PATH, Collections.<PropertyState>emptySet());
+        this(registry, BundlingContext.NULL, ROOT_PATH);
     }
 
     private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path) {
-        this(registry, ctx, path, Collections.<PropertyState>emptySet());
-    }
-
-    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path, Set<PropertyState> metaProps) {
         this.registry = registry;
         this.path = path;
         this.ctx = ctx;
-        this.metaProps = metaProps;
     }
 
     public String getPropertyPath(String propertyName) {
@@ -75,7 +69,11 @@ public class BundlingHandler {
     }
 
     public Set<PropertyState> getMetaProps() {
-        return metaProps;
+        return ctx.metaProps;
+    }
+
+    public Set<String> getRemovedProps(){
+        return ctx.removedProps;
     }
 
     public String getRootBundlePath() {
@@ -85,22 +83,21 @@ public class BundlingHandler {
     public BundlingHandler childAdded(String name, NodeState state){
         String childPath = childPath(name);
         BundlingContext childContext;
-        Set<PropertyState> metaProps = Collections.emptySet();
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
-            metaProps = Collections.singleton(NODE_PRESENCE_MARKER);
             childContext = createChildContext(childMatcher);
+            childContext.addMetaProp(NODE_PRESENCE_MARKER);
         } else {
             DocumentBundlor bundlor = registry.getBundlor(state);
             if (bundlor != null){
                 PropertyState bundlorConfig = bundlor.asPropertyState();
-                metaProps = Collections.singleton(bundlorConfig);
                 childContext = new BundlingContext(childPath, bundlor.createMatcher());
+                childContext.addMetaProp(bundlorConfig);
             } else {
                 childContext = BundlingContext.NULL;
             }
         }
-        return new BundlingHandler(registry, childContext, childPath, metaProps);
+        return new BundlingHandler(registry, childContext, childPath);
     }
 
     public BundlingHandler childDeleted(String name, NodeState state){
@@ -108,9 +105,11 @@ public class BundlingHandler {
         BundlingContext childContext;
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
-            //TODO Add meta prop for bundled child node
-            //TODO Delete should nullify all properties
             childContext = createChildContext(childMatcher);
+            childContext.removeProperty(DocumentBundlor.META_PROP_NODE);
+            for (PropertyState ps : state.getProperties()){
+                childContext.removeProperty(ps.getName());
+            }
         } else {
             childContext = getBundlorContext(childPath, state);
         }
@@ -159,6 +158,8 @@ public class BundlingHandler {
         static final BundlingContext NULL = new BundlingContext("", Matcher.NON_MATCHING);
         final String bundlingPath;
         final Matcher matcher;
+        final Set<PropertyState> metaProps = Sets.newHashSet();
+        final Set<String> removedProps = Sets.newHashSet();
 
         public BundlingContext(String bundlingPath, Matcher matcher) {
             this.bundlingPath = bundlingPath;
@@ -175,6 +176,14 @@ public class BundlingHandler {
 
         public String getPropertyPath(String propertyName) {
             return PathUtils.concat(matcher.getMatchedPath(), propertyName);
+        }
+
+        public void addMetaProp(PropertyState state){
+            metaProps.add(state);
+        }
+
+        public void removeProperty(String name){
+            removedProps.add(name);
         }
     }
 }
