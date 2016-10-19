@@ -99,7 +99,9 @@ class CommitDiff implements NodeStateDiff {
     public boolean childNodeChanged(String name,
                                     NodeState before,
                                     NodeState after) {
-        //TODO [bundling] Handle change of primaryType
+        //TODO [bundling] Handle change of primaryType. Current approach would work
+        //but if bundling was enabled for previous nodetype its "side effect"
+        //would still impact even though new nodetype does not have bundling enabled
         BundlingHandler child = bundlingHandler.childChanged(name, after);
         return after.compareAgainstBaseState(before,
                 new CommitDiff(store, commit, child, builder, blobs));
@@ -109,7 +111,6 @@ class CommitDiff implements NodeStateDiff {
     public boolean childNodeDeleted(String name, NodeState before) {
         BundlingHandler child = bundlingHandler.childDeleted(name, before);
         if (child.isBundlingRoot()) {
-            //TODO [bundling] Handle delete
             commit.removeNode(child.getRootBundlePath(), before);
         }
         return MISSING_NODE.compareAgainstBaseState(before,
