@@ -434,7 +434,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         readCount++;
                         if (readCount % TRAVERSING_WARN == 0) {
                             FilterIterators.checkReadLimit(readCount, settings);
-                            LOG.warn("Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
+                            LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
                         }
                         return;
                     } else {

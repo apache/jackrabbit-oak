@@ -54,7 +54,6 @@ public class SQL2ParserTest {
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
         p.parse(new XPathToSQL2Converter()
                 .convert("/jcr:root/test/*/*/nt:resource[@jcr:encoding]"));        
-        
         String xpath = "/jcr:root/etc/commerce/products//*[@cq:commerceType = 'product' " +
                 "and ((@size = 'M' or */@size= 'M' or */*/@size = 'M' " +
                 "or */*/*/@size = 'M' or */*/*/*/@size = 'M' or */*/*/*/*/@size = 'M'))]";

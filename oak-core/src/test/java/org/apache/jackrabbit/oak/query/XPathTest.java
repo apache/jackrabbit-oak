@@ -34,6 +34,45 @@ public class XPathTest {
             new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
     
     @Test
+    public void queryOptions() throws ParseException {
+        verify("/jcr:root/content//*[@a] order by @c option(traversal fail)",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] is not null " +
+                "and isdescendantnode(a, '/content') " +
+                "order by [c] option(traversal FAIL) " +
+                "/* xpath: /jcr:root/content//*[@a] " +
+                "order by @c " + 
+                "option(traversal fail) */");            
+        verify("//*[@a or @b] order by @c option(traversal warn)",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] is not null " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [b] is not null " +
+                "order by [c] option(traversal WARN) " +
+                "/* xpath: //*[@a or @b] " + 
+                "order by @c " + 
+                "option(traversal warn) */");
+        verify("/jcr:root/(content|libs)//*[@a] order by @c option(traversal ok)",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] is not null " +
+                "and isdescendantnode(a, '/content') " +
+                "/* xpath: /jcr:root/content//*[@a] " +
+                "order by @c option(traversal ok) */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] is not null " +
+                "and isdescendantnode(a, '/libs') " +
+                "/* xpath: /jcr:root/libs//*[@a] " +
+                "order by @c option(traversal ok) */ " +
+                "order by [c] " + 
+                "option(traversal OK)");            
+    }
+    
+    @Test
     public void test() throws ParseException {
         verify("(/jcr:root/content//*[@a] | /jcr:root/lib//*[@b]) order by @c",
                 "select [jcr:path], [jcr:score], * " + 
@@ -121,6 +160,7 @@ public class XPathTest {
         sql = sql.replaceAll(" and ", "\nand ");
         sql = sql.replaceAll(" union ", "\nunion ");
         sql = sql.replaceAll(" order by ", "\norder by ");
+        sql = sql.replaceAll(" option\\(", "\noption\\(");
         sql = sql.replaceAll(" \\/\\* ", "\n/* ");
         return sql;
     }

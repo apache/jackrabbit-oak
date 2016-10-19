@@ -118,6 +118,12 @@ public class UnionQueryImpl implements Query {
         left.setTraversalEnabled(traversal);
         right.setTraversalEnabled(traversal);
     }
+    
+    @Override
+    public  void setQueryOptions(QueryOptions options) {
+        left.setQueryOptions(options);
+        right.setQueryOptions(options);
+    }
 
     @Override
     public void prepare() {

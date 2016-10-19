@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -160,6 +161,11 @@ public class QueryImpl implements Query {
      * purposes.
      */
     private boolean traversalEnabled = true;
+    
+    /**
+     * The query option to be used for this query.
+     */
+    private QueryOptions queryOptions = new QueryOptions();
 
     private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
@@ -948,6 +954,11 @@ public class QueryImpl implements Query {
         this.traversalEnabled = traversalEnabled;
     }
 
+    @Override
+    public void setQueryOptions(QueryOptions options) {
+        this.queryOptions = options;
+    }
+
     public SelectorExecutionPlan getBestSelectorExecutionPlan(FilterImpl filter) {
         return getBestSelectorExecutionPlan(context.getBaseState(), filter,
                 context.getIndexProvider(), traversalEnabled);
@@ -1036,7 +1047,27 @@ public class QueryImpl implements Query {
                 bestPlan = indexPlan;
             }
         }
-
+        if (bestIndex == null) {
+            QueryOptions.Traversal traversal = queryOptions.traversal;
+            if (traversal == Traversal.DEFAULT) {
+                // use the (configured) default
+                traversal = settings.getFailTraversal() ? Traversal.FAIL : Traversal.WARN;
+            } else {
+                // explicitly set in the query
+                traversal = queryOptions.traversal;
+            }
+            String message = "Traversal query (query without index): " + statement + "; consider creating an index";
+            switch (traversal) {
+            case OK:
+                break;
+            case WARN:
+                LOG.warn(message);
+                break;
+            case FAIL:
+                LOG.warn(message);
+                throw new IllegalArgumentException(message);
+            }
+        }
         if (traversalEnabled) {
             QueryIndex traversal = new TraversingIndex();
             double cost = traversal.getCost(filter, rootState);
