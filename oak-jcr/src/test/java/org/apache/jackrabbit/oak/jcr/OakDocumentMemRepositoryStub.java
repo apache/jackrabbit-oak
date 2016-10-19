@@ -24,6 +24,7 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.test.RepositoryStubException;
 
@@ -49,7 +50,7 @@ public class OakDocumentMemRepositoryStub extends OakRepositoryStub {
             store = new DocumentMK.Builder().getNodeStore();
             QueryEngineSettings qs = new QueryEngineSettings();
             qs.setFullTextComparisonWithoutIndex(true);
-            this.repository = new Jcr(store).with(qs).createRepository();
+            this.repository = new Jcr(store).with(qs).with(BundlingConfigInitializer.INSTANCE).createRepository();
 
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();
