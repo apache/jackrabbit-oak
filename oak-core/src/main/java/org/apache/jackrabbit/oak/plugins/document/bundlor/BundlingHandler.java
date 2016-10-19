@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -47,7 +48,7 @@ public class BundlingHandler {
     }
 
     private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path, NodeState nodeState) {
-        this.registry = registry;
+        this.registry = checkNotNull(registry);
         this.path = path;
         this.ctx = ctx;
         this.nodeState = nodeState;

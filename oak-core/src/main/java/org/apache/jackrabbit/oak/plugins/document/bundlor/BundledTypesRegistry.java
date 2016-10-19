@@ -31,6 +31,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,6 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class BundledTypesRegistry {
+    public static BundledTypesRegistry NOOP = BundledTypesRegistry.from(EMPTY_NODE);
     private final Map<String, DocumentBundlor> bundlors;
 
     public BundledTypesRegistry(Map<String, DocumentBundlor> bundlors) {
@@ -66,6 +68,10 @@ public class BundledTypesRegistry {
         return bundlors.get(getPrimaryTypeName(state));
     }
 
+    Map<String, DocumentBundlor> getBundlors() {
+        return bundlors;
+    }
+
     private static String getPrimaryTypeName(NodeState nodeState) {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         return (ps == null) ? JcrConstants.NT_BASE : ps.getValue(Type.NAME);
@@ -90,7 +96,9 @@ public class BundledTypesRegistry {
         }
 
         public TypeBuilder forType(String typeName){
-            return new TypeBuilder(this, builder.child(typeName));
+            NodeBuilder child = builder.child(typeName);
+            child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+            return new TypeBuilder(this, child);
         }
 
         public TypeBuilder forType(String typeName, String ... includes){
