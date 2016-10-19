@@ -325,7 +325,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
         private void checkReadWriteMountsNumber() {
             List<String> readWriteMountNames = Lists.newArrayList();
-            readWriteMountNames.add(mip.getDefaultMount().getName());
+            if ( !mip.getDefaultMount().isReadOnly() ) {
+                readWriteMountNames.add(mip.getDefaultMount().getName());
+            }
             
             for ( Mount mount : mip.getNonDefaultMounts() ) {
                 if ( !mount.isReadOnly() ) {
