@@ -150,8 +150,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
         } else {
-            return new DocumentNodeState(store, path, root, bundlingContext.getAllProperties(),
-                    hasChildren, lastRevision, externalChange);
+            return new DocumentNodeState(store, path, lastRevision, root, externalChange, bundlingContext);
         }
     }
 
@@ -161,8 +160,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      */
     @Nonnull
     public DocumentNodeState fromExternalChange() {
-        return new DocumentNodeState(store, path, rootRevision, bundlingContext.getAllProperties(), hasChildren,
-                lastRevision, true);
+        return new DocumentNodeState(store, path, lastRevision, rootRevision, true, bundlingContext);
     }
 
     /**
@@ -767,7 +765,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         public BundlingContext(Matcher matcher, Map<String, PropertyState> rootProperties,
                                boolean hasBundledChildren, boolean hasNonBundledChildren) {
             this.matcher = matcher;
-            this.rootProperties = rootProperties;
+            this.rootProperties = ImmutableMap.copyOf(rootProperties);
             this.hasBundledChildren = hasBundledChildren;
             this.hasNonBundledChildren = hasNonBundledChildren;
         }
