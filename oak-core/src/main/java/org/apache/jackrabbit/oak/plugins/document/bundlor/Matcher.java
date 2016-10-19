@@ -40,6 +40,11 @@ public interface Matcher {
         public int depth() {
             return 0;
         }
+
+        @Override
+        public String toString() {
+            return "NON_MATCHING";
+        }
     };
 
     /**
