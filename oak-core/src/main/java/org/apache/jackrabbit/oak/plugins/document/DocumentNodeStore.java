@@ -1110,7 +1110,7 @@ public final class DocumentNodeStore
         return result;
     }
 
-    public BundlingHandler getBundlingRoot() {
+    public BundlingHandler getBundlingHandler() {
         //TODO Move this to observor based
         NodeState registryState = NodeStateUtils.getNode(getRoot(), "/jcr:system/documentstore/bundlor");
         return new BundlingHandler(BundledTypesRegistry.from(registryState));

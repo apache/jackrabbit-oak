@@ -51,7 +51,7 @@ class CommitDiff implements NodeStateDiff {
 
     CommitDiff(@Nonnull DocumentNodeStore store, @Nonnull Commit commit,
                @Nonnull BlobSerializer blobs) {
-        this(checkNotNull(store), checkNotNull(commit), store.getBundlingRoot(),
+        this(checkNotNull(store), checkNotNull(commit), store.getBundlingHandler(),
                 new JsopBuilder(), checkNotNull(blobs));
     }
 
