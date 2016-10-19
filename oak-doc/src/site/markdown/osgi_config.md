@@ -111,7 +111,7 @@ blobCacheSize
   `blobCacheSize`. 
   
 persistentCache
-: Default "" (an empty string, meaning disabled)
+: Default "cache,binary=0" (prior to 1.6, the persistent cache was disabled by default)
 : The [persistent cache][persistent-cache], which is stored in the local file system.
 
 <a name="cache-allocation"></a>
