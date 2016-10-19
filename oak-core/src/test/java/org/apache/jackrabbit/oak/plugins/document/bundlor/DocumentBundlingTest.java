@@ -33,12 +33,14 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -442,6 +444,28 @@ public class DocumentBundlingTest {
         assertTrue(getNodeDocument("/test/book.jpg").hasBinary());
     }
 
+    @Test
+    public void jsonSerialization() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        merge(builder);
+        DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+        String json = appNode.asString();
+        NodeState appNode2 = DocumentNodeState.fromString(store, json);
+        AssertingDiff.assertEquals(appNode, appNode2);
+    }
+
     private void createTestNode(String path, NodeState state) throws CommitFailedException {
         String parentPath = PathUtils.getParentPath(path);
         NodeBuilder builder = store.getRoot().builder();
@@ -532,8 +556,10 @@ public class DocumentBundlingTest {
         );
 
         public static boolean assertEquals(NodeState before, NodeState after) {
+            //Do not rely on default compareAgainstBaseState as that works at lastRev level
+            //and we need proper equals
             return before.exists() == after.exists()
-                    && after.compareAgainstBaseState(before, new AssertingDiff());
+                    && AbstractNodeState.compareAgainstBaseState(after, before, new AssertingDiff());
         }
 
         @Override
