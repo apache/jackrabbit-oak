@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +75,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
         return new BundlingHandler(registry);
     }
 
-    public void initialize(NodeStore nodeStore, Executor executor) {
+    public void initialize(Observable nodeStore, Executor executor) {
         registerObserver(nodeStore, executor);
         //If bundling is disabled then initialize would not be invoked
         //NOOP registry would get used effectively disabling bundling for
@@ -111,11 +110,9 @@ public class BundlingConfigHandler implements Observer, Closeable {
         log.info("Refreshing the BundledTypesRegistry");
     }
 
-    private void registerObserver(NodeStore nodeStore, Executor executor) {
-        if (nodeStore instanceof Observable) {
-            backgroundObserver = new BackgroundObserver(this, executor, 5);
-            observerRegistration = ((Observable) nodeStore).addObserver(backgroundObserver);
-        }
+    private void registerObserver(Observable observable, Executor executor) {
+        backgroundObserver = new BackgroundObserver(this, executor, 5);
+        observerRegistration = observable.addObserver(backgroundObserver);
     }
 
 }
