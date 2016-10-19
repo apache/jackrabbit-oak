@@ -78,4 +78,14 @@ class CompositeMatcher implements Matcher {
     public int depth() {
         return matchers.get(0).depth();
     }
+
+    @Override
+    public boolean matchesChildren() {
+        for (Matcher m : matchers){
+            if (m.matchesChildren()){
+                return true;
+            }
+        }
+        return false;
+    }
 }

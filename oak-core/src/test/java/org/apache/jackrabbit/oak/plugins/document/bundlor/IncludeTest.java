@@ -87,6 +87,19 @@ public class IncludeTest {
         assertEquals(1, i2.createMatcher().next("x").depth());
         assertEquals(2, i2.createMatcher().next("x").next("y").depth());
         assertEquals(3, i2.createMatcher().next("x").next("y").next("z").depth());
+    }
+
+    @Test
+    public void matchChildren() throws Exception{
+        Include i0 = new Include("x/*");
+        Matcher m = i0.createMatcher();
+        assertFalse(m.matchesChildren());
+        assertTrue(m.next("x").matchesChildren());
+
+        Include i1 = new Include("x/**");
+        m = i1.createMatcher();
+        assertFalse(m.matchesChildren());
+        assertTrue(m.next("x").matchesChildren());
 
     }
 }
