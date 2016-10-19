@@ -25,7 +25,6 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -161,6 +160,83 @@ public class DocumentBundlingTest {
         assertTrue(PartialEqualsDiff.equals(appNB.getNodeState(), appNode));
     }
 
+    @Test
+    public void addBundledNodePostInitialCreation() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        builder = store.getRoot().builder();
+        NodeBuilder renditions = childBuilder(builder, "/test/book.jpg/jcr:content/renditions");
+        renditions.child("small").child("jcr:content");
+        NodeState appNode_v2 = childBuilder(builder, "/test/book.jpg").getNodeState();
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertThat(childNames(getLatestNode("/test/book.jpg"), "jcr:content/renditions"),
+                hasItems("original", "small"));
+        assertTrue(PartialEqualsDiff.equals(getLatestNode("/test/book.jpg"), appNode_v2));
+    }
+
+    @Test
+    public void modifyBundledChild() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Modify bundled property
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        NodeState state = childBuilder(builder, "/test/book.jpg").getNodeState();
+        assertEquals("bar", getLatestNode("/test/book.jpg/jcr:content").getString("foo"));
+        assertTrue(PartialEqualsDiff.equals(state, getLatestNode("/test/book.jpg")));
+
+        //Modify deep bundled property
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content/renditions").setProperty("foo", "bar");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        state = childBuilder(builder, "/test/book.jpg").getNodeState();
+        assertEquals("bar", getLatestNode("/test/book.jpg/jcr:content/renditions").getString("foo"));
+        assertTrue(PartialEqualsDiff.equals(state, getLatestNode("/test/book.jpg")));
+
+        //Modify deep unbundled property - jcr:content/comments/@foo
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content/comments").setProperty("foo", "bar");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        state = childBuilder(builder, "/test/book.jpg").getNodeState();
+        assertEquals("bar", getLatestNode("/test/book.jpg/jcr:content/comments").getString("foo"));
+        assertTrue(PartialEqualsDiff.equals(state, getLatestNode("/test/book.jpg")));
+    }
+
+    private NodeState getLatestNode(String path){
+        return getNode(store.getRoot(), path);
+    }
+
     private static void dump(NodeState state){
         System.out.println(NodeStateUtils.toString(state));
     }
@@ -177,12 +253,17 @@ public class DocumentBundlingTest {
 
     private static NodeBuilder createChild(NodeBuilder root, String ... paths){
         for (String path : paths){
-            NodeBuilder nb = root;
-            for (String nodeName : PathUtils.elements(path)){
-                nb = nb.child(nodeName);
-            }
+            childBuilder(root, path);
         }
         return root;
+    }
+
+    private static NodeBuilder childBuilder(NodeBuilder root, String path){
+        NodeBuilder nb = root;
+        for (String nodeName : PathUtils.elements(path)){
+            nb = nb.child(nodeName);
+        }
+        return nb;
     }
 
     private static class RecordingDocumentStore extends MemoryDocumentStore {
