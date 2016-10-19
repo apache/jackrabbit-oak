@@ -296,7 +296,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
                         documentStoreType: 'RDB',
-                        bundlingEnabled : false
+                        bundlingDisabled : true
                 ]
         ])
 
