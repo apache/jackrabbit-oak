@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
@@ -37,25 +38,28 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
+import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 public class StandbyTestIT extends TestBase {
 
-    @Before
-    public void setUp() throws Exception {
-        setUpServerAndClient();
-    }
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    @After
-    public void after() {
-        closeServerAndClient();
-    }
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder);
+
+    @Rule
+    public RuleChain chain = RuleChain.outerRule(folder)
+            .around(serverFileStore)
+            .around(clientFileStore);
 
     private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes)
             throws CommitFailedException, IOException {
@@ -87,11 +91,11 @@ public class StandbyTestIT extends TestBase {
         final int blobSize = 25 * 1024;
         final int dataNodes = 5000;
 
-        FileStore primary = getPrimary();
-        FileStore secondary = getSecondary();
+        FileStore primary = serverFileStore.fileStore();
+        FileStore secondary = clientFileStore.fileStore();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(port, primary);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
         serverSync.start();
         byte[] data = addTestContent(store, "server", blobSize, dataNodes);
         primary.flush();

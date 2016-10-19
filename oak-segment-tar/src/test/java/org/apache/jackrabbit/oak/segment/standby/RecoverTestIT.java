@@ -23,33 +23,41 @@ import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.io.File;
+
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
+import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 public class RecoverTestIT extends TestBase {
 
-    @Before
-    public void setUp() throws Exception {
-        setUpServerAndClient();
-    }
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    @After
-    public void after() {
-        closeServerAndClient();
-    }
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder);
+
+    @Rule
+    public RuleChain chain = RuleChain.outerRule(folder)
+            .around(serverFileStore)
+            .around(clientFileStore);
 
     @Test
     public void testLocalChanges() throws Exception {
+        FileStore storeS = serverFileStore.fileStore();
+        FileStore storeC = clientFileStore.fileStore();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeC).build();
         addTestContent(store, "client");
 
-        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
         serverSync.start();
         store = SegmentNodeStoreBuilders.builder(storeS).build();
         addTestContent(store, "server");

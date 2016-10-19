@@ -48,23 +48,15 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-public class DataStoreTestBase extends TestBase {
+public abstract class DataStoreTestBase extends TestBase {
 
-    protected boolean storesCanBeEqual = false;
+    abstract FileStore getPrimary();
 
-    @Before
-    public void setUp() throws Exception {
-        setUpServerAndClient();
-    }
+    abstract FileStore getSecondary();
 
-    @After
-    public void after() {
-        closeServerAndClient();
-    }
+    abstract boolean storesShouldBeEqual();
 
     protected FileStore setupFileDataStore(File d, String path, ScheduledExecutorService executor) throws Exception {
         FileDataStore fds = new FileDataStore();
@@ -106,7 +98,7 @@ public class DataStoreTestBase extends TestBase {
         FileStore secondary = getSecondary();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(port, primary);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
         serverSync.start();
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
@@ -176,23 +168,23 @@ public class DataStoreTestBase extends TestBase {
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
-        NetworkErrorProxy p = new NetworkErrorProxy(proxyPort, LOCALHOST, port);
+        NetworkErrorProxy p = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
         p.skipBytes(skipPosition, skipBytes);
         p.flipByte(flipPosition);
         p.run();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(port, primary);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
         serverSync.start();
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
 
-        StandbyClientSync clientSync = newStandbyClientSync(secondary, proxyPort);
+        StandbyClientSync clientSync = newStandbyClientSync(secondary, getProxyPort());
         clientSync.run();
 
         try {
             if (skipBytes > 0 || flipPosition >= 0) {
-                if (!this.storesCanBeEqual) {
+                if (!storesShouldBeEqual()) {
                     assertFalse("stores are not expected to be equal", primary.getHead().equals(secondary.getHead()));
                 }
                 p.reset();
