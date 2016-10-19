@@ -21,31 +21,44 @@ package org.apache.jackrabbit.oak.segment.standby;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.io.File;
+
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentTestUtils;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
+import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 public class FailoverMultipleClientsTestIT extends TestBase {
 
-    @Before
-    public void setUp() throws Exception {
-        setUpServerAndTwoClients();
-    }
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    @After
-    public void after() {
-        closeServerAndTwoClients();
-    }
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+
+    private TemporaryFileStore clientFileStore1 = new TemporaryFileStore(folder);
+
+    private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder);
+
+    @Rule
+    public RuleChain chain = RuleChain.outerRule(folder)
+            .around(serverFileStore)
+            .around(clientFileStore1)
+            .around(clientFileStore2);
 
     @Test
     public void testMultipleClients() throws Exception {
+        FileStore storeS = serverFileStore.fileStore();
+        FileStore storeC = clientFileStore1.fileStore();
+        FileStore storeC2 = clientFileStore2.fileStore();
+
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
         serverSync.start();
         SegmentTestUtils.addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...

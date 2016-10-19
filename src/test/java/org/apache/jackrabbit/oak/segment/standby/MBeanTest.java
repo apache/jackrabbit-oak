@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.Set;
 
@@ -33,25 +34,22 @@ import javax.management.ObjectName;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class MBeanTest extends TestBase {
 
-    @Before
-    public void setUp() throws Exception {
-        setUpServerAndClient();
-    }
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    @After
-    public void after() {
-        closeServerAndClient();
-    }
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder);
 
     @Test
     public void testServerEmptyConfig() throws Exception {
-        final StandbyServerSync serverSync = new StandbyServerSync(TestBase.port, this.storeS);
+        final StandbyServerSync serverSync = new StandbyServerSync(TestBase.getServerPort(), serverFileStore.fileStore());
         serverSync.start();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
@@ -86,7 +84,7 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientEmptyConfigNoServer() throws Exception {
-        final StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        final StandbyClientSync clientSync = newStandbyClientSync(clientFileStore.fileStore());
         clientSync.start();
         clientSync.run();
 
@@ -124,7 +122,7 @@ public class MBeanTest extends TestBase {
     @Test
     public void testClientNoServer() throws Exception {
         System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Foo");
-        final StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        final StandbyClientSync clientSync = newStandbyClientSync(clientFileStore.fileStore());
         clientSync.start();
         clientSync.run();
 
@@ -147,12 +145,13 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-4958")
     public void testClientAndServerEmptyConfig() throws Exception {
-        final StandbyServerSync serverSync = new StandbyServerSync(port, this.storeS);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), serverFileStore.fileStore());
         serverSync.start();
 
         System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Bar");
-        final StandbyClientSync clientSync = newStandbyClientSync(storeC);
+        final StandbyClientSync clientSync = newStandbyClientSync(clientFileStore.fileStore());
         clientSync.start();
         clientSync.run();
 

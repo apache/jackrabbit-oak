@@ -23,25 +23,31 @@ import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.io.File;
+
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
+import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 public class FailoverIPRangeTest extends TestBase {
 
-    @Before
-    public void setUp() throws Exception {
-        setUpServerAndClient();
-    }
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    @After
-    public void after() {
-        closeServerAndClient();
-    }
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder);
+
+    @Rule
+    public RuleChain chain = RuleChain.outerRule(folder)
+            .around(serverFileStore)
+            .around(clientFileStore);
 
     @Test
     public void testFailoverAllClients() throws Exception {
@@ -140,13 +146,16 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     private void createTestWithConfig(String host, String[] ipRanges, boolean expectedToWork) throws Exception {
+        FileStore storeS = serverFileStore.fileStore();
+        FileStore storeC = clientFileStore.fileStore();
+
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, ipRanges);
+        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, ipRanges);
         serverSync.start();
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClientSync clientSync = new StandbyClientSync(host, port, storeC, false, timeout, false);
+        StandbyClientSync clientSync = new StandbyClientSync(host, getServerPort(), storeC, false, getClientTimeout(), false);
         clientSync.run();
 
         try {

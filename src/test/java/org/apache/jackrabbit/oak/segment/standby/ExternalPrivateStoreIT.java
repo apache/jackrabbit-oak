@@ -19,20 +19,46 @@
 package org.apache.jackrabbit.oak.segment.standby;
 
 import java.io.File;
-import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.junit.Rule;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 public class ExternalPrivateStoreIT extends DataStoreTestBase {
 
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder);
+
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore);
+
+    private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder);
+
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore);
+
+    @Rule
+    public RuleChain chain = RuleChain.outerRule(folder)
+            .around(serverBlobStore)
+            .around(serverFileStore)
+            .around(clientBlobStore)
+            .around(clientFileStore);
+
     @Override
-    protected FileStore setupPrimary(File d, ScheduledExecutorService primaryExecutor) throws Exception {
-        return setupFileDataStore(d, folder.newFolder("data-store-primary").getAbsolutePath(), primaryExecutor);
+    FileStore getPrimary() {
+        return serverFileStore.fileStore();
     }
 
     @Override
-    protected FileStore setupSecondary(File d, ScheduledExecutorService secondaryExecutor) throws Exception {
-        return setupFileDataStore(d, folder.newFolder("data-store-secondary").getAbsolutePath(), secondaryExecutor);
+    FileStore getSecondary() {
+        return clientFileStore.fileStore();
+    }
+
+    @Override
+    boolean storesShouldBeEqual() {
+        return false;
     }
 
 }
