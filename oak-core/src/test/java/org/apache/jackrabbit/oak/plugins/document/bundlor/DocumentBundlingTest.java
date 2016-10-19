@@ -19,18 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.Set;
+
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -57,7 +59,6 @@ public class DocumentBundlingTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    @Ignore("Read part not yet implemented")
     @Test
     public void saveAndReadNtFile() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
@@ -71,12 +72,46 @@ public class DocumentBundlingTest {
 
         NodeState root = store.getRoot();
         NodeState fileNodeState = root.getChildNode("test");
-        assertTrue(EqualsDiff.equals(fileNode.getNodeState(), fileNodeState));
+        assertTrue(fileNodeState.getChildNode("book.jpg").exists());
+        assertTrue(fileNodeState.getChildNode("book.jpg").getChildNode("jcr:content").exists());
+
+        assertTrue(PartialEqualsDiff.equals(fileNode.getNodeState(), fileNodeState.getChildNode("book.jpg")));
     }
 
     private static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
         return builder;
+    }
+
+    private static class PartialEqualsDiff extends EqualsDiff {
+        private final Set<String> ignoredProps = Sets.newHashSet(DocumentBundlor.META_PROP_PATTERN);
+
+        public static boolean equals(NodeState before, NodeState after) {
+            return before.exists() == after.exists()
+                    && after.compareAgainstBaseState(before, new PartialEqualsDiff());
+        }
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            if (ignore(after)) return true;
+            return super.propertyAdded(after);
+        }
+
+        @Override
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            if (ignore(after)) return true;
+            return super.propertyChanged(before, after);
+        }
+
+        @Override
+        public boolean propertyDeleted(PropertyState before) {
+            if (ignore(before)) return true;
+            return super.propertyDeleted(before);
+        }
+
+        private boolean ignore(PropertyState state){
+            return ignoredProps.contains(state.getName());
+        }
     }
 }
