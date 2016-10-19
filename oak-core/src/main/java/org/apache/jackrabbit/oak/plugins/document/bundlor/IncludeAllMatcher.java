@@ -59,4 +59,9 @@ class IncludeAllMatcher implements Matcher {
     public boolean matchesChildren() {
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "ALL - " + matchingPath;
+    }
 }
