@@ -214,7 +214,7 @@ public class JournalIT extends AbstractJournalTest {
         DB db = connectionFactory.getConnection().getDB();
         builder = newDocumentMKBuilder();
         return register(builder.setMongoDB(db)
-                .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
+                .setClusterId(clusterId).setAsyncDelay(asyncDelay).setBundlingDisabled(true).open());
     }
 
     private static long getCacheElementCount(DocumentStore ds) {
