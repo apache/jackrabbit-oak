@@ -20,7 +20,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.util.CountingDiff;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -130,13 +129,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             
             NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
             
-            // TODO - might be slow, should introduce special-purpose variant which bails on first found difference
-            CountingDiff diff = new CountingDiff();
-            
-            partialBuilder.getNodeState().compareAgainstBaseState(partialBuilder.getBaseState(), diff);
-            
-            if ( diff.getNumChanges() != 0 ) {
-                throw new CommitFailedException("Multiplex", -1, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount());
+            if ( !partialBuilder.getNodeState().equals(partialBuilder.getBaseState()) ) {
+                // TODO - add proper error code
+                throw new CommitFailedException("Multiplex", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount());
             }
         }
     }
