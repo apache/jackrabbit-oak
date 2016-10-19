@@ -24,6 +24,10 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 class IncludeMatcher implements Matcher {
     private final Include include;
+    /**
+     * Depth is 1 based i.e. first node element in path would have depth 1.
+     * Root has depth 0
+     */
     private final int depth;
     private final String matchedPath;
 
@@ -40,12 +44,12 @@ class IncludeMatcher implements Matcher {
     @Override
     public Matcher next(String name) {
         if (hasMore()) {
-            if (include.match(name, depth)) {
+            if (include.match(name, nextElementIndex())) {
                 String nextPath = concat(matchedPath, name);
                 if (lastEntry() && include.getDirective() == Include.Directive.ALL) {
-                    return new IncludeAllMatcher(nextPath, depth + 1);
+                    return new IncludeAllMatcher(nextPath, nextElementIndex());
                 }
-                return new IncludeMatcher(include, depth + 1, nextPath);
+                return new IncludeMatcher(include, nextElementIndex(), nextPath);
             } else {
                 return Matcher.NON_MATCHING;
             }
@@ -69,12 +73,24 @@ class IncludeMatcher implements Matcher {
     }
 
     @Override
+    public boolean matchesChildren() {
+        if (hasMore()){
+            return include.matchAny(nextElementIndex());
+        }
+        return false;
+    }
+
+    @Override
     public String toString() {
         return "IncludeMatcher{" +
                 "include=" + include +
                 ", depth=" + depth +
                 ", matchedPath='" + matchedPath + '\'' +
                 '}';
+    }
+
+    private int nextElementIndex(){
+        return depth + 1;
     }
 
     private boolean hasMore() {

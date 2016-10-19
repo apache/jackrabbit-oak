@@ -54,4 +54,9 @@ class IncludeAllMatcher implements Matcher {
     public int depth() {
         return depth;
     }
+
+    @Override
+    public boolean matchesChildren() {
+        return true;
+    }
 }

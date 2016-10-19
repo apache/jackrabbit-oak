@@ -105,10 +105,25 @@ public class Include {
         return directive;
     }
 
+    /**
+     * Matches node name against pattern at given depth.
+     * Depth here would be 1 based with 0 for root depth
+     *
+     * @param nodeName nodeName to match
+     * @param depth depth in path
+     * @return true if nodeName matched against pattern at given depth
+     */
     public boolean match(String nodeName, int depth) {
-        checkElementIndex(depth, elements.length);
-        String e = elements[depth];
+        int elementIndex = depth - 1;
+        checkElementIndex(elementIndex, elements.length);
+        String e = elements[elementIndex];
         return STAR.equals(e) || nodeName.equals(e);
+    }
+
+    public boolean matchAny(int depth){
+        int elementIndex = depth - 1;
+        checkElementIndex(elementIndex, elements.length);
+        return STAR.equals(elements[elementIndex]);
     }
 
     public int size() {

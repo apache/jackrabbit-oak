@@ -42,6 +42,11 @@ public interface Matcher {
         }
 
         @Override
+        public boolean matchesChildren() {
+            return false;
+        }
+
+        @Override
         public String toString() {
             return "NON_MATCHING";
         }
@@ -70,4 +75,12 @@ public interface Matcher {
      * Matcher depth. For match done for 'x/y' depth is 2
      */
     int depth();
+
+    /**
+     * Returns true if matcher for all immediate child node
+     * would also be a matching matcher. This would be the
+     * case if IncludeMatcher with '*' or '**' as pattern for
+     * child nodes
+     */
+    boolean matchesChildren();
 }

@@ -62,4 +62,16 @@ public class CompositeMatcherTest {
         assertFalse(m4.isMatch());
     }
 
+    @Test
+    public void matchChildren() throws Exception{
+        //Hypothetical case. First pattern is redundant
+        Matcher m = CompositeMatcher.compose(asList(
+                new Include("x/z").createMatcher(),
+                new Include("x/*").createMatcher())
+        );
+
+        assertFalse(m.matchesChildren());
+        assertTrue(m.next("x").matchesChildren());
+    }
+
 }
