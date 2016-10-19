@@ -32,10 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,8 +70,6 @@ import static com.google.common.collect.Maps.newHashMap;
  * 
  */
 public class MultiplexingNodeStore implements NodeStore, Observable {
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private static final String CHECKPOINT_ID_PREFIX = "multiplexing.checkpoint.";
 
