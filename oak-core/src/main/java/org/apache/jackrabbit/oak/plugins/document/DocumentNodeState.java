@@ -150,7 +150,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
         } else {
-            return new DocumentNodeState(store, path, root, properties,
+            return new DocumentNodeState(store, path, root, bundlingContext.getAllProperties(),
                     hasChildren, lastRevision, externalChange);
         }
     }
@@ -160,8 +160,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      *          {@link #fromExternalChange} flag set to {@code true}.
      */
     @Nonnull
-    DocumentNodeState fromExternalChange() {
-        return new DocumentNodeState(store, path, rootRevision, properties, hasChildren,
+    public DocumentNodeState fromExternalChange() {
+        return new DocumentNodeState(store, path, rootRevision, bundlingContext.getAllProperties(), hasChildren,
                 lastRevision, true);
     }
 
