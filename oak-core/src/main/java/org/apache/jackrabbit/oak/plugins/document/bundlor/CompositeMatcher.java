@@ -73,4 +73,9 @@ class CompositeMatcher implements Matcher {
         //determine the matching path
         return matchers.get(0).getMatchedPath();
     }
+
+    @Override
+    public int depth() {
+        return matchers.get(0).depth();
+    }
 }
