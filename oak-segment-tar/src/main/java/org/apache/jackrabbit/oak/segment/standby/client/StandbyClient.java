@@ -145,22 +145,31 @@ class StandbyClient implements AutoCloseable {
     }
 
     @Override
-    public void close() throws InterruptedException {
+    public void close() {
+        closeChannel();
+        closeGroup();
+    }
+
+    private void closeChannel() {
+        if (channel == null) {
+            return;
+        }
         if (channel.close().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             log.debug("Channel closed");
         } else {
             log.debug("Channel close timed out");
         }
+    }
 
-        channel = null;
-
+    private void closeGroup() {
+        if (group == null) {
+            return;
+        }
         if (group.shutdownGracefully(2, 15, TimeUnit.SECONDS).awaitUninterruptibly(20, TimeUnit.SECONDS)) {
             log.debug("Group shut down");
         } else {
             log.debug("Group shutdown timed out");
         }
-
-        group = null;
     }
 
     String getHead() throws InterruptedException {

@@ -57,21 +57,19 @@ public class RecoverTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(storeC).build();
         addTestContent(store, "client");
 
-        final StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
-        serverSync.start();
-        store = SegmentNodeStoreBuilders.builder(storeS).build();
-        addTestContent(store, "server");
-        storeS.flush();
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
+                StandbyClientSync cl = newStandbyClientSync(storeC)
+        ) {
+            serverSync.start();
+            store = SegmentNodeStoreBuilders.builder(storeS).build();
+            addTestContent(store, "server");
+            storeS.flush();
 
-        StandbyClientSync cl = newStandbyClientSync(storeC);
-        try {
             assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
             cl.run();
             assertEquals(storeS.getHead(), storeC.getHead());
-        } finally {
-            serverSync.close();
-            cl.close();
         }
-
     }
+
 }
