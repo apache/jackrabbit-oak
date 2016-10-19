@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
@@ -28,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class DocumentBundlorTest {
@@ -48,6 +50,19 @@ public class DocumentBundlorTest {
     @Test(expected = IllegalArgumentException.class)
     public void invalid() throws Exception{
         DocumentBundlor.from(builder.getNodeState());
+    }
+
+    @Test
+    public void asPropertyState() throws Exception{
+        builder.setProperty(createProperty(PROP_PATTERN, asList("x", "x/y", "z"), STRINGS));
+        DocumentBundlor bundlor = DocumentBundlor.from(builder.getNodeState());
+        PropertyState ps = bundlor.asPropertyState();
+
+        assertNotNull(ps);
+        DocumentBundlor bundlor2 = DocumentBundlor.from(ps);
+        assertTrue(bundlor2.isBundled("x"));
+        assertTrue(bundlor2.isBundled("x/y"));
+        assertFalse(bundlor2.isBundled("m"));
     }
 
 }

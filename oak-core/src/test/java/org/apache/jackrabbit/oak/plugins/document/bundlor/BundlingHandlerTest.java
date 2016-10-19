@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 
 public class BundlingHandlerTest {
 
+
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
@@ -90,12 +91,42 @@ public class BundlingHandlerTest {
         assertEquals("foo", barHandler.getPropertyPath("foo"));
     }
 
+    @Test
+    public void childAdded_BundlingStart() throws Exception{
+        BundledTypesRegistry registry = BundledTypesRegistry.builder().forType("nt:file", "jcr:content").buildRegistry();
+
+        BundlingHandler handler = new BundlingHandler(registry);
+        childBuilder(builder, "sunrise.jpg/jcr:content").setProperty("jcr:data", "foo");
+        type(childBuilder(builder, "sunrise.jpg"), "nt:file");
+        NodeState state = builder.getNodeState();
+
+        BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
+        assertEquals("/sunrise.jpg", fileHandler.getRootBundlePath());
+        assertTrue(fileHandler.isBundlingRoot());
+        assertEquals("foo", fileHandler.getPropertyPath("foo"));
+        assertEquals(1, fileHandler.getMetaProps().size());
+    }
+    
+    @Test
+    public void childAdded_NoBundling() throws Exception{
+        BundlingHandler handler = new BundlingHandler(BundledTypesRegistry.from(EMPTY_NODE));
+        childBuilder(builder, "sunrise.jpg/jcr:content").setProperty("jcr:data", "foo");
+        type(childBuilder(builder, "sunrise.jpg"), "nt:file");
+        NodeState state = builder.getNodeState();
+
+        BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
+        assertEquals("/sunrise.jpg", fileHandler.getRootBundlePath());
+        assertTrue(fileHandler.isBundlingRoot());
+        assertEquals("foo", fileHandler.getPropertyPath("foo"));
+        assertEquals(0, fileHandler.getMetaProps().size());
+    }
+    
     private BundlingHandler childHandler(BundlingHandler parent, NodeState parentState, String childPath) {
         BundlingHandler result = parent;
         NodeState state = parentState;
         for (String name : PathUtils.elements(checkNotNull(childPath))) {
             state = state.getChildNode(name);
-            result = result.childHandler(name, state);
+            result = result.childAdded(name, state);
         }
         return result;
     }

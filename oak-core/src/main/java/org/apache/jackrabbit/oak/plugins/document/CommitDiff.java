@@ -60,6 +60,7 @@ class CommitDiff implements NodeStateDiff {
         this.bundlingHandler = bundlingHandler;
         this.builder = builder;
         this.blobs = blobs;
+        setMetaProperties();
     }
 
     @Override
@@ -82,9 +83,8 @@ class CommitDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        BundlingHandler child = bundlingHandler.childHandler(name, after);
+        BundlingHandler child = bundlingHandler.childAdded(name, after);
         if (child.isBundlingRoot()) {
-            //TODO Seed in the bundling pattern
             //TODO Handle case for leaf node optimization
             commit.addNode(new DocumentNodeState(store, child.getRootBundlePath(),
                     new RevisionVector(commit.getRevision())));
@@ -98,14 +98,14 @@ class CommitDiff implements NodeStateDiff {
                                     NodeState before,
                                     NodeState after) {
         //TODO [bundling] Handle change of primaryType
-        BundlingHandler child = bundlingHandler.childHandler(name, after);
+        BundlingHandler child = bundlingHandler.childChanged(name, after);
         return after.compareAgainstBaseState(before,
                 new CommitDiff(store, commit, child, builder, blobs));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        BundlingHandler child = bundlingHandler.childHandler(name, before);
+        BundlingHandler child = bundlingHandler.childDeleted(name, before);
         if (child.isBundlingRoot()) {
             //TODO [bundling] Handle delete
             commit.removeNode(child.getRootBundlePath(), before);
@@ -115,6 +115,12 @@ class CommitDiff implements NodeStateDiff {
     }
 
     //----------------------------< internal >----------------------------------
+
+    private void setMetaProperties() {
+        for (PropertyState ps : bundlingHandler.getMetaProps()){
+            setProperty(ps);
+        }
+    }
 
     private void setProperty(PropertyState property) {
         builder.resetWriter();
