@@ -25,6 +25,7 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
@@ -63,7 +64,7 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
                     getNodeStore();
             QueryEngineSettings qs = new QueryEngineSettings();
             qs.setFullTextComparisonWithoutIndex(true);
-            this.repository = new Jcr(store).with(qs).createRepository();
+            this.repository = new Jcr(store).with(qs).with(BundlingConfigInitializer.INSTANCE).createRepository();
 
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();
