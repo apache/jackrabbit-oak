@@ -20,9 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
 
 import com.google.common.collect.Maps;
 
@@ -30,7 +27,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache.Diff;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.observation.NodeObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -145,68 +141,6 @@ public class LocalDiffCacheTest {
     private static void resetStats(Iterable<CacheStats> stats) {
         for (CacheStats cs : stats) {
             cs.resetStats();
-        }
-    }
-
-    //------------------------------------------------------------< TestNodeObserver >---
-
-    private static class TestNodeObserver extends NodeObserver {
-        private final Map<String, Set<String>> added = newHashMap();
-        private final Map<String, Set<String>> deleted = newHashMap();
-        private final Map<String, Set<String>> changed = newHashMap();
-        private final Map<String, Map<String, String>> properties = newHashMap();
-
-        protected TestNodeObserver(String path, String... propertyNames) {
-            super(path, propertyNames);
-        }
-
-        @Override
-        protected void added(
-                @Nonnull String path,
-                @Nonnull Set<String> added,
-                @Nonnull Set<String> deleted,
-                @Nonnull Set<String> changed,
-                @Nonnull Map<String, String> properties,
-                @Nonnull CommitInfo commitInfo) {
-            this.added.put(path, newHashSet(added));
-            if (!properties.isEmpty()) {
-                this.properties.put(path, newHashMap(properties));
-            }
-        }
-
-        @Override
-        protected void deleted(
-                @Nonnull String path,
-                @Nonnull Set<String> added,
-                @Nonnull Set<String> deleted,
-                @Nonnull Set<String> changed,
-                @Nonnull Map<String, String> properties,
-                @Nonnull CommitInfo commitInfo) {
-            this.deleted.put(path, newHashSet(deleted));
-            if (!properties.isEmpty()) {
-                this.properties.put(path, newHashMap(properties));
-            }
-        }
-
-        @Override
-        protected void changed(
-                @Nonnull String path,
-                @Nonnull Set<String> added,
-                @Nonnull Set<String> deleted,
-                @Nonnull Set<String> changed,
-                @Nonnull Map<String, String> properties,
-                @Nonnull CommitInfo commitInfo) {
-            this.changed.put(path, newHashSet(changed));
-            if (!properties.isEmpty()) {
-                this.properties.put(path, newHashMap(properties));
-            }
-        }
-
-        public void reset(){
-            added.clear();
-            deleted.clear();
-            changed.clear();
-            properties.clear();
         }
     }
 }
