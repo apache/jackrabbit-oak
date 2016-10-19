@@ -76,6 +76,7 @@ public class Commit {
 
     /** Set of all nodes which have binary properties. **/
     private HashSet<String> nodesWithBinaries = Sets.newHashSet();
+    private HashSet<String> bundledNodes = Sets.newHashSet();
 
     /**
      * Create a new Commit.
@@ -141,6 +142,10 @@ public class Commit {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
         op.setMapEntry(key, revision, value);
+    }
+
+    void addBundledNode(String path) {
+        bundledNodes.add(path);
     }
 
     void markNodeHavingBinary(String path) {
@@ -375,6 +380,11 @@ public class Commit {
             String parentPath = PathUtils.getParentPath(path);
 
             if (processedParents.contains(parentPath)) {
+                continue;
+            }
+
+            //Ignore setting children path for bundled nodes
+            if (bundledNodes.contains(parentPath)){
                 continue;
             }
 

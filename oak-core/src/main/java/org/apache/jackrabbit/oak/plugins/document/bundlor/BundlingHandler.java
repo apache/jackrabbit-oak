@@ -60,6 +60,20 @@ public class BundlingHandler {
         return ctx.isBundling() ? ctx.getPropertyPath(propertyName) : propertyName;
     }
 
+    /**
+     * Returns true if and only if current node is bundled in another node
+     */
+    public boolean isBundledNode(){
+        return ctx.matcher.depth() > 0;
+    }
+
+    /**
+     * Returns absolute path of the current node
+     */
+    public String getNodeFullPath() {
+        return path;
+    }
+
     public Set<PropertyState> getMetaProps() {
         return metaProps;
     }
