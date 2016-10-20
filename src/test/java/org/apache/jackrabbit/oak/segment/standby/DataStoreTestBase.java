@@ -58,23 +58,6 @@ public abstract class DataStoreTestBase extends TestBase {
 
     abstract boolean storesShouldBeEqual();
 
-    protected FileStore setupFileDataStore(File d, String path, ScheduledExecutorService executor) throws Exception {
-        FileDataStore fds = new FileDataStore();
-        fds.setMinRecordLength(4092);
-        fds.init(path);
-        DataStoreBlobStore blobStore = new DataStoreBlobStore(fds);
-        return FileStoreBuilder.fileStoreBuilder(d)
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(1)
-                .withSegmentCacheSize(0)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withBlobStore(blobStore)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
-    }
-
     protected byte[] addTestContent(NodeStore store, String child, int size)
             throws CommitFailedException, IOException {
         NodeBuilder builder = store.getRoot().builder();
