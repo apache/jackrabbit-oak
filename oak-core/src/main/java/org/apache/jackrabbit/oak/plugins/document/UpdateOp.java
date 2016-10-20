@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class UpdateOp {
 
-    final String id;
+    private final String id;
 
     private boolean isNew;
     private boolean isDelete;
@@ -49,14 +49,14 @@ public final class UpdateOp {
      * @param id the primary key
      * @param isNew whether this is a new document
      */
-    public UpdateOp(String id, boolean isNew) {
+    public UpdateOp(@Nonnull String id, boolean isNew) {
         this(id, isNew, false, new HashMap<Key, Operation>(), null);
     }
 
     private UpdateOp(@Nonnull String id, boolean isNew, boolean isDelete,
                      @Nonnull Map<Key, Operation> changes,
                      @Nullable Map<Key, Condition> conditions) {
-        this.id = checkNotNull(id);
+        this.id = checkNotNull(id, "id must not be null");
         this.isNew = isNew;
         this.isDelete = isDelete;
         this.changes = checkNotNull(changes);
@@ -103,6 +103,7 @@ public final class UpdateOp {
                 new HashMap<Key, Operation>(changes), conditionMap);
     }
 
+    @Nonnull
     public String getId() {
         return id;
     }
@@ -339,6 +340,10 @@ public final class UpdateOp {
     }
 
     private void internalSet(String property, Object value) {
+        if (Document.ID.equals(property) && !id.equals(value.toString())) {
+            throw new IllegalArgumentException(
+                    "updateOp.id (" + id + ") and set operation on " + Document.ID + " (" + value + ") disagree");
+        }
         Operation op = new Operation(Operation.Type.SET, value);
         changes.put(new Key(property, null), op);
     }
