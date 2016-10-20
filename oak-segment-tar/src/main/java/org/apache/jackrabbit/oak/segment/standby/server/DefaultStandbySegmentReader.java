@@ -17,14 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.readSegmentWithRetry;
+
 import java.io.IOException;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,7 @@ class DefaultStandbySegmentReader implements StandbySegmentReader {
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
 
-        Segment segment = readSegment(store.newSegmentId(msb, lsb));
+        Segment segment = readSegmentWithRetry(store, store.newSegmentId(msb, lsb));
 
         if (segment == null) {
             return null;
@@ -58,25 +57,6 @@ class DefaultStandbySegmentReader implements StandbySegmentReader {
             log.warn("Error while reading segment content", e);
             return null;
         }
-    }
-
-    private Segment readSegment(SegmentId id) {
-        for (int i = 0; i < 10; i++) {
-            try {
-                return store.readSegment(id);
-            } catch (SegmentNotFoundException e) {
-                log.warn("Unable to read segment, waiting...", e);
-            }
-
-            try {
-                TimeUnit.MILLISECONDS.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            }
-        }
-
-        return null;
     }
 
 }
