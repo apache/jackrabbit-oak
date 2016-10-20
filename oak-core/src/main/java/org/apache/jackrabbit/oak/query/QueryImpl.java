@@ -979,6 +979,7 @@ public class QueryImpl implements Query {
         // current index is below the minimum cost of the next index.
         List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
                 .sortedCopy(indexProvider.getQueryIndexes(rootState));
+        List<OrderEntry> sortOrder = getSortOrder(filter); 
         for (int i = 0; i < queryIndexes.size(); i++) {
             QueryIndex index = queryIndexes.get(i);
             double minCost = index.getMinimumCost();
@@ -992,21 +993,6 @@ public class QueryImpl implements Query {
             IndexPlan indexPlan = null;
             if (index instanceof AdvancedQueryIndex) {
                 AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
-                List<OrderEntry> sortOrder = null;
-                if (orderings != null) {
-                    sortOrder = new ArrayList<OrderEntry>();
-                    for (OrderingImpl o : orderings) {
-                        DynamicOperandImpl op = o.getOperand();
-                        OrderEntry e = op.getOrderEntry(filter.getSelector(), o);
-                        if (e == null) {
-                            continue;
-                        }
-                        sortOrder.add(e);
-                    }
-                    if (sortOrder.size() == 0) {
-                        sortOrder = null;
-                    }
-                }
                 long maxEntryCount = limit;
                 if (offset > 0) {
                     if (offset + limit < 0) {
@@ -1081,6 +1067,25 @@ public class QueryImpl implements Query {
             }
         }
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex, bestPlan, bestCost);
+    }
+    
+    private List<OrderEntry> getSortOrder(FilterImpl filter) {
+        if (orderings == null) {
+            return null;
+        }
+        ArrayList<OrderEntry> sortOrder = new ArrayList<OrderEntry>();
+        for (OrderingImpl o : orderings) {
+            DynamicOperandImpl op = o.getOperand();
+            OrderEntry e = op.getOrderEntry(filter.getSelector(), o);
+            if (e == null) {
+                continue;
+            }
+            sortOrder.add(e);
+        }
+        if (sortOrder.size() == 0) {
+            return null;
+        }
+        return sortOrder;
     }
     
     private void logDebug(String msg) {
