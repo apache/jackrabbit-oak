@@ -202,7 +202,7 @@ public class ValueMapTest {
 
         String prevId2 = Utils.getPreviousIdFor("/", range2.high, 0);
         UpdateOp prevOp2 = new UpdateOp(prevId2, true);
-        prevOp1.set(Document.ID, prevId2);
+        prevOp2.set(Document.ID, prevId2);
         NodeDocument.setRevision(prevOp2, r1, "c");
         NodeDocument.setRevision(prevOp2, r2, "c");
         NodeDocument.setRevision(prevOp2, r4, "c");
