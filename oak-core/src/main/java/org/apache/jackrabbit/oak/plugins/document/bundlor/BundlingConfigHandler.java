@@ -46,10 +46,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class BundlingConfigHandler implements Observer, Closeable {
-    public static final String DOCUMENT_NODE_STORE = "documentstore";
+    public static final String DOCUMENT_NODE_STORE = "rep:documentStore";
     public static final String BUNDLOR = "bundlor";
 
-    public static final String CONFIG_PATH = "/jcr:system/documentstore/bundlor";
+    public static final String CONFIG_PATH = "/jcr:system/rep:documentStore/bundlor";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private NodeState root = EMPTY_NODE;
     private BackgroundObserver backgroundObserver;

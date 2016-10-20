@@ -64,6 +64,8 @@ import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.apache.jackrabbit.JcrConstants.NT_RESOURCE;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrAddNode;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_RESOURCE;
@@ -300,8 +302,6 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
     }
 
     private class BundlingConfigInitializer implements RepositoryInitializer {
-        private static final String DOCUMENT_NODE_STORE = "documentstore";
-        private static final String BUNDLOR = "bundlor";
 
         @Override
         public void initialize(@Nonnull NodeBuilder builder) {
