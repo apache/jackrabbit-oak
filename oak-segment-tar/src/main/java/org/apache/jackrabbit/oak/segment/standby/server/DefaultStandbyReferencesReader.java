@@ -18,14 +18,12 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.readSegmentWithRetry;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +34,7 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
 
     private final FileStore store;
 
-    public DefaultStandbyReferencesReader(FileStore store) {
+    DefaultStandbyReferencesReader(FileStore store) {
         this.store = store;
     }
 
@@ -47,7 +45,7 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
 
-        Segment segment = readSegment(store.newSegmentId(msb, lsb));
+        Segment segment = readSegmentWithRetry(store, store.newSegmentId(msb, lsb));
 
         if (segment == null) {
             return null;
@@ -60,28 +58,6 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
         }
 
         return references;
-    }
-
-    private Segment readSegment(SegmentId id) {
-
-        for (int i = 0; i < 10; i++) {
-            try {
-                return store.readSegment(id);
-            } catch (SegmentNotFoundException e) {
-                log.warn("Unable to read segment, waiting...", e);
-            }
-
-            try {
-                TimeUnit.MILLISECONDS.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            }
-        }
-
-        log.warn("Unable to read segment %s", id);
-
-        return null;
     }
 
 }
