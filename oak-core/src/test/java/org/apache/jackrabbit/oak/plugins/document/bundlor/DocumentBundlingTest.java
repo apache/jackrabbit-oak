@@ -57,6 +57,8 @@ import static java.lang.String.format;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLED_CHILD;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
@@ -93,7 +95,7 @@ public class DocumentBundlingTest {
                 .build();
 
         NodeBuilder builder = store.getRoot().builder();
-        builder.child("jcr:system").child("documentstore").setChildNode("bundlor", registryState);
+        builder.child("jcr:system").child(DOCUMENT_NODE_STORE).setChildNode(BUNDLOR, registryState);
         merge(builder);
     }
 
