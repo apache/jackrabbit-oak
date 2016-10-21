@@ -163,7 +163,9 @@ public class VersionableEditor extends DefaultEditor {
 
     private void setVersionablePath(String versionableUuid) {
         final NodeBuilder versionHistory = VersionHistoryUtil.getVersionHistoryBuilder(versionStorage, versionableUuid);
-        versionHistory.setProperty(provider.workspaceName, path, Type.PATH);
+        if (!versionHistory.hasProperty(provider.workspaceName)) {
+            versionHistory.setProperty(provider.workspaceName, path, Type.PATH);
+        }
         addMixin(versionHistory, MIX_REP_VERSIONABLE_PATHS);
     }
 
