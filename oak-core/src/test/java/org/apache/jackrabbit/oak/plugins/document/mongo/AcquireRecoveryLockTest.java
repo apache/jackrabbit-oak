@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,9 +38,19 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
 
     private Clock clock = new Clock.Virtual();
 
+    private MongoDocumentStore store;
+
     @Before
     public void before() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
+        store = new MongoDocumentStore(
+                connectionFactory.getConnection().getDB(),
+                new DocumentMK.Builder());
+    }
+
+    @After
+    public void after() {
+        store.dispose();
     }
 
     @Override
@@ -56,8 +67,6 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     // OAK-4131
     @Test
     public void recoveryBy() throws Exception {
-        MongoDocumentStore store = new MongoDocumentStore(
-                mongoConnection.getDB(), new DocumentMK.Builder());
         MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock());
         List<ClusterNodeInfoDocument> infoDocs = newArrayList(seeker.getAllClusters());
         assertEquals(1, infoDocs.size());
