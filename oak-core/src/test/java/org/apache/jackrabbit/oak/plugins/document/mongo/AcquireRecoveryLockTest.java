@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -30,11 +32,23 @@ import static org.junit.Assert.assertNotNull;
 
 public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
 
+    private MongoDocumentStore store;
+
+    @Before
+    public void before() throws Exception {
+        store = new MongoDocumentStore(
+                connectionFactory.getConnection().getDB(),
+                new DocumentMK.Builder());
+    }
+
+    @After
+    public void after() {
+        store.dispose();
+    }
+
     // OAK-4131
     @Test
     public void recoveryBy() throws Exception {
-        MongoDocumentStore store = new MongoDocumentStore(
-                mongoConnection.getDB(), new DocumentMK.Builder());
         MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store);
         List<ClusterNodeInfoDocument> infoDocs = newArrayList(seeker.getAllClusters());
         assertEquals(1, infoDocs.size());
