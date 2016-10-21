@@ -21,12 +21,15 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
 
+import aQute.bnd.annotation.ProviderType;
+
 /**
  * MBean for providing repository wide statistics.
  * This MBean exposes the time series provided by
  * {@link org.apache.jackrabbit.api.stats.RepositoryStatistics RepositoryStatistics}
  * through JMX as {@code CompositeData} of arrays.
  */
+@ProviderType
 public interface RepositoryStatsMBean {
     String TYPE = "RepositoryStats";
 
