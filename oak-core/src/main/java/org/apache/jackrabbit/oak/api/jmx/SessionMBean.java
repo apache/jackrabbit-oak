@@ -19,11 +19,13 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
+import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 
 /**
  * MBean providing basic {@code Session} information and statistics.
  */
+@ProviderType
 public interface SessionMBean {
     String TYPE = "SessionStatistics";
 

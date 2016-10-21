@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.TabularData;
 
+import aQute.bnd.annotation.ProviderType;
+
+@ProviderType
 public interface ConsolidatedCacheStatsMBean {
     String TYPE = "ConsolidatedCacheStats";
 

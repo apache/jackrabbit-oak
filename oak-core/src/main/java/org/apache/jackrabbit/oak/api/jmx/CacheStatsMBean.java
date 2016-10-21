@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.api.jmx;
 
+import aQute.bnd.annotation.ProviderType;
+
+@ProviderType
 public interface CacheStatsMBean {
     String TYPE = "CacheStats";
 

@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
+import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.oak.commons.jmx.Description;
 import org.apache.jackrabbit.oak.commons.jmx.Name;
 
@@ -76,6 +77,7 @@ import org.apache.jackrabbit.oak.commons.jmx.Name;
  * It is reported as a part of the status for clients to relate the
  * status to invocation. {@code -1} is returned when not available.
  */
+@ProviderType
 public interface RepositoryManagementMBean {
     String TYPE = "RepositoryManagement";
 
