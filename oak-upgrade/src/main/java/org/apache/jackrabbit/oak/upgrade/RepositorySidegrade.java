@@ -27,9 +27,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -53,12 +51,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.ImmutableSet.of;
+import static com.google.common.collect.Iterables.find;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.transform;
 import static com.google.common.collect.Sets.union;
+import static java.util.Arrays.asList;
 import static java.util.Collections.sort;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.Oak.DEFAULT_WORKSPACE_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
@@ -75,6 +81,8 @@ public class RepositorySidegrade {
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+
+    private static final String WORKSPACE_NAME = System.getProperty("oak.upgrade.workspaceName");
 
     /**
      * Target node store.
@@ -301,13 +309,13 @@ public class RepositorySidegrade {
             removeCheckpointReferences(targetRoot);
         }
 
-        if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-            copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), getVersionStorage(targetRoot), versionCopyConfiguration);
-        }
-
         final List<CommitHook> hooks = new ArrayList<CommitHook>();
-        hooks.add(new EditorHook(
-                new VersionableEditor.Provider(sourceRoot, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration)));
+        if (!versionCopyConfiguration.isCopyAll()) {
+            if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), getVersionStorage(targetRoot), versionCopyConfiguration);
+            }
+            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, getWorkspaceName(), versionCopyConfiguration)));
+        }
 
         if (customCommitHooks != null) {
             hooks.addAll(customCommitHooks);
@@ -331,7 +339,12 @@ public class RepositorySidegrade {
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
+        final Set<String> excludes;
+        if (versionCopyConfiguration.isCopyAll()) {
+            excludes = copyOf(this.excludePaths);
+        } else {
+            excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
+        }
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
         NodeStateCopier.builder()
@@ -420,5 +433,32 @@ public class RepositorySidegrade {
 
     private static NodeBuilder getCheckpoint(NodeBuilder superRoot, String name) {
         return superRoot.child("checkpoints").child(name);
+    }
+
+    private String getWorkspaceName() {
+        return find(asList(WORKSPACE_NAME, deriveWorkspaceName(), DEFAULT_WORKSPACE_NAME), notNull());
+    }
+
+    /**
+     * This method tries to derive the workspace name from the source repository. It uses the
+     * fact that the /jcr:system/rep:permissionStore usually contains just one child
+     * named after the workspace.
+     *
+     * @return the workspace name or null if it can't be derived
+     */
+    private String deriveWorkspaceName() {
+        NodeState permissionStore = source.getRoot().getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE);
+        List<String> nameCandidates = new ArrayList<String>();
+        for (ChildNodeEntry e : permissionStore.getChildNodeEntries()) {
+            String primaryType = e.getNodeState().getName(JCR_PRIMARYTYPE);
+            if (NT_REP_PERMISSION_STORE.equals(primaryType)) {
+                nameCandidates.add(e.getName());
+            }
+        }
+        if (nameCandidates.size() == 1) {
+            return nameCandidates.get(0);
+        } else {
+            return null;
+        }
     }
 }
