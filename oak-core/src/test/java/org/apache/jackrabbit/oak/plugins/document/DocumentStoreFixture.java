@@ -198,7 +198,6 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
-        private String uri = MongoUtils.URL;
         private List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
@@ -209,7 +208,7 @@ public abstract class DocumentStoreFixture {
         @Override
         public DocumentStore createDocumentStore(int clusterId) {
             try {
-                MongoConnection connection = new MongoConnection(uri);
+                MongoConnection connection = MongoUtils.getConnection();
                 connections.add(connection);
                 DB db = connection.getDB();
                 return new MongoDocumentStore(db, new DocumentMK.Builder().setClusterId(clusterId));
@@ -226,12 +225,7 @@ public abstract class DocumentStoreFixture {
         @Override
         public void dispose() {
             try {
-                MongoConnection connection = new MongoConnection(uri);
-                try {
-                    connection.getDB().dropDatabase();
-                } finally {
-                    connection.close();
-                }
+                MongoUtils.dropCollections(MongoUtils.DB);
             } catch (Exception ignore) {
             }
             for (MongoConnection c : connections) {
