@@ -196,6 +196,11 @@ public final class UpdateOp {
      *
      * @param property the property name
      * @param value the value
+     * @throws IllegalArgumentException
+     *             if an attempt is made to set {@link Document#ID} to a value
+     *             inconsistent with the id parameter set in the constructor
+     *             (note that setting the ID here is redundant and might be
+     *             rejected in future versions)
      */
     public void set(String property, String value) {
         internalSet(property, value);
