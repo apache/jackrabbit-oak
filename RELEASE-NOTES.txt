@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.8
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.9
 
 Introduction
 ------------
@@ -7,68 +7,49 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.8 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.9 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.8
+Changes in Oak 1.4.9
 ---------------------
 
 Technical task
 
-    [OAK-4257] - Findbug issues in security modules
-    [OAK-4539] - Calculate children cache entry on commit
-    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
-    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
+    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to
+    5.1.40
+    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to
+    9.4.1211
+    [OAK-4964] - UpdateOp.set("_id", ...) should do a sanity check on
+    the id
 
 Bug
 
-    [OAK-4048] - [regression] SyncHandler.listIdentities() returns all
-    users, not only external ones
-    [OAK-4174] - SegmentToJdbcTest failing with improvements of
-    OAK-4119
-    [OAK-4301] - Missing protection for system-maintained
-    rep:externalId
-    [OAK-4552] - Checkpoints.getOldestRevisionToKeep() returns newest
-    valid revision
-    [OAK-4568] - JournalEntry.applyTo() creates complete change tree
-    in memory
-    [OAK-4572] - Overflow to disk threshold too high
-    [OAK-4790] - Compilation error with JDK 6 in FileIOUtils
-    [OAK-4805] - Misconfigured lucene index definition can render the
-    whole system unusable
-    [OAK-4811] - MongoToMongoFbsTest fails
-    [OAK-4832] - Upgrade breaks if the SecurityManager section in
-    repository.xml is empty
-    [OAK-4840] - Incorrect branch commit value
-    [OAK-4845] - Regression: DefaultSyncContext does not sync
-    membership to a local group
+    [OAK-4082] - RDBDocumentStore on MySQL may fail when using
+    useServerPrepStmts=true
+    [OAK-4860] - Backport OAK-4301 and OAK-4825
+    [OAK-4879] - Proper implementation of getOrCreateReferenceKey in
+    CachingFDS
+    [OAK-4894] - Potential NPE in Commit.apply()
+    [OAK-4930] - External Principal Management: DynamicSyncContext
+    makes redundant calls to IdentityProvider.getIdentity()
+    [OAK-4931] - LdapIdentityProvider doesn't use configured custom
+    attributes for all searches
+    [OAK-4937] - JournalGC failing with RDB DocumentStore
 
 Improvement
 
-    [OAK-4043] - Oak run checkpoints needs to account for multiple
-    index lanes
-    [OAK-4528] - diff calculation in DocumentNodeStore should try to
-    re-use journal info on diff cache miss
-    [OAK-4553] - Retain journal entries for valid checkpoints
-    [OAK-4556] - Track branch on newBranchCommit()
-    [OAK-4715] - Reduce DocumentStore reads for local changes
-    [OAK-4819] - Improve revision GC resilience
-    [OAK-4826] - Auto removal of orphaned checkpoints
-    [OAK-4851] - Update httpclient to 4.3.6 in Oak 1.4- branches
+    [OAK-4674] - Log a message when asynchronous persistent cache is
+    enabled
+    [OAK-4825] - Support disabling of users instead of removal in
+    DefaultSyncHandler
 
-New Feature
+Test
 
-    [OAK-4712] - Publish S3DataStore stats in JMX MBean
-    [OAK-4850] - List checkpoints
-
-Task
-
-    [OAK-4791] - Enable animal sniffer plugin
-    [OAK-4821] - Allow use of Java 7 in Oak 1.4
+    [OAK-4976] - AcquireRecoveryLockTest fails occasionally
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
