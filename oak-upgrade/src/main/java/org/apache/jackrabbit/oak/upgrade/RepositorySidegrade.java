@@ -82,7 +82,7 @@ public class RepositorySidegrade {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
-    private static final String WORKSPACE_NAME = System.getProperty("oak.upgrade.workspaceName");
+    private static final String WORKSPACE_NAME_PROP = "oak.upgrade.workspaceName";
 
     /**
      * Target node store.
@@ -436,7 +436,7 @@ public class RepositorySidegrade {
     }
 
     private String getWorkspaceName() {
-        return find(asList(WORKSPACE_NAME, deriveWorkspaceName(), DEFAULT_WORKSPACE_NAME), notNull());
+        return find(asList(System.getProperty(WORKSPACE_NAME_PROP), deriveWorkspaceName(), DEFAULT_WORKSPACE_NAME), notNull());
     }
 
     /**
@@ -458,6 +458,7 @@ public class RepositorySidegrade {
         if (nameCandidates.size() == 1) {
             return nameCandidates.get(0);
         } else {
+            LOG.warn("Can't find the workspace name. '{}' will be used. It can be overriden with system property {}", DEFAULT_WORKSPACE_NAME, WORKSPACE_NAME_PROP);
             return null;
         }
     }
