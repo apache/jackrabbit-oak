@@ -307,11 +307,38 @@ public class UploadStagingCache implements Closeable {
                     result.setException(t);
                 }
             });
-            LOG.info("File [{}] scheduled for upload [{}]", upload, result);
+            LOG.debug("File [{}] scheduled for upload [{}]", upload, result);
         } catch (Exception e) {
             LOG.error("Error staging file for upload [{}]", upload, e);
         }
         return result;
+    }
+
+    /**
+     * Invalidate called externally.
+     * @param key
+     */
+    protected void invalidate(String key) {
+        // Check if not already scheduled for deletion
+        if (!attic.containsKey(key) && map.containsKey(key)) {
+            try {
+                LOG.debug("Invalidating [{}]", key);
+                File toBeDeleted = map.get(key);
+                deleteInternal(key, toBeDeleted);
+                map.remove(key, toBeDeleted);
+            } catch (IOException e) {
+                LOG.warn("Could not delete file from staging", e);
+            }
+        }
+    }
+
+    /**
+     * Returns all identifiers presently staged.
+     *
+     * @return iterator of all identifiers presently staged.
+     */
+    protected Iterator<String> getAllIdentifiers() {
+        return map.keySet().iterator();
     }
 
     /**
@@ -325,8 +352,15 @@ public class UploadStagingCache implements Closeable {
         while (iterator.hasNext()) {
             String key = iterator.next();
             try {
-                if (remove(key)) {
+                // Check if not already scheduled for upload
+                if (!map.containsKey(key)) {
+                    LOG.trace("upload map contains id [{}]", key);
+
+                    File toBeDeleted = attic.get(key);
+                    deleteInternal(key, toBeDeleted);
                     iterator.remove();
+
+                    LOG.debug("Cache [{}] file deleted for id [{}]", toBeDeleted, key);
                     count++;
                 }
             } catch (IOException e) {
@@ -334,33 +368,28 @@ public class UploadStagingCache implements Closeable {
             }
         }
 
-        LOG.info("Finished purge of [{}] files", count);
+        LOG.info("Finished removal of [{}] files", count);
     }
 
-    private boolean remove(String id) throws IOException {
-        LOG.trace("Removing upload file for id [{}]", id);
+    /**
+     * Adjust stats and delete file.
+     *
+     * @param key
+     * @param toBeDeleted
+     * @throws IOException
+     */
+    private void deleteInternal(String key, File toBeDeleted) throws IOException {
+        LOG.debug("Trying to delete file [{}]", toBeDeleted);
+        long length = toBeDeleted.length();
 
-        // Check if not already scheduled for upload
-        if (!map.containsKey(id)) {
-            LOG.trace("upload map contains id [{}]", id);
+        delete(toBeDeleted);
+        LOG.debug("deleted file [{}]", toBeDeleted);
 
-            File toBeDeleted = attic.get(id);
-            LOG.trace("Trying to delete file [{}]", toBeDeleted);
-            long length = toBeDeleted.length();
-
-            delete(toBeDeleted);
-            LOG.info("deleted file [{}]", toBeDeleted);
-
-            currentSize.addAndGet(-length);
-            // Update stats for removal
-            cacheStats.decrementSize(length);
-            cacheStats.decrementMemSize(memWeigher.weigh(id, toBeDeleted));
-            cacheStats.decrementCount();
-
-            LOG.info("Cache [{}] file deleted for id [{}]", toBeDeleted, id);
-            return true;
-        }
-        return false;
+        currentSize.addAndGet(-length);
+        // Update stats for removal
+        cacheStats.decrementSize(length);
+        cacheStats.decrementMemSize(memWeigher.weigh(key, toBeDeleted));
+        cacheStats.decrementCount();
     }
 
     /**
@@ -372,7 +401,7 @@ public class UploadStagingCache implements Closeable {
     private void delete(File f) throws IOException {
         if (f.exists()) {
             FileUtils.forceDelete(f);
-            LOG.debug("Deleted staged upload file [{}]", f);
+            LOG.info("Deleted staged upload file [{}]", f);
         }
 
         // delete empty parent folders (except the main directory)
@@ -507,7 +536,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
         }
 
         // Configure cache name
-        cacheName = "StagingCacheStats";
+        cacheName = "DataStore-StagingCache";
 
         this.maxWeight = maxWeight;
 

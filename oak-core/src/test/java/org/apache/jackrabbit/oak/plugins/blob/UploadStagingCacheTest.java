@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -30,6 +31,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
@@ -183,6 +185,26 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
+     * GetAllIdentifiers without adding.
+     * @throws Exception
+     */
+    @Test
+    public void testGetAllIdentifiersNoAdd() throws Exception {
+        Iterator<String> ids = stagingCache.getAllIdentifiers();
+        assertFalse(ids.hasNext());
+    }
+
+    /**
+     * Invalidate without adding.
+     * @throws Exception
+     */
+    @Test
+    public void testInvalidateNoAdd() throws Exception {
+        stagingCache.invalidate(ID_PREFIX + 0);
+        assertCacheStats(stagingCache, 0, 0, 0, 0);
+    }
+
+    /**
      * Error in putting file to stage.
      * @throws Exception
      */
@@ -259,6 +281,57 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFuture(futures, 1);
 
         assertCacheStats(stagingCache, 0, 0, 2, 3);
+    }
+
+    /**
+     * GetAllIdentifiers after staging before upload.
+     * @throws Exception
+     */
+    @Test
+    public void testGetAllIdentifiers() throws Exception {
+        // add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // Check getAllIdentifiers
+        Iterator<String> idsIter = stagingCache.getAllIdentifiers();
+        assertEquals(ID_PREFIX + 0, Iterators.getOnlyElement(idsIter));
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        assertFuture(futures, 0);
+
+        assertCacheStats(stagingCache, 0, 0, 1, 1);
+
+        // Should not return anything
+        idsIter = stagingCache.getAllIdentifiers();
+        assertEquals(0, Iterators.size(idsIter));
+    }
+
+    /**
+     * Invalidate after staging before upload.
+     * @throws Exception
+     */
+    @Test
+    public void testInvalidate() throws Exception {
+        // add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // Check invalidate
+        stagingCache.invalidate(ID_PREFIX + 0);
+        File file = stagingCache.getIfPresent(ID_PREFIX + 0);
+        assertNull(file);
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        waitFinish(futures);
+
+        assertCacheStats(stagingCache, 0, 0, 1, 1);
+
+        // Should not return anything
+        file = stagingCache.getIfPresent(ID_PREFIX + 0);
+        assertNull(file);
     }
 
     /**
