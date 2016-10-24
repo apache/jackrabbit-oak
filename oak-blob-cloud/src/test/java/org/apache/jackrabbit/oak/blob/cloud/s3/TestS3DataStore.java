@@ -23,9 +23,7 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,8 +59,6 @@ public class TestS3DataStore {
 
     private File dataStoreDir;
 
-    private String bucket;
-
     private DataStore ds;
 
     @Parameterized.Parameters(name = "{index}: ({0})")
@@ -75,17 +71,6 @@ public class TestS3DataStore {
         dataStoreDir = folder.newFolder();
         props = new Properties();
         startTime = new Date();
-    }
-
-    @After
-    public void tearDown() {
-        try {
-            if (ds != null && !Strings.isNullOrEmpty(bucket)) {
-                S3DataStoreUtils.deleteBucket(bucket, startTime);
-            }
-        } catch (Exception ignore) {
-
-        }
     }
 
     @Test
