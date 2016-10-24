@@ -73,11 +73,10 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
 
         long uploadSize = (size * uploadSplitPercentage)/100;
 
-        this.downloadCache =
-            new FileCache((size - uploadSize), directory, loader, null);
+        this.downloadCache = FileCache.build((size - uploadSize), directory, loader, null);
 
-        this.stagingCache =
-            new UploadStagingCache(directory, uploadThreads, uploadSize, uploader, downloadCache,
+        this.stagingCache = UploadStagingCache
+            .build(directory, uploadThreads, uploadSize, uploader, downloadCache,
                 statsProvider, executor, scheduledExecutor, purgeInterval);
     }
 

@@ -108,7 +108,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         //cache instance
         stagingCache =
-            new UploadStagingCache(root, 1/*threads*/, 8 * 1024 /* bytes */,
+            UploadStagingCache.build(root, 1/*threads*/, 8 * 1024 /* bytes */,
                 uploader, null/*cache*/, statsProvider, executor, null, 3000);
         closer.register(stagingCache);
     }
@@ -116,6 +116,22 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @After
     public void tear() throws IOException {
         closer.close();
+    }
+
+    @Test
+    public void testZeroCache() throws IOException {
+        stagingCache =
+            UploadStagingCache.build(root, 1/*threads*/, 0 /* bytes */,
+                uploader, null/*cache*/, statsProvider, executor, null, 3000);
+        closer.register(stagingCache);
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+        assertFalse(future.isPresent());
+
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
+        assertEquals(0, Iterators.size(stagingCache.getAllIdentifiers()));
+        assertEquals(0, stagingCache.getStats().getMaxTotalWeight());
     }
 
     /**
@@ -148,7 +164,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // initialize staging cache using the mocked uploader
         stagingCache =
-            new UploadStagingCache(root, 1/*threads*/, 4 * 1024 /* bytes */,
+            UploadStagingCache.build(root, 1/*threads*/, 4 * 1024 /* bytes */,
                 mockedDS, null/*cache*/, statsProvider, executor, null, 3000);
         closer.register(stagingCache);
 
@@ -255,7 +271,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     public void testCacheFullAdd() throws Exception {
         // initialize cache to have restricted size
         stagingCache =
-            new UploadStagingCache(root, 1/*threads*/, 4 * 1024 /* bytes */,
+            UploadStagingCache.build(root, 1/*threads*/, 4 * 1024 /* bytes */,
                 uploader, null/*cache*/, statsProvider, executor, null, 3000);
         closer.register(stagingCache);
 

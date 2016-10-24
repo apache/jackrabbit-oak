@@ -77,21 +77,20 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     /**
      * Convert the size calculation to KB to support max file size of 2 TB
      */
-    private final Weigher<String, File> weigher = new Weigher<String, File>() {
+    private static final Weigher<String, File> weigher = new Weigher<String, File>() {
         @Override public int weigh(String key, File value) {
             return Math.round(value.length() / (4 * 1024)); // convert to KB
         }};
 
     //Rough estimate of the in-memory key, value pair
-    private final Weigher<String, File> memWeigher = new Weigher<String, File>() {
+    private static final Weigher<String, File> memWeigher = new Weigher<String, File>() {
         @Override public int weigh(String key, File value) {
             return (StringUtils.estimateMemoryUsage(key) +
                 StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
         }};
 
-    public FileCache(long maxSize /** bytes **/, File root,
-        final CacheLoader<String, InputStream> loader,
-        @Nullable final ExecutorService executor) {
+    private FileCache(long maxSize /** bytes **/, File root,
+        final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
 
         this.cacheRoot = new File(root, "download");
 
@@ -148,6 +147,39 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             this.executor = executor;
         }
         this.executor.submit(new CacheBuildJob());
+    }
+
+    public static FileCache build(long maxSize /** bytes **/, File root,
+        final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
+        if (maxSize > 0) {
+            return new FileCache(maxSize, root, loader, executor);
+        }
+        return new FileCache(maxSize, root, loader, executor) {
+            @Override public void put(String key, File file) {
+            }
+
+            @Override public boolean containsKey(String key) {
+                return false;
+            }
+
+            @Nullable @Override public File getIfPresent(String key) {
+                return null;
+            }
+
+            @Override public File get(String key) throws IOException {
+                return null;
+            }
+
+            @Override public void invalidate(Object key) {
+            }
+
+            @Override public DataStoreCacheStatsMBean getStats() {
+                return new FileCacheStats(this, "DataStore-DownloadCache", weigher, memWeigher, 0);
+            }
+
+            @Override public void close() {
+            }
+        };
     }
 
     /**

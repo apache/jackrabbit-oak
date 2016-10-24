@@ -82,10 +82,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     @Before
     public void setup() throws Exception {
         root = folder.newFolder();
-        init(1);
+        init(1, 64 * 1024 * 1024, 10);
     }
 
-    private void init(int i) throws Exception {
+    private void init(int i, int cacheSize, int uploadSplit) throws Exception {
         // create executor
         taskLatch = new CountDownLatch(1);
         callbackLatch = new CountDownLatch(1);
@@ -109,9 +109,59 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
             }
         };
         dataStore.setStatisticsProvider(statsProvider);
+        dataStore.setCacheSize(cacheSize);
+        dataStore.setStagingSplitPercentage(uploadSplit);
         dataStore.listeningExecutor = executor;
         dataStore.schedulerExecutor = scheduledExecutor;
         dataStore.init(root.getAbsolutePath());
+    }
+
+    @Test
+    public void zeroCacheAddGetDelete() throws Exception {
+        dataStore.close();
+        init(1, 0, 0);
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        DataRecord rec = dataStore.addRecord(fin);
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+
+        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+
+        dataStore.deleteRecord(new DataIdentifier(id));
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNull(rec);
+    }
+
+    @Test
+    public void zeroStagingCacheAddGetDelete() throws Exception {
+        dataStore.close();
+        init(1, 64 * 1024 * 1024, 0);
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        DataRecord rec = dataStore.addRecord(fin);
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+
+        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+
+        dataStore.deleteRecord(new DataIdentifier(id));
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNull(rec);
     }
 
     /**
@@ -168,6 +218,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         DataRecord rec = dataStore.addRecord(fin);
         assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
 
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNotNull(rec);
@@ -229,16 +280,18 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     private String getIdForInputStream(File f)
         throws Exception {
-        FileInputStream in = new FileInputStream(f);
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        OutputStream output = new DigestOutputStream(new NullOutputStream(), digest);
+        FileInputStream in = null;
+        OutputStream output = null;
         try {
+            in = new FileInputStream(f);
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            output = new DigestOutputStream(new NullOutputStream(), digest);
             IOUtils.copyLarge(in, output);
+            return encodeHexString(digest.digest());
         } finally {
             IOUtils.closeQuietly(output);
             IOUtils.closeQuietly(in);
         }
-        return encodeHexString(digest.digest());
     }
 
     private void waitFinish() {

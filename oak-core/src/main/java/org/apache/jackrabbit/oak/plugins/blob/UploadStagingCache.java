@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.FutureCallback;
@@ -132,12 +133,10 @@ public class UploadStagingCache implements Closeable {
     @Nullable
     private final FileCache downloadCache;
 
-    public UploadStagingCache(File dir, int uploadThreads, long size /** bytes **/,
-        StagingUploader uploader,
-        @Nullable FileCache cache, StatisticsProvider statisticsProvider,
+    private UploadStagingCache(File dir, int uploadThreads, long size /** bytes **/,
+        StagingUploader uploader, @Nullable FileCache cache, StatisticsProvider statisticsProvider,
         @Nullable ListeningExecutorService executor,
-        @Nullable ScheduledExecutorService scheduledExecutor,
-        long purgeInterval /** secs **/) {
+        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /** secs **/) {
 
         this.currentSize = new AtomicLong();
         this.size = size;
@@ -163,6 +162,40 @@ public class UploadStagingCache implements Closeable {
 
         removeExecutor.scheduleAtFixedRate(new RemoveJob(), purgeInterval, purgeInterval,
             TimeUnit.SECONDS);
+    }
+
+    public static UploadStagingCache build(File dir, int uploadThreads, long size
+        /** bytes **/, StagingUploader uploader, @Nullable FileCache cache,
+        StatisticsProvider statisticsProvider, @Nullable ListeningExecutorService executor,
+        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /** secs **/) {
+        if (size > 0) {
+            return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
+                statisticsProvider, executor, scheduledExecutor, purgeInterval);
+        }
+        return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
+            statisticsProvider, executor, scheduledExecutor, purgeInterval) {
+            @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
+                return Optional.absent();
+            }
+
+            @Override protected void invalidate(String key) {
+            }
+
+            @Override protected Iterator<String> getAllIdentifiers() {
+                return Iterators.emptyIterator();
+            }
+
+            @Nullable @Override public File getIfPresent(String key) {
+                return null;
+            }
+
+            @Override public DataStoreCacheStatsMBean getStats() {
+                return new StagingCacheStats(this, StatisticsProvider.NOOP, 0);
+            }
+
+            @Override public void close() {
+            }
+        };
     }
 
     /**
@@ -278,7 +311,7 @@ public class UploadStagingCache implements Closeable {
                         // Add the uploaded file to the download cache if available
                         if (downloadCache != null) {
                             // Touch the file to update timestamp and record length
-                            FileUtils.touch(upload);
+                            Files.touch(upload);
                             long length = upload.length();
 
                             downloadCache.put(id, upload);

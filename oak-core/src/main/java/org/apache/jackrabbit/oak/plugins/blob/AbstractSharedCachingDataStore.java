@@ -34,13 +34,11 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.AbstractDataRecord;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
@@ -147,7 +145,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
         this.rootDirectory = new File(path);
         this.tmp = new File(rootDirectory, "tmp");
-        tmp.mkdirs();
+        LOG.trace("Temporary file created [{}]", tmp.mkdirs());
 
         this.backend = createBackend();
         backend.init();
@@ -219,20 +217,13 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             LOG.debug("SHA1 of [{}], length =[{}] took [{}]ms ",
                 new Object[] {identifier, length, watch.elapsed(TimeUnit.MILLISECONDS)});
 
-            File cachedFile;
             // asynchronously stage for upload if the size limit of staging cache permits
+            // otherwise add to backend
             if (!cache.stage(identifier.toString(), tmpFile)) {
                 backend.write(identifier, tmpFile);
-                // Update the last modified for the file if present in the download cache
-                cachedFile = cache.getIfPresent(identifier.toString());
-                if (cachedFile != null) {
-                    FileUtils.touch(cachedFile);
-                }
-            } else {
-                cachedFile = cache.getIfPresent(identifier.toString());
             }
 
-            return new FileCacheDataRecord(this, identifier, cachedFile.length(), cachedFile.lastModified());
+            return getRecordIfStored(identifier);
         } catch (Exception e) {
             LOG.error("Error in adding record");
             throw new DataStoreException("Error in adding record ", e);

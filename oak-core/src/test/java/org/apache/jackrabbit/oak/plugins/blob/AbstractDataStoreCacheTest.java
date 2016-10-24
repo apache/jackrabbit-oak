@@ -47,6 +47,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.AbstractDataRecord;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -227,7 +228,7 @@ public class AbstractDataStoreCacheTest {
 
     // A mock Backend implementation that uses a Map to keep track of what
     // records have been added and removed, for test purposes only.
-    class TestMemoryBackend implements SharedBackend {
+    static class TestMemoryBackend implements SharedBackend {
         final Map<DataIdentifier, File> _backend = Maps.newHashMap();
 
         @Override public InputStream read(DataIdentifier identifier) throws DataStoreException {
@@ -249,6 +250,27 @@ public class AbstractDataStoreCacheTest {
         }
 
         @Override public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
+            if (_backend.containsKey(id)) {
+                final File f = _backend.get(id);
+                return new AbstractDataRecord(null, id) {
+                    @Override public long getLength() throws DataStoreException {
+                        return f.length();
+                    }
+
+                    @Override public InputStream getStream() throws DataStoreException {
+                        try {
+                            return new FileInputStream(f);
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }
+
+                    @Override public long getLastModified() {
+                        return f.lastModified();
+                    }
+                };
+            }
             return null;
         }
 

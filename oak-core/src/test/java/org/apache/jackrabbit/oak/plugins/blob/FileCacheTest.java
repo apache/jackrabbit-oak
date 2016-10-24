@@ -79,7 +79,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
             TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
             beforeLatch.countDown();
             afterLatch.countDown();
-            cache = new FileCache(0/** MB */, root, loader, executor);
+            cache = FileCache.build(4 * 1024/** KB */, root, loader, executor);
             Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
 
             closer.register(cache);
@@ -89,6 +89,20 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     @After
     public void tear() {
         closeQuietly(closer);
+    }
+
+    @Test
+    public void zeroCache() throws Exception {
+        cache = FileCache.build(0/** KB */, root, loader, null);
+        closer.register(cache);
+        File f = createFile(0, loader, cache, folder);
+        cache.put(ID_PREFIX + 0, f);
+        assertNull(cache.getIfPresent(ID_PREFIX + 0));
+        assertNull(cache.get(ID_PREFIX + 0));
+        assertEquals(0, cache.getStats().getMaxTotalWeight());
+        cache.invalidate(ID_PREFIX + 0);
+        assertFalse(cache.containsKey(ID_PREFIX + 0));
+        cache.close();
     }
 
     /**
@@ -349,7 +363,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
         beforeLatch.countDown();
         afterLatch.countDown();
-        cache = new FileCache(4 * 1024/* bytes */, root, loader, executor);
+        cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
 
         afterExecuteLatch.await();
         Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
@@ -366,7 +380,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
         beforeLatch.countDown();
         afterLatch.countDown();
-        cache = new FileCache(4 * 1024/* bytes */, root, loader, executor);
+        cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
         closer.register(cache);
         afterExecuteLatch.await();
         Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
