@@ -35,6 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +47,10 @@ public class DataStoreUtils {
     private static final Logger log = LoggerFactory.getLogger(DataStoreUtils.class);
 
     private static Class JR2_S3 = SharedS3DataStore.class;
+    private static Class S3 = S3DataStore.class;
 
     public static boolean isS3DataStore(String dsName) {
-        return (dsName != null) && (dsName.equals(JR2_S3.getName()));
+        return (dsName != null) && (dsName.equals(S3.getName()) || dsName.equals(JR2_S3.getName()));
     }
 
     public static DataStore configureIfS3DataStore(String className, DataStore ds,
@@ -59,6 +61,9 @@ public class DataStoreUtils {
         props.setProperty(S3Constants.S3_BUCKET, bucket);
 
         // Set the props object
+        if (S3.getName().equals(className)) {
+            ((S3DataStore) ds).setProperties(props);
+        } else
         if (JR2_S3.getName().equals(className)) {
             ((org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore) ds).setProperties(props);
         }
