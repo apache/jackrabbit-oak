@@ -64,7 +64,7 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
         final StagingUploader uploader, StatisticsProvider statsProvider,
         ListeningExecutorService executor,
         ScheduledExecutorService scheduledExecutor /* purge scheduled executor */,
-        long purgeInterval /* async purge interval */) {
+        long purgeInterval /* async purge interval secs */) {
 
         checkArgument(uploadSplitPercentage >= 0 && uploadSplitPercentage < 100,
             "Upload percentage should be between 0 and 100");

@@ -67,9 +67,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
  * The appropriate backend for this cache are wrapped in {@link StagingUploader}
  * implementations.
  * <p>
- * Stats:
- * - Status for a particular upload
- * - Upload time
  */
 public class UploadStagingCache implements Closeable {
     /**
@@ -140,7 +137,7 @@ public class UploadStagingCache implements Closeable {
         @Nullable FileCache cache, StatisticsProvider statisticsProvider,
         @Nullable ListeningExecutorService executor,
         @Nullable ScheduledExecutorService scheduledExecutor,
-        long removalPeriod) {
+        long purgeInterval /** secs **/) {
 
         this.currentSize = new AtomicLong();
         this.size = size;
@@ -164,7 +161,7 @@ public class UploadStagingCache implements Closeable {
 
         build();
 
-        removeExecutor.scheduleAtFixedRate(new RemoveJob(), removalPeriod, removalPeriod,
+        removeExecutor.scheduleAtFixedRate(new RemoveJob(), purgeInterval, purgeInterval,
             TimeUnit.SECONDS);
     }
 
