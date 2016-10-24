@@ -110,6 +110,27 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         closer.close();
     }
 
+    @Test
+    public void zeroCache() throws IOException {
+        cache = new CompositeDataStoreCache(root.getAbsolutePath(),
+            0 /* bytes */, 10, 1/*threads*/, loader,
+            uploader, statsProvider, executor, scheduledExecutor, 3000);
+        closer.register(cache);
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        boolean accepted = cache.stage(ID_PREFIX + 0, f);
+        assertFalse(accepted);
+        assertNull(cache.getIfPresent(ID_PREFIX + 0));
+        assertNull(cache.get(ID_PREFIX + 0));
+
+        assertEquals(0, cache.getStagingCache().getStats().getMaxTotalWeight());
+        assertEquals(0, cache.getStagingCacheStats().getMaxTotalWeight());
+        assertEquals(0,cache.getDownloadCache().getStats().getMaxTotalWeight());
+        assertEquals(0,cache.getCacheStats().getMaxTotalWeight());
+        cache.invalidate(ID_PREFIX + 0);
+        cache.close();
+    }
+
     /**
      * {@link CompositeDataStoreCache#getIfPresent(String)} when no cache.
      */
