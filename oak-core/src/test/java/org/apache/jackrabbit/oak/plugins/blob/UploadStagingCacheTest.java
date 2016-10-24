@@ -1,0 +1,519 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.blob;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.common.io.Closer;
+import com.google.common.io.Files;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.mockito.Matchers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+
+/**
+ * Tests for {@link UploadStagingCache}.
+ */
+public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
+    private static final Logger LOG = LoggerFactory.getLogger(UploadStagingCacheTest.class);
+    private static final String ID_PREFIX = "12345";
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    private final Closer closer = Closer.create();
+    private TestStagingUploader uploader;
+    private File root;
+    private CountDownLatch taskLatch;
+    private CountDownLatch callbackLatch;
+    private CountDownLatch afterExecuteLatch;
+    private TestExecutor executor;
+    private UploadStagingCache stagingCache;
+    private StatisticsProvider statsProvider;
+    private ScheduledExecutorService removeExecutor;
+
+    @Before
+    public void setup() throws IOException {
+        root = folder.newFolder();
+        init();
+    }
+
+    private void init() {
+        // uploader
+        uploader = new TestStagingUploader(root);
+
+        // create executor
+        taskLatch = new CountDownLatch(1);
+        callbackLatch = new CountDownLatch(1);
+        afterExecuteLatch = new CountDownLatch(1);
+        executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
+
+        // stats
+        ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
+        closer.register(new ExecutorCloser(statsExecutor, 500, TimeUnit.MILLISECONDS));
+        statsProvider = new DefaultStatisticsProvider(statsExecutor);
+
+        removeExecutor = Executors.newSingleThreadScheduledExecutor();
+        closer.register(new ExecutorCloser(removeExecutor, 500, TimeUnit.MILLISECONDS));
+
+        //cache instance
+        stagingCache =
+            new UploadStagingCache(root, 1/*threads*/, 8 * 1024 /* bytes */,
+                uploader, null/*cache*/, statsProvider, executor, null, 3000);
+        closer.register(stagingCache);
+    }
+
+    @After
+    public void tear() throws IOException {
+        closer.close();
+    }
+
+    /**
+     *  Stage file successful upload.
+     * @throws Exception
+     */
+    @Test
+    public void testAdd() throws Exception {
+        // add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+
+        assertFuture(futures, 0);
+        assertCacheStats(stagingCache, 0, 0, 1, 1);
+    }
+
+    /**
+     * Stage file unsuccessful upload.
+     * @throws Exception
+     */
+    @Test
+    public void testAddUploadException() throws Exception {
+        // Mock uploader to throw exception on write
+        final TestStagingUploader mockedDS = mock(TestStagingUploader.class);
+        doThrow(new DataStoreException("Error in writing blob")).when(mockedDS)
+            .write(Matchers.any(String.class), Matchers.any(File.class));
+
+        // initialize staging cache using the mocked uploader
+        stagingCache =
+            new UploadStagingCache(root, 1/*threads*/, 4 * 1024 /* bytes */,
+                mockedDS, null/*cache*/, statsProvider, executor, null, 3000);
+        closer.register(stagingCache);
+
+        // Add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+
+        waitFinish(futures);
+
+        // assert file retrieved from staging cache
+        File ret = stagingCache.getIfPresent(ID_PREFIX + 0);
+        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), ret));
+
+        assertEquals(1, stagingCache.getStats().getLoadCount());
+        assertEquals(1, stagingCache.getStats().getLoadSuccessCount());
+        assertCacheStats(stagingCache, 1, 4 * 1024, 1, 1);
+    }
+
+    /**
+     * Retrieve without adding.
+     * @throws Exception
+     */
+    @Test
+    public void testGetNoAdd() throws Exception {
+        File ret = stagingCache.getIfPresent(ID_PREFIX + 0);
+
+        // assert no file
+        assertNull(ret);
+        assertEquals(1, stagingCache.getStats().getLoadCount());
+        assertCacheStats(stagingCache, 0, 0, 0, 0);
+    }
+
+    /**
+     * Error in putting file to stage.
+     * @throws Exception
+     */
+    @Test
+    public void testPutMoveFileError() throws Exception {
+        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, new File("empty"));
+        // assert no file
+        assertFalse(future.isPresent());
+        assertEquals(1, stagingCache.getStats().getMissCount());
+        assertCacheStats(stagingCache, 0, 0, 0, 1);
+    }
+
+    /**
+     * Put and retrieve different files concurrently.
+     * @throws Exception
+     */
+    @Test
+    public void testGetAddDifferent() throws Exception {
+        //add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // Create an async retrieve task
+        final SettableFuture<File> retFuture = SettableFuture.create();
+        Thread t = new Thread(new Runnable() {
+            @Override public void run() {
+                retFuture.set(stagingCache.getIfPresent(ID_PREFIX + 1));
+            }
+        });
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        t.start();
+
+        //assert no file retrieve
+        assertNull(retFuture.get());
+        assertEquals(1, stagingCache.getStats().getLoadCount());
+
+        assertFuture(futures, 0);
+        assertCacheStats(stagingCache, 0, 0, 1, 1);
+    }
+
+    /**
+     * Stage file when cache full.
+     * @throws Exception
+     */
+    @Test
+    public void testCacheFullAdd() throws Exception {
+        // initialize cache to have restricted size
+        stagingCache =
+            new UploadStagingCache(root, 1/*threads*/, 4 * 1024 /* bytes */,
+                uploader, null/*cache*/, statsProvider, executor, null, 3000);
+        closer.register(stagingCache);
+
+        // add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // Add another load
+        File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+        Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
+        assertFalse(future2.isPresent());
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        assertFuture(futures, 0);
+
+        // Try 2nd upload again
+        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
+        futures = Lists.newArrayList();
+        if (future.isPresent()) {
+            futures.add(future.get());
+        }
+        assertFuture(futures, 1);
+
+        assertCacheStats(stagingCache, 0, 0, 2, 3);
+    }
+
+    /**
+     * Stage same file concurrently.
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentSameAdd() throws Exception {
+        // Add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 0, f);
+        assertFalse(future2.isPresent());
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        assertFuture(futures, 0);
+
+        assertCacheStats(stagingCache, 0, 0, 1, 2);
+    }
+
+    /**
+     * Stage different files concurrently
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentDifferentAdd() throws Exception {
+        // Add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // Add diff load
+        File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+        Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
+        if (future2.isPresent()) {
+            futures.add(future2.get());
+        }
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        assertFuture(futures, 0, 1);
+
+        assertCacheStats(stagingCache, 0, 0, 2, 2);
+    }
+
+    /**
+     * Concurrently retrieve after stage but before upload.
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentGetDelete() throws Exception {
+        ListeningExecutorService executorService =
+            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        closer.register(new ExecutorCloser(executorService));
+
+        // Add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // Get a handle to the file and open stream
+        File file = stagingCache.getIfPresent(ID_PREFIX + 0);
+        final FileInputStream fStream = Files.newInputStreamSupplier(file).getInput();
+
+        // task to copy the steam to a file simulating read from the stream
+        File temp = folder.newFile();
+        CountDownLatch copyThreadLatch = new CountDownLatch(1);
+        SettableFuture<File> future1 =
+            copyStreamThread(executorService, fStream, temp, copyThreadLatch);
+
+        //start
+        taskLatch.countDown();
+        callbackLatch.countDown();
+
+        waitFinish(futures);
+
+        // trying copying now
+        copyThreadLatch.countDown();
+        future1.get();
+
+        assertTrue(Files.equal(temp, uploader.read(ID_PREFIX + 0)));
+    }
+
+    /**
+     * Concurrently stage and trigger delete after upload for same file.
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentPutDeleteSame() throws Exception {
+        testConcurrentPutDelete(0);
+    }
+
+    /**
+     * Concurrently stage and trigger delete after upload for different file.
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentPutDeleteDifferent() throws Exception {
+        testConcurrentPutDelete(1);
+    }
+
+    private void testConcurrentPutDelete(int diff) throws Exception {
+        ListeningExecutorService executorService =
+            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        closer.register(new ExecutorCloser(executorService));
+        //start immediately
+        taskLatch.countDown();
+
+        // Add immediately
+        List<ListenableFuture<Integer>> futures = put(folder);
+
+        // New task to put another file
+        File f2 = copyToFile(randomStream(diff, 4 * 1024), folder.newFile());
+        CountDownLatch putThreadLatch = new CountDownLatch(1);
+        CountDownLatch triggerLatch = new CountDownLatch(1);
+        SettableFuture<Optional<SettableFuture<Integer>>> future1 =
+            putThread(executorService, diff, f2, stagingCache, putThreadLatch, triggerLatch);
+        putThreadLatch.countDown();
+
+        // wait for put thread to go ahead
+        callbackLatch.countDown();
+        ScheduledFuture<?> scheduledFuture =
+            removeExecutor.schedule(stagingCache.new RemoveJob(), 0, TimeUnit.MILLISECONDS);
+        triggerLatch.await();
+        if (future1.get().isPresent()) {
+            futures.add(future1.get().get());
+        }
+
+        ListenableFuture<List<Integer>> listListenableFuture = Futures.successfulAsList(futures);
+        try {
+            listListenableFuture.get();
+            scheduledFuture.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 0)));
+        assertTrue(Files.equal(copyToFile(randomStream(diff, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + diff)));
+    }
+
+    /**
+     * Test build on start.
+     * @throws Exception
+     */
+    @Test
+    public void testBuild() throws Exception {
+        // Add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+        // Close before uploading finished
+        closer.close();
+
+        // Start again
+        init();
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        afterExecuteLatch.await();
+
+        waitFinish(futures);
+
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
+        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 0)));
+        assertCacheStats(stagingCache, 0, 0, 1, 1);
+    }
+
+    /** -------------------- Helper methods ----------------------------------------------------**/
+
+    private static SettableFuture<File> copyStreamThread(ListeningExecutorService executor,
+        final InputStream fStream, final File temp, final CountDownLatch start) {
+        final SettableFuture<File> future = SettableFuture.create();
+        executor.submit(new Runnable() {
+            @Override public void run() {
+                try {
+                    LOG.info("Waiting for start of copying");
+                    start.await();
+                    LOG.info("Starting copy of [{}]", temp);
+                    FileUtils.copyInputStreamToFile(fStream, temp);
+                    LOG.info("Finished retrieve");
+                    future.set(temp);
+                } catch (Exception e) {
+                    LOG.info("Exception in get", e);
+                }
+            }
+        });
+        return future;
+    }
+
+    private static SettableFuture<Optional<SettableFuture<Integer>>> putThread(
+        ListeningExecutorService executor, final int seed, final File f, final UploadStagingCache cache,
+        final CountDownLatch start, final CountDownLatch trigger) {
+        final SettableFuture<Optional<SettableFuture<Integer>>> future = SettableFuture.create();
+        executor.submit(new Runnable() {
+            @Override public void run() {
+                try {
+                    LOG.info("Waiting for start to put");
+                    start.await();
+                    LOG.info("Starting put");
+                    trigger.countDown();
+                    Optional<SettableFuture<Integer>> opt = cache.put(ID_PREFIX + seed, f);
+                    LOG.info("Finished put");
+                    future.set(opt);
+                } catch (Exception e) {
+                    LOG.info("Exception in get", e);
+                }
+            }
+        });
+        return future;
+    }
+
+    private void waitFinish(List<ListenableFuture<Integer>> futures) {
+        ListenableFuture<List<Integer>> listListenableFuture = Futures.successfulAsList(futures);
+        try {
+            listListenableFuture.get();
+            ScheduledFuture<?> scheduledFuture =
+                removeExecutor.schedule(stagingCache.new RemoveJob(), 0, TimeUnit.MILLISECONDS);
+            scheduledFuture.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<ListenableFuture<Integer>> put(TemporaryFolder folder)
+        throws IOException {
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        if (future.isPresent()) {
+            futures.add(future.get());
+        }
+        return futures;
+    }
+
+    private void assertFuture(List<ListenableFuture<Integer>> futures, int... seeds)
+        throws Exception {
+        waitFinish(futures);
+
+        for (int i = 0; i < seeds.length; i++) {
+            File upload = uploader.read(ID_PREFIX + seeds[i]);
+            assertFile(upload, seeds[i], folder);
+        }
+    }
+
+    private void assertFile(File f, int seed, TemporaryFolder folder) throws IOException {
+        assertTrue(f.exists());
+        File temp = copyToFile(randomStream(seed, 4 * 1024), folder.newFile());
+        assertTrue("Uploaded file content differs", FileUtils.contentEquals(temp, f));
+    }
+
+    private static void assertCacheStats(UploadStagingCache cache, long elems, long weight,
+        long hits, long count) {
+        assertEquals(elems, cache.getStats().getElementCount());
+        assertEquals(weight, cache.getStats().estimateCurrentWeight());
+        assertEquals(hits, cache.getStats().getHitCount());
+        assertEquals(count, cache.getStats().getRequestCount());
+    }
+}
