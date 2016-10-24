@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -48,7 +47,6 @@ import org.osgi.framework.ServiceRegistration;
 /**
  * Tests the registration of the S3DataStoreStatsMbean.
  */
-@Ignore("OAK-4921")  // FIXME OAK-4921: SegmentS3DataStoreStatsTest failing
 public class SegmentS3DataStoreStatsTest {
 
     @Rule

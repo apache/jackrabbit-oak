@@ -34,9 +34,9 @@ import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.tool.Backup;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
@@ -239,7 +239,7 @@ final class SegmentTarUtils {
         return fileStoreBuilder(new File(path)).build();
     }
 
-    private static ReadOnlyStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
+    private static ReadOnlyFileStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
@@ -261,7 +261,7 @@ final class SegmentTarUtils {
         if (!directory.exists()) {
             return directory;
         }
-        FileStore store = openReadOnlyFileStore(directory);
+        ReadOnlyFileStore store = openReadOnlyFileStore(directory);
         try {
             SegmentVersion segmentVersion = getSegmentVersion(store);
             if (segmentVersion != LATEST_VERSION) {
@@ -277,7 +277,7 @@ final class SegmentTarUtils {
         return directory;
     }
 
-    private static SegmentVersion getSegmentVersion(FileStore fileStore) {
+    private static SegmentVersion getSegmentVersion(ReadOnlyFileStore fileStore) {
         return fileStore.getRevisions().getHead().getSegment().getSegmentVersion();
     }
 

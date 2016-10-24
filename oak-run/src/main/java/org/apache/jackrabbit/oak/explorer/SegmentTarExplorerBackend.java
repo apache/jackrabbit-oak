@@ -43,16 +43,16 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SegmentTarExplorerBackend implements ExplorerBackend {
 
     private final File path;
 
-    private FileStore.ReadOnlyStore store;
+    private ReadOnlyFileStore store;
 
     private Map<String, Set<UUID>> index;
 

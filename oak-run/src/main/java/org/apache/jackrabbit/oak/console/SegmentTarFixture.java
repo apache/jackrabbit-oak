@@ -24,9 +24,11 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.AbstractFileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -39,26 +41,30 @@ class SegmentTarFixture implements NodeStoreFixture {
             builder.withBlobStore(blobStore);
         }
 
-        FileStore store;
-
         try {
             if (readOnly) {
+                ReadOnlyFileStore store;
                 store = builder.buildReadOnly();
+                return new SegmentTarFixture(store);
             } else {
-                store = builder.build();
+                FileStore store = builder.build();
+                return new SegmentTarFixture(builder.build());
             }
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
         }
-
-        return new SegmentTarFixture(store);
     }
 
-    private final FileStore fileStore;
+    private final AbstractFileStore fileStore;
 
     private final SegmentNodeStore segmentNodeStore;
 
     private SegmentTarFixture(FileStore fileStore) {
+        this.fileStore = fileStore;
+        this.segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+    }
+
+    private SegmentTarFixture(ReadOnlyFileStore fileStore) {
         this.fileStore = fileStore;
         this.segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
     }
