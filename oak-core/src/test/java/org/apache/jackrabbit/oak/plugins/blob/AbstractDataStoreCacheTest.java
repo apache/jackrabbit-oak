@@ -21,9 +21,12 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -37,14 +40,18 @@ import javax.annotation.Nullable;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.AbstractListeningExecutorService;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,9 +135,9 @@ public class AbstractDataStoreCacheTest {
 
         @Override protected void afterExecute(Runnable r, Throwable t) {
             try {
-                LOG.trace("After execution....waiting for latch");
+                LOG.trace("After execution....counting down latch");
                 afterLatch.countDown();
-                LOG.trace("After execution....after acquiring latch");
+                LOG.trace("After execution....after counting down latch");
                 super.afterExecute(r, t);
                 LOG.trace("Completed afterExecute");
             } catch (Exception e) {
@@ -215,6 +222,81 @@ public class AbstractDataStoreCacheTest {
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    // A mock Backend implementation that uses a Map to keep track of what
+    // records have been added and removed, for test purposes only.
+    class TestMemoryBackend implements SharedBackend {
+        final Map<DataIdentifier, File> _backend = Maps.newHashMap();
+
+        @Override public InputStream read(DataIdentifier identifier) throws DataStoreException {
+            try {
+                return new FileInputStream(_backend.get(identifier));
+            } catch (FileNotFoundException e) {
+                throw new DataStoreException(e);
+            }
+        }
+
+        @Override public void write(DataIdentifier identifier, File file)
+            throws DataStoreException {
+            if (file != null && file.exists()) {
+                _backend.put(identifier, file);
+            } else {
+                throw new DataStoreException(
+                    String.format("file %s of id %s", new Object[] {file, identifier.toString()}));
+            }
+        }
+
+        @Override public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
+            return null;
+        }
+
+        @Override public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
+            return _backend.keySet().iterator();
+        }
+
+        @Override public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+            return null;
+        }
+
+        @Override public boolean exists(DataIdentifier identifier) throws DataStoreException {
+            return _backend.containsKey(identifier);
+        }
+
+        @Override public void close() throws DataStoreException {
+        }
+
+        @Override public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+            if (_backend.containsKey(identifier)) {
+                _backend.remove(identifier);
+            }
+        }
+
+        @Override public void addMetadataRecord(InputStream input, String name)
+            throws DataStoreException {
+        }
+
+        @Override public void addMetadataRecord(File input, String name) throws DataStoreException {
+        }
+
+        @Override public DataRecord getMetadataRecord(String name) {
+            return null;
+        }
+
+        @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
+            return null;
+        }
+
+        @Override public boolean deleteMetadataRecord(String name) {
+            return false;
+        }
+
+        @Override public void deleteAllMetadataRecords(String prefix) {
+        }
+
+        @Override public void init() throws DataStoreException {
+
         }
     }
 
