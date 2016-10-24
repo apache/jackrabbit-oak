@@ -436,7 +436,7 @@ public class RecordTest {
         NodeBuilder builder = EMPTY_NODE.builder();
         SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                 store,
-                store.getTracker(),
+                store.getTracker().getSegmentCounter(),
                 store.getReader(),
                 "test",
                 0

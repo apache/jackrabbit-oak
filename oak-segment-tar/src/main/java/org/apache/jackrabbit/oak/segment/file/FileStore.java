@@ -838,7 +838,8 @@ public class FileStore extends AbstractFileStore {
 
                 SegmentNodeState before = getHead();
                 final int newGeneration = getGcGeneration() + 1;
-                SegmentBufferWriter bufferWriter = new SegmentBufferWriter(FileStore.this, tracker, segmentReader, "c", newGeneration);
+                SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
+                        FileStore.this, tracker.getSegmentCounter(), segmentReader, "c", newGeneration);
                 Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
                 SegmentNodeState after = compact(bufferWriter, before, cancel);
                 if (after == null) {

@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.segment.compaction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.IOException;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
