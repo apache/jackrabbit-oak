@@ -110,13 +110,13 @@ public class TestS3Ds extends AbstractDataStoreTest {
     /**----------Only run with org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore-----------**/
     @Override
     public void testUpdateLastModifiedOnAccess() {
-        Assume.assumeThat(s3Class, new Equals(fixtures().get(0)));
+        Assume.assumeThat(s3Class, new Equals(fixtures().get(1)));
         super.testUpdateLastModifiedOnAccess();
     }
 
     @Override
     public void testDeleteAllOlderThan() {
-        Assume.assumeThat(s3Class, new Equals(fixtures().get(0)));
+        Assume.assumeThat(s3Class, new Equals(fixtures().get(1)));
         super.testDeleteAllOlderThan();
     }
 }
