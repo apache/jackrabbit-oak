@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -51,6 +52,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -58,7 +60,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
+import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +71,7 @@ import static java.lang.Thread.currentThread;
 /**
  * A data store backend that stores data on Amazon S3.
  */
-public class S3Backend implements SharedBackend {
+public class S3Backend extends AbstractSharedBackend {
 
     /**
      * Logger instance.
@@ -82,6 +85,8 @@ public class S3Backend implements SharedBackend {
     private AmazonS3Client s3service;
 
     private String bucket;
+
+    private String secret;
 
     private TransferManager tmx;
 
@@ -105,9 +110,9 @@ public class S3Backend implements SharedBackend {
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
             }
-
+            secret = properties.getProperty("secret");
             String region = properties.getProperty(S3Constants.S3_REGION);
-            Region s3Region = null;
+            Region s3Region;
             if (StringUtils.isNullOrEmpty(region)) {
                 com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
                 if (ec2Region != null) {
@@ -232,9 +237,8 @@ public class S3Backend implements SharedBackend {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
-        LOG.debug(
-            "write of [{}], length=[{}], in [{}]ms",
-            new Object[] { identifier, file.length(), (System.currentTimeMillis() - start) });
+        LOG.debug("write of [{}], length=[{}], in [{}]ms",
+            identifier, file.length(), (System.currentTimeMillis() - start));
     }
 
     /**
@@ -400,7 +404,7 @@ public class S3Backend implements SharedBackend {
             Thread.currentThread().setContextClassLoader(
                 getClass().getClassLoader());
             ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
-            return new S3DataRecord(s3service, bucket, name,
+            return new S3DataRecord(this, s3service, bucket, new DataIdentifier(name),
                 meta.getLastModified().getTime(), meta.getContentLength(), true);
         } finally {
             if (contextClassLoader != null) {
@@ -420,7 +424,8 @@ public class S3Backend implements SharedBackend {
                 new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
             ObjectListing prevObjectListing = s3service.listObjects(listObjectsRequest);
             for (final S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                metadataList.add(new S3DataRecord(s3service, bucket, stripMetaKeyPrefix(s3ObjSumm.getKey()),
+                metadataList.add(new S3DataRecord(this, s3service, bucket,
+                    new DataIdentifier(stripMetaKeyPrefix(s3ObjSumm.getKey())),
                     s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), true));
             }
         } finally {
@@ -463,7 +468,7 @@ public class S3Backend implements SharedBackend {
             if (deleteList.size() > 0) {
                 DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
                 delObjsReq.setKeys(deleteList);
-                DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
+                s3service.deleteObjects(delObjsReq);
             }
         } finally {
             if (contextClassLoader != null) {
@@ -474,11 +479,13 @@ public class S3Backend implements SharedBackend {
 
     @Override
     public Iterator<DataRecord> getAllRecords() {
+        final AbstractSharedBackend backend = this;
         return new RecordsIterator<DataRecord>(
             new Function<S3ObjectSummary, DataRecord>() {
                 @Override
                 public DataRecord apply(S3ObjectSummary input) {
-                    return new S3DataRecord(s3service, bucket, getIdentifierName(input.getKey()),
+                    return new S3DataRecord(backend, s3service, bucket,
+                        new DataIdentifier(getIdentifierName(input.getKey())),
                         input.getLastModified().getTime(), input.getSize());
                 }
             });
@@ -493,10 +500,10 @@ public class S3Backend implements SharedBackend {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
             ObjectMetadata object = s3service.getObjectMetadata(bucket, key);
-            S3DataRecord record = new S3DataRecord(s3service, bucket, identifier.toString(),
+            S3DataRecord record = new S3DataRecord(this, s3service, bucket, identifier,
                 object.getLastModified().getTime(), object.getContentLength());
             LOG.debug("Identifier [{}]'s getRecord = [{}] took [{}]ms.",
-                new Object[] {identifier, record, (System.currentTimeMillis() - start)});
+                identifier, record, (System.currentTimeMillis() - start));
 
             return record;
         } catch (AmazonServiceException e) {
@@ -510,6 +517,19 @@ public class S3Backend implements SharedBackend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    @Override
+    public byte[] getOrCreateReferenceKey() throws DataStoreException {
+        try {
+            if (!Strings.isNullOrEmpty(secret)) {
+                return secret.getBytes("UTF-8");
+            }
+            LOG.warn("secret not defined");
+            throw new DataStoreException("secret not defined");
+        } catch (UnsupportedEncodingException e) {
+            throw new DataStoreException(e);
         }
     }
 
@@ -602,37 +622,28 @@ public class S3Backend implements SharedBackend {
     /**
      * S3DataRecord which lazily retrieves the input stream of the record.
      */
-    static class S3DataRecord implements DataRecord {
+    static class S3DataRecord extends AbstractDataRecord {
         private AmazonS3Client s3service;
-        private DataIdentifier identifier;
         private long length;
         private long lastModified;
         private String bucket;
         private boolean isMeta;
 
-        public S3DataRecord(AmazonS3Client s3service, String bucket, String key, long lastModified,
+        public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
+            DataIdentifier key, long lastModified,
             long length) {
-            this(s3service, bucket, key, lastModified, length, false);
+            this(backend, s3service, bucket, key, lastModified, length, false);
         }
 
-        public S3DataRecord(AmazonS3Client s3service, String bucket, String key, long lastModified,
+        public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
+            DataIdentifier key, long lastModified,
             long length, boolean isMeta) {
+            super(backend, key);
             this.s3service = s3service;
-            this.identifier = new DataIdentifier(key);
             this.lastModified = lastModified;
             this.length = length;
             this.bucket = bucket;
             this.isMeta = isMeta;
-        }
-
-        @Override
-        public DataIdentifier getIdentifier() {
-            return identifier;
-        }
-
-        @Override
-        public String getReference() {
-            return identifier.toString();
         }
 
         @Override
@@ -642,9 +653,9 @@ public class S3Backend implements SharedBackend {
 
         @Override
         public InputStream getStream() throws DataStoreException {
-            String id = getKeyName(identifier);
+            String id = getKeyName(getIdentifier());
             if (isMeta) {
-                id = addMetaKeyPrefix(identifier.toString());
+                id = addMetaKeyPrefix(getIdentifier().toString());
             }
             return s3service.getObject(bucket, id).getObjectContent();
         }
@@ -657,7 +668,7 @@ public class S3Backend implements SharedBackend {
         @Override
         public String toString() {
             return "S3DataRecord{" +
-                "identifier=" + identifier +
+                "identifier=" + getIdentifier() +
                 ", length=" + length +
                 ", lastModified=" + lastModified +
                 ", bucket='" + bucket + '\'' +
@@ -723,10 +734,8 @@ public class S3Backend implements SharedBackend {
                     delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
                         startIndex, endIndex)));
                     DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
-                    LOG.info(
-                        "Records[{}] deleted in datastore from index [{}] to [{}]",
-                        new Object[] { dobjs.getDeletedObjects().size(),
-                            startIndex, (endIndex - 1) });
+                    LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
+                        dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
                     if (endIndex == size) {
                         break;
                     } else {
@@ -799,8 +808,7 @@ public class S3Backend implements SharedBackend {
                     copy.waitForCopyResult();
                     LOG.debug("[{}] renamed to [{}] ", oldKey, newS3Key);
                 } catch (InterruptedException ie) {
-                    LOG.error(" Exception in renaming [{}] to [{}] ",
-                        new Object[] { ie, oldKey, newS3Key });
+                    LOG.error(" Exception in renaming [{}] to [{}] ", ie, oldKey, newS3Key);
                 }
 
             } finally {

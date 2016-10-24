@@ -16,14 +16,17 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,6 +39,9 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Simple tests for S3DataStore.
@@ -44,15 +50,13 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Data
 public class TestS3DataStore {
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3Ds.class);
 
-    private Date startTime = null;
-
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    protected Properties props;
+    private Properties props;
 
     @Parameterized.Parameter
     public String s3Class;
@@ -70,7 +74,6 @@ public class TestS3DataStore {
     public void setUp() throws Exception {
         dataStoreDir = folder.newFolder();
         props = new Properties();
-        startTime = new Date();
     }
 
     @Test
@@ -82,5 +85,19 @@ public class TestS3DataStore {
         props.put(S3Constants.SECRET_KEY, "123456");
         props.put(S3Constants.S3_REGION, "us-standard");
         ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
+    }
+
+    @Test
+    public void testNoSecretDefined() throws Exception {
+        assumeTrue(isS3Configured());
+        Random randomGen = new Random();
+
+        props = S3DataStoreUtils.getS3Config();
+        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
+        byte[] data = new byte[4096];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        Assert.assertEquals(data.length, rec.getLength());
+        assertNull(rec.getReference());
     }
 }
