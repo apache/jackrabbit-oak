@@ -23,6 +23,7 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -50,6 +51,7 @@ public class CachingFileDataStoreTest extends AbstractDataStoreTest {
     public void setUp() throws Exception {
         fsBackendPath = folder.newFolder().getAbsolutePath();
         props = new Properties();
+        props.setProperty("cacheSize", "0");
         props.setProperty("fsBackendPath", fsBackendPath);
         super.setUp();
     }
@@ -60,7 +62,7 @@ public class CachingFileDataStoreTest extends AbstractDataStoreTest {
             ds = new CachingFileDataStore();
             Map<String, ?> config = DataStoreUtils.getConfig();
             props.putAll(config);
-            PropertiesUtil.populate(ds, config, false);
+            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
             ds.setProperties(props);
             ds.init(dataStoreDir);
         } catch (Exception e) {

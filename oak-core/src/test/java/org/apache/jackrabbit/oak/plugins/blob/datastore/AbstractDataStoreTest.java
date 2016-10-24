@@ -318,15 +318,12 @@ public abstract class AbstractDataStoreTest {
         random.nextBytes(data3);
         DataRecord rec3 = ds.addRecord(new ByteArrayInputStream(data3));
 
-        ((MultiDataStoreAware)ds).deleteRecord(rec2.getIdentifier());
-        // Try again if async uploads
-        if (ds.getRecordIfStored(rec2.getIdentifier()) != null) {
-            ((MultiDataStoreAware)ds).deleteRecord(rec2.getIdentifier());
-        }
-        assertNull("rec2 should be null",
-            ds.getRecordIfStored(rec2.getIdentifier()));
-        assertEquals(new ByteArrayInputStream(data1),
-            ds.getRecord(rec1.getIdentifier()).getStream());
+        ((MultiDataStoreAware)ds).deleteRecord(rec1.getIdentifier());
+
+        assertNull("rec1 should be null",
+            ds.getRecordIfStored(rec1.getIdentifier()));
+        assertEquals(new ByteArrayInputStream(data2),
+            ds.getRecord(rec2.getIdentifier()).getStream());
         assertEquals(new ByteArrayInputStream(data3),
             ds.getRecord(rec3.getIdentifier()).getStream());
     }
