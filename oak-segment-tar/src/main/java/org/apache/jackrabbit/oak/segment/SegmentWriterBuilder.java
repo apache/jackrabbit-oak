@@ -193,7 +193,7 @@ public final class SegmentWriterBuilder {
         } else {
             return new SegmentBufferWriter(
                     store,
-                    store.getTracker(),
+                    store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
                     generation.get()
@@ -214,7 +214,7 @@ public final class SegmentWriterBuilder {
         } else {
             return new SegmentBufferWriter(
                     store,
-                    store.getTracker(),
+                    store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
                     generation.get()
@@ -235,7 +235,7 @@ public final class SegmentWriterBuilder {
         } else {
             return new SegmentBufferWriter(
                     store,
-                    store.getTracker(),
+                    store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
                     generation.get()

@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Supplier;
+
 /**
  * Tracker of references to segment identifiers and segment instances
  * that are currently kept in memory and factory for creating {@link SegmentId}
@@ -77,8 +79,13 @@ public class SegmentTracker {
      * Number of segment tracked since this tracker was instantiated
      * @return count
      */
-    int getSegmentCount() {
-        return segmentCounter.get();
+    public Supplier<Integer> getSegmentCounter() {
+        return new Supplier<Integer>() {
+            @Override
+            public Integer get() {
+                return segmentCounter.get();
+            }
+        };
     }
 
     /**
