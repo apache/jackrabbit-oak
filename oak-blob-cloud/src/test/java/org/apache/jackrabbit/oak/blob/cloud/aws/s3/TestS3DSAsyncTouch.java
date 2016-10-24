@@ -44,7 +44,7 @@ public class TestS3DSAsyncTouch extends TestS3Ds {
 
     @Parameterized.Parameters(name = "{index}: ({0})")
     public static List<String> fixtures() {
-        return Lists.newArrayList(getFixtures().get(0));
+        return Lists.newArrayList(getFixtures().get(1));
     }
 
     @Override
