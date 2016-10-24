@@ -36,7 +36,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Template;
@@ -44,7 +43,6 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
@@ -87,60 +85,20 @@ public class FileStoreBuilder {
     @Nonnull
     private SegmentGCOptions gcOptions = defaultGCOptions();
 
-    @Nonnull
-    private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
-
     @CheckForNull
     private EvictingWriteCacheManager cacheManager;
 
     @Nonnull
-    private final GCListener gcListener = new GCListener() {
+    private final GCListener gcListener = new GCListener(){
         @Override
-        public void info(String message, Object... arguments) {
-            gcMonitor.info(message, arguments);
+        public void compactionSucceeded(int newGeneration) {
+            compacted(null, null, null);
+            cacheManager.evictOldGeneration(newGeneration);
         }
 
         @Override
-        public void warn(String message, Object... arguments) {
-            gcMonitor.warn(message, arguments);
-        }
-
-        @Override
-        public void error(String message, Exception exception) {
-            gcMonitor.error(message, exception);
-        }
-
-        @Override
-        public void skipped(String reason, Object... arguments) {
-            gcMonitor.skipped(reason, arguments);
-        }
-
-        @Override
-        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
-            gcMonitor.compacted(segmentCounts, recordCounts, compactionMapWeights);
-        }
-
-        @Override
-        public void cleaned(long reclaimedSize, long currentSize) {
-            gcMonitor.cleaned(reclaimedSize, currentSize);
-        }
-
-        @Override
-        public void compacted(@Nonnull Status status, final int newGeneration) {
-            checkNotNull(cacheManager);
-            switch (status) {
-                case SUCCESS:
-                    // FIXME OAK-4283: Align GCMonitor API with implementation
-                    // This call is still needed to ensure upstream consumers
-                    // of GCMonitor callback get properly notified. See
-                    // RepositoryImpl.RefreshOnGC and
-                    // LuceneIndexProviderService.registerGCMonitor().
-                    gcMonitor.compacted(new long[0], new long[0], new long[0]);
-                    cacheManager.evictOldGeneration(newGeneration);
-                    break;
-                case FAILURE:
-                    cacheManager.evictGeneration(newGeneration);
-            }
+        public void compactionFailed(int failedGeneration) {
+            cacheManager.evictGeneration(failedGeneration);
         }
     };
 
@@ -158,7 +116,7 @@ public class FileStoreBuilder {
 
     private FileStoreBuilder(@Nonnull File directory) {
         this.directory = checkNotNull(directory);
-        this.gcMonitor.registerGCMonitor(new LoggingGCMonitor(LOG));
+        this.gcListener.registerGCMonitor(new LoggingGCMonitor(LOG));
     }
 
     /**
@@ -277,7 +235,7 @@ public class FileStoreBuilder {
      */
     @Nonnull
     public FileStoreBuilder withGCMonitor(@Nonnull GCMonitor gcMonitor) {
-        this.gcMonitor.registerGCMonitor(checkNotNull(gcMonitor));
+        this.gcListener.registerGCMonitor(checkNotNull(gcMonitor));
         return this;
     }
 

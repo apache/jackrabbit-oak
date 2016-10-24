@@ -19,12 +19,24 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import javax.annotation.Nonnull;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 
-import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+/**
+ * Listener receiving notifications about the garbage collection process
+ */
+abstract class GCListener extends DelegatingGCMonitor {
 
-// FIXME OAK-4283: Align GCMonitor API with implementation: Unify with GCMonitor
-public interface GCListener extends GCMonitor {
-    enum Status {SUCCESS, FAILURE}
-    void compacted(@Nonnull Status status, int generation);
+    /**
+     * Notification of a successfully completed compaction resulting in
+     * a new generation of segments
+     * @param newGeneration  the new generation number
+     */
+    public abstract void compactionSucceeded(int newGeneration);
+
+    /**
+     * Notification of a failed compaction. A new generation of
+     * segments could not be created.
+     * @param failedGeneration  the generation number that could not be created
+     */
+    public abstract void compactionFailed(int failedGeneration);
 }
