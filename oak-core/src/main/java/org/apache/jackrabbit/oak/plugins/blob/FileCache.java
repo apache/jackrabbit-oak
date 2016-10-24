@@ -107,7 +107,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                     @Nonnull RemovalCause cause) {
                     try {
                         if (cachedFile != null && cachedFile.exists()) {
-                            forceDelete(cachedFile);
+                            DataStoreCacheUtils.recursiveDelete(cachedFile, cacheRoot);
                             LOG.info("File [{}] evicted with reason [{}]", cachedFile, cause
                                 .toString());
                         }
@@ -119,7 +119,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 @Override
                 public File load(String key) throws Exception {
                     // Fetch from local cache directory and if not found load from backend
-                    File cachedFile = getCacheFile(key);
+                    File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
                     if (cachedFile.exists()) {
                         return cachedFile;
                     } else {
@@ -194,7 +194,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     @Override
     public void put(String key, File file) {
         try {
-            File cached = getCacheFile(key);
+            File cached = DataStoreCacheUtils.getFile(key, cacheRoot);
             if (!cached.exists()) {
                 FileUtils.moveFile(file, cached);
             }
@@ -296,20 +296,6 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         }
         LOG.trace("[{}] files put in im-memory cache", count);
         return count;
-    }
-
-    /**
-     * Create a placeholder in the file system cache folder for the given identifier.
-     *
-     * @param key for the file
-     * @return File handle for the id
-     */
-    private File getCacheFile(String key) {
-        File file = cacheRoot;
-        file = new File(file, key.substring(0, 2));
-        file = new File(file, key.substring(2, 4));
-        file = new File(file, key.substring(4, 6));
-        return new File(file, key);
     }
 }
 
