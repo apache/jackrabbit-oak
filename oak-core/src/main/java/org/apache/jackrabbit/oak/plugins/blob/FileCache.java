@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
-import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
@@ -193,10 +192,18 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     @Override
     public void put(String key, File file) {
+        put(key, file, true);
+    }
+
+    private void put(String key, File file, boolean copy) {
         try {
             File cached = DataStoreCacheUtils.getFile(key, cacheRoot);
             if (!cached.exists()) {
-                FileUtils.moveFile(file, cached);
+                if (copy) {
+                    FileUtils.copyFile(file, cached);
+                } else {
+                    FileUtils.moveFile(file, cached);
+                }
             }
             cache.put(key, cached);
         } catch (IOException e) {
@@ -287,7 +294,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         while (iter.hasNext()) {
             File toBeSyncedFile = iter.next();
             try {
-                put(toBeSyncedFile.getName(), toBeSyncedFile);
+                put(toBeSyncedFile.getName(), toBeSyncedFile, false);
                 count++;
                 LOG.trace("Added file [{}} to in-memory cache", toBeSyncedFile);
             } catch (Exception e) {

@@ -312,20 +312,12 @@ public class UploadStagingCache implements Closeable {
                         if (downloadCache != null) {
                             // Touch the file to update timestamp and record length
                             Files.touch(upload);
-                            long length = upload.length();
-
                             downloadCache.put(id, upload);
-                            LOG.debug("[{}] added to cache", id);
 
-                            // Update stats for removal
-                            currentSize.addAndGet(-length);
-                            cacheStats.decrementSize(length);
+                            LOG.debug("[{}] added to cache", id);
                         }
 
                         map.remove(id);
-
-                        // Remove from upload staging area
-                        //LOG.info("File [{}] removed from cache [{}]", upload, remove(id));
                     } catch (IOException e) {
                         LOG.warn("Error in cleaning up [{}] from staging", upload);
                     }
