@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -63,6 +64,7 @@ public class SegmentCachingDataStoreStatsTest {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
     }
 
+    @Ignore("OAK-4921")
     @Test
     public void testUseCachingBlobStore() {
         ServiceRegistration delegateReg =
@@ -84,6 +86,7 @@ public class SegmentCachingDataStoreStatsTest {
         delegateReg.unregister();
     }
 
+    @Ignore("OAK-4921")
     @Test
     public void testNoCachingBlobStore() {
         expectedEx.expect(ReferenceViolationException.class);
