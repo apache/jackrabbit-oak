@@ -22,14 +22,17 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import com.google.common.base.Preconditions;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.jackrabbit.core.data.CachingFDS;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
@@ -37,10 +40,14 @@ import java.util.Properties;
 public class FileDataStoreService extends AbstractDataStoreService {
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore";
 
+    private static final String DESCRIPTION = "oak.datastore.description";
+
     public static final String CACHE_PATH = "cachePath";
     public static final String CACHE_SIZE = "cacheSize";
     public static final String FS_BACKEND_PATH = "fsBackendPath";
     public static final String PATH = "path";
+
+    private ServiceRegistration delegateReg;
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -53,11 +60,7 @@ public class FileDataStoreService extends AbstractDataStoreService {
             String fsBackendPath = PropertiesUtil.toString(config.get(PATH), null);
             Preconditions.checkNotNull(fsBackendPath, "Cannot create " +
                     "FileDataStoreService with caching. [{path}] property not configured.");
-            OakCachingFDS dataStore = new OakCachingFDS();
-            dataStore.setFsBackendPath(fsBackendPath);
 
-            // Disabling asyncUpload by default
-            dataStore.setAsyncUploadLimit(PropertiesUtil.toInteger(config.get("asyncUploadLimit"), 0));
             config.remove(PATH);
             config.remove(CACHE_SIZE);
             config.put(FS_BACKEND_PATH, fsBackendPath);
@@ -69,13 +72,39 @@ public class FileDataStoreService extends AbstractDataStoreService {
             }
             Properties properties = new Properties();
             properties.putAll(config);
-            dataStore.setProperties(properties);
-            log.info("CachingFDS initialized with properties " + properties);
-            return dataStore;
+            log.info("Initializing with properties " + properties);
+
+            if (JR2_CACHING) {
+                OakCachingFDS dataStore = new OakCachingFDS();
+                dataStore.setFsBackendPath(fsBackendPath);
+
+                // Disabling asyncUpload by default
+                dataStore.setAsyncUploadLimit(
+                    PropertiesUtil.toInteger(config.get("asyncUploadLimit"), 0));
+                dataStore.setProperties(properties);
+                return dataStore;
+            }
+            return getCachingDataStore(properties, context);
         } else {
             log.info("OakFileDataStore initialized");
             return new OakFileDataStore();
         }
+    }
+
+    private DataStore getCachingDataStore(Properties props, ComponentContext context) {
+        CachingFileDataStore dataStore = new CachingFileDataStore();
+        dataStore.setStagingSplitPercentage(
+            PropertiesUtil.toInteger(props.get("stagingSplitPercentage"), 0));
+        dataStore.setProperties(props);
+        Dictionary<String, Object> config = new Hashtable<String, Object>();
+        config.put(Constants.SERVICE_PID, dataStore.getClass().getName());
+        config.put(DESCRIPTION, getDescription());
+
+        delegateReg = context.getBundleContext().registerService(new String[] {
+            AbstractSharedCachingDataStore.class.getName(),
+            AbstractSharedCachingDataStore.class.getName()
+        }, dataStore , config);
+        return dataStore;
     }
 
     @Override

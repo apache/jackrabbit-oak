@@ -34,6 +34,7 @@
         <include>commons-io:commons-io</include>
         <include>org.apache.jackrabbit:jackrabbit-api</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
+        <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.jackrabbit:oak-commons</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-segment</include>

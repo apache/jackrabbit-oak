@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService
+    .JR2_CACHING_PROP;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +32,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.jcr.RepositoryException;
+
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingFDS;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -37,6 +43,7 @@ import org.apache.jackrabbit.core.data.FSBackend;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
@@ -72,28 +79,46 @@ public class DataStoreServiceTest {
      */
     @Test
     public void configCachingFDS() throws Exception {
+        System.setProperty(JR2_CACHING_PROP, "true");
+        try {
+            String nasPath = folder.getRoot().getAbsolutePath() + "/NASPath";
+            String cachePath = folder.getRoot().getAbsolutePath() + "/cachePath";
+            long cacheSize = 100L;
+            Map<String, Object> config = new HashMap<String, Object>();
+            config.put("repository.home", folder.getRoot().getAbsolutePath());
+            config.put(FileDataStoreService.CACHE_SIZE, cacheSize);
+            config.put(FileDataStoreService.PATH, nasPath);
+            config.put(FileDataStoreService.CACHE_PATH, cachePath);
+            FileDataStoreService fdsSvc = new FileDataStoreService();
+
+            DataStore ds = fdsSvc.createDataStore(context.componentContext(), config);
+            PropertiesUtil.populate(ds, config, false);
+            ds.init(folder.getRoot().getAbsolutePath());
+            assertTrue("not instance of CachingFDS", ds instanceof CachingFDS);
+            CachingFDS cds = (CachingFDS) ds;
+            assertEquals("cachesize not equal", cacheSize, cds.getCacheSize());
+            assertEquals("cachepath not equal", cachePath, cds.getPath());
+            Backend backend = cds.getBackend();
+            Properties props = (Properties) getField(backend);
+            assertEquals("path not equal", nasPath, props.getProperty(FSBackend.FS_BACKEND_PATH));
+        } finally {
+            System.clearProperty(JR2_CACHING_PROP);
+        }
+    }
+
+    /**
+     *
+     * Test {@link CachingFileDataStore} is returned when cacheSize > 0 by default.
+     */
+    @Test
+    public void configCachingFileDataStore() throws Exception {
         String nasPath = folder.getRoot().getAbsolutePath() + "/NASPath";
         String cachePath = folder.getRoot().getAbsolutePath() + "/cachePath";
-        long cacheSize = 100l;
-        Map<String, Object> config = new HashMap<String, Object>();
-        config.put("repository.home", folder.getRoot().getAbsolutePath());
-        config.put(FileDataStoreService.CACHE_SIZE, cacheSize);
-        config.put(FileDataStoreService.PATH, nasPath);
-        config.put(FileDataStoreService.CACHE_PATH, cachePath);
-        FileDataStoreService fdsSvc = new FileDataStoreService();
-
-        DataStore ds = fdsSvc.createDataStore(context.componentContext(), config);
-        PropertiesUtil.populate(ds, config, false);
-        ds.init(folder.getRoot().getAbsolutePath());
-        assertTrue("not instance of CachingFDS", ds instanceof CachingFDS);
-        CachingFDS cds = (CachingFDS) ds;
-        assertEquals("cachesize not equal", cacheSize, cds.getCacheSize());
-        assertEquals("cachepath not equal", cachePath, cds.getPath());
-        Backend backend = cds.getBackend();
-        Properties props = (Properties) getField(backend, "properties");
+        DataStore ds = getAssertCachingFileDataStore(nasPath, cachePath);
+        CachingFileDataStore cds = (CachingFileDataStore) ds;
+        SharedBackend backend = cds.getBackend();
+        Properties props = (Properties) getField(backend);
         assertEquals("path not equal", nasPath, props.getProperty(FSBackend.FS_BACKEND_PATH));
-
-
     }
 
     /**
@@ -118,8 +143,49 @@ public class DataStoreServiceTest {
         assertEquals("path not equal", nasPath, fds.getPath());
     }
 
-    private static Object getField(Object obj, String fieldName) throws Exception {
-        Field f = obj.getClass().getDeclaredField(fieldName); //NoSuchFieldException
+    /**
+     * Tests the regitration of CachingFileDataStore and checks existence of
+     * reference.key file on first access of getOrCreateReference.
+     * @throws Exception
+     */
+    @Test
+    public void registerAndCheckReferenceKey() throws Exception {
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+
+        String nasPath = folder.getRoot().getAbsolutePath() + "/NASPath";
+        String cachePath = folder.getRoot().getAbsolutePath() + "/cachePath";
+        DataStore ds = getAssertCachingFileDataStore(nasPath, cachePath);
+        final CachingFileDataStore dataStore = (CachingFileDataStore) ds;
+
+        byte[] key = dataStore.getBackend().getOrCreateReferenceKey();
+
+        // Check bytes retrieved from reference.key file
+        File refFile = new File(nasPath, "reference.key");
+        byte[] keyRet = FileUtils.readFileToByteArray(refFile);
+        assertArrayEquals(key, keyRet);
+
+        assertArrayEquals(key, dataStore.getBackend().getOrCreateReferenceKey());
+    }
+
+    private DataStore getAssertCachingFileDataStore(String nasPath, String cachePath)
+        throws RepositoryException {
+        long cacheSize = 100L;
+        Map<String, Object> config = new HashMap<String, Object>();
+        config.put("repository.home", folder.getRoot().getAbsolutePath());
+        config.put(FileDataStoreService.CACHE_SIZE, cacheSize);
+        config.put(FileDataStoreService.PATH, nasPath);
+        config.put(FileDataStoreService.CACHE_PATH, cachePath);
+        FileDataStoreService fdsSvc = new FileDataStoreService();
+
+        DataStore ds = fdsSvc.createDataStore(context.componentContext(), config);
+        PropertiesUtil.populate(ds, config, false);
+        ds.init(folder.getRoot().getAbsolutePath());
+        assertTrue("not instance of CachingFDS", ds instanceof CachingFileDataStore);
+        return ds;
+    }
+
+    private static Object getField(Object obj) throws Exception {
+        Field f = obj.getClass().getDeclaredField("properties"); //NoSuchFieldException
         f.setAccessible(true);
         return f.get(obj);
     }

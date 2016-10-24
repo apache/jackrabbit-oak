@@ -28,12 +28,15 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService
+    .JR2_CACHING_PROP;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -59,10 +62,15 @@ public class OakCachingFDSTest {
 
     @Before
     public void setup() throws Exception {
+        System.setProperty(JR2_CACHING_PROP, "true");
         fsBackendPath = folder.newFolder().getAbsolutePath();
         path = folder.newFolder().getAbsolutePath();
     }
 
+    @After
+    public void tear() throws Exception {
+        System.clearProperty(JR2_CACHING_PROP);
+    }
     @Test
     public void createAndCheckReferenceKey() throws Exception {
         createCachingFDS();
@@ -76,7 +84,7 @@ public class OakCachingFDSTest {
         assertReferenceKey();
     }
 
-    public void assertReferenceKey() throws Exception {
+    private void assertReferenceKey() throws Exception {
         byte[] key = dataStore.getOrCreateReferenceKey();
 
         // Check bytes retrieved from reference.key file
