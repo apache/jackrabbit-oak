@@ -41,13 +41,13 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.AbstractDataRecord;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
+import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.util.TransientFileFactory;
 import org.slf4j.Logger;
@@ -129,7 +129,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     /**
      * The delegate backend
      */
-    protected SharedBackend backend;
+    protected AbstractSharedBackend backend;
 
     protected ListeningExecutorService listeningExecutor;
 
@@ -171,7 +171,19 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             }, statisticsProvider, listeningExecutor, schedulerExecutor, stagingPurgeInterval);
     }
 
-    protected abstract SharedBackend createBackend();
+    protected abstract AbstractSharedBackend createBackend();
+
+    @Override
+    public DataRecord getRecord(DataIdentifier identifier)
+        throws DataStoreException {
+        DataRecord record = getRecordIfStored(identifier);
+        if (record != null) {
+            return record;
+        } else {
+            throw new DataStoreException(
+                "Record " + identifier + " does not exist");
+        }
+    }
 
     @Override
     @Nullable
@@ -181,7 +193,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         // This avoids downloading the file for just accessing the meta data
         File cached = cache.getIfPresent(dataIdentifier.toString());
         if (cached != null && cached.exists()) {
-            return new FileCacheDataRecord(this, dataIdentifier, cached.length(),
+            return new FileCacheDataRecord(this, backend, dataIdentifier, cached.length(),
                 cached.lastModified());
         }
 
@@ -264,9 +276,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         private final long lastModified;
         private final AbstractSharedCachingDataStore store;
 
-        public FileCacheDataRecord(AbstractSharedCachingDataStore store, DataIdentifier identifier, long length,
+        public FileCacheDataRecord(AbstractSharedCachingDataStore store, AbstractSharedBackend backend,
+            DataIdentifier identifier, long length,
             long lastModified) {
-            super(store, identifier);
+            super(backend, identifier);
             this.length = length;
             this.lastModified = lastModified;
             this.store = store;
@@ -392,6 +405,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     @Override
     public SharedDataStore.Type getType() {
         return SharedDataStore.Type.SHARED;
+    }
+
+    @Override
+    protected byte[] getOrCreateReferenceKey() throws DataStoreException {
+        return backend.getOrCreateReferenceKey();
     }
 
     /**------------------------ unimplemented methods -------------------------------------------**/
