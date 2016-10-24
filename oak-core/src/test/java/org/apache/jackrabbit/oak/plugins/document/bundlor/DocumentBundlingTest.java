@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -85,8 +86,6 @@ public class DocumentBundlingTest {
                 .memoryCacheSize(0)
                 .getNodeStore();
         NodeState registryState = BundledTypesRegistry.builder()
-                .forType("nt:file", "jcr:content")
-                .registry()
                 .forType("app:Asset")
                     .include("jcr:content")
                     .include("jcr:content/metadata")
@@ -95,8 +94,13 @@ public class DocumentBundlingTest {
                 .build();
 
         NodeBuilder builder = store.getRoot().builder();
-        builder.child("jcr:system").child(DOCUMENT_NODE_STORE).setChildNode(BUNDLOR, registryState);
+        new InitialContent().initialize(builder);
+        builder.getChildNode("jcr:system")
+                .getChildNode(DOCUMENT_NODE_STORE)
+                .getChildNode(BUNDLOR)
+                .setChildNode("app:Asset", registryState.getChildNode("app:Asset"));
         merge(builder);
+        store.runBackgroundOperations();
     }
 
     @Test

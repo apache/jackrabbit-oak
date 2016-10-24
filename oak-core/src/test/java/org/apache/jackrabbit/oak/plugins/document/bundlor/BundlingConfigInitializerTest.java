@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.*;
@@ -52,18 +51,4 @@ public class BundlingConfigInitializerTest {
         NodeState bundlor = NodeStateUtils.getNode(state, BundlingConfigHandler.CONFIG_PATH);
         assertFalse(bundlor.exists());
     }
-
-    @Test
-    public void noInitIfPartialExists() throws Exception{
-        NodeBuilder builder = root.builder();
-        builder.child(JCR_SYSTEM).child(BundlingConfigHandler.DOCUMENT_NODE_STORE);
-
-        BundlingConfigInitializer.INSTANCE.initialize(builder);
-        NodeState state = builder.getNodeState();
-        NodeState bundlor = NodeStateUtils.getNode(state, BundlingConfigHandler.CONFIG_PATH);
-        ///jcr:system/documentstore was already present then
-        //no initialization should have happened
-        assertFalse(bundlor.exists());
-    }
-
 }
