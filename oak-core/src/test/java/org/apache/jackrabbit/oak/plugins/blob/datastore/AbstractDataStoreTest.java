@@ -30,6 +30,7 @@ import java.util.Random;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -85,13 +86,13 @@ public abstract class AbstractDataStoreTest {
      * Delete temporary directory.
      */
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         dataStoreDir = folder.newFolder().getAbsolutePath();
         ds = createDataStore();
     }
 
     @After
-    protected void tearDown() {
+    public void tearDown() {
         try {
             ds.close();
         } catch (DataStoreException e) {
@@ -318,7 +319,10 @@ public abstract class AbstractDataStoreTest {
         DataRecord rec3 = ds.addRecord(new ByteArrayInputStream(data3));
 
         ((MultiDataStoreAware)ds).deleteRecord(rec2.getIdentifier());
-
+        // Try again if async uploads
+        if (ds.getRecordIfStored(rec2.getIdentifier()) != null) {
+            ((MultiDataStoreAware)ds).deleteRecord(rec2.getIdentifier());
+        }
         assertNull("rec2 should be null",
             ds.getRecordIfStored(rec2.getIdentifier()));
         assertEquals(new ByteArrayInputStream(data1),
@@ -349,7 +353,7 @@ public abstract class AbstractDataStoreTest {
         rec = ds.addRecord(new ByteArrayInputStream(data));
         list.add(rec.getIdentifier());
 
-        Iterator<DataIdentifier> itr = ds.getAllIdentifiers();
+        Iterator<DataIdentifier> itr = Sets.newHashSet(ds.getAllIdentifiers()).iterator();
         while (itr.hasNext()) {
             assertTrue("record found on list", list.remove(itr.next()));
         }
@@ -533,7 +537,7 @@ public abstract class AbstractDataStoreTest {
             RandomInputStream in = new RandomInputStream(size + offset, size);
             DataRecord rec = ds.addRecord(in);
             list.add(rec);
-            map.put(rec, new Integer(size));
+            map.put(rec, size);
         }
         Random random = new Random(1);
         for (int i = 0; i < list.size(); i++) {

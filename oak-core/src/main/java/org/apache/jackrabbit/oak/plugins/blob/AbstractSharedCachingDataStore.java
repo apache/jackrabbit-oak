@@ -243,6 +243,13 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         }
     }
 
+    /**
+     * In rare cases may include some duplicates in cases where async staged uploads complete
+     * during iteration.
+     *
+     * @return Iterator over all ids available
+     * @throws DataStoreException
+     */
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
         return Iterators.concat(Iterators.transform(cache.getStagingCache().getAllIdentifiers(),
