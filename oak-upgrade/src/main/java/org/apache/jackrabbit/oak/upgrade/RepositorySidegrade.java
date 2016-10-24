@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
+import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -51,18 +52,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Iterables.find;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.transform;
 import static com.google.common.collect.Sets.union;
-import static java.util.Arrays.asList;
 import static java.util.Collections.sort;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.Oak.DEFAULT_WORKSPACE_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
@@ -290,7 +287,7 @@ public class RepositorySidegrade {
         builder.setChildNode(":async");
     }
 
-    private void copyState(NodeState sourceRoot, NodeBuilder targetRoot) throws CommitFailedException {
+    private void copyState(NodeState sourceRoot, NodeBuilder targetRoot) throws CommitFailedException, RepositoryException {
         copyWorkspace(sourceRoot, targetRoot);
 
         if (includeIndex) {
@@ -435,8 +432,16 @@ public class RepositorySidegrade {
         return superRoot.child("checkpoints").child(name);
     }
 
-    private String getWorkspaceName() {
-        return find(asList(System.getProperty(WORKSPACE_NAME_PROP), deriveWorkspaceName(), DEFAULT_WORKSPACE_NAME), notNull());
+    private String getWorkspaceName() throws RepositoryException {
+        String definedName = System.getProperty(WORKSPACE_NAME_PROP);
+        String detectedName = deriveWorkspaceName();
+        if (StringUtils.isNotBlank(definedName)) {
+            return definedName;
+        } else if (StringUtils.isNotBlank(detectedName)) {
+            return detectedName;
+        } else {
+            throw new RepositoryException("Can't detect the workspace name. Please use the system property " + WORKSPACE_NAME_PROP + " to set it manually.");
+        }
     }
 
     /**
@@ -458,7 +463,6 @@ public class RepositorySidegrade {
         if (nameCandidates.size() == 1) {
             return nameCandidates.get(0);
         } else {
-            LOG.warn("Can't find the workspace name. '{}' will be used. It can be overriden with system property {}", DEFAULT_WORKSPACE_NAME, WORKSPACE_NAME_PROP);
             return null;
         }
     }
