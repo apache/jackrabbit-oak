@@ -226,7 +226,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void testPutMoveFileError() throws Exception {
-        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, new File("empty"));
+        File empty = new File(folder.getRoot(), String.valueOf(System.currentTimeMillis()));
+        assertFalse(empty.exists());
+        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, empty);
         // assert no file
         assertFalse(future.isPresent());
         assertEquals(1, stagingCache.getStats().getMissCount());
