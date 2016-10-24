@@ -502,7 +502,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         closer.close();
 
         // Start again
-        init(0);
+        init(1);
         taskLatch.countDown();
         callbackLatch.countDown();
         afterExecuteLatch.await();
