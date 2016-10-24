@@ -89,7 +89,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
         }};
 
-    private FileCache(long maxSize /** bytes **/, File root,
+    private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
 
         this.cacheRoot = new File(root, "download");
@@ -137,7 +137,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 }
             });
         this.cacheStats =
-            new FileCacheStats(cache, "DataStore-DownloadCache", weigher, memWeigher, maxSize);
+            new FileCacheStats(cache, weigher, memWeigher, maxSize);
 
         //  TODO: Check persisting the in-memory map and initializing Vs building from fs
         // Build in-memory cache asynchronously from the file system entries
@@ -149,7 +149,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         this.executor.submit(new CacheBuildJob());
     }
 
-    public static FileCache build(long maxSize /** bytes **/, File root,
+    public static FileCache build(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
         if (maxSize > 0) {
             return new FileCache(maxSize, root, loader, executor);
@@ -174,7 +174,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             }
 
             @Override public DataStoreCacheStatsMBean getStats() {
-                return new FileCacheStats(this, "DataStore-DownloadCache", weigher, memWeigher, 0);
+                return new FileCacheStats(this, weigher, memWeigher, 0);
             }
 
             @Override public void close() {
@@ -301,7 +301,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     /**
      * Create a placeholder in the file system cache folder for the given identifier.
      *
-     * @param key
+     * @param key for the file
      * @return File handle for the id
      */
     private File getCacheFile(String key) {
@@ -321,15 +321,13 @@ class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
 
     /**
      * Construct the cache stats object.
-     *
-     * @param cache     the cache
-     * @param name      the name of the cache
+     *  @param cache     the cache
      * @param weigher   the weigher used to estimate the current weight
      * @param maxWeight the maximum weight
      */
-    public FileCacheStats(Cache<?, ?> cache, String name, Weigher<?, ?> weigher,
-        Weigher<?, ?> memWeigher, long maxWeight) {
-        super(cache, name, weigher, maxWeight);
+    public FileCacheStats(Cache<?, ?> cache, Weigher<?, ?> weigher, Weigher<?, ?> memWeigher,
+        long maxWeight) {
+        super(cache, "DataStore-DownloadCache", weigher, maxWeight);
         this.memWeigher = (Weigher<Object, Object>) memWeigher;
         this.weigher = (Weigher<Object, Object>) weigher;
         this.cache = (Cache<Object, Object>) cache;

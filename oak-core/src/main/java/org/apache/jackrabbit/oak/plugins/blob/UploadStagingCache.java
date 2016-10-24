@@ -133,10 +133,10 @@ public class UploadStagingCache implements Closeable {
     @Nullable
     private final FileCache downloadCache;
 
-    private UploadStagingCache(File dir, int uploadThreads, long size /** bytes **/,
+    private UploadStagingCache(File dir, int uploadThreads, long size /* bytes */,
         StagingUploader uploader, @Nullable FileCache cache, StatisticsProvider statisticsProvider,
         @Nullable ListeningExecutorService executor,
-        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /** secs **/) {
+        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /* secs */) {
 
         this.currentSize = new AtomicLong();
         this.size = size;
@@ -165,9 +165,9 @@ public class UploadStagingCache implements Closeable {
     }
 
     public static UploadStagingCache build(File dir, int uploadThreads, long size
-        /** bytes **/, StagingUploader uploader, @Nullable FileCache cache,
+        /* bytes */, StagingUploader uploader, @Nullable FileCache cache,
         StatisticsProvider statisticsProvider, @Nullable ListeningExecutorService executor,
-        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /** secs **/) {
+        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /* secs */) {
         if (size > 0) {
             return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
                 statisticsProvider, executor, scheduledExecutor, purgeInterval);
@@ -346,7 +346,7 @@ public class UploadStagingCache implements Closeable {
 
     /**
      * Invalidate called externally.
-     * @param key
+     * @param key to invalidate
      */
     protected void invalidate(String key) {
         // Check if not already scheduled for deletion
@@ -404,8 +404,8 @@ public class UploadStagingCache implements Closeable {
     /**
      * Adjust stats and delete file.
      *
-     * @param key
-     * @param toBeDeleted
+     * @param key to delete
+     * @param toBeDeleted file to delete
      * @throws IOException
      */
     private void deleteInternal(String key, File toBeDeleted) throws IOException {
@@ -738,7 +738,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
             .toString();
     }
 
-    //~--------------------------------------< CacheStatsMbean - stats that are not (yet) available
+    //~--------------------------------------< CacheStatsMBean - stats that are not (yet) available
     @Override
     public long getTotalLoadTime() {
         return 0;
