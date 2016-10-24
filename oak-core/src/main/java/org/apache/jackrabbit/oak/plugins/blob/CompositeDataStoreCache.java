@@ -114,6 +114,7 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
 
     @Override
     public void invalidate(Object key) {
+        stagingCache.invalidate((String) key);
         downloadCache.invalidate(key);
     }
 

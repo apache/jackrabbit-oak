@@ -152,7 +152,6 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         //start
         taskLatch.countDown();
-        /** might be redundant **/
         callbackLatch.countDown();
 
         waitFinish();
@@ -183,7 +182,6 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         //start the original upload
         taskLatch.countDown();
-        /** might be redundant **/
         callbackLatch.countDown();
 
         waitFinish();
@@ -192,6 +190,47 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertNotNull(f);
         assertFile(file, 0, folder);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 2);
+    }
+
+    /**
+     * Invalidate from staging.
+     */
+    @Test
+    public void invalidateStaging() throws IOException {
+        // create executor
+        taskLatch = new CountDownLatch(2);
+        callbackLatch = new CountDownLatch(2);
+        afterExecuteLatch = new CountDownLatch(2);
+        executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
+        cache = new CompositeDataStoreCache(root.getAbsolutePath(),
+            80 * 1024 /* bytes */, 10 /* staging % */,
+            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, 3000);
+        closer.register(cache);
+
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        boolean accepted = cache.stage(ID_PREFIX + 0, f);
+        assertTrue(accepted);
+
+        File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+        accepted = cache.stage(ID_PREFIX + 1, f2);
+        assertTrue(accepted);
+
+        cache.invalidate(ID_PREFIX + 0);
+
+        //start the original uploads
+        taskLatch.countDown();
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        callbackLatch.countDown();
+
+        waitFinish();
+
+        File file = cache.getIfPresent(ID_PREFIX + 0);
+        assertNull(file);
+        file = cache.getIfPresent(ID_PREFIX + 1);
+        assertFile(file, 1, folder);
+        assertCacheStats(cache.getStagingCacheStats(), 0, 0, 2, 2);
     }
 
     /**
@@ -232,7 +271,6 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         //start the original upload
         taskLatch.countDown();
-        /** might be redundant **/
         callbackLatch.countDown();
 
         waitFinish();
@@ -400,7 +438,6 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         //start the original upload
         taskLatch.countDown();
-        /** might be redundant **/
         callbackLatch.countDown();
 
         waitFinish();
@@ -448,7 +485,6 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         //start the original upload
         taskLatch.countDown();
-        /** might be redundant **/
         callbackLatch.countDown();
 
         future1.get();
@@ -500,6 +536,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
             ScheduledFuture<?> scheduledFuture = scheduledExecutor
                 .schedule(cache.getStagingCache().new RemoveJob(), 0, TimeUnit.MILLISECONDS);
             scheduledFuture.get();
+            LOG.info("After jobs completed");
         } catch (Exception e) {
             e.printStackTrace();
         }
