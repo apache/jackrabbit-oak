@@ -213,9 +213,12 @@ public class UploadStagingCache implements Closeable {
         int count = 0;
         while (iter.hasNext()) {
             File toBeSyncedFile = iter.next();
-            Optional<SettableFuture<Integer>> scheduled = put(toBeSyncedFile.getName(), toBeSyncedFile);
+            Optional<SettableFuture<Integer>> scheduled =
+                putOptionalDisregardingSize(toBeSyncedFile.getName(), toBeSyncedFile, true);
             if (scheduled.isPresent()) {
                 count++;
+            } else {
+                LOG.info("File [{}] not setup for upload", toBeSyncedFile.getName());
             }
         }
 
@@ -231,13 +234,29 @@ public class UploadStagingCache implements Closeable {
      * @return An Optional SettableFuture.
      */
     public Optional<SettableFuture<Integer>> put(String id, File input) {
+        return putOptionalDisregardingSize(id, input, false);
+    }
+
+    /**
+     * Puts the file into the staging cache if ignoreSize else if possible
+     * Returns an optional SettableFuture if staged for upload otherwise empty.
+     *
+     * @param id
+     * @param input
+     * @param ignoreSize
+     * @return
+     */
+    private Optional<SettableFuture<Integer>> putOptionalDisregardingSize(String id, File input,
+        boolean ignoreSize) {
         cacheStats.markRequest();
 
         long length = input.length();
         File uploadFile = DataStoreCacheUtils.getFile(id, uploadCacheSpace);
 
-        // if size permits and not upload complete or already scheduled for upload
-        if (currentSize.addAndGet(length) <= size
+        // if ignoreSize update internal size else size permits
+        // and not upload complete or already scheduled for upload
+        if (((ignoreSize && currentSize.addAndGet(length) >= 0)
+                || currentSize.addAndGet(length) <= size)
             && !attic.containsKey(id)
             && map.putIfAbsent(id, uploadFile) == null ) {
 

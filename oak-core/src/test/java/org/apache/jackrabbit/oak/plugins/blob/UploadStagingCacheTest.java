@@ -85,17 +85,17 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Before
     public void setup() throws IOException {
         root = folder.newFolder();
-        init();
+        init(0);
     }
 
-    private void init() {
+    private void init(int i) {
         // uploader
         uploader = new TestStagingUploader(root);
 
         // create executor
         taskLatch = new CountDownLatch(1);
         callbackLatch = new CountDownLatch(1);
-        afterExecuteLatch = new CountDownLatch(1);
+        afterExecuteLatch = new CountDownLatch(i);
         executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
 
         // stats
@@ -502,7 +502,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         closer.close();
 
         // Start again
-        init();
+        init(0);
         taskLatch.countDown();
         callbackLatch.countDown();
         afterExecuteLatch.await();
@@ -513,6 +513,50 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
         assertCacheStats(stagingCache, 0, 0, 1, 1);
+    }
+
+    /**
+     * Test build on start with more files available in terms of total size in the upload cache.
+     * @throws Exception
+     */
+    @Test
+    public void testBuildMoreThanCacheSize() throws Exception {
+        closer.close();
+
+        // create load greater than the cache size upgrades or cache size changes
+        File f1 = copyToFile(randomStream(1, 4 * 1024),
+            DataStoreCacheUtils.getFile(ID_PREFIX + "1", new File(root, "upload")));
+        File f2 = copyToFile(randomStream(2, 4 * 1024),
+            DataStoreCacheUtils.getFile(ID_PREFIX + "2", new File(root, "upload")));
+        File f3 = copyToFile(randomStream(3, 4 * 1024),
+            DataStoreCacheUtils.getFile(ID_PREFIX + "3", new File(root, "upload")));
+        // Directly add files to staging dir simulating an upgrade scenario
+
+        // Start staging cache
+        init(3);
+
+        List<ListenableFuture<Integer>> futures = put(folder);
+        // Not staged as already full
+        assertTrue(futures.isEmpty());
+
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        afterExecuteLatch.await();
+
+        waitFinish(futures);
+
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 1));
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 2));
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 3));
+
+        // Initial files should have been uploaded
+        assertTrue(Files.equal(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 1)));
+        assertTrue(Files.equal(copyToFile(randomStream(2, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 2)));
+        assertTrue(Files.equal(copyToFile(randomStream(3, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 3)));
+        assertCacheStats(stagingCache, 0, 0, 3, 4);
     }
 
     /** -------------------- Helper methods ----------------------------------------------------**/
