@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.AbstractDataRecord;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
@@ -138,7 +139,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         if (path == null) {
             path = homeDir + "/repository/datastore";
         }
-
+        path = FilenameUtils.normalizeNoEndSeparator(path);
         checkArgument(stagingSplitPercentage >= 0 && stagingSplitPercentage <= 50,
             "Staging percentage cache should be between 0 and 50");
 
@@ -219,6 +220,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             // otherwise add to backend
             if (!cache.stage(identifier.toString(), tmpFile)) {
                 backend.write(identifier, tmpFile);
+                // offer to download cache
+                cache.getDownloadCache().put(identifier.toString(), tmpFile);
             }
 
             return getRecordIfStored(identifier);
