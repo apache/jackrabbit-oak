@@ -58,6 +58,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Tests for {@link AbstractSharedCachingDataStore}
+ */
 public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     private static final Logger LOG = LoggerFactory.getLogger(CachingDataStoreTest.class);
     private static final String ID_PREFIX = "12345";
@@ -74,8 +77,6 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     private CountDownLatch taskLatch;
     private CountDownLatch callbackLatch;
     private CountDownLatch afterExecuteLatch;
-    private TestExecutor executor;
-    private StatisticsProvider statsProvider;
     private ScheduledExecutorService scheduledExecutor;
     private AbstractSharedCachingDataStore dataStore;
 
@@ -90,12 +91,12 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         taskLatch = new CountDownLatch(1);
         callbackLatch = new CountDownLatch(1);
         afterExecuteLatch = new CountDownLatch(i);
-        executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
+        TestExecutor executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
 
         // stats
         ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(statsExecutor, 500, TimeUnit.MILLISECONDS));
-        statsProvider = new DefaultStatisticsProvider(statsExecutor);
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(statsExecutor);
 
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
@@ -116,6 +117,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.init(root.getAbsolutePath());
     }
 
+    /**
+     * Add, get, delete when zero cache size.
+     * @throws Exception
+     */
     @Test
     public void zeroCacheAddGetDelete() throws Exception {
         dataStore.close();
@@ -140,6 +145,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertNull(rec);
     }
 
+    /**
+     * Add, get, delete when staging cache is 0.
+     * @throws Exception
+     */
     @Test
     public void zeroStagingCacheAddGetDelete() throws Exception {
         dataStore.close();
@@ -209,6 +218,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertNull(rec);
     }
 
+    /**
+     * Add in staging and delete.
+     * @throws Exception
+     */
     @Test
     public void addStagingAndDelete() throws Exception {
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());

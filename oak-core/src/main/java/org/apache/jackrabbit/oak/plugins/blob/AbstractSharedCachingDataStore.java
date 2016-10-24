@@ -67,14 +67,13 @@ import static com.google.common.base.Preconditions.checkArgument;
  *     &lt;param name="{@link #setUploadThreads(int) uploadThreads}" value="10"/>
  *     &lt;param name="{@link #setStagingPurgeInterval(int) stagingPurgeInterval}" value="300"/>
  * &lt;/DataStore>
-
  */
 public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     implements MultiDataStoreAware, SharedDataStore {
     /**
      * Logger instance.
      */
-    static final Logger LOG = LoggerFactory.getLogger(org.apache.jackrabbit.core.data.LocalCache.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractSharedCachingDataStore.class);
 
     /**
      * The digest algorithm used to uniquely identify records.
@@ -186,7 +185,6 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         }
 
         // File not in cache so, retrieve the meta data from the backend explicitly
-        DataRecord record;
         try {
             return backend.getRecord(dataIdentifier);
         } catch (Exception e) {
@@ -214,8 +212,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             }
 
             DataIdentifier identifier = new DataIdentifier(encodeHexString(digest.digest()));
-            LOG.debug("SHA1 of [{}], length =[{}] took [{}]ms ",
-                new Object[] {identifier, length, watch.elapsed(TimeUnit.MILLISECONDS)});
+            LOG.debug("SHA1 of [{}], length =[{}] took [{}] ms ", identifier, length,
+                watch.elapsed(TimeUnit.MILLISECONDS));
 
             // asynchronously stage for upload if the size limit of staging cache permits
             // otherwise add to backend
@@ -254,14 +252,14 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     /**
      * Need a DataRecord implementation that
-     * * decorates the data record of the backened if available
-     * * creates a record from the paramaters of the file in cache
+     * * decorates the data record of the backend if available
+     * * creates a record from the parameters of the file in cache
      *
      */
     static class FileCacheDataRecord extends AbstractDataRecord {
-        private long length;
-        private long lastModified;
-        private AbstractSharedCachingDataStore store;
+        private final long length;
+        private final long lastModified;
+        private final AbstractSharedCachingDataStore store;
 
         public FileCacheDataRecord(AbstractSharedCachingDataStore store, DataIdentifier identifier, long length,
             long lastModified) {

@@ -79,7 +79,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
             TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
             beforeLatch.countDown();
             afterLatch.countDown();
-            cache = FileCache.build(4 * 1024/** KB */, root, loader, executor);
+            cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
             Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
 
             closer.register(cache);
@@ -93,7 +93,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     @Test
     public void zeroCache() throws Exception {
-        cache = FileCache.build(0/** KB */, root, loader, null);
+        cache = FileCache.build(0/* KB */, root, loader, null);
         closer.register(cache);
         File f = createFile(0, loader, cache, folder);
         cache.put(ID_PREFIX + 0, f);
