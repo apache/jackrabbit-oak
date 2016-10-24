@@ -66,6 +66,81 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         UpdateOp up = new UpdateOp(id, true);
         up.set("_id", id);
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        super.ds.invalidateCache();
+        assertNotNull(super.ds.find(Collection.NODES, id));
+        removeMe.add(id);
+    }
+
+    @Test
+    public void testAddAndRemoveWithoutIdInUpdateOp() {
+        String id = this.getClass().getName() + ".testAddAndRemoveWithoutIdInUpdateOp";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        // add
+        UpdateOp up = new UpdateOp(id, true);
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        super.ds.invalidateCache();
+        assertNotNull(super.ds.find(Collection.NODES, id));
+        removeMe.add(id);
+    }
+
+    @Test
+    public void testConflictingId() {
+        String id = this.getClass().getName() + ".testConflictingId";
+
+        UpdateOp up = new UpdateOp(id, true);
+        try {
+            up.set("_id", id + "x");
+        } catch (IllegalArgumentException expected) {
+        } finally {
+            removeMe.add(id);
+        }
+    }
+
+    @Test
+    public void testCreateOrUpdate() {
+        String id = this.getClass().getName() + ".testCreateOrUpdate";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        // create
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        assertNull(super.ds.createOrUpdate(Collection.NODES, up));
+
+        // update
+        up = new UpdateOp(id, true);
+        up.set("_id", id);
+        assertNotNull(super.ds.createOrUpdate(Collection.NODES, up));
+        removeMe.add(id);
+    }
+
+    @Test
+    public void testCreateOrUpdateWithoutIdInUpdateOp() {
+        String id = this.getClass().getName() + ".testCreateOrUpdateWithoutIdInUpdateOp";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        // create
+        UpdateOp up = new UpdateOp(id, true);
+        assertNull(super.ds.createOrUpdate(Collection.NODES, up));
+
+        // update
+        up = new UpdateOp(id, true);
+        assertNotNull(super.ds.createOrUpdate(Collection.NODES, up));
         removeMe.add(id);
     }
 
