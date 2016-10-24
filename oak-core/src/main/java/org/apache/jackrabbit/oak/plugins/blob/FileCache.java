@@ -220,7 +220,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         LOG.info("Cache stats on close [{}]", cacheStats.cacheInfoAsString());
         new ExecutorCloser(executor).close();
     }

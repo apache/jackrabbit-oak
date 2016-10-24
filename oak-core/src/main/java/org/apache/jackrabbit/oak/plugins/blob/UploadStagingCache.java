@@ -430,7 +430,7 @@ public class UploadStagingCache implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         LOG.info("Uploads in progress on close [{}]", map.size());
         LOG.info("Uploads completed but not cleared from cache [{}]", attic.size());
         LOG.info("Staging cache stats on close [{}]", cacheStats.cacheInfoAsString());
