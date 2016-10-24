@@ -131,7 +131,7 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         downloadCache.close();
         stagingCache.close();
     }
