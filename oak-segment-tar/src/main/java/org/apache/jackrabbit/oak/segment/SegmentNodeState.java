@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 import java.nio.ByteBuffer;
@@ -118,7 +117,6 @@ public class SegmentNodeState extends Record implements NodeState {
      * @return  stable id
      */
     String getStableId() {
-        // FIXME OAK-4797: Optimise stable ids: come up with a faster to serialise representation that uses less memory
         ByteBuffer buffer = ByteBuffer.wrap(getStableIdBytes());
         long msb = buffer.getLong();
         long lsb = buffer.getLong();
