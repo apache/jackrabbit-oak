@@ -512,16 +512,11 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         waitFinish();
         LOG.info("Async tasks finished");
 
-        // File was returned from async cache but now deleted
-        // assertFalse(fileOnUpload.exists());
-
         File gold = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         File fromUploadStream = copyToFile(fStream, folder.newFile());
         assertTrue(Files.equal(gold, fromUploadStream));
 
-        assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 1);
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
-
         assertEquals(0, cache.getCacheStats().getLoadCount());
         assertEquals(0, cache.getCacheStats().getLoadSuccessCount());
     }
