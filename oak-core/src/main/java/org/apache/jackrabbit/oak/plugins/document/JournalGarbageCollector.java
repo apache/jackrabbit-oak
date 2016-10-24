@@ -69,10 +69,11 @@ public class JournalGarbageCollector {
      * maxRevisionAge.
      *
      * @param maxRevisionAge entries older than this age will be removed
-     * @param unit           the timeunit for maxRevisionAge
+     * @param unit           the {@linkplain TimeUnit} for maxRevisionAge
+     * @param batchSize      size of batch for removal
      * @return the number of entries that have been removed
      */
-    public int gc(long maxRevisionAge, int batchSize, TimeUnit unit) {
+    public int gc(long maxRevisionAge, TimeUnit unit, int batchSize) {
         DocumentStore ds = ns.getDocumentStore();
         Revision keep = ns.getCheckpoints().getOldestRevisionToKeep();
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
