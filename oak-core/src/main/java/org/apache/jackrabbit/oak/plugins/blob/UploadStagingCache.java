@@ -234,7 +234,7 @@ public class UploadStagingCache implements Closeable {
         cacheStats.markRequest();
 
         long length = input.length();
-        File uploadFile = getFile(id);
+        File uploadFile = DataStoreCacheUtils.getFile(id, uploadCacheSpace);
 
         // if size permits and not upload complete or already scheduled for upload
         if (currentSize.addAndGet(length) <= size
@@ -412,7 +412,7 @@ public class UploadStagingCache implements Closeable {
         LOG.debug("Trying to delete file [{}]", toBeDeleted);
         long length = toBeDeleted.length();
 
-        delete(toBeDeleted);
+        DataStoreCacheUtils.recursiveDelete(toBeDeleted, uploadCacheSpace);
         LOG.debug("deleted file [{}]", toBeDeleted);
 
         currentSize.addAndGet(-length);
@@ -420,30 +420,6 @@ public class UploadStagingCache implements Closeable {
         cacheStats.decrementSize(length);
         cacheStats.decrementMemSize(memWeigher.weigh(key, toBeDeleted));
         cacheStats.decrementCount();
-    }
-
-    /**
-     * Delete the file from the staged cache and all its empty sub-directories.
-     *
-     * @param f the file to be deleted
-     * @throws IOException
-     */
-    private void delete(File f) throws IOException {
-        if (f.exists()) {
-            FileUtils.forceDelete(f);
-            LOG.info("Deleted staged upload file [{}]", f);
-        }
-
-        // delete empty parent folders (except the main directory)
-        while (true) {
-            f = f.getParentFile();
-            if ((f == null) || f.equals(uploadCacheSpace)
-                || (f.list() == null)
-                || (f.list().length > 0)) {
-                break;
-            }
-            LOG.debug("Deleted directory [{}], [{}]", f, f.delete());
-        }
     }
 
     /**
@@ -463,20 +439,6 @@ public class UploadStagingCache implements Closeable {
             return map.get(key);
         }
         return null;
-    }
-
-    /**
-     * Create a placeholder in the file system cache folder for the given identifier.
-     *
-     * @param id of the file
-     * @return file handle
-     */
-    private File getFile(String id) {
-        File file = uploadCacheSpace;
-        file = new File(file, id.substring(0, 2));
-        file = new File(file, id.substring(2, 4));
-        file = new File(file, id.substring(4, 6));
-        return new File(file, id);
     }
 
     /**
