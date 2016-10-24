@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -83,7 +84,9 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
 
             Namespaces.setupNamespaces(system);
         }
-        
+
+        BundlingConfigInitializer.INSTANCE.initialize(builder);
+
         NodeBuilder versionStorage = builder.child(JCR_SYSTEM)
                 .child(JCR_VERSIONSTORAGE);
         if (prePopulateVS && !isInitialized(versionStorage)) {

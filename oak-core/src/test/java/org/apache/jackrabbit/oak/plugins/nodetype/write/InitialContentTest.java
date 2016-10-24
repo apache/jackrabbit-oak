@@ -21,6 +21,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertTrue;
 
@@ -58,5 +60,12 @@ public class InitialContentTest implements VersionConstants {
         for (String name : vs.getChildNodeNames()) {
             assertTrue(vs.child(name).getChildNodeCount(Integer.MAX_VALUE) == 0xff);
         }
+    }
+
+    @Test
+    public void bundlingConfig() throws Exception{
+        NodeState system = InitialContent.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
+        assertTrue(system.getChildNode(DOCUMENT_NODE_STORE).exists());
+        assertTrue(system.getChildNode(DOCUMENT_NODE_STORE).getChildNode(BUNDLOR).exists());
     }
 }
