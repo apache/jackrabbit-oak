@@ -34,8 +34,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
-import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.FAILURE;
-import static org.apache.jackrabbit.oak.segment.file.GCListener.Status.SUCCESS;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
@@ -76,10 +74,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
-import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdTable;
@@ -899,12 +894,12 @@ public class FileStore extends AbstractFileStore {
                 }
 
                 if (success) {
-                    gcListener.compacted(SUCCESS, newGeneration);
+                    gcListener.compactionSucceeded(newGeneration);
                     gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
                             GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                     return newGeneration;
                 } else {
-                    gcListener.compacted(FAILURE, newGeneration);
+                    gcListener.compactionFailed(newGeneration);
                     gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
                             GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                     return -newGeneration;
