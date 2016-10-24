@@ -47,12 +47,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.AbstractDataRecord;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
+import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -228,7 +228,7 @@ public class AbstractDataStoreCacheTest {
 
     // A mock Backend implementation that uses a Map to keep track of what
     // records have been added and removed, for test purposes only.
-    static class TestMemoryBackend implements SharedBackend {
+    static class TestMemoryBackend extends AbstractSharedBackend {
         final Map<DataIdentifier, File> _backend = Maps.newHashMap();
 
         @Override public InputStream read(DataIdentifier identifier) throws DataStoreException {
@@ -252,7 +252,7 @@ public class AbstractDataStoreCacheTest {
         @Override public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
             if (_backend.containsKey(id)) {
                 final File f = _backend.get(id);
-                return new AbstractDataRecord(null, id) {
+                return new AbstractDataRecord(this, id) {
                     @Override public long getLength() throws DataStoreException {
                         return f.length();
                     }
@@ -319,6 +319,11 @@ public class AbstractDataStoreCacheTest {
 
         @Override public void init() throws DataStoreException {
 
+        }
+
+        @Override
+        public String getReferenceFromIdentifier(DataIdentifier identifier) {
+            return super.getReferenceFromIdentifier(identifier);
         }
     }
 

@@ -39,7 +39,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -79,6 +79,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     private CountDownLatch afterExecuteLatch;
     private ScheduledExecutorService scheduledExecutor;
     private AbstractSharedCachingDataStore dataStore;
+    private TestMemoryBackend backend;
 
     @Before
     public void setup() throws Exception {
@@ -100,9 +101,12 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
+        final TestMemoryBackend testBackend = new TestMemoryBackend();
+        this.backend = testBackend;
+
         dataStore = new AbstractSharedCachingDataStore() {
-            @Override protected SharedBackend createBackend() {
-                return new TestMemoryBackend();
+            @Override protected AbstractSharedBackend createBackend() {
+                return testBackend;
             }
 
             @Override public int getMinRecordLength() {
@@ -272,6 +276,63 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         waitFinish();
 
         assertTrue(Iterators.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
+    }
+
+    @Test
+    public void reference() throws Exception {
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        // Record still in staging
+        DataRecord rec = dataStore.addRecord(fin);
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
+            rec.getReference());
+
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNotNull(rec);
+        assertFile(rec.getStream(), f, folder);
+        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
+            rec.getReference());
+
+        //start & finish
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        waitFinish();
+
+        // Now record in download cache
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNotNull(rec);
+        assertFile(rec.getStream(), f, folder);
+        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
+            rec.getReference());
+    }
+
+    @Test
+    public void referenceNoCache() throws Exception {
+        dataStore.close();
+        init(1, 0, 0);
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        // Record still in staging
+        DataRecord rec = dataStore.addRecord(fin);
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
+            rec.getReference());
+
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNotNull(rec);
+        assertFile(rec.getStream(), f, folder);
+        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
+            rec.getReference());
     }
 
     @After

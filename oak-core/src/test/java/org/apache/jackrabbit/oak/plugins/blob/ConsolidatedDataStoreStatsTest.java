@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -126,7 +126,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
         dataStore = new AbstractSharedCachingDataStore() {
-            @Override protected SharedBackend createBackend() {
+            @Override protected AbstractSharedBackend createBackend() {
                 return new TestMemoryBackend();
             }
 
