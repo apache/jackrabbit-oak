@@ -762,7 +762,7 @@ public class DocumentNodeStoreService {
 
             @Override
             public void run() {
-                nodeStore.getJournalGarbageCollector().gc(journalGCMaxAge, journalGCBatchSize, TimeUnit.MILLISECONDS);
+                nodeStore.getJournalGarbageCollector().gc(journalGCMaxAge, TimeUnit.MILLISECONDS, journalGCBatchSize);
             }
 
         };

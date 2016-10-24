@@ -39,6 +39,6 @@ public class JournalGCIT  extends AbstractDocumentStoreTest {
                 .getNodeStore();
 
         JournalGarbageCollector jgc = ns1.getJournalGarbageCollector();
-        assertEquals(0, jgc.gc(1, 10, TimeUnit.HOURS));
+        assertEquals(0, jgc.gc(1, TimeUnit.HOURS, 10));
     }
 }
