@@ -76,6 +76,10 @@ public class OptionParserFactory {
 
     public static final String INCLUDE_INDEX = "include-index";
 
+    public static final String VERIFY = "verify";
+
+    public static final String ONLY_VERIFY = "only-verify";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);
@@ -144,5 +148,7 @@ public class OptionParserFactory {
         op.accepts(CACHE_SIZE, "Cache size in MB").withRequiredArg().ofType(Integer.class).defaultsTo(256);
         op.accepts(SKIP_INIT, "Skip the repository initialization; only copy data");
         op.accepts(SKIP_NAME_CHECK, "Skip the initial phase of testing node name lengths");
+        op.accepts(VERIFY, "After the sidegrade check whether the source repository is exactly the same as destination");
+        op.accepts(ONLY_VERIFY, "Performs only --" + VERIFY + ", without copying content");
     }
 }

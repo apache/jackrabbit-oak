@@ -59,6 +59,10 @@ public class MigrationOptions {
 
     private final boolean ignoreMissingBinaries;
 
+    private final boolean verify;
+
+    private final boolean onlyVerify;
+
     private final String srcUser;
 
     private final String srcPassword;
@@ -113,6 +117,8 @@ public class MigrationOptions {
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
         this.skipNameCheck = args.hasOption(OptionParserFactory.SKIP_NAME_CHECK);
         this.ignoreMissingBinaries = args.hasOption(OptionParserFactory.IGNORE_MISSING_BINARIES);
+        this.verify = args.hasOption(OptionParserFactory.VERIFY);
+        this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
         this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
@@ -184,6 +190,14 @@ public class MigrationOptions {
 
     public boolean isIgnoreMissingBinaries() {
         return ignoreMissingBinaries;
+    }
+
+    public boolean isVerify() {
+        return verify;
+    }
+
+    public boolean isOnlyVerify() {
+        return onlyVerify;
     }
 
     public String getSrcUser() {
