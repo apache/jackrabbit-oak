@@ -69,7 +69,9 @@ public class RevisionGCTest {
 
     @After
     public void tearDown() throws Exception {
-        store.dispose();
+        if (store != null) {
+            store.dispose();
+        }
         Revision.resetClockToDefault();
     }
 
