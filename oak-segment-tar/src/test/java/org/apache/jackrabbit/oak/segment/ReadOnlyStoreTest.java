@@ -19,16 +19,21 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -38,12 +43,14 @@ public class ReadOnlyStoreTest {
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private ReadOnlyFileStore fileStore;
+    private SegmentNodeStore store;
 
     @Before
     public void setup() throws IOException, InvalidFileStoreVersionException {
         File path = folder.getRoot();
         initStoreAt(path);
         fileStore = fileStoreBuilder(path).buildReadOnly();
+        store = SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
     private static void initStoreAt(File path) throws InvalidFileStoreVersionException, IOException {
@@ -57,8 +64,16 @@ public class ReadOnlyStoreTest {
     }
 
     @Test
-    @Ignore("OAK-5002")  // FIXME OAK-5002
-    public void createStore() {
-        SegmentNodeStoreBuilders.builder(fileStore).build();
+    public void getRoot() {
+        NodeState root = store.getRoot();
+        assertEquals(0, root.getChildNodeCount(1));
     }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void setRoot() throws CommitFailedException {
+        NodeBuilder root = store.getRoot().builder();
+        root.setChildNode("foo");
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
 }

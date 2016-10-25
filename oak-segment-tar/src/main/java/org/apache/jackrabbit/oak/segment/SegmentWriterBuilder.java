@@ -21,12 +21,15 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.http.HttpStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
@@ -150,6 +153,32 @@ public final class SegmentWriterBuilder {
                 cacheManager,
                 createWriter(store, pooled)
         );
+    }
+
+    /**
+     * Build a {@code SegmentWriter} for a {@code ReadOnlyFileStore}.
+     * Attempting to write to the returned writer will cause a
+     * {@code UnsupportedOperationException} to be thrown.
+     */
+    @Nonnull
+    public SegmentWriter build(@Nonnull ReadOnlyFileStore store) {
+        return new SegmentWriter(
+                checkNotNull(store),
+                store.getReader(),
+                store.getBlobStore(),
+                cacheManager,
+                new WriteOperationHandler() {
+                    @Nonnull
+                    @Override
+                    public RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException {
+                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                    }
+
+                    @Override
+                    public void flush() throws IOException {
+                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                    }
+                });
     }
 
     /**
