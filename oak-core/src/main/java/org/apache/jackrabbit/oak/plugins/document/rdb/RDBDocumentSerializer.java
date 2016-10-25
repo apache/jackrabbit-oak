@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonMember;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonString;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonValue;
@@ -144,6 +145,10 @@ public class RDBDocumentSerializer {
      */
     @Nonnull
     public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
+
+        final String charData = row.getData();
+        checkNotNull(charData, "RDBRow.getData() is null for collection " + collection + ", id: " + row.getId());
+
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());
         if (row.getModified() != RDBRow.LONG_UNSET) {
@@ -181,7 +186,6 @@ public class RDBDocumentSerializer {
             throw new DocumentStoreException(ex);
         }
 
-        String charData = row.getData();
         json = new JsopTokenizer(charData);
 
         // start processing the VARCHAR data
