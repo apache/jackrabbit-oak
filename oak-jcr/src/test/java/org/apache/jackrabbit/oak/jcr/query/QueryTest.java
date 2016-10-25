@@ -827,18 +827,22 @@ public class QueryTest extends AbstractRepositoryTest {
     public void nodeType() throws Exception {
         Session session = createAdminSession();
         String xpath = "/jcr:root//element(*,rep:User)[xyz/@jcr:primaryType]";
-        assertTrue(getPlan(session, xpath).startsWith("[rep:User] as [a] /* nodeType"));
+        assertPlan(getPlan(session, xpath), "[rep:User] as [a] /* nodeType");
         
         session.getNode("/oak:index/nodetype").setProperty("declaringNodeTypes", 
                 new String[]{"oak:Unstructured"}, PropertyType.NAME);
         session.save();
 
-        assertTrue(getPlan(session, xpath).startsWith("[rep:User] as [a] /* traverse "));
+        assertPlan(getPlan(session, xpath), "[rep:User] as [a] /* traverse ");
 
         xpath = "/jcr:root//element(*,oak:Unstructured)[xyz/@jcr:primaryType]";
-        assertTrue(getPlan(session, xpath).startsWith("[oak:Unstructured] as [a] /* nodeType "));
+        assertPlan(getPlan(session, xpath), "[oak:Unstructured] as [a] /* nodeType ");
 
         session.logout();
+    }
+
+    private static void assertPlan(String plan, String planPrefix) {
+        assertTrue("Unexpected plan: " + plan, plan.startsWith(planPrefix));
     }
     
     private static String getPlan(Session session, String xpath) throws RepositoryException {
