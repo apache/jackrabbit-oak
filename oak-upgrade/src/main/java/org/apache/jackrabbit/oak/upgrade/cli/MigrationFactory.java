@@ -114,8 +114,9 @@ public class MigrationFactory {
             sidegrade.setMerges(options.getMergePaths());
         }
         sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
-        sidegrade.setSkipInitialization(options.isSkipInitialization());
         sidegrade.setIncludeIndex(options.isIncludeIndex());
+        sidegrade.setVerify(options.isVerify());
+        sidegrade.setOnlyVerify(options.isOnlyVerify());
         return sidegrade;
     }
 

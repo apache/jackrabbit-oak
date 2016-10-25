@@ -29,7 +29,6 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Function;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -107,7 +106,9 @@ public class RepositorySidegrade {
 
     private boolean filterLongNames = true;
 
-    private boolean skipInitialization = false;
+    private boolean verify = false;
+
+    private boolean onlyVerify = false;
 
     private List<CommitHook> customCommitHooks = null;
 
@@ -223,14 +224,12 @@ public class RepositorySidegrade {
         this.filterLongNames = filterLongNames;
     }
 
-    /**
-     * Skip the new repository initialization. Only copy content passed in the
-     * {@link #includePaths}.
-     *
-     * @param skipInitialization
-     */
-    public void setSkipInitialization(boolean skipInitialization) {
-        this.skipInitialization = skipInitialization;
+    public void setVerify(boolean verify) {
+        this.verify = verify;
+    }
+
+    public void setOnlyVerify(boolean onlyVerify) {
+        this.onlyVerify = onlyVerify;
     }
 
     /**
@@ -250,31 +249,31 @@ public class RepositorySidegrade {
      * during the copy operation as this method requires exclusive access
      * to the repositories.
      * 
-     * @param initializer optional extra repository initializer to use
+     * @param initializer optional repository initializer to use
      *
      * @throws RepositoryException if the copy operation fails
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
         try {
-            NodeBuilder targetRoot = target.getRoot().builder();
+            if (!onlyVerify) {
+                NodeBuilder targetRoot = target.getRoot().builder();
 
-            if (skipInitialization) {
-                LOG.info("Skipping the repository initialization");
-            } else {
-                new InitialContent().initialize(targetRoot);
                 if (initializer != null) {
                     initializer.initialize(targetRoot);
                 }
-            }
 
-            final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
-            final NodeState sourceRoot;
-            if (filterLongNames) {
-                sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
-            } else {
-                sourceRoot = reportingSourceRoot;
+                final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+                final NodeState sourceRoot;
+                if (filterLongNames) {
+                    sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
+                } else {
+                    sourceRoot = reportingSourceRoot;
+                }
+                copyState(sourceRoot, targetRoot);
             }
-            copyState(sourceRoot, targetRoot);
+            if (verify || onlyVerify) {
+                verify();
+            }
 
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
@@ -464,6 +463,28 @@ public class RepositorySidegrade {
             return nameCandidates.get(0);
         } else {
             return null;
+        }
+    }
+
+    private void verify() {
+        final NodeState sourceRoot;
+        final NodeState targetRoot;
+
+        if (source instanceof TarNodeStore && target instanceof TarNodeStore) {
+            sourceRoot = ((TarNodeStore) source).getSuperRoot();
+            targetRoot = ((TarNodeStore) target).getSuperRoot();
+        } else {
+            sourceRoot = source.getRoot();
+            targetRoot = target.getRoot();
+        }
+
+        final NodeState reportingSource = ReportingNodeState.wrap(sourceRoot, new LoggingReporter(LOG, "Verifying", LOG_NODE_COPY, -1));
+
+        LOG.info("Verifying whether repositories are identical");
+        if (targetRoot.compareAgainstBaseState(reportingSource, new LoggingEqualsDiff(LOG, "/"))) {
+            LOG.info("Verification result: both repositories are identical");
+        } else {
+            LOG.warn("Verification result: repositories are not identical");
         }
     }
 }
