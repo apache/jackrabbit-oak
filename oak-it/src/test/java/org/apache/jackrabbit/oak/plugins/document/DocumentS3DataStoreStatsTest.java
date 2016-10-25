@@ -102,12 +102,14 @@ public class DocumentS3DataStoreStatsTest {
         registerDocumentNodeStoreService(true);
         assertServiceActivated();
 
-        S3DataStoreStats s3DataStoreStats =
-            context.registerInjectActivateService(new S3DataStoreStats(), null);
-        assertNull(context.getService(S3DataStoreStatsMBean.class));
-
-        unregisterDocumentNodeStoreService();
-        unregisterBlobStore();
+        try {
+            S3DataStoreStats s3DataStoreStats =
+                context.registerInjectActivateService(new S3DataStoreStats(), null);
+            assertNull(context.getService(S3DataStoreStatsMBean.class));
+        } finally {
+            unregisterDocumentNodeStoreService();
+            unregisterBlobStore();
+        }
     }
 
     private DocumentNodeStoreService documentNodeStoreService;
