@@ -65,13 +65,13 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     /**
      * The cacheRoot directory of the cache.
      */
-    private final File cacheRoot;
+    private File cacheRoot;
 
-    private final CacheLIRS<String, File> cache;
+    private CacheLIRS<String, File> cache;
 
-    private final FileCacheStats cacheStats;
+    private FileCacheStats cacheStats;
 
-    private final ExecutorService executor;
+    private ExecutorService executor;
 
     /**
      * Convert the size calculation to KB to support max file size of 2 TB
@@ -148,12 +148,15 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         this.executor.submit(new CacheBuildJob());
     }
 
+    private FileCache() {
+    }
+
     public static FileCache build(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
         if (maxSize > 0) {
             return new FileCache(maxSize, root, loader, executor);
         }
-        return new FileCache(maxSize, root, loader, executor) {
+        return new FileCache() {
             @Override public void put(String key, File file) {
             }
 

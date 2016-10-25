@@ -85,12 +85,12 @@ public class UploadStagingCache implements Closeable {
     /**
      * Max size of the upload staging cache in bytes
      */
-    private final long size;
+    private long size;
 
     /**
      * Current cache size in bytes
      */
-    private final AtomicLong currentSize;
+    private AtomicLong currentSize;
 
     /**
      * Executor for async uploads
@@ -105,33 +105,33 @@ public class UploadStagingCache implements Closeable {
     /**
      * In memory map for staged files
      */
-    private final ConcurrentMap<String, File> map;
+    private ConcurrentMap<String, File> map;
 
     /**
      * In memory map for files to be deleted after uploads
      */
-    private final ConcurrentMap<String, File> attic;
+    private ConcurrentMap<String, File> attic;
 
     /**
      * Local directory where uploads are staged
      */
-    private final File uploadCacheSpace;
+    private File uploadCacheSpace;
 
     /**
      * Wrapper to where the blobs are uploaded/written
      */
-    private final StagingUploader uploader;
+    private StagingUploader uploader;
 
     /**
      * Cache stats
      */
-    private final StagingCacheStats cacheStats;
+    private StagingCacheStats cacheStats;
 
     /**
      * Handle for download cache if any
      */
     @Nullable
-    private final FileCache downloadCache;
+    private FileCache downloadCache;
 
     private UploadStagingCache(File dir, int uploadThreads, long size /* bytes */,
         StagingUploader uploader, @Nullable FileCache cache, StatisticsProvider statisticsProvider,
@@ -164,6 +164,9 @@ public class UploadStagingCache implements Closeable {
             TimeUnit.SECONDS);
     }
 
+    private UploadStagingCache() {
+    }
+
     public static UploadStagingCache build(File dir, int uploadThreads, long size
         /* bytes */, StagingUploader uploader, @Nullable FileCache cache,
         StatisticsProvider statisticsProvider, @Nullable ListeningExecutorService executor,
@@ -172,8 +175,7 @@ public class UploadStagingCache implements Closeable {
             return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
                 statisticsProvider, executor, scheduledExecutor, purgeInterval);
         }
-        return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
-            statisticsProvider, executor, scheduledExecutor, purgeInterval) {
+        return new UploadStagingCache() {
             @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
                 return Optional.absent();
             }
