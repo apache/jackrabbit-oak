@@ -75,7 +75,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             description="As multiple SegmentNodeStores can be configured, this parameter defines the role " +
                         "of 'this' SegmentNodeStore."
     )
-    public static final String ROLE = "nsProvider.role";
+    public static final String ROLE = "role";
 
     @Property(
             label = "Directory",
@@ -275,15 +275,15 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             return new File(directory);
         }
 
-        if (role == null) {
-            return new File("tarmk");
-        } else {
-            return new File("tarmk-" + role);
-        }
+        return new File("tarmk");
     }
 
     private File getDirectory() {
-        return new File(getBaseDirectory(), "segmentstore");
+        String dirName = "segmentstore";
+        if (role != null){
+            dirName = role + "-" + dirName;
+        }
+        return new File(getBaseDirectory(), dirName);
     }
 
     private String getMode() {
