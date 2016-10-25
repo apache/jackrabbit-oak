@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -50,7 +49,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -143,7 +141,7 @@ public class SegmentDataStoreBlobGCIT {
         return setUp(10);
     }
 
-    private DataStoreBlobStore getBlobStore(File folder) throws Exception {
+    protected DataStoreBlobStore getBlobStore(File folder) throws Exception {
         return DataStoreUtils.getBlobStore(folder);
     }
 
