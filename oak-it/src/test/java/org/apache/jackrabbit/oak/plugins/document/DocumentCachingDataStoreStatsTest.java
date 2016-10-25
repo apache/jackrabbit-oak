@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedDataStoreCacheStatsMBean;
@@ -34,6 +36,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -53,14 +56,20 @@ public class DocumentCachingDataStoreStatsTest {
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
+    @Rule
+    public final TemporaryFolder target = new TemporaryFolder(new File("target"));
+
+    private String repoHome;
+
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        repoHome = target.newFolder().getAbsolutePath();
     }
 
     @Test
@@ -93,12 +102,14 @@ public class DocumentCachingDataStoreStatsTest {
         registerDocumentNodeStoreService(true);
         assertServiceActivated();
 
-        ConsolidatedDataStoreCacheStats dataStoreStats =
-            context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats(), null);
-        assertNull(context.getService(ConsolidatedDataStoreCacheStatsMBean.class));
-
-        unregisterDocumentNodeStoreService();
-        unregisterBlobStore();
+        try {
+            ConsolidatedDataStoreCacheStats dataStoreStats =
+                context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats(), null);
+            assertNull(context.getService(ConsolidatedDataStoreCacheStatsMBean.class));
+        } finally {
+            unregisterDocumentNodeStoreService();
+            unregisterBlobStore();
+        }
     }
 
     private DocumentNodeStoreService documentNodeStoreService;
@@ -108,6 +119,7 @@ public class DocumentCachingDataStoreStatsTest {
 
         properties.put("mongouri", MongoUtils.URL);
         properties.put("db", MongoUtils.DB);
+        properties.put("repository.home", repoHome);
         properties.put(DocumentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
         documentNodeStoreService =
             context.registerInjectActivateService(new DocumentNodeStoreService(), properties);
