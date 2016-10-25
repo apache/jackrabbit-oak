@@ -38,7 +38,6 @@ public class SegmentTarFixtureTest {
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
-    @Ignore("OAK-4999")  // FIXME OAK-4999
     public void testReadWrite() throws IOException, CommitFailedException {
         try (NodeStoreFixture fixture = SegmentTarFixture.create(folder.getRoot(), false, null)) {
             NodeStore store = fixture.getStore();
