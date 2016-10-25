@@ -1650,21 +1650,21 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         final long start = System.currentTimeMillis();
         // assumption here: server returns UTC - ie the returned
         // date object is correctly taking care of time zones.
-        final CommandResult serverStatus = db.command("serverStatus");
-        if (serverStatus == null) {
+        final CommandResult isMaster = db.command("isMaster");
+        if (isMaster == null) {
             // OAK-4107 / OAK-4515 : extra safety
-            LOG.warn("determineServerTimeDifferenceMillis: db.serverStatus returned null - cannot determine time difference - assuming 0ms.");
+            LOG.warn("determineServerTimeDifferenceMillis: db.isMaster returned null - cannot determine time difference - assuming 0ms.");
             return 0;
         }
-        final Date serverLocalTime = serverStatus.getDate("localTime");
+        final Date serverLocalTime = isMaster.getDate("localTime");
         if (serverLocalTime == null) {
             // OAK-4107 / OAK-4515 : looks like this can happen - at least
             // has been seen once on mongo 3.0.9
             // let's handle this gently and issue a log.warn
             // instead of throwing a NPE
-            LOG.warn("determineServerTimeDifferenceMillis: db.serverStatus.localTime returned null - cannot determine time difference - assuming 0ms. "
-                    + "(Result details: server exception=" + serverStatus.getException() + ", server error message=" + serverStatus.getErrorMessage() + ")", 
-                    serverStatus.getException());
+            LOG.warn("determineServerTimeDifferenceMillis: db.isMaster.localTime returned null - cannot determine time difference - assuming 0ms. "
+                    + "(Result details: server exception=" + isMaster.getException() + ", server error message=" + isMaster.getErrorMessage() + ")",
+                    isMaster.getException());
             return 0;
         }
         final long end = System.currentTimeMillis();
