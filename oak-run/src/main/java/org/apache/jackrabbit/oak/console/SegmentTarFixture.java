@@ -43,11 +43,8 @@ class SegmentTarFixture implements NodeStoreFixture {
 
         try {
             if (readOnly) {
-                ReadOnlyFileStore store;
-                store = builder.buildReadOnly();
-                return new SegmentTarFixture(store);
+                return new SegmentTarFixture(builder.buildReadOnly());
             } else {
-                FileStore store = builder.build();
                 return new SegmentTarFixture(builder.build());
             }
         } catch (InvalidFileStoreVersionException e) {
