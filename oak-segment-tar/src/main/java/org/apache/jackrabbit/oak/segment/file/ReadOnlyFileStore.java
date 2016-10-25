@@ -24,6 +24,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,6 +62,9 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     private final List<TarReader> readers;
 
+    @Nonnull
+    private final SegmentWriter writer;
+
     private ReadOnlyRevisions revisions;
 
     private RecordId currentHead;
@@ -84,6 +88,8 @@ public class ReadOnlyFileStore extends AbstractFileStore {
             boolean recover = i == indices.length - 1;
             readers.add(TarReader.openRO(map.get(indices[i]), memoryMapping, recover, recovery));
         }
+
+        writer = segmentWriterBuilder("read-only").withoutCache().build(this);
         log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
                 memoryMapping);
     }
@@ -209,9 +215,10 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         log.info("TarMK closed: {}", directory);
     }
 
+    @Nonnull
     @Override
     public SegmentWriter getWriter() {
-        return null;
+        return writer;
     }
 
     public Map<String, Set<UUID>> getTarReaderIndex() {
