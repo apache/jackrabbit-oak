@@ -41,7 +41,11 @@
   <!-- Metrics Reporting-->
   <logger name="org.apache.jackrabbit.oak.metrics" level="INFO"/>
 
+  <!-- Display information messages from oak-run check (oak-segment) -->
   <logger name="org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>
+
+  <!-- Display information messages from oak-run check (oak-segment-tar) -->
+  <logger name="org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>
 
   <root level="warn">
     <appender-ref ref="STDERR" />
