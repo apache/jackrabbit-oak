@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -75,9 +76,9 @@ public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
 
     @After
     public void close() throws Exception {
-        super.closeBlobStore();
-        super.closeBlobStore();
-        S3DataStoreUtils.deleteBucket(bucket, startDate);
+        if (!Strings.isNullOrEmpty(bucket)) {
+            S3DataStoreUtils.deleteBucket(bucket, startDate);
+        }
     }
 }
 
