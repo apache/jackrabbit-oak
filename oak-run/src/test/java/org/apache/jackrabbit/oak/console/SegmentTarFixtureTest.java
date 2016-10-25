@@ -47,7 +47,7 @@ public class SegmentTarFixtureTest {
         }
     }
 
-    @Test
+    @Test(expected = UnsupportedOperationException.class)
     @Ignore("OAK-4998")  // FIXME OAK-4998
     public void testReadOnly()
     throws IOException, CommitFailedException, InvalidFileStoreVersionException {
