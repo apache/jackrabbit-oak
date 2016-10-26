@@ -82,7 +82,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
-    public static final int DEFAULT_BATCH_COUNT = 2048;
+    public static final int DEFAULT_BATCH_COUNT = 1024;
     
     public static final String DELIM = ",";
 
