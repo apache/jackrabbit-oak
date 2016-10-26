@@ -46,6 +46,7 @@ import com.google.common.base.Predicate;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
@@ -406,6 +407,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         int count = 0;
         if (delegate instanceof MultiDataStoreAware) {
+            List<String> deleted = Lists.newArrayListWithExpectedSize(512);
             for (String chunkId : chunkIds) {
                 String blobId = extractBlobId(chunkId);
                 DataIdentifier identifier = new DataIdentifier(blobId);
@@ -416,9 +418,16 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
                     dataRecord.getLastModified(), success);
                 if (success) {
                     ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                    log.info("Deleted blob [{}]", blobId);
+                    deleted.add(blobId);
                     count++;
+                    if (count % 512 == 0) {
+                        log.info("Deleted blobs {[]}", deleted);
+                        deleted.clear();
+                    }
                 }
+            }
+            if (!deleted.isEmpty()) {
+                log.info("Deleted blobs {[]}", deleted);
             }
         }
         return count;
