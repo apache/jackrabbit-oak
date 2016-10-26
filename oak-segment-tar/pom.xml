@@ -23,26 +23,19 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.5.12</version>
-        <relativePath />
+        <version>1.6-SNAPSHOT</version>
+        <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>oak-segment-tar</artifactId>
-    <version>0.0.17-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
 
     <properties>
-        <oak.version>1.5.12</oak.version>
+        <project.version>1.5.12</project.version>
         <netty.version>4.0.41.Final</netty.version>
     </properties>
-
-    <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-segment-tar</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-segment-tar</developerConnection>
-        <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-segment-tar</url>
-    </scm>
 
     <build>
         <plugins>
@@ -117,40 +110,6 @@
                     </systemPropertyVariables>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <quiet>true</quiet>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
@@ -162,25 +121,25 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-commons</artifactId>
-            <version>${oak.version}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob</artifactId>
-            <version>${oak.version}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob-cloud</artifactId>
-            <version>${oak.version}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
-            <version>${oak.version}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -299,14 +258,14 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
-            <version>${oak.version}</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-commons</artifactId>
-            <version>${oak.version}</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

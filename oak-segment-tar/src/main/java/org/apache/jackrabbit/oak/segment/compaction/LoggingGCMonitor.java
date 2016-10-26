@@ -61,8 +61,7 @@ public class LoggingGCMonitor implements GCMonitor {
     }
 
     @Override
-    public void compacted(
-            long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
+    public void compacted() {
     }
 
     @Override
