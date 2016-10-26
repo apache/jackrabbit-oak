@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.numberOfTrailingZeros;
+import static java.lang.Long.numberOfLeadingZeros;
+import static java.lang.Math.max;
 import static java.util.Arrays.fill;
 
 import javax.annotation.CheckForNull;
@@ -99,6 +101,15 @@ public class PriorityCache<K, V> {
                 ? "NULL"
                 : "Entry{" + key + "->" + value + " @" + generation + ", $" + cost + "}";
         }
+    }
+
+    /**
+     * Round {@code size} up to the next power of two or 1 for negative values.
+     * @param size
+     * @return the next power of two starting from {@code size}.
+     */
+    public static long nextPowerOfTwo(int size) {
+        return 1L << (64L - numberOfLeadingZeros((long)max(1, size) - 1L));
     }
 
     /**
