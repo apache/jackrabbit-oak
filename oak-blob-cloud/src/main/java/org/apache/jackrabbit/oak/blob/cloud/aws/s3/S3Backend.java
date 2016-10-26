@@ -1225,9 +1225,12 @@ public class S3Backend implements SharedS3Backend {
         public void run() {
             try {
                 write(identifier, file, true, callback);
-            } catch (DataStoreException e) {
-                LOG.error("Could not upload [" + identifier + "], file[" + file
+            } catch (Exception e) {
+                LOG.warn("Could not upload [" + identifier + "], file[" + file
                     + "]", e);
+                AsyncUploadResult result = new AsyncUploadResult(identifier, file);
+                result.setException(e);
+                callback.onFailure(result);
             }
 
         }
