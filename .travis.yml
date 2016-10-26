@@ -14,8 +14,8 @@
 # limitations under the License.
 
 sudo: false
-install:  true
-script:   mvn --batch-mode verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :oak-lucene -am
+install:  mvn --batch-mode -DskipTests install -pl :oak-segment,:oak-segment-tar -am
+script:   mvn --batch-mode clean verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl ':oak-lucene,!:oak-segment-tar,!:oak-segment' -am
 language: java
 jdk:
   - oraclejdk7
