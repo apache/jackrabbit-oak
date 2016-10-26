@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -460,7 +461,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         // Expose an MBean to managing and monitoring garbage collection
 
-        FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
+        final FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
         registrations.add(new CompositeRegistration(
             whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
             registerMBean(
@@ -477,10 +478,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 store.cancelGC();
             }
         };
+        Supplier<String> statusMessage = new Supplier<String>() {
+            @Override
+            public String get() {
+                return fsgcm.getStatus();
+            }
+        };
         registrations.add(registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
-                new RevisionGC(store.getGCRunner(), cancelGC, executor),
+                new RevisionGC(store.getGCRunner(), cancelGC, statusMessage, executor),
                 RevisionGCMBean.TYPE,
                 "Revision garbage collection"
         ));
