@@ -36,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -76,7 +78,8 @@ class SplitOperations {
     private Revision high;
     private Revision low;
     private int numValues;
-    private boolean hasBinary;
+    private boolean hasBinaryToSplit;
+    private Supplier<Boolean> nodeExistsAtHeadRevision;
     private Map<String, NavigableMap<Revision, String>> committedChanges;
     private Set<Revision> changes;
     private Map<String, Set<Revision>> garbage;
@@ -86,18 +89,26 @@ class SplitOperations {
     private List<UpdateOp> splitOps;
     private UpdateOp main;
 
-    private SplitOperations(@Nonnull NodeDocument doc,
-                            @Nonnull RevisionContext context,
-                            @Nonnull RevisionVector headRevision,
-                            @Nonnull Predicate<String> isBinaryValue,
+    private SplitOperations(@Nonnull final NodeDocument doc,
+                            @Nonnull final RevisionContext context,
+                            @Nonnull final RevisionVector headRev,
+                            @Nonnull final Predicate<String> isBinaryValue,
                             int numRevsThreshold) {
         this.doc = checkNotNull(doc);
         this.context = checkNotNull(context);
         this.isBinaryValue = checkNotNull(isBinaryValue);
         this.path = doc.getPath();
         this.id = doc.getId();
-        this.headRevision = checkNotNull(headRevision).getRevision(context.getClusterId());
+        this.headRevision = checkNotNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
+        this.nodeExistsAtHeadRevision = Suppliers.memoize(new Supplier<Boolean>() {
+            @Override
+            public Boolean get() {
+                return doc.getLiveRevision(context, headRev,
+                        Maps.<Revision, String>newHashMap(),
+                        new LastRevs(headRev)) != null;
+            }
+        });
     }
 
     /**
@@ -200,7 +211,8 @@ class SplitOperations {
                 Revision r = splitMap.lastKey();
                 splitMap.remove(r);
                 splitRevs.addAll(splitMap.keySet());
-                hasBinary |= hasBinaryProperty(splitMap.values());
+                hasBinaryToSplit |= hasBinaryProperty(splitMap.values())
+                        && nodeExistsAtHeadRevision.get();
                 mostRecentRevs.add(r);
             }
             if (splitMap.isEmpty()) {
@@ -328,7 +340,7 @@ class SplitOperations {
         if (high != null && low != null
                 && (numValues >= numRevsThreshold
                 || doc.getMemory() > DOC_SIZE_THRESHOLD
-                || hasBinary)) {
+                || hasBinaryToSplit)) {
             // enough changes to split off
             // move to another document
             main = new UpdateOp(id, false);
@@ -363,7 +375,7 @@ class SplitOperations {
             // or there are binaries to split off
             if (oldDoc.getMemory() > doc.getMemory() * SPLIT_RATIO
                     || numValues >= numRevsThreshold
-                    || hasBinary) {
+                    || hasBinaryToSplit) {
                 splitOps.add(old);
             } else {
                 main = null;

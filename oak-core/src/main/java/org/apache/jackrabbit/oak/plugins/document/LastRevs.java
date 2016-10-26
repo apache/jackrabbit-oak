@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -38,6 +39,10 @@ final class LastRevs implements Iterable<Revision> {
     private final Branch branch;
 
     private Revision branchRev;
+
+    LastRevs(RevisionVector readRevision) {
+        this(Collections.<Integer, Revision>emptyMap(), readRevision, null);
+    }
 
     LastRevs(Map<Integer, Revision> revs,
              RevisionVector readRevision,

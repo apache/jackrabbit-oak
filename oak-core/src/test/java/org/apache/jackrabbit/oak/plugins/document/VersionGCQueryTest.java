@@ -89,6 +89,15 @@ public class VersionGCQueryTest {
             builder.child("test").child("node-" + i).setProperty(p);
         }
         merge(builder);
+        // overwrite with other binaries to force document splits
+        builder = ns.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            InputStream s = new RandomStream(10 * 1024, 17);
+            PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
+            builder.child("test").child("node-" + i).setProperty(p);
+        }
+        merge(builder);
+        ns.runBackgroundOperations();
         builder = ns.getRoot().builder();
         builder.child("test").remove();
         merge(builder);
@@ -135,7 +144,7 @@ public class VersionGCQueryTest {
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(numPrevDocs, stats.splitDocGCCount);
         assertEquals(numPrevDocs, prevDocIds.size());
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(2, Iterables.size(Utils.getAllDocuments(store)));
     }
 
     private NodeState merge(NodeBuilder builder) throws CommitFailedException {

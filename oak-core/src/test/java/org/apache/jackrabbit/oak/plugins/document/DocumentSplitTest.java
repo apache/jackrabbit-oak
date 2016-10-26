@@ -921,6 +921,38 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertEquals(9, prevDocs.size());
     }
 
+    @Test
+    public void noBinarySplitWhenRemoved() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        PropertyState binary = binaryProperty("p", "value".getBytes());
+        builder.child("foo").setProperty(binary);
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("foo").remove();
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        // must not create split document in this case. See OAK-5010
+        NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        assertEquals(0, foo.getPreviousRanges().size());
+
+        // re-create it
+        builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        // now the old binary value must be moved to a previous document
+        foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+    }
+
     private static class TestRevisionContext implements RevisionContext {
 
         private final RevisionContext rc;
