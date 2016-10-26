@@ -138,7 +138,7 @@ public class SegmentRevisionGCMBean
 
     @Override
     public long getLastRepositorySize() {
-        return fileStoreGCMonitor.getLastReclaimedSize();
+        return fileStoreGCMonitor.getLastRepositorySize();
     }
 
     @Override
