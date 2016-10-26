@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFra
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -219,6 +220,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             description = "Amount of increase in repository size that will trigger compaction (bytes)"
     )
     public static final String COMPACTION_SIZE_DELTA_ESTIMATION = "compaction.sizeDeltaEstimation";
+
+    @Property(
+            intValue = RETAINED_GENERATIONS_DEFAULT,
+            label = "Compaction retained generations",
+            description = "Number of segment generations to retain."
+    )
+    public static final String RETAINED_GENERATIONS = "compaction.retainedGenerations";
 
     @Property(
             boolValue = false,
@@ -586,11 +594,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
         int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
         int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
+        int retainedGenerations = toInteger(property(RETAINED_GENERATIONS), RETAINED_GENERATIONS_DEFAULT);
 
         byte gainThreshold = getGainThreshold();
         long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
 
         return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
+                .setRetainedGenerations(retainedGenerations)
                 .setGcSizeDeltaEstimation(sizeDeltaEstimation);
     }
 
