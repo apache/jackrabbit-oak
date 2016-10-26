@@ -150,4 +150,17 @@ public class PriorityCacheTest {
         assertEquals(200, cache.size());
     }
 
+    @Test
+    public void nextPowerOfTwo() {
+        assertEquals(1, PriorityCache.nextPowerOfTwo(-1));
+        assertEquals(1, PriorityCache.nextPowerOfTwo(-123));
+        assertEquals(1, PriorityCache.nextPowerOfTwo(0));
+        assertEquals(1, PriorityCache.nextPowerOfTwo(1));
+        assertEquals(2, PriorityCache.nextPowerOfTwo(2));
+        assertEquals(4, PriorityCache.nextPowerOfTwo(3));
+        assertEquals(4, PriorityCache.nextPowerOfTwo(4));
+        assertEquals(512, PriorityCache.nextPowerOfTwo(500));
+        assertEquals(2147483648L, PriorityCache.nextPowerOfTwo(Integer.MAX_VALUE));
+    }
+
 }

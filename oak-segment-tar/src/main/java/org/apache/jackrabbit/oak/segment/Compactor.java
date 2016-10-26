@@ -18,11 +18,12 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.lang.Long.numberOfLeadingZeros;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
+import static org.apache.jackrabbit.oak.segment.file.PriorityCache.nextPowerOfTwo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Supplier;
+import com.google.common.hash.Hashing;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,16 +41,13 @@ import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
-import com.google.common.hash.Hashing;
 
 /**
  * Tool for compacting segments.
@@ -70,12 +70,6 @@ public class Compactor {
     private final BlobStore blobStore;
 
     private final SegmentWriter writer;
-
-    /**
-     * Filters nodes that will be included in the compaction map, allowing for
-     * optimization in case of an offline compaction
-     */
-    private final Predicate<NodeState> includeInMap = new OfflineCompactionPredicate();
 
     private final ProgressTracker progress = new ProgressTracker();
 
@@ -126,7 +120,17 @@ public class Compactor {
         }
     }
 
-    private final RecordCache<RecordId> cache = newRecordCache(cacheSize);
+    /**
+     * Deduplication cache for blobs. 10% of the total cache size.
+     */
+    private final PriorityCache<RecordId, RecordId> blobCache =
+            new PriorityCache<>((int) nextPowerOfTwo(cacheSize/10));
+
+    /**
+     * Deduplication cache for nodes. 90% of the total cache size.
+     */
+    private final PriorityCache<RecordId, RecordId> nodeCache =
+            new PriorityCache<>((int) nextPowerOfTwo(cacheSize/10*9));
 
     public Compactor(SegmentReader reader, SegmentWriter writer,
             BlobStore blobStore, Supplier<Boolean> cancel, SegmentGCOptions gc) {
@@ -232,7 +236,7 @@ public class Compactor {
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = cache.get(id);
+                RecordId compactedId = nodeCache.get(id, 0);
                 if (compactedId != null) {
                     builder.setChildNode(name, new SegmentNodeState(reader,
                             writer, compactedId));
@@ -251,11 +255,10 @@ public class Compactor {
                 boolean success = new CompactDiff(child, path, name).diff(
                         EMPTY_NODE, after);
                 if (success) {
-                    SegmentNodeState state = writer.writeNode(child
-                            .getNodeState());
+                    SegmentNodeState state = writer.writeNode(child.getNodeState());
                     builder.setChildNode(name, state);
-                    if (id != null && includeInMap.apply(after)) {
-                        cache.put(id, state.getRecordId());
+                    if (id != null) {
+                        nodeCache.put(id, state.getRecordId(), 0, cost(state));
                     }
                 }
                 return success;
@@ -275,7 +278,7 @@ public class Compactor {
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = cache.get(id);
+                RecordId compactedId = nodeCache.get(id, 0);
                 if (compactedId != null) {
                     builder.setChildNode(name, new SegmentNodeState(reader,
                             writer, compactedId));
@@ -293,10 +296,9 @@ public class Compactor {
                 boolean success = new CompactDiff(child, path, name).diff(
                         before, after);
                 if (success) {
-                    RecordId compactedId = writer.writeNode(
-                            child.getNodeState()).getRecordId();
+                    SegmentNodeState state = writer.writeNode(child.getNodeState());
                     if (id != null) {
-                        cache.put(id, compactedId);
+                        nodeCache.put(id, state.getRecordId(), 0, cost(state));
                     }
                 }
                 return success;
@@ -305,6 +307,20 @@ public class Compactor {
                 return false;
             }
         }
+    }
+
+    private static byte cost(SegmentNodeState node) {
+        long childCount = node.getChildNodeCount(Long.MAX_VALUE);
+        return cost(childCount);
+    }
+
+    private static byte cost(SegmentBlob blob) {
+        long length = blob.length();
+        return cost(length);
+    }
+
+    private static byte cost(long n) {
+        return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(n));
     }
 
     private PropertyState compact(PropertyState property) {
@@ -340,7 +356,7 @@ public class Compactor {
                 RecordId id = sb.getRecordId();
 
                 // TODO verify binary impact on cache
-                RecordId compactedId = cache.get(id);
+                RecordId compactedId = blobCache.get(id, 0);
                 if (compactedId != null) {
                     return new SegmentBlob(blobStore, compactedId);
                 }
@@ -349,14 +365,12 @@ public class Compactor {
 
                 // if the blob is external, just clone it
                 if (sb.isExternal()) {
-                    SegmentBlob clone = writer.writeBlob(sb);
-                    cache.put(id, clone.getRecordId());
-                    return clone;
+                    return writer.writeBlob(sb);
                 }
                 // if the blob is inlined, just clone it
                 if (sb.length() < Segment.MEDIUM_LIMIT) {
                     SegmentBlob clone = writer.writeBlob(blob);
-                    cache.put(id, clone.getRecordId());
+                    blobCache.put(id, clone.getRecordId(), 0, cost(clone));
                     return clone;
                 }
 
@@ -373,7 +387,6 @@ public class Compactor {
                         for (RecordId duplicateId : ids) {
                             if (new SegmentBlob(blobStore, duplicateId)
                                     .equals(sb)) {
-                                cache.put(id, duplicateId);
                                 return new SegmentBlob(blobStore, duplicateId);
                             }
                         }
@@ -382,7 +395,7 @@ public class Compactor {
 
                 // if not, clone the large blob and keep track of the result
                 sb = writer.writeBlob(blob);
-                cache.put(id, sb.getRecordId());
+                blobCache.put(id, sb.getRecordId(), 0, cost(sb));
 
                 if (dedup) {
                     if (ids == null) {
@@ -460,46 +473,6 @@ public class Compactor {
                         "Finished compaction: {} nodes, {} properties, {} binaries.",
                         nodes, properties, binaries);
             }
-        }
-    }
-
-    private static class OfflineCompactionPredicate implements
-            Predicate<NodeState> {
-
-        /**
-         * over 64K in size, node will be included in the compaction map
-         */
-        private static final long offlineThreshold = 65536;
-
-        @Override
-        public boolean apply(NodeState state) {
-            if (state.getChildNodeCount(2) > 1) {
-                return true;
-            }
-            long count = 0;
-            for (PropertyState ps : state.getProperties()) {
-                Type<?> type = ps.getType();
-                for (int i = 0; i < ps.count(); i++) {
-                    long size = 0;
-                    if (type == BINARY || type == BINARIES) {
-                        Blob blob = ps.getValue(BINARY, i);
-                        if (blob instanceof SegmentBlob) {
-                            if (!((SegmentBlob) blob).isExternal()) {
-                                size += blob.length();
-                            }
-                        } else {
-                            size += blob.length();
-                        }
-                    } else {
-                        size = ps.size(i);
-                    }
-                    count += size;
-                    if (size >= offlineThreshold || count >= offlineThreshold) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
     }
 
