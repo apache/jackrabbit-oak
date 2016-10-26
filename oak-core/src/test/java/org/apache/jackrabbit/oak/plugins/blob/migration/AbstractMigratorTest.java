@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.io.Files;
@@ -89,6 +90,7 @@ public abstract class AbstractMigratorTest {
     }
 
     @Test
+    @Ignore("OAK-5009")
     public void blobsExistsOnTheNewBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
         NodeState root = nodeStore.getRoot();
@@ -98,6 +100,7 @@ public abstract class AbstractMigratorTest {
     }
 
     @Test
+    @Ignore("OAK-5009")
     public void blobsCanBeReadAfterSwitchingBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
         closeNodeStore();
