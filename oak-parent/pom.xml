@@ -74,7 +74,6 @@
    <!-- whether skip the surefire unit testing during the integration testing. 
       Override with -Dsurefire.skip.ut=true when needed -->
     <surefire.skip.ut>false</surefire.skip.ut>
-    <segment.tar.version>0.0.16</segment.tar.version>
   </properties>
 
   <issueManagement>

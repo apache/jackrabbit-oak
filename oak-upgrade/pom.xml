@@ -79,7 +79,7 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-segment-tar</artifactId>
-      <version>${segment.tar.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>

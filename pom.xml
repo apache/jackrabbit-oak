@@ -59,6 +59,7 @@
     <module>oak-examples</module>
     <module>oak-it</module>
     <module>oak-segment</module>
+    <module>oak-segment-tar</module>
   </modules>
 
   <scm>
@@ -101,35 +102,6 @@
   </reporting>
 
   <profiles>
-    <profile>
-      <id>all</id>
-        <modules>
-          <module>oak-parent</module>
-          <module>oak-commons</module>
-          <module>oak-blob</module>
-          <module>oak-blob-cloud</module>
-          <module>oak-core</module>
-          <module>oak-jcr</module>
-          <module>oak-upgrade</module>
-          <module>oak-http</module>
-          <module>oak-lucene</module>
-          <module>oak-solr-core</module>
-          <module>oak-solr-osgi</module>
-          <module>oak-auth-external</module>
-          <module>oak-auth-ldap</module>
-          <module>oak-tarmk-standby</module>
-          <module>oak-run</module>
-          <module>oak-it-osgi</module>
-          <module>oak-pojosr</module>
-          <module>oak-authorization-cug</module>
-          <module>oak-remote</module>
-          <module>oak-exercise</module>
-          <module>oak-examples</module>
-          <module>oak-it</module>
-          <module>oak-segment</module>
-          <module>oak-segment-tar</module>
-        </modules>
-    </profile>
     <profile>
       <id>doc</id>
       <modules>

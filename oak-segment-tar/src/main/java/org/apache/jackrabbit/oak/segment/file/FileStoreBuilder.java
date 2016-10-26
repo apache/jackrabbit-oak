@@ -92,7 +92,7 @@ public class FileStoreBuilder {
     private final GCListener gcListener = new GCListener(){
         @Override
         public void compactionSucceeded(int newGeneration) {
-            compacted(null, null, null);
+            compacted();
             cacheManager.evictOldGeneration(newGeneration);
         }
 
