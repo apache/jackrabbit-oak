@@ -1033,7 +1033,23 @@ public class QueryImpl implements Query {
                 bestPlan = indexPlan;
             }
         }
-        if (bestIndex == null) {
+        boolean potentiallySlowTraversalQuery = bestIndex == null;
+        if (traversalEnabled) {
+            TraversingIndex traversal = new TraversingIndex();
+            double cost = traversal.getCost(filter, rootState);
+            if (LOG.isDebugEnabled()) {
+                logDebug("cost for " + traversal.getIndexName() + " is " + cost);
+            }
+            if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
+                bestCost = cost;
+                bestPlan = null;
+                bestIndex = traversal;
+                if (potentiallySlowTraversalQuery) {
+                    potentiallySlowTraversalQuery = traversal.isPotentiallySlow(filter, rootState);
+                }
+            }
+        }
+        if (potentiallySlowTraversalQuery) {
             QueryOptions.Traversal traversal = queryOptions.traversal;
             if (traversal == Traversal.DEFAULT) {
                 // use the (configured) default
@@ -1052,18 +1068,6 @@ public class QueryImpl implements Query {
             case FAIL:
                 LOG.warn(message);
                 throw new IllegalArgumentException(message);
-            }
-        }
-        if (traversalEnabled) {
-            QueryIndex traversal = new TraversingIndex();
-            double cost = traversal.getCost(filter, rootState);
-            if (LOG.isDebugEnabled()) {
-                logDebug("cost for " + traversal.getIndexName() + " is " + cost);
-            }
-            if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
-                bestCost = cost;
-                bestPlan = null;
-                bestIndex = traversal;
             }
         }
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex, bestPlan, bestCost);
