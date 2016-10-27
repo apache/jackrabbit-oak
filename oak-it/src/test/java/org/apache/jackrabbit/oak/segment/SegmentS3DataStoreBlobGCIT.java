@@ -61,6 +61,7 @@ public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
         assumeTrue(S3DataStoreUtils.isS3Configured());
     }
 
+    @Override
     protected DataStoreBlobStore getBlobStore(File rootFolder) throws Exception {
         Properties props = S3DataStoreUtils.getS3Config();
         bucket = rootFolder.getName();
