@@ -122,6 +122,7 @@ public class SegmentDataStoreBlobGCIT {
         if (nodeStore == null) {
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
             FileStoreBuilder builder = fileStoreBuilder(getWorkDir())
+                    .withNodeDeduplicationCacheSize(16384)
                     .withBlobStore(blobStore)
                     .withMaxFileSize(256)
                     .withMemoryMapping(false)
@@ -154,7 +155,7 @@ public class SegmentDataStoreBlobGCIT {
         NodeBuilder a = nodeStore.getRoot().builder();
 
         /* Create garbage by creating in-lined blobs (size < 16KB) */
-        int number = 4000;
+        int number = 500;
         NodeBuilder content = a.child("content");
         for (int i = 0; i < number; i++) {
             NodeBuilder c = content.child("x" + i);
@@ -169,7 +170,7 @@ public class SegmentDataStoreBlobGCIT {
 
         // 2. Now remove the nodes to generate garbage
         content = a.child("content");
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 100; i++) {
             NodeBuilder c = content.child("x" + i);
             for (int j = 0; j < 5; j++) {
                 c.removeProperty("p" + j);
