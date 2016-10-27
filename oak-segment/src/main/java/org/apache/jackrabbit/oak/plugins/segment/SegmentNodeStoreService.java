@@ -316,7 +316,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Property (longValue = DEFAULT_BLOB_SNAPSHOT_INTERVAL,
         label = "Blob tracking snapshot interval (in secs)",
         description = "This is the default interval in which the snapshots of locally tracked blob ids will"
-            + "be taken and synchronized with the blob store"
+            + "be taken and synchronized with the blob store. This should be configured to be less than the "
+            + "frequency of blob GC so that deletions during blob GC can be accounted for "
+            + "in the next GC execution."
     )
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
