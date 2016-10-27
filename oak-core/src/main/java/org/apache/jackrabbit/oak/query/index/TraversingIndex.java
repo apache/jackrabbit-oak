@@ -42,6 +42,32 @@ public class TraversingIndex implements QueryIndex {
     public Cursor query(Filter filter, NodeState rootState) {
         return Cursors.newTraversingCursor(filter, rootState);
     }
+    
+    public boolean isPotentiallySlow(Filter filter, NodeState rootState) {
+        if (filter.getFullTextConstraint() != null) {
+            // not an appropriate index for full-text search
+            return true;
+        }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return true;
+        }
+        if (filter.isAlwaysFalse()) {
+            return false;
+        }
+        PathRestriction restriction = filter.getPathRestriction();
+        switch (restriction) {
+        case EXACT:
+        case PARENT:
+        case DIRECT_CHILDREN:
+            return false;
+        case NO_RESTRICTION:
+        case ALL_CHILDREN:
+            return true;
+        default:
+            throw new IllegalArgumentException("Unknown restriction: " + restriction);
+        }
+    }
 
     @Override
     public double getCost(Filter filter, NodeState rootState) {

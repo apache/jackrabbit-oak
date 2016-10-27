@@ -94,6 +94,13 @@ public class QueryTest extends AbstractRepositoryTest {
                 Query.JCR_SQL2).execute();
         qm.createQuery("select * from [nt:base] option(traversal warn)", 
                 Query.JCR_SQL2).execute();
+        // the following is not really traversal, it is just listing child nodes:
+        qm.createQuery("/jcr:root/*[@test] option(traversal fail)", 
+                "xpath").execute();
+        // the following is not really traversal; it is just one node:
+        qm.createQuery("/jcr:root/oak:index[@test] option(traversal fail)", 
+                "xpath").execute();
+
     }    
     
     @Test
