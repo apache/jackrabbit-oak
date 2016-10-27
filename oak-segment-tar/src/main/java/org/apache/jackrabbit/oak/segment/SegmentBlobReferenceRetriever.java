@@ -38,13 +38,8 @@ public class SegmentBlobReferenceRetriever implements BlobReferenceRetriever {
     }
 
     @Override
-    public void collectReferences(final ReferenceCollector collector) {
-        try {
-            store.collectBlobReferences(collector);
-        } catch (IOException e) {
-            // FIXME OAK-4314: BlobReferenceRetriever#collectReferences should allow exceptions
-            throw new IllegalStateException(e);
-        }
+    public void collectReferences(final ReferenceCollector collector) throws IOException {
+        store.collectBlobReferences(collector);
     }
 }
 

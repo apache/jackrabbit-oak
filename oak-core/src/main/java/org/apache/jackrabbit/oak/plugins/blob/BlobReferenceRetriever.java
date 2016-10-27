@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -30,7 +32,8 @@ public interface BlobReferenceRetriever {
      * Collect references.
      * 
      * @param collector the collector to collect all references
+     * @throws IOException
      */
-    void collectReferences(ReferenceCollector collector);
+    void collectReferences(ReferenceCollector collector) throws IOException;
 }
 
