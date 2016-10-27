@@ -1047,7 +1047,7 @@ public class QueryImpl implements Query {
             case OK:
                 break;
             case WARN:
-                LOG.warn(message);
+                LOG.info(message);
                 break;
             case FAIL:
                 LOG.warn(message);
