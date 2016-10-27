@@ -124,7 +124,8 @@ public class Console {
             DocumentNodeStore store = builder.getNodeStore();
             fixture = new MongoFixture(store);
         } else if (options.has(segment)) {
-            FileStore.Builder fsBuilder = FileStore.builder(new File(nonOptions.get(0))).withMaxFileSize(256);
+            FileStore.Builder fsBuilder = FileStore.builder(new File(nonOptions.get(0)))
+                    .withMaxFileSize(256).withDefaultMemoryMapping();
             if (blobStore != null) {
                 fsBuilder.withBlobStore(blobStore);
             }
