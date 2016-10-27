@@ -1982,20 +1982,16 @@ public class DocumentNodeStoreTest {
         final AtomicBoolean throttleUpdates = new AtomicBoolean(true);
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
-            public <T extends Document> void update(Collection<T> collection,
-                                                    List<String> keys,
-                                                    UpdateOp updateOp) {
-                
-                if ( throttleUpdates.get() ) {
-                    for (String k : keys) {
-                        try {
-                            updates.put(k);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+            public <T extends Document> T createOrUpdate(Collection<T> collection,
+                                                         UpdateOp update) {
+                if (throttleUpdates.get() && TestUtils.isLastRevUpdate(update)) {
+                    try {
+                        updates.put(update.getId());
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
-                super.update(collection, keys, updateOp);
+                return super.createOrUpdate(collection, update);
             }
         };
         final DocumentNodeStore store = builderProvider.newBuilder()
