@@ -1664,6 +1664,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         return DELETED.equals(name);
     }
 
+    public static boolean isLastRevEntry(String name) {
+        return LAST_REV.equals(name);
+    }
+
     public static void removeRevision(@Nonnull UpdateOp op,
                                       @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
