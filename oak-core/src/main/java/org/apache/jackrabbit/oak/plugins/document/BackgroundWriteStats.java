@@ -26,6 +26,7 @@ class BackgroundWriteStats {
     long lock;
     long write;
     long num;
+    long calls;
     long totalWriteTime;
 
     @Override
@@ -35,6 +36,7 @@ class BackgroundWriteStats {
                 ", lock:" + lock +
                 ", write:" + write +
                 ", num:" + num +
+                ", calls:" + calls +
                 ", totalWriteTime:" + totalWriteTime;
     }
 }

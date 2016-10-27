@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +26,7 @@ import java.util.concurrent.locks.Lock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -36,11 +36,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.PeekingIterator;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
@@ -54,7 +55,7 @@ class UnsavedModifications {
     /**
      * The maximum number of document to update at once in a multi update.
      */
-    static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
+    static final int BACKGROUND_MULTI_UPDATE_LIMIT = 100;
 
     private final ConcurrentMap<String, Revision> map = MapFactory.getInstance().create();
 
@@ -166,62 +167,46 @@ class UnsavedModifications {
             lock.unlock();
         }
         stats.num = pending.size();
-        UpdateOp updateOp = null;
-        Revision lastRev = null;
-        PeekingIterator<String> paths = Iterators.peekingIterator(
-                pending.keySet().iterator());
-        int i = 0;
-        ArrayList<String> pathList = new ArrayList<String>();
-        while (paths.hasNext()) {
-            String p = paths.peek();
-            Revision r = pending.get(p);
-
-            int size = pathList.size();
-            if (updateOp == null) {
-                // create UpdateOp
-                Commit commit = new Commit(store, r, null);
-                updateOp = commit.getUpdateOperationForNode(p);
-                NodeDocument.setLastRev(updateOp, r);
-                lastRev = r;
-                pathList.add(p);
-                paths.next();
-                i++;
-            } else if (r.equals(lastRev)) {
-                // use multi update when possible
-                pathList.add(p);
-                paths.next();
-                i++;
+        List<UpdateOp> updates = Lists.newArrayList();
+        Map<String, Revision> pathToRevision = Maps.newHashMap();
+        for (Iterable<Map.Entry<String, Revision>> batch : Iterables.partition(
+                pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
+            for (Map.Entry<String, Revision> entry : batch) {
+                String p = entry.getKey();
+                Revision r = entry.getValue();
+                if (PathUtils.denotesRoot(entry.getKey())) {
+                    // update root individually at the end
+                    continue;
+                }
+                updates.add(newUpdateOp(store, p, r));
+                pathToRevision.put(p, r);
             }
-            // call update if any of the following is true:
-            // - this is the second-to-last or last path (update last path, the
-            //   root document, individually)
-            // - revision is not equal to last revision (size of ids didn't change)
-            // - the update limit is reached
-            if (i + 2 > pending.size()
-                    || size == pathList.size()
-                    || pathList.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
-                List<String> ids = new ArrayList<String>();
-                for (String path : pathList) {
-                    ids.add(Utils.getIdFromPath(path));
+            if (!updates.isEmpty()) {
+                store.getDocumentStore().createOrUpdate(NODES, updates);
+                stats.calls++;
+                for (Map.Entry<String, Revision> entry : pathToRevision.entrySet()) {
+                    map.remove(entry.getKey(), entry.getValue());
+                    LOG.debug("Updated _lastRev to {} on {}", entry.getValue(), entry.getKey());
                 }
-                store.getDocumentStore().update(NODES, ids, updateOp);
-                LOG.debug("Updated _lastRev to {} on {}", lastRev, ids);
-                for (String path : pathList) {
-                    map.remove(path, lastRev);
-                }
-                pathList.clear();
-                updateOp = null;
-                lastRev = null;
+                // clean up for next batch
+                updates.clear();
+                pathToRevision.clear();
             }
         }
-        Revision writtenRootRev = pending.get("/");
-        if (writtenRootRev != null) {
-            int cid = writtenRootRev.getClusterId();
-            if (store.getDocumentStore().find(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, String.valueOf(cid)) != null) {
+        // finally update remaining root document
+        Revision rootRev = pending.get(ROOT_PATH);
+        if (rootRev != null) {
+            store.getDocumentStore().findAndUpdate(NODES, newUpdateOp(store, ROOT_PATH, rootRev));
+            stats.calls++;
+            map.remove(ROOT_PATH, rootRev);
+            LOG.debug("Updated _lastRev to {} on {}", rootRev, ROOT_PATH);
+
+            int cid = rootRev.getClusterId();
+            if (store.getDocumentStore().find(CLUSTER_NODES, String.valueOf(cid)) != null) {
                 UpdateOp update = new UpdateOp(String.valueOf(cid), false);
                 update.equals(Document.ID, null, String.valueOf(cid));
-                update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, writtenRootRev.toString());
-                store.getDocumentStore().findAndUpdate(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, update);
+                update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, rootRev.toString());
+                store.getDocumentStore().findAndUpdate(CLUSTER_NODES, update);
             }
         }
 
@@ -234,9 +219,17 @@ class UnsavedModifications {
         return map.toString();
     }
 
+    private static UpdateOp newUpdateOp(DocumentNodeStore store,
+                                        String path, Revision r) {
+        Commit commit = new Commit(store, r, null);
+        UpdateOp updateOp = commit.getUpdateOperationForNode(path);
+        NodeDocument.setLastRev(updateOp, r);
+        return updateOp;
+    }
+
     private Revision getMostRecentRevision() {
         // use revision of root document
-        Revision rev = map.get("/");
+        Revision rev = map.get(ROOT_PATH);
         // otherwise find most recent
         if (rev == null) {
             for (Revision r : map.values()) {
