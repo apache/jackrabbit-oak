@@ -65,7 +65,7 @@ class GroovyConsole {
     }
 
     int run(){
-        shell.run()
+        shell.run(null, null)
     }
 
     int execute(List<String> args){
@@ -139,14 +139,13 @@ class GroovyConsole {
 
     private class OakSh extends Groovysh {
         private boolean colored = false
-        private final AnsiRenderer prompt = new AnsiRenderer()
 
         OakSh(ClassLoader classLoader, Binding binding, IO io, Closure registrar) {
             super(classLoader, binding, io, registrar)
         }
 
         public String renderPrompt() {
-            return prompt.render( buildPrompt() )
+            return AnsiRenderer.render( buildPrompt() )
         }
 
         //Following methods are copied because they are private in parent however
@@ -179,8 +178,8 @@ class GroovyConsole {
         }
 
         @CompileStatic(TypeCheckingMode.SKIP)
-        private void maybeRecordError(Throwable cause) {
-            def record = registry[RecordCommand.COMMAND_NAME]
+        protected void maybeRecordError(Throwable cause) {
+            RecordCommand record = registry[RecordCommand.COMMAND_NAME]
 
             if (record != null) {
                 boolean sanitize = Preferences.sanitizeStackTrace
@@ -226,8 +225,7 @@ class GroovyConsole {
                     // Setup the interactive runner
                     runner = new InteractiveShellRunner(
                             this,
-                            this.&renderPrompt as Closure,
-                            Integer.valueOf(Preferences.get(METACLASS_COMPLETION_PREFIX_LENGTH_PREFERENCE_KEY, '3')))
+                            this.&renderPrompt as Closure)
 
                     // Setup the history
                     File histFile = new File(userStateDirectory, 'groovysh.history')
