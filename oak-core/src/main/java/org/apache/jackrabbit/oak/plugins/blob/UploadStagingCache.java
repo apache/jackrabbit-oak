@@ -22,9 +22,11 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,6 +37,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.FutureCallback;
@@ -100,7 +103,7 @@ public class UploadStagingCache implements Closeable {
     /**
      * Scheduled executor for build and remove
      */
-    private ScheduledExecutorService removeExecutor;
+    private ScheduledExecutorService scheduledExecutor;
 
     /**
      * In memory map for staged files
@@ -133,10 +136,16 @@ public class UploadStagingCache implements Closeable {
     @Nullable
     private FileCache downloadCache;
 
+    /**
+     * Queue containing items to retry.
+     */
+    private LinkedBlockingQueue<String> retryQueue;
+
     private UploadStagingCache(File dir, int uploadThreads, long size /* bytes */,
         StagingUploader uploader, @Nullable FileCache cache, StatisticsProvider statisticsProvider,
         @Nullable ListeningExecutorService executor,
-        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /* secs */) {
+        @Nullable ScheduledExecutorService scheduledExecutor,
+        int purgeInterval /* secs */, int retryInterval /* secs */) {
 
         this.currentSize = new AtomicLong();
         this.size = size;
@@ -146,13 +155,15 @@ public class UploadStagingCache implements Closeable {
                 .newFixedThreadPool(uploadThreads, new NamedThreadFactory("oak-ds-async-upload-thread")));
         }
 
-        this.removeExecutor = scheduledExecutor;
+        this.scheduledExecutor = scheduledExecutor;
         if (scheduledExecutor == null) {
-            this.removeExecutor = Executors.newSingleThreadScheduledExecutor();
+            this.scheduledExecutor = Executors
+                .newScheduledThreadPool(2, new NamedThreadFactory("oak-ds-cache-scheduled-thread"));
         }
 
         this.map = Maps.newConcurrentMap();
         this.attic = Maps.newConcurrentMap();
+        this.retryQueue = new LinkedBlockingQueue<String>();
         this.uploadCacheSpace = new File(dir, "upload");
         this.uploader = uploader;
         this.cacheStats = new StagingCacheStats(this, statisticsProvider, size);
@@ -160,8 +171,10 @@ public class UploadStagingCache implements Closeable {
 
         build();
 
-        removeExecutor.scheduleAtFixedRate(new RemoveJob(), purgeInterval, purgeInterval,
-            TimeUnit.SECONDS);
+        this.scheduledExecutor
+            .scheduleAtFixedRate(new RemoveJob(), purgeInterval, purgeInterval, TimeUnit.SECONDS);
+        this.scheduledExecutor
+            .scheduleAtFixedRate(new RetryJob(), retryInterval, retryInterval, TimeUnit.SECONDS);
     }
 
     private UploadStagingCache() {
@@ -170,10 +183,11 @@ public class UploadStagingCache implements Closeable {
     public static UploadStagingCache build(File dir, int uploadThreads, long size
         /* bytes */, StagingUploader uploader, @Nullable FileCache cache,
         StatisticsProvider statisticsProvider, @Nullable ListeningExecutorService executor,
-        @Nullable ScheduledExecutorService scheduledExecutor, long purgeInterval /* secs */) {
+        @Nullable ScheduledExecutorService scheduledExecutor, int purgeInterval /* secs */,
+        int retryInterval /* secs */) {
         if (size > 0) {
             return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
-                statisticsProvider, executor, scheduledExecutor, purgeInterval);
+                statisticsProvider, executor, scheduledExecutor, purgeInterval, retryInterval);
         }
         return new UploadStagingCache() {
             @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
@@ -346,8 +360,9 @@ public class UploadStagingCache implements Closeable {
                 }
 
                 @Override public void onFailure(Throwable t) {
-                    LOG.error("Error adding file to backend", t);
+                    LOG.error("Error adding [{}] with file [{}] to backend", id, upload, t);
                     result.setException(t);
+                    retryQueue.add(id);
                 }
             });
             LOG.debug("File [{}] scheduled for upload [{}]", upload, result);
@@ -469,7 +484,7 @@ public class UploadStagingCache implements Closeable {
         LOG.info("Uploads completed but not cleared from cache [{}]", attic.size());
         LOG.info("Staging cache stats on close [{}]", cacheStats.cacheInfoAsString());
         new ExecutorCloser(executor).close();
-        new ExecutorCloser(removeExecutor).close();
+        new ExecutorCloser(scheduledExecutor).close();
     }
 
     /**
@@ -479,6 +494,28 @@ public class UploadStagingCache implements Closeable {
         @Override
         public void run() {
             remove();
+        }
+    }
+
+
+    /**
+     * Job to retry failed uploads.
+     */
+    class RetryJob implements Runnable {
+        @Override
+        public void run() {
+            LOG.debug("Retry job started");
+            int count = 0;
+            List<String> entries = Lists.newArrayList();
+            retryQueue.drainTo(entries);
+            for (String key : entries) {
+                File file = map.get(key);
+                LOG.info("Retrying upload of id [{}] with file [{}] ", key, file);
+                stage(key, file);
+                count++;
+                LOG.info("Scheduled retry for upload of id [{}] with file [{}]", key, file);
+            }
+            LOG.debug("Retry job finished with staging [{}] jobs", count);
         }
     }
 }

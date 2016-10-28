@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
@@ -50,7 +51,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.Matchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +58,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link UploadStagingCache}.
@@ -89,8 +87,12 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private void init(int i) {
+        init(i, new TestStagingUploader(root));
+    }
+
+    private void init(int i, TestStagingUploader testUploader) {
         // uploader
-        uploader = new TestStagingUploader(root);
+        uploader = testUploader;
 
         // create executor
         taskLatch = new CountDownLatch(1);
@@ -109,7 +111,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         //cache instance
         stagingCache =
             UploadStagingCache.build(root, 1/*threads*/, 8 * 1024 /* bytes */,
-                uploader, null/*cache*/, statsProvider, executor, null, 3000);
+                uploader, null/*cache*/, statsProvider, executor, null, 3000, 6000);
         closer.register(stagingCache);
     }
 
@@ -122,7 +124,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     public void testZeroCache() throws IOException {
         stagingCache =
             UploadStagingCache.build(root, 1/*threads*/, 0 /* bytes */,
-                uploader, null/*cache*/, statsProvider, executor, null, 3000);
+                uploader, null/*cache*/, statsProvider, executor, null, 3000, 6000);
         closer.register(stagingCache);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -157,16 +159,19 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void testAddUploadException() throws Exception {
-        // Mock uploader to throw exception on write
-        final TestStagingUploader mockedDS = mock(TestStagingUploader.class);
-        doThrow(new DataStoreException("Error in writing blob")).when(mockedDS)
-            .write(Matchers.any(String.class), Matchers.any(File.class));
+        final AtomicInteger count = new AtomicInteger(0);
+        TestStagingUploader secondTimeUploader = new TestStagingUploader(root) {
+            @Override
+            public void write(String id, File f) throws DataStoreException {
+                if (count.get() == 0) {
+                    throw new DataStoreException("Error in writing blob");
+                }
+                super.write(id, f);
+            }
+        };
 
         // initialize staging cache using the mocked uploader
-        stagingCache =
-            UploadStagingCache.build(root, 1/*threads*/, 4 * 1024 /* bytes */,
-                mockedDS, null/*cache*/, statsProvider, executor, null, 3000);
-        closer.register(stagingCache);
+        init(2, secondTimeUploader);
 
         // Add load
         List<ListenableFuture<Integer>> futures = put(folder);
@@ -174,7 +179,6 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         //start
         taskLatch.countDown();
         callbackLatch.countDown();
-
         waitFinish(futures);
 
         // assert file retrieved from staging cache
@@ -184,6 +188,19 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(1, stagingCache.getStats().getLoadCount());
         assertEquals(1, stagingCache.getStats().getLoadSuccessCount());
         assertCacheStats(stagingCache, 1, 4 * 1024, 1, 1);
+
+        // Retry upload and wait for finish
+        count.incrementAndGet();
+        ScheduledFuture<?> scheduledFuture =
+            removeExecutor.schedule(stagingCache.new RetryJob(), 0, TimeUnit.MILLISECONDS);
+        scheduledFuture.get();
+        afterExecuteLatch.await();
+
+        // Now uploaded
+        ret = stagingCache.getIfPresent(ID_PREFIX + 0);
+        assertNull(ret);
+        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+            secondTimeUploader.read(ID_PREFIX + 0)));
     }
 
     /**
@@ -274,7 +291,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // initialize cache to have restricted size
         stagingCache =
             UploadStagingCache.build(root, 1/*threads*/, 4 * 1024 /* bytes */,
-                uploader, null/*cache*/, statsProvider, executor, null, 3000);
+                uploader, null/*cache*/, statsProvider, executor, null, 3000, 6000);
         closer.register(stagingCache);
 
         // add load
