@@ -43,7 +43,7 @@ public class SegmentNodeStoreServiceDeprecationError {
 
     @Activate
     public void activate() {
-        logger.error(DeprecationMessage.movedPid(OLD_PID, NEW_PID));
+        logger.warn(DeprecationMessage.movedPid(OLD_PID, NEW_PID));
     }
 
 }
