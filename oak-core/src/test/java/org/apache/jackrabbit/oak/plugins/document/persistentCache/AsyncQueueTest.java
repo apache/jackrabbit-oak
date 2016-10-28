@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWriteQueue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,6 +46,8 @@ public class AsyncQueueTest {
 
     private static final StringValue VAL = new StringValue("xyz");
 
+    private PersistentCache pCache;
+
     private List<PathRev> putActions;
 
     private List<PathRev> invalidateActions;
@@ -56,7 +59,7 @@ public class AsyncQueueTest {
     @Before
     public void setup() throws IOException {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
-        PersistentCache pCache = new PersistentCache("target/cacheTest,+async");
+        pCache = new PersistentCache("target/cacheTest,+async");
         final AtomicReference<NodeCache<PathRev, StringValue>> nodeCacheRef = new AtomicReference<NodeCache<PathRev, StringValue>>();
         CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback(new CacheLIRS.EvictionCallback<PathRev, StringValue>() {
             @Override
@@ -77,6 +80,13 @@ public class AsyncQueueTest {
         this.id = 0;
     }
 
+    @After
+    public void teardown() {
+        if (pCache != null) {
+            pCache.close();
+        }
+    }
+    
     @Test
     public void unusedItemsShouldntBePersisted() {
         PathRev k = generatePathRev();
