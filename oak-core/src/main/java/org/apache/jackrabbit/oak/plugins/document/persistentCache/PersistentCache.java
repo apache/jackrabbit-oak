@@ -555,9 +555,9 @@ public class PersistentCache implements Broadcaster.Listener {
         buff.position(end);
     }
     
-    public static PersistentCacheStats getPersistentCacheStats(Cache cache) {
+    public static PersistentCacheStats getPersistentCacheStats(Cache<?, ?> cache) {
         if (cache instanceof NodeCache) {
-            return ((NodeCache) cache).getPersistentCacheStats();
+            return ((NodeCache<?, ?>) cache).getPersistentCacheStats();
         }
         else {
             return null;

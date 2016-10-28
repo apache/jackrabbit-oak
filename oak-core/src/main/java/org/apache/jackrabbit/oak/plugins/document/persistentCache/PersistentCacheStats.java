@@ -403,6 +403,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
     @Override
     public void resetStats() {
+        // ignored
     }
 
 
