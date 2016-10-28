@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -139,12 +137,12 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
             try (StandbyClient client = new StandbyClient(observer.getID(), secure, readTimeoutMs)) {
                 client.connect(host, port);
 
-                long sizeBefore = fileStore.getStats().getApproximateSize();
+                int genBefore = headGeneration(fileStore);
                 new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
-                long sizeAfter = fileStore.getStats().getApproximateSize();
+                int genAfter = headGeneration(fileStore);
 
-                if (autoClean && sizeAfter > 1.25 * sizeBefore) {
-                    log.info("Store size increased from {} to {}, will run cleanup.", humanReadableByteCount(sizeBefore), humanReadableByteCount(sizeAfter));
+                if (autoClean && (genAfter > genBefore)) {
+                    log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
                     cleanupAndRemove();
                 }
             }
@@ -160,6 +158,10 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 this.active = false;
             }
         }
+    }
+
+    private int headGeneration(FileStore fileStore) {
+        return fileStore.getHead().getRecordId().getSegment().getGcGeneration();
     }
 
     private void cleanupAndRemove() throws IOException {
