@@ -16,21 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import java.util.Map;
 
-/**
- * A fronted for the {@link CacheActionDispatcher} creating actions and maintaining their state.
- *
- * @param <K> key type
- * @param <V> value type
- */
 public class CacheWriteQueue<K, V> {
 
     private final CacheActionDispatcher dispatcher;
@@ -39,65 +28,18 @@ public class CacheWriteQueue<K, V> {
 
     private final Map<K, V> map;
 
-    final Multiset<K> queuedKeys = HashMultiset.create();
-
-    final Set<K> waitsForInvalidation = new HashSet<K>();
-
     public CacheWriteQueue(CacheActionDispatcher dispatcher, PersistentCache cache, Map<K, V> map) {
         this.dispatcher = dispatcher;
         this.cache = cache;
         this.map = map;
     }
 
-    /**
-     * Add new invalidate action.
-     *
-     * @param keys to be invalidated
-     */
-    public void addInvalidate(Iterable<K> keys) {
-        synchronized(this) {
-            for (K key : keys) {
-                queuedKeys.add(key);
-                waitsForInvalidation.add(key);
-            }
-        }
-        dispatcher.add(new InvalidateCacheAction<K, V>(this, keys));
-    }
-
-    /**
-     * Add new put action
-     *
-     * @param key to be put to cache
-     * @param value to be put to cache
-     */
     public void addPut(K key, V value) {
-        synchronized(this) {
-            queuedKeys.add(key);
-            waitsForInvalidation.remove(key);
-        }
-        dispatcher.add(new PutToCacheAction<K, V>(this, key, value));
+        dispatcher.add(new PutToCacheAction<K, V>(key, value, this));
     }
 
-    /**
-     * Check if the last action added for this key was invalidate
-     *
-     * @param key to check 
-     * @return {@code true} if the last added action was invalidate
-     */
-    public synchronized boolean waitsForInvalidation(K key) {
-        return waitsForInvalidation.contains(key);
-    }
-
-    /**
-     * Remove the action state when it's finished or cancelled.
-     *
-     * @param key to be removed
-     */
-    synchronized void remove(K key) {
-        queuedKeys.remove(key);
-        if (!queuedKeys.contains(key)) {
-            waitsForInvalidation.remove(key);
-        }
+    public void addInvalidate(Iterable<K> keys) {
+        dispatcher.add(new InvalidateCacheAction<K, V>(keys, this));
     }
 
     PersistentCache getCache() {
