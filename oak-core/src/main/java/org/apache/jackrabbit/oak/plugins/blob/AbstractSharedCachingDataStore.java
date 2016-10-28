@@ -67,6 +67,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  *     &lt;param name="{@link #setStagingSplitPercentage(int) staginSplitPercentage}" value="10"/>
  *     &lt;param name="{@link #setUploadThreads(int) uploadThreads}" value="10"/>
  *     &lt;param name="{@link #setStagingPurgeInterval(int) stagingPurgeInterval}" value="300"/>
+ *     &lt;param name="{@link #setStagingRetryInterval(int) stagingRetryInterval} " value="600"/>
  * &lt;/DataStore>
  */
 public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
@@ -105,6 +106,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      * The interval for remove job in seconds.
      */
     private int stagingPurgeInterval = 300;
+
+    /**
+     * The interval for retry job in seconds.
+     */
+    private int stagingRetryInterval = 600;
 
     /**
      * The root rootDirectory where the files are created.
@@ -150,25 +156,26 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         this.backend = createBackend();
         backend.init();
 
-        this.cache = new CompositeDataStoreCache(path, cacheSize, stagingSplitPercentage, uploadThreads,
-            new CacheLoader<String, InputStream>() {
-                @Override public InputStream load(String key) throws Exception {
-                    InputStream is = null;
-                    boolean threw = true;
-                    try {
-                        is = backend.read(new DataIdentifier(key));
-                        threw = false;
-                    } finally {
-                        Closeables.close(is, threw);
+        this.cache =
+            new CompositeDataStoreCache(path, cacheSize, stagingSplitPercentage, uploadThreads,
+                new CacheLoader<String, InputStream>() {
+                    @Override public InputStream load(String key) throws Exception {
+                        InputStream is = null;
+                        boolean threw = true;
+                        try {
+                            is = backend.read(new DataIdentifier(key));
+                            threw = false;
+                        } finally {
+                            Closeables.close(is, threw);
+                        }
+                        return is;
                     }
-                    return is;
-                }
-            }, new StagingUploader() {
-                @Override
-                public void write(String id, File file) throws DataStoreException {
-                    backend.write(new DataIdentifier(id), file);
-                }
-            }, statisticsProvider, listeningExecutor, schedulerExecutor, stagingPurgeInterval);
+                }, new StagingUploader() {
+                    @Override public void write(String id, File file) throws DataStoreException {
+                        backend.write(new DataIdentifier(id), file);
+                    }
+            }, statisticsProvider, listeningExecutor, schedulerExecutor, stagingPurgeInterval,
+                stagingRetryInterval);
     }
 
     protected abstract AbstractSharedBackend createBackend();
@@ -361,6 +368,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     public void setStagingPurgeInterval(int stagingPurgeInterval) {
         this.stagingPurgeInterval = stagingPurgeInterval;
+    }
+
+    public void setStagingRetryInterval(int stagingRetryInterval) {
+        this.stagingRetryInterval = stagingRetryInterval;
     }
 
     public void setStatisticsProvider(StatisticsProvider statisticsProvider) {
