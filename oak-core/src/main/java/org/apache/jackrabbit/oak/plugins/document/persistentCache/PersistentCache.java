@@ -81,6 +81,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private MapFactory writeStore;
     private MapFactory readStore;
     private int maxSizeMB = 1024;
+    private int memCache = -1;
     private int readGeneration = -1;
     private int writeGeneration;
     private long maxBinaryEntry = 1024 * 1024;
@@ -137,6 +138,8 @@ public class PersistentCache implements Broadcaster.Listener {
                 dir += "-" + System.currentTimeMillis() + "-" + COUNTER.getAndIncrement();
             } else if (p.startsWith("size=")) {
                 maxSizeMB = Integer.parseInt(p.split("=")[1]);
+            } else if (p.startsWith("memCache=")) {
+                memCache = Integer.parseInt(p.split("=")[1]);
             } else if (p.startsWith("binary=")) {
                 maxBinaryEntry = Long.parseLong(p.split("=")[1]);
             } else if (p.startsWith("autoCompact=")) {
@@ -262,6 +265,9 @@ public class PersistentCache implements Broadcaster.Listener {
                     }
                     if (fileName != null) {
                         builder.fileName(fileName);
+                    }
+                    if (memCache >= 0) {
+                        builder.cacheSize(memCache);
                     }
                     if (readOnly) {
                         builder.readOnly();
