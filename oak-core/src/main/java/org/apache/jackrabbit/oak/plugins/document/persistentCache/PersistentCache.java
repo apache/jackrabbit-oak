@@ -53,7 +53,13 @@ import com.google.common.cache.Cache;
 public class PersistentCache implements Broadcaster.Listener {
     
     static final Logger LOG = LoggerFactory.getLogger(PersistentCache.class);
-   
+
+    /**
+     * Whether to use the queue to put items into cache. Default: false (cache
+     * will be updated synchronously).
+     */
+    private static final boolean ASYNC_CACHE = Boolean.getBoolean("oak.cache.asynchronous");
+
     private static final String FILE_PREFIX = "cache-";
     private static final String FILE_SUFFIX = ".data";
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -67,6 +73,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean cacheDocChildren;
     private boolean compactOnClose;
     private boolean compress = true;
+    private boolean asyncCache = ASYNC_CACHE;
     private HashMap<CacheType, GenerationCache> caches = 
             new HashMap<CacheType, GenerationCache>();
     
@@ -140,6 +147,10 @@ public class PersistentCache implements Broadcaster.Listener {
                 manualCommit = true;
             } else if (p.startsWith("broadcast=")) {
                 broadcast = p.split("=")[1];               
+            } else if (p.equals("+async")) {
+                asyncCache = true;
+            } else if (p.equals("-async")) {
+                asyncCache = false;
             }
         }
         this.directory = dir;
@@ -502,7 +513,11 @@ public class PersistentCache implements Broadcaster.Listener {
     public int getExceptionCount() {
         return exceptionCount;
     }
-    
+
+    public boolean isAsyncCache() {
+        return asyncCache;
+    }
+
     void broadcast(CacheType type, Function<WriteBuffer, Void> writer) {
         Broadcaster b = broadcaster;
         if (b == null) {

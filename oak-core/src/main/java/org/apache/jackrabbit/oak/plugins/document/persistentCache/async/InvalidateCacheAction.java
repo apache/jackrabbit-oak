@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
 import java.util.Map;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 /**
@@ -32,49 +33,26 @@ class InvalidateCacheAction<K, V> implements CacheAction<K, V> {
 
     private final Map<K, V> map;
 
-    private final CacheWriteQueue<K, V> owner;
-
     private final Iterable<K> keys;
 
-    InvalidateCacheAction(CacheWriteQueue<K, V> cacheWriteQueue, Iterable<K> keys) {
-        this.owner = cacheWriteQueue;
+    InvalidateCacheAction(Iterable<K> keys, CacheWriteQueue<K, V> queue) {
         this.keys = keys;
-        this.cache = cacheWriteQueue.getCache();
-        this.map = cacheWriteQueue.getMap();
+        this.cache = queue.getCache();
+        this.map = queue.getMap();
     }
 
     @Override
     public void execute() {
-        try {
-            if (map != null) {
-                for (K key : keys) {
-                    cache.switchGenerationIfNeeded();
-                    map.remove(key);
-                }
+        if (map != null) {
+            for (K key : keys) {
+                cache.switchGenerationIfNeeded();
+                map.remove(key);
             }
-        } finally {
-            decrement();
         }
     }
 
     @Override
-    public void cancel() {
-        decrement();
-    }
-
-    @Override
-    public CacheWriteQueue<K, V> getOwner() {
-        return owner;
-    }
-
-    @Override
-    public Iterable<K> getAffectedKeys() {
-        return keys;
-    }
-
-    private void decrement() {
-        for (K key : keys) {
-            owner.remove(key);
-        }
+    public String toString() {
+        return new StringBuilder("InvalidateCacheAction").append(Iterables.toString(keys)).toString();
     }
 }
