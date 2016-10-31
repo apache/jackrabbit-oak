@@ -1375,5 +1375,52 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
     
+    @Test
+    public void includeGlobPaths() throws Exception {
+        
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a1").addNode("b").addNode("c");
+        testNode.addNode("a2").addNode("b").addNode("c");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a2/**");
+
+        oManager.addEventListener(listener, filter);
+
+        testNode.getNode("a1").getNode("b").remove();
+        listener.expectRemove(testNode.getNode("a2").getNode("b")).remove();
+        testNode.getSession().save();
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        
+        Node a3 = testNode.addNode("a3");
+        Node foo = a3.addNode("bar").addNode("foo");
+        testNode.getSession().save();
+
+        filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+//        filter.setAbsPath(TEST_PATH + "/a3/bar/foo/x");
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/x");
+        oManager.addEventListener(listener, filter);
+        
+        Node x = foo.addNode("x");
+        listener.expect(x.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
 
 }

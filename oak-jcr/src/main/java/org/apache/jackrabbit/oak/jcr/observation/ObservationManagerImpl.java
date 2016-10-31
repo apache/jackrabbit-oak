@@ -22,11 +22,14 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -228,6 +231,12 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         }
         Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
         PathUtils.unifyInExcludes(includePaths, excludedPaths);
+        if (oakEventFilter != null) {
+            String[] includeGlobPaths = oakEventFilter.getIncludeGlobPaths();
+            if (includeGlobPaths != null) {
+                includePaths.addAll(Arrays.asList(includeGlobPaths));
+            }
+        }
         if (includePaths.isEmpty()) {
             LOG.warn("The passed filter excludes all events. No event listener registered");
             return;
@@ -237,6 +246,20 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         String depthPattern = isDeep ? STAR + '/' + STAR_STAR : STAR;
         List<Condition> includeConditions = newArrayList();
         for (String path : includePaths) {
+            final String deepenedPath;
+            if (path.endsWith(STAR)) {
+                // that's the case for a glob ending with * already, so
+                // no need to add another * or **
+                deepenedPath = path;
+            } else if (path.contains(STAR)) {
+                // for any other glob path that doesn't end with *
+                // we only add a single *, not a **
+                deepenedPath = concat (path, STAR);
+            } else {
+                // for any non-glob path we do it the traditional way
+                deepenedPath = concat(path, depthPattern);
+            }
+            includeConditions.add(filterBuilder.path(deepenedPath));
             includeConditions.add(filterBuilder.path(concat(path, depthPattern)));
             if (oakEventFilter != null && oakEventFilter.getIncludeAncestorsRemove()) {
                 // with the 'includeAncestorsRemove' extension we need
@@ -245,7 +268,8 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                 // the subtree here as a result.
                 continue;
             }
-            filterBuilder.addSubTree(path);
+            // only register the part leading to the first STAR:
+            filterBuilder.addSubTree(pathWithoutGlob(path));
         }
 
         List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
@@ -287,6 +311,23 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
         addEventListener(listener, tracker, filterBuilder.build());
+    }
+
+    private String pathWithoutGlob(String path) {
+        if (!path.contains("*")) {
+            return path;
+        }
+        Iterator<String> it = elements(path).iterator();
+        String result = "/";
+        while(it.hasNext()) {
+            String next = it.next();
+            if (next.contains("*")) {
+                // then stop here
+                break;
+            }
+            result = concat(result, next);
+        }
+        return result;
     }
 
     private static List<Condition> createExclusions(FilterBuilder filterBuilder, Iterable<String> excludedPaths) {
