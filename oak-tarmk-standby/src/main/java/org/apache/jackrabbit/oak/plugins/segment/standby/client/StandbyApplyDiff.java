@@ -164,7 +164,16 @@ class StandbyApplyDiff implements NodeStateDiff {
     @Override
     public boolean childNodeChanged(String name, NodeState before,
             NodeState after) {
-        return process(name, "childNodeChanged", before, after);
+        try {
+            return process(name, "childNodeChanged", before, after);
+        } catch (RuntimeException e) {
+            log.trace("Check binaries for node {} and retry to process childNodeChanged", name);
+            // Attempt to load the binaries and retry, see OAK-4969
+            for (PropertyState propertyState : after.getProperties()) {
+                binaryCheck(propertyState);
+            }
+            return process(name, "childNodeChanged", before, after);
+        }
     }
 
     private boolean process(String name, String op, NodeState before,
