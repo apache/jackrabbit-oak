@@ -417,7 +417,7 @@ public class BenchmarkRunner {
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
-            new PersistentCacheTest()
+            new PersistentCacheTest(statsProvider)
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
