@@ -20,10 +20,22 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import static javax.jcr.observation.Event.NODE_REMOVED;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.filter.OakEventFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
+import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
 
 /**
  * Implements OakEventFilter which is an extension to the JackrabbitEventFilter
@@ -35,6 +47,9 @@ public class OakEventFilterImpl extends OakEventFilter {
     
     /** whether or not applyNodeTypeOnSelf feature is enabled */
     private boolean applyNodeTypeOnSelf;
+
+    /** whether or not includeAncestorsRemove feature is enabled */
+    private boolean includeAncestorRemove;
 
     public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
         checkNotNull(delegate);
@@ -159,6 +174,79 @@ public class OakEventFilterImpl extends OakEventFilter {
     
     boolean getApplyNodeTypeOnSelf() {
         return applyNodeTypeOnSelf;
+    }
+
+    @Override
+    public OakEventFilter withIncludeAncestorsRemove() {
+        this.includeAncestorRemove = true;
+        return this;
+    }
+
+    boolean getIncludeAncestorsRemove() {
+        return includeAncestorRemove;
+    }
+
+    private void addAncestorsRemoveCondition(Set<String> parentPaths, String globPath) {
+        if (globPath == null || !globPath.contains("/")) {
+            return;
+        }
+        // from /a/b/c         => add /a and /a/b
+        // from /a/b/**        => add /a
+        // from /a             => add nothing
+        // from /              => add nothing
+        // from /a/b/**/*.html => add /a
+        // from /a/b/*/*.html  => add /a
+
+        Iterator<String> it = PathUtils.elements(globPath).iterator();
+        StringBuffer sb = new StringBuffer();
+        while(it.hasNext()) {
+            String element = it.next();
+            if (element.contains("*")) {
+                if (parentPaths.size() > 0) {
+                    parentPaths.remove(parentPaths.size()-1);
+                }
+                break;
+            } else if (!it.hasNext()) {
+                break;
+            }
+            sb.append("/");
+            sb.append(element);
+            parentPaths.add(sb.toString() + "/*");
+        }
+    }
+
+    public Condition wrapMainCondition(Condition mainCondition, FilterBuilder filterBuilder, PermissionProviderFactory permissionProviderFactory) {
+        if (!includeAncestorRemove || (getEventTypes() & NODE_REMOVED) != NODE_REMOVED) {
+            return mainCondition;
+        }
+        Set<String> parentPaths = new HashSet<String>();
+        addAncestorsRemoveCondition(parentPaths, getAbsPath());
+        if (getAdditionalPaths() != null) {
+            for (String absPath : getAdditionalPaths()) {
+                addAncestorsRemoveCondition(parentPaths, absPath);
+            }
+        }
+//        if (globPaths != null) {
+//            for (String globPath : globPaths) {
+//                addAncestorsRemoveCondition(parentPaths, globPath);
+//            }
+//        }
+        if (parentPaths.size() == 0) {
+            return mainCondition;
+        }
+        List<Condition> ancestorsRemoveConditions = new LinkedList<Condition>();
+        for (String aParentPath : parentPaths) {
+            ancestorsRemoveConditions.add(filterBuilder.path(aParentPath));
+        }
+        return filterBuilder.any(
+                        mainCondition,
+                        filterBuilder.all(
+                                filterBuilder.eventType(NODE_REMOVED),
+                                filterBuilder.any(ancestorsRemoveConditions),
+                                filterBuilder.deleteSubtree(),
+                                filterBuilder.accessControl(permissionProviderFactory)
+                                )
+                        );
     }
 
 }

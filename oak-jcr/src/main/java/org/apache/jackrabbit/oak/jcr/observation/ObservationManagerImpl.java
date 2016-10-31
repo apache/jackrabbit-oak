@@ -238,6 +238,13 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         List<Condition> includeConditions = newArrayList();
         for (String path : includePaths) {
             includeConditions.add(filterBuilder.path(concat(path, depthPattern)));
+            if (oakEventFilter != null && oakEventFilter.getIncludeAncestorsRemove()) {
+                // with the 'includeAncestorsRemove' extension we need
+                // to register '/' as the base path - done in wrapMainCondition
+                // - in order to catch any node removal. So we have to skip adding 
+                // the subtree here as a result.
+                continue;
+            }
             filterBuilder.addSubTree(path);
         }
 
@@ -250,11 +257,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             }
         }
 
-        filterBuilder
-            .includeSessionLocal(!noLocal)
-            .includeClusterExternal(!noExternal)
-            .includeClusterLocal(!noInternal)
-            .condition(filterBuilder.all(
+        Condition condition = filterBuilder.all(
                     filterBuilder.all(excludeConditions),
                     filterBuilder.any(includeConditions),
                     filterBuilder.deleteSubtree(),
@@ -262,7 +265,15 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     filterBuilder.eventType(eventTypes),
                     filterBuilder.uuid(Selectors.PARENT, uuids),
                     filterBuilder.nodeType(nodeTypeSelector, validateNodeTypeNames(nodeTypeName)),
-                    filterBuilder.accessControl(permissionProviderFactory)));
+                    filterBuilder.accessControl(permissionProviderFactory));
+        if (oakEventFilter != null) {
+            condition = oakEventFilter.wrapMainCondition(condition, filterBuilder, permissionProviderFactory);
+        }
+        filterBuilder
+            .includeSessionLocal(!noLocal)
+            .includeClusterExternal(!noExternal)
+            .includeClusterLocal(!noInternal)
+            .condition(condition);
 
         // FIXME support multiple path in ListenerTracker
         ListenerTracker tracker = new WarningListenerTracker(

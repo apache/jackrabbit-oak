@@ -1276,6 +1276,75 @@ public class ObservationTest extends AbstractRepositoryTest {
     
     }
 
+    @Test
+    public void includeAncestorsRemove() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("b").addNode("c").addNode("d").setProperty("e", 42);
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath(TEST_PATH + "/a/b/c/d");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove();
+
+        oManager.addEventListener(listener, filter);
+
+        Node d = testNode.getNode("a").getNode("b").getNode("c").getNode("d");
+        Property e = d.getProperty("e");
+        listener.expectRemove(e);
+//        listener.expectRemove(d.getProperty("jcr:primaryType"));
+//        d.remove();
+        listener.expectRemove(d).remove();
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        oManager.addEventListener(new EventListener() {
+            
+            @Override
+            public void onEvent(EventIterator events) {
+                while(events.hasNext()) {
+                    System.out.println("GOT: "+events.next());
+                }
+                
+            }
+        }, NODE_REMOVED, TEST_PATH + "/a", false, null, null, false);
+        System.out.println("REGISTERED");
+        
+        testNode = getNode(TEST_PATH);
+        Node b = testNode.getNode("a").getNode("b");
+        listener.expect(b.getPath(), NODE_REMOVED);
+        b.remove();
+        // but not the jcr:primaryType
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    
+        Node a = testNode.getNode("a");
+        listener.expect(a.getPath(), NODE_REMOVED);
+        a.remove();
+        // but not the jcr:primaryType
+        testNode.getSession().save();
+
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
 
 
 }
