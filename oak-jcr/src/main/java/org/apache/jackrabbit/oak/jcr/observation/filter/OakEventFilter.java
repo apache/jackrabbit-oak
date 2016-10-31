@@ -94,4 +94,23 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      */
     public abstract OakEventFilter withIncludeGlobPaths(String... globPaths);
 
+    /**
+     * Greedy aggregating filter which upon first (hence greedy) hit of provided
+     * nodeTypes checks if the child subtree leading to the actual change
+     * matches any of the provided relativeGlobPaths.
+     * <p>
+     * Note that unlike 'normal' include and exclude paths, this variant
+     * doesn't apply Oak's NamePathMapper.
+     * <p>
+     * This filter property is added in 'and' mode.
+     * 
+     * @param nodeTypes
+     *            note that these nodeTypes are not mapped to oak nor validated
+     * @param relativeGlobPaths
+     *            glob paths that are added to the set of include paths.
+     *            Note that Oak's NamePathMapper is not applied to these relativeGlobPaths.
+     * @return this filter with the filter change applied
+     */
+    public abstract OakEventFilter withNodeTypeAggregate(final String[] nodeTypes, final String[] relativeGlobPaths);
+
 }
