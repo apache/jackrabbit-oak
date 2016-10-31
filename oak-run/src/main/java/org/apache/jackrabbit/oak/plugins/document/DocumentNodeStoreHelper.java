@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
+import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
@@ -53,6 +54,10 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStor
  * classes in this package.
  */
 public class DocumentNodeStoreHelper {
+
+    public static Cache<PathRev, DocumentNodeState> getNodesCache(DocumentNodeStore dns) {
+        return dns.getNodeCache();
+    }
 
     public static void garbageReport(DocumentNodeStore dns) {
         System.out.print("Collecting top 100 nodes with most blob garbage ");

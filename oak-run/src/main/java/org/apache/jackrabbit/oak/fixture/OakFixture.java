@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.net.UnknownHostException;
 
 import javax.sql.DataSource;
 
@@ -157,83 +158,7 @@ public abstract class OakFixture {
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useDataStore,
                                       final File base, final int dsCacheInMB) {
-        return new OakFixture(name) {
-            private DocumentMK[] kernels;
-            private BlobStoreFixture blobStoreFixture;
-
-            @Override
-            public Oak getOak(int clusterId) throws Exception {
-                MongoConnection mongo = new MongoConnection(uri);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
-                        setMongoDB(mongo.getDB()).
-                        memoryCacheSize(cacheSize).
-                        //TODO Persistent cache should be removed in teardown
-                        setPersistentCache("target/persistentCache,time").
-                        setClusterId(clusterId).
-                        setLogging(false);
-                setupBlobStore(mkBuilder, StatisticsProvider.NOOP);
-                DocumentMK dmk = mkBuilder.open();
-                return newOak(dmk.getNodeStore());
-            }
-
-            @Override
-            public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
-                Oak[] cluster = new Oak[n];
-                kernels = new DocumentMK[cluster.length];
-                for (int i = 0; i < cluster.length; i++) {
-                    MongoConnection mongo = new MongoConnection(uri);
-                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
-                            setStatisticsProvider(statsProvider).
-                            setMongoDB(mongo.getDB()).
-                            memoryCacheSize(cacheSize).
-                            setPersistentCache("target/persistentCache,time").
-                            setClusterId(i + 1).
-                            setLogging(false);
-                    setupBlobStore(mkBuilder, statsProvider);
-                    kernels[i] = mkBuilder.open();
-                    cluster[i] = newOak(kernels[i].getNodeStore());
-                }
-                return cluster;
-            }
-
-            @Override
-            public void tearDownCluster() {
-                for (DocumentMK kernel : kernels) {
-                    kernel.dispose();
-                }
-                if (dropDBAfterTest) {
-                    try {
-                        MongoConnection mongo =
-                                new MongoConnection(uri);
-                        mongo.getDB().dropDatabase();
-                        mongo.close();
-                        if(blobStoreFixture != null){
-                            blobStoreFixture.tearDown();
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-
-            private void setupBlobStore(DocumentMK.Builder mkBuilder, StatisticsProvider statsProvider) {
-                initializeBlobStoreFixture(statsProvider);
-                if (blobStoreFixture != null) {
-                    mkBuilder.setBlobStore(blobStoreFixture.setUp());
-                }
-            }
-
-            private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
-                if (blobStoreFixture != null){
-                    return;
-                }
-
-                if (useDataStore) {
-                    blobStoreFixture =
-                        BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
-                }
-            }
-        };
+        return new MongoFixture(name, uri, dropDBAfterTest, cacheSize, useDataStore, base, dsCacheInMB);
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
@@ -352,6 +277,114 @@ public abstract class OakFixture {
         final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
         final boolean useBlobStore, final int dsCacheInMB) {
         return new SegmentTarFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, dsCacheInMB);
+    }
+
+    public static class MongoFixture extends OakFixture {
+
+        private final String uri;
+
+        private final boolean dropDBAfterTest;
+
+        private final long cacheSize;
+
+        private final boolean useDataStore;
+
+        private final File base;
+
+        private final int dsCacheInMB;
+
+        private DocumentMK[] kernels;
+        private BlobStoreFixture blobStoreFixture;
+
+        public MongoFixture(final String name, final String uri,
+                            final boolean dropDBAfterTest, final long cacheSize,
+                            final boolean useDataStore,
+                            final File base, final int dsCacheInMB) {
+            super(name);
+            this.uri = uri;
+            this.dropDBAfterTest = dropDBAfterTest;
+            this.cacheSize = cacheSize;
+            this.useDataStore = useDataStore;
+            this.base = base;
+            this.dsCacheInMB = dsCacheInMB;
+        }
+
+        public DocumentMK.Builder getBuilder(int clusterId) throws UnknownHostException {
+            MongoConnection mongo = new MongoConnection(uri);
+            DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
+                    setMongoDB(mongo.getDB()).
+                    memoryCacheSize(cacheSize).
+                    //TODO Persistent cache should be removed in teardown
+                            setPersistentCache("target/persistentCache,time").
+                            setClusterId(clusterId).
+                            setLogging(false);
+            setupBlobStore(mkBuilder, StatisticsProvider.NOOP);
+            return mkBuilder;
+        }
+
+        @Override
+        public Oak getOak(int clusterId) throws Exception {
+            DocumentMK dmk = getBuilder(clusterId).open();
+            return newOak(dmk.getNodeStore());
+        }
+
+        public Oak[] setUpCluster(DocumentMK.Builder[] builders, StatisticsProvider statsProvider) throws Exception {
+            Oak[] cluster = new Oak[builders.length];
+            kernels = new DocumentMK[cluster.length];
+            for (int i = 0; i < cluster.length; i++) {
+                kernels[i] = builders[i].open();
+                cluster[i] = newOak(kernels[i].getNodeStore());
+            }
+            return cluster;
+        }
+
+        @Override
+        public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
+            DocumentMK.Builder[] builders = new DocumentMK.Builder[n];
+            for (int i = 0; i < n; i++) {
+                builders[i] = getBuilder(i + 1);
+            }
+            return setUpCluster(builders, statsProvider);
+        }
+
+        @Override
+        public void tearDownCluster() {
+            for (DocumentMK kernel : kernels) {
+                kernel.dispose();
+            }
+            if (dropDBAfterTest) {
+                try {
+                    MongoConnection mongo =
+                            new MongoConnection(uri);
+                    mongo.getDB().dropDatabase();
+                    mongo.close();
+                    if(blobStoreFixture != null){
+                        blobStoreFixture.tearDown();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        private void setupBlobStore(DocumentMK.Builder mkBuilder, StatisticsProvider statsProvider) {
+            initializeBlobStoreFixture(statsProvider);
+            if (blobStoreFixture != null) {
+                mkBuilder.setBlobStore(blobStoreFixture.setUp());
+            }
+        }
+
+        private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
+            if (blobStoreFixture != null){
+                return;
+            }
+
+            if (useDataStore) {
+                blobStoreFixture =
+                        BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
+            }
+        }
+
     }
 
     public static class SegmentFixture extends OakFixture {
