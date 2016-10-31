@@ -837,6 +837,10 @@ public final class DocumentNodeStore
         return diffCache.getStats();
     }
 
+    Cache<PathRev, DocumentNodeState> getNodeCache() {
+        return nodeCache;
+    }
+
     /**
      * Returns the journal entry that will be stored in the journal with the
      * next background updated.
