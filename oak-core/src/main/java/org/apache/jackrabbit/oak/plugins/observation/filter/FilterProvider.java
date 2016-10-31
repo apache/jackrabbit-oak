@@ -64,4 +64,11 @@ public interface FilterProvider {
     Iterable<String> getSubTrees();
 
     FilterConfigMBean getConfigMBean();
+
+    /**
+     * Allows providers to supply an EventAggregator that
+     * is used to adjust (aggregate) the event identifier before event
+     * creation (ie after event filtering).
+     */
+    EventAggregator getEventAggregator();
 }

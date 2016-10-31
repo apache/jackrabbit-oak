@@ -60,6 +60,8 @@ public final class FilterBuilder {
     private final List<String> subTrees = newArrayList();
     private Condition condition = includeAll();
 
+    private EventAggregator aggregator;
+
     public interface Condition {
         @Nonnull
         EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after);
@@ -98,6 +100,11 @@ public final class FilterBuilder {
     @Nonnull
     private Iterable<String> getSubTrees() {
         return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
+    }
+    
+    public FilterBuilder aggregator(EventAggregator aggregator) {
+        this.aggregator = aggregator;
+        return this;
     }
 
     /**
@@ -370,6 +377,7 @@ public final class FilterBuilder {
             final boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
             final boolean includeClusterExternal = FilterBuilder.this.includeClusterExternal;
             final boolean includeClusterLocal = FilterBuilder.this.includeClusterLocal;
+            final EventAggregator aggregator = FilterBuilder.this.aggregator;
             final Iterable<String> subTrees = FilterBuilder.this.getSubTrees();
             final Condition condition = FilterBuilder.this.condition;
 
@@ -403,6 +411,11 @@ public final class FilterBuilder {
 
             private boolean isExternal(CommitInfo info) {
                 return info == null;
+            }
+            
+            @Override
+            public EventAggregator getEventAggregator() {
+                return aggregator;
             }
         };
     }
