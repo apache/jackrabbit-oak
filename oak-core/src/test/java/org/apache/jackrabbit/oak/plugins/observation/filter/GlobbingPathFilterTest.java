@@ -85,6 +85,27 @@ public class GlobbingPathFilterTest {
 
         assertTrue(filter.includeAdd("q", tree.getNodeState()));
     }
+    
+    @Test
+    public void wildcardMatches() {
+        EventFilter filter = new GlobbingPathFilter("*.*");
+        assertFalse(filter.includeAdd("a", tree.getNodeState()));
+        assertTrue(filter.includeAdd(".b", tree.getNodeState()));
+        assertTrue(filter.includeAdd("a.b", tree.getNodeState()));
+        assertTrue(filter.includeAdd("a.", tree.getNodeState()));
+        
+        filter = new GlobbingPathFilter("*.html");
+        assertFalse(filter.includeAdd("a.b", tree.getNodeState()));
+        assertFalse(filter.includeAdd("html", tree.getNodeState()));
+        assertTrue(filter.includeAdd(".html", tree.getNodeState()));
+        assertTrue(filter.includeAdd("a.html", tree.getNodeState()));
+
+        filter = new GlobbingPathFilter("*foo*.html");
+        assertFalse(filter.includeAdd("a.b", tree.getNodeState()));
+        assertFalse(filter.includeAdd("a.html", tree.getNodeState()));
+        assertTrue(filter.includeAdd("foo.html", tree.getNodeState()));
+        assertTrue(filter.includeAdd("my-foo-bar.html", tree.getNodeState()));
+    }
 
     /**
      * ** should match every path
