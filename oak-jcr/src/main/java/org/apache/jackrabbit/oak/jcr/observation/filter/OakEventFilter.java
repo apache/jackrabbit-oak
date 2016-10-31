@@ -46,4 +46,24 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      */
     public abstract OakEventFilter withApplyNodeTypeOnSelf();
 
+    /**
+     * This causes the registration of !deep NODE_REMOVED registrations
+     * of all parents of the include paths (both normal and glob).
+     * <ul>
+     * <li>include path /a/b/c/d results in additional !deep NODE_REMOVED
+     * filters on /a/b/c, on /a/b and on /a</li>
+     * <li>include path /a/b/** results in additional !deep NODE_REMOVED
+     * filter on /a</li>
+     * </ul>
+     * <p>
+     * Note that unlike 'normal' include and exclude paths, this variant
+     * doesn't apply Oak's NamePathMapper on the ancestors of the
+     * registers paths.
+     * <p>
+     * Also note that this might disable 'observation prefiltering based on paths' 
+     * (OAK-4796) on this listener.
+     * @return this filter with the filter change applied
+     */
+    public abstract OakEventFilter withIncludeAncestorsRemove();
+
 }
