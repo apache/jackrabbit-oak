@@ -19,33 +19,11 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static javax.jcr.observation.Event.NODE_REMOVED;
-
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.filter.OakEventFilter;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventAggregator;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
-import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
-import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
-import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Implements OakEventFilter which is an extension to the JackrabbitEventFilter
