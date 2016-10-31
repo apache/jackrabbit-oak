@@ -50,6 +50,8 @@ import org.junit.Test;
 
 public class DataStoreTestBase extends TestBase {
 
+    private static final int MB = 1024 * 1024;
+
     protected boolean storesCanBeEqual = false;
 
     @Before
@@ -87,8 +89,7 @@ public class DataStoreTestBase extends TestBase {
 
     @Test
     public void testSync() throws Exception {
-        final int mb = 1 * 1024 * 1024;
-        final int blobSize = 5 * mb;
+        final int blobSize = 5 * MB;
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
@@ -108,8 +109,8 @@ public class DataStoreTestBase extends TestBase {
             cl.close();
         }
 
-        assertTrue(primary.size() < mb);
-        assertTrue(secondary.size() < mb);
+        assertTrue(primary.size() < MB);
+        assertTrue(secondary.size() < MB);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
                 .getChildNode("server").getProperty("testBlob");
@@ -120,6 +121,37 @@ public class DataStoreTestBase extends TestBase {
         byte[] testData = new byte[blobSize];
         ByteStreams.readFully(b.getNewStream(), testData);
         assertArrayEquals(data, testData);
+    }
+
+    /**
+     * See OAK-4969
+     */
+    @Test
+    public void testSyncUpdatedBinaryProperty() throws Exception {
+        final int blobSize = 5 * MB;
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = SegmentNodeStore.builder(primary).build();
+
+        try (
+                StandbyClient client = newStandbyClient(secondary);
+                StandbyServer server = new StandbyServer(port, primary);
+        ) {
+            server.start();
+
+            addTestContent(store, "server", blobSize);
+            primary.flush();
+            client.run();
+            assertEquals(primary.getHead(), secondary.getHead());
+
+            addTestContent(store, "server", blobSize);
+            primary.flush();
+            client.run();
+            assertEquals(primary.getHead(), secondary.getHead());
+
+        }
+
     }
 
     @Test
@@ -158,8 +190,7 @@ public class DataStoreTestBase extends TestBase {
     }
 
     private void useProxy(int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
-        final int mb = 1 * 1024 * 1024;
-        int blobSize = 5 * mb;
+        int blobSize = 5 * MB;
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
@@ -184,7 +215,7 @@ public class DataStoreTestBase extends TestBase {
                 }
                 p.reset();
                 if (intermediateChange) {
-                    blobSize = 2 * mb;
+                    blobSize = 2 * MB;
                     data = addTestContent(store, "server", blobSize);
                     primary.flush();
                 }
@@ -197,8 +228,8 @@ public class DataStoreTestBase extends TestBase {
             p.close();
         }
 
-        assertTrue(primary.size() < mb);
-        assertTrue(secondary.size() < mb);
+        assertTrue(primary.size() < MB);
+        assertTrue(secondary.size() < MB);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
                 .getChildNode("server").getProperty("testBlob");
