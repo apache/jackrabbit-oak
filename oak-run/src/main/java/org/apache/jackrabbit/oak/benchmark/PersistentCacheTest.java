@@ -39,35 +39,35 @@ public class PersistentCacheTest extends AbstractTest {
 
     private static final String CACHE_OPTIONS = System.getProperty("cacheOptions", "size=100,+compact,-async");
 
+    private final StatisticsProvider statsProvider;
+
     private Cache<PathRev, DocumentNodeState> nodesCache;
 
     private DocumentNodeStore dns;
 
     private AtomicLong timestamp = new AtomicLong(1000);
 
+    public PersistentCacheTest(StatisticsProvider statsProvider) {
+        this.statsProvider = statsProvider;
+    }
+
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
+        System.setProperty("PersistentCacheStats.rejectedPut", "true");
         if (fixture instanceof OakRepositoryFixture) {
             OakFixture oakFixture = ((OakRepositoryFixture) fixture).getOakFixture();
             if (oakFixture instanceof OakFixture.MongoFixture) {
                 OakFixture.MongoFixture mongoFixture = (OakFixture.MongoFixture) oakFixture;
                 DocumentMK.Builder builder = mongoFixture.getBuilder(1);
+                builder.setStatisticsProvider(statsProvider);
                 builder.setPersistentCache("target/persistentCache,time," + CACHE_OPTIONS);
                 dns = builder.getNodeStore();
                 nodesCache = DocumentNodeStoreHelper.getNodesCache(dns);
-                Oak[] cluster = mongoFixture.setUpCluster(new DocumentMK.Builder[] {builder}, StatisticsProvider.NOOP);
+                Oak[] cluster = mongoFixture.setUpCluster(new DocumentMK.Builder[] {builder}, statsProvider);
                 return new Repository[] { new Jcr(cluster[0]).createRepository() };
             }
         }
         throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");
-    }
-
-    @Override
-    protected void beforeSuite() throws Exception {
-    }
-
-    @Override
-    protected void beforeTest() throws Exception {
     }
 
     @Override
@@ -77,9 +77,5 @@ public class PersistentCacheTest extends AbstractTest {
             nodesCache.put(key, dns.getRoot());
             nodesCache.getIfPresent(key); // read, so the entry is marked as used
         }
-    }
-
-    @Override
-    protected void afterTest() throws Exception {
     }
 }
