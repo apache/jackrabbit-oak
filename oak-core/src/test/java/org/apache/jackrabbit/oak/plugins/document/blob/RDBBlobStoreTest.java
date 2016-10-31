@@ -182,9 +182,11 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
             }
         }
         // Force update to update timestamp
+        long beforeUpdateTs = System.currentTimeMillis() - 100;
         RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
         // Metadata row should not have been touched
-        Assert.assertFalse(blobStore.deleteChunks(ImmutableList.of(id), System.currentTimeMillis() - 100));
+        Assert.assertFalse("entry was cleaned although it shouldn't have",
+                blobStore.deleteChunks(ImmutableList.of(id), beforeUpdateTs));
         // Actual data row should still be present
         Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
     }
