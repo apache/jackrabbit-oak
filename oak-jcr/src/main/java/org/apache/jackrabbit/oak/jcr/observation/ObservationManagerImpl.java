@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
+import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
@@ -208,6 +209,10 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     @Override
     public void addEventListener(EventListener listener, JackrabbitEventFilter filter)
             throws RepositoryException {
+        OakEventFilterImpl oakEventFilter = null;
+        if (filter instanceof OakEventFilterImpl) {
+            oakEventFilter = (OakEventFilterImpl) filter;
+        }
 
         int eventTypes = filter.getEventTypes();
         boolean isDeep = filter.getIsDeep();
@@ -238,6 +243,13 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
         List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
 
+        Selector nodeTypeSelector = Selectors.PARENT;
+        if (oakEventFilter != null) {
+            if (oakEventFilter.getApplyNodeTypeOnSelf()) {
+                nodeTypeSelector = Selectors.THIS;
+            }
+        }
+
         filterBuilder
             .includeSessionLocal(!noLocal)
             .includeClusterExternal(!noExternal)
@@ -249,7 +261,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     filterBuilder.moveSubtree(),
                     filterBuilder.eventType(eventTypes),
                     filterBuilder.uuid(Selectors.PARENT, uuids),
-                    filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName)),
+                    filterBuilder.nodeType(nodeTypeSelector, validateNodeTypeNames(nodeTypeName)),
                     filterBuilder.accessControl(permissionProviderFactory)));
 
         // FIXME support multiple path in ListenerTracker

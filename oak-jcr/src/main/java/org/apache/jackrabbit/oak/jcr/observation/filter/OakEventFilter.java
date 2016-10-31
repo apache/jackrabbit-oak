@@ -34,4 +34,16 @@ import aQute.bnd.annotation.ConsumerType;
 @ConsumerType
 public abstract class OakEventFilter extends JackrabbitEventFilter {
 
+    /**
+     * This causes the node type filter to be applied on 'this' node instead of
+     * the 'parent' node, thus allows to create a filter which listens on
+     * adding/removing/etc on nodes of a particular node type (while the default
+     * was that the node type was applicable on the parent).
+     * <p>
+     * Note that this is an 'either/or' thing: either the node type is applied
+     * on the parent (default) or on 'self/this' (via this switch) but not both.
+     * @return this filter with the filter change applied
+     */
+    public abstract OakEventFilter withApplyNodeTypeOnSelf();
+
 }

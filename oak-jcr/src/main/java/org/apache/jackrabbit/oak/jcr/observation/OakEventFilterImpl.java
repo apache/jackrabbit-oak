@@ -32,6 +32,9 @@ import org.apache.jackrabbit.oak.jcr.observation.filter.OakEventFilter;
 public class OakEventFilterImpl extends OakEventFilter {
 
     private final JackrabbitEventFilter delegate;
+    
+    /** whether or not applyNodeTypeOnSelf feature is enabled */
+    private boolean applyNodeTypeOnSelf;
 
     public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
         checkNotNull(delegate);
@@ -146,6 +149,16 @@ public class OakEventFilterImpl extends OakEventFilter {
     public JackrabbitEventFilter setNoLocal(boolean noLocal) {
         delegate.setNoLocal(noLocal);
         return this;
+    }
+
+    @Override
+    public OakEventFilter withApplyNodeTypeOnSelf() {
+        this.applyNodeTypeOnSelf = true;
+        return this;
+    }
+    
+    boolean getApplyNodeTypeOnSelf() {
+        return applyNodeTypeOnSelf;
     }
 
 }
