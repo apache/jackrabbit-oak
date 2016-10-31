@@ -1346,5 +1346,34 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
     }
 
+    @Test
+    public void includeRemovedSubtree() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("c");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath("/");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeSubtreeOnRemove();
+
+        oManager.addEventListener(listener, filter);
+
+        listener.expectRemove(testNode.getNode("a").getNode("c"));
+        listener.expectRemove(testNode.getNode("a")).remove();
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
 
 }

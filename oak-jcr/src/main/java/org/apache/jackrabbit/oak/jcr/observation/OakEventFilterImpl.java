@@ -51,6 +51,9 @@ public class OakEventFilterImpl extends OakEventFilter {
     /** whether or not includeAncestorsRemove feature is enabled */
     private boolean includeAncestorRemove;
 
+    /** whether or not includeSubTreeOnRemove feature is enabled */
+    private boolean includeSubtreeOnRemove;
+
     public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
         checkNotNull(delegate);
         this.delegate = delegate;
@@ -247,6 +250,16 @@ public class OakEventFilterImpl extends OakEventFilter {
                                 filterBuilder.accessControl(permissionProviderFactory)
                                 )
                         );
+    }
+
+    @Override
+    public OakEventFilter withIncludeSubtreeOnRemove() {
+        this.includeSubtreeOnRemove = true;
+        return this;
+    }
+    
+    boolean getIncludeSubtreeOnRemove() {
+        return includeSubtreeOnRemove;
     }
 
 }
