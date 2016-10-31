@@ -344,7 +344,8 @@ class ChangeProcessor implements Observer {
                 if (provider.includeCommit(contentSession.toString(), info)) {
                     EventFilter filter = provider.getFilter(previousRoot, root);
                     EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
-                            provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER));
+                            provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
+                            provider.getEventAggregator());
 
                     long time = System.nanoTime();
                     boolean hasEvents = events.hasNext();
