@@ -260,7 +260,6 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                 deepenedPath = concat(path, depthPattern);
             }
             includeConditions.add(filterBuilder.path(deepenedPath));
-            includeConditions.add(filterBuilder.path(concat(path, depthPattern)));
             if (oakEventFilter != null && oakEventFilter.getIncludeAncestorsRemove()) {
                 // with the 'includeAncestorsRemove' extension we need
                 // to register '/' as the base path - done in wrapMainCondition
