@@ -54,6 +54,8 @@ public class OakEventFilterImpl extends OakEventFilter {
     /** whether or not includeSubTreeOnRemove feature is enabled */
     private boolean includeSubtreeOnRemove;
 
+    private String[] globPaths;
+
     public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
         checkNotNull(delegate);
         this.delegate = delegate;
@@ -229,11 +231,11 @@ public class OakEventFilterImpl extends OakEventFilter {
                 addAncestorsRemoveCondition(parentPaths, absPath);
             }
         }
-//        if (globPaths != null) {
-//            for (String globPath : globPaths) {
-//                addAncestorsRemoveCondition(parentPaths, globPath);
-//            }
-//        }
+        if (globPaths != null) {
+            for (String globPath : globPaths) {
+                addAncestorsRemoveCondition(parentPaths, globPath);
+            }
+        }
         if (parentPaths.size() == 0) {
             return mainCondition;
         }
@@ -260,6 +262,22 @@ public class OakEventFilterImpl extends OakEventFilter {
     
     boolean getIncludeSubtreeOnRemove() {
         return includeSubtreeOnRemove;
+    }
+
+    @Override
+    public OakEventFilter withIncludeGlobPaths(String... globPaths) {
+        if (this.globPaths != null) {
+            throw new IllegalStateException("can only set globPaths once");
+        }
+//        for (String aGlobPath : globPaths) {
+//            return or(builder().path(aGlobPath));
+//        }
+        this.globPaths = globPaths;
+        return this;
+    }
+
+    String[] getIncludeGlobPaths() {
+        return globPaths;
     }
 
 }
