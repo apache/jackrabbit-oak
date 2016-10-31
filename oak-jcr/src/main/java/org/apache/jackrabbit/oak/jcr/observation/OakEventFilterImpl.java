@@ -53,4 +53,121 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class OakEventFilterImpl extends OakEventFilter {
 
+    private final JackrabbitEventFilter delegate;
+
+    public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
+        checkNotNull(delegate);
+        this.delegate = delegate;
+    }
+
+    @Override
+    public String getAbsPath() {
+        return delegate.getAbsPath();
+    }
+    
+    @Override
+    public JackrabbitEventFilter setAbsPath(String absPath) {
+        delegate.setAbsPath(absPath);
+        return this;
+    }
+    
+    @Override
+    public String[] getAdditionalPaths() {
+        return delegate.getAdditionalPaths();
+    }
+
+    @Override
+    public JackrabbitEventFilter setAdditionalPaths(String... absPaths) {
+        delegate.setAdditionalPaths(absPaths);
+        return this;
+    }
+
+    @Override
+    public int getEventTypes() {
+        return delegate.getEventTypes();
+    }
+    
+    @Override
+    public JackrabbitEventFilter setEventTypes(int eventTypes) {
+        delegate.setEventTypes(eventTypes);
+        return this;
+    }
+
+    @Override
+    public String[] getExcludedPaths() {
+        return delegate.getExcludedPaths();
+    }
+    
+    @Override
+    public JackrabbitEventFilter setExcludedPaths(String... excludedPaths) {
+        delegate.setExcludedPaths(excludedPaths);
+        return this;
+    }
+    
+    @Override
+    public String[] getIdentifiers() {
+        return delegate.getIdentifiers();
+    }
+
+    @Override
+    public JackrabbitEventFilter setIdentifiers(String[] identifiers) {
+        delegate.setIdentifiers(identifiers);
+        return this;
+    }
+
+    @Override
+    public boolean getIsDeep() {
+        return delegate.getIsDeep();
+    }
+    
+    @Override
+    public JackrabbitEventFilter setIsDeep(boolean isDeep) {
+        delegate.setIsDeep(isDeep);
+        return this;
+    }
+    
+    @Override
+    public String[] getNodeTypes() {
+        return delegate.getNodeTypes();
+    }
+
+    @Override
+    public JackrabbitEventFilter setNodeTypes(String[] nodeTypeNames) {
+        delegate.setNodeTypes(nodeTypeNames);
+        return this;
+    }
+    
+    @Override
+    public boolean getNoExternal() {
+        return delegate.getNoExternal();
+    }
+
+    @Override
+    public JackrabbitEventFilter setNoExternal(boolean noExternal) {
+        delegate.setNoExternal(noExternal);
+        return this;
+    }
+
+    @Override
+    public boolean getNoInternal() {
+        return delegate.getNoInternal();
+    }
+    
+    @Override
+    public JackrabbitEventFilter setNoInternal(boolean noInternal) {
+        delegate.setNoInternal(noInternal);
+        return this;
+    }
+
+    @Override
+    public boolean getNoLocal() {
+        return delegate.getNoLocal();
+    }
+    
+    @Override
+    public JackrabbitEventFilter setNoLocal(boolean noLocal) {
+        delegate.setNoLocal(noLocal);
+        return this;
+    }
+
 }
