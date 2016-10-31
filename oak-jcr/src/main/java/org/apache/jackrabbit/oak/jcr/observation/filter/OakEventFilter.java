@@ -66,4 +66,13 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      */
     public abstract OakEventFilter withIncludeAncestorsRemove();
 
+    /**
+     * This flag causes remove events to be sent for all nodes and properties
+     * of an entire subtree (hence use with care!).
+     * <p>
+     * It is only applied when a parent node is actually removed. For 
+     * a parent node move this is not applied.
+     * @return this filter with the filter change applied
+     */
+    public abstract OakEventFilter withIncludeSubtreeOnRemove();
 }

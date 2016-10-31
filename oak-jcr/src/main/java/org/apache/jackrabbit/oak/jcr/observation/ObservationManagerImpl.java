@@ -251,16 +251,23 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
 
         Selector nodeTypeSelector = Selectors.PARENT;
+        boolean deleteSubtree = true;
         if (oakEventFilter != null) {
             if (oakEventFilter.getApplyNodeTypeOnSelf()) {
                 nodeTypeSelector = Selectors.THIS;
             }
+            if (oakEventFilter.getIncludeSubtreeOnRemove()) {
+                deleteSubtree = false;
+            }
+        }
+        if (deleteSubtree) {
+            excludeConditions.add(filterBuilder.deleteSubtree());
         }
 
         Condition condition = filterBuilder.all(
                     filterBuilder.all(excludeConditions),
                     filterBuilder.any(includeConditions),
-                    filterBuilder.deleteSubtree(),
+//                    filterBuilder.deleteSubtree(),     // moved depending on deleteSubtree on excludeConditions
                     filterBuilder.moveSubtree(),
                     filterBuilder.eventType(eventTypes),
                     filterBuilder.uuid(Selectors.PARENT, uuids),
