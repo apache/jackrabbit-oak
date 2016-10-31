@@ -23,21 +23,26 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class FileStoreUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(FileStoreUtil.class);
 
     FileStoreUtil() {
         // Prevent instantiation
     }
 
     static Segment readSegmentWithRetry(FileStore store, SegmentId id) {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 160; i++) {
             try {
                 return store.readSegment(id);
             } catch (SegmentNotFoundException e) {
                 // Ignore this exception and wait
             }
             try {
+                log.trace("Unable to read segment, waiting...");
                 TimeUnit.MILLISECONDS.sleep(125);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
