@@ -1125,6 +1125,15 @@ public class ObservationTest extends AbstractRepositoryTest {
             });
         }
 
+        public Future<Event> expect(final String path, final String identifier, final int type) {
+            return expect(new Expectation("path = " + path + ", identifier = " + identifier + ", type = " + type) {
+                @Override
+                public boolean onEvent(Event event) throws RepositoryException {
+                    return type == event.getType() && equal(path, event.getPath()) && equal(identifier, event.getIdentifier());
+                }
+            });
+        }
+
         public Node expectAdd(Node node) throws RepositoryException {
             expect(node.getPath(), NODE_ADDED);
             expect(node.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
@@ -1235,6 +1244,8 @@ public class ObservationTest extends AbstractRepositoryTest {
         }
     }
     
+    //------------------------------------------------------------< OakEventFilter tests >---
+
     @Test
     public void applyNodeTypeOnSelf() throws Exception {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
@@ -1421,6 +1432,94 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
         unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void testAggregate1() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setAbsPath("/parent");
+        filter.setIsDeep(true);
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withNodeTypeAggregate(new String[] { "oak:Unstructured" },
+                new String[] { "", "jcr:content", "jcr:content/**" });
+        oManager.addEventListener(listener, filter);
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node child = parent.addNode("child", "nt:unstructured");
+        Node file = child.addNode("file", "oak:Unstructured");
+        listener.expectAdd(file);
+        Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
+        listener.expect(jcrContent.getPath(), "/parent/child/file", NODE_ADDED);
+        listener.expect(jcrContent.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
+        Property jcrDataProperty = jcrContent.setProperty("jcr:data", "foo");
+        listener.expect(jcrDataProperty.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        parent.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        file = getAdminSession().getRootNode().getNode("parent").getNode("child").getNode("file");
+        jcrContent = file.getNode("jcr:content");
+        Property newProperty = jcrContent.setProperty("newProperty", "foo");
+        listener.expect(newProperty.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        Property lastModifiedBy = jcrContent.setProperty("jcr:lastModifiedBy", "bar");
+        listener.expect(lastModifiedBy.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        jcrContent.getSession().save();
+
+        Thread.sleep(2000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    @Test
+    public void testAggregate2() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setAbsPath("/parent");
+        filter.setIsDeep(true);
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withNodeTypeAggregate(new String[] { "oak:Unstructured" },
+                new String[] { "", "**" });// "file", "file/jcr:content",
+                                           // "file/jcr:content/**");
+        oManager.addEventListener(listener, filter);
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node child = parent.addNode("child", "oak:Unstructured");
+        listener.expectAdd(child);
+        Node file = child.addNode("file", "nt:unstructured");
+        listener.expectAdd(file);
+        Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
+        listener.expect(jcrContent.getPath(), "/parent/child", NODE_ADDED);
+        listener.expect(jcrContent.getPath() + "/jcr:primaryType", "/parent/child", PROPERTY_ADDED);
+        Property jcrDataProperty = jcrContent.setProperty("jcr:data", "foo");
+        listener.expect(jcrDataProperty.getPath(), "/parent/child", PROPERTY_ADDED);
+        parent.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        file = getAdminSession().getRootNode().getNode("parent").getNode("child").getNode("file");
+        jcrContent = file.getNode("jcr:content");
+        Property newProperty = jcrContent.setProperty("newProperty", "foo");
+        listener.expect(newProperty.getPath(), "/parent/child", PROPERTY_ADDED);
+        Property lastModifiedBy = jcrContent.setProperty("jcr:lastModifiedBy", "bar");
+        listener.expect(lastModifiedBy.getPath(), "/parent/child", PROPERTY_ADDED);
+        jcrContent.getSession().save();
+
+        Thread.sleep(2000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
     }
 
 }
