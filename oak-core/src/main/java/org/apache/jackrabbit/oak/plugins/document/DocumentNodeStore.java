@@ -2718,6 +2718,9 @@ public final class DocumentNodeStore
 
     static class BackgroundLeaseUpdate extends NodeStoreTask {
 
+        /** OAK-4859 : log if time between two renewClusterIdLease calls is too long **/
+        private long lastRenewClusterIdLeaseCall = -1;
+        
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
             super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
@@ -2725,6 +2728,18 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+            // OAK-4859 : keep track of invocation time of renewClusterIdLease
+            // and warn if time since last call is longer than 5sec
+            final long now = System.currentTimeMillis();
+            if (lastRenewClusterIdLeaseCall <= 0) {
+                lastRenewClusterIdLeaseCall = now;
+            } else {
+                final long diff = now - lastRenewClusterIdLeaseCall;
+                if (diff > 5000) {
+                    LOG.warn("BackgroundLeaseUpdate.execute: time since last renewClusterIdLease() call longer than expected: {}ms", diff);
+                }
+                lastRenewClusterIdLeaseCall = now;
+            }
             // first renew the clusterId lease
             nodeStore.renewClusterIdLease();
 
