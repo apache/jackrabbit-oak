@@ -1551,4 +1551,37 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
     }
 
+    @Test
+    public void testAggregate3() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setAbsPath("/parent");
+        filter.setIsDeep(true);
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withNodeTypeAggregate(new String[] { "oak:Unstructured" },
+                new String[] { "**" } );
+        oManager.addEventListener(listener, filter);
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node child = parent.addNode("child", "nt:unstructured");
+//        listener.expectAdd(child);
+        Node file = child.addNode("file", "oak:Unstructured");
+        listener.expect(file.getPath(), "/parent/child/file", NODE_ADDED);
+        listener.expect(file.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
+        Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
+        listener.expect(jcrContent.getPath(), "/parent/child/file", NODE_ADDED);
+        listener.expect(jcrContent.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
+        Property jcrDataProperty = jcrContent.setProperty("jcr:data", "foo");
+        listener.expect(jcrDataProperty.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+    
 }
