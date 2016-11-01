@@ -37,7 +37,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -1653,4 +1652,34 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
     }
     
+    @Test
+    public void testAggregate4() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "**/foo/**" } )
+                .withIncludeGlobPaths("/parent/**/bar/**");
+        oManager.addEventListener(listener, filter);
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node a = parent.addNode("a", "nt:unstructured");
+        Node b = a.addNode("b", "nt:unstructured");
+        Node bar = b.addNode("bar", "oak:Unstructured");
+        Node c = bar.addNode("c", "nt:unstructured");
+        Node foo = c.addNode("foo", "nt:unstructured");
+        listener.expect(foo.getPath() + "/jcr:primaryType", bar.getPath(), PROPERTY_ADDED);
+        Node jcrContent = foo.addNode("jcr:content", "nt:unstructured");
+        listener.expectAdd(jcrContent);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
 }
