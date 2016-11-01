@@ -141,6 +141,11 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             stop(processor);
         }
     }
+    
+    /** for testing only, hence package protected **/
+    synchronized ChangeProcessor getChangeProcessor(EventListener listener) {
+        return processors.get(listener);        
+    }
 
     private synchronized void addEventListener(EventListener listener, ListenerTracker tracker,
             FilterProvider filterProvider) {

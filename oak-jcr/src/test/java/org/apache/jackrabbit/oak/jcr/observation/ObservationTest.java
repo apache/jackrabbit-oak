@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.base.Objects.equal;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
@@ -36,9 +37,11 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,6 +83,7 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.observation.filter.FilterFactory;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
@@ -1303,16 +1307,20 @@ public class ObservationTest extends AbstractRepositoryTest {
         filter.setAbsPath(TEST_PATH + "/a/b/c/d");
         filter.setIsDeep(true);
         filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove();
-        doIncludeAncestorsRemove(filter);
+        FilterProvider filterProvider = doIncludeAncestorsRemove(filter);
+        // with 'includeAncestorsRemove' flag the listener is registered at '/'
+        assertMatches(filterProvider.getSubTrees(), "/");
 
         filter = new JackrabbitEventFilter();
         filter.setEventTypes(ALL_EVENTS);
         filter.setIsDeep(true);
         filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove().withIncludeGlobPaths(TEST_PATH + "/a/b/c/**");
-        doIncludeAncestorsRemove(filter);
+        filterProvider = doIncludeAncestorsRemove(filter);
+        // with 'includeAncestorsRemove' flag the listener is registered at '/'
+        assertMatches(filterProvider.getSubTrees(), "/");
     }
     
-    private void doIncludeAncestorsRemove(JackrabbitEventFilter filter) throws Exception {
+    private FilterProvider doIncludeAncestorsRemove(JackrabbitEventFilter filter) throws Exception {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
 
         Node testNode = getNode(TEST_PATH);
@@ -1373,6 +1381,12 @@ public class ObservationTest extends AbstractRepositoryTest {
         unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
         assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        return filterProvider;
     }
 
     @Test
@@ -1453,8 +1467,12 @@ public class ObservationTest extends AbstractRepositoryTest {
         JackrabbitEventFilter filter = new JackrabbitEventFilter();
         filter.setEventTypes(ALL_EVENTS);
         filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a2/**");
-
         oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a2");
 
         testNode.getNode("a1").getNode("b").remove();
         listener.expectRemove(testNode.getNode("a2").getNode("b")).remove();
@@ -1475,6 +1493,11 @@ public class ObservationTest extends AbstractRepositoryTest {
 //        filter.setAbsPath(TEST_PATH + "/a3/bar/foo/x");
         filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/x");
         oManager.addEventListener(listener, filter);
+        cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a3");
         
         Node x = foo.addNode("x");
         listener.expect(x.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
@@ -1490,6 +1513,11 @@ public class ObservationTest extends AbstractRepositoryTest {
         filter.setEventTypes(ALL_EVENTS);
         filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/y/*");
         oManager.addEventListener(listener, filter);
+        cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a3");
         
         Node y = foo.addNode("y");
         listener.expect(y.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
@@ -1517,8 +1545,12 @@ public class ObservationTest extends AbstractRepositoryTest {
         JackrabbitEventFilter filter = new JackrabbitEventFilter();
         filter.setEventTypes(ALL_EVENTS);
         filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a2/**").withIncludeGlobPaths(TEST_PATH + "/a1/**");
-
         oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a1", TEST_PATH + "/a2");
 
         listener.expectRemove(testNode.getNode("a1").getNode("b2")).remove();
         listener.expectRemove(testNode.getNode("a2").getNode("b")).remove();
@@ -1663,6 +1695,11 @@ public class ObservationTest extends AbstractRepositoryTest {
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "**/foo/**" } )
                 .withIncludeGlobPaths("/parent/**/bar/**");
         oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), "/parent");
         
         Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
         Node a = parent.addNode("a", "nt:unstructured");
@@ -1681,5 +1718,9 @@ public class ObservationTest extends AbstractRepositoryTest {
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
         assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    private void assertMatches(Iterable<String> actuals, String... expected) {
+        assertEquals(newHashSet(expected), newHashSet(actuals));
     }
 }
