@@ -125,6 +125,7 @@ import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
+import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
@@ -513,6 +514,9 @@ public class RepositoryUpgrade {
             String groupsPath = userConf.getParameters().getConfigValue(
                     UserConstants.PARAM_GROUP_PATH,
                     UserConstants.DEFAULT_GROUP_PATH);
+            String usersPath = userConf.getParameters().getConfigValue(
+                    UserConstants.PARAM_USER_PATH,
+                    UserConstants.DEFAULT_USER_PATH);
 
             // hooks specific to the upgrade, need to run first
             hooks.add(new EditorHook(new CompositeEditorProvider(
@@ -520,7 +524,8 @@ public class RepositoryUpgrade {
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
                     new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
-                    new SameNameSiblingsEditor.Provider()
+                    new SameNameSiblingsEditor.Provider(),
+                    AuthorizableFolderEditor.provider(groupsPath, usersPath)
             )));
 
             // this editor works on the VersionableEditor output, so it can't be

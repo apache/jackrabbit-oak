@@ -160,24 +160,30 @@ public abstract class AbstractRepositoryUpgradeTest {
     protected void assertExisting(final String... paths) throws RepositoryException {
         final Session session = createAdminSession();
         try {
-            for (final String path : paths) {
-                final String relPath = path.substring(1);
-                assertTrue("node " + path + " should exist", session.getRootNode().hasNode(relPath));
-            }
+            assertExisting(session, paths);
         } finally {
             session.logout();
+        }
+    }
+
+    protected void assertExisting(final Session session, final String... paths) throws RepositoryException {
+        for (final String path : paths) {
+            assertTrue("node " + path + " should exist", session.nodeExists(path));
         }
     }
 
     protected void assertMissing(final String... paths) throws RepositoryException {
         final Session session = createAdminSession();
         try {
-            for (final String path : paths) {
-                final String relPath = path.substring(1);
-                assertFalse("node " + path + " should not exist", session.getRootNode().hasNode(relPath));
-            }
+            assertMissing(session, paths);
         } finally {
             session.logout();
+        }
+    }
+
+    protected void assertMissing(final Session session, final String... paths) throws RepositoryException {
+        for (final String path : paths) {
+            assertFalse("node " + path + " should not exist", session.nodeExists(path));
         }
     }
 }
