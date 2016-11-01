@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -451,13 +452,14 @@ public class OakEventFilterImpl extends OakEventFilter {
 
     @Override
     public OakEventFilter withIncludeGlobPaths(String... globPaths) {
-        if (this.globPaths != null) {
-            throw new IllegalStateException("can only set globPaths once");
+        if (this.globPaths == null) {
+            this.globPaths = globPaths;
+        } else {
+            List<String> combo = new LinkedList<String>();
+            combo.addAll(Arrays.asList(this.globPaths));
+            combo.addAll(Arrays.asList(globPaths));
+            this.globPaths = combo.toArray(new String[combo.size()]);
         }
-//        for (String aGlobPath : globPaths) {
-//            return or(builder().path(aGlobPath));
-//        }
-        this.globPaths = globPaths;
         return this;
     }
 

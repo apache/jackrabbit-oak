@@ -1433,6 +1433,35 @@ public class ObservationTest extends AbstractRepositoryTest {
         unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
+    
+    @Test
+    public void testConsecutiveGlobPaths() throws Exception {
+        Node testNode = getNode(TEST_PATH);
+        Node a1 = testNode.addNode("a1");
+        a1.addNode("b1").addNode("c1");
+        a1.addNode("b2").addNode("c2");
+        testNode.addNode("a2").addNode("b").addNode("c");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a2/**").withIncludeGlobPaths(TEST_PATH + "/a1/**");
+
+        oManager.addEventListener(listener, filter);
+
+        listener.expectRemove(testNode.getNode("a1").getNode("b2")).remove();
+        listener.expectRemove(testNode.getNode("a2").getNode("b")).remove();
+        testNode.getSession().save();
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
 
     @Test
     public void testAggregate1() throws Exception {
