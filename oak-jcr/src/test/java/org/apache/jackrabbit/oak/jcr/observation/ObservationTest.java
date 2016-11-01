@@ -1486,6 +1486,21 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
         unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+        filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/y/*");
+        oManager.addEventListener(listener, filter);
+        
+        Node y = foo.addNode("y");
+        listener.expect(y.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
     
     @Test
