@@ -45,8 +45,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -59,6 +57,8 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
+import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupRestoreImpl;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -101,6 +101,9 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
 
 /**
  * An OSGi wrapper for the segment node store.
@@ -589,6 +592,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     "Segment node store blob garbage collection"
             ));
         }
+        
+        // Expose an MBean for backup/restore operations
+        
+        registrations.add(registerMBean(
+                whiteboard,
+                FileStoreBackupRestoreMBean.class,
+                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(), getDirectory(), executor), 
+                FileStoreBackupRestoreMBean.TYPE, "Segment node store backup/restore"
+        ));
 
         log.info("SegmentNodeStore initialized");
 
