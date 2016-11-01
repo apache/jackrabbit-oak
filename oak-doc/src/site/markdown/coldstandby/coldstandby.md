@@ -46,19 +46,12 @@ An Oak installation using a SegmentStore using the TarMK.
 3. on the client(s) activate the feature by specifying the runmode `standby` (add additional parameters if desired) and specify the path to the repository
 4. start the master and the client(s).
 
-You can add the additional argument `--secure true` if you like a SSL secured connection between the client and the master. It must be garantueed that **all** clients and the master either use secure or standard connections! A mixed configuration will definitely fail.
+You can add the additional configuration option `secure=true` if you like a SSL secured connection between the client and the master. It must be garantueed that **all** clients and the master either use secure or standard connections! A mixed configuration will definitely fail.
 
-The clients specify the master host using the `--host` (default is `localhost`) and `--port` (default is `8023`) arguments. For monitoring reasons (see below) the client(s) must be distinctable. Therefore a generic UUID is automatically created for each running client and this UUID is used to identify the client on the master. If you want to specify the name of the client you can set a system property `standbyID`.
-
-To sum it up a typical client command line could be:
-
-	java -DstandbyID="Client#1" -jar oak-run.jar syncslave --secure false --host 192.168.0.1 crx-quickstart/repository/segmentstore
+The clients specify the master host using the `host` (default is `localhost`) and `port` (default is `8023`) configuration options. For monitoring reasons (see below) the client(s) must be distinctable. Therefore a generic UUID is automatically created for each running client and this UUID is used to identify the client on the master. If you want to specify the name of the client you can set a system property `standbyID`.
 
 <!-- TODO: add the master specific arguments (like the accepted incoming IP ranges) -->
-The master can define the TCP port the feature is listening (default is `8023`) using the `--port` argument. If you want to restrict the communication you can specify a list of allowed IPs or IP ranges....
-
-#### OSGi setup
-If the repository is running within a OSGI environment the feature will be activated by a corresponding configuration. See examples attached to the [oak-tarmk-standby module](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-tarmk-standby/osgi-conf)
+The master can define the TCP port the feature is listening (default is `8023`) using the `port` configuration option. If you want to restrict the communication you can specify a list of allowed IPs or IP ranges....
 
 ### Robustness
 
