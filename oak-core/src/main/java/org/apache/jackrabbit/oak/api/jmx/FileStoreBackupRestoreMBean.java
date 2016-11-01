@@ -31,7 +31,8 @@ import aQute.bnd.annotation.ProviderType;
  */
 @ProviderType
 public interface FileStoreBackupRestoreMBean {
-
+    String TYPE = "FileStoreBackupRestore";
+    
     /**
      * Initiate a backup operation.
      *
