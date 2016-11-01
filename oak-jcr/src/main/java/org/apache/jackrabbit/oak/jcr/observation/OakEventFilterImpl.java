@@ -511,7 +511,7 @@ public class OakEventFilterImpl extends OakEventFilter {
         return this;
     }
 
-    private static String globAsRegex(String patternWithGlobs) {
+    static String globAsRegex(String patternWithGlobs) {
         if (patternWithGlobs == null) {
             return null;
         }
@@ -523,7 +523,14 @@ public class OakEventFilterImpl extends OakEventFilter {
                 // the '**' regexp equivalent
                 sb.append("\\E.*\\Q");
             }
-            sb.append(starStarParts[i].replace("*", "\\E[^/]*\\Q"));
+            String part = starStarParts[i];
+            if (part.startsWith("/")) {
+                part = part.substring(1);
+            }
+            if (part.endsWith("/")) {
+                part = part.substring(0, part.length() - 1);
+            }
+            sb.append(part.replace("*", "\\E[^/]*\\Q"));
         }
         sb.append("\\E");
         return sb.toString();
