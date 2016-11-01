@@ -31,6 +31,11 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
      */
     public static final String SQL2_OPTIMISATION_FLAG = "oak.query.sql2optimisation";
     
+    public static final String SQL2_OPTIMISATION_FLAG_2 = "oak.query.sql2optimisation2";
+    
+    public static final boolean SQL2_OPTIMIZATION_2 = 
+            Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG_2, "true"));
+
     private static final int DEFAULT_QUERY_LIMIT_IN_MEMORY = 
             Integer.getInteger("oak.queryLimitInMemory", Integer.MAX_VALUE);
     
@@ -52,8 +57,9 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private boolean fullTextComparisonWithoutIndex = 
             DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
     
-    private boolean sql2Optimisation = Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
-    
+    private boolean sql2Optimisation = 
+            Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
+
     public QueryEngineSettings() {
     }
     

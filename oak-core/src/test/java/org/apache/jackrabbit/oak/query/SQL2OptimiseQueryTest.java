@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.CHEAPEST;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ORIGINAL;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThat;
@@ -224,6 +225,45 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         optimised = original.buildAlternativeQuery();
         assertNotNull(optimised);
         assertNotSame(original, optimised);
+    }
+    
+    /**
+     * ensure that an optimisation is available for the provided queries.
+     * 
+     * @throws ParseException
+     */
+    @Test
+    public void optimiseAndOrAnd() throws ParseException {
+        optimiseAndOrAnd(
+                "select * from [nt:unstructured] as [c] " + 
+                "where ([a]=1 or [b]=2) and ([x]=3 or [y]=4)",
+                "(y = 4) and (b = 2), " + 
+                "(y = 4) and (a = 1), " + 
+                "(x = 3) and (b = 2), " + 
+                "(x = 3) and (a = 1)");
+        optimiseAndOrAnd(
+                "select * from [nt:unstructured] as [c] " + 
+                "where ([a]=1 or [b]=2 or ([c]=3 and [d]=4)) and ([x]=5 or [y]=6)",
+                "(y = 6) and ((c = 3) and (d = 4)), " + 
+                "(y = 6) and (b = 2), " + 
+                "(y = 6) and (a = 1), " + 
+                "(x = 5) and ((c = 3) and (d = 4)), " + 
+                "(x = 5) and (b = 2), " + 
+                "(x = 5) and (a = 1)");
+    }
+    
+    private void optimiseAndOrAnd(String statement, String expected) throws ParseException {
+        SQL2Parser parser = new SQL2Parser(getMappings(), getNodeTypes(), qeSettings);
+        Query original;
+        original = parser.parse(statement, false);
+        assertNotNull(original);
+        String optimized = original.buildAlternativeQuery().toString();
+        optimized = optimized.replaceAll("\\[", "").replaceAll("\\]","");
+        optimized = optimized.replaceAll("select c.jcr:primaryType as c.jcr:primaryType ", "");
+        optimized = optimized.replaceAll("from nt:unstructured as c where ", "");
+        optimized = optimized.replaceAll("c\\.", "");
+        optimized = optimized.replaceAll(" union ", ", ");
+        assertEquals(expected,  optimized);
     }
     
     private NamePathMapper getMappings() {
