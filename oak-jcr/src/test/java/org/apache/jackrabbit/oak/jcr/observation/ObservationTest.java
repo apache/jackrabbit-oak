@@ -1299,6 +1299,21 @@ public class ObservationTest extends AbstractRepositoryTest {
 
     @Test
     public void includeAncestorsRemove() throws Exception {
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath(TEST_PATH + "/a/b/c/d");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove(filter);
+
+        filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove().withIncludeGlobPaths(TEST_PATH + "/a/b/c/**");
+        doIncludeAncestorsRemove(filter);
+    }
+    
+    private void doIncludeAncestorsRemove(JackrabbitEventFilter filter) throws Exception {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
 
         Node testNode = getNode(TEST_PATH);
@@ -1308,12 +1323,6 @@ public class ObservationTest extends AbstractRepositoryTest {
         ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
         ExpectationListener listener = new ExpectationListener();
         
-        JackrabbitEventFilter filter = new JackrabbitEventFilter();
-        filter.setEventTypes(ALL_EVENTS);
-        filter.setAbsPath(TEST_PATH + "/a/b/c/d");
-        filter.setIsDeep(true);
-        filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove();
-
         oManager.addEventListener(listener, filter);
 
         Node d = testNode.getNode("a").getNode("b").getNode("c").getNode("d");
