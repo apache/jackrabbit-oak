@@ -134,8 +134,7 @@ public class HttpStore implements SegmentStore {
      * authorization headers if needed.
      * 
      */
-    URLConnection get(String fragment) throws MalformedURLException,
-            IOException {
+    URLConnection get(String fragment) throws IOException {
         final URL url;
         if (fragment == null) {
             url = base;
@@ -146,27 +145,31 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
-    // FIXME OAK-4396: HttpStore.containsSegment throws SNFE instead of returning false for non existing segments
     public boolean containsSegment(SegmentId id) {
-        return id.sameStore(this) || readSegment(id) != null;
+        if (id.sameStore(this)) {
+            return true;
+        }
+        try {
+            readRawSegment(id);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
     @Override
     @Nonnull
     public Segment readSegment(SegmentId id) {
         try {
-            URLConnection connection = get(id.toString());
-            InputStream stream = connection.getInputStream();
-            try {
-                byte[] data = ByteStreams.toByteArray(stream);
-                return new Segment(this, segmentReader, id, ByteBuffer.wrap(data));
-            } finally {
-                stream.close();
-            }
-        } catch (MalformedURLException e) {
-            throw new SegmentNotFoundException(id, e);
+            return new Segment(this, segmentReader, id, ByteBuffer.wrap(readRawSegment(id)));
         } catch (IOException e) {
             throw new SegmentNotFoundException(id, e);
+        }
+    }
+
+    private byte[] readRawSegment(SegmentId id) throws IOException {
+        try (InputStream stream = get(id.toString()).getInputStream()) {
+            return ByteStreams.toByteArray(stream);
         }
     }
 
