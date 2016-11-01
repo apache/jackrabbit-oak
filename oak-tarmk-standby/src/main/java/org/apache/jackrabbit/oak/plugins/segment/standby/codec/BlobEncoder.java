@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+@Deprecated
 public class BlobEncoder extends MessageToByteEncoder<Blob> {
 
     // TODO
@@ -38,6 +39,7 @@ public class BlobEncoder extends MessageToByteEncoder<Blob> {
     // using a ChunkedWriteHandler and a new ChunkedStream(Blob.getNewStream())
 
     @Override
+    @Deprecated
     protected void encode(ChannelHandlerContext ctx, Blob b, ByteBuf out)
             throws Exception {
         byte[] bytes = null;

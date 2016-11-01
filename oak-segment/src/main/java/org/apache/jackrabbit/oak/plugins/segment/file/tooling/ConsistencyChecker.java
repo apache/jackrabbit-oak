@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.oak.plugins.segment.file.FileStore} for inconsistency and
  * reporting that latest consistent revision.
  */
+@Deprecated
 public class ConsistencyChecker {
     private static final Logger LOG = LoggerFactory.getLogger(ConsistencyChecker.class);
 
@@ -72,6 +73,7 @@ public class ConsistencyChecker {
      * @return  the latest consistent revision out of the revisions listed in the journal.
      * @throws IOException
      */
+    @Deprecated
     public static String checkConsistency(File directory, String journalFileName, boolean fullTraversal, long debugInterval, long binLen)
             throws IOException, InvalidFileStoreVersionException {
         print("Searching for last good revision in {}", journalFileName);
@@ -117,6 +119,7 @@ public class ConsistencyChecker {
      *                         the console during the full traversal phase.
      * @throws IOException
      */
+    @Deprecated
     public ConsistencyChecker(File directory, long debugInterval) throws IOException, InvalidFileStoreVersionException {
         store = FileStore.builder(directory).buildReadOnly();
         this.debugInterval = debugInterval;
@@ -131,6 +134,7 @@ public class ConsistencyChecker {
      * @param binLen    number of bytes to read from binary properties. -1 for all.
      * @return  Path of the first inconsistency detected or {@code null} if none.
      */
+    @Deprecated
     public String check(String revision, Set<String> paths, long binLen) {
         store.setRevision(revision);
         for (String path : paths) {
@@ -168,6 +172,7 @@ public class ConsistencyChecker {
      * @param revision  revision to travers
      * @param binLen    number of bytes to read from binary properties. -1 for all.
      */
+    @Deprecated
     public String traverse(String revision, long binLen) {
         try {
             store.setRevision(revision);
@@ -245,6 +250,7 @@ public class ConsistencyChecker {
         return false;
     }
 
+    @Deprecated
     public void close() {
         store.close();
     }

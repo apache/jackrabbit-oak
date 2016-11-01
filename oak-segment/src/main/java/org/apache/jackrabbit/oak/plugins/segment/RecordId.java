@@ -29,14 +29,17 @@ import java.util.regex.Pattern;
  * The record id. This includes the segment id and the offset within the
  * segment.
  */
+@Deprecated
 public final class RecordId implements Comparable<RecordId> {
 
     private static final Pattern PATTERN = Pattern.compile(
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
             + "(:(0|[1-9][0-9]*)|\\.([0-9a-f]{4}))");
 
+    @Deprecated
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
+    @Deprecated
     public static RecordId fromString(SegmentTracker factory, String id) {
         Matcher matcher = PATTERN.matcher(id);
         if (matcher.matches()) {
@@ -62,6 +65,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     private final int offset;
 
+    @Deprecated
     public RecordId(SegmentId segmentId, int offset) {
         checkArgument(offset < Segment.MAX_SEGMENT_SIZE);
         checkArgument((offset % (1 << RECORD_ALIGN_BITS)) == 0);
@@ -69,10 +73,12 @@ public final class RecordId implements Comparable<RecordId> {
         this.offset = offset;
     }
 
+    @Deprecated
     public SegmentId getSegmentId() {
         return segmentId;
     }
 
+    @Deprecated
     public int getOffset() {
         return offset;
     }
@@ -80,10 +86,12 @@ public final class RecordId implements Comparable<RecordId> {
     /**
      * @return  the segment id part of this record id as UUID
      */
+    @Deprecated
     public UUID asUUID() {
         return segmentId.asUUID();
     }
 
+    @Deprecated
     public Segment getSegment() {
         return segmentId.getSegment();
     }
@@ -91,6 +99,7 @@ public final class RecordId implements Comparable<RecordId> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
+    @Deprecated
     public int compareTo(RecordId that) {
         checkNotNull(that);
         int diff = segmentId.compareTo(that.segmentId);
@@ -103,6 +112,7 @@ public final class RecordId implements Comparable<RecordId> {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public String toString() {
         return String.format("%s.%04x", segmentId, offset >> RECORD_ALIGN_BITS);
     }
@@ -110,16 +120,19 @@ public final class RecordId implements Comparable<RecordId> {
     /**
      * Returns the record id string representation used in Oak 1.0.
      */
+    @Deprecated
     public String toString10() {
         return String.format("%s:%d", segmentId, offset);
     }
 
     @Override
+    @Deprecated
     public int hashCode() {
         return segmentId.hashCode() ^ offset;
     }
 
     @Override
+    @Deprecated
     public boolean equals(Object object) {
         if (this == object) {
             return true;

@@ -25,16 +25,20 @@ package org.apache.jackrabbit.oak.plugins.segment;
  * only ever see this exception as the cause of a
  * {@link org.apache.jackrabbit.oak.api.CommitFailedException CommitFailedException}.
  */
+@Deprecated
 public class SegmentOverflowException extends RuntimeException {
 
+    @Deprecated
     public SegmentOverflowException(String message) {
         super(message);
     }
 
+    @Deprecated
     public SegmentOverflowException(String message, Throwable cause) {
         super(message, cause);
     }
 
+    @Deprecated
     public SegmentOverflowException(Throwable cause) {
         super(cause);
     }

@@ -32,6 +32,7 @@ import com.google.common.primitives.UnsignedBytes;
  * <li>11 = all Oak versions starting from 1.0.12, 1.1.7 and 1.2</li>
  * </ul>
  */
+@Deprecated
 public enum SegmentVersion {
 
     /**
@@ -40,11 +41,13 @@ public enum SegmentVersion {
     @Deprecated
     V_10((byte) 10),
 
+    @Deprecated
     V_11((byte) 11);
 
     /**
      * Latest segment version
      */
+    @Deprecated
     public static SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
         new Comparator<SegmentVersion>() {
             @Override
@@ -59,14 +62,17 @@ public enum SegmentVersion {
         this.version = version;
     }
 
+    @Deprecated
     public boolean onOrAfter(SegmentVersion other) {
         return compareTo(other) >= 0;
     }
 
+    @Deprecated
     public static byte asByte(SegmentVersion v) {
         return v.version;
     }
 
+    @Deprecated
     public static SegmentVersion fromByte(byte v) {
         if (v == V_11.version) {
             return V_11;
@@ -77,6 +83,7 @@ public enum SegmentVersion {
         }
     }
 
+    @Deprecated
     public static boolean isValid(byte v) {
         return v == V_10.version || v == V_11.version;
     }

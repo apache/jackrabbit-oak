@@ -33,9 +33,11 @@ import org.apache.jackrabbit.oak.util.AbstractCheckpointMBean;
 /**
  * {@code CheckpointMBean} implementation for the {@code SegmentNodeStore}.
  */
+@Deprecated
 public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
     private final SegmentNodeStore store;
 
+    @Deprecated
     public SegmentCheckpointMBean(SegmentNodeStore store) {
         this.store = store;
     }
@@ -61,11 +63,13 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
     }
 
     @Override
+    @Deprecated
     public String createCheckpoint(long lifetime) {
         return store.checkpoint(lifetime);
     }
 
     @Override
+    @Deprecated
     public boolean releaseCheckpoint(String checkpoint) {
         return store.release(checkpoint);
     }

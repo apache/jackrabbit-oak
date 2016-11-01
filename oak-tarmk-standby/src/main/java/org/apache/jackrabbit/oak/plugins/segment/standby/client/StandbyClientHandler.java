@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId> implements Closeable {
 
     private static final Logger log = LoggerFactory
@@ -45,6 +46,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId> 
     private final int readTimeoutMs;
     private final boolean autoClean;
 
+    @Deprecated
     public StandbyClientHandler(final StandbyStore store, CommunicationObserver observer, AtomicBoolean running, int readTimeoutMs, boolean autoClean) {
         this.store = store;
         this.observer = observer;
@@ -54,6 +56,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId> 
     }
 
     @Override
+    @Deprecated
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.debug("sending head request");
         ctx.writeAndFlush(newGetHeadReq(this.observer.getID()));
@@ -61,11 +64,13 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId> 
     }
 
     @Override
+    @Deprecated
     protected void channelRead0(ChannelHandlerContext ctx, RecordId msg) throws Exception {
         setHead(ctx, msg);
     };
 
     @Override
+    @Deprecated
     public void channelReadComplete(ChannelHandlerContext ctx) {
         ctx.flush();
     }
@@ -88,12 +93,14 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId> 
     }
 
     @Override
+    @Deprecated
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("Exception caught, closing channel.", cause);
         close();
     }
 
     @Override
+    @Deprecated
     public void close() {
         // This handler doesn't own resources to release
     }

@@ -30,9 +30,11 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public abstract class CompactionStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(CompactionStrategy.class);
 
+    @Deprecated
     public enum CleanupType {
 
         /**
@@ -44,8 +46,10 @@ public abstract class CompactionStrategy {
          * Cons: larger repo size <em>during</em> compaction (2x). High chances that a currently
          * running diff (e.g. observation) fails with {@code SegmentNotFoundException}.
          */
+        @Deprecated
         CLEAN_ALL,
 
+        @Deprecated
         CLEAN_NONE,
 
         /**
@@ -64,36 +68,47 @@ public abstract class CompactionStrategy {
          * Cons: {@code SegmentNotFoundException} with insufficiently large values for
          * {@code olderThan}.
          */
+        @Deprecated
         CLEAN_OLD
     }
 
+    @Deprecated
     public static final boolean PAUSE_DEFAULT = true;
 
+    @Deprecated
     public static final boolean CLONE_BINARIES_DEFAULT = false;
 
+    @Deprecated
     public static final CleanupType CLEANUP_DEFAULT = CleanupType.CLEAN_OLD;
 
+    @Deprecated
     public static final long TIMESTAMP_DEFAULT = 1000 * 60 * 60 * 10;  // 10h
 
+    @Deprecated
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
+    @Deprecated
     public static final boolean PERSIST_COMPACTION_MAP_DEFAULT = true;
 
+    @Deprecated
     public static final byte GAIN_THRESHOLD_DEFAULT = 10;
 
     /**
      * Default value for {@link #getRetryCount()}
      */
+    @Deprecated
     public static final int RETRY_COUNT_DEFAULT = 5;
 
     /**
      * Default value for {@link #getForceAfterFail()}
      */
+    @Deprecated
     public static final boolean FORCE_AFTER_FAIL_DEFAULT = false;
 
     /**
      * No compaction at all
      */
+    @Deprecated
     public static final CompactionStrategy NO_COMPACTION = new CompactionStrategy(
             true, false, CleanupType.CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT) {
         @Override
@@ -138,6 +153,7 @@ public abstract class CompactionStrategy {
      */
     private boolean offlineCompaction = false;
 
+    @Deprecated
     protected CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
         checkArgument(olderThan >= 0);
@@ -148,6 +164,7 @@ public abstract class CompactionStrategy {
         this.memoryThreshold = memoryThreshold;
     }
 
+    @Deprecated
     public boolean canRemove(SegmentId id) {
         switch (cleanupType) {
             case CLEAN_ALL:
@@ -166,26 +183,32 @@ public abstract class CompactionStrategy {
         return false;
     }
 
+    @Deprecated
     public boolean cloneBinaries() {
         return cloneBinaries;
     }
 
+    @Deprecated
     public boolean isPaused() {
         return paused;
     }
 
+    @Deprecated
     public void setPaused(boolean paused) {
         this.paused = paused;
     }
 
+    @Deprecated
     public void setCloneBinaries(boolean cloneBinaries) {
         this.cloneBinaries = cloneBinaries;
     }
 
+    @Deprecated
     public void setCleanupType(@Nonnull CleanupType cleanupType) {
         this.cleanupType = checkNotNull(cleanupType);
     }
 
+    @Deprecated
     public void setOlderThan(long olderThan) {
         checkArgument(olderThan >= 0);
         this.olderThan = olderThan;
@@ -201,6 +224,7 @@ public abstract class CompactionStrategy {
 
 
     @Override
+    @Deprecated
     public String toString() {
         return "CompactionStrategy{" +
                 "paused=" + paused +
@@ -216,22 +240,27 @@ public abstract class CompactionStrategy {
                 '}';
     }
 
+    @Deprecated
     public void setCompactionStart(long ms) {
         this.compactionStart = ms;
     }
 
+    @Deprecated
     public byte getMemoryThreshold() {
         return memoryThreshold;
     }
 
+    @Deprecated
     public void setMemoryThreshold(byte memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
     }
 
+    @Deprecated
     public boolean getPersistCompactionMap() {
         return persistedCompactionMap;
     }
 
+    @Deprecated
     public void setPersistCompactionMap(boolean persist) {
         persistedCompactionMap = persist;
     }
@@ -242,6 +271,7 @@ public abstract class CompactionStrategy {
      * Force committing tries to exclusively write lock the node store.
      * @return  {@code true} if force commit is on, {@code false} otherwise
      */
+    @Deprecated
     public boolean getForceAfterFail() {
         return forceAfterFail;
     }
@@ -252,6 +282,7 @@ public abstract class CompactionStrategy {
      * Force committing tries to exclusively write lock the node store.
      * @param forceAfterFail
      */
+    @Deprecated
     public void setForceAfterFail(boolean forceAfterFail) {
         this.forceAfterFail = forceAfterFail;
     }
@@ -261,6 +292,7 @@ public abstract class CompactionStrategy {
      * compacted commits
      * @return  retry count
      */
+    @Deprecated
     public int getRetryCount() {
         return retryCount;
     }
@@ -270,6 +302,7 @@ public abstract class CompactionStrategy {
      * compacted commits
      * @param retryCount
      */
+    @Deprecated
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
     }
@@ -279,6 +312,7 @@ public abstract class CompactionStrategy {
      * run
      * @return gainThreshold
      */
+    @Deprecated
     public byte getGainThreshold() {
         return gainThreshold;
     }
@@ -288,16 +322,20 @@ public abstract class CompactionStrategy {
      * run
      * @param gainThreshold
      */
+    @Deprecated
     public void setGainThreshold(byte gainThreshold) {
         this.gainThreshold = gainThreshold;
     }
 
+    @Deprecated
     public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;
 
+    @Deprecated
     public boolean isOfflineCompaction() {
         return offlineCompaction;
     }
 
+    @Deprecated
     public void setOfflineCompaction(boolean offlineCompaction) {
         this.offlineCompaction = offlineCompaction;
     }
@@ -312,6 +350,7 @@ public abstract class CompactionStrategy {
      * @return {@code true} if the available disk space is considered enough for
      * normal repository operations.
      */
+    @Deprecated
     public boolean isDiskSpaceSufficient(long repositoryDiskSpace, long availableDiskSpace) {
         return availableDiskSpace > 0.25 * repositoryDiskSpace;
     }

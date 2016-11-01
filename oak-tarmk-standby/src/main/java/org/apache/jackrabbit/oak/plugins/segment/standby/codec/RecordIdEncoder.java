@@ -26,9 +26,11 @@ import io.netty.util.CharsetUtil;
 
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 
+@Deprecated
 public class RecordIdEncoder extends MessageToByteEncoder<RecordId> {
 
     @Override
+    @Deprecated
     protected void encode(ChannelHandlerContext ctx, RecordId msg, ByteBuf out)
             throws Exception {
         byte[] body = msg.toString().getBytes(CharsetUtil.UTF_8);

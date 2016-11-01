@@ -38,8 +38,10 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 /**
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
+@Deprecated
 public class SegmentBlob extends Record implements Blob {
 
+    @Deprecated
     public static Iterable<SegmentId> getBulkSegmentIds(Blob blob) {
         if (blob instanceof SegmentBlob) {
             return ((SegmentBlob) blob).getBulkSegmentIds();
@@ -60,6 +62,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     @Override @Nonnull
+    @Deprecated
     public InputStream getNewStream() {
         Segment segment = getSegment();
         int offset = getOffset();
@@ -91,6 +94,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     @Override
+    @Deprecated
     public long length() {
         Segment segment = getSegment();
         int offset = getOffset();
@@ -118,6 +122,7 @@ public class SegmentBlob extends Record implements Blob {
 
     @Override
     @CheckForNull
+    @Deprecated
     public String getReference() {
         String blobId = getBlobId();
         if (blobId != null) {
@@ -135,6 +140,7 @@ public class SegmentBlob extends Record implements Blob {
 
 
     @Override
+    @Deprecated
     public String getContentIdentity() {
         String blobId = getBlobId();
         if (blobId != null){
@@ -143,6 +149,7 @@ public class SegmentBlob extends Record implements Blob {
         return getRecordId().toString();
     }
 
+    @Deprecated
     public boolean isExternal() {
         Segment segment = getSegment();
         int offset = getOffset();
@@ -151,6 +158,7 @@ public class SegmentBlob extends Record implements Blob {
         return (head & 0xf0) == 0xe0 || (head & 0xf8) == 0xf0;
     }
 
+    @Deprecated
     public String getBlobId() {
         Segment segment = getSegment();
         int offset = getOffset();
@@ -166,6 +174,7 @@ public class SegmentBlob extends Record implements Blob {
         }
     }
 
+    @Deprecated
     public SegmentBlob clone(SegmentWriter writer, boolean cloneLargeBinaries) throws IOException {
         Segment segment = getSegment();
         int offset = getOffset();
@@ -205,6 +214,7 @@ public class SegmentBlob extends Record implements Blob {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public boolean equals(Object object) {
         if (object == this || fastEquals(this, object)) {
             return true;
@@ -219,6 +229,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     @Override
+    @Deprecated
     public int hashCode() {
         return 0;
     }

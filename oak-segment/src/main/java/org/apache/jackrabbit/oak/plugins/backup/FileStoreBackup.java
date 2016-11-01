@@ -36,13 +36,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 
+@Deprecated
 public class FileStoreBackup {
 
     private static final Logger log = LoggerFactory
             .getLogger(FileStoreBackup.class);
 
+    @Deprecated
     public static boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
 
+    @Deprecated
     public static void backup(NodeStore store, File destination) throws IOException, InvalidFileStoreVersionException {
         checkArgument(store instanceof SegmentNodeStore);
         Stopwatch watch = Stopwatch.createStarted();

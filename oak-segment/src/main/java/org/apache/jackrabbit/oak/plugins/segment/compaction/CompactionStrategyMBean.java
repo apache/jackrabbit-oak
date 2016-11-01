@@ -19,28 +19,40 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
+@Deprecated
 public interface CompactionStrategyMBean {
 
+    @Deprecated
     String TYPE = "CompactionStrategy";
 
+    @Deprecated
     boolean isCloneBinaries();
 
+    @Deprecated
     void setCloneBinaries(boolean cloneBinaries);
 
+    @Deprecated
     boolean isPausedCompaction();
 
+    @Deprecated
     void setPausedCompaction(boolean pausedCompaction);
 
+    @Deprecated
     String getCleanupStrategy();
 
+    @Deprecated
     void setCleanupStrategy(String cleanup);
 
+    @Deprecated
     long getOlderThan();
 
+    @Deprecated
     void setOlderThan(long olderThan);
 
+    @Deprecated
     byte getMemoryThreshold();
 
+    @Deprecated
     void setMemoryThreshold(byte memory);
 
     /**
@@ -49,6 +61,7 @@ public interface CompactionStrategyMBean {
      * Force committing tries to exclusively write lock the node store.
      * @return  {@code true} if force commit is on, {@code false} otherwise
      */
+    @Deprecated
     boolean getForceAfterFail();
 
     /**
@@ -57,6 +70,7 @@ public interface CompactionStrategyMBean {
      * Force committing tries to exclusively write lock the node store.
      * @param forceAfterFail
      */
+    @Deprecated
     void setForceAfterFail(boolean forceAfterFail);
 
     /**
@@ -64,6 +78,7 @@ public interface CompactionStrategyMBean {
      * compacted commits
      * @return  retry count
      */
+    @Deprecated
     int getRetryCount();
 
     /**
@@ -71,6 +86,7 @@ public interface CompactionStrategyMBean {
      * compacted commits
      * @param retryCount
      */
+    @Deprecated
     void setRetryCount(int retryCount);
 
     /**
@@ -78,6 +94,7 @@ public interface CompactionStrategyMBean {
      * run
      * @return gainThreshold
      */
+    @Deprecated
     byte getGainThreshold();
 
     /**
@@ -85,6 +102,7 @@ public interface CompactionStrategyMBean {
      * run
      * @param gainThreshold
      */
+    @Deprecated
     void setGainThreshold(byte gainThreshold);
 
 }

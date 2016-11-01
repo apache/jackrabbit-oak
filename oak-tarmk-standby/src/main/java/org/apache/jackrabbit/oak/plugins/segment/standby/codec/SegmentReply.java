@@ -18,11 +18,15 @@ package org.apache.jackrabbit.oak.plugins.segment.standby.codec;
 
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 
+@Deprecated
 public class SegmentReply {
 
+    @Deprecated
     public static final int SEGMENT = 0;
+    @Deprecated
     public static final int BLOB = 1;
 
+    @Deprecated
     public static SegmentReply empty() {
         return new SegmentReply();
     }
@@ -33,12 +37,14 @@ public class SegmentReply {
 
     private final IdArrayBasedBlob blob;
 
+    @Deprecated
     public SegmentReply(Segment segment) {
         this.type = SEGMENT;
         this.segment = segment;
         this.blob = null;
     }
 
+    @Deprecated
     public SegmentReply(IdArrayBasedBlob blob) {
         this.type = BLOB;
         this.segment = null;
@@ -51,14 +57,17 @@ public class SegmentReply {
         this.blob = null;
     }
 
+    @Deprecated
     public Segment getSegment() {
         return this.segment;
     }
 
+    @Deprecated
     public IdArrayBasedBlob getBlob() {
         return blob;
     }
 
+    @Deprecated
     public int getType() {
         return type;
     }

@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
  *
  * @see CompactionMap
  */
+@Deprecated
 public interface PartialCompactionMap {
 
     /**
@@ -41,6 +42,7 @@ public interface PartialCompactionMap {
      * @param after after record identifier
      * @return whether {@code before} was compacted to {@code after}
      */
+    @Deprecated
     boolean wasCompactedTo(@Nonnull RecordId before, @Nonnull RecordId after);
 
     /**
@@ -50,6 +52,7 @@ public interface PartialCompactionMap {
      * @param id segment identifier
      * @return whether the identified segment was compacted
      */
+    @Deprecated
     boolean wasCompacted(@Nonnull UUID id);
 
     /**
@@ -59,6 +62,7 @@ public interface PartialCompactionMap {
      * @return after record id or {@code null}
      */
     @CheckForNull
+    @Deprecated
     RecordId get(@Nonnull RecordId before);
 
     /**
@@ -68,18 +72,21 @@ public interface PartialCompactionMap {
      * @param after  after record id
      * @throws IllegalArgumentException  if {@code before} already exists in the map
      */
+    @Deprecated
     void put(@Nonnull RecordId before, @Nonnull RecordId after);
 
     /**
      * Remove all keys from this map where {@code keys.contains(key.asUUID())}.
      * @param uuids  uuids of the keys to remove
      */
+    @Deprecated
     void remove(@Nonnull Set<UUID> uuids);
 
     /**
      * Compressing this map ensures it takes up as little heap as possible. This
      * operation might be expensive and should only be called in suitable intervals.
      */
+    @Deprecated
     void compress();
 
     /**
@@ -87,6 +94,7 @@ public interface PartialCompactionMap {
      * be based on the compressed part of the map.
      * @return  number of segments
      */
+    @Deprecated
     long getSegmentCount();
 
     /**
@@ -94,17 +102,20 @@ public interface PartialCompactionMap {
      * be based on the compressed part of the map.
      * @return  number of records
      */
+    @Deprecated
     long getRecordCount();
 
     /**
      * Determine whether this map contains keys at all.
      * @return  {@code true} iff this map is empty
      */
+    @Deprecated
     boolean isEmpty();
 
     /**
      * The weight of the compaction map is its heap memory consumption in bytes.
      * @return  Estimated weight of the compaction map
      */
+    @Deprecated
     long getEstimatedWeight();
 }

@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
  *
  * TODO In theory we could also compact the compaction map. Is there any need to do so?
  */
+@Deprecated
 public class PersistedCompactionMap implements PartialCompactionMap {
     private static final Logger LOG = LoggerFactory.getLogger(PersistedCompactionMap.class);
 
@@ -51,6 +52,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
      * Rough estimate of the number of bytes of disk space of a map entry.
      * Used by the compaction gain estimator to offset its estimate.
      */
+    @Deprecated
     public static final int BYTES_PER_ENTRY = getInteger("bytes-per-entry", 50);
 
     /**
@@ -63,6 +65,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
      * can use this to grep across segments for finding the meta data and ultimately
      * to find and parse the compaction map generations.
      */
+    @Deprecated
     public static final String PERSISTED_COMPACTION_MAP = "PersistedCompactionMap";
 
     private final TreeMap<UUID, RecordIdMap> recent = newTreeMap();
@@ -77,11 +80,13 @@ public class PersistedCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public boolean wasCompactedTo(@Nonnull RecordId before, @Nonnull RecordId after) {
         return (after.equals(get(before)));
     }
 
     @Override
+    @Deprecated
     public boolean wasCompacted(@Nonnull UUID uuid) {
         return recent.containsKey(uuid) ||
                 entries != null && entries.getEntry(uuid.toString()) != null;
@@ -93,6 +98,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
     @Override
     @CheckForNull
+    @Deprecated
     public RecordId get(@Nonnull RecordId before) {
         UUID uuid = asUUID(before.getSegmentId());
         short offset = encode(before.getOffset());
@@ -133,6 +139,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public void put(@Nonnull RecordId before, @Nonnull RecordId after) {
         if (get(before) != null) {
             throw new IllegalArgumentException();
@@ -152,26 +159,31 @@ public class PersistedCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public void remove(@Nonnull Set<UUID> uuids) {
         compress(uuids);
     }
 
     @Override
+    @Deprecated
     public void compress() {
         compress(Collections.<UUID>emptySet());
     }
 
     @Override
+    @Deprecated
     public long getSegmentCount() {
         return entries == null ? 0 : entries.size();
     }
 
     @Override
+    @Deprecated
     public long getRecordCount() {
         return recordCount;
     }
 
     @Override
+    @Deprecated
     public boolean isEmpty() {
         return recent.size() + recordCount == 0;
     }
@@ -254,6 +266,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
      * @return 0
      */
     @Override
+    @Deprecated
     public long getEstimatedWeight() {
         return 0;
     }

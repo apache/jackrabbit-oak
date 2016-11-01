@@ -19,29 +19,37 @@ package org.apache.jackrabbit.oak.plugins.segment.standby.jmx;
 
 import org.apache.jackrabbit.oak.commons.jmx.Description;
 
+@Deprecated
 public interface ClientStandbyStatusMBean extends StandbyStatusMBean {
 
     @Description("number of consecutive failed requests")
+    @Deprecated
     int getFailedRequests();
 
     @Description("number of seconds since last successful request")
+    @Deprecated
     int getSecondsSinceLastSuccess();
 
     @Description("Local timestamp of the moment when the last sync cycle was started")
+    @Deprecated
     long getSyncStartTimestamp();
 
     @Description("Local timestamp of the moment when the last sync cycle ended")
+    @Deprecated
     long getSyncEndTimestamp();
 
     // expose the informations as operations, too
 
     @Description("number of consecutive failed requests")
+    @Deprecated
     int calcFailedRequests();
 
     @Description("number of seconds since last successful request")
+    @Deprecated
     int calcSecondsSinceLastSuccess();
 
     @Description("Runs garbage collection")
+    @Deprecated
     void cleanup();
 
 }

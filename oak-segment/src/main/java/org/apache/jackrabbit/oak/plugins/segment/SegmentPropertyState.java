@@ -58,10 +58,12 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
  * Depending on the property type, this is a record of type "VALUE" or a record
  * of type "LIST" (for arrays).
  */
+@Deprecated
 public class SegmentPropertyState extends Record implements PropertyState {
 
     private final PropertyTemplate template;
 
+    @Deprecated
     public SegmentPropertyState(RecordId id, PropertyTemplate template) {
         super(id);
         this.template = checkNotNull(template);
@@ -98,21 +100,25 @@ public class SegmentPropertyState extends Record implements PropertyState {
     }
 
     @Override @Nonnull
+    @Deprecated
     public String getName() {
         return template.getName();
     }
 
     @Override
+    @Deprecated
     public Type<?> getType() {
         return template.getType();
     }
 
     @Override
+    @Deprecated
     public boolean isArray() {
         return getType().isArray();
     }
 
     @Override
+    @Deprecated
     public int count() {
         if (isArray()) {
             return getSegment().readInt(getOffset());
@@ -122,6 +128,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     }
 
     @Override @Nonnull @SuppressWarnings("unchecked")
+    @Deprecated
     public <T> T getValue(Type<T> type) {
         Segment segment = getSegment();
         if (isArray()) {
@@ -152,11 +159,13 @@ public class SegmentPropertyState extends Record implements PropertyState {
     }
 
     @Override
+    @Deprecated
     public long size() {
         return size(0);
     }
 
     @Override @Nonnull
+    @Deprecated
     public <T> T getValue(Type<T> type, int index) {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
@@ -200,6 +209,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     }
 
     @Override
+    @Deprecated
     public long size(int index) {
         ListRecord values = getValueList(getSegment());
         checkElementIndex(index, values.size());
@@ -215,6 +225,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public boolean equals(Object object) {
         // optimize for common cases
         if (this == object) { // don't use fastEquals here due to value sharing
@@ -233,11 +244,13 @@ public class SegmentPropertyState extends Record implements PropertyState {
     }
 
     @Override
+    @Deprecated
     public int hashCode() {
         return AbstractPropertyState.hashCode(this);
     }
 
     @Override
+    @Deprecated
     public String toString() {
         return AbstractPropertyState.toString(this);
     }

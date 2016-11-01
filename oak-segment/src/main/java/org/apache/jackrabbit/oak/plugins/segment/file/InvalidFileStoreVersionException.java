@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
  * indicate an incompatible version mismatch between the code that generated the
  * data in the store and the current version of the {@link FileStore}.
  */
+@Deprecated
 public class InvalidFileStoreVersionException extends Exception {
 
 }

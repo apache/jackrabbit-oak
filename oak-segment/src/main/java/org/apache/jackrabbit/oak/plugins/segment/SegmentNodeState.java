@@ -53,12 +53,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  * A record of type "NODE". This class can read a node record from a segment. It
  * currently doesn't cache data (but the template is fully loaded).
  */
+@Deprecated
 public class SegmentNodeState extends Record implements NodeState {
 
     private volatile RecordId templateId = null;
 
     private volatile Template template = null;
 
+    @Deprecated
     public SegmentNodeState(RecordId id) {
         super(id);
     }
@@ -87,11 +89,13 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    @Deprecated
     public boolean exists() {
         return true;
     }
 
     @Override
+    @Deprecated
     public long getPropertyCount() {
         Template template = getTemplate();
         long count = template.getPropertyTemplates().length;
@@ -105,6 +109,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    @Deprecated
     public boolean hasProperty(@Nonnull String name) {
         checkNotNull(name);
         Template template = getTemplate();
@@ -118,6 +123,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @CheckForNull
+    @Deprecated
     public PropertyState getProperty(@Nonnull String name) {
         checkNotNull(name);
         Template template = getTemplate();
@@ -169,6 +175,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
+    @Deprecated
     public Iterable<PropertyState> getProperties() {
         Template template = getTemplate();
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
@@ -214,11 +221,13 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    @Deprecated
     public boolean getBoolean(@Nonnull String name) {
         return Boolean.TRUE.toString().equals(getValueAsString(name, BOOLEAN));
     }
 
     @Override
+    @Deprecated
     public long getLong(String name) {
         String value = getValueAsString(name, LONG);
         if (value != null) {
@@ -229,21 +238,25 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @CheckForNull
+    @Deprecated
     public String getString(String name) {
         return getValueAsString(name, STRING);
     }
 
     @Override @Nonnull
+    @Deprecated
     public Iterable<String> getStrings(@Nonnull String name) {
         return getValuesAsStrings(name, STRINGS);
     }
 
     @Override @CheckForNull
+    @Deprecated
     public String getName(@Nonnull String name) {
         return getValueAsString(name, NAME);
     }
 
     @Override @Nonnull
+    @Deprecated
     public Iterable<String> getNames(@Nonnull String name) {
         return getValuesAsStrings(name, NAMES);
     }
@@ -353,6 +366,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    @Deprecated
     public long getChildNodeCount(long max) {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
@@ -365,6 +379,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    @Deprecated
     public boolean hasChildNode(@Nonnull String name) {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
@@ -377,6 +392,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
+    @Deprecated
     public NodeState getChildNode(@Nonnull String name) {
         String childName = getTemplate().getChildName();
         if (childName == Template.MANY_CHILD_NODES) {
@@ -395,6 +411,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
+    @Deprecated
     public Iterable<String> getChildNodeNames() {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
@@ -407,6 +424,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
+    @Deprecated
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
@@ -422,11 +440,13 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
+    @Deprecated
     public SegmentNodeBuilder builder() {
         return new SegmentNodeBuilder(this);
     }
 
     @Override
+    @Deprecated
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (this == base || fastEquals(this, base)) {
              return true; // no changes
@@ -601,6 +621,7 @@ public class SegmentNodeState extends Record implements NodeState {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public boolean equals(Object object) {
         if (this == object || fastEquals(this, object)) {
             return true;
@@ -616,6 +637,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    @Deprecated
     public String toString() {
         return AbstractNodeState.toString(this);
     }

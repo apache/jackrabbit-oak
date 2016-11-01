@@ -18,14 +18,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby.codec;
 
+@Deprecated
 public class Messages {
 
+    @Deprecated
     public static final byte HEADER_RECORD = 0x00;
+    @Deprecated
     public static final byte HEADER_SEGMENT = 0x01;
+    @Deprecated
     public static final byte HEADER_BLOB = 0x02;
 
+    @Deprecated
     public static final String GET_HEAD = "h";
+    @Deprecated
     public static final String GET_SEGMENT = "s.";
+    @Deprecated
     public static final String GET_BLOB = "b.";
 
     private static final String MAGIC = "Standby-CMD@";
@@ -35,18 +42,22 @@ public class Messages {
         return MAGIC + (clientID == null ? "" : clientID.replace(SEPARATOR, "#")) + SEPARATOR + body + "\r\n";
     }
 
+    @Deprecated
     public static String newGetHeadReq(String clientID) {
         return newRequest(clientID, GET_HEAD);
     }
 
+    @Deprecated
     public static String newGetSegmentReq(String clientID, String sid) {
         return newRequest(clientID, GET_SEGMENT + sid);
     }
 
+    @Deprecated
     public static String newGetBlobReq(String clientID, String blobId) {
         return newRequest(clientID, GET_BLOB + blobId);
     }
 
+    @Deprecated
     public static String extractMessageFrom(String payload) {
         if (payload.startsWith(MAGIC) && payload.length() > MAGIC.length()) {
             int i = payload.indexOf(SEPARATOR);
@@ -55,6 +66,7 @@ public class Messages {
         return null;
     }
 
+    @Deprecated
     public static String extractClientFrom(String payload) {
         if (payload.startsWith(MAGIC) && payload.length() > MAGIC.length()) {
             payload = payload.substring(MAGIC.length());

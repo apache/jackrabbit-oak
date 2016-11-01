@@ -59,41 +59,53 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
      }.parseNode(null, nodeId);
  * </pre>
  */
+@Deprecated
 public class SegmentParser {
 
     /**
      * Type of blobs (and strings)
      */
+    @Deprecated
     public enum BlobType {
         /** Small: &lt; {@link Segment#SMALL_LIMIT}. */
+        @Deprecated
         SMALL,
 
         /** Medium: &lt; {@link Segment#MEDIUM_LIMIT} */
+        @Deprecated
         MEDIUM,
 
         /** Long: &gt;=  {@link Segment#MEDIUM_LIMIT} */
+        @Deprecated
         LONG,
 
         /** External blob (i.e. in {@link BlobStore}. */
+        @Deprecated
         EXTERNAL
     }
 
     /**
      * Result type of {@link #parseNode(RecordId)}.
      */
+    @Deprecated
     public static class NodeInfo {
         /** Id of this record*/
+        @Deprecated
         public final RecordId nodeId;
 
         /** Number of child nodes */
+        @Deprecated
         public final int nodeCount;
 
         /** Number of properties */
+        @Deprecated
         public final int propertyCount;
 
         /** Size in bytes of this node */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public NodeInfo(RecordId nodeId, int nodeCount, int propertyCount, int size) {
             this.nodeId = nodeId;
             this.nodeCount = nodeCount;
@@ -105,31 +117,41 @@ public class SegmentParser {
     /**
      * Result type of {@link #parseTemplate(RecordId)}.
      */
+    @Deprecated
     public static class TemplateInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId templateId;
 
         /** Nodes of this type have a primary type */
+        @Deprecated
         public final boolean hasPrimaryType;
 
         /** Nodes of this type have mixins */
+        @Deprecated
         public final boolean hasMixinType;
 
         /** Nodes with this type have no child nodes */
+        @Deprecated
         public final boolean zeroChildNodes;
 
         /** Nodes of this type have more than one child node */
+        @Deprecated
         public final boolean manyChildNodes;
 
         /** Number of mixins */
+        @Deprecated
         public final int mixinCount;
 
         /** Number of properties */
+        @Deprecated
         public final int propertyCount;
 
         /** Size in bytes of this template */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public TemplateInfo(RecordId templateId, boolean hasPrimaryType, boolean hasMixinType,
                 boolean zeroChildNodes, boolean manyChildNodes, int mixinCount, int propertyCount, int size) {
             this.templateId = templateId;
@@ -146,13 +168,17 @@ public class SegmentParser {
     /**
      * Result type of {@link #parseMap(RecordId, RecordId, MapRecord)}.
      */
+    @Deprecated
     public static class MapInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId mapId;
 
         /** Size in bytes of this map. {@code -1} if not known. */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public MapInfo(RecordId mapId, int size) {
             this.mapId = mapId;
             this.size = size;
@@ -162,16 +188,21 @@ public class SegmentParser {
     /**
      * Result type of {@link #parseProperty(RecordId, RecordId, PropertyTemplate)}.
      */
+    @Deprecated
     public static class PropertyInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId propertyId;
 
         /** Number of values in properties of this type. {@code -1} for single value properties. */
+        @Deprecated
         public final int count;
 
         /** Size in bytes of this property */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public PropertyInfo(RecordId propertyId, int count, int size) {
             this.propertyId = propertyId;
             this.count = count;
@@ -180,13 +211,17 @@ public class SegmentParser {
     }
 
     /** Result type of {@link #parseValue(RecordId, RecordId, Type)}. */
+    @Deprecated
     public static class ValueInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId valueId;
 
         /** Type of this value */
+        @Deprecated
         public final Type<?> type;
 
+        @Deprecated
         public ValueInfo(RecordId valueId, Type<?> type) {
             this.valueId = valueId;
             this.type = type;
@@ -194,16 +229,21 @@ public class SegmentParser {
     }
 
     /** Return type of {@link #parseBlob(RecordId)}. */
+    @Deprecated
     public static class BlobInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId blobId;
 
         /** Type of this blob */
+        @Deprecated
         public final BlobType blobType;
 
         /** Size in bytes of this blob */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public BlobInfo(RecordId blobId, BlobType blobType, int size) {
             this.blobId = blobId;
             this.blobType = blobType;
@@ -212,16 +252,21 @@ public class SegmentParser {
     }
 
     /** Return type of {@link #parseList(RecordId, RecordId, int)} . */
+    @Deprecated
     public static class ListInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId listId;
 
         /** Number of items in this list */
+        @Deprecated
         public final int count;
 
         /** Size in bytes of this list */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public ListInfo(RecordId listId, int count, int size) {
             this.listId = listId;
             this.count = count;
@@ -230,19 +275,25 @@ public class SegmentParser {
     }
 
     /** Return type of {@link #parseListBucket(RecordId, int, int, int)}. */
+    @Deprecated
     public static class ListBucketInfo {
         /** Id of this record */
+        @Deprecated
         public final RecordId listId;
 
         /** {@code true} if this is a leaf bucket, {@code false} otherwise. */
+        @Deprecated
         public final boolean leaf;
 
         /** Entries of this bucket */
+        @Deprecated
         public final List<RecordId> entries;
 
         /** Size in bytes of this bucket. */
+        @Deprecated
         public final int size;
 
+        @Deprecated
         public ListBucketInfo(RecordId listId, boolean leaf, List<RecordId> entries, int size) {
             this.listId = listId;
             this.leaf = leaf;
@@ -258,6 +309,7 @@ public class SegmentParser {
      * @param parentId  id of the parent node
      * @param nodeId    if of the child node
      */
+    @Deprecated
     protected void onNode(RecordId parentId, RecordId nodeId) {
         parseNode(nodeId);
     }
@@ -269,6 +321,7 @@ public class SegmentParser {
      * @param parentId   id of the node being parsed
      * @param templateId id of the template
      */
+    @Deprecated
     protected void onTemplate(RecordId parentId, RecordId templateId) {
         parseTemplate(templateId);
     }
@@ -282,6 +335,7 @@ public class SegmentParser {
      * @param mapId     the id of the map
      * @param map       the map
      */
+    @Deprecated
     protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
         parseMap(parentId, mapId, map);
     }
@@ -294,6 +348,7 @@ public class SegmentParser {
      * @param mapId     the id of the map
      * @param map       the map
      */
+    @Deprecated
     protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
         parseMapDiff(mapId, map);
     }
@@ -306,6 +361,7 @@ public class SegmentParser {
      * @param mapId     the id of the map
      * @param map       the map
      */
+    @Deprecated
     protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
         parseMapLeaf(mapId, map);
     }
@@ -318,6 +374,7 @@ public class SegmentParser {
      * @param mapId     the id of the map
      * @param map       the map
      */
+    @Deprecated
     protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
         parseMapBranch(mapId, map);
     }
@@ -330,6 +387,7 @@ public class SegmentParser {
      * @param propertyId  the id of the property
      * @param template    the property template
      */
+    @Deprecated
     protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
         parseProperty(parentId, propertyId, template);
     }
@@ -342,6 +400,7 @@ public class SegmentParser {
      * @param valueId    the id of the value
      * @param type       the type of the value
      */
+    @Deprecated
     protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
         parseValue(parentId, valueId, type);
     }
@@ -352,6 +411,7 @@ public class SegmentParser {
      * @param parentId  the id of the blob's parent
      * @param blobId    the id of the blob
      */
+    @Deprecated
     protected void onBlob(RecordId parentId, RecordId blobId) {
         parseBlob(blobId);
     }
@@ -364,6 +424,7 @@ public class SegmentParser {
      * @param parentId  the id of the string's parent
      * @param stringId  the id of the string
      */
+    @Deprecated
     protected void onString(RecordId parentId, RecordId stringId) {
         parseString(stringId);
     }
@@ -379,6 +440,7 @@ public class SegmentParser {
      * @param listId    the id of the list
      * @param count     the number of elements in the list
      */
+    @Deprecated
     protected void onList(RecordId parentId, RecordId listId, int count) {
         parseList(parentId, listId, count);
     }
@@ -394,6 +456,7 @@ public class SegmentParser {
      * @param count       the number of items in the bucket
      * @param capacity    the capacity of the bucket
      */
+    @Deprecated
     protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
         parseListBucket(listId, index, count, capacity);
     }
@@ -403,6 +466,7 @@ public class SegmentParser {
      * @param nodeId
      * @return
      */
+    @Deprecated
     public NodeInfo parseNode(RecordId nodeId) {
         int size = 0;
         int nodeCount = 0;
@@ -468,6 +532,7 @@ public class SegmentParser {
      * @param templateId
      * @return
      */
+    @Deprecated
     public TemplateInfo parseTemplate(RecordId templateId) {
         int size = 0;
 
@@ -534,6 +599,7 @@ public class SegmentParser {
      * @param map
      * @return
      */
+    @Deprecated
     public MapInfo parseMap(RecordId parentId, RecordId mapId, MapRecord map) {
         if (map.isDiff()) {
             onMapDiff(parentId, mapId, map);
@@ -552,6 +618,7 @@ public class SegmentParser {
      * @param map
      * @return
      */
+    @Deprecated
     public MapInfo parseMapDiff(RecordId mapId, MapRecord map) {
         int size = 4;                             // -1
         size += 4;                                // hash of changed key
@@ -572,6 +639,7 @@ public class SegmentParser {
      * @param map
      * @return
      */
+    @Deprecated
     public MapInfo parseMapLeaf(RecordId mapId, MapRecord map) {
         int size = 4;                              // size
         size += map.size() * 4;                    // key hashes
@@ -590,6 +658,7 @@ public class SegmentParser {
      * @param map
      * @return
      */
+    @Deprecated
     public MapInfo parseMapBranch(RecordId mapId, MapRecord map) {
         int size = 4;                                 // level/size
         size += 4;                                    // bitmap
@@ -610,6 +679,7 @@ public class SegmentParser {
      * @param template
      * @return
      */
+    @Deprecated
     public PropertyInfo parseProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
         int size = 0;
         int count = -1; // -1 -> single valued property
@@ -644,6 +714,7 @@ public class SegmentParser {
      * @param type
      * @return
      */
+    @Deprecated
     public ValueInfo parseValue(RecordId parentId, RecordId valueId, Type<?> type) {
         checkArgument(!type.isArray());
         if (type == BINARY) {
@@ -659,6 +730,7 @@ public class SegmentParser {
      * @param blobId
      * @return
      */
+    @Deprecated
     public BlobInfo parseBlob(RecordId blobId) {
         int size = 0;
         BlobType blobType;
@@ -701,6 +773,7 @@ public class SegmentParser {
      * @param stringId
      * @return
      */
+    @Deprecated
     public BlobInfo parseString(RecordId stringId) {
         int size = 0;
         BlobType blobType;
@@ -735,6 +808,7 @@ public class SegmentParser {
      * @param count
      * @return
      */
+    @Deprecated
     public ListInfo parseList(RecordId parentId, RecordId listId, int count) {
         if (count != 0) {
             onListBucket(parentId, listId, 0, count, count);
@@ -751,6 +825,7 @@ public class SegmentParser {
      * @param capacity   total number of items
      * @return
      */
+    @Deprecated
     public ListBucketInfo parseListBucket(RecordId listId, int index, int count, int capacity) {
         Segment segment = listId.getSegment();
 

@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 /**
  * Utility graph for parsing a segment graph.
  */
+@Deprecated
 public final class SegmentGraph {
     private SegmentGraph() { }
 
@@ -68,6 +69,7 @@ public final class SegmentGraph {
      * Visitor for receiving call backs while traversing the
      * segment graph.
      */
+    @Deprecated
     public interface SegmentGraphVisitor {
 
         /**
@@ -84,6 +86,7 @@ public final class SegmentGraph {
     /**
      * A simple graph representation for a graph with node of type {@code T}.
      */
+    @Deprecated
     public static class Graph<T> {
         /** The vertices of this graph */
         private final Set<T> vertices = newHashSet();
@@ -107,6 +110,7 @@ public final class SegmentGraph {
         /**
          * @return  the vertices of this graph
          */
+        @Deprecated
         public Iterable<T> vertices() {
             return vertices;
         }
@@ -115,6 +119,7 @@ public final class SegmentGraph {
          * @param vertex
          * @return  {@code true} iff this graph contains {@code vertex}
          */
+        @Deprecated
         public boolean containsVertex(T vertex) {
             return vertices.contains(vertex);
         }
@@ -122,6 +127,7 @@ public final class SegmentGraph {
         /**
          * @return  the edges of this graph
          */
+        @Deprecated
         public Set<Entry<T, Multiset<T>>> edges() {
             return edges.entrySet();
         }
@@ -130,6 +136,7 @@ public final class SegmentGraph {
          * @param from
          * @return  the edges from {@code from} or {@code null} if none.
          */
+        @Deprecated
         public Multiset<T> getEdge(T from) {
             return edges.get(from);
         }
@@ -152,6 +159,7 @@ public final class SegmentGraph {
      *                      for all nodes.
      * @throws Exception
      */
+    @Deprecated
     public static void writeSegmentGraph(
             @Nonnull ReadOnlyStore fileStore,
             @Nonnull OutputStream out,
@@ -196,6 +204,7 @@ public final class SegmentGraph {
      * @param tracker       the segment tracker of the store acting upon.
      * @return
      */
+    @Deprecated
     public static Predicate<UUID> createRegExpFilter(
             @Nonnull String pattern,
             @Nonnull final SegmentTracker tracker) {
@@ -230,6 +239,7 @@ public final class SegmentGraph {
      * @throws IOException
      */
     @Nonnull
+    @Deprecated
     public static Graph<UUID> parseSegmentGraph(
             @Nonnull ReadOnlyStore fileStore,
             @Nonnull Predicate<UUID> filter) throws IOException {
@@ -249,6 +259,7 @@ public final class SegmentGraph {
      * @param out           stream to write the graph to
      * @throws Exception
      */
+    @Deprecated
     public static void writeGCGraph(@Nonnull ReadOnlyStore fileStore, @Nonnull OutputStream out)
             throws Exception {
         PrintWriter writer = new PrintWriter(checkNotNull(out));
@@ -284,6 +295,7 @@ public final class SegmentGraph {
      * @throws IOException
      */
     @Nonnull
+    @Deprecated
     public static Graph<String> parseGCGraph(@Nonnull final ReadOnlyStore fileStore)
             throws IOException {
         SegmentNodeState root = checkNotNull(fileStore).getHead();
@@ -323,6 +335,7 @@ public final class SegmentGraph {
      * @throws IOException
      */
     @Nonnull
+    @Deprecated
     public static <T> Graph<T> parseSegmentGraph(
             @Nonnull final ReadOnlyStore fileStore,
             @Nonnull Set<UUID> roots,
@@ -361,6 +374,7 @@ public final class SegmentGraph {
      * @return  the head graph of {@code root}.
      */
     @Nonnull
+    @Deprecated
     public static Graph<UUID> parseHeadGraph(@Nonnull RecordId root) {
         final Graph<UUID> graph = new Graph<UUID>();
 

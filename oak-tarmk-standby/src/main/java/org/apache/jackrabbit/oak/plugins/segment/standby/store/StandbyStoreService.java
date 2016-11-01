@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 
 @Property(name = "org.apache.sling.installer.configuration.persist", label="Persist configuration", description = "Must be always disabled to avoid storing the configuration in the repository", boolValue = false)
 @Component(metatype = true, policy = ConfigurationPolicy.REQUIRE)
+@Deprecated
 public class StandbyStoreService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -53,39 +54,55 @@ public class StandbyStoreService {
     private static final String MODE_PRIMARY = "primary";
     private static final String MODE_STANDBY = "standby";
 
+    @Deprecated
     public static final String MODE_DEFAULT = MODE_PRIMARY;
     @Property(options = {
             @PropertyOption(name = MODE_PRIMARY, value = MODE_PRIMARY),
             @PropertyOption(name = MODE_STANDBY, value = MODE_STANDBY) },
             value = MODE_DEFAULT)
+    @Deprecated
     public static final String MODE = "mode";
 
+    @Deprecated
     public static final int PORT_DEFAULT = 8023;
     @Property(intValue = PORT_DEFAULT)
+    @Deprecated
     public static final String PORT = "port";
 
+    @Deprecated
     public static final String PRIMARY_HOST_DEFAULT = "127.0.0.1";
     @Property(value = PRIMARY_HOST_DEFAULT)
+    @Deprecated
     public static final String PRIMARY_HOST = "primary.host";
 
+    @Deprecated
     public static final int INTERVAL_DEFAULT = 5;
     @Property(intValue = INTERVAL_DEFAULT)
+    @Deprecated
     public static final String INTERVAL = "interval";
 
+    @Deprecated
     public static final String[] ALLOWED_CLIENT_IP_RANGES_DEFAULT = new String[] {};
     @Property(cardinality = Integer.MAX_VALUE)
+    @Deprecated
     public static final String ALLOWED_CLIENT_IP_RANGES = "primary.allowed-client-ip-ranges";
 
+    @Deprecated
     public static final boolean SECURE_DEFAULT = false;
     @Property(boolValue = SECURE_DEFAULT)
+    @Deprecated
     public static final String SECURE = "secure";
 
+    @Deprecated
     public static final int READ_TIMEOUT_DEFAULT = 60000;
     @Property(intValue = READ_TIMEOUT_DEFAULT)
+    @Deprecated
     public static final String READ_TIMEOUT = "standby.readtimeout";
 
+    @Deprecated
     public static final boolean AUTO_CLEAN_DEFAULT = false;
     @Property(boolValue = AUTO_CLEAN_DEFAULT)
+    @Deprecated
     public static final String AUTO_CLEAN = "standby.autoclean";
 
     @Reference(policy = STATIC, policyOption = GREEDY)
@@ -119,6 +136,7 @@ public class StandbyStoreService {
     }
 
     @Deactivate
+    @Deprecated
     public synchronized void deactivate() {
         if (primary != null) {
             primary.close();

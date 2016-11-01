@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Tool for compacting segments.
  */
+@Deprecated
 public class Compactor {
 
     /** Logger instance */
@@ -123,10 +124,12 @@ public class Compactor {
      */
     private final Supplier<Boolean> cancel;
 
+    @Deprecated
     public Compactor(SegmentTracker tracker) {
         this(tracker, Suppliers.ofInstance(false));
     }
 
+    @Deprecated
     public Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
         this.tracker = tracker;
         this.writer = tracker.getWriter();
@@ -135,10 +138,12 @@ public class Compactor {
         this.cancel = cancel;
     }
 
+    @Deprecated
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy) {
         this(tracker, compactionStrategy, Suppliers.ofInstance(false));
     }
 
+    @Deprecated
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
         this.tracker = tracker;
         String wid = "c-" + (tracker.getCompactionMap().getGeneration() + 1);
@@ -169,6 +174,7 @@ public class Compactor {
      * @param onto    the onto state
      * @return  the compacted state
      */
+    @Deprecated
     public SegmentNodeState compact(NodeState before, NodeState after, NodeState onto) throws IOException {
         progress.start();
         SegmentNodeState compacted = process(before, after, onto).getNodeState();
@@ -177,6 +183,7 @@ public class Compactor {
         return compacted;
     }
 
+    @Deprecated
     public PartialCompactionMap getCompactionMap() {
         map.compress();
         return map;
@@ -505,10 +512,12 @@ public class Compactor {
         }
     }
 
+    @Deprecated
     public void setDeepCheckLargeBinaries(boolean deepCheckLargeBinaries) {
         this.deepCheckLargeBinaries = deepCheckLargeBinaries;
     }
 
+    @Deprecated
     public void setContentEqualityCheck(boolean contentEqualityCheck) {
         this.contentEqualityCheck = contentEqualityCheck;
     }

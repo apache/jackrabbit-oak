@@ -27,48 +27,57 @@ import javax.management.openmbean.CompositeData;
  * MBean for monitoring the revision garbage collection process of the
  * {@link FileStore}.
  */
+@Deprecated
 public interface GCMonitorMBean {
+    @Deprecated
     String TYPE = "GC Monitor";
 
     /**
      * @return  timestamp of the last compaction or {@code null} if none.
      */
     @CheckForNull
+    @Deprecated
     String getLastCompaction();
 
     /**
      * @return  timestamp of the last cleanup or {@code null} if none.
      */
     @CheckForNull
+    @Deprecated
     String getLastCleanup();
 
     /**
      * @return  last error or {@code null} if none.
      */
     @CheckForNull
+    @Deprecated
     String getLastError();
 
     /**
      * @return  current status.
      */
     @Nonnull
+    @Deprecated
     String getStatus();
 
     /**
      * Statistics about the compaction map.
      */
     @Nonnull
+    @Deprecated
     String getCompactionMapStats();
 
     /**
      * @return  time series of the repository size
      */
     @Nonnull
+    @Deprecated
     CompositeData getRepositorySize();
 
     /**
      * @return  time series of the reclaimed space
      */
     @Nonnull
+    @Deprecated
     CompositeData getReclaimedSize();
 }

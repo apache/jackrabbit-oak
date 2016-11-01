@@ -28,20 +28,24 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
  * Utility BlobStore implementation to be used in tooling that can work with a
  * FileStore without the need of the DataStore being present locally
  */
+@Deprecated
 public class BasicReadOnlyBlobStore implements BlobStore {
 
     @Override
+    @Deprecated
     public String writeBlob(InputStream in) throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    @Deprecated
     public int readBlob(String blobId, long pos, byte[] buff, int off,
             int length) throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    @Deprecated
     public long getBlobLength(String blobId) throws IOException {
         // best effort length extraction
         int indexOfSep = blobId.lastIndexOf("#");
@@ -52,16 +56,19 @@ public class BasicReadOnlyBlobStore implements BlobStore {
     }
 
     @Override
+    @Deprecated
     public InputStream getInputStream(String blobId) throws IOException {
         return new ByteArrayInputStream(new byte[0]);
     }
 
     @Override
+    @Deprecated
     public String getBlobId(String reference) {
         return reference;
     }
 
     @Override
+    @Deprecated
     public String getReference(String blobId) {
         return blobId;
     }

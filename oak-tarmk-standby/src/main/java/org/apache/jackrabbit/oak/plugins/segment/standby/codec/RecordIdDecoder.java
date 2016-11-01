@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class RecordIdDecoder extends LengthFieldBasedFrameDecoder {
 
     private static final Logger log = LoggerFactory
@@ -38,12 +39,14 @@ public class RecordIdDecoder extends LengthFieldBasedFrameDecoder {
 
     private final SegmentStore store;
 
+    @Deprecated
     public RecordIdDecoder(SegmentStore store) {
         super(64, 0, 4, 0, 4);
         this.store = store;
     }
 
     @Override
+    @Deprecated
     protected Object decode(ChannelHandlerContext ctx, ByteBuf in)
             throws Exception {
         ByteBuf frame = (ByteBuf) super.decode(ctx, in);
@@ -63,6 +66,7 @@ public class RecordIdDecoder extends LengthFieldBasedFrameDecoder {
     }
 
     @Override
+    @Deprecated
     protected ByteBuf extractFrame(ChannelHandlerContext ctx, ByteBuf buffer,
             int index, int length) {
         return buffer.slice(index, length);

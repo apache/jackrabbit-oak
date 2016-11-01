@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class StandbyStore implements SegmentStore {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyStore.class);
@@ -50,31 +51,37 @@ public class StandbyStore implements SegmentStore {
 
     private RemoteSegmentLoader loader;
 
+    @Deprecated
     public StandbyStore(SegmentStore delegate) {
         this.delegate = delegate;
     }
 
     @Override
+    @Deprecated
     public SegmentTracker getTracker() {
         return tracker;
     }
 
     @Override
+    @Deprecated
     public SegmentNodeState getHead() {
         return delegate.getHead();
     }
 
     @Override
+    @Deprecated
     public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
         return delegate.setHead(base, head);
     }
 
     @Override
+    @Deprecated
     public boolean containsSegment(SegmentId id) {
         return delegate.containsSegment(id);
     }
 
     @Override
+    @Deprecated
     public Segment readSegment(SegmentId sid) {
         callId++;
         Deque<SegmentId> ids = new ArrayDeque<SegmentId>();
@@ -180,6 +187,7 @@ public class StandbyStore implements SegmentStore {
         return delegate.readSegment(sid);
     }
 
+    @Deprecated
     public void persist(SegmentId in, Segment s) {
         SegmentId id = delegate.getTracker().getSegmentId(
                 in.getMostSignificantBits(), in.getLeastSignificantBits());
@@ -197,11 +205,13 @@ public class StandbyStore implements SegmentStore {
     private long callId = 0;
     private Map<Long, String> cacheStats;
 
+    @Deprecated
     public void preSync(RemoteSegmentLoader loader) {
         this.loader = loader;
         this.cacheStats = new HashMap<Long, String>();
     }
 
+    @Deprecated
     public void postSync() {
         loader = null;
         if (log.isDebugEnabled() && !cacheStats.isEmpty()) {
@@ -211,30 +221,36 @@ public class StandbyStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException {
         delegate.writeSegment(id, bytes, offset, length);
     }
 
     @Override
+    @Deprecated
     public void close() {
         delegate.close();
     }
 
     @Override
+    @Deprecated
     public Blob readBlob(String reference) {
         return delegate.readBlob(reference);
     }
 
     @Override
+    @Deprecated
     public BlobStore getBlobStore() {
         return delegate.getBlobStore();
     }
 
     @Override
+    @Deprecated
     public void gc() {
         delegate.gc();
     }
 
+    @Deprecated
     public long size() {
         if (delegate instanceof FileStore) {
             return ((FileStore) delegate).size();
@@ -242,6 +258,7 @@ public class StandbyStore implements SegmentStore {
         return -1;
     }
 
+    @Deprecated
     public void cleanup() {
         if (delegate instanceof FileStore) {
             try {

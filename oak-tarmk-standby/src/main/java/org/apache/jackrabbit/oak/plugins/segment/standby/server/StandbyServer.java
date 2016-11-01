@@ -56,6 +56,7 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.net.ssl.SSLException;
 
+@Deprecated
 public class StandbyServer implements StandbyStatusMBean, Closeable {
 
     private static final Logger log = LoggerFactory
@@ -72,21 +73,25 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     private ChannelFuture channelFuture;
     private boolean running;
 
+    @Deprecated
     public StandbyServer(int port, final SegmentStore store)
             throws CertificateException, SSLException {
         this(port, store, null, false);
     }
 
+    @Deprecated
     public StandbyServer(int port, final SegmentStore store, boolean secure)
             throws CertificateException, SSLException {
         this(port, store, null, secure);
     }
 
+    @Deprecated
     public StandbyServer(int port, final SegmentStore store, String[] allowedClientIPRanges)
             throws CertificateException, SSLException {
         this(port, store, allowedClientIPRanges, false);
     }
 
+    @Deprecated
     public StandbyServer(int port, final SegmentStore store, String[] allowedClientIPRanges, boolean secure)
             throws CertificateException, SSLException {
         this.port = port;
@@ -137,10 +142,12 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         });
     }
 
+    @Deprecated
     public String getMBeanName() {
         return StandbyStatusMBean.JMX_NAME + ",id=" + this.port;
     }
 
+    @Deprecated
     public void close() {
         stop();
         handler.state = STATUS_CLOSING;
@@ -219,24 +226,29 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         }
     }
 
+    @Deprecated
     public void startAndWait() {
         start(true);
     }
 
     @Override
+    @Deprecated
     public void start() {
         start(false);
     }
 
     @Override
+    @Deprecated
     public String getMode() {
         return "primary";
     }
 
     @Override
+    @Deprecated
     public boolean isRunning() { return running; }
 
     @Override
+    @Deprecated
     public void stop() {
         if (running) {
             running = false;
@@ -246,6 +258,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     }
 
     @Override
+    @Deprecated
     public String getStatus() {
         return handler == null ? STATUS_INITIALIZING : handler.state;
     }

@@ -20,28 +20,41 @@ package org.apache.jackrabbit.oak.plugins.segment.standby.jmx;
 import org.apache.jackrabbit.oak.commons.jmx.Description;
 import javax.annotation.Nonnull;
 
+@Deprecated
 public interface StandbyStatusMBean {
+    @Deprecated
     public static final String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";
+    @Deprecated
     public static final String STATUS_INITIALIZING = "initializing";
+    @Deprecated
     public static final String STATUS_STOPPED = "stopped";
+    @Deprecated
     public static final String STATUS_STARTING = "starting";
+    @Deprecated
     public static final String STATUS_RUNNING = "running";
+    @Deprecated
     public static final String STATUS_CLOSING = "closing";
+    @Deprecated
     public static final String STATUS_CLOSED = "closed";
 
     @Nonnull
     @Description("primary or standby")
+    @Deprecated
     String getMode();
 
     @Description("current status of the service")
+    @Deprecated
     String getStatus();
 
     @Description("instance is running")
+    @Deprecated
     boolean isRunning();
 
     @Description("stop the communication")
+    @Deprecated
     void stop();
 
     @Description("start the communication")
+    @Deprecated
     void start();
 }

@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
  * getNodeState() is called, which will write the records to the segment,
  * and that might persist the changes (if the segment is flushed).
  */
+@Deprecated
 public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeBuilder.class);
 
@@ -105,6 +106,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     @Nonnull
     @Override
+    @Deprecated
     public SegmentNodeState getNodeState() {
         try {
             NodeState state = super.getNodeState();
@@ -126,6 +128,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     }
 
     @Override
+    @Deprecated
     public Blob createBlob(InputStream stream) throws IOException {
         SegmentNodeState sns = getNodeState();
         return sns.getTracker().getWriter().writeStream(stream);

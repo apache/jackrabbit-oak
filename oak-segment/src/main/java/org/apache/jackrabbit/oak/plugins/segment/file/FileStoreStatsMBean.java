@@ -21,23 +21,30 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import javax.management.openmbean.CompositeData;
 
+@Deprecated
 public interface FileStoreStatsMBean {
 
+    @Deprecated
     String TYPE = "FileStoreStats";
 
+    @Deprecated
     long getApproximateSize();
 
+    @Deprecated
     int getTarFileCount();
 
     /**
      * @return  time series of the writes to repository
      */
+    @Deprecated
     CompositeData getWriteStats();
 
     /**
      * @return  time series of the writes to repository
      */
+    @Deprecated
     CompositeData getRepositorySize();
 
+    @Deprecated
     String fileStoreInfoAsString();
 }

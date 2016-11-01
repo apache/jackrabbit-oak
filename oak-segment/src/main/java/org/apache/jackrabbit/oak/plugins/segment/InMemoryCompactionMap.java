@@ -71,6 +71,7 @@ import javax.annotation.Nonnull;
  * average, the amortized size of each entry in this mapping is about
  * {@code 20/n + 8} bytes, assuming compressed pointers.
  */
+@Deprecated
 public class InMemoryCompactionMap implements PartialCompactionMap {
 
     /**
@@ -98,16 +99,19 @@ public class InMemoryCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public boolean wasCompactedTo(@Nonnull RecordId before, @Nonnull RecordId after) {
         return after.equals(get(before));
     }
 
     @Override
+    @Deprecated
     public boolean wasCompacted(@Nonnull UUID id) {
         return findEntry(id.getMostSignificantBits(), id.getLeastSignificantBits()) != -1;
     }
 
     @Override
+    @Deprecated
     public RecordId get(@Nonnull RecordId before) {
         RecordId after = recent.get(before);
         if (after != null) {
@@ -155,6 +159,7 @@ public class InMemoryCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public void put(@Nonnull RecordId before, @Nonnull RecordId after) {
         if (get(before) != null) {
             throw new IllegalArgumentException();
@@ -166,26 +171,31 @@ public class InMemoryCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public void remove(@Nonnull Set<UUID> uuids) {
         compress(uuids);
     }
 
     @Override
+    @Deprecated
     public void compress() {
         compress(Collections.<UUID>emptySet());
     }
 
     @Override
+    @Deprecated
     public long getSegmentCount() {
         return msbs.length;
     }
 
     @Override
+    @Deprecated
     public long getRecordCount() {
         return afterOffsets.length;
     }
 
     @Override
+    @Deprecated
     public boolean isEmpty() {
         return afterOffsets.length == 0 && recent.isEmpty();
     }
@@ -383,6 +393,7 @@ public class InMemoryCompactionMap implements PartialCompactionMap {
     }
 
     @Override
+    @Deprecated
     public long getEstimatedWeight() {
         // estimation of the object including empty 'recent' map
         long total = 168;

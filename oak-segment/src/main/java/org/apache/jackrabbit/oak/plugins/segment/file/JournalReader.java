@@ -31,11 +31,13 @@ import org.slf4j.LoggerFactory;
 /**
  * Reader for journal files of the SegmentMK.
  */
+@Deprecated
 public final class JournalReader implements Closeable, Iterable<String> {
     private static final Logger LOG = LoggerFactory.getLogger(JournalReader.class);
 
     private final ReversedLinesFileReader journal;
 
+    @Deprecated
     public JournalReader(File journalFile) throws IOException {
         journal = new ReversedLinesFileReader(journalFile);
     }
@@ -45,6 +47,7 @@ public final class JournalReader implements Closeable, Iterable<String> {
      *         (end of the file to beginning).
      */
     @Override
+    @Deprecated
     public Iterator<String> iterator() {
         return new AbstractIterator<String>() {
             @Override
@@ -67,6 +70,7 @@ public final class JournalReader implements Closeable, Iterable<String> {
     }
 
     @Override
+    @Deprecated
     public void close() throws IOException {
         journal.close();
     }

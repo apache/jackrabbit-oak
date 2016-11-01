@@ -21,35 +21,45 @@ import org.apache.jackrabbit.oak.commons.jmx.Description;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+@Deprecated
 public interface ObservablePartnerMBean {
 
     @Nonnull
     @Description("name of the partner")
+    @Deprecated
     String getName();
 
     @Description("IP of the remote")
+    @Deprecated
     String getRemoteAddress();
 
     @Description("Last request")
+    @Deprecated
     String getLastRequest();
 
     @Description("Port of the remote")
+    @Deprecated
     int getRemotePort();
 
     @CheckForNull
     @Description("Time the remote instance was last contacted")
+    @Deprecated
     String getLastSeenTimestamp();
 
     @Description("Number of transferred segments")
+    @Deprecated
     long getTransferredSegments();
 
     @Description("Number of bytes stored in transferred segments")
+    @Deprecated
     long getTransferredSegmentBytes();
 
     @Description("Number of transferred binaries")
+    @Deprecated
     long getTransferredBinaries();
 
     @Description("Number of bytes stored in transferred binaries")
+    @Deprecated
     long getTransferredBinariesBytes();
 
 }

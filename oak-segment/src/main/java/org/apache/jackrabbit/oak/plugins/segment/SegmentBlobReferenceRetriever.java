@@ -25,15 +25,18 @@ import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
  * Implementation of {@link BlobReferenceRetriever} to retrieve blob references from the
  * {@link SegmentTracker}.
  */
+@Deprecated
 public class SegmentBlobReferenceRetriever implements BlobReferenceRetriever {
 
     private final SegmentTracker tracker;
 
+    @Deprecated
     public SegmentBlobReferenceRetriever(SegmentTracker tracker) {
         this.tracker = tracker;
     }
 
     @Override
+    @Deprecated
     public void collectReferences(final ReferenceCollector collector) {
         tracker.collectBlobReferences(collector);
     }

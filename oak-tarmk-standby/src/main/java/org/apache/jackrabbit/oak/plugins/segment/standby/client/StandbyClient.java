@@ -53,7 +53,9 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, Closeable {
+    @Deprecated
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
     private static final Logger log = LoggerFactory
@@ -80,6 +82,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     private long syncStartTimestamp;
     private long syncEndTimestamp;
 
+    @Deprecated
     public StandbyClient(String host, int port, SegmentStore store,
             boolean secure, int readTimeoutMs, boolean autoClean)
             throws SSLException {
@@ -108,10 +111,12 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         }
     }
 
+    @Deprecated
     public String getMBeanName() {
         return StandbyStatusMBean.JMX_NAME + ",id=\"" + this.observer.getID() + "\"";
     }
 
+    @Deprecated
     public void close() {
         stop();
         state = STATUS_CLOSING;
@@ -127,6 +132,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         state = STATUS_CLOSED;
     }
 
+    @Deprecated
     public void run() {
         if (!isRunning()) {
             // manually stopped
@@ -203,64 +209,76 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     }
 
     @Override
+    @Deprecated
     public String getMode() {
         return "client: " + this.observer.getID();
     }
 
     @Override
+    @Deprecated
     public boolean isRunning() {
         return running.get();
     }
 
     @Override
+    @Deprecated
     public void start() {
         running.set(true);
         state = STATUS_RUNNING;
     }
 
     @Override
+    @Deprecated
     public void stop() {
         running.set(false);
         state = STATUS_STOPPED;
     }
 
     @Override
+    @Deprecated
     public String getStatus() {
         return this.state;
     }
 
     @Override
+    @Deprecated
     public int getFailedRequests() {
         return this.failedRequests;
     }
 
     @Override
+    @Deprecated
     public int getSecondsSinceLastSuccess() {
         if (this.lastSuccessfulRequest < 0) return -1;
         return (int)(System.currentTimeMillis() / 1000 - this.lastSuccessfulRequest);
     }
 
     @Override
+    @Deprecated
     public int calcFailedRequests() {
         return this.getFailedRequests();
     }
 
     @Override
+    @Deprecated
     public int calcSecondsSinceLastSuccess() {
         return this.getSecondsSinceLastSuccess();
     }
 
     @Override
+    @Deprecated
     public void cleanup() {
         store.cleanup();
     }
 
     @Override
+    @Deprecated
     public long getSyncStartTimestamp() {
         return syncStartTimestamp;
     }
 
     @Override
+    @Deprecated
     public long getSyncEndTimestamp() {
         return syncEndTimestamp;
     }

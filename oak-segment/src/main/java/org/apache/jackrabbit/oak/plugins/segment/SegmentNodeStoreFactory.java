@@ -65,8 +65,10 @@ import org.slf4j.LoggerFactory;
         description = "Factory allowing configuration of adjacent instances of " +
                       "NodeStore implementation based on Segment model besides a default SegmentNodeStore in same setup."
 )
+@Deprecated
 public class SegmentNodeStoreFactory extends ProxyNodeStore {
 
+    @Deprecated
     public static final String NAME = "name";
 
     @Property(
@@ -74,6 +76,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             description="As multiple SegmentNodeStores can be configured, this parameter defines the role " +
                         "of 'this' SegmentNodeStore."
     )
+    @Deprecated
     public static final String ROLE = "role";
 
     @Property(
@@ -81,12 +84,14 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             description="Directory location used to store the segment tar files. If not specified then looks " +
                     "for framework property 'repository.home' otherwise use a subdirectory with name 'tarmk'"
     )
+    @Deprecated
     public static final String DIRECTORY = "repository.home";
 
     @Property(
             label = "Mode",
             description="TarMK mode (64 for memory mapping, 32 for normal file access)"
     )
+    @Deprecated
     public static final String MODE = "tarmk.mode";
 
     @Property(
@@ -94,6 +99,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             label = "Maximum Tar File Size (MB)",
             description = "TarMK maximum file size (MB)"
     )
+    @Deprecated
     public static final String SIZE = "tarmk.size";
 
     @Property(
@@ -101,6 +107,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             label = "Cache size (MB)",
             description = "Cache size for storing most recently used Segments"
     )
+    @Deprecated
     public static final String CACHE = "cache";
 
     @Property(boolValue = false,
@@ -108,6 +115,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
             description = "Boolean value indicating that a custom BlobStore is to be used. " +
                     "By default large binary content would be stored within segment tar files"
     )
+    @Deprecated
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -142,6 +150,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
     }
 
     @Activate
+    @Deprecated
     public void activate(ComponentContext context) throws IOException {
         this.context = context;
         this.name = PropertiesUtil.toString(context.getProperties().get(NAME), "SegmentNodeStore instance");
@@ -168,6 +177,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
     }
 
     @Deactivate
+    @Deprecated
     public void deactivate() {
         unregisterNodeStore();
 
@@ -330,6 +340,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public String toString() {
         return name + ": " + segmentNodeStore + "[role:" + role + "]";
     }

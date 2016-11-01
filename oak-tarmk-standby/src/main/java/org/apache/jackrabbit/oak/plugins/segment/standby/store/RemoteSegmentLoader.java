@@ -19,16 +19,22 @@ package org.apache.jackrabbit.oak.plugins.segment.standby.store;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 
+@Deprecated
 public interface RemoteSegmentLoader {
 
+    @Deprecated
     Segment readSegment(String id);
 
+    @Deprecated
     Blob readBlob(String blobId);
 
+    @Deprecated
     void close();
 
+    @Deprecated
     boolean isClosed();
 
+    @Deprecated
     boolean isRunning();
 
 }

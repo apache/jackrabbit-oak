@@ -31,14 +31,18 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
+@Deprecated
 public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
+    @Deprecated
     public static final String SEGMENT_REPO_SIZE = "SEGMENT_REPO_SIZE";
+    @Deprecated
     public static final String SEGMENT_WRITES = "SEGMENT_WRITES";
     private final StatisticsProvider statisticsProvider;
     private final FileStore store;
     private final MeterStats writeStats;
     private final CounterStats repoSize;
 
+    @Deprecated
     public FileStoreStats(StatisticsProvider statisticsProvider, FileStore store, long initialSize) {
         this.statisticsProvider = statisticsProvider;
         this.store = store;
@@ -50,12 +54,14 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     //~-----------------------------< FileStoreMonitor >
 
     @Override
+    @Deprecated
     public void written(long delta) {
         writeStats.mark(delta);
         repoSize.inc(delta);
     }
 
     @Override
+    @Deprecated
     public void reclaimed(long size) {
         repoSize.dec(size);
     }
@@ -63,28 +69,33 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     //~--------------------------------< FileStoreStatsMBean >
 
     @Override
+    @Deprecated
     public long getApproximateSize() {
         return repoSize.getCount();
     }
 
     @Override
+    @Deprecated
     public int getTarFileCount() {
         return store.readerCount() + 1; //1 for the writer
     }
 
     @Nonnull
     @Override
+    @Deprecated
     public CompositeData getWriteStats() {
         return asCompositeData(getTimeSeries(SEGMENT_WRITES), SEGMENT_WRITES);
     }
 
     @Nonnull
     @Override
+    @Deprecated
     public CompositeData getRepositorySize() {
         return asCompositeData(getTimeSeries(SEGMENT_REPO_SIZE), SEGMENT_REPO_SIZE);
     }
 
     @Override
+    @Deprecated
     public String fileStoreInfoAsString() {
         return String.format("Segment store size : %s%n" +
                 "Number of tar files : %d",

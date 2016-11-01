@@ -85,6 +85,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Converts nodes, properties, and values to records, which are written to segments.
  */
+@Deprecated
 public class SegmentWriter {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
 
@@ -154,16 +155,19 @@ public class SegmentWriter {
      * @param version   segment version to write
      * @param wid       id of this writer
      */
+    @Deprecated
     public SegmentWriter(SegmentStore store, SegmentVersion version, String wid) {
         this.store = store;
         this.version = version;
         this.wid = wid;
     }
 
+    @Deprecated
     public void flush() throws IOException {
         segmentBufferWriterPool.flush();
     }
 
+    @Deprecated
     public void dropCache() {
         stringCache.clear();
         templateCache.clear();
@@ -330,6 +334,7 @@ public class SegmentWriter {
      * @param list list of record identifiers
      * @return list record identifier
      */
+    @Deprecated
     public RecordId writeList(List<RecordId> list) throws IOException {
         checkNotNull(list);
         checkArgument(!list.isEmpty());
@@ -389,6 +394,7 @@ public class SegmentWriter {
      * @param string string to be written
      * @return value record identifier
      */
+    @Deprecated
     public RecordId writeString(String string) throws IOException {
         RecordId id = stringCache.get(string);
         if (id != null) {
@@ -428,6 +434,7 @@ public class SegmentWriter {
         return writeValueRecord(data.length, writeList(blockIds));
     }
 
+    @Deprecated
     public SegmentBlob writeBlob(Blob blob) throws IOException {
         if (blob instanceof SegmentBlob
             && store.containsSegment(((SegmentBlob) blob).getRecordId().getSegmentId())) {
@@ -497,6 +504,7 @@ public class SegmentWriter {
      * @return value record identifier
      * @throws IOException if the stream could not be read
      */
+    @Deprecated
     public SegmentBlob writeStream(InputStream stream) throws IOException {
         boolean threw = true;
         try {
@@ -551,6 +559,7 @@ public class SegmentWriter {
         return writeValueRecord(length, writeList(blockIds));
     }
 
+    @Deprecated
     public RecordId writeProperty(PropertyState state) throws IOException {
         Map<String, RecordId> previousValues = emptyMap();
         return writeProperty(state, previousValues);
@@ -589,6 +598,7 @@ public class SegmentWriter {
         }
     }
 
+    @Deprecated
     public RecordId writeTemplate(Template template) throws IOException {
         checkNotNull(template);
 
@@ -667,6 +677,7 @@ public class SegmentWriter {
         return tid;
     }
 
+    @Deprecated
     public SegmentNodeState writeNode(NodeState state) throws IOException {
         if (state instanceof SegmentNodeState) {
             SegmentNodeState sns = uncompact((SegmentNodeState) state);
