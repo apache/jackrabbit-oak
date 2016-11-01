@@ -37,6 +37,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -1193,6 +1194,15 @@ public class ObservationTest extends AbstractRepositoryTest {
             });
         }
 
+        public Future<Event> expectBeforeValue(final String path, final int type, final String beforeValue) {
+            return expect(new Expectation("path = " + path + ", type = " + type + ", beforeValue = " + beforeValue) {
+                @Override
+                public boolean onEvent(Event event) throws RepositoryException {
+                    return type == event.getType() && equal(path, event.getPath()) && event.getInfo().containsKey("beforeValue") && beforeValue.equals(((Value)event.getInfo().get("beforeValue")).getString());
+                }
+            });
+        }
+
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
             List<Expectation> missing = Lists.newArrayList();
@@ -1378,6 +1388,41 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         listener.expectRemove(testNode.getNode("a").getNode("c"));
         listener.expectRemove(testNode.getNode("a")).remove();
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
+    public void includeRemovedSubtree_BeforeValue() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        Node a = testNode.addNode("a");
+        a.setProperty("propA", "24");
+        a.addNode("c").setProperty("propB", "42");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath("/");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeSubtreeOnRemove();
+
+        oManager.addEventListener(listener, filter);
+
+        Node c = testNode.getNode("a").getNode("c");
+        listener.expectRemove(c);
+        listener.expectBeforeValue(c.getProperty("propB").getPath(), PROPERTY_REMOVED, "42");
+        a = testNode.getNode("a");
+        listener.expectBeforeValue(a.getProperty("propA").getPath(), PROPERTY_REMOVED, "24");
+        listener.expectRemove(a).remove();
         testNode.getSession().save();
 
         List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
