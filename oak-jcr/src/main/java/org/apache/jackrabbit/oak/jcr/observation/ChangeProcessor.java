@@ -174,6 +174,11 @@ class ChangeProcessor implements Observer {
     public void setFilterProvider(FilterProvider filter) {
         filterProvider.set(filter);
     }
+    
+    /** for testing only - hence package protected **/
+    FilterProvider getFilterProvider() {
+        return filterProvider.get();
+    }
 
     /**
      * Start this change processor
