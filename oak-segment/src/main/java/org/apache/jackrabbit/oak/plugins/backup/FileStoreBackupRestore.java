@@ -41,9 +41,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 /**
  * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
  */
+@Deprecated
 public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
 
+    @Deprecated
     public static final String BACKUP_OP_NAME = "Backup";
+
+    @Deprecated
     public static final String RESTORE_OP_NAME = "Restore";
 
     private final NodeStore store;
@@ -58,6 +62,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
      * @param file   file to back up to or restore from
      * @param executor  executor for running the back up or restore operation
      */
+    @Deprecated
     public FileStoreBackupRestore(
             @Nonnull NodeStore store,
             @Nonnull File file,
@@ -68,6 +73,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     }
 
     @Override
+    @Deprecated
     public synchronized CompositeData startBackup() {
         if (backupOp.isDone()) {
             backupOp = newManagementOperation("Backup", new Callable<String>() {
@@ -84,11 +90,13 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     }
 
     @Override
+    @Deprecated
     public synchronized CompositeData getBackupStatus() {
         return backupOp.getStatus().toCompositeData();
     }
 
     @Override
+    @Deprecated
     public synchronized CompositeData startRestore() {
         if (restoreOp.isDone()) {
             restoreOp = newManagementOperation("Restore", new Callable<String>() {
@@ -105,11 +113,13 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     }
 
     @Override
+    @Deprecated
     public synchronized CompositeData getRestoreStatus() {
         return restoreOp.getStatus().toCompositeData();
     }
 
     @Override
+    @Deprecated
     public String checkpoint(long lifetime) {
         return store.checkpoint(lifetime);
     }

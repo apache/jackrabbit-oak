@@ -32,6 +32,7 @@ import java.util.Map;
  * The set doesn't keep references to the actual record ids
  * it contains.
  */
+@Deprecated
 public class RecordIdSet {
     private final Map<String, ShortSet> seenIds = newHashMap();
 
@@ -40,6 +41,7 @@ public class RecordIdSet {
      * @param id  the record id to add
      * @return  {@code true} if added, {@code false} if already present
      */
+    @Deprecated
     public boolean addIfNotPresent(RecordId id) {
         String segmentId = id.getSegmentId().toString();
         ShortSet offsets = seenIds.get(segmentId);
@@ -55,6 +57,7 @@ public class RecordIdSet {
      * @param id  the record id to check for
      * @return  {@code true} iff {@code id} is present.
      */
+    @Deprecated
     public boolean contains(RecordId id) {
         String segmentId = id.getSegmentId().toString();
         ShortSet offsets = seenIds.get(segmentId);

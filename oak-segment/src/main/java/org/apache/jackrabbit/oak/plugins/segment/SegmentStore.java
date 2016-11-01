@@ -28,8 +28,10 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 /**
  * The backend storage interface used by the segment node store.
  */
+@Deprecated
 public interface SegmentStore extends Closeable {
 
+    @Deprecated
     SegmentTracker getTracker();
 
     /**
@@ -38,8 +40,10 @@ public interface SegmentStore extends Closeable {
      * @return head state
      */
     @Nonnull
+    @Deprecated
     SegmentNodeState getHead();
 
+    @Deprecated
     boolean setHead(SegmentNodeState base, SegmentNodeState head);
 
     /**
@@ -48,6 +52,7 @@ public interface SegmentStore extends Closeable {
      * @param id segment identifier
      * @return {@code true} if the segment exists, {@code false} otherwise
      */
+    @Deprecated
     boolean containsSegment(SegmentId id);
 
     /**
@@ -57,6 +62,7 @@ public interface SegmentStore extends Closeable {
      * @return identified segment, or a {@link SegmentNotFoundException} thrown if not found
      */
     @CheckForNull
+    @Deprecated
     Segment readSegment(SegmentId segmentId);
 
     /**
@@ -67,8 +73,10 @@ public interface SegmentStore extends Closeable {
      * @param offset start offset within the byte buffer
      * @param length length of the segment
      */
+    @Deprecated
     void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException;
 
+    @Deprecated
     void close();
 
     /**
@@ -77,17 +85,20 @@ public interface SegmentStore extends Closeable {
      * @param reference blob reference
      * @return external blob
      */
+    @Deprecated
     Blob readBlob(String reference);
 
     /**
      * Returns the external BlobStore (if configured) with this store
      */
     @CheckForNull
+    @Deprecated
     BlobStore getBlobStore();
 
     /**
      * Triggers removal of segments that are no longer referenceable.
      */
+    @Deprecated
     void gc();
 
 }

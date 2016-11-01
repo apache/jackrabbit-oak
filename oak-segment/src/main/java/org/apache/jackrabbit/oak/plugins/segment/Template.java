@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * <p>
  * Templates are always read fully in-memory.
  */
+@Deprecated
 public class Template {
 
     static final short ZERO_CHILD_NODES_TYPE = 0;
@@ -204,6 +205,7 @@ public class Template {
         return segment.readMap(childNodesId);
     }
 
+    @Deprecated
     public NodeState getChildNode(String name, RecordId recordId) {
         if (childName == ZERO_CHILD_NODES) {
             return MISSING_NODE;
@@ -240,6 +242,7 @@ public class Template {
         }
     }
 
+    @Deprecated
     public boolean compare(RecordId thisId, RecordId thatId) {
         checkNotNull(thisId);
         checkNotNull(thatId);
@@ -287,6 +290,7 @@ public class Template {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public boolean equals(Object object) {
         if (this == object) {
             return true;
@@ -302,12 +306,14 @@ public class Template {
     }
 
     @Override
+    @Deprecated
     public int hashCode() {
         return Objects.hashCode(primaryType, mixinTypes,
                 Arrays.asList(properties), getTemplateType(), childName);
     }
 
     @Override
+    @Deprecated
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("{ ");

@@ -21,15 +21,18 @@ package org.apache.jackrabbit.oak.plugins.segment.standby.codec;
 
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 
+@Deprecated
 public class IdArrayBasedBlob extends ArrayBasedBlob {
 
     private final String blobId;
 
+    @Deprecated
     public IdArrayBasedBlob(byte[] value, String blobId) {
         super(value);
         this.blobId = blobId;
     }
 
+    @Deprecated
     public String getBlobId() {
         return blobId;
     }

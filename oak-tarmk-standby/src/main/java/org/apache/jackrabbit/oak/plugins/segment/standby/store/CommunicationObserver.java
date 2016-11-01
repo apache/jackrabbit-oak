@@ -35,6 +35,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Deprecated
 public class CommunicationObserver {
     private static final int MAX_CLIENT_STATISTICS = 10;
 
@@ -111,6 +112,7 @@ public class CommunicationObserver {
     private final String identifier;
     private final Map<String, CommunicationPartnerMBean> partnerDetails;
 
+    @Deprecated
     public CommunicationObserver(String myID) {
         this.identifier = myID;
         this.partnerDetails = new HashMap<String, CommunicationPartnerMBean>();
@@ -126,12 +128,14 @@ public class CommunicationObserver {
         }
     }
 
+    @Deprecated
     public void unregister() {
         for (CommunicationPartnerMBean m : this.partnerDetails.values()) {
             unregister(m);
         }
     }
 
+    @Deprecated
     public void gotMessageFrom(String client, String request, InetSocketAddress remote) throws MalformedObjectNameException {
         log.debug("got message '" + request + "' from client " + client);
         CommunicationPartnerMBean m = this.partnerDetails.get(client);
@@ -157,6 +161,7 @@ public class CommunicationObserver {
         }
     }
 
+    @Deprecated
     public void didSendSegmentBytes(String client, int size) {
         log.debug("did send segment with " + size + " bytes to client " + client);
         CommunicationPartnerMBean m = this.partnerDetails.get(client);
@@ -165,6 +170,7 @@ public class CommunicationObserver {
         this.partnerDetails.put(client, m);
     }
 
+    @Deprecated
     public void didSendBinariesBytes(String client, int size) {
         log.debug("did send binary with " + size + " bytes to client " + client);
         CommunicationPartnerMBean m = this.partnerDetails.get(client);
@@ -173,6 +179,7 @@ public class CommunicationObserver {
         this.partnerDetails.put(client, m);
     }
 
+    @Deprecated
     public String getID() {
         return this.identifier;
     }

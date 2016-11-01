@@ -48,6 +48,7 @@ import com.google.common.cache.RemovalCause;
  * <p>
  * It is also responsible to cache segment objects in memory.
  */
+@Deprecated
 public class SegmentTracker {
 
     /** Logger instance */
@@ -120,6 +121,7 @@ public class SegmentTracker {
 
     private final SegmentVersion segmentVersion;
 
+    @Deprecated
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
         this.segmentVersion = version;
@@ -155,10 +157,12 @@ public class SegmentTracker {
             .build();
     }
 
+    @Deprecated
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
         this(store, DEFAULT_MEMORY_CACHE_SIZE, version);
     }
 
+    @Deprecated
     public SegmentTracker(SegmentStore store) {
         this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
     }
@@ -174,26 +178,31 @@ public class SegmentTracker {
     /**
      * @return  a new {@link SegmentWriter} instance for writing to this store.
      */
+    @Deprecated
     public final SegmentWriter createSegmentWriter(String wid) {
         return new SegmentWriter(store, segmentVersion, wid);
     }
 
     @Nonnull
+    @Deprecated
     public CacheStats getSegmentCacheStats() {
         return new CacheStats(segmentCache, "Segment Cache", null, -1);
     }
 
     @CheckForNull
+    @Deprecated
     public CacheStats getStringCacheStats() {
         return stringCache == null
             ? null
             : stringCache.getStats();
     }
 
+    @Deprecated
     public SegmentWriter getWriter() {
         return writer;
     }
 
+    @Deprecated
     public SegmentStore getStore() {
         return store;
     }
@@ -201,6 +210,7 @@ public class SegmentTracker {
     /**
      * Clear the caches
      */
+    @Deprecated
     public synchronized void clearCache() {
         segmentCache.invalidateAll();
         if (stringCache != null) {
@@ -255,11 +265,13 @@ public class SegmentTracker {
         segmentCache.put(id, segment, segment.size());
     }
 
+    @Deprecated
     public void setCompactionMap(PartialCompactionMap map) {
         compactionMap.set(compactionMap.get().cons(map));
     }
 
     @Nonnull
+    @Deprecated
     public CompactionMap getCompactionMap() {
         return compactionMap.get();
     }
@@ -269,6 +281,7 @@ public class SegmentTracker {
      *
      * @return referenced segment identifiers
      */
+    @Deprecated
     public synchronized Set<SegmentId> getReferencedSegmentIds() {
         Set<SegmentId> ids = newHashSet();
         for (SegmentIdTable table : tables) {
@@ -288,6 +301,7 @@ public class SegmentTracker {
      * in-memory references and references stored while this method is
      * running.
      */
+    @Deprecated
     public void collectBlobReferences(ReferenceCollector collector) {
         try {
             Set<UUID> processed = newHashSet();
@@ -332,6 +346,7 @@ public class SegmentTracker {
      * @param lsb
      * @return the segment id
      */
+    @Deprecated
     public SegmentId getSegmentId(long msb, long lsb) {
         int index = ((int) msb) & (tables.length - 1);
         return tables[index].getSegmentId(msb, lsb);
@@ -351,6 +366,7 @@ public class SegmentTracker {
         return getSegmentId(msb, lsb);
     }
 
+    @Deprecated
     public synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
         for (SegmentIdTable table : tables) {
             table.clearSegmentIdTables(strategy);

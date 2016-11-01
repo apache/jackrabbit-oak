@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
  * A string cache. It has two components: a fast cache for small strings, based
  * on an array, and a slow cache that uses a LIRS cache.
  */
+@Deprecated
 public class StringCache {
 
     /**
@@ -68,6 +69,7 @@ public class StringCache {
     }
 
     @Nonnull
+    @Deprecated
     public CacheStats getStats() {
         return new CacheStats(cache, "String Cache", null, -1);
     }
@@ -81,6 +83,7 @@ public class StringCache {
      * @param loader the string loader function
      * @return the string (never null)
      */
+    @Deprecated
     public String getString(long msb, long lsb, int offset, Function<Integer, String> loader) {
         int hash = getEntryHash(msb, lsb, offset);
         if (fastCache == null) {
@@ -107,6 +110,7 @@ public class StringCache {
     /**
      * Clear the cache.
      */
+    @Deprecated
     public void clear() {
         if (fastCache != null) {
             cache.invalidateAll();

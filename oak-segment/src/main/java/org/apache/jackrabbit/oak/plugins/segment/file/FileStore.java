@@ -88,6 +88,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The storage implementation for tar files.
  */
+@Deprecated
 public class FileStore implements SegmentStore {
 
     /** Logger instance */
@@ -219,6 +220,7 @@ public class FileStore implements SegmentStore {
      * @return a new {@link Builder} instance.
      */
     @Nonnull
+    @Deprecated
     public static Builder builder(@Nonnull File directory) {
         return new Builder(checkNotNull(directory));
     }
@@ -226,6 +228,7 @@ public class FileStore implements SegmentStore {
     /**
      * Builder for creating {@link FileStore} instances.
      */
+    @Deprecated
     public static class Builder {
 
         private final File directory;
@@ -256,6 +259,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withBlobStore(@Nonnull BlobStore blobStore) {
             this.blobStore = checkNotNull(blobStore);
             return this;
@@ -267,6 +271,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withRoot(@Nonnull NodeState root) {
             this.root = checkNotNull(root);
             return this;
@@ -278,6 +283,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withMaxFileSize(int maxFileSize) {
             this.maxFileSize = maxFileSize;
             return this;
@@ -289,6 +295,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withCacheSize(int cacheSize) {
             this.cacheSize = cacheSize;
             return this;
@@ -299,6 +306,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withNoCache() {
             this.cacheSize = -1;
             return this;
@@ -310,6 +318,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withMemoryMapping(boolean memoryMapping) {
             this.memoryMapping = memoryMapping;
             return this;
@@ -320,6 +329,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withDefaultMemoryMapping() {
             this.memoryMapping = MEMORY_MAPPING_DEFAULT;
             return this;
@@ -331,6 +341,7 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withGCMonitor(@Nonnull GCMonitor gcMonitor) {
             this.gcMonitor.delegatee = checkNotNull(gcMonitor);
             return this;
@@ -342,11 +353,13 @@ public class FileStore implements SegmentStore {
          * @return this instance
          */
         @Nonnull
+        @Deprecated
         public Builder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
             this.statsProvider = checkNotNull(statisticsProvider);
             return this;
         }
 
+        @Deprecated
         public Builder withSegmentVersion(SegmentVersion version) {
             this.version = checkNotNull(version);
             return this;
@@ -370,10 +383,12 @@ public class FileStore implements SegmentStore {
          * @throws IOException
          */
         @Nonnull
+        @Deprecated
         public FileStore build() throws IOException, InvalidFileStoreVersionException {
             return new FileStore(this, false);
         }
 
+        @Deprecated
         public ReadOnlyStore buildReadOnly() throws IOException, InvalidFileStoreVersionException {
             return new ReadOnlyStore(this);
         }
@@ -552,6 +567,7 @@ public class FileStore implements SegmentStore {
         log.debug("TarMK readers {}", this.readers);
     }
 
+    @Deprecated
     public boolean maybeCompact(boolean cleanup) throws IOException {
         gcMonitor.info("TarMK GC #{}: started", gcCount.incrementAndGet());
 
@@ -711,6 +727,7 @@ public class FileStore implements SegmentStore {
         return dataFiles;
     }
 
+    @Deprecated
     public long size() {
         fileStoreLock.readLock().lock();
         try {
@@ -724,6 +741,7 @@ public class FileStore implements SegmentStore {
         }
     }
 
+    @Deprecated
     public int readerCount(){
         fileStoreLock.readLock().lock();
         try {
@@ -776,14 +794,17 @@ public class FileStore implements SegmentStore {
         return estimate;
     }
 
+    @Deprecated
     public FileStoreStats getStats() {
         return stats;
     }
 
+    @Deprecated
     public void flush() throws IOException {
         flush(cleanupNeeded.getAndSet(false));
     }
 
+    @Deprecated
     public void flush(boolean cleanup) throws IOException {
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
@@ -844,6 +865,7 @@ public class FileStore implements SegmentStore {
      * A new generation of a tar file is created (and segments are only
      * discarded) if doing so releases more than 25% of the space in a tar file.
      */
+    @Deprecated
     public List<File> cleanup() throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
@@ -1020,6 +1042,7 @@ public class FileStore implements SegmentStore {
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
      */
+    @Deprecated
     public void compact() throws IOException {
         checkState(!compactionStrategy.equals(NO_COMPACTION),
                 "You must set a compactionStrategy before calling compact");
@@ -1097,6 +1120,7 @@ public class FileStore implements SegmentStore {
         });
     }
 
+    @Deprecated
     public Iterable<SegmentId> getSegmentIds() {
         fileStoreLock.readLock().lock();
         try {
@@ -1122,16 +1146,19 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public SegmentTracker getTracker() {
         return tracker;
     }
 
     @Override
+    @Deprecated
     public SegmentNodeState getHead() {
         return new SegmentNodeState(head.get());
     }
 
     @Override
+    @Deprecated
     public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
         RecordId id = this.head.get();
         return id.equals(base.getRecordId())
@@ -1139,6 +1166,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void close() {
         // Flag the store as shutting / shut down
         shutdown = true;
@@ -1180,6 +1208,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public boolean containsSegment(SegmentId id) {
         if (id.getTracker() == tracker) {
             return true;
@@ -1220,6 +1249,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public Segment readSegment(SegmentId id) {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
@@ -1282,6 +1312,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void writeSegment(SegmentId id, byte[] data, int offset, int length) throws IOException {
         fileStoreLock.writeLock().lock();
         try {
@@ -1317,6 +1348,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public Blob readBlob(String blobId) {
         if (blobStore != null) {
             return new BlobStoreBlob(blobStore, blobId);
@@ -1326,11 +1358,13 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public BlobStore getBlobStore() {
         return blobStore;
     }
 
     @Override
+    @Deprecated
     public void gc() {
         if (compactionStrategy == NO_COMPACTION) {
             log.warn("Call to gc while compaction strategy set to {}. ", NO_COMPACTION);
@@ -1338,6 +1372,7 @@ public class FileStore implements SegmentStore {
         compactionThread.trigger();
     }
 
+    @Deprecated
     public Map<String, Set<UUID>> getTarReaderIndex() {
         Map<String, Set<UUID>> index = new HashMap<String, Set<UUID>>();
         for (TarReader reader : readers) {
@@ -1346,6 +1381,7 @@ public class FileStore implements SegmentStore {
         return index;
     }
 
+    @Deprecated
     public Map<UUID, List<UUID>> getTarGraph(String fileName) throws IOException {
         for (TarReader reader : readers) {
             if (fileName.equals(reader.getFile().getName())) {
@@ -1363,6 +1399,7 @@ public class FileStore implements SegmentStore {
         return emptyMap();
     }
 
+    @Deprecated
     public FileStore setCompactionStrategy(CompactionStrategy strategy) {
         this.compactionStrategy = strategy;
         log.info("Compaction strategy set to: {}", strategy);
@@ -1405,6 +1442,7 @@ public class FileStore implements SegmentStore {
      * <p>
      * All write methods are no-ops.
      */
+    @Deprecated
     public static class ReadOnlyStore extends FileStore {
 
         private ReadOnlyStore(Builder builder) throws IOException, InvalidFileStoreVersionException {
@@ -1416,6 +1454,7 @@ public class FileStore implements SegmentStore {
          *
          * @param revision
          */
+        @Deprecated
         public void setRevision(String revision) {
             super.setRevision(revision);
         }
@@ -1426,6 +1465,7 @@ public class FileStore implements SegmentStore {
          * @param visitor   visitor receiving call back while following the segment graph
          * @throws IOException
          */
+        @Deprecated
         public void traverseSegmentGraph(
             @Nonnull Set<UUID> roots,
             @Nonnull SegmentGraphVisitor visitor) throws IOException {
@@ -1438,11 +1478,13 @@ public class FileStore implements SegmentStore {
         }
 
         @Override
+        @Deprecated
         public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
         @Override
+        @Deprecated
         public void writeSegment(SegmentId id, byte[] data,
                 int offset, int length) {
             throw new UnsupportedOperationException("Read Only Store");
@@ -1452,24 +1494,29 @@ public class FileStore implements SegmentStore {
          * no-op
          */
         @Override
+        @Deprecated
         public void flush() { /* nop */ }
 
         @Override
+        @Deprecated
         public LinkedList<File> cleanup() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
         @Override
+        @Deprecated
         public void gc() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
         @Override
+        @Deprecated
         public void compact() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
         @Override
+        @Deprecated
         public boolean maybeCompact(boolean cleanup) {
             throw new UnsupportedOperationException("Read Only Store");
         }
@@ -1480,6 +1527,7 @@ public class FileStore implements SegmentStore {
         private final SegmentNodeState after;
         private final Compactor compactor;
 
+        @Deprecated
         public SetHead(SegmentNodeState before, SegmentNodeState after, Compactor compactor) {
             this.before = before;
             this.after = after;
@@ -1487,6 +1535,7 @@ public class FileStore implements SegmentStore {
         }
 
         @Override
+        @Deprecated
         public Boolean call() throws Exception {
             // When used in conjunction with the SegmentNodeStore, this method
             // needs to be called inside the commitSemaphore as doing otherwise
@@ -1509,6 +1558,7 @@ public class FileStore implements SegmentStore {
         }
     }
 
+    @Deprecated
     public SegmentVersion getVersion() {
         return version;
     }

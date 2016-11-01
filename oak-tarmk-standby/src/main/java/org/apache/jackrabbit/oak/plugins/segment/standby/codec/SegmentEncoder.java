@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+@Deprecated
 public class SegmentEncoder extends MessageToByteEncoder<Segment> {
 
     /**
@@ -52,6 +53,7 @@ public class SegmentEncoder extends MessageToByteEncoder<Segment> {
     private int EXTRA_HEADERS_WO_SIZE = EXTRA_HEADERS_LEN - 4;
 
     @Override
+    @Deprecated
     protected void encode(ChannelHandlerContext ctx, Segment s, ByteBuf out)
             throws Exception {
         SegmentId id = s.getSegmentId();

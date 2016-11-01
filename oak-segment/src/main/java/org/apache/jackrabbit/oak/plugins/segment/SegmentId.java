@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
  * segments. Data segments have a header and may reference other segments; bulk
  * segments do not.
  */
+@Deprecated
 public class SegmentId implements Comparable<SegmentId> {
 
     /** Logger instance */
@@ -54,6 +55,7 @@ public class SegmentId implements Comparable<SegmentId> {
      *
      * @return {@code true} for a data segment, {@code false} otherwise
      */
+    @Deprecated
     public static boolean isDataSegmentId(long lsb) {
         return (lsb >>> 60) == 0xAL;
     }
@@ -84,6 +86,7 @@ public class SegmentId implements Comparable<SegmentId> {
         this.creationTime = creationTime;
     }
 
+    @Deprecated
     public SegmentId(SegmentTracker tracker, long msb, long lsb) {
         this(tracker, msb, lsb, null, System.currentTimeMillis());
     }
@@ -93,6 +96,7 @@ public class SegmentId implements Comparable<SegmentId> {
      *
      * @return {@code true} for a data segment, {@code false} otherwise
      */
+    @Deprecated
     public boolean isDataSegmentId() {
         return isDataSegmentId(lsb);
     }
@@ -102,18 +106,22 @@ public class SegmentId implements Comparable<SegmentId> {
      *
      * @return {@code true} for a bulk segment, {@code false} otherwise
      */
+    @Deprecated
     public boolean isBulkSegmentId() {
         return (lsb >>> 60) == 0xBL;
     }
 
+    @Deprecated
     public boolean equals(long msb, long lsb) {
         return this.msb == msb && this.lsb == lsb;
     }
 
+    @Deprecated
     public long getMostSignificantBits() {
         return msb;
     }
 
+    @Deprecated
     public long getLeastSignificantBits() {
         return lsb;
     }
@@ -130,6 +138,7 @@ public class SegmentId implements Comparable<SegmentId> {
         return random = 0xc3e157c1 - rotateLeft(random, 19);
     }
 
+    @Deprecated
     public Segment getSegment() {
         // Sample the segment cache once in a while to get some cache hit/miss statistics
         if ((randomInt() & SEGMENT_CACHE_SAMPLE_MASK) == 0) {
@@ -157,10 +166,12 @@ public class SegmentId implements Comparable<SegmentId> {
         this.segment = segment;
     }
 
+    @Deprecated
     public SegmentTracker getTracker() {
         return tracker;
     }
 
+    @Deprecated
     public long getCreationTime() {
         return creationTime;
     }
@@ -175,6 +186,7 @@ public class SegmentId implements Comparable<SegmentId> {
     /**
      * @return  this segment id as UUID
      */
+    @Deprecated
     public UUID asUUID() {
         return new UUID(msb, lsb);
     }
@@ -182,6 +194,7 @@ public class SegmentId implements Comparable<SegmentId> {
     // --------------------------------------------------------< Comparable >--
 
     @Override
+    @Deprecated
     public int compareTo(SegmentId that) {
         int d = Long.valueOf(this.msb).compareTo(Long.valueOf(that.msb));
         if (d == 0) {
@@ -193,11 +206,13 @@ public class SegmentId implements Comparable<SegmentId> {
     // ------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public String toString() {
         return new UUID(msb, lsb).toString();
     }
 
     @Override
+    @Deprecated
     public boolean equals(Object object) {
         if (this == object) {
             return true;
@@ -209,6 +224,7 @@ public class SegmentId implements Comparable<SegmentId> {
     }
 
     @Override
+    @Deprecated
     public int hashCode() {
         return (int) lsb;
     }

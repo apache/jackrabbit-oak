@@ -42,6 +42,7 @@ import com.google.common.collect.Maps;
 /**
  * A store used for in-memory operations.
  */
+@Deprecated
 public class MemoryStore implements SegmentStore {
 
     private final SegmentTracker tracker = new SegmentTracker(this, 16, SegmentVersion.V_11);
@@ -51,6 +52,7 @@ public class MemoryStore implements SegmentStore {
     private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
 
+    @Deprecated
     public MemoryStore(NodeState root) throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
@@ -60,21 +62,25 @@ public class MemoryStore implements SegmentStore {
         writer.flush();
     }
 
+    @Deprecated
     public MemoryStore() throws IOException {
         this(EMPTY_NODE);
     }
 
     @Override
+    @Deprecated
     public SegmentTracker getTracker() {
         return tracker;
     }
 
     @Override
+    @Deprecated
     public synchronized SegmentNodeState getHead() {
         return head;
     }
 
     @Override
+    @Deprecated
     public synchronized boolean setHead(SegmentNodeState base, SegmentNodeState head) {
         if (this.head.getRecordId().equals(base.getRecordId())) {
             this.head = head;
@@ -85,11 +91,13 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public boolean containsSegment(SegmentId id) {
         return id.getTracker() == tracker || segments.containsKey(id);
     }
 
     @Override @Nonnull
+    @Deprecated
     public Segment readSegment(SegmentId id) {
         Segment segment = segments.get(id);
         if (segment != null) {
@@ -99,6 +107,7 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void writeSegment(
             SegmentId id, byte[] data, int offset, int length) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(length);
@@ -111,20 +120,24 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void close() {
     }
 
     @Override
+    @Deprecated
     public Blob readBlob(String reference) {
         return null;
     }
 
     @Override
+    @Deprecated
     public BlobStore getBlobStore() {
         return null;
     }
 
     @Override
+    @Deprecated
     public void gc() {
         System.gc();
         segments.keySet().retainAll(tracker.getReferencedSegmentIds());

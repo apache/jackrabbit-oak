@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Hash table of weak references to segment identifiers.
  */
+@Deprecated
 public class SegmentIdTable {
 
     /**

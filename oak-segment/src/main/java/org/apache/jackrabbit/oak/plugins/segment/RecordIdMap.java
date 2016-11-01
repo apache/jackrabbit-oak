@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 /**
  * A memory optimised map of {@code short} key to {@link RecordId} values.
  */
+@Deprecated
 public class RecordIdMap {
     private static final short[] NO_KEYS = new short[0];
     private static final RecordId[] NO_VALUES = new RecordId[0];
@@ -41,6 +42,7 @@ public class RecordIdMap {
      * @param value
      * @return  {@code true} if added, {@code false} if already present
      */
+    @Deprecated
     public boolean put(short key, @Nonnull RecordId value) {
         if (keys.length == 0) {
             keys = new short[1];
@@ -78,6 +80,7 @@ public class RecordIdMap {
      * @return  the value associated with a given {@code key} or {@code null} if none.
      */
     @CheckForNull
+    @Deprecated
     public RecordId get(short key) {
         int k = binarySearch(keys, key);
         if (k >= 0) {
@@ -92,6 +95,7 @@ public class RecordIdMap {
      * @param key  the key to check for
      * @return  {@code true} iff {@code key} is present.
      */
+    @Deprecated
     public boolean containsKey(short key) {
         return binarySearch(keys, key) >= 0;
     }
@@ -99,6 +103,7 @@ public class RecordIdMap {
     /**
      * @return the number of keys in this map
      */
+    @Deprecated
     public int size() {
         return keys.length;
     }
@@ -110,6 +115,7 @@ public class RecordIdMap {
      * @return the key at {@code index}
      * @throws ArrayIndexOutOfBoundsException if not {@code 0 <= index < size()}
      */
+    @Deprecated
     public short getKey(int index) {
         return keys[index];
     }
@@ -122,6 +128,7 @@ public class RecordIdMap {
      * @throws ArrayIndexOutOfBoundsException if not {@code 0 <= index < size()}
      */
     @Nonnull
+    @Deprecated
     public RecordId getRecordId(int index) {
         return values[index];
     }

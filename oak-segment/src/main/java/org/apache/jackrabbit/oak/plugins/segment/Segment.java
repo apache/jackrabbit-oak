@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
  * <p>
  * This class includes method to read records from the raw bytes.
  */
+@Deprecated
 public class Segment {
 
     /**
@@ -78,6 +79,7 @@ public class Segment {
      * The number of bytes (or bits of address space) to use for the
      * alignment boundary of segment records.
      */
+    @Deprecated
     public static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
     /**
@@ -87,6 +89,7 @@ public class Segment {
      * at four-byte boundaries, the two bytes can address up to 256kB of
      * record data.
      */
+    @Deprecated
     public static final int MAX_SEGMENT_SIZE = 1 << (16 + RECORD_ALIGN_BITS); // 256kB
 
     /**
@@ -103,6 +106,7 @@ public class Segment {
      * value. And since small values are never stored as medium ones, we can
      * extend the size range to cover that many longer values.
      */
+    @Deprecated
     public static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
     /**
@@ -112,8 +116,10 @@ public class Segment {
      * and the actual length of the blob ID, a maximum of 2^12 values can be
      * stored in the length field.
      */
+    @Deprecated
     public static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
 
+    @Deprecated
     public static final int REF_COUNT_OFFSET = 5;
 
     static final int ROOT_COUNT_OFFSET = 6;
@@ -175,6 +181,7 @@ public class Segment {
      * @param offset  4 byte aligned segment offset
      * @return decoded segment offset
      */
+    @Deprecated
     public static int decode(short offset) {
         return (offset & 0xffff) << RECORD_ALIGN_BITS;
     }
@@ -184,6 +191,7 @@ public class Segment {
      * @param offset  segment offset
      * @return  encoded segment offset packed into a {@code short}
      */
+    @Deprecated
     public static short encode(int offset) {
         return (short) (offset >> RECORD_ALIGN_BITS);
     }
@@ -196,14 +204,17 @@ public class Segment {
      * @return  {@code n = address + a} such that {@code n % boundary == 0} and
      *          {@code 0 <= a < boundary}.
      */
+    @Deprecated
     public static int align(int address, int boundary) {
         return (address + boundary - 1) & ~(boundary - 1);
     }
 
+    @Deprecated
     public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
         this(tracker, id, data, V_11);
     }
 
+    @Deprecated
     public Segment(SegmentTracker tracker, final SegmentId id, final ByteBuffer data, SegmentVersion version) {
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
@@ -297,6 +308,7 @@ public class Segment {
         return pos;
     }
 
+    @Deprecated
     public SegmentId getSegmentId() {
         return id;
     }
@@ -305,16 +317,19 @@ public class Segment {
         return (data.get(REF_COUNT_OFFSET) & 0xff) + 1;
     }
 
+    @Deprecated
     public int getRootCount() {
         return data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
     }
 
+    @Deprecated
     public RecordType getRootType(int index) {
         int refCount = getRefCount();
         checkArgument(index < getRootCount());
         return RecordType.values()[data.get(data.position() + refCount * 16 + index * 3) & 0xff];
     }
 
+    @Deprecated
     public int getRootOffset(int index) {
         int refCount = getRefCount();
         checkArgument(index < getRootCount());
@@ -338,6 +353,7 @@ public class Segment {
      * @return the segment meta data
      */
     @CheckForNull
+    @Deprecated
     public String getSegmentInfo() {
         if (getRootCount() == 0) {
             return null;
@@ -373,6 +389,7 @@ public class Segment {
         return refid;
     }
 
+    @Deprecated
     public List<SegmentId> getReferencedIds() {
         int refcount = getRefCount();
         List<SegmentId> ids = newArrayListWithCapacity(refcount);
@@ -382,10 +399,12 @@ public class Segment {
         return ids;
     }
 
+    @Deprecated
     public int size() {
         return data.remaining();
     }
 
+    @Deprecated
     public long getCacheSize() {
         int size = 1024;
         if (!data.isDirect()) {
@@ -403,6 +422,7 @@ public class Segment {
      * @param stream stream to which this segment will be written
      * @throws IOException on an IO error
      */
+    @Deprecated
     public void writeTo(OutputStream stream) throws IOException {
         ByteBuffer buffer = data.duplicate();
         WritableByteChannel channel = Channels.newChannel(stream);
@@ -662,6 +682,7 @@ public class Segment {
     //------------------------------------------------------------< Object >--
 
     @Override
+    @Deprecated
     public String toString() {
         StringWriter string = new StringWriter();
         PrintWriter writer = new PrintWriter(string);

@@ -33,6 +33,7 @@ import java.util.Set;
  * space taken by the records is taken into account. Slack
  * space from aligning records is not accounted for.
  */
+@Deprecated
 public class RecordUsageAnalyser extends SegmentParser {
     private final RecordIdSet seenIds = new RecordIdSet();
     private final Set<String> deadLinks = newHashSet();
@@ -60,6 +61,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of bytes in {@link RecordType#LEAF leaf} and {@link RecordType#BRANCH branch}
      * records.
      */
+    @Deprecated
     public long getMapSize() {
         return mapSize;
     }
@@ -68,6 +70,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of bytes in {@link RecordType#LIST list} and {@link RecordType#BUCKET bucket}
      * records.
      */
+    @Deprecated
     public long getListSize() {
         return listSize;
     }
@@ -75,6 +78,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of bytes in inlined values (strings and blobs)
      */
+    @Deprecated
     public long getValueSize() {
         return valueSize;
     }
@@ -82,6 +86,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of bytes in {@link RecordType#TEMPLATE template} records.
      */
+    @Deprecated
     public long getTemplateSize() {
         return templateSize;
     }
@@ -89,6 +94,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of bytes in {@link RecordType#NODE node} records.
      */
+    @Deprecated
     public long getNodeSize() {
         return nodeSize;
     }
@@ -96,6 +102,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of maps
      */
+    @Deprecated
     public long getMapCount() {
         return mapCount;
     }
@@ -103,6 +110,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of lists
      */
+    @Deprecated
     public long getListCount() {
         return listCount;
     }
@@ -110,6 +118,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of properties
      */
+    @Deprecated
     public long getPropertyCount() {
         return propertyCount;
     }
@@ -118,6 +127,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of {@link Segment#SMALL_LIMIT small} blobs.
      *
      */
+    @Deprecated
     public long getSmallBlobCount() {
         return smallBlobCount;
     }
@@ -126,6 +136,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of {@link Segment#MEDIUM_LIMIT medium} blobs.
      *
      */
+    @Deprecated
     public long getMediumBlobCount() {
         return mediumBlobCount;
     }
@@ -134,6 +145,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of long blobs.
      *
      */
+    @Deprecated
     public long getLongBlobCount() {
         return longBlobCount;
     }
@@ -142,6 +154,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of external blobs.
      *
      */
+    @Deprecated
     public long getExternalBlobCount() {
         return externalBlobCount;
     }
@@ -150,6 +163,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of {@link Segment#SMALL_LIMIT small} strings.
      *
      */
+    @Deprecated
     public long getSmallStringCount() {
         return smallStringCount;
     }
@@ -158,6 +172,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of {@link Segment#MEDIUM_LIMIT medium} strings.
      *
      */
+    @Deprecated
     public long getMediumStringCount() {
         return mediumStringCount;
     }
@@ -166,6 +181,7 @@ public class RecordUsageAnalyser extends SegmentParser {
      * @return number of long strings.
      *
      */
+    @Deprecated
     public long getLongStringCount() {
         return longStringCount;
     }
@@ -173,6 +189,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of templates.
      */
+    @Deprecated
     public long getTemplateCount() {
         return templateCount;
     }
@@ -180,15 +197,18 @@ public class RecordUsageAnalyser extends SegmentParser {
     /**
      * @return number of nodes.
      */
+    @Deprecated
     public long getNodeCount() {
         return nodeCount;
     }
 
+    @Deprecated
     public void analyseNode(RecordId nodeId) {
         onNode(null, nodeId);
     }
 
     @Override
+    @Deprecated
     public String toString() {
         StringBuilder sb = new StringBuilder();
         @SuppressWarnings("resource")

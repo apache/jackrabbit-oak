@@ -45,6 +45,7 @@ import org.apache.jackrabbit.stats.TimeSeriesRecorder;
  * second to ensure the various time series maintained by this implementation
  * are correctly aggregated.
  */
+@Deprecated
 public class FileStoreGCMonitor extends AnnotatedStandardMBean
         implements GCMonitor, GCMonitorMBean, Runnable {
     private final TimeSeriesRecorder gcCount = new TimeSeriesRecorder(true);
@@ -61,6 +62,7 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     private String lastError;
     private String status = "NA";
 
+    @Deprecated
     public FileStoreGCMonitor(@Nonnull Clock clock) {
         super(GCMonitorMBean.class);
         this.clock = checkNotNull(clock);
@@ -69,6 +71,7 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     //------------------------------------------------------------< Runnable >---
 
     @Override
+    @Deprecated
     public void run() {
         gcCount.recordOneSecond();
         repositorySize.recordOneSecond();
@@ -78,16 +81,19 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     //------------------------------------------------------------< GCMonitor >---
 
     @Override
+    @Deprecated
     public void info(String message, Object... arguments) {
         status = arrayFormat(message, arguments).getMessage();
     }
 
     @Override
+    @Deprecated
     public void warn(String message, Object... arguments) {
         status = arrayFormat(message, arguments).getMessage();
     }
 
     @Override
+    @Deprecated
     public void error(String message, Exception exception) {
         StringWriter sw = new StringWriter();
         sw.write(message + ": ");
@@ -96,16 +102,19 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     }
 
     @Override
+    @Deprecated
     public void skipped(String reason, Object... arguments) {
         status = arrayFormat(reason, arguments).getMessage();
     }
 
     @Override
+    @Deprecated
     public void compacted() {
         lastCompaction = clock.getTime();
     }
 
     @Override
+    @Deprecated
     public void cleaned(long reclaimed, long current) {
         lastCleanup = clock.getTime();
         gcCount.getCounter().addAndGet(1);
@@ -116,11 +125,13 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     //------------------------------------------------------------< GCMonitorMBean >---
 
     @Override
+    @Deprecated
     public String getLastCompaction() {
         return toString(lastCompaction);
     }
 
     @Override
+    @Deprecated
     public String getLastCleanup() {
         return toString(lastCleanup);
     }
@@ -134,17 +145,20 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
     }
 
     @Override
+    @Deprecated
     public String getLastError() {
         return lastError;
     }
 
     @Nonnull
     @Override
+    @Deprecated
     public String getStatus() {
         return status;
     }
 
     @Override
+    @Deprecated
     public String getCompactionMapStats() {
         StringBuilder sb = new StringBuilder();
         String sep = "";
@@ -163,12 +177,14 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
 
     @Nonnull
     @Override
+    @Deprecated
     public CompositeData getRepositorySize() {
         return asCompositeData(repositorySize, "RepositorySize");
     }
 
     @Nonnull
     @Override
+    @Deprecated
     public CompositeData getReclaimedSize() {
         return asCompositeData(reclaimedSize, "ReclaimedSize");
     }

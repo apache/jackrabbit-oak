@@ -24,20 +24,24 @@ import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 /**
  * This exception is thrown when there the segment does not exist in the store
  */
+@Deprecated
 public class SegmentNotFoundException extends IllegalRepositoryStateException {
 
     private final String segmentId;
 
+    @Deprecated
     public SegmentNotFoundException(SegmentId id) {
         super("Segment " + id + " not found");
         this.segmentId = id.toString();
     }
 
+    @Deprecated
     public SegmentNotFoundException(SegmentId id, Throwable e) {
         super("Segment " + id + " not found", e);
         this.segmentId = id.toString();
     }
 
+    @Deprecated
     public String getSegmentId() {
         return segmentId;
     }

@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Sharable
+@Deprecated
 public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
 
     private static final Logger log = LoggerFactory
@@ -49,8 +50,10 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
     private final SegmentStore store;
     private final CommunicationObserver observer;
     private final String[] allowedIPRanges;
+    @Deprecated
     public String state;
 
+    @Deprecated
     public StandbyServerHandler(SegmentStore store, CommunicationObserver observer, String[] allowedIPRanges) {
         this.store = store;
         this.observer = observer;
@@ -102,30 +105,35 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
     }
 
     @Override
+    @Deprecated
     public void channelRegistered(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
         state = "channel registered";
         super.channelRegistered(ctx);
     }
 
     @Override
+    @Deprecated
     public void channelActive(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
         state = "channel active";
         super.channelActive(ctx);
     }
 
     @Override
+    @Deprecated
     public void channelInactive(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
         state = "channel inactive";
         super.channelInactive(ctx);
     }
 
     @Override
+    @Deprecated
     public void channelUnregistered(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
         state = "channel unregistered";
         super.channelUnregistered(ctx);
     }
 
     @Override
+    @Deprecated
     public void channelRead0(ChannelHandlerContext ctx, String payload)
             throws Exception {
         state = "got message";
@@ -188,11 +196,13 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
     }
 
     @Override
+    @Deprecated
     public void channelReadComplete(ChannelHandlerContext ctx) {
         ctx.flush();
     }
 
     @Override
+    @Deprecated
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         state = "exception occurred: " + cause.getMessage();
         boolean isReadTimeout = cause.getMessage() != null

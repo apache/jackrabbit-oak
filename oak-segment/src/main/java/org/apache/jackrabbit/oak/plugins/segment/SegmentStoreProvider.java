@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+@Deprecated
 public interface SegmentStoreProvider {
 
+    @Deprecated
     SegmentStore getSegmentStore();
 }

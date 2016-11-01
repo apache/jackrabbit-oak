@@ -22,15 +22,18 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.concurrent.Promise;
 
+@Deprecated
 public class FailedRequestListener implements ChannelFutureListener {
 
     private final Promise<?> promise;
 
+    @Deprecated
     public FailedRequestListener(Promise<?> promise) {
         this.promise = promise;
     }
 
     @Override
+    @Deprecated
     public void operationComplete(ChannelFuture future) throws Exception {
         if (!future.isSuccess()) {
             promise.setFailure(future.cause());

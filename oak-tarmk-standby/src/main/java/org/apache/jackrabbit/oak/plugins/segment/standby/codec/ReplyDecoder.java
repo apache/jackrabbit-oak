@@ -38,10 +38,17 @@ import org.slf4j.LoggerFactory;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+@Deprecated
 public class ReplyDecoder extends ReplayingDecoder<DecodingState> {
 
+    @Deprecated
     public enum DecodingState {
-        HEADER, SEGMENT, BLOB
+        @Deprecated
+        HEADER,
+        @Deprecated
+        SEGMENT,
+        @Deprecated
+        BLOB
     }
 
     private static final Logger log = LoggerFactory
@@ -52,11 +59,13 @@ public class ReplyDecoder extends ReplayingDecoder<DecodingState> {
     private int length = -1;
     private byte type = -1;
 
+    @Deprecated
     public ReplyDecoder(SegmentStore store) {
         super(DecodingState.HEADER);
         this.store = store;
     }
 
+    @Deprecated
     private void reset() {
         checkpoint(DecodingState.HEADER);
         length = -1;
@@ -64,6 +73,7 @@ public class ReplyDecoder extends ReplayingDecoder<DecodingState> {
     }
 
     @Override
+    @Deprecated
     protected void decode(ChannelHandlerContext ctx, ByteBuf in,
             List<Object> out) throws Exception {
 

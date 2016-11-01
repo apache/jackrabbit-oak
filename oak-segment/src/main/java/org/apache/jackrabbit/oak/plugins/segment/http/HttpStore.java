@@ -43,6 +43,7 @@ import com.google.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
+@Deprecated
 public class HttpStore implements SegmentStore {
 
     private final SegmentTracker tracker = new SegmentTracker(this);
@@ -54,11 +55,13 @@ public class HttpStore implements SegmentStore {
      *            make sure the url ends with a slash "/", otherwise the
      *            requests will end up as absolute instead of relative
      */
+    @Deprecated
     public HttpStore(URL base) {
         this.base = base;
     }
 
     @Override
+    @Deprecated
     public SegmentTracker getTracker() {
         return tracker;
     }
@@ -80,6 +83,7 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public SegmentNodeState getHead() {
         try {
             URLConnection connection = get(null);
@@ -102,17 +106,20 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
         // TODO throw new UnsupportedOperationException();
         return true;
     }
 
     @Override
+    @Deprecated
     public boolean containsSegment(SegmentId id) {
         return id.getTracker() == tracker || readSegment(id) != null;
     }
 
     @Override
+    @Deprecated
     public Segment readSegment(SegmentId id) {
         try {
             URLConnection connection = get(id.toString());
@@ -131,6 +138,7 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void writeSegment(
             SegmentId id, byte[] bytes, int offset, int length) throws IOException {
         try {
@@ -149,20 +157,24 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
+    @Deprecated
     public void close() {
     }
 
     @Override @CheckForNull
+    @Deprecated
     public Blob readBlob(String reference) {
         return null;
     }
 
     @Override @CheckForNull
+    @Deprecated
     public BlobStore getBlobStore() {
         return null;
     }
 
     @Override
+    @Deprecated
     public void gc() {
         // TODO: distributed gc
     }

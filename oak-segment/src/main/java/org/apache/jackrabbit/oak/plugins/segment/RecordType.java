@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 /**
  * The type of a record in a segment.
  */
+@Deprecated
 public enum RecordType {
 
     /**
@@ -29,6 +30,7 @@ public enum RecordType {
      * the key and the record id of the value</li>
      * </ul>
      */
+    @Deprecated
     LEAF,
 
     /**
@@ -52,6 +54,7 @@ public enum RecordType {
      * </ul>
      * There is only ever one single diff record for a map.
      */
+    @Deprecated
     BRANCH,
 
     /**
@@ -61,6 +64,7 @@ public enum RecordType {
      * This contains just the record ids. The size of the list is not stored, as
      * it is stored along with the reference to this record.
      */
+    @Deprecated
     BUCKET,
 
     /**
@@ -71,6 +75,7 @@ public enum RecordType {
      * entries in the list, then the list is partitioned into sublists of 255
      * entries each, which are stored kind of recursively.
      */
+    @Deprecated
     LIST,
 
     /**
@@ -82,12 +87,14 @@ public enum RecordType {
      * <p>
      * Therefore, a value can reference other records.
      */
+    @Deprecated
     VALUE,
 
     /**
      * A block of bytes (a binary value, or a part of a binary value, or part of
      * large strings). It only contains the raw data.
      */
+    @Deprecated
     BLOCK,
 
     /**
@@ -108,6 +115,7 @@ public enum RecordType {
      * values for multi-value properties).</li>
      * </ul>
      */
+    @Deprecated
     TEMPLATE,
 
     /**
@@ -121,6 +129,7 @@ public enum RecordType {
      * pointer to the list record)</li>
      * </ul>
      */
+    @Deprecated
     NODE
 
 }

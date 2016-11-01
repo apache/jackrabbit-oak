@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implements RemoteSegmentLoader {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentLoaderHandler.class);
@@ -62,6 +63,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     // I/O requests.
     private ExecutorService syncExecutor;
 
+    @Deprecated
     public SegmentLoaderHandler(StandbyStore store, RecordId head, String clientID, AtomicBoolean running, int readTimeoutMs, boolean autoClean) {
         this.store = store;
         this.head = head;
@@ -73,23 +75,27 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     }
 
     @Override
+    @Deprecated
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
     }
 
     @Override
+    @Deprecated
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("Exception caught, closing channel.", cause);
         close();
     }
 
     @Override
+    @Deprecated
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         syncExecutor.shutdown();
         syncExecutor = null;
     }
 
     @Override
+    @Deprecated
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof SegmentReply) {
             onSegmentReply((SegmentReply) evt);
@@ -173,6 +179,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     }
 
     @Override
+    @Deprecated
     public Segment readSegment(final String id) {
         // Use the I/O thread to write the request to the server
         ctx.writeAndFlush(newGetSegmentReq(this.clientID, id));
@@ -181,6 +188,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     }
 
     @Override
+    @Deprecated
     public Blob readBlob(String blobId) {
         // Use the I/O thread to write the request to the server
         ctx.writeAndFlush(newGetBlobReq(this.clientID, blobId));
@@ -236,16 +244,19 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter implement
     }
 
     @Override
+    @Deprecated
     public void close() {
         ctx.close();
     }
 
     @Override
+    @Deprecated
     public boolean isClosed() {
         return !ctx.channel().isActive();
     }
 
     @Override
+    @Deprecated
     public boolean isRunning() {
         return running.get();
     }

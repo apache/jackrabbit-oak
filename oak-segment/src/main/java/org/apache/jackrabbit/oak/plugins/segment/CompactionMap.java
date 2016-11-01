@@ -34,11 +34,13 @@ import javax.annotation.Nonnull;
  * instances. Operations performed on this map are delegated back to the individual
  * maps.
  */
+@Deprecated
 public class CompactionMap {
 
     /**
      * An empty map.
      */
+    @Deprecated
     public static final CompactionMap EMPTY =
             new CompactionMap(Collections.<PartialCompactionMap>emptyList(), 0);
 
@@ -64,6 +66,7 @@ public class CompactionMap {
      * @param after  after record identifier
      * @return whether {@code before} was compacted to {@code after}
      */
+    @Deprecated
     public boolean wasCompactedTo(@Nonnull RecordId before, @Nonnull RecordId after) {
         for (PartialCompactionMap map : maps) {
             if (map.wasCompactedTo(before, after)) {
@@ -80,6 +83,7 @@ public class CompactionMap {
      * @param id segment identifier
      * @return whether the identified segment was compacted
      */
+    @Deprecated
     public boolean wasCompacted(@Nonnull UUID id) {
         for (PartialCompactionMap map : maps) {
             if (map.wasCompacted(id)) {
@@ -96,6 +100,7 @@ public class CompactionMap {
      * @return after record id or {@code null}
      */
     @CheckForNull
+    @Deprecated
     public RecordId get(@Nonnull RecordId before) {
         for (PartialCompactionMap map : maps) {
             RecordId after = map.get(before);
@@ -110,6 +115,7 @@ public class CompactionMap {
      * Remove all keys from this map where {@code keys.contains(key.asUUID())}.
      * @param uuids  uuids of the keys to remove
      */
+    @Deprecated
     public void remove(@Nonnull Set<UUID> uuids) {
         for (PartialCompactionMap map : maps) {
             map.remove(uuids);
@@ -123,6 +129,7 @@ public class CompactionMap {
      * @return a new {@code CompactionMap} instance
      */
     @Nonnull
+    @Deprecated
     public CompactionMap cons(@Nonnull PartialCompactionMap head) {
         List<PartialCompactionMap> maps = newArrayList(head);
         for (PartialCompactionMap map : this.maps) {
@@ -138,6 +145,7 @@ public class CompactionMap {
      * @param longs
      * @return sum of the passed {@code longs}
      */
+    @Deprecated
     public static long sum(long[] longs) {
         long sum = 0;
         for (long x : longs) {
@@ -153,10 +161,12 @@ public class CompactionMap {
      * @return the depth of this compaction map
      * @see #cons(PartialCompactionMap)
      */
+    @Deprecated
     public int getDepth() {
         return maps.size();
     }
 
+    @Deprecated
     public int getGeneration() {
         return generation;
     }
@@ -165,6 +175,7 @@ public class CompactionMap {
      * The weight of the compaction map is its  memory consumption bytes
      * @return Estimated weight of the compaction map
      */
+    @Deprecated
     public long[] getEstimatedWeights() {
         long[] weights = new long[maps.size()];
         int c = 0;
@@ -179,6 +190,7 @@ public class CompactionMap {
      * be based on the compressed part of the individual maps.
      * @return  number of segments
      */
+    @Deprecated
     public long[] getSegmentCounts() {
         long[] counts = new long[maps.size()];
         int c = 0;
@@ -193,6 +205,7 @@ public class CompactionMap {
      * be based on the compressed part of the  individual maps.
      * @return  number of records
      */
+    @Deprecated
     public long[] getRecordCounts() {
         long[] counts = new long[maps.size()];
         int c = 0;

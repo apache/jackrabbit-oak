@@ -34,9 +34,11 @@ import com.google.common.io.ByteStreams;
 /**
  * For reading any record of type "VALUE" as binary streams.
  */
+@Deprecated
 public class SegmentStream extends InputStream {
 
     @CheckForNull
+    @Deprecated
     public static RecordId getRecordIdIfAvailable(
             InputStream stream, SegmentStore store) {
         if (stream instanceof SegmentStream) {
@@ -77,10 +79,12 @@ public class SegmentStream extends InputStream {
         this.length = inline.length;
     }
 
+    @Deprecated
     public long getLength() {
         return length;
     }
 
+    @Deprecated
     public String getString() {
         if (inline != null) {
             return new String(inline, Charsets.UTF_8);
@@ -101,21 +105,25 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
+    @Deprecated
     public boolean markSupported() {
         return true;
     }
 
     @Override
+    @Deprecated
     public synchronized void mark(int readlimit) {
         mark = position;
     }
 
     @Override
+    @Deprecated
     public synchronized void reset() {
         position = mark;
     }
 
     @Override
+    @Deprecated
     public int read() {
         byte[] b = new byte[1];
         if (read(b, 0, 1) != -1) {
@@ -126,6 +134,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
+    @Deprecated
     public int read(byte[] b, int off, int len) {
         checkNotNull(b);
         checkPositionIndexes(off, off + len, b.length);
@@ -185,6 +194,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
+    @Deprecated
     public long skip(long n) {
         if (position + n > length) {
             n = length - position;
@@ -196,6 +206,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
+    @Deprecated
     public int available() {
         if (inline != null) {
             return (int) (length - position); // <= inline.length
@@ -205,6 +216,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
+    @Deprecated
     public void close() {
         position = length;
     }
