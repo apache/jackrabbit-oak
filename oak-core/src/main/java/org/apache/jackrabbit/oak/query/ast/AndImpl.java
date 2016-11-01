@@ -26,10 +26,12 @@ import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementA
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -217,11 +219,61 @@ public class AndImpl extends ConstraintImpl {
         }
         return new AndImpl(clone);
     }
+    
+    public void addToUnionList(Set<ConstraintImpl> target) {
+        // conditions of type
+        // @a = 1 and (@x = 1 or @y = 2)
+        // are automatically converted to
+        // (@a = 1 and @x = 1) union (@a = 1 and @y = 2)
+        AndImpl and = pullOrRight();
+        ConstraintImpl last = and.getLastConstraint();
+        if (last instanceof OrImpl) {
+            OrImpl or = (OrImpl) last;
+            // same as above, but with the added "and"
+            for(ConstraintImpl c : or.getConstraints()) {
+                ArrayList<ConstraintImpl> list = and.getFirstConstraints();
+                list.add(c);
+                new AndImpl(list).addToUnionList(target);
+            }
+            return;
+        }
+        target.add(this);
+    }
+    
+    private ArrayList<ConstraintImpl> getFirstConstraints() {
+        ArrayList<ConstraintImpl> list = new ArrayList<ConstraintImpl>(constraints.size() - 1);
+        list.addAll(constraints.subList(0, constraints.size() - 1));
+        return list;
+    }
+    
+    private ConstraintImpl getLastConstraint() {
+        return constraints.get(constraints.size() - 1);
+    }
+    
+    public AndImpl pullOrRight() {
+        if (getLastConstraint() instanceof OrImpl) {
+            return this;
+        }
+        for (int i = 0; i < constraints.size() - 1; i++) {
+            ConstraintImpl c = constraints.get(i);
+            if (c instanceof OrImpl) {
+                ArrayList<ConstraintImpl> list = new ArrayList<ConstraintImpl>();
+                list.addAll(constraints);
+                list.remove(i);
+                list.add(c);
+                return new AndImpl(list);
+            }
+        }
+        return this;
+    }
 
     @Override
     public Set<ConstraintImpl> convertToUnion() {
-        Set<ConstraintImpl> union = Sets.newHashSet();
-        Set<ConstraintImpl> result = Sets.newHashSet();
+        // use linked hash sets where needed, so that the order of queries
+        // within the UNION is always the same (independent of the JVM
+        // implementation)
+        Set<ConstraintImpl> union = Sets.newLinkedHashSet();
+        Set<ConstraintImpl> result = Sets.newLinkedHashSet();
         Set<ConstraintImpl> nonUnion = Sets.newHashSet();
         
         for (ConstraintImpl c : constraints) {
@@ -240,11 +292,19 @@ public class AndImpl extends ConstraintImpl {
                 result.add(new AndImpl(c, right));
             }
         } else {
-            // in this case prefer to be conservative and don't optimize. This could happen when for
+            // This could happen when for
             // example: WHERE (a OR b) AND (c OR d).
-            // This should be translated into a AND c, a AND d, b AND c, b AND d.
+            // This can be translated into a AND c, a AND d, b AND c, b AND d.
+            if (QueryEngineSettings.SQL2_OPTIMIZATION_2) {
+                Set<ConstraintImpl> set = Sets.newLinkedHashSet();
+                addToUnionList(set);
+                if (set.size() == 1) {
+                    // not a union: same condition as before
+                    return Collections.emptySet();
+                }
+                return set;
+            }
         }
-        
         return result;
     }
     
