@@ -24,6 +24,9 @@ import java.util.Collection;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import aQute.bnd.annotation.ProviderType;
+
+@ProviderType
 public interface MountInfoProvider {
 
     /**
@@ -59,12 +62,15 @@ public interface MountInfoProvider {
 
     /**
      * Returns all mounts placed under the specified path
-     * 
+     *
      * @param path the path under which mounts are to be found
      * @return a collection of mounts, possibly empty
      */
     @Nonnull
     Collection<Mount> getMountsPlacedUnder(String path);
+
+    @Nonnull
+    Collection<Mount> getMountsPlacedDirectlyUnder(String path);
 
     /**
      * Returns the default mount
