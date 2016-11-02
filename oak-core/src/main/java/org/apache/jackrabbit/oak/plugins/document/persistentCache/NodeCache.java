@@ -304,9 +304,21 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     public void evicted(K key, V value, RemovalCause cause) {
         if (cache.isAsyncCache() && EVICTION_CAUSES.contains(cause) && value != null) {
-            // invalidations are handled separately
-            if (qualifiesToPersist(memCacheMetadata.remove(key))) {
-                writeQueue.addPut(key, value);
+            CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
+            boolean qualifiesToPersist = true;
+            if (metadata != null && metadata.isReadFromPersistentCache()) {
+                qualifiesToPersist = false;
+                stats.markPutRejectedAlreadyPersisted();
+            } else if (metadata != null && metadata.getAccessCount() < 1) {
+                qualifiesToPersist = false;
+                stats.markPutRejectedEntryNotUsed();
+            }
+
+            if (qualifiesToPersist) {
+                boolean addedToQueue = writeQueue.addPut(key, value);
+                if (!addedToQueue) {
+                    stats.markPutRejectedQueueFull();
+                }
             }
 
             long memory = 0L;
@@ -315,10 +327,6 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             stats.markBytesWritten(memory);
             stats.markPut();
         }
-    }
-
-    private boolean qualifiesToPersist(CacheMetadata.MetadataEntry metadata) {
-        return metadata == null || (!metadata.isReadFromPersistentCache() && metadata.getAccessCount() > 0);
     }
 
     public PersistentCacheStats getPersistentCacheStats() {
