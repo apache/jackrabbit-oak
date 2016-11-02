@@ -67,9 +67,7 @@ public class CacheActionDispatcher implements Runnable {
      *
      * @param action to be added
      */
-    void add(CacheAction<?, ?> action) {
-        if (!queue.offer(action)) {
-            LOG.trace("The queue is full, element {} has been rejected", action);
-        }
+    boolean add(CacheAction<?, ?> action) {
+        return queue.offer(action);
     }
 }
