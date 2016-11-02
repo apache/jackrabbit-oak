@@ -45,7 +45,7 @@ public class FullTextAnd extends FullTextExpression {
 
     @Override
     public FullTextExpression simplify() {
-        Set<FullTextExpression> set = FullTextOr.getSortedAndUniqueSet(list);
+        Set<FullTextExpression> set = FullTextOr.getUniqueSet(list);
         if (set.size() == 1) {
             return set.iterator().next();
         }

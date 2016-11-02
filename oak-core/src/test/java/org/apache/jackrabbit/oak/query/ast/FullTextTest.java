@@ -71,9 +71,11 @@ public class FullTextTest {
         assertEquals("\"-\"", convertPattern("- "));
         assertEquals("\"-\"", convertPattern("- -"));
         assertEquals("\"-\" \"hello\"", convertPattern("- hello"));
-        assertEquals("\"-\" \"hello\" \"world\"", convertPattern("hello - world"));
-        assertEquals("\"-\" \"hello\" \"world\"", convertPattern("hello  -  world"));
-        assertEquals("\"-\" \"hello\"", convertPattern("hello -"));
+        assertEquals("\"hello\" \"-\" \"world\"", convertPattern("hello - world"));
+        assertEquals("\"hello\" \"-\" \"world\"", convertPattern("hello  -  world"));
+        assertEquals("\"hello\" \"-\"", convertPattern("hello -"));
+        assertEquals("\"hello\" \"-\"", convertPattern("hello -"));
+        assertEquals("\"hello\" \"-\"", convertPattern("hello - hello"));
 
         assertTrue(test("-", "hello - world"));
         assertTrue(test("- ", "hello - world"));
