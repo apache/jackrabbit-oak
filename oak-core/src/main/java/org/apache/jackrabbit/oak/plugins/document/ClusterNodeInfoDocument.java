@@ -106,6 +106,11 @@ public class ClusterNodeInfoDocument extends Document {
         return Integer.parseInt(getId());
     }
 
+    @Override
+    public String toString() {
+        return format();
+    }
+
     /**
      * Returns all cluster node info documents currently available in the given
      * document store.
