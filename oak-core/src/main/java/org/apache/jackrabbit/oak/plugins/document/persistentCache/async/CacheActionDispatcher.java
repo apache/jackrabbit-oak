@@ -35,7 +35,7 @@ public class CacheActionDispatcher implements Runnable {
     /**
      * What's the length of the queue.
      */
-    static final int MAX_SIZE = 2048;
+    static final int MAX_SIZE = 16 * 1024;
 
     final BlockingQueue<CacheAction<?, ?>> queue = new ArrayBlockingQueue<CacheAction<?, ?>>(MAX_SIZE);
 
