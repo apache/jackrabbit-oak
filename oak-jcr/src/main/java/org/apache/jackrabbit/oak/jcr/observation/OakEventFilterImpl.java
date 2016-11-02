@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathHelper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -502,38 +503,13 @@ public class OakEventFilterImpl extends OakEventFilter {
     public OakEventFilter withNodeTypeAggregate(String[] nodeTypes, String[] relativeGlobPaths) {
         final Pattern[] relativePathPatterns = new Pattern[relativeGlobPaths.length];
         for (int i = 0; i < relativePathPatterns.length; i++) {
-            relativePathPatterns[i] = Pattern.compile(globAsRegex(relativeGlobPaths[i]));
+            relativePathPatterns[i] = Pattern.compile(GlobbingPathHelper.globAsRegex(relativeGlobPaths[i]));
         }
         aggregator(new NodeTypeAggregator(nodeTypes, relativePathPatterns));
 
         and(new NodeTypeAggregationFilter(nodeTypes, relativeGlobPaths));
 
         return this;
-    }
-
-    static String globAsRegex(String patternWithGlobs) {
-        if (patternWithGlobs == null) {
-            return null;
-        }
-        String[] starStarParts = patternWithGlobs.split("\\*\\*", -1);
-        StringBuffer sb = new StringBuffer();
-        sb.append("\\Q");
-        for (int i = 0; i < starStarParts.length; i++) {
-            if (i > 0) {
-                // the '**' regexp equivalent
-                sb.append("\\E.*\\Q");
-            }
-            String part = starStarParts[i];
-            if (part.startsWith("/")) {
-                part = part.substring(1);
-            }
-            if (part.endsWith("/")) {
-                part = part.substring(0, part.length() - 1);
-            }
-            sb.append(part.replace("*", "\\E[^/]*\\Q"));
-        }
-        sb.append("\\E");
-        return sb.toString();
     }
 
 }
