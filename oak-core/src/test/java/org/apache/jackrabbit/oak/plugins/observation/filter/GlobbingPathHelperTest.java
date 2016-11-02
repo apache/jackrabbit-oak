@@ -43,8 +43,20 @@ public class GlobbingPathHelperTest {
         assertMatches("**/bar/**", "/bar/foo");
         assertMatches("**/bar/**", "bar/foo/zoo");
         assertMatches("**/bar/**", "/bar/foo/zoo");
-    }
 
+        assertMatches("**/bar/**/foo", "bar/foo");
+        assertMatches("**/bar/**/foo", "/bar/foo");
+        
+        assertMatches("**/bar/**/foo", "a/bar/foo");
+        assertMatches("**/bar/**/foo", "/a/bar/foo");
+
+        assertMatches("**/bar/**/foo", "bar/b/foo");
+        assertMatches("**/bar/**/foo", "/bar/b/foo");
+
+        assertMatches("**/bar/**/foo", "bar/a/b/c/foo");
+        assertMatches("**/bar/**/foo", "/bar/a/b/c/foo");
+    }
+    
     @Test
     public void globSubPath2() throws Exception {
         assertMatches("foo", "foo");
@@ -54,40 +66,95 @@ public class GlobbingPathHelperTest {
         assertMatches("**", "foo/bar");
         assertMatches("**", "foo/bar/zoo");
         assertMatches("*.html", "foo.html");
+
+        // '*' doesnt match /
         assertDoesntMatch("*.html", "/foo.html");
+        
         assertMatches("**/*.html", "foo.html");
+        assertMatches("**/*.*", "foo.html");
+        assertDoesntMatch("**/*.*", "foohtml");
+        
         assertMatches("**/*.html", "/foo.html");
+        assertMatches("**/*.*", "/foo.html");
+
         assertMatches("**/*.html", "bar/foo.html");
+        assertMatches("**/*.*", "bar/foo.html");
+        assertMatches("**/*.html", "bar/a/b/foo.html");
+        assertMatches("**/*.*", "bar/a/b/foo.html");
+
+        // no '.':
+        assertDoesntMatch("**/*.*", "bar/foohtml");
+
         assertMatches("**/*.html", "/bar/foo.html");
+        assertMatches("**/*.*", "/bar/foo.html");
+
+        // no '.':
+        assertDoesntMatch("**/*.*", "/bar/foohtml");
+
         assertMatches("**/*.html", "bar/zoo/foo.html");
+        assertMatches("**/*.*", "bar/zoo/foo.html");
+
+        // no '.':
+        assertDoesntMatch("**/*.*", "bar/zoo/foohtml");
+
         assertMatches("**/*.html", "/bar/zoo/foo.html");
+        assertMatches("**/*.*", "/bar/zoo/foo.html");
+
+        // no '.':
+        assertDoesntMatch("**/*.*", "/bar/zoo/foohtml");
     }
     
     @Test
     public void globPath() throws Exception {
-        assertMatches("/**", "foo");
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/**", "foo");
+        assertMatches("**", "foo");
         assertMatches("/**", "/foo");
-        assertMatches("/**", "foo/bar");
+        
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/**", "foo/bar");
+        assertMatches("**", "foo/bar");
         assertMatches("/**", "/foo/bar");
-        assertMatches("/**", "foo/bar/zoo");
+        
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/**", "foo/bar/zoo");
+        assertMatches("**", "foo/bar/zoo");
         assertMatches("/**", "/foo/bar/zoo");
-        assertMatches("/**/*.html", "foo.html");
+        
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/**/*.html", "foo.html");
         assertMatches("/**/*.html", "/foo.html");
-        assertMatches("/**/*.html", "bar/foo.html");
+        
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/**/*.html", "bar/foo.html");
         assertMatches("/**/*.html", "/bar/foo.html");
-        assertMatches("/**/*.html", "bar/zoo/foo.html");
+        
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/**/*.html", "bar/zoo/foo.html");
         assertMatches("/**/*.html", "/bar/zoo/foo.html");
+        
+        // leading / only matches when path starts with / too
         assertDoesntMatch("/*.html", "foo.html");
         assertMatches("/*.html", "/foo.html");
+        
+        assertMatches("/foo/bar/**", "/foo/bar");
+        
+        // leading / only matches when path starts with / too
+        assertDoesntMatch("/foo/bar/**", "foo/bar");
+        
+        // /foo/barbar should not match /foo/bar/**
+        assertDoesntMatch("/foo/bar/**", "/foo/barbar");
+        
+        assertMatches("/foo/bar/**", "/foo/bar/zet");
     }
 
     private void assertMatches(String globPath, String path) {
-        Pattern p = Pattern.compile(GlobbingPathHelper.globAsRegex(globPath));
+        Pattern p = Pattern.compile(GlobbingPathHelper.globPathAsRegex(globPath));
         assertTrue("'"+globPath+"' does not match '"+path+"'", p.matcher(path).matches());
     }
 
     private void assertDoesntMatch(String globPath, String path) {
-        Pattern p = Pattern.compile(GlobbingPathHelper.globAsRegex(globPath));
+        Pattern p = Pattern.compile(GlobbingPathHelper.globPathAsRegex(globPath));
         assertFalse("'"+globPath+"' does match '"+path+"'", p.matcher(path).matches());
     }
 }
