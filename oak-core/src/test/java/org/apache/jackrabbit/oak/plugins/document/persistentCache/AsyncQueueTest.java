@@ -142,14 +142,14 @@ public class AsyncQueueTest {
         }
 
         @Override
-        public void addPut(PathRev key, StringValue value) {
+        public boolean addPut(PathRev key, StringValue value) {
             putActions.add(key);
-            wrapped.addPut(key, value);
+            return wrapped.addPut(key, value);
         }
 
-        public void addInvalidate(Iterable<PathRev> keys) {
+        public boolean addInvalidate(Iterable<PathRev> keys) {
             invalidateActions.addAll(newArrayList(keys));
-            wrapped.addInvalidate(keys);
+            return wrapped.addInvalidate(keys);
         }
     }
 

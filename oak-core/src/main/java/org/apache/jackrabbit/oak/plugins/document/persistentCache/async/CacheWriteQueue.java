@@ -34,12 +34,12 @@ public class CacheWriteQueue<K, V> {
         this.map = map;
     }
 
-    public void addPut(K key, V value) {
-        dispatcher.add(new PutToCacheAction<K, V>(key, value, this));
+    public boolean addPut(K key, V value) {
+        return dispatcher.add(new PutToCacheAction<K, V>(key, value, this));
     }
 
-    public void addInvalidate(Iterable<K> keys) {
-        dispatcher.add(new InvalidateCacheAction<K, V>(keys, this));
+    public boolean addInvalidate(Iterable<K> keys) {
+        return dispatcher.add(new InvalidateCacheAction<K, V>(keys, this));
     }
 
     PersistentCache getCache() {
