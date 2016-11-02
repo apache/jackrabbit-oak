@@ -503,7 +503,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     public OakEventFilter withNodeTypeAggregate(String[] nodeTypes, String[] relativeGlobPaths) {
         final Pattern[] relativePathPatterns = new Pattern[relativeGlobPaths.length];
         for (int i = 0; i < relativePathPatterns.length; i++) {
-            relativePathPatterns[i] = Pattern.compile(GlobbingPathHelper.globAsRegex(relativeGlobPaths[i]));
+            relativePathPatterns[i] = Pattern.compile(GlobbingPathHelper.globPathAsRegex(relativeGlobPaths[i]));
         }
         aggregator(new NodeTypeAggregator(nodeTypes, relativePathPatterns));
 
