@@ -33,11 +33,11 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
 
     private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder);
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore, false);
 
     private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder);
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore, true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)

@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener.LOG_SNFE;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_STRING_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_TEMPLATE_CACHE_SIZE;
@@ -38,6 +39,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.Template;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
@@ -102,6 +104,9 @@ public class FileStoreBuilder {
         }
     };
 
+    @Nonnull
+    private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
+    
     private boolean built;
 
     /**
@@ -262,6 +267,17 @@ public class FileStoreBuilder {
     }
 
     /**
+     * {@link SegmentNotFoundExceptionListener} listener for  {@code SegmentNotFoundException}
+     * @param snfeListener, the actual listener
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withSnfeListener(@Nonnull SegmentNotFoundExceptionListener snfeListener) {
+        this.snfeListener = checkNotNull(snfeListener);
+        return this;
+    }
+    
+    /**
      * Create a new {@link FileStore} instance with the settings specified in this
      * builder. If none of the {@code with} methods have been called before calling
      * this method, a file store with the following default settings is returned:
@@ -358,6 +374,11 @@ public class FileStoreBuilder {
     @Nonnull
     SegmentGCOptions getGcOptions() {
         return gcOptions;
+    }
+    
+    @Nonnull
+    SegmentNotFoundExceptionListener getSnfeListener() {
+        return snfeListener;
     }
 
     @Nonnull

@@ -122,7 +122,6 @@ public class SegmentId implements Comparable<SegmentId> {
                         log.debug("Loading segment {}", this);
                         segment = store.readSegment(this);
                     } catch (SegmentNotFoundException snfe) {
-                        log.error("Segment not found: {}. {}", this, gcInfo(), snfe);
                         throw snfe;
                     }
                 }
@@ -131,8 +130,12 @@ public class SegmentId implements Comparable<SegmentId> {
         return segment;
     }
 
+    /**
+     * @return  garbage collection related information like the age of this segment
+     *          id, the generation of its segment and information about its gc status.
+     */
     @Nonnull
-    private String gcInfo() {
+    String gcInfo() {
         StringBuilder sb = new StringBuilder();
         sb.append("SegmentId age=").append(System.currentTimeMillis() - creationTime).append("ms");
         if (gcInfo != null) {

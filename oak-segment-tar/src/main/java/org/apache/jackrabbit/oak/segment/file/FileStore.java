@@ -80,6 +80,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdTable;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Default;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -150,6 +151,9 @@ public class FileStore extends AbstractFileStore {
 
     private final FileStoreStats stats;
 
+    @Nonnull
+    private final SegmentNotFoundExceptionListener snfeListener; 
+
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
@@ -197,6 +201,8 @@ public class FileStore extends AbstractFileStore {
             writeNumber = indices[indices.length - 1] + 1;
         }
         this.tarWriter = new TarWriter(directory, stats, writeNumber);
+        
+        this.snfeListener = builder.getSnfeListener();
 
         fileStoreScheduler.scheduleAtFixedRate(
                 format("TarMK flush [%s]", directory), 5, SECONDS,
@@ -592,9 +598,12 @@ public class FileStore extends AbstractFileStore {
                 }
             });
         } catch (ExecutionException e) {
-            throw e.getCause() instanceof SegmentNotFoundException
-                ? (SegmentNotFoundException) e.getCause()
-                : new SegmentNotFoundException(id, e);
+            SegmentNotFoundException snfe = e.getCause() instanceof SegmentNotFoundException
+                    ? (SegmentNotFoundException) e.getCause() : new SegmentNotFoundException(id, e);
+
+            snfeListener.notify(id, snfe);
+            
+            throw snfe;
         }
     }
 
