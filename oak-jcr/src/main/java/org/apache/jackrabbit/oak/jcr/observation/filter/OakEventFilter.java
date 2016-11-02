@@ -47,8 +47,12 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
     public abstract OakEventFilter withApplyNodeTypeOnSelf();
 
     /**
-     * This causes the registration of !deep NODE_REMOVED registrations
+     * This causes the registration of independent, additional
+     * !deep NODE_REMOVED filter-conditions
      * of all parents of the include paths (both normal and glob).
+     * (These additional filter-conditions are added in 'OR' mode
+     * to the otherwise resulting filter-conditions, thus you can
+     * still have an independent <code>deep/!deep</code> flag too)
      * <ul>
      * <li>include path /a/b/c/d results in additional !deep NODE_REMOVED
      * filters on /a/b/c, on /a/b and on /a</li>
