@@ -105,6 +105,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
+    @Description("Creates a backup of the persistent state of the repository")
     CompositeData startBackup();
 
     /**
@@ -114,6 +115,7 @@ public interface RepositoryManagementMBean {
      * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
+    @Description("The status of the ongoing operation, or the terminal status of the last completed backup operation")
     CompositeData getBackupStatus();
 
     /**
@@ -122,6 +124,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
+    @Description("Restores the repository from a backup")
     CompositeData startRestore();
 
     /**
@@ -131,6 +134,7 @@ public interface RepositoryManagementMBean {
      * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
+    @Description("The status of the ongoing operation, or the terminal status of the last completed restore operation")
     CompositeData getRestoreStatus();
 
     /**
@@ -140,6 +144,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
+    @Description("Initiates a data store garbage collection operation")
     CompositeData startDataStoreGC(@Name("markOnly")
             @Description("Set to true to only mark references and not sweep in the mark and sweep operation. " +
                     "This mode is to be used when the underlying BlobStore is shared between multiple " +
@@ -153,6 +158,7 @@ public interface RepositoryManagementMBean {
      * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
+    @Description("Data store garbage collection status")
     CompositeData getDataStoreGCStatus();
 
     /**
@@ -161,6 +167,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
+    @Description("Initiates a revision garbage collection operation")
     CompositeData startRevisionGC();
 
     /**
@@ -170,6 +177,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
+    @Description("Cancel a running revision garbage collection operation. Does nothing if revision garbage collection is not running.")
     CompositeData cancelRevisionGC();
 
     /**
@@ -179,6 +187,7 @@ public interface RepositoryManagementMBean {
      * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
+    @Description("Revision garbage collection status")
     CompositeData getRevisionGCStatus();
 
     /**
@@ -205,6 +214,7 @@ public interface RepositoryManagementMBean {
      * @return the status of the operation right after it was initiated
      */
     @Nonnull
+    @Description("Initiates a reindex operation for the property indexes marked for reindexing")
     CompositeData startPropertyIndexAsyncReindex();
 
     /**
@@ -215,6 +225,7 @@ public interface RepositoryManagementMBean {
      *         none.
      */
     @Nonnull
+    @Description("Asynchronous Property Index reindexing status")
     CompositeData getPropertyIndexAsyncReindexStatus();
 
     /**
@@ -222,6 +233,7 @@ public interface RepositoryManagementMBean {
      * <em>Warning</em>: this operation might be disruptive to the owner of the affected sessions
      */
     @Nonnull
+    @Description("Refresh all currently open sessions")
     TabularData refreshAllSessions();
 
 }
