@@ -193,11 +193,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
      * Flag controlling the commit lock fairness
      */
     private static final boolean COMMIT_FAIR_LOCK = Boolean
-            .getBoolean("oak.segmentNodeStore.commitFairLock");
+            .parseBoolean(System.getProperty("oak.segmentNodeStore.commitFairLock", "true"));
 
     private SegmentNodeStore(SegmentNodeStoreBuilder builder) {
         if (COMMIT_FAIR_LOCK) {
-            log.info("initializing SegmentNodeStore with the commitFairLock option enabled.");
+            log.info("Initializing SegmentNodeStore with the commitFairLock option enabled.");
         }
         this.commitSemaphore = new Semaphore(1, COMMIT_FAIR_LOCK);
         this.revisions = builder.revisions;
