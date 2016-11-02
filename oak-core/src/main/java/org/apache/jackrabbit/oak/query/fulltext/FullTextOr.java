@@ -19,10 +19,9 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * A fulltext "or" condition.
@@ -47,7 +46,7 @@ public class FullTextOr extends FullTextExpression {
 
     @Override
     public FullTextExpression simplify() {
-        Set<FullTextExpression> set = getSortedAndUniqueSet(list);
+        Set<FullTextExpression> set = getUniqueSet(list);
         if (set.size() == 1) {
             return set.iterator().next();
         }
@@ -57,18 +56,10 @@ public class FullTextOr extends FullTextExpression {
         return new FullTextOr(l);
     }
     
-    static Set<FullTextExpression> getSortedAndUniqueSet(
+    static Set<FullTextExpression> getUniqueSet(
             List<FullTextExpression> list) {
-        // sort and remove duplicates
-        TreeSet<FullTextExpression> set = new TreeSet<FullTextExpression>(
-                new Comparator<FullTextExpression>() {
-
-                    @Override
-                    public int compare(FullTextExpression o1,
-                            FullTextExpression o2) {
-                        return o1.toString().compareTo(o2.toString());
-                    }
-                });
+        // remove duplicates, but keep order
+        LinkedHashSet<FullTextExpression> set = new LinkedHashSet<FullTextExpression>(list.size());
         for (int i = 0; i < list.size(); i++) {
             set.add(list.get(i).simplify());
         }
