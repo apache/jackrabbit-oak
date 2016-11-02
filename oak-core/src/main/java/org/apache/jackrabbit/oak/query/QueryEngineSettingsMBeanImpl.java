@@ -96,4 +96,8 @@ public class QueryEngineSettingsMBeanImpl extends AnnotatedStandardMBean
         return settings;
     }
 
+    @Override
+    public String toString() {
+        return settings.toString();
+    }
 }
