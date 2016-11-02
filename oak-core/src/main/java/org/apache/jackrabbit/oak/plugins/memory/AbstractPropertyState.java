@@ -67,7 +67,7 @@ public abstract class AbstractPropertyState implements PropertyState {
         if (type == Type.BINARIES) {
             return name + " = [" + property.count() + " binaries]";
         } else if (type == Type.BINARY) {
-            return name + " = {" + property.size() + " bytes}";
+            return name + " = {" + getBinarySize(property) + " bytes}";
         } else {
             return name + " = " + property.getValue(type);
         }
@@ -109,6 +109,16 @@ public abstract class AbstractPropertyState implements PropertyState {
     @Override
     public String toString() {
         return toString(this);
+    }
+
+    //~-------------------------------------------< internal >
+
+    private static long getBinarySize(PropertyState property) {
+        try {
+            return property.size();
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
 }
