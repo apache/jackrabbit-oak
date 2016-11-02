@@ -36,19 +36,18 @@ class CdCommand extends CommandSupport{
 
     @Override
     protected List<Completer> createCompleters() {
-        return [
-                new SimpleCompletor(){
-                    @Override
-                    SortedSet getCandidates() {
-                        SortedSet<String> names = new TreeSet<String>()
-                        Iterables.limit(getSession().getWorkingNode().childNodeNames, 100).each {
-                            names << it
-                        }
-                        return names
-                    }
-                },
-                null
-        ]
+        SimpleCompletor completor = new SimpleCompletor(){
+            @Override
+            SortedSet getCandidates() {
+                SortedSet<String> names = new TreeSet<String>()
+                Iterables.limit(getSession().getWorkingNode().childNodeNames, 100).each {
+                    names << it.replace(" ", "\\ ")
+                }
+                return names
+            }
+        }
+        completor.delimiter = '/'
+        return [completor, null]
     }
 
     @Override
@@ -57,7 +56,7 @@ class CdCommand extends CommandSupport{
             return;
         }
 
-        String arg = args[0]?.trim()
+        String arg = args.join(' ').replace("\\ ", " ")
         if (!PathUtils.isValid(arg)) {
             io.out.println("Not a valid path: " + args);
             return;
@@ -82,7 +81,7 @@ class CdCommand extends CommandSupport{
         String old = session.setWorkingPath(path);
         if (!session.getWorkingNode().exists()) {
             session.setWorkingPath(old);
-            io.out.println("No such node");
+            io.out.println("No such node ["+path+"]");
         }
     }
 
