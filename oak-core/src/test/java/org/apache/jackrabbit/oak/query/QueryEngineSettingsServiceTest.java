@@ -82,8 +82,10 @@ public class QueryEngineSettingsServiceTest {
 
     @Test
     public void sysPropSupercedes() throws Exception{
-        System.setProperty(QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY, "10");
-        System.setProperty(QueryEngineSettings.OAK_QUERY_LIMIT_READS, "11");
+        System.setProperty(QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY, String.valueOf(QueryEngineSettings
+                .DEFAULT_QUERY_LIMIT_IN_MEMORY));
+        System.setProperty(QueryEngineSettings.OAK_QUERY_LIMIT_READS, String.valueOf(QueryEngineSettings
+                .DEFAULT_QUERY_LIMIT_READS));
         System.setProperty(QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL, "false");
 
         QueryEngineSettings settings = new QueryEngineSettings();
@@ -95,8 +97,10 @@ public class QueryEngineSettingsServiceTest {
         config.put(QueryEngineSettingsService.QUERY_FAIL_TRAVERSAL, true);
 
         context.registerInjectActivateService(settingsService, config);
-        assertEquals(11, settings.getLimitReads());
-        assertEquals(10, settings.getLimitInMemory());
+        assertEquals(QueryEngineSettings
+                .DEFAULT_QUERY_LIMIT_READS, settings.getLimitReads());
+        assertEquals(QueryEngineSettings
+                .DEFAULT_QUERY_LIMIT_IN_MEMORY, settings.getLimitInMemory());
         assertFalse(settings.getFailTraversal());
     }
 
