@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implementation tracks the number of pending changes and purges them to
@@ -36,11 +38,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentRootBuilder.class);
+
     /**
      * Number of content updates that need to happen before the updates
      * are automatically purged to the private branch.
      */
-    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 10000);
+    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 100000);
+
+    static {
+        log.info("Update limit set to {}", UPDATE_LIMIT);
+    }
 
     /**
      * The underlying store
