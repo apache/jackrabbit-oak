@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 final class MountInfo implements Mount {
@@ -64,6 +65,18 @@ final class MountInfo implements Mount {
         path = SANITIZE_PATH.apply(path);
         for (String includedPath : includedPaths) {
             if (isAncestor(path, includedPath)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean isDirectlyUnder(String path) {
+        path = SANITIZE_PATH.apply(path);
+        for (String includedPath : includedPaths) {
+            if (getParentPath(includedPath).equals(path)) {
                 return true;
             }
         }
