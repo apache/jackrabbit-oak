@@ -112,6 +112,8 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      *            note that these nodeTypes are not mapped to oak nor validated
      * @param relativeGlobPaths
      *            glob paths that are added to the set of include paths.
+     *            To match the node with the desired node type itself, add 
+     *            an empty String ("") as one of the relativeGlobPaths too.
      *            Note that Oak's NamePathMapper is not applied to these relativeGlobPaths.
      * @return this filter with the filter change applied
      */
