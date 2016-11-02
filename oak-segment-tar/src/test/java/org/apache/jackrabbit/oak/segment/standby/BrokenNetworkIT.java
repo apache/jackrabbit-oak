@@ -41,11 +41,11 @@ public class BrokenNetworkIT extends TestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, false);
 
-    private TemporaryFileStore clientFileStore1 = new TemporaryFileStore(folder);
+    private TemporaryFileStore clientFileStore1 = new TemporaryFileStore(folder, true);
 
-    private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder);
+    private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder, true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)

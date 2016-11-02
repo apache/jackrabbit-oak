@@ -19,32 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.util.Random;
 
-import com.google.common.io.ByteStreams;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
-import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
@@ -52,9 +30,9 @@ public class StandbyTest extends TestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, false);
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)

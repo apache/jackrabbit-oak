@@ -44,9 +44,9 @@ public class MBeanIT extends TestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, false);
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)

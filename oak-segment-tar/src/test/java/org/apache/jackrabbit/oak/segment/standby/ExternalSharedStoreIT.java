@@ -33,9 +33,9 @@ public class ExternalSharedStoreIT extends DataStoreTestBase {
 
     private TemporaryBlobStore commonBlobStore = new TemporaryBlobStore(folder);
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, commonBlobStore);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, commonBlobStore, false);
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, commonBlobStore);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, commonBlobStore, true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
