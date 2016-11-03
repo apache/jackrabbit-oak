@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -64,12 +65,18 @@ public class DocumentCachingDataStoreStatsTest {
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeTrue(MongoUtils.isAvailable());
+        MongoUtils.dropCollections(MongoUtils.DB);
     }
 
     @Before
     public void setUp() throws IOException {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         repoHome = target.newFolder().getAbsolutePath();
+    }
+
+    @After
+    public void dropCollections() {
+        MongoUtils.dropCollections(MongoUtils.DB);
     }
 
     @Test
