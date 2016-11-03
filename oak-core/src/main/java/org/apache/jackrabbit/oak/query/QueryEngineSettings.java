@@ -64,6 +64,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private boolean sql2Optimisation = 
             Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
 
+    private static final String OAK_FAST_QUERY_SIZE = "oak.fastQuerySize";
+    static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
+    private boolean fastQuerySize = DEFAULT_FAST_QUERY_SIZE;
+
     public QueryEngineSettings() {
     }
     
@@ -96,7 +100,18 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     public void setFailTraversal(boolean failTraversal) {
         this.failTraversal = failTraversal;
     }
-    
+
+    @Override
+    public boolean isFastQuerySize() {
+        return fastQuerySize;
+    }
+
+    @Override
+    public void setFastQuerySize(boolean fastQuerySize) {
+        this.fastQuerySize = fastQuerySize;
+        System.setProperty(OAK_FAST_QUERY_SIZE, String.valueOf(fastQuerySize));
+    }
+
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
         this.fullTextComparisonWithoutIndex = fullTextComparisonWithoutIndex;
     }
@@ -117,6 +132,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
                 ", failTraversal=" + failTraversal +
                 ", fullTextComparisonWithoutIndex=" + fullTextComparisonWithoutIndex +
                 ", sql2Optimisation=" + sql2Optimisation +
+                ", fastQuerySize=" + fastQuerySize +
                 '}';
     }
 }

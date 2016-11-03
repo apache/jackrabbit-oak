@@ -79,7 +79,17 @@ public class QueryEngineSettingsMBeanImpl extends AnnotatedStandardMBean
     public void setFailTraversal(boolean failQueriesWithoutIndex) {
         settings.setFailTraversal(failQueriesWithoutIndex);
     }
-    
+
+    @Override
+    public boolean isFastQuerySize() {
+        return settings.isFastQuerySize();
+    }
+
+    @Override
+    public void setFastQuerySize(boolean fastQuerySize) {
+        settings.setFastQuerySize(fastQuerySize);
+    }
+
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
         settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
     }

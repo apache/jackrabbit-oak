@@ -73,11 +73,13 @@ public class QueryEngineSettingsServiceTest {
         config.put(QueryEngineSettingsService.QUERY_LIMIT_READS, 100);
         config.put(QueryEngineSettingsService.QUERY_LIMIT_IN_MEMORY, 142);
         config.put(QueryEngineSettingsService.QUERY_FAIL_TRAVERSAL, true);
+        config.put(QueryEngineSettingsService.QUERY_FAST_QUERY_SIZE, true);
 
         context.registerInjectActivateService(settingsService, config);
         assertEquals(100, settings.getLimitReads());
         assertEquals(142, settings.getLimitInMemory());
         assertTrue(settings.getFailTraversal());
+        assertTrue(settings.isFastQuerySize());
     }
 
     @Test
