@@ -146,7 +146,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
 
             @Override
             public Status getStatus() {
-                return none(id, "NA");
+                return none(this, "NA");
             }
         };
     }
@@ -206,20 +206,20 @@ public class ManagementOperation<R> extends FutureTask<R> {
     @Nonnull
     public Status getStatus() {
         if (isCancelled()) {
-            return failed(id, name + " cancelled");
+            return failed(this, name + " cancelled");
         } else if (isDone()) {
             try {
                 R result = get();
-                return succeeded(id, name + " succeeded" + (result != null ? ": " + result : ""));
+                return succeeded(this, name + " succeeded" + (result != null ? ": " + result : ""));
             } catch (InterruptedException e) {
                 currentThread().interrupt();
-                return failed(id, name + " interrupted: " + e.getMessage());
+                return failed(this, name + " interrupted: " + e.getMessage());
             } catch (ExecutionException e) {
                 LOG.error("{} failed", name, e.getCause());
-                return failed(id, name + " failed: " + e.getCause().getMessage());
+                return failed(this, name + " failed: " + e.getCause().getMessage());
             }
         } else {
-            return running(id, name + " running: " + statusMessage.get());
+            return running(this, name + " running: " + statusMessage.get());
         }
     }
 
@@ -268,51 +268,51 @@ public class ManagementOperation<R> extends FutureTask<R> {
         }
 
         public static Status unavailable(String message) {
-            return unavailable(idGen.incrementAndGet(), message);
+            return new Status(UNAVAILABLE, idGen.incrementAndGet(), message);
         }
 
         public static Status none(String message) {
-            return none(idGen.incrementAndGet(), message);
+            return new Status(NONE, idGen.incrementAndGet(), message);
         }
 
         public static Status initiated(String message) {
-            return initiated(idGen.incrementAndGet(), message);
+            return new Status(INITIATED, idGen.incrementAndGet(), message);
         }
 
         public static Status running(String message) {
-            return running(idGen.incrementAndGet(), message);
+            return new Status(RUNNING, idGen.incrementAndGet(), message);
         }
 
         public static Status succeeded(String message) {
-            return succeeded(idGen.incrementAndGet(), message);
+            return new Status(SUCCEEDED, idGen.incrementAndGet(), message);
         }
 
         public static Status failed(String message) {
-            return failed(idGen.incrementAndGet(), message);
+            return new Status(FAILED, idGen.incrementAndGet(), message);
         }
 
-        static Status unavailable(int id, String message) {
-            return new Status(UNAVAILABLE, id , message);
+        public static Status unavailable(ManagementOperation<?> op, String message) {
+            return new Status(UNAVAILABLE, op.getId() , message);
         }
 
-        static Status none(int id, String message) {
-            return new Status(NONE, id, message);
+        public static Status none(ManagementOperation<?> op, String message) {
+            return new Status(NONE, op.getId(), message);
         }
 
-        static Status initiated(int id, String message) {
-            return new Status(INITIATED, id, message);
+        public static Status initiated(ManagementOperation<?> op, String message) {
+            return new Status(INITIATED, op.getId(), message);
         }
 
-        static Status running(int id, String message) {
-            return new Status(RUNNING, id, message);
+        public static Status running(ManagementOperation<?> op, String message) {
+            return new Status(RUNNING, op.getId(), message);
         }
 
-        static Status succeeded(int id, String message) {
-            return new Status(SUCCEEDED, id, message);
+        public static Status succeeded(ManagementOperation<?> op, String message) {
+            return new Status(SUCCEEDED, op.getId(), message);
         }
 
-        static Status failed(int id, String message) {
-            return new Status(FAILED, id, message);
+        public static Status failed(ManagementOperation<?> op, String message) {
+            return new Status(FAILED, op.getId(), message);
         }
 
         /**
