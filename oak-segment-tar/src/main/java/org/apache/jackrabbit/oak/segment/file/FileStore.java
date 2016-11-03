@@ -208,6 +208,9 @@ public class FileStore extends AbstractFileStore {
                 new Runnable() {
                     @Override
                     public void run() {
+                        if (shutdown) {
+                            return;
+                        }
                         try {
                             flush();
                         } catch (IOException e) {
