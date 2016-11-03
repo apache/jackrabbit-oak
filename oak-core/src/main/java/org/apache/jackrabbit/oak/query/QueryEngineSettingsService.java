@@ -62,6 +62,14 @@ public class QueryEngineSettingsService {
     )
     static final String QUERY_FAIL_TRAVERSAL = "queryFailTraversal";
 
+    @Property(
+            boolValue = false,
+            label = "Fast result size",
+            description = "Whether the query result size should return an estimation (or -1 if disabled) " +
+                    "for large queries"
+    )
+    static final String QUERY_FAST_QUERY_SIZE = "fastQuerySize";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Reference
@@ -92,6 +100,10 @@ public class QueryEngineSettingsService {
         } else {
             logMsg(QUERY_FAIL_TRAVERSAL, QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL);
         }
+
+        boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
+        boolean fastQuerySizeFromConfig = PropertiesUtil.toBoolean(config.get(QUERY_FAST_QUERY_SIZE), false);
+        queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);
     }

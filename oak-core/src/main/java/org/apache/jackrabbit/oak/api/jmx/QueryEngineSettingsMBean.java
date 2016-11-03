@@ -69,4 +69,13 @@ public interface QueryEngineSettingsMBean {
      */
     void setFailTraversal(boolean failTraversal);
 
+    /**
+     * Whether the query result size should return an estimation (or -1 if disabled) for large queries
+     *
+     * @return true if enabled
+     */
+    boolean isFastQuerySize();
+
+    void setFastQuerySize(boolean fastQuerySize);
+
 }
