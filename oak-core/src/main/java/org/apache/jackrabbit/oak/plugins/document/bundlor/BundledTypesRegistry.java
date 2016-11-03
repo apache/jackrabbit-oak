@@ -62,27 +62,45 @@ public class BundledTypesRegistry {
 
     @CheckForNull
     public DocumentBundlor getBundlor(NodeState state) {
+        if (isVersionedNode(state)){
+            return getBundlorForVersionedNode(state);
+        }
         //Prefer mixin (as they are more specific) over primaryType
-        for (String mixin : getMixinNames(state)){
+        for (String mixin : getMixinNames(state, JcrConstants.JCR_MIXINTYPES)){
             DocumentBundlor bundlor = bundlors.get(mixin);
             if (bundlor != null){
                 return bundlor;
             }
         }
-        return bundlors.get(getPrimaryTypeName(state));
+        return bundlors.get(getPrimaryTypeName(state, JcrConstants.JCR_PRIMARYTYPE));
+    }
+
+    private DocumentBundlor getBundlorForVersionedNode(NodeState state) {
+        //Prefer mixin (as they are more specific) over primaryType
+        for (String mixin : getMixinNames(state, JcrConstants.JCR_FROZENMIXINTYPES)){
+            DocumentBundlor bundlor = bundlors.get(mixin);
+            if (bundlor != null){
+                return bundlor;
+            }
+        }
+        return bundlors.get(getPrimaryTypeName(state, JcrConstants.JCR_FROZENPRIMARYTYPE));
     }
 
     Map<String, DocumentBundlor> getBundlors() {
         return bundlors;
     }
 
-    private static String getPrimaryTypeName(NodeState nodeState) {
-        PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+    private static boolean isVersionedNode(NodeState state) {
+        return JcrConstants.NT_FROZENNODE.equals(getPrimaryTypeName(state, JcrConstants.JCR_PRIMARYTYPE));
+    }
+
+    private static String getPrimaryTypeName(NodeState nodeState, String typePropName) {
+        PropertyState ps = nodeState.getProperty(typePropName);
         return (ps == null) ? JcrConstants.NT_BASE : ps.getValue(Type.NAME);
     }
 
-    private static Iterable<String> getMixinNames(NodeState nodeState) {
-        PropertyState ps = nodeState.getProperty(JcrConstants.JCR_MIXINTYPES);
+    private static Iterable<String> getMixinNames(NodeState nodeState, String typePropName) {
+        PropertyState ps = nodeState.getProperty(typePropName);
         return (ps == null) ? Collections.<String>emptyList() : ps.getValue(Type.NAMES);
     }
 
