@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFra
 import static org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener.IGNORE_SNFE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
@@ -232,6 +233,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             description = "Number of segment generations to retain."
     )
     public static final String RETAINED_GENERATIONS = "compaction.retainedGenerations";
+
+    @Property(
+            intValue = MEMORY_THRESHOLD_DEFAULT,
+            label = "Compaction Memory Threshold",
+            description = "Set the available memory threshold beyond which revision gc will be canceled. "
+                    + "Value represents a percentage so an input between 0 and 100 is expected. "
+                    + "Setting this to 0 will disable the check."
+    )
+    public static final String MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
     @Property(
             boolValue = false,
@@ -624,10 +634,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         byte gainThreshold = getGainThreshold();
         long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
+        int memoryThreshold = toInteger(property(MEMORY_THRESHOLD), MEMORY_THRESHOLD_DEFAULT);
 
         return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
                 .setRetainedGenerations(retainedGenerations)
-                .setGcSizeDeltaEstimation(sizeDeltaEstimation);
+                .setGcSizeDeltaEstimation(sizeDeltaEstimation)
+                .setMemoryThreshold(memoryThreshold);
     }
 
     private void unregisterNodeStore() {

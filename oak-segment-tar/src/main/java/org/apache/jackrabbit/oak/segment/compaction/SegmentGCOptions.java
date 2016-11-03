@@ -56,6 +56,11 @@ public class SegmentGCOptions {
      */
     public static final long SIZE_DELTA_ESTIMATION_DEFAULT = -1;
 
+    /**
+     * Default value for {@link #getMemoryThreshold()}
+     */
+    public static final int MEMORY_THRESHOLD_DEFAULT = 15;
+
     private boolean paused = PAUSE_DEFAULT;
 
     private int gainThreshold = GAIN_THRESHOLD_DEFAULT;
@@ -67,6 +72,8 @@ public class SegmentGCOptions {
     private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
 
     private boolean offline = false;
+
+    private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
 
     private boolean ocBinDeduplication = Boolean
             .getBoolean("oak.segment.compaction.binaryDeduplication");
@@ -294,4 +301,26 @@ public class SegmentGCOptions {
         return this;
     }
 
+    /**
+     * Get the available memory threshold beyond which revision gc will be
+     * canceled. Value represents a percentage so an value between {@code 0} and
+     * {@code 100} will be returned.
+     * @return memoryThreshold
+     */
+    public int getMemoryThreshold() {
+        return memoryThreshold;
+    }
+
+    /**
+     * Set the available memory threshold beyond which revision gc will be
+     * canceled. Value represents a percentage so an input between {@code 0} and
+     * {@code 100} is expected. Setting this to {@code 0} will disable the
+     * check.
+     * @param memoryThreshold
+     * @return this instance
+     */
+    public SegmentGCOptions setMemoryThreshold(int memoryThreshold) {
+        this.memoryThreshold = memoryThreshold;
+        return this;
+    }
 }

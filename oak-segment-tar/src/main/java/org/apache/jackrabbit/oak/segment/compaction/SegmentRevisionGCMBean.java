@@ -156,4 +156,14 @@ public class SegmentRevisionGCMBean
     public String getStatus() {
         return fileStoreGCMonitor.getStatus();
     }
+
+    @Override
+    public int getMemoryThreshold() {
+        return gcOptions.getMemoryThreshold();
+    }
+
+    @Override
+    public void setMemoryThreshold(int memoryThreshold) {
+        gcOptions.setMemoryThreshold(memoryThreshold);
+    }
 }

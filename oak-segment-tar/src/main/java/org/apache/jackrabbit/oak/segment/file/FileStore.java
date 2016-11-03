@@ -141,6 +141,12 @@ public class FileStore extends AbstractFileStore {
     private final AtomicBoolean sufficientDiskSpace = new AtomicBoolean(true);
 
     /**
+     * This flag is raised whenever the available memory falls under a specified
+     * threshold. See {@link GCMemoryBarrier}
+     */
+    private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
+
+    /**
      * Flag signalling shutdown of the file store
      */
     private volatile boolean shutdown;
@@ -738,7 +744,8 @@ public class FileStore extends AbstractFileStore {
 
         synchronized void run() throws IOException {
             gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
-            Stopwatch watch = Stopwatch.createStarted();
+            GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
+                    sufficientMemory, gcListener, GC_COUNT.get(), gcOptions);
 
             int gainThreshold = gcOptions.getGainThreshold();
             boolean sufficientEstimatedGain = true;
@@ -749,10 +756,12 @@ public class FileStore extends AbstractFileStore {
                 gcListener.info("TarMK GC #{}: estimation skipped because compaction is paused", GC_COUNT);
             } else {
                 gcListener.info("TarMK GC #{}: estimation started", GC_COUNT);
+                Stopwatch watch = Stopwatch.createStarted();
                 Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
                 GCEstimation estimate = estimateCompactionGain(cancel);
                 if (cancel.get()) {
                     gcListener.info("TarMK GC #{}: estimation interrupted: {}. Skipping compaction.", GC_COUNT, cancel);
+                    gcMemoryBarrier.close();
                     return;
                 }
 
@@ -786,6 +795,7 @@ public class FileStore extends AbstractFileStore {
                     gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
                 }
             }
+            gcMemoryBarrier.close();
         }
 
         /**
@@ -1236,6 +1246,10 @@ public class FileStore extends AbstractFileStore {
                 // be no way to go back.
                 if (!store.sufficientDiskSpace.get()) {
                     reason = "Not enough disk space";
+                    return true;
+                }
+                if (!store.sufficientMemory.get()) {
+                    reason = "Not enough memory";
                     return true;
                 }
                 if (store.shutdown) {
