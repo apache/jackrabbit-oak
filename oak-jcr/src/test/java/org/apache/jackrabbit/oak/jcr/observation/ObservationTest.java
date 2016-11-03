@@ -1290,9 +1290,13 @@ public class ObservationTest extends AbstractRepositoryTest {
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
 
-        testNode.getNode("a").getNode("b").remove();
+        Node b = testNode.getNode("a").getNode("b");
+        // OAK-5061 : the event NODE_REMOVED on /a/b is actually expected and was missing in the test:
+        listener.expect(b.getPath(), NODE_REMOVED);
+        b.remove();
         testNode.getSession().save();
 
+        Thread.sleep(1000);
         missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         unexpected = listener.getUnexpected();
