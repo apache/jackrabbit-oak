@@ -32,8 +32,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTest {
+    
+    final Logger logger = LoggerFactory.getLogger(getClass());
 
     public BulkCreateOrUpdateClusterTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -175,7 +179,10 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
             t.start();
         }
         for (Thread t : threads) {
-            t.join(10000);
+            long time = System.currentTimeMillis();
+            t.join(75000);
+            time = System.currentTimeMillis() - time;
+            logger.info("join took " + time + " ms");
             if (t.isAlive()) {
                 fail("Thread hasn't finished in 10s");
             }
