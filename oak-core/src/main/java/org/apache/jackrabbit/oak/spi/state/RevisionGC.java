@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.failed;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.succeeded;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.initiated;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 
@@ -102,7 +102,7 @@ public class RevisionGC implements RevisionGCMBean {
                 }
             });
             executor.execute(gcOp);
-            return succeeded(OP_NAME + " started").toCompositeData();
+            return initiated(OP_NAME + " started").toCompositeData();
         } else {
             return failed(OP_NAME + " already running").toCompositeData();
         }
@@ -120,7 +120,7 @@ public class RevisionGC implements RevisionGCMBean {
                     return null;
                 }
             }));
-            return succeeded("Revision garbage collection cancelled").toCompositeData();
+            return initiated("Revision garbage collection cancelled").toCompositeData();
         } else {
             return failed(OP_NAME + " not running").toCompositeData();
         }
