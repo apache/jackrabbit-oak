@@ -65,7 +65,11 @@ public class DocumentBundlor {
      */
     public static final String META_PROP_NON_BUNDLED_CHILD = HAS_CHILD_PROP_PREFIX + "non-bundled";
 
-
+    /**
+     * Boolean property. If set to true then that bundlor config would be considered as disabled
+     * and would not be used
+     */
+    public static final String PROP_DISABLED = "disabled";
 
     public static final String PROP_PATTERN = "pattern";
     private final List<Include> includes;

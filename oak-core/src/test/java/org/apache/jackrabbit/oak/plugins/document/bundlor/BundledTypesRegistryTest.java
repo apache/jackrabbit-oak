@@ -54,6 +54,14 @@ public class BundledTypesRegistryTest {
     }
 
     @Test
+    public void disabledIgnored() throws Exception{
+        builder.child("nt:file").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+        builder.child("nt:file").setProperty(DocumentBundlor.PROP_DISABLED, true);
+        BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
+        assertTrue(registry.getBundlors().isEmpty());
+    }
+
+    @Test
     public void mixin() throws Exception{
         builder.child("mix:foo").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());

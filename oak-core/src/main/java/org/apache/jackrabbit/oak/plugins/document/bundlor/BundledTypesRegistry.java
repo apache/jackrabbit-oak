@@ -51,7 +51,11 @@ public class BundledTypesRegistry {
     public static BundledTypesRegistry from(NodeState configParentState){
         Map<String, DocumentBundlor> bundlors = Maps.newHashMap();
         for (ChildNodeEntry e : configParentState.getChildNodeEntries()){
-            bundlors.put(e.getName(), DocumentBundlor.from(e.getNodeState()));
+            NodeState config = e.getNodeState();
+            if (config.getBoolean(DocumentBundlor.PROP_DISABLED)){
+                continue;
+            }
+            bundlors.put(e.getName(), DocumentBundlor.from(config));
         }
         return new BundledTypesRegistry(bundlors);
     }
