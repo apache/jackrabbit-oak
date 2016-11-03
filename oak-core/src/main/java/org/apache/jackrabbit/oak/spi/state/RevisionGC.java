@@ -102,7 +102,7 @@ public class RevisionGC implements RevisionGCMBean {
                 }
             });
             executor.execute(gcOp);
-            return initiated(OP_NAME + " started").toCompositeData();
+            return initiated(gcOp, OP_NAME + " started").toCompositeData();
         } else {
             return failed(OP_NAME + " already running").toCompositeData();
         }
@@ -120,7 +120,7 @@ public class RevisionGC implements RevisionGCMBean {
                     return null;
                 }
             }));
-            return initiated("Revision garbage collection cancelled").toCompositeData();
+            return initiated(gcOp, "Revision garbage collection cancelled").toCompositeData();
         } else {
             return failed(OP_NAME + " not running").toCompositeData();
         }
