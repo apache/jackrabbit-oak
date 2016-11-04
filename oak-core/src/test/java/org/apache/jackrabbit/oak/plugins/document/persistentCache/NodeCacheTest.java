@@ -126,7 +126,7 @@ public class NodeCacheTest {
         if (asyncCache){
             builder.setPersistentCache("target/persistentCache,time,+async");
         }else {
-            builder.setPersistentCache("target/persistentCache,time");
+            builder.setPersistentCache("target/persistentCache,time,-async");
         }
         ns = builder.getNodeStore();
         nodeCache = (NodeCache<PathRev, DocumentNodeState>) ns.getNodeCache();
