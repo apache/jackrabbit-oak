@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.secondary;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
@@ -102,7 +103,12 @@ class PathFilteringDiff extends ApplyDiff {
     }
 
     static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder, List<String> metaPropNames) {
-        builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
+        //Only set root revision on root node
+        if (PathUtils.denotesRoot(state.getPath())) {
+            builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
+        }
+
+        //LastRev would be set on each node
         builder.setProperty(asPropertyState(PROP_LAST_REV, state.getLastRevision()));
 
         for (String metaProp : metaPropNames){

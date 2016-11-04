@@ -67,7 +67,7 @@ class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
 
     /**
-     * Wraps a given NodeState as a {@link DelegatingDocumentNodeState} if
+     * Wraps a given root NodeState as a {@link DelegatingDocumentNodeState} if
      * it has required meta properties otherwise just returns the passed NodeState
      *
      * @param delegate nodeState to wrap
