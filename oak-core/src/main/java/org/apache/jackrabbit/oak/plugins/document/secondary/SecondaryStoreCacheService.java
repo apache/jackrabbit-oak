@@ -66,7 +66,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 
 @Component(label = "Apache Jackrabbit Oak DocumentNodeStateCache Provider",
         metatype = true,
-        policy = ConfigurationPolicy.REQUIRE,
+        immediate = true,
         description = "Configures a DocumentNodeStateCache based on a secondary NodeStore"
 )
 public class SecondaryStoreCacheService {
