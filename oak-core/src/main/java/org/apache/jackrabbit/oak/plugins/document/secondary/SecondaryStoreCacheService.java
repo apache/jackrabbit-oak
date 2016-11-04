@@ -30,7 +30,6 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
@@ -142,6 +141,7 @@ public class SecondaryStoreCacheService {
 
         SecondaryStoreBuilder builder = new SecondaryStoreBuilder(secondaryStoreProvider.getNodeStore())
                 .differ(differ)
+                .metaPropNames(DocumentNodeStore.META_PROP_NAMES)
                 .statisticsProvider(statisticsProvider)
                 .pathFilter(pathFilter);
         SecondaryStoreCache cache = builder.buildCache();

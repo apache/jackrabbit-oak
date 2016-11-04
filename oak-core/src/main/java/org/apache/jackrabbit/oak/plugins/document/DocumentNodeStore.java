@@ -72,6 +72,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -86,6 +87,7 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
@@ -136,6 +138,15 @@ public final class DocumentNodeStore
      * Do not cache more than this number of children for a document.
      */
     static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger("oak.documentMK.childrenCacheLimit", 16 * 1024);
+
+    /**
+     * List of meta properties which are created by DocumentNodeStore and which needs to be
+     * retained in any cloned copy of DocumentNodeState. This does not include other properties defined
+     * in DocumentBundlor as those are only required by DocumentNodeState
+     */
+    public static final List<String> META_PROP_NAMES = ImmutableList.of(
+            DocumentBundlor.META_PROP_PATTERN
+    );
 
     /**
      * Feature flag to enable concurrent add/remove operations of hidden empty

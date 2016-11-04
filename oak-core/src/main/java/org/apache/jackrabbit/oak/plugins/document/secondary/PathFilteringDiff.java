@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -41,8 +43,8 @@ class PathFilteringDiff extends ApplyDiff {
     private final DiffContext ctx;
     private final AbstractDocumentNodeState parent;
 
-    public PathFilteringDiff(NodeBuilder builder, PathFilter pathFilter, AbstractDocumentNodeState parent) {
-        this(builder, new DiffContext(pathFilter), parent);
+    public PathFilteringDiff(NodeBuilder builder, PathFilter pathFilter, List<String> metaPropNames, AbstractDocumentNodeState parent) {
+        this(builder, new DiffContext(pathFilter, metaPropNames), parent);
     }
 
     private PathFilteringDiff(NodeBuilder builder, DiffContext ctx, AbstractDocumentNodeState parent) {
@@ -65,7 +67,7 @@ class PathFilteringDiff extends ApplyDiff {
         //super.childNodeAdded(name, after);
 
         NodeBuilder childBuilder = builder.child(name);
-        copyMetaProperties(afterDoc, childBuilder);
+        copyMetaProperties(afterDoc, childBuilder, ctx.metaPropNames);
         return after.compareAgainstBaseState(EMPTY_NODE,
                 new PathFilteringDiff(childBuilder, ctx, afterDoc));
     }
@@ -77,7 +79,7 @@ class PathFilteringDiff extends ApplyDiff {
         if (ctx.pathFilter.filter(nextPath) != PathFilter.Result.EXCLUDE) {
             ctx.traversingNode(nextPath);
             NodeBuilder childBuilder = builder.getChildNode(name);
-            copyMetaProperties(afterDoc, childBuilder);
+            copyMetaProperties(afterDoc, childBuilder, ctx.metaPropNames);
             return after.compareAgainstBaseState(
                     before, new PathFilteringDiff(builder.getChildNode(name), ctx, afterDoc));
         }
@@ -100,10 +102,17 @@ class PathFilteringDiff extends ApplyDiff {
         return (AbstractDocumentNodeState) state;
     }
 
-    static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder) {
+    static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder, List<String> metaPropNames) {
         builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
         builder.setProperty(asPropertyState(PROP_LAST_REV, state.getLastRevision()));
         builder.setProperty(createProperty(PROP_PATH, state.getPath()));
+
+        for (String metaProp : metaPropNames){
+            PropertyState ps = state.getProperty(metaProp);
+            if (ps != null){
+                builder.setProperty(ps);
+            }
+        }
     }
 
     private static PropertyState asPropertyState(String name, RevisionVector revision) {
@@ -113,9 +122,11 @@ class PathFilteringDiff extends ApplyDiff {
     private static class DiffContext {
         private long count;
         final PathFilter pathFilter;
+        final List<String> metaPropNames;
 
-        public DiffContext(PathFilter filter) {
+        public DiffContext(PathFilter filter, List<String> metaPropNames) {
             this.pathFilter = filter;
+            this.metaPropNames = metaPropNames;
         }
 
         public void traversingNode(String path){

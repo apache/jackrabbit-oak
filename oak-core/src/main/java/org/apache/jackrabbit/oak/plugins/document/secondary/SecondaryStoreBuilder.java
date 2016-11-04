@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import java.util.Collections;
+import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -33,6 +35,7 @@ public class SecondaryStoreBuilder {
     private PathFilter pathFilter = new PathFilter(singletonList("/"), Collections.<String>emptyList());
     private NodeStateDiffer differ = NodeStateDiffer.DEFAULT_DIFFER;
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+    private List<String> metaPropNames = Collections.emptyList();
 
     public SecondaryStoreBuilder(NodeStore nodeStore) {
         this.store = nodeStore;
@@ -53,6 +56,11 @@ public class SecondaryStoreBuilder {
         return this;
     }
 
+    public SecondaryStoreBuilder metaPropNames(List<String> metaPropNames) {
+        this.metaPropNames = ImmutableList.copyOf(metaPropNames);
+        return this;
+    }
+
     public SecondaryStoreCache buildCache() {
         return new SecondaryStoreCache(store, differ, pathFilter, statsProvider);
     }
@@ -62,6 +70,6 @@ public class SecondaryStoreBuilder {
     }
 
     public SecondaryStoreObserver buildObserver(SecondaryStoreRootObserver secondaryStoreRootObserver) {
-        return new SecondaryStoreObserver(store, differ, pathFilter, statsProvider, secondaryStoreRootObserver);
+        return new SecondaryStoreObserver(store, metaPropNames, differ, pathFilter, statsProvider, secondaryStoreRootObserver);
     }
 }
