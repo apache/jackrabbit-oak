@@ -21,18 +21,23 @@ import java.io.File;
 import com.google.common.cache.Cache;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
 
 public class AsyncCacheTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
     @Test
     public void invalidateWhileInQueue() throws Exception {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
-        DocumentMK.Builder builder = new DocumentMK.Builder();
+        DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setPersistentCache("target/cacheTest");
-        Cache<PathRev, DocumentNodeState.Children> cache = builder.buildChildrenCache();
+        DocumentNodeStore nodeStore = builder.getNodeStore();
+        Cache<PathRev, DocumentNodeState.Children> cache = builder.buildChildrenCache(nodeStore);
         DocumentNodeState.Children c = new DocumentNodeState.Children();
         for (int i = 0; i < 100; i++) {
             c.children.add("node-" + i);

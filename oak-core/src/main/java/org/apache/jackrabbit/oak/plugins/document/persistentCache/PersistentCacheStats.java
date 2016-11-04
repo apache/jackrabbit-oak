@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.Counting;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
@@ -63,6 +64,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     private static final String PUT_REJECTED_ALREADY_PERSISTED = "PUT_REJECTED_ALREADY_PERSISTED";
     private static final String PUT_REJECTED_ENTRY_NOT_USED = "PUT_REJECTED_ENTRY_NOT_USED";
     private static final String PUT_REJECTED_FULL_QUEUE = "PUT_REJECTED_FULL_QUEUE";
+    private static final String PUT_REJECTED_SECONDARY_CACHE = "PUT_REJECTED_SECONDARY_CACHE";
 
     private final StatisticsProvider statisticsProvider;
     private final String cacheName;
@@ -99,6 +101,9 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
     private final MeterStats putRejectedByFullQueueMeter;
     private final TimeSeries putRejectedByFullQueueHistory;
+
+    private final MeterStats putRejectedAsCachedInSecMeter;
+    private final TimeSeries putRejectedAsCachedInSecHistory;
 
     private final TimerStats readTimer;
 
@@ -202,6 +207,10 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
             putRejectedByFullQueueHistory = StatisticsProvider.NOOP.getStats().getTimeSeries(statName, false);
         }
 
+        statName = getStatName(PUT_REJECTED_SECONDARY_CACHE, cacheName);
+        putRejectedAsCachedInSecMeter = statisticsProvider.getMeter(statName, StatsOptions.DEFAULT);
+        putRejectedAsCachedInSecHistory = getTimeSeries(statName);
+
         diskStats = new UsedSpaceTracker(usedSpaceByteCounter);
     }
 
@@ -241,6 +250,10 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
     public void markPutRejectedEntryNotUsed() {
         putRejectedEntryNotUsedMeter.mark();
+    }
+
+    public void markPutRejectedAsCachedInSecondary() {
+        putRejectedAsCachedInSecMeter.mark();
     }
 
     public void markPutRejectedQueueFull() {
@@ -410,6 +423,12 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     }
 
     @Override
+    public CompositeData getPutRejectedAsCachedInSecRateHistory() {
+        return TimeSeriesStatsUtil.asCompositeData(putRejectedAsCachedInSecHistory, "Persistent cache put rejected " +
+                "(entry is covered by secondary)");
+    }
+
+    @Override
     public CompositeData getInvalidateOneRateHistory() {
         return TimeSeriesStatsUtil.asCompositeData(invalidateOneRateHistory, "Persistent cache invalidate one entry");
     }
@@ -475,6 +494,9 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
         // ignored
     }
 
+    Counting getPutRejectedAsCachedInSecCounter() {
+        return putRejectedAsCachedInSecMeter;
+    }
 
     //~--------------------------------------< private helpers
 

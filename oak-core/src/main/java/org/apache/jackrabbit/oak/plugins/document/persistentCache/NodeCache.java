@@ -22,6 +22,7 @@ import static com.google.common.cache.RemovalCause.SIZE;
 import static java.util.Collections.singleton;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -64,6 +65,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     private final DataType keyType;
     private final DataType valueType;
     private final CacheMetadata<K> memCacheMetadata;
+    private final DocumentNodeStore nodeStore;
     CacheWriteQueue<K, V> writeQueue;
 
     NodeCache(
@@ -77,6 +79,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
+        this.nodeStore = docNodeStore;
         PersistentCache.LOG.info("wrapping map " + this.type);
         map = new MultiGenerationMap<K, V>();
         keyType = new KeyDataType(type);
@@ -147,6 +150,9 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         if (value == null) {
             map.remove(key);
         } else {
+            if (!type.shouldCache(nodeStore, key)){
+                return;
+            }
             map.put(key, value);
 
             long memory = 0L;
@@ -312,6 +318,9 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             } else if (metadata != null && metadata.getAccessCount() < 1) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedEntryNotUsed();
+            } else if (!type.shouldCache(nodeStore, key)){
+                qualifiesToPersist = false;
+                stats.markPutRejectedAsCachedInSecondary();
             }
 
             if (qualifiesToPersist) {
@@ -331,5 +340,9 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
 
     public PersistentCacheStats getPersistentCacheStats() {
         return stats;
+    }
+
+    Map<K, V> getGenerationalMap() {
+        return Collections.unmodifiableMap(map);
     }
 }
