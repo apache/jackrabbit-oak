@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,11 +46,13 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -614,6 +617,39 @@ public class DocumentBundlingTest {
         assertFalse(hasNodeProperty("/test/book.jpg", concat("comments", DocumentBundlor.META_PROP_NODE)));
     }
 
+    @Ignore("OAK-5070")
+    @Test
+    public void journalDiffAndBundling() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+
+        NodeState r1 = merge(builder);
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("fooContent", "bar");
+        childBuilder(builder, "/test/book.jpg").setProperty("fooBook", "bar");
+        NodeState r2 = merge(builder);
+
+        final List<String> addedPropertyNames = Lists.newArrayList();
+        r2.compareAgainstBaseState(r1, new DefaultNodeStateDiff(){
+
+            @Override
+            public boolean propertyAdded(PropertyState after) {
+                addedPropertyNames.add(after.getName());
+                return super.propertyAdded(after);
+            }
+
+            @Override
+            public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+                return after.compareAgainstBaseState(before, this);
+            }
+        });
+
+        assertTrue("No change reported for /test/book.jpg", addedPropertyNames.contains("fooBook"));
+        assertTrue("No change reported for /test/book.jpg/jcr:content", addedPropertyNames.contains("fooContent"));
+    }
+
     private void createTestNode(String path, NodeState state) throws CommitFailedException {
         String parentPath = PathUtils.getParentPath(path);
         NodeBuilder builder = store.getRoot().builder();
@@ -635,8 +671,8 @@ public class DocumentBundlingTest {
         return ds.find(Collection.NODES, Utils.getIdFromPath(path));
     }
 
-    private void merge(NodeBuilder builder) throws CommitFailedException {
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    private NodeState merge(NodeBuilder builder) throws CommitFailedException {
+        return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static DocumentNodeState asDocumentState(NodeState state){
