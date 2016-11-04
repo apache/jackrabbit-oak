@@ -27,24 +27,34 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.create;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.documentState;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -208,6 +218,37 @@ public class SecondaryStoreCacheTest {
         assertFalse(cache.isCached("/x"));
     }
 
+    @Ignore("OAK-5067")
+    @Test
+    public void bundledNodes() throws Exception{
+        SecondaryStoreCache cache = createCache(new PathFilter(of("/"), empty));
+        primary.setNodeStateCache(cache);
+
+        NodeBuilder builder = primary.getRoot().builder();
+        new InitialContent().initialize(builder);
+        merge(builder);
+
+        BundledTypesRegistry registry = BundledTypesRegistry.from(NodeStateUtils.getNode(primary.getRoot(),
+                BundlingConfigHandler.CONFIG_PATH));
+        assertNotNull("DocumentBundling not found to be enabled for nt:file",
+                registry.getBundlor(newNode("nt:file").getNodeState()));
+
+        //1. Create a file node
+        builder = primary.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        //2. Assert that bundling is working
+        assertNull(getNodeDocument("/test/book.jpg/jcr:content"));
+
+        //3. Now update the file node
+        builder = primary.getRoot().builder();
+        builder.getChildNode("test").getChildNode("book.jpg").getChildNode("jcr:content").setProperty("foo", "bar");
+        merge(builder);
+    }
+
     private SecondaryStoreCache createCache(PathFilter pathFilter){
         SecondaryStoreBuilder builder = createBuilder(pathFilter);
         SecondaryStoreCache cache = builder.buildCache();
@@ -215,6 +256,16 @@ public class SecondaryStoreCacheTest {
         primary.addObserver(observer);
 
         return cache;
+    }
+
+    private static NodeBuilder newNode(String typeName){
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty(JCR_PRIMARYTYPE, typeName);
+        return builder;
+    }
+
+    private NodeDocument getNodeDocument(String path) {
+        return primary.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
     }
 
     private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {
