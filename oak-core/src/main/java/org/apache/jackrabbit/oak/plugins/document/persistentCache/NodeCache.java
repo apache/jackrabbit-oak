@@ -316,16 +316,16 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
 
             if (qualifiesToPersist) {
                 boolean addedToQueue = writeQueue.addPut(key, value);
-                if (!addedToQueue) {
+                if (addedToQueue) {
+                    long memory = 0L;
+                    memory += (key == null ? 0L : keyType.getMemory(key));
+                    memory += (value == null ? 0L : valueType.getMemory(value));
+                    stats.markBytesWritten(memory);
+                    stats.markPut();
+                } else {
                     stats.markPutRejectedQueueFull();
                 }
             }
-
-            long memory = 0L;
-            memory += (key == null ? 0L: keyType.getMemory(key));
-            memory += (value == null ? 0L: valueType.getMemory(value));
-            stats.markBytesWritten(memory);
-            stats.markPut();
         }
     }
 
