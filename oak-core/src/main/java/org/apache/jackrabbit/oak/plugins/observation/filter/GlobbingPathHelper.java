@@ -75,7 +75,7 @@ public class GlobbingPathHelper {
             }
             if (pathElem.equals("**")) {
                 addSlash = false;
-                sb.append("\\E[^/]*(/[^/]*)*\\Q");
+                sb.append("\\E([^/]*/)*\\Q");
             } else {
                 sb.append(pathElem.replace("*", "\\E[^/]*\\Q"));
                 addSlash = true;
