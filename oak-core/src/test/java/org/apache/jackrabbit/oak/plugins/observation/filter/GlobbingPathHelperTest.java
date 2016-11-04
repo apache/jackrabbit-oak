@@ -55,6 +55,11 @@ public class GlobbingPathHelperTest {
 
         assertMatches("**/bar/**/foo", "bar/a/b/c/foo");
         assertMatches("**/bar/**/foo", "/bar/a/b/c/foo");
+        
+        assertMatches("/a/b/**/foo/*", "/a/b/foo/xy");
+        assertDoesntMatch("/a/b/**/foo/*", "/a/b/barfoo/xy");
+        assertDoesntMatch("/a/b/**/foo/*", "/a/bbar/foo/xy");
+        assertDoesntMatch("/a/b/**/foo/*", "/a/bbar/barfoo/xy");
     }
     
     @Test
