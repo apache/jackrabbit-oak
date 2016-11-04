@@ -40,6 +40,10 @@ public final class PathRev implements CacheValue {
         this.revision = checkNotNull(revision);
     }
 
+    public String getPath() {
+        return path;
+    }
+
     @Override
     public int getMemory() {
         return 24                                       // shallow size

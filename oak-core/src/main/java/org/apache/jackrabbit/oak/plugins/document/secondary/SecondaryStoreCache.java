@@ -116,6 +116,11 @@ class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootO
         return null;
     }
 
+    @Override
+    public boolean isCached(String path) {
+        return pathFilter.filter(path) == PathFilter.Result.INCLUDE;
+    }
+
     @CheckForNull
     private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root, String path,
                                                       RevisionVector lastRev){

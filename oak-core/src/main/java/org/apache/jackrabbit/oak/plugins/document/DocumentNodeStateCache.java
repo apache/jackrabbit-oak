@@ -30,6 +30,11 @@ public interface DocumentNodeStateCache {
                                                         RevisionVector lastRev) {
             return null;
         }
+
+        @Override
+        public boolean isCached(String path) {
+            return false;
+        }
     };
 
     /**
@@ -44,6 +49,13 @@ public interface DocumentNodeStateCache {
      */
     @CheckForNull
     AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision, RevisionVector lastRev);
+
+    /**
+     * Determines if given path is cached by this implementation
+     * @param path path to check
+     * @return true if given path is cached
+     */
+    boolean isCached(String path);
 
 
 }

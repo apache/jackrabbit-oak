@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import com.google.common.cache.RemovalCause;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWri
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import javax.annotation.Nonnull;
@@ -43,6 +45,9 @@ import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 
 public class AsyncQueueTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private static final StringValue VAL = new StringValue("xyz");
 
@@ -69,7 +74,8 @@ public class AsyncQueueTest {
                 }
             }
         }).build();
-        nodeCache = (NodeCache<PathRev, StringValue>) pCache.wrap(null, null, cache, CacheType.NODE);
+        nodeCache = (NodeCache<PathRev, StringValue>) pCache.wrap(builderProvider.newBuilder().getNodeStore(),
+                null, cache,  CacheType.NODE);
         nodeCacheRef.set(nodeCache);
 
         CacheWriteQueueWrapper writeQueue = new CacheWriteQueueWrapper(nodeCache.writeQueue);

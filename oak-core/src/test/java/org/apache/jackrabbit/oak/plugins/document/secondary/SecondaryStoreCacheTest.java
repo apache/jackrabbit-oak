@@ -46,6 +46,7 @@ import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.create;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.documentState;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -196,6 +197,15 @@ public class SecondaryStoreCacheTest {
         result = cache.getDocumentNodeState("/a/e", r1.getRootRevision(), a_e_1
                 .getLastRevision());
         assertNull(result);
+    }
+
+    @Test
+    public void isCached() throws Exception{
+        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+
+        assertTrue(cache.isCached("/a"));
+        assertTrue(cache.isCached("/a/b"));
+        assertFalse(cache.isCached("/x"));
     }
 
     private SecondaryStoreCache createCache(PathFilter pathFilter){

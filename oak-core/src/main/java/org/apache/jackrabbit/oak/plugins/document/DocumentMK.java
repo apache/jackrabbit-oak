@@ -1093,8 +1093,8 @@ public class DocumentMK {
             return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
         }
 
-        public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache() {
-            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), null, null);
+        public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
+            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), store, null);
         }
 
         public Cache<PathRev, StringValue> buildMemoryDiffCache() {

@@ -42,6 +42,8 @@ public interface PersistentCacheStatsMBean extends CacheStatsMBean {
 
     CompositeData getPutRejectedQueueFullRateHistory();
 
+    CompositeData getPutRejectedAsCachedInSecRateHistory();
+
     CompositeData getInvalidateOneRateHistory();
 
     CompositeData getInvalidateAllRateHistory();

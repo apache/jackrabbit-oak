@@ -487,7 +487,7 @@ public final class DocumentNodeStore
         nodeCacheStats = new CacheStats(nodeCache, "Document-NodeState",
                 builder.getWeigher(), builder.getNodeCacheSize());
 
-        nodeChildrenCache = builder.buildChildrenCache();
+        nodeChildrenCache = builder.buildChildrenCache(this);
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
@@ -837,8 +837,12 @@ public final class DocumentNodeStore
         return diffCache.getStats();
     }
 
-    Cache<PathRev, DocumentNodeState> getNodeCache() {
+    public Cache<PathRev, DocumentNodeState> getNodeCache() {
         return nodeCache;
+    }
+
+    public Cache<PathRev, DocumentNodeState.Children> getNodeChildrenCache() {
+        return nodeChildrenCache;
     }
 
     /**
@@ -2807,6 +2811,10 @@ public final class DocumentNodeStore
 
     public DocumentNodeStoreStatsCollector getStatsCollector() {
         return nodeStoreStatsCollector;
+    }
+
+    public DocumentNodeStateCache getNodeStateCache() {
+        return nodeStateCache;
     }
 
     public void setNodeStateCache(DocumentNodeStateCache nodeStateCache) {
