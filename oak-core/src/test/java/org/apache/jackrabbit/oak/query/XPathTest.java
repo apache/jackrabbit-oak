@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 
@@ -71,9 +72,58 @@ public class XPathTest {
                 "order by [c] " + 
                 "option(traversal OK)");            
     }
+
+    @Test
+    public void chainedConditions() throws ParseException {
+        verify("/jcr:root/x[@a][@b][@c]",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] is not null " +
+                "and [b] is not null " +
+                "and [c] is not null " +
+                "and issamenode(a, '/x') " +
+                "/* xpath: /jcr:root/x[@a][@b][@c] */");
+    }
     
     @Test
-    public void test() throws ParseException {
+    public void union() throws ParseException {
+        try {
+            verify("(/jcr:root/x[@a][@b][@c]","");
+            fail();
+        } catch (ParseException e) {
+            // expected
+        }
+        verify("(/jcr:root/x[@a] | /jcr:root/y[@b])[@c]",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] is not null " +
+                "and [c] is not null " +
+                "and issamenode(a, '/x') " +
+                "/* xpath: /jcr:root/x[@a][@c] */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [b] is not null " +
+                "and [c] is not null " +
+                "and issamenode(a, '/y') " +
+                "/* xpath: /jcr:root/y[@b][@c] */");
+        verify("(/jcr:root/x | /jcr:root/y)",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where issamenode(a, '/x') " +
+                "/* xpath: /jcr:root/x */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where issamenode(a, '/y') " +
+                "/* xpath: /jcr:root/y */");
+        verify("(/jcr:root/x | /jcr:root/y )",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where issamenode(a, '/x') " +
+                "/* xpath: /jcr:root/x */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where issamenode(a, '/y') " +
+                "/* xpath: /jcr:root/y */");
         verify("(/jcr:root/content//*[@a] | /jcr:root/lib//*[@b]) order by @c",
                 "select [jcr:path], [jcr:score], * " + 
                 "from [nt:base] as a " + 

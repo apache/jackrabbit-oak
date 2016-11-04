@@ -298,9 +298,11 @@ public class XPathToSQL2Converter {
                 throw getSyntaxError();
             }
             if (readIf("[")) {
-                Expression c = parseConstraint();
-                currentSelector.condition = Expression.and(currentSelector.condition, c);
-                read("]");
+                do {
+                    Expression c = parseConstraint();
+                    currentSelector.condition = Expression.and(currentSelector.condition, c);
+                    read("]");
+                } while (readIf("["));
             }
             startOfQuery = false;
             nextSelector(false);
@@ -1088,8 +1090,9 @@ public class XPathToSQL2Converter {
         converter.read("(");
         int level = 0;
         ArrayList<String> parts = new ArrayList<String>();
+        int parseIndex;
         while (true) {
-            int parseIndex = converter.parseIndex;
+            parseIndex = converter.parseIndex;
             if (converter.readIf("(")) {
                 level++;
             } else if (converter.readIf(")") && level-- <= 0) {
@@ -1098,8 +1101,8 @@ public class XPathToSQL2Converter {
                 String or = partList.substring(lastOrIndex, lastParseIndex);
                 parts.add(or);
                 lastOrIndex = parseIndex;
-            } else if (currentTokenType == END) {
-                throw getSyntaxError("the query may not be empty");
+            } else if (converter.currentTokenType == END) {
+                throw getSyntaxError("empty query or missing ')'");
             } else {
                 converter.read();
             }
@@ -1107,7 +1110,7 @@ public class XPathToSQL2Converter {
         }
         String or = partList.substring(lastOrIndex, lastParseIndex);
         parts.add(or);        
-        String end = partList.substring(lastParseIndex + 1);
+        String end = partList.substring(parseIndex);
         Statement result = null;
         for(String p : parts) {
             String q = begin + p + end;
