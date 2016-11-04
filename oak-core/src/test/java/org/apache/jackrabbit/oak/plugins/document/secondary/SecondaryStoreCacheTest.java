@@ -108,6 +108,14 @@ public class SecondaryStoreCacheTest {
                 = cache.getDocumentNodeState("/a/c", r2.getRootRevision(), a_r2.getLastRevision());
         assertTrue(EqualsDiff.equals(a_r2, result));
 
+        //Child docs should only have lastRev and not root rev
+        assertTrue(result.hasProperty(DelegatingDocumentNodeState.PROP_LAST_REV));
+        assertFalse(result.hasProperty(DelegatingDocumentNodeState.PROP_REVISION));
+
+        //Root doc would have both meta props
+        assertTrue(secondary.getRoot().hasProperty(DelegatingDocumentNodeState.PROP_LAST_REV));
+        assertTrue(secondary.getRoot().hasProperty(DelegatingDocumentNodeState.PROP_REVISION));
+
         nb = primary.getRoot().builder();
         nb.child("a").child("c").remove();
         AbstractDocumentNodeState r3 = merge(nb);
