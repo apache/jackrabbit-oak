@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
-import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -105,7 +104,6 @@ class PathFilteringDiff extends ApplyDiff {
     static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder, List<String> metaPropNames) {
         builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
         builder.setProperty(asPropertyState(PROP_LAST_REV, state.getLastRevision()));
-        builder.setProperty(createProperty(PROP_PATH, state.getPath()));
 
         for (String metaProp : metaPropNames){
             PropertyState ps = state.getProperty(metaProp);

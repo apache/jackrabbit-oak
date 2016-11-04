@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
-import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -49,12 +48,10 @@ public class DelegatingDocumentNodeStateTest {
         RevisionVector rv2 = new RevisionVector(new Revision(1,0,3));
         builder.setProperty(asPropertyState(PROP_REVISION, rv1));
         builder.setProperty(asPropertyState(PROP_LAST_REV, rv2));
-        builder.setProperty(createProperty(PROP_PATH, "foo"));
         AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
 
         assertEquals(rv1, state.getRootRevision());
         assertEquals(rv2, state.getLastRevision());
-        assertEquals("foo", state.getPath());
         assertTrue(state.hasNoChildren());
         assertTrue(state.exists());
         assertFalse(state.isFromExternalChange());
@@ -97,7 +94,6 @@ public class DelegatingDocumentNodeStateTest {
         RevisionVector rv2 = new RevisionVector(new Revision(1,0,3));
         builder.setProperty(asPropertyState(PROP_REVISION, rv1));
         builder.setProperty(asPropertyState(PROP_LAST_REV, rv2));
-        builder.setProperty(createProperty(PROP_PATH, "foo"));
         AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
 
         AbstractDocumentNodeState state2 = state.withRootRevision(rv1, false);
@@ -136,7 +132,6 @@ public class DelegatingDocumentNodeStateTest {
     private static void setMetaProps(NodeBuilder nb){
         nb.setProperty(asPropertyState(PROP_REVISION, new RevisionVector(new Revision(1,0,1))));
         nb.setProperty(asPropertyState(PROP_LAST_REV, new RevisionVector(new Revision(1,0,1))));
-        nb.setProperty(createProperty(PROP_PATH, "foo"));
     }
 
     private static PropertyState asPropertyState(String name, RevisionVector revision) {
