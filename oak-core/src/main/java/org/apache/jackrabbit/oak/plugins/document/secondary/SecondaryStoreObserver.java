@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -46,6 +47,7 @@ class SecondaryStoreObserver implements Observer {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
     private final PathFilter pathFilter;
+    private final List<String> metaPropNames;
     private final SecondaryStoreRootObserver secondaryObserver;
     private final NodeStateDiffer differ;
     private final TimerStats local;
@@ -53,6 +55,7 @@ class SecondaryStoreObserver implements Observer {
     private boolean firstEventProcessed;
 
     public SecondaryStoreObserver(NodeStore nodeStore,
+                                  List<String> metaPropNames,
                                   NodeStateDiffer differ,
                                   PathFilter pathFilter,
                                   StatisticsProvider statisticsProvider,
@@ -61,6 +64,7 @@ class SecondaryStoreObserver implements Observer {
         this.pathFilter = pathFilter;
         this.secondaryObserver = secondaryObserver;
         this.differ = differ;
+        this.metaPropNames = metaPropNames;
         this.local = statisticsProvider.getTimer("DOCUMENT_CACHE_SEC_LOCAL", StatsOptions.DEFAULT);
         this.external = statisticsProvider.getTimer("DOCUMENT_CACHE_SEC_EXTERNAL", StatsOptions.DEFAULT);
     }
@@ -78,10 +82,10 @@ class SecondaryStoreObserver implements Observer {
         NodeState secondaryRoot = nodeStore.getRoot();
         NodeState base = DelegatingDocumentNodeState.wrapIfPossible(secondaryRoot, differ);
         NodeBuilder builder = secondaryRoot.builder();
-        ApplyDiff diff = new PathFilteringDiff(builder, pathFilter, target);
+        ApplyDiff diff = new PathFilteringDiff(builder, pathFilter, metaPropNames, target);
 
         //Copy the root node meta properties
-        PathFilteringDiff.copyMetaProperties(target, builder);
+        PathFilteringDiff.copyMetaProperties(target, builder, metaPropNames);
 
         //Apply the rest of properties
         target.compareAgainstBaseState(base, diff);

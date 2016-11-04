@@ -218,7 +218,6 @@ public class SecondaryStoreCacheTest {
         assertFalse(cache.isCached("/x"));
     }
 
-    @Ignore("OAK-5067")
     @Test
     public void bundledNodes() throws Exception{
         SecondaryStoreCache cache = createCache(new PathFilter(of("/"), empty));
@@ -251,6 +250,7 @@ public class SecondaryStoreCacheTest {
 
     private SecondaryStoreCache createCache(PathFilter pathFilter){
         SecondaryStoreBuilder builder = createBuilder(pathFilter);
+        builder.metaPropNames(DocumentNodeStore.META_PROP_NAMES);
         SecondaryStoreCache cache = builder.buildCache();
         SecondaryStoreObserver observer = builder.buildObserver(cache);
         primary.addObserver(observer);
