@@ -86,9 +86,8 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         AggregateIndexPlan plan = new AggregateIndexPlan(filter);
         collectCombinedPlan(e, filter, sortOrder, rootState, plan, "");
         if (plan.containsPathWithoutPlan()) {
-            // this is not expected (a full-text index that 
-            // can't deal with a full-text restriction)
-            LOG.warn("Full-text index without plan: " + e);
+            // the full-text index didn't return a plan
+            LOG.debug("Full-text index without plan: " + e);
             return Collections.emptyList();
         }
         return Collections.singletonList((IndexPlan) plan);
