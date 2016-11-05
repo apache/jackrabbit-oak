@@ -54,7 +54,13 @@ import com.google.common.collect.Iterables;
  * @see ChangeSet for details on what is tracked and how that data should be
  *      interpreted
  */
-@Component(immediate = true)
+@Component(
+        immediate = true,
+        metatype = true,
+        label = "Apache Jackrabbit Oak Change Collector Service",
+        description = "It hooks into the commit and collect ChangeSet of changed items of a commit which " +
+                "is then used to speed up observation processing"
+)
 @Property(name = "type", value = "changeCollectorProvider", propertyPrivate = true)
 @Service(ValidatorProvider.class)
 public class ChangeCollectorProvider extends ValidatorProvider {
