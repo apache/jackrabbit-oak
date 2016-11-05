@@ -202,6 +202,9 @@ public class ClusterNodeInfo {
      */
     public static final int DEFAULT_LEASE_FAILURE_MARGIN_MILLIS = 1000 * 20;
 
+    public static final boolean DEFAULT_LEASE_CHECK_DISABLED =
+            Boolean.valueOf(System.getProperty("oak.documentMK.disableLeaseCheck", "false"));
+
     /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
     private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
@@ -350,7 +353,7 @@ public class ClusterNodeInfo {
         this.state = state;
         this.revRecoveryLock = revRecoveryLock;
         this.newEntry = newEntry;
-        this.leaseCheckDisabled = Boolean.valueOf(System.getProperty("oak.documentMK.disableLeaseCheck", "false"));
+        this.leaseCheckDisabled = DEFAULT_LEASE_CHECK_DISABLED;
     }
 
     public void setLeaseCheckDisabled(boolean leaseCheckDisabled) {
