@@ -58,7 +58,7 @@ import com.google.common.collect.Iterables;
         immediate = true,
         metatype = true,
         label = "Apache Jackrabbit Oak Change Collector Service",
-        description = "It hooks into the commit and collect ChangeSet of changed items of a commit which " +
+        description = "It hooks into the commit and collects a ChangeSet of changed items of a commit which " +
                 "is then used to speed up observation processing"
 )
 @Property(name = "type", value = "changeCollectorProvider", propertyPrivate = true)
