@@ -456,7 +456,7 @@ public class DocumentNodeStoreService {
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
                 setBundlingDisabled(bundlingDisabled).
-                setLeaseCheck(true /* OAK-2739: enabled by default */).
+                setLeaseCheck(!ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED /* OAK-2739: enabled by default */).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
                     
                     @Override
