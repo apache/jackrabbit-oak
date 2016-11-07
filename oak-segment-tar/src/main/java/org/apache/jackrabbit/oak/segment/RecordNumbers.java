@@ -17,12 +17,31 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.collect.Iterators.emptyIterator;
+
+import java.util.Iterator;
+
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 
 /**
  * A table to translate record numbers to offsets.
  */
 interface RecordNumbers extends Iterable<Entry> {
+
+    /**
+     * An always empty {@code RecordNumber} table.
+     */
+    RecordNumbers EMPTY_RECORD_NUMBERS = new RecordNumbers() {
+        @Override
+        public int getOffset(int recordNumber) {
+            return -1;
+        }
+
+        @Override
+        public Iterator<Entry> iterator() {
+            return emptyIterator();
+        }
+    };
 
     /**
      * Translate a record number to an offset.

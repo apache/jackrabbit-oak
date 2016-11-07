@@ -18,12 +18,13 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Arrays.fill;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.junit.Test;
 
@@ -37,11 +38,13 @@ public class ImmutableRecordNumbersTest {
         entries.put(3, 4);
         entries.put(5, 6);
 
-        ImmutableRecordNumbers table = new ImmutableRecordNumbers(recordEntries(entries));
+        ImmutableRecordNumbers table = new ImmutableRecordNumbers(offsets(entries), types(entries));
 
         assertEquals(2, table.getOffset(1));
         assertEquals(4, table.getOffset(3));
         assertEquals(6, table.getOffset(5));
+        assertEquals(-1, table.getOffset(2));
+        assertEquals(-1, table.getOffset(42));
     }
 
     @Test
@@ -52,7 +55,7 @@ public class ImmutableRecordNumbersTest {
         entries.put(3, 4);
         entries.put(5, 6);
 
-        ImmutableRecordNumbers table = new ImmutableRecordNumbers(recordEntries(entries));
+        ImmutableRecordNumbers table = new ImmutableRecordNumbers(offsets(entries), types(entries));
 
         entries.put(1, 3);
         entries.put(7, 8);
@@ -61,6 +64,8 @@ public class ImmutableRecordNumbersTest {
         assertEquals(2, table.getOffset(1));
         assertEquals(4, table.getOffset(3));
         assertEquals(6, table.getOffset(5));
+        assertEquals(-1, table.getOffset(2));
+        assertEquals(-1, table.getOffset(42));
     }
 
     @Test
@@ -71,7 +76,7 @@ public class ImmutableRecordNumbersTest {
         entries.put(3, 4);
         entries.put(5, 6);
 
-        ImmutableRecordNumbers table = new ImmutableRecordNumbers(recordEntries(entries));
+        ImmutableRecordNumbers table = new ImmutableRecordNumbers(offsets(entries), types(entries));
 
         Map<Integer, Integer> iterated = new HashMap<>();
 
@@ -90,6 +95,33 @@ public class ImmutableRecordNumbersTest {
         }
 
         return entries;
+    }
+
+    private int[] offsets(Map<Integer, Integer> entries) {
+        int[] offsets = new int[max(entries.keySet()) + 1];
+        fill(offsets, -1);
+
+        for (Map.Entry<Integer, Integer> entry : entries.entrySet()) {
+            offsets[entry.getKey()] = entry.getValue();
+        }
+
+        return offsets;
+    }
+
+    private byte[] types(Map<Integer, Integer> entries) {
+        byte[] types = new byte[max(entries.keySet()) + 1];
+        fill(types, (byte) RecordType.VALUE.ordinal());
+        return types;
+    }
+
+    private int max(Set<Integer> integers) {
+        int max = -1;
+        for (Integer integer : integers) {
+            if (integer > max) {
+                max = integer;
+            }
+        }
+        return max;
     }
 
 }
