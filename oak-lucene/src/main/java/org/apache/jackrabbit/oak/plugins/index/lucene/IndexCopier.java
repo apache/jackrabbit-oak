@@ -117,14 +117,13 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     public Directory wrapForRead(String indexPath, IndexDefinition definition,
                                  Directory remote, String dirName) throws IOException {
         Directory local = createLocalDirForIndexReader(indexPath, definition, dirName);
-        return new CopyOnReadDirectory(this, remote, local, prefetchEnabled, indexPath, getSharedWorkingSet(indexPath), executor);
+        return new CopyOnReadDirectory(this, remote, local, prefetchEnabled, indexPath, executor);
     }
 
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition, dirName);
         String indexPath = definition.getIndexPathFromConfig();
-        return new CopyOnWriteDirectory(this, remote, local, reindexMode,
-                indexPath, getSharedWorkingSet(definition.getIndexPathFromConfig()), executor);
+        return new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
     }
 
     @Override
@@ -170,6 +169,19 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     public File getIndexDir(IndexDefinition definition, String indexPath, String dirName) throws IOException {
         return indexRootDirectory.getIndexDir(definition, indexPath, dirName);
+    }
+
+    public void addIndexFileBeingWritten(String indexPath, String name) {
+        getSharedWorkingSet(indexPath).add(name);
+    }
+
+    public void clearIndexFilesBeingWritten(String indexPath) {
+        //TODO This should also be removed at start i.e. open of CopyOnWriteDirectory
+        getSharedWorkingSet(indexPath).clear();
+    }
+
+    public Set<String> getIndexFilesBeingWritten(String indexPath) {
+        return getSharedWorkingSet(indexPath);
     }
 
     Map<String, LocalIndexFile> getFailedToDeleteFiles() {
