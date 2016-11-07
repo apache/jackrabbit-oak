@@ -30,6 +30,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -312,5 +313,29 @@ public class BackgroundObserver implements Observer, Closeable {
 
     private static Logger getLogger(@Nonnull Observer observer) {
         return LoggerFactory.getLogger(checkNotNull(observer).getClass());
+    }
+
+    
+    /** FOR TESTING ONLY 
+     * @throws InterruptedException **/
+    boolean waitUntilStopped(int timeout, TimeUnit unit) throws InterruptedException {
+        long done = System.currentTimeMillis() + unit.toMillis(timeout);
+        boolean added = false;
+        synchronized(this) {
+            added = queue.offer(STOP);
+            currentTask.onComplete(completionHandler);
+        }
+        while(done > System.currentTimeMillis()) {
+            synchronized(this) {
+                if (!added) {
+                    added = queue.offer(STOP);
+                }
+                if (queue.size() == 0 || (queue.size() == 1 && queue.peek() == STOP)) {
+                    return true;
+                }
+                wait(1);
+            }
+        }
+        return false;
     }
 }
