@@ -93,6 +93,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
      */
     private final Runnable completionHandler = new Runnable() {
         Callable<Void> task = new Callable<Void>() {
+            @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
             @Override
             public Void call() throws Exception {
                 try {
@@ -491,6 +492,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 return delegate.getFilePointer();
             }
 
+            @SuppressWarnings("deprecation")
             @Override
             public void seek(long pos) throws IOException {
                 delegate.seek(pos);
