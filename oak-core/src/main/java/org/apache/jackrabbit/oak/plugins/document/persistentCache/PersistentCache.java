@@ -68,6 +68,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean compactOnClose;
     private boolean compress = true;
     private boolean asyncCache = true;
+    private boolean asyncDiffCache = false;
     private HashMap<CacheType, GenerationCache> caches = 
             new HashMap<CacheType, GenerationCache>();
     
@@ -144,10 +145,10 @@ public class PersistentCache implements Broadcaster.Listener {
                 manualCommit = true;
             } else if (p.startsWith("broadcast=")) {
                 broadcast = p.split("=")[1];               
-            } else if (p.equals("+async")) {
-                asyncCache = true;
             } else if (p.equals("-async")) {
                 asyncCache = false;
+            } else if (p.equals("+asyncDiff")) {
+                asyncDiffCache = true;
             }
         }
         this.directory = dir;
@@ -402,6 +403,7 @@ public class PersistentCache implements Broadcaster.Listener {
             Cache<K, V> base, CacheType type,
             StatisticsProvider statisticsProvider) {
         boolean wrap;
+        boolean async = asyncCache;
         switch (type) {
         case NODE:
             wrap = cacheNodes;
@@ -411,6 +413,7 @@ public class PersistentCache implements Broadcaster.Listener {
             break;
         case DIFF:
             wrap = cacheDiff;
+            async = asyncDiffCache;
             break;
         case LOCAL_DIFF:
             wrap = cacheLocalDiff;
@@ -431,7 +434,7 @@ public class PersistentCache implements Broadcaster.Listener {
         if (wrap) {
             NodeCache<K, V> c = new NodeCache<K, V>(this, 
                     base, docNodeStore, docStore,
-                    type, writeDispatcher, statisticsProvider);
+                    type, writeDispatcher, statisticsProvider, async);
             initGenerationCache(c);
             return c;
         }
@@ -512,10 +515,6 @@ public class PersistentCache implements Broadcaster.Listener {
     
     public int getExceptionCount() {
         return exceptionCount;
-    }
-
-    public boolean isAsyncCache() {
-        return asyncCache;
     }
 
     void broadcast(CacheType type, Function<WriteBuffer, Void> writer) {

@@ -64,7 +64,7 @@ public class AsyncQueueTest {
     @Before
     public void setup() throws IOException {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
-        pCache = new PersistentCache("target/cacheTest,+async");
+        pCache = new PersistentCache("target/cacheTest");
         final AtomicReference<NodeCache<PathRev, StringValue>> nodeCacheRef = new AtomicReference<NodeCache<PathRev, StringValue>>();
         CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback(new CacheLIRS.EvictionCallback<PathRev, StringValue>() {
             @Override
