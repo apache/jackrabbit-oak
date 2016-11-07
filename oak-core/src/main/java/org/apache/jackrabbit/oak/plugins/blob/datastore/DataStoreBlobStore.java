@@ -421,13 +421,13 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
                     deleted.add(blobId);
                     count++;
                     if (count % 512 == 0) {
-                        log.info("Deleted blobs {[]}", deleted);
+                        log.info("Deleted blobs {}", deleted);
                         deleted.clear();
                     }
                 }
             }
             if (!deleted.isEmpty()) {
-                log.info("Deleted blobs {[]}", deleted);
+                log.info("Deleted blobs {}", deleted);
             }
         }
         return count;
