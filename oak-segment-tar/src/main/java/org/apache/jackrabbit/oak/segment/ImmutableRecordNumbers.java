@@ -17,10 +17,11 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newLinkedHashMap;
-
 import java.util.Iterator;
-import java.util.Map;
+
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.AbstractIterator;
 
 /**
  * An immutable record table. It is initialized at construction time and can
@@ -30,32 +31,65 @@ import java.util.Map;
  */
 class ImmutableRecordNumbers implements RecordNumbers {
 
-    private final Map<Integer, RecordEntry> records;
+    @Nonnull
+    private final int[] offsets;
+
+    @Nonnull
+    private final byte[] type;
 
     /**
-     * Create a new immutable record table.
+     * Create a new instance based on arrays for the offsets and types.
+     * <p>
+     * <em>Note:</em> for performance reasons these arrays are directly referenced
+     * by this class and must not anymore be modified from other places.
      *
-     * @param records a map of record numbers to record entries. It can't be
-     *                {@code null}.
+     * @param offsets  Offsets per position. -1 if not mapped.
+     * @param type     Types per position. Not defined if not mapped.
      */
-    ImmutableRecordNumbers(Map<Integer, RecordEntry> records) {
-        this.records = newLinkedHashMap(records);
+    public ImmutableRecordNumbers(@Nonnull int[] offsets, @Nonnull byte[] type) {
+        this.offsets = offsets;
+        this.type = type;
     }
+
 
     @Override
     public int getOffset(int recordNumber) {
-        RecordEntry entry = records.get(recordNumber);
-
-        if (entry == null) {
+        if (recordNumber < offsets.length) {
+            return offsets[recordNumber];
+        } else {
             return -1;
         }
-
-        return entry.getOffset();
     }
 
     @Override
     public Iterator<Entry> iterator() {
-        return new RecordNumbersIterator(records.entrySet().iterator());
+        return new AbstractIterator<Entry>() {
+            private int pos = -1;
+            @Override
+            protected Entry computeNext() {
+                while (++pos < offsets.length && offsets[pos] < 0) { }
+                if (pos < offsets.length) {
+                    return new Entry() {
+                        @Override
+                        public int getRecordNumber() {
+                            return pos;
+                        }
+
+                        @Override
+                        public int getOffset() {
+                            return offsets[pos];
+                        }
+
+                        @Override
+                        public RecordType getType() {
+                            return RecordType.values()[type[pos]];
+                        }
+                    };
+                } else {
+                    return endOfData();
+                }
+            }
+        };
     }
 
 }

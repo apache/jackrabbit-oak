@@ -22,8 +22,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newLinkedHashMap;
+import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.oak.segment.RecordNumbers.EMPTY_RECORD_NUMBERS;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
@@ -38,7 +39,6 @@ import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.CheckForNull;
@@ -225,24 +225,29 @@ public class Segment {
      * @return An instance of {@link RecordNumbers}, never {@code null}.
      */
     private RecordNumbers readRecordNumberOffsets() {
-        Map<Integer, RecordEntry> recordNumberOffsets = newLinkedHashMap();
-
-        int position = data.position();
-
-        position += HEADER_SIZE;
-        position += getReferencedSegmentIdCount() * SEGMENT_REFERENCE_SIZE;
-
-        for (int i = 0; i < getRecordNumberCount(); i++) {
-            int recordNumber = data.getInt(position);
-            position += 4;
-            int type = data.get(position);
-            position += 1;
-            int offset = data.getInt(position);
-            position += 4;
-            recordNumberOffsets.put(recordNumber, new RecordEntry(RecordType.values()[type], offset));
+        int recordNumberCount = getRecordNumberCount();
+        if (recordNumberCount == 0) {
+            return EMPTY_RECORD_NUMBERS;
         }
 
-        return new ImmutableRecordNumbers(recordNumberOffsets);
+        int position = HEADER_SIZE + data.position()
+                + getReferencedSegmentIdCount() * SEGMENT_REFERENCE_SIZE;
+        int maxIndex = data.getInt(position + (recordNumberCount - 1) * 9);
+
+        byte[] types = new byte[maxIndex + 1];
+        int[] offsets = new int[maxIndex + 1];
+        fill(offsets, -1);
+
+        for (int i = 0; i < recordNumberCount; i++) {
+            int recordNumber = data.getInt(position);
+            position += 4;
+            types[recordNumber] = data.get(position);
+            position += 1;
+            offsets[recordNumber] = data.getInt(position);
+            position += 4;
+        }
+
+        return new ImmutableRecordNumbers(offsets, types);
     }
 
     private SegmentReferences readReferencedSegments() {
