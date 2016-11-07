@@ -122,8 +122,9 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition, dirName);
+        String indexPath = definition.getIndexPathFromConfig();
         return new CopyOnWriteDirectory(this, remote, local, reindexMode,
-                getIndexPathForLogging(definition), getSharedWorkingSet(definition.getIndexPathFromConfig()), executor);
+                indexPath, getSharedWorkingSet(definition.getIndexPathFromConfig()), executor);
     }
 
     @Override
@@ -232,14 +233,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         FileUtils.deleteDirectory(workDir);
         checkState(workDir.mkdirs(), "Cannot create directory %s", workDir);
         return workDir;
-    }
-
-    private static String getIndexPathForLogging(IndexDefinition defn){
-        String indexPath = defn.getIndexPathFromConfig();
-        if (indexPath == null){
-            return "UNKNOWN";
-        }
-        return indexPath;
     }
 
     /**
