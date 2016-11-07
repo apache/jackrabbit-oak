@@ -79,7 +79,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final AtomicReference<Throwable> errorInCopy = new AtomicReference<Throwable>();
     private final CountDownLatch copyDone = new CountDownLatch(1);
     private final boolean reindexMode;
-    private final String indexPathForLogging;
+    private final String indexPath;
     private final Set<String> sharedWorkingSet;
 
     /**
@@ -100,7 +100,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                     if (task != null && task != STOP) {
                         if (errorInCopy.get() != null) {
                             log.trace("[COW][{}] Skipping task {} as some exception occurred in previous run",
-                                    indexPathForLogging, task);
+                                    indexPath, task);
                         } else {
                             task.call();
                         }
@@ -114,7 +114,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 } catch (Throwable t) {
                     errorInCopy.set(t);
                     log.debug("[COW][{}] Error occurred while copying files. Further processing would " +
-                            "be skipped", indexPathForLogging, t);
+                            "be skipped", indexPath, t);
                     currentTask.onComplete(completionHandler);
                 }
                 return null;
@@ -134,14 +134,14 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     };
 
     public CopyOnWriteDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean reindexMode,
-                                String indexPathForLogging, Set<String> sharedWorkingSet, Executor executor) throws
+                                String indexPath, Set<String> sharedWorkingSet, Executor executor) throws
             IOException {
         super(local);
         this.indexCopier = indexCopier;
         this.remote = remote;
         this.local = local;
         this.executor = executor;
-        this.indexPathForLogging = indexPathForLogging;
+        this.indexPath = indexPath;
         this.reindexMode = reindexMode;
         this.sharedWorkingSet = sharedWorkingSet;
         initialize();
@@ -159,7 +159,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
     @Override
     public void deleteFile(String name) throws IOException {
-        log.trace("[COW][{}] Deleted file {}", indexPathForLogging, name);
+        log.trace("[COW][{}] Deleted file {}", indexPath, name);
         COWFileReference ref = fileMap.remove(name);
         if (ref != null) {
             ref.delete();
@@ -224,7 +224,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                             "while processing copy task for" + remote.toString());
                 }
             }
-            PERF_LOGGER.end(start, -1, "[COW][{}] Completed pending copying task {}", indexPathForLogging, pendingCopies);
+            PERF_LOGGER.end(start, -1, "[COW][{}] Completed pending copying task {}", indexPath, pendingCopies);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException(e);
@@ -232,7 +232,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         Throwable t = errorInCopy.get();
         if (t != null){
-            throw new IOException("Error occurred while copying files for " + indexPathForLogging, t);
+            throw new IOException("Error occurred while copying files for " + indexPath, t);
         }
 
         //Sanity check
@@ -249,13 +249,13 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         String msg = "[COW][{}] CopyOnWrite stats : Skipped copying {} files with total size {}";
         if ((reindexMode && skippedFilesSize > 0) || skippedFilesSize > 10 * FileUtils.ONE_MB){
-            log.info(msg, indexPathForLogging, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
+            log.info(msg, indexPath, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
         } else {
-            log.debug(msg,indexPathForLogging, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
+            log.debug(msg, indexPath, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
         }
 
         if (log.isTraceEnabled()){
-            log.trace("[COW][{}] File listing - Upon completion {}", indexPathForLogging, Arrays.toString(remote.listAll()));
+            log.trace("[COW][{}] File listing - Upon completion {}", indexPath, Arrays.toString(remote.listAll()));
         }
 
         local.close();
@@ -265,7 +265,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
     @Override
     public String toString() {
-        return String.format("[COW][%s] Local %s, Remote %s", indexPathForLogging, local, remote);
+        return String.format("[COW][%s] Local %s, Remote %s", indexPath, local, remote);
     }
 
     private long getSkippedFilesSize() {
@@ -292,7 +292,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         if (log.isTraceEnabled()){
-            log.trace("[COW][{}] File listing - At start {}", indexPathForLogging, Arrays.toString(remote.listAll()));
+            log.trace("[COW][{}] File listing - At start {}", indexPath, Arrays.toString(remote.listAll()));
         }
     }
 
@@ -304,7 +304,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 indexCopier.copyDone();
                 if (deletedFilesLocal.contains(name)){
                     skippedFiles.add(name);
-                    log.trace("[COW][{}] Skip copying of deleted file {}", indexPathForLogging, name);
+                    log.trace("[COW][{}] Skip copying of deleted file {}", indexPath, name);
                     return null;
                 }
                 long fileSize = local.fileLength(name);
@@ -316,7 +316,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
                 indexCopier.doneCopy(file, start);
                 PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
-                    indexPathForLogging, name, IOUtils.humanReadableByteCount(fileSize));
+                        indexPath, name, IOUtils.humanReadableByteCount(fileSize));
                 return null;
             }
 
@@ -332,7 +332,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             @Override
             public Void call() throws Exception {
                 if (!skippedFiles.contains(name)) {
-                    log.trace("[COW][{}] Marking as deleted {}", indexPathForLogging, name);
+                    log.trace("[COW][{}] Marking as deleted {}", indexPath, name);
                     remote.deleteFile(name);
                 }
                 return null;
@@ -447,7 +447,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         @Override
         public IndexOutput createOutput(IOContext context) throws IOException {
-            log.debug("[COW][{}] Creating output {}", indexPathForLogging, name);
+            log.debug("[COW][{}] Creating output {}", indexPath, name);
             return new COWLocalFileReference.CopyOnCloseIndexOutput(local.createOutput(name, context));
         }
 
