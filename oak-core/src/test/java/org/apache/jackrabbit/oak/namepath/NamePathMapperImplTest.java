@@ -97,6 +97,7 @@ public class NamePathMapperImplTest {
         assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/./{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("/a/b/c", npMapper.getOakPath("/a/b[1]/c[01]"));
+        assertEquals("/a/b", npMapper.getOakPath("/a/b/a/.."));
     }
 
     @Test
