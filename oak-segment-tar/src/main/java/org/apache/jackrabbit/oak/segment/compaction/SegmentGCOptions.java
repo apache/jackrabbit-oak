@@ -32,9 +32,9 @@ public class SegmentGCOptions {
     public static final boolean PAUSE_DEFAULT = false;
 
     /**
-     * Default value for {@link #getGainThreshold()}
+     * Default value for {@link #isEstimationDisabled()}
      */
-    public static final byte GAIN_THRESHOLD_DEFAULT = 10;
+    public static final boolean DISABLE_ESTIMATION_DEFAULT = false;
 
     /**
      * Default value for {@link #getRetryCount()}
@@ -52,9 +52,9 @@ public class SegmentGCOptions {
     public static final int RETAINED_GENERATIONS_DEFAULT = 2;
 
     /**
-     * Default value for {@link #getGcSizeDeltaEstimation()}
+     * Default value for {@link #getGcSizeDeltaEstimation()} set to 10GB
      */
-    public static final long SIZE_DELTA_ESTIMATION_DEFAULT = -1;
+    public static final long SIZE_DELTA_ESTIMATION_DEFAULT = 10737418240L;
 
     /**
      * Default value for {@link #getMemoryThreshold()}
@@ -63,7 +63,10 @@ public class SegmentGCOptions {
 
     private boolean paused = PAUSE_DEFAULT;
 
-    private int gainThreshold = GAIN_THRESHOLD_DEFAULT;
+    /**
+     * Flag controlling whether the estimation phase will run before a GC cycle
+     */
+    private boolean estimationDisabled = DISABLE_ESTIMATION_DEFAULT;
 
     private int retryCount = RETRY_COUNT_DEFAULT;
 
@@ -86,15 +89,14 @@ public class SegmentGCOptions {
             "oak.segment.compaction.gcSizeDeltaEstimation",
             SIZE_DELTA_ESTIMATION_DEFAULT);
 
-    public SegmentGCOptions(boolean paused, int gainThreshold, int retryCount, int forceTimeout) {
+    public SegmentGCOptions(boolean paused, int retryCount, int forceTimeout) {
         this.paused = paused;
-        this.gainThreshold = gainThreshold;
         this.retryCount = retryCount;
         this.forceTimeout = forceTimeout;
     }
 
     public SegmentGCOptions() {
-        this(PAUSE_DEFAULT, GAIN_THRESHOLD_DEFAULT, RETRY_COUNT_DEFAULT, FORCE_TIMEOUT_DEFAULT);
+        this(PAUSE_DEFAULT, RETRY_COUNT_DEFAULT, FORCE_TIMEOUT_DEFAULT);
     }
 
     /**
@@ -119,24 +121,6 @@ public class SegmentGCOptions {
      */
     public SegmentGCOptions setPaused(boolean paused) {
         this.paused = paused;
-        return this;
-    }
-
-    /**
-     * Get the gain estimate threshold beyond which revision gc should run
-     * @return gainThreshold
-     */
-    public int getGainThreshold() {
-        return gainThreshold;
-    }
-
-    /**
-     * Set the revision gain estimate threshold beyond which revision gc should run
-     * @param gainThreshold
-     * @return this instance
-     */
-    public SegmentGCOptions setGainThreshold(int gainThreshold) {
-        this.gainThreshold = gainThreshold;
         return this;
     }
 
@@ -220,7 +204,8 @@ public class SegmentGCOptions {
         } else {
             return getClass().getSimpleName() + "{" +
                     "paused=" + paused +
-                    ", gainThreshold=" + gainThreshold +
+                    ", estimationDisabled=" + estimationDisabled +
+                    ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation +
                     ", retryCount=" + retryCount +
                     ", forceTimeout=" + forceTimeout +
                     ", retainedGenerations=" + retainedGenerations +
@@ -288,10 +273,6 @@ public class SegmentGCOptions {
         return this.ocBinMaxSize;
     }
 
-    public boolean isGcSizeDeltaEstimation() {
-        return gcSizeDeltaEstimation >= 0;
-    }
-
     public long getGcSizeDeltaEstimation() {
         return gcSizeDeltaEstimation;
     }
@@ -321,6 +302,19 @@ public class SegmentGCOptions {
      */
     public SegmentGCOptions setMemoryThreshold(int memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
+        return this;
+    }
+
+    public boolean isEstimationDisabled() {
+        return estimationDisabled;
+    }
+
+    /**
+     * Disables the estimation phase, thus allowing GC to run every time.
+     * @return this instance
+     */
+    public SegmentGCOptions setEstimationDisabled(boolean disabled) {
+        this.estimationDisabled = disabled;
         return this;
     }
 }
