@@ -22,6 +22,8 @@ jdk:
 cache:
   directories:
     - $HOME/.m2
+before_cache:
+  - rm $HOME/.m2/repository/org/apache/derby/derby/10.5.3.0_1/derby-10.5.3.0_1.jar
 addons:
   apt:
     sources:
