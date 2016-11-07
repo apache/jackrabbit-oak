@@ -52,6 +52,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
@@ -521,7 +522,7 @@ public class IndexCopierTest {
         w2.close();
 
         assertEquals(1, c1.getFailedToDeleteFiles().size());
-        IndexCopier.LocalIndexFile testFile = c1.getFailedToDeleteFiles().values().iterator().next();
+        LocalIndexFile testFile = c1.getFailedToDeleteFiles().values().iterator().next();
 
         assertEquals(1, testFile.getDeleteAttemptCount());
         assertEquals(IOUtils.humanReadableByteCount(t1.length), c1.getGarbageSize());
