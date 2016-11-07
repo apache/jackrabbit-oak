@@ -143,6 +143,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         this.executor = executor;
         this.indexPath = indexPath;
         this.reindexMode = reindexMode;
+        indexCopier.clearIndexFilesBeingWritten(indexPath);
         initialize();
     }
 
@@ -447,7 +448,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         @Override
         public IndexOutput createOutput(IOContext context) throws IOException {
             log.debug("[COW][{}] Creating output {}", indexPath, name);
-            return new COWLocalFileReference.CopyOnCloseIndexOutput(local.createOutput(name, context));
+            return new CopyOnCloseIndexOutput(local.createOutput(name, context));
         }
 
         @Override

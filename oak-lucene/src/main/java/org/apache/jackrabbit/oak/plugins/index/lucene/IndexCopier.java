@@ -176,7 +176,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     }
 
     public void clearIndexFilesBeingWritten(String indexPath) {
-        //TODO This should also be removed at start i.e. open of CopyOnWriteDirectory
         getSharedWorkingSet(indexPath).clear();
     }
 
