@@ -25,6 +25,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 
+import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -204,6 +205,32 @@ public interface RefreshStrategy {
         @Override
         public String toString() {
             return "Never refresh but log warning after more than " + interval + " seconds of inactivity";
+        }
+    }
+
+    /**
+     * This strategy conditionally invokes the delegated strategy based on the passed predicate
+     */
+    class ConditionalRefreshStrategy implements RefreshStrategy {
+        private final RefreshStrategy delegate;
+        private final Predicate<Long> condition;
+
+        public ConditionalRefreshStrategy(RefreshStrategy delegate, Predicate<Long> condition) {
+            this.delegate = delegate;
+            this.condition = condition;
+        }
+
+        @Override
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            if (condition.apply(secondsSinceLastAccess)){
+                return delegate.needsRefresh(secondsSinceLastAccess);
+            }
+            return false;
+        }
+
+        @Override
+        public void refreshed() {
+            delegate.refreshed();
         }
     }
 
