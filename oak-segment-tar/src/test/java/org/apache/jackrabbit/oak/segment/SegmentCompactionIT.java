@@ -221,7 +221,7 @@ public class SegmentCompactionIT {
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         SegmentGCOptions gcOptions = defaultGCOptions()
-                .setGainThreshold(0)
+                .setEstimationDisabled(true)
                 .setForceTimeout(3600);
         fileStore = fileStoreBuilder(folder.getRoot())
                 .withMemoryMapping(true)

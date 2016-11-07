@@ -347,27 +347,6 @@ public class FileStore extends AbstractFileStore {
         }
     }
 
-    /**
-     * Returns the number of segments in this TarMK instance.
-     *
-     * @return number of segments
-     */
-    private int count() {
-        fileStoreLock.readLock().lock();
-        try {
-            int count = 0;
-            if (tarWriter != null) {
-                count += tarWriter.count();
-            }
-            for (TarReader reader : readers) {
-                count += reader.count();
-            }
-            return count;
-        } finally {
-            fileStoreLock.readLock().unlock();
-        }
-    }
-
     public FileStoreStats getStats() {
         return stats;
     }
@@ -747,11 +726,9 @@ public class FileStore extends AbstractFileStore {
             GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
                     sufficientMemory, gcListener, GC_COUNT.get(), gcOptions);
 
-            int gainThreshold = gcOptions.getGainThreshold();
             boolean sufficientEstimatedGain = true;
-            if (gainThreshold <= 0) {
-                gcListener.info("TarMK GC #{}: estimation skipped because gain threshold value ({} <= 0)",
-                        GC_COUNT, gainThreshold);
+            if (gcOptions.isEstimationDisabled()) {
+                gcListener.info("TarMK GC #{}: estimation skipped because it was explicitly disabled", GC_COUNT);
             } else if (gcOptions.isPaused()) {
                 gcListener.info("TarMK GC #{}: estimation skipped because compaction is paused", GC_COUNT);
             } else {
@@ -805,26 +782,8 @@ public class FileStore extends AbstractFileStore {
          * @return compaction gain estimate
          */
         synchronized GCEstimation estimateCompactionGain(Supplier<Boolean> stop) {
-            if (gcOptions.isGcSizeDeltaEstimation()) {
-                SizeDeltaGcEstimation e = new SizeDeltaGcEstimation(gcOptions,
-                        gcJournal, stats.getApproximateSize());
-                return e;
-            }
-
-            CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(),
-                    count(), stop, gcOptions.getGainThreshold());
-            fileStoreLock.readLock().lock();
-            try {
-                for (TarReader reader : readers) {
-                    reader.accept(estimate);
-                    if (stop.get()) {
-                        break;
-                    }
-                }
-            } finally {
-                fileStoreLock.readLock().unlock();
-            }
-            return estimate;
+            return new SizeDeltaGcEstimation(gcOptions, gcJournal,
+                    stats.getApproximateSize());
         }
 
         private void logAndClear(

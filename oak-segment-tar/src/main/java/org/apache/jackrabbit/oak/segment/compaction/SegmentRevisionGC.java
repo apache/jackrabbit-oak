@@ -43,18 +43,6 @@ public interface SegmentRevisionGC {
     void setPausedCompaction(boolean paused);
 
     /**
-     * Get the gain estimate threshold beyond which revision gc should run
-     * @return gainThreshold
-     */
-    int getGainThreshold();
-
-    /**
-     * Set the revision gain estimate threshold beyond which revision gc should run
-     * @param gainThreshold
-     */
-    void setGainThreshold(int gainThreshold);
-
-    /**
      * Get the number of tries to compact concurrent commits on top of already
      * compacted commits
      * @return  retry count
@@ -106,6 +94,14 @@ public interface SegmentRevisionGC {
     long getGcSizeDeltaEstimation();
 
     void setGcSizeDeltaEstimation(long gcSizeDeltaEstimation);
+
+    boolean isEstimationDisabled();
+
+    /**
+     * Disables the estimation phase, thus allowing GC to run every time.
+     * @param disabled
+     */
+    void setEstimationDisabled(boolean disabled);
 
     /**
      * Initiate a revision garbage collection operation

@@ -26,12 +26,12 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener.IGNORE_SNFE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GAIN_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DISABLE_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -188,14 +188,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String NODE_DEDUPLICATION_CACHE_SIZE = "nodeDeduplicationCache.size";
 
     @Property(
-            byteValue = GAIN_THRESHOLD_DEFAULT,
-            label = "Compaction gain threshold",
-            description = "TarMK compaction gain threshold. The gain estimation prevents compaction from running " +
-                    "if the provided threshold is not met. Value represents a percentage so an input between 0 and 100 is expected."
-    )
-    public static final String COMPACTION_GAIN_THRESHOLD = "compaction.gainThreshold";
-
-    @Property(
             boolValue = PAUSE_DEFAULT,
             label = "Pause Compaction",
             description = "When enabled compaction would not be performed"
@@ -226,6 +218,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             description = "Amount of increase in repository size that will trigger compaction (bytes)"
     )
     public static final String COMPACTION_SIZE_DELTA_ESTIMATION = "compaction.sizeDeltaEstimation";
+
+    @Property(
+            boolValue = DISABLE_ESTIMATION_DEFAULT,
+            label = "Disable Compaction Estimation Phase",
+            description = "Disables compaction estimation phase, thus allowing compaction to run every time."
+    )
+    public static final String COMPACTION_DISABLE_ESTIMATION = "compaction.disableEstimation";
 
     @Property(
             intValue = RETAINED_GENERATIONS_DEFAULT,
@@ -632,14 +631,20 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
         int retainedGenerations = toInteger(property(RETAINED_GENERATIONS), RETAINED_GENERATIONS_DEFAULT);
 
-        byte gainThreshold = getGainThreshold();
         long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
         int memoryThreshold = toInteger(property(MEMORY_THRESHOLD), MEMORY_THRESHOLD_DEFAULT);
+        boolean disableEstimation = toBoolean(property(COMPACTION_DISABLE_ESTIMATION), DISABLE_ESTIMATION_DEFAULT);
 
-        return new SegmentGCOptions(pauseCompaction, gainThreshold, retryCount, forceTimeout)
+        if (property("compaction.gainThreshold") != null) {
+            log.warn("Deprecated property compaction.gainThreshold was detected. In order to configure compaction please use the new property "
+                    + "compaction.sizeDeltaEstimation. For turning off estimation, the new property compaction.disableEstimation should be used.");
+        }
+
+        return new SegmentGCOptions(pauseCompaction, retryCount, forceTimeout)
                 .setRetainedGenerations(retainedGenerations)
                 .setGcSizeDeltaEstimation(sizeDeltaEstimation)
-                .setMemoryThreshold(memoryThreshold);
+                .setMemoryThreshold(memoryThreshold)
+                .setEstimationDisabled(disableEstimation);
     }
 
     private void unregisterNodeStore() {
@@ -730,16 +735,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private int getMaxFileSize() {
         return Integer.parseInt(getMaxFileSizeProperty());
-    }
-
-    private byte getGainThreshold() {
-        String gt = property(COMPACTION_GAIN_THRESHOLD);
-
-        if (gt == null) {
-            return GAIN_THRESHOLD_DEFAULT;
-        }
-
-        return Byte.valueOf(gt);
     }
 
     private String property(String name) {
