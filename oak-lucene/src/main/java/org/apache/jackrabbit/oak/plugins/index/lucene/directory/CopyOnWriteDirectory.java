@@ -58,7 +58,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 public class CopyOnWriteDirectory extends FilterDirectory {
     private static final Logger log = LoggerFactory.getLogger(CopyOnWriteDirectory.class);
     private static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(log.getName() + ".perf"));
-    private IndexCopier indexCopier;
+    private final IndexCopier indexCopier;
     /**
      * Signal for the background thread to stop processing changes.
      */
