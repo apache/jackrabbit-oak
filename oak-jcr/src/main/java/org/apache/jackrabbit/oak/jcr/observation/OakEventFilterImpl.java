@@ -512,4 +512,21 @@ public class OakEventFilterImpl extends OakEventFilter {
         return this;
     }
 
+    /**
+     * A hook called by the ObservationManagerImpl before creating the ChangeSetFilterImpl
+     * which allows this filter to adjust the includePaths according to its
+     * enabled flags.
+     * <p>
+     * This is used to set the includePath to be '/' in case includeAncestorRemove
+     * is set. The reason for this is that we must catch parent removals and can thus
+     * not apply the normally applied prefilter paths.
+     * @param includePaths the set to adjust depending on filter flags
+     */
+    void adjustPrefilterIncludePaths(Set<String> includePaths) {
+        if (includeAncestorRemove) {
+            includePaths.clear();
+            includePaths.add("/");
+        }
+    }
+
 }
