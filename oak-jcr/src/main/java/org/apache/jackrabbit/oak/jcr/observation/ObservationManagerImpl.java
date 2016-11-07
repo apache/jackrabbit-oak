@@ -367,7 +367,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     }
 
     @Override
-    public EventListenerIterator getRegisteredEventListeners() throws RepositoryException {
+    public EventListenerIterator getRegisteredEventListeners() {
         return new EventListenerIteratorAdapter(processors.keySet());
     }
 

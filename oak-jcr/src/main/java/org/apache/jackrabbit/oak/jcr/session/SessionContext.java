@@ -295,6 +295,13 @@ public class SessionContext implements NamePathMapper {
         return observationManager;
     }
 
+    public boolean hasEventListeners(){
+        if (observationManager != null){
+            return observationManager.getRegisteredEventListeners().hasNext();
+        }
+        return false;
+    }
+
     public Set<String> getOpenScopedLocks() {
         return openScopedLocks;
     }

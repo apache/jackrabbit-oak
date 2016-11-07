@@ -42,6 +42,7 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.commons.io.IOUtils;
@@ -274,8 +275,9 @@ public class RepositoryImpl implements JackrabbitRepository {
             }
             boolean relaxedLocking = getRelaxedLocking(attributes);
 
+            RefreshPredicate predicate = new RefreshPredicate();
             RefreshStrategy refreshStrategy = refreshInterval == null
-                ? new RefreshStrategy.LogOnce(60)
+                ? new RefreshStrategy.ConditionalRefreshStrategy(new RefreshStrategy.LogOnce(60), predicate)
                 : new RefreshStrategy.Timed(refreshInterval);
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
@@ -283,6 +285,7 @@ public class RepositoryImpl implements JackrabbitRepository {
                     statisticManager, securityProvider,
                     createAttributes(refreshInterval, relaxedLocking),
                     sessionDelegate, observationQueueLength, commitRateLimiter);
+            predicate.setSessionContext(context);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -503,6 +506,26 @@ public class RepositoryImpl implements JackrabbitRepository {
         @Override
         public String toString() {
             return "Refresh on revision garbage collection";
+        }
+    }
+
+    /**
+     * Predicate which ensures that refresh strategy is invoked only
+     * if there is no event listeners registered with the session
+     */
+    private static class RefreshPredicate implements Predicate<Long>{
+        private SessionContext sessionContext;
+
+        @Override
+        public boolean apply(@Nullable Long input) {
+            if (sessionContext == null){
+                return true;
+            }
+            return !sessionContext.hasEventListeners();
+        }
+
+        public void setSessionContext(SessionContext sessionContext) {
+            this.sessionContext = sessionContext;
         }
     }
 
