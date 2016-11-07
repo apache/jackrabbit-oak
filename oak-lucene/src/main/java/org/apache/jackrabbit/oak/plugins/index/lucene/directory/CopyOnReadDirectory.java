@@ -65,7 +65,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
     private final Set<String> localFileNames = Sets.newConcurrentHashSet();
 
     public CopyOnReadDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean prefetch,
-                               String indexPath, Set<String> sharedWorkingSet, Executor executor) throws IOException {
+                               String indexPath, Executor executor) throws IOException {
         super(remote);
         this.indexCopier = indexCopier;
         this.executor = executor;
@@ -75,7 +75,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         this.localFileNames.addAll(Arrays.asList(local.listAll()));
         //Remove files which are being worked upon by COW
-        this.localFileNames.removeAll(sharedWorkingSet);
+        this.localFileNames.removeAll(indexCopier.getIndexFilesBeingWritten(indexPath));
 
         if (prefetch) {
             prefetchIndexFiles();

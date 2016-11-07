@@ -80,7 +80,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final CountDownLatch copyDone = new CountDownLatch(1);
     private final boolean reindexMode;
     private final String indexPath;
-    private final Set<String> sharedWorkingSet;
 
     /**
      * Current background task
@@ -135,7 +134,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     };
 
     public CopyOnWriteDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean reindexMode,
-                                String indexPath, Set<String> sharedWorkingSet, Executor executor) throws
+                                String indexPath, Executor executor) throws
             IOException {
         super(local);
         this.indexCopier = indexCopier;
@@ -144,7 +143,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         this.executor = executor;
         this.indexPath = indexPath;
         this.reindexMode = reindexMode;
-        this.sharedWorkingSet = sharedWorkingSet;
         initialize();
     }
 
@@ -184,7 +182,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
         ref = new COWLocalFileReference(name);
         fileMap.put(name, ref);
-        sharedWorkingSet.add(name);
+        indexCopier.addIndexFileBeingWritten(indexPath, name);
         return ref.createOutput(context);
     }
 
@@ -261,7 +259,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         local.close();
         remote.close();
-        sharedWorkingSet.clear();
+        indexCopier.clearIndexFilesBeingWritten(indexPath);
     }
 
     @Override
