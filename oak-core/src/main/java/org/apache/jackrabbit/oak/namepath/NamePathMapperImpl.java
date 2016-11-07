@@ -315,7 +315,7 @@ public class NamePathMapperImpl implements NamePathMapper {
                 return false;
             }
 
-            elements.remove(prevElem);
+            elements.remove(prevIdx);
             return true;
         }
     }
