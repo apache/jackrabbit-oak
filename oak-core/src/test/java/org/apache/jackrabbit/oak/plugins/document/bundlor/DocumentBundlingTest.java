@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -52,7 +53,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -511,6 +511,29 @@ public class DocumentBundlingTest {
     }
 
     @Test
+    public void bundledNodeAndNodeChildrenCache() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        merge(builder);
+
+        Set<PathRev> cachedPaths = store.getNodeChildrenCache().asMap().keySet();
+        for (PathRev pr : cachedPaths){
+            assertFalse(pr.getPath().contains("jcr:content/renditions"));
+        }
+    }
+
+    @Test
     public void recreatedBundledNode() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder fileNode = newNode("nt:file");
@@ -617,7 +640,6 @@ public class DocumentBundlingTest {
         assertFalse(hasNodeProperty("/test/book.jpg", concat("comments", DocumentBundlor.META_PROP_NODE)));
     }
 
-    @Ignore("OAK-5070")
     @Test
     public void journalDiffAndBundling() throws Exception{
         NodeBuilder builder = store.getRoot().builder();

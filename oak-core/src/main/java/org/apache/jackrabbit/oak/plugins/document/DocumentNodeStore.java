@@ -1161,8 +1161,7 @@ public final class DocumentNodeStore
     void applyChanges(RevisionVector before, RevisionVector after,
                       Revision rev, String path,
                       boolean isNew, List<String> added,
-                      List<String> removed, List<String> changed,
-                      DiffCache.Entry cacheEntry) {
+                      List<String> removed, List<String> changed) {
         if (isNew) {
             // determine the revision for the nodeChildrenCache entry when
             // the node is new. Fallback to after revision in case document
@@ -1252,19 +1251,6 @@ public final class DocumentNodeStore
                 }
             }
         }
-
-        // update diff cache
-        JsopWriter w = new JsopStream();
-        for (String p : added) {
-            w.tag('+').key(PathUtils.getName(p)).object().endObject();
-        }
-        for (String p : removed) {
-            w.tag('-').value(PathUtils.getName(p));
-        }
-        for (String p : changed) {
-            w.tag('^').key(PathUtils.getName(p)).object().endObject();
-        }
-        cacheEntry.append(path, w.toString());
     }
 
     /**

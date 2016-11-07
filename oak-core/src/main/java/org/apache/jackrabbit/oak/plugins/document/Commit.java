@@ -35,6 +35,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopStream;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -275,6 +277,10 @@ public class Commit {
                     }
                 }
             }
+        }
+
+        for (String p : bundledNodes.keySet()){
+            markChanged(p);
         }
 
         // push branch changes to journal
@@ -662,25 +668,48 @@ public class Commit {
             }
             UpdateOp op = operations.get(path);
 
-            //In case its bundled the op would be the one for
-            //bundling root
-            boolean bundled = isBundled(path);
-            if (bundled){
-                String bundlingRoot = bundledNodes.get(path);
-                op = operations.get(bundlingRoot);
-            }
-
-            boolean isNew = op != null && op.isNew();
-            if (op == null || !hasContentChanges(op) || denotesRoot(path)) {
-                // track intermediate node and root
-                if (!bundled) {
+            // track _lastRev and apply to cache only when
+            // path is not for a bundled node state
+            if (!isBundled(path)) {
+                boolean isNew = op != null && op.isNew();
+                if (op == null || !hasContentChanges(op) || denotesRoot(path)) {
+                    // track intermediate node and root
                     tracker.track(path);
                 }
+                nodeStore.applyChanges(before, after, rev, path, isNew,
+                        added, removed, changed);
             }
-            nodeStore.applyChanges(before, after, rev, path, isNew,
-                    added, removed, changed, cacheEntry);
+            addChangesToDiffCacheEntry(path, added, removed, changed, cacheEntry);
         }
         cacheEntry.done();
+    }
+
+    /**
+     * Apply the changes of a node to the cache.
+     *
+     * @param path the path
+     * @param added the list of added child nodes
+     * @param removed the list of removed child nodes
+     * @param changed the list of changed child nodes
+     * @param cacheEntry the cache entry changes are added to
+     */
+    private void addChangesToDiffCacheEntry(String path,
+                                            List<String> added,
+                                            List<String> removed,
+                                            List<String> changed,
+                                            DiffCache.Entry cacheEntry) {
+        // update diff cache
+        JsopWriter w = new JsopStream();
+        for (String p : added) {
+            w.tag('+').key(PathUtils.getName(p)).object().endObject();
+        }
+        for (String p : removed) {
+            w.tag('-').value(PathUtils.getName(p));
+        }
+        for (String p : changed) {
+            w.tag('^').key(PathUtils.getName(p)).object().endObject();
+        }
+        cacheEntry.append(path, w.toString());
     }
 
     private void markChanged(String path) {
