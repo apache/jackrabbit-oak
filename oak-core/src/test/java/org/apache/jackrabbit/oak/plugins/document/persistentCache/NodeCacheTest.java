@@ -124,7 +124,7 @@ public class NodeCacheTest {
                 .setStatisticsProvider(statsProvider);
 
         if (asyncCache){
-            builder.setPersistentCache("target/persistentCache,time,+async");
+            builder.setPersistentCache("target/persistentCache,time");
         }else {
             builder.setPersistentCache("target/persistentCache,time,-async");
         }
