@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -161,10 +160,10 @@ public class NodeStoreDiffTest {
         assertFalse(tds.paths.contains("/oak:index/prop-b/b1"));
     }
 
-    @Ignore("OAK-4403")
+    // OAK-4403
     @Test
     public void diffWithPersistedBranch() throws Exception{
-        createNodes("/content/a", "/etc/x", "var", "/etc/y");
+        createNodes("/content/a", "/etc/x", "var/x", "/etc/y");
 
         //#1 - Start making some changes
         NodeBuilder b = ns.getRoot().builder();
@@ -191,8 +190,8 @@ public class NodeStoreDiffTest {
 
         //With the merge the diff logic should not be accessing the
         //paths which are not part of the current commit like /etc and /var
-        assertThat(tds.paths, not(hasItem("/etc")));
-        assertThat(tds.paths, not(hasItem("/var")));
+        assertThat(tds.paths, not(hasItem("/etc/x")));
+        assertThat(tds.paths, not(hasItem("/var/x")));
     }
 
     private NodeState merge(NodeBuilder nb) throws CommitFailedException {
