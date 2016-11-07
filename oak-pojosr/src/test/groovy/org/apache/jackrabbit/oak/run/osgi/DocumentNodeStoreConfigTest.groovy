@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
+import org.junit.Ignore
 import org.junit.Test
 import org.osgi.framework.ServiceReference
 import org.osgi.framework.ServiceRegistration
@@ -265,6 +266,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         testDocumentStoreStats(ns)
     }
 
+    @Ignore("OAK-5070")
     @Test
     public void testBundlingEnabledByDefault() throws Exception {
         registry = repositoryFactory.initializeServiceRegistry(config)
