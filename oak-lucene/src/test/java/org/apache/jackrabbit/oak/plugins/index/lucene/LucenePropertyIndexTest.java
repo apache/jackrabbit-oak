@@ -107,6 +107,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -196,7 +197,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 }
 
                 private String getFSDirPath(Directory dir){
-                    if (dir instanceof IndexCopier.CopyOnReadDirectory){
+                    if (dir instanceof CopyOnReadDirectory){
                         dir = ((CopyOnReadDirectory) dir).getLocal();
                     }
 
