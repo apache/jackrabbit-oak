@@ -62,7 +62,6 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condit
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
-import org.apache.jackrabbit.oak.plugins.observation.filter.ChangeSetFilterImpl;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -279,7 +278,6 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
         List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
 
-        final String[] validatedNodeTypeNames = validateNodeTypeNames(nodeTypeName);
         Selector nodeTypeSelector = Selectors.PARENT;
         boolean deleteSubtree = true;
         if (oakEventFilter != null) {
@@ -306,7 +304,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     filterBuilder.moveSubtree(),
                     filterBuilder.eventType(eventTypes),
                     filterBuilder.uuid(Selectors.PARENT, uuids),
-                    filterBuilder.nodeType(nodeTypeSelector, validatedNodeTypeNames),
+                    filterBuilder.nodeType(nodeTypeSelector, validateNodeTypeNames(nodeTypeName)),
                     filterBuilder.accessControl(permissionProviderFactory));
         if (oakEventFilter != null) {
             condition = oakEventFilter.wrapMainCondition(condition, filterBuilder, permissionProviderFactory);
@@ -321,16 +319,6 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         ListenerTracker tracker = new WarningListenerTracker(
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
-        if (oakEventFilter != null) {
-            oakEventFilter.adjustPrefilterIncludePaths(includePaths);
-        }
-        
-        // OAK-4908 : prefiltering support. here we have explicit yes/no/maybe filtering
-        // for things like propertyNames/nodeTypes/nodeNames/paths which cannot be 
-        // applied on the full-fledged filterBuilder above but requires an explicit 'prefilter' for that.
-        filterBuilder.setChangeSetFilter(new ChangeSetFilterImpl(includePaths, isDeep, excludedPaths, null,
-                validatedNodeTypeNames == null ? null : newHashSet(validatedNodeTypeNames), null));
-        
         addEventListener(listener, tracker, filterBuilder.build());
     }
 
