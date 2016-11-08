@@ -69,13 +69,13 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() {
-        final String path = normalizeNoEndSeparator(getPath());
-        return Files.fileTreeTraverser().postOrderTraversal(new File(getPath()))
+        final String path = normalizeNoEndSeparator(new File(getPath()).getAbsolutePath());
+        return Files.fileTreeTraverser().postOrderTraversal(new File(path))
                 .filter(new Predicate<File>() {
                     @Override
                     public boolean apply(File input) {
                         return input.isFile() &&
-                            !normalizeNoEndSeparator(input.getParent()).equals(path);
+                            !input.getParent().equals(path);
                     }
                 })
                 .transform(new Function<File, DataIdentifier>() {
@@ -232,14 +232,14 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public Iterator<DataRecord> getAllRecords() {
-        final String path = normalizeNoEndSeparator(getPath());
+        final String path = normalizeNoEndSeparator(new File(getPath()).getAbsolutePath());
         final OakFileDataStore store = this;
-        return Files.fileTreeTraverser().postOrderTraversal(new File(getPath()))
+        return Files.fileTreeTraverser().postOrderTraversal(new File(path))
             .filter(new Predicate<File>() {
                 @Override
                 public boolean apply(File input) {
                     return input.isFile() &&
-                        !normalizeNoEndSeparator(input.getParent()).equals(path);
+                        !input.getParent().equals(path);
                 }
             })
             .transform(new Function<File, DataRecord>() {
