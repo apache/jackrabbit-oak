@@ -28,8 +28,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Instance of this class provide a {@link EventFilter} for observation
  * events and a filter for commits.
+ * <p>
+ * In order to support OAK-4908 a FilterProvider
+ * extends ChangeSetFilter
  */
-public interface FilterProvider {
+public interface FilterProvider extends ChangeSetFilter {
 
     /**
      * Filter whole commits. Only commits for which this method returns

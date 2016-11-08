@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathF
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
@@ -62,6 +64,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condit
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
+import org.apache.jackrabbit.oak.plugins.observation.filter.ChangeSetFilterImpl;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -278,6 +281,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
         List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
 
+        final String[] validatedNodeTypeNames = validateNodeTypeNames(nodeTypeName);
         Selector nodeTypeSelector = Selectors.PARENT;
         boolean deleteSubtree = true;
         if (oakEventFilter != null) {
@@ -304,7 +308,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     filterBuilder.moveSubtree(),
                     filterBuilder.eventType(eventTypes),
                     filterBuilder.uuid(Selectors.PARENT, uuids),
-                    filterBuilder.nodeType(nodeTypeSelector, validateNodeTypeNames(nodeTypeName)),
+                    filterBuilder.nodeType(nodeTypeSelector, validatedNodeTypeNames),
                     filterBuilder.accessControl(permissionProviderFactory));
         if (oakEventFilter != null) {
             condition = oakEventFilter.wrapMainCondition(condition, filterBuilder, permissionProviderFactory);
@@ -319,6 +323,32 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         ListenerTracker tracker = new WarningListenerTracker(
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
+        if (oakEventFilter != null) {
+            oakEventFilter.adjustPrefilterIncludePaths(includePaths);
+        }
+        
+        // OAK-5082 : node type filtering should not only be direct but include derived types
+        // one easy way to solve this is to 'explode' the node types at start by including
+        // all subtypes of every registered node type
+        HashSet<String> explodedNodeTypes = null;
+        if (validatedNodeTypeNames != null) {
+            explodedNodeTypes = newHashSet();
+            for (String nt : validatedNodeTypeNames) {
+                NodeTypeIterator it = ntMgr.getNodeType(nt).getSubtypes();
+                while(it.hasNext()) {
+                    String subnt = String.valueOf(it.next());
+                    explodedNodeTypes.add(subnt);
+                }
+                explodedNodeTypes.add(nt);
+            }
+        }
+        
+        // OAK-4908 : prefiltering support. here we have explicit yes/no/maybe filtering
+        // for things like propertyNames/nodeTypes/nodeNames/paths which cannot be 
+        // applied on the full-fledged filterBuilder above but requires an explicit 'prefilter' for that.
+        filterBuilder.setChangeSetFilter(new ChangeSetFilterImpl(includePaths, isDeep, excludedPaths, null,
+                explodedNodeTypes, null));
+        
         addEventListener(listener, tracker, filterBuilder.build());
     }
 
