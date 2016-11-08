@@ -45,7 +45,7 @@ public interface SegmentNotFoundExceptionListener {
         private final Logger log = LoggerFactory.getLogger(SegmentNotFoundExceptionListener.class);
         @Override
         public void notify(@Nonnull SegmentId id, @Nonnull SegmentNotFoundException snfe) {
-            log.error("Segment not found: {}. {}", this, id.gcInfo(), snfe);
+            log.error("Segment not found: {}. {}", id, id.gcInfo(), snfe);
         }
     };
     
