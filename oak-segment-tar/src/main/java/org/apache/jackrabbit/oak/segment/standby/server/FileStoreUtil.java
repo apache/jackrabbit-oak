@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,10 +35,8 @@ class FileStoreUtil {
 
     static Segment readSegmentWithRetry(FileStore store, SegmentId id) {
         for (int i = 0; i < 160; i++) {
-            try {
+            if (store.containsSegment(id)) {
                 return store.readSegment(id);
-            } catch (SegmentNotFoundException e) {
-                // Ignore this exception and wait
             }
             try {
                 log.trace("Unable to read segment, waiting...");
