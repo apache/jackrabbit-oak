@@ -160,7 +160,8 @@
         <configuration>
           <instructions>
             <Export-Package>
-              org.apache.jackrabbit.oak.jcr
+              org.apache.jackrabbit.oak.jcr,
+              org.apache.jackrabbit.oak.jcr.observation.filter
             </Export-Package>
           </instructions>
         </configuration>
