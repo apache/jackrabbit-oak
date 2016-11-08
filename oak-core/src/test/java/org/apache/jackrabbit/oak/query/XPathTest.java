@@ -87,6 +87,33 @@ public class XPathTest {
     
     @Test
     public void union() throws ParseException {
+        verify("//(a|(b|c))",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where name(a) = 'a' " +
+                "/* xpath: //a */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where name(a) = 'b' " +
+                "/* xpath: //b */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where name(a) = 'c' " +
+                "/* xpath: //c */");
+        verify("(//*[jcr:contains(., 'some')])",
+                "select [jcr:path], [jcr:score], * " + 
+                "from [nt:base] as a " + 
+                "where contains(*, 'some') " + 
+                "/* xpath: //*[jcr:contains(., 'some')] */");
+        verify("(//*[jcr:contains(., 'x')] | //*[jcr:contains(., 'y')])",
+                "select [jcr:path], [jcr:score], * " + 
+                "from [nt:base] as a " + 
+                "where contains(*, 'x') " + 
+                "/* xpath: //*[jcr:contains(., 'x')] */ " + 
+                "union select [jcr:path], [jcr:score], * " + 
+                "from [nt:base] as a " + 
+                "where contains(*, 'y') " + 
+                "/* xpath: //*[jcr:contains(., 'y')] */");
         try {
             verify("(/jcr:root/x[@a][@b][@c]","");
             fail();
@@ -99,7 +126,7 @@ public class XPathTest {
                 "where [a] is not null " +
                 "and [c] is not null " +
                 "and issamenode(a, '/x') " +
-                "/* xpath: /jcr:root/x[@a][@c] */ " +
+                "/* xpath: /jcr:root/x[@a] [@c] */ " +
                 "union select [jcr:path], [jcr:score], * " +
                 "from [nt:base] as a " +
                 "where [b] is not null " +
@@ -129,7 +156,7 @@ public class XPathTest {
                 "from [nt:base] as a " + 
                 "where [a] is not null " + 
                 "and isdescendantnode(a, '/content') " + 
-                "/* xpath: /jcr:root/content//*[@a] " + 
+                "/* xpath: /jcr:root/content//*[@a]  " + 
                 "order by @c */ " + 
                 "union select [jcr:path], [jcr:score], * " + 
                 "from [nt:base] as a " + 

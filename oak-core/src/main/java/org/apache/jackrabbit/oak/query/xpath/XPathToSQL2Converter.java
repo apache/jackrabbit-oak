@@ -1095,10 +1095,12 @@ public class XPathToSQL2Converter {
             parseIndex = converter.parseIndex;
             if (converter.readIf("(")) {
                 level++;
-            } else if (converter.readIf(")") && level-- <= 0) {
-                break;
+            } else if (converter.readIf(")")) {
+                if (level-- <= 0) {
+                    break;
+                }
             } else if (converter.readIf("|") && level == 0) {
-                String or = partList.substring(lastOrIndex, lastParseIndex);
+                String or = partList.substring(lastOrIndex, parseIndex - 1);
                 parts.add(or);
                 lastOrIndex = parseIndex;
             } else if (converter.currentTokenType == END) {
@@ -1106,9 +1108,8 @@ public class XPathToSQL2Converter {
             } else {
                 converter.read();
             }
-            lastParseIndex = parseIndex;
         }
-        String or = partList.substring(lastOrIndex, lastParseIndex);
+        String or = partList.substring(lastOrIndex, parseIndex - 1);
         parts.add(or);        
         String end = partList.substring(parseIndex);
         Statement result = null;
