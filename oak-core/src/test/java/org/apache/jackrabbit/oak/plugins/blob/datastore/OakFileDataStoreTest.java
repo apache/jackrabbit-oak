@@ -30,6 +30,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.junit.Test;
@@ -40,15 +41,32 @@ import static org.junit.Assert.assertTrue;
 public class OakFileDataStoreTest {
 
     @Test
+    public void testGetAllIdentifiersRelative1() throws Exception {
+        File f = new File("./target/oak-fds-test1");
+        testGetAllIdentifiers(f.getAbsolutePath(), f.getPath());
+    }
+
+    @Test
+    public void testGetAllIdentifiersRelative2() throws Exception {
+        File f = new File("./target", "/fds/../oak-fds-test2");
+        testGetAllIdentifiers(FilenameUtils.normalize(f.getAbsolutePath()), f.getPath());
+    }
+
+    @Test
     public void testGetAllIdentifiers() throws Exception {
-        File testDir = new File("./target", "oak-fds-test");
+        File f = new File("./target", "oak-fds-test3");
+        testGetAllIdentifiers(f.getAbsolutePath(), f.getPath());
+    }
+
+    private void testGetAllIdentifiers(String path, String unnormalizedPath) throws Exception {
+        File testDir = new File(path);
         FileUtils.touch(new File(testDir, "ab/cd/ef/abcdef"));
         FileUtils.touch(new File(testDir, "bc/de/fg/bcdefg"));
         FileUtils.touch(new File(testDir, "cd/ef/gh/cdefgh"));
         FileUtils.touch(new File(testDir, "c"));
 
         FileDataStore fds = new OakFileDataStore();
-        fds.setPath(testDir.getAbsolutePath());
+        fds.setPath(unnormalizedPath);
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
