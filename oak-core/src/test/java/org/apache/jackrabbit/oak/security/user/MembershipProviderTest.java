@@ -518,7 +518,6 @@ public class MembershipProviderTest extends AbstractSecurityTest implements User
 
         // 4. remove members from the initial set => ref nodes as before, rep:members prop on group modified
         memberIds.clear();
-        //TODO
         memberIds.put(MembershipProvider.getContentID("member1", false), "member1");
         memberIds.put(MembershipProvider.getContentID("member2", false), "member2");
         mp.removeMembers(groupTree, Maps.newHashMap(memberIds));

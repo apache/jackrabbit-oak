@@ -95,6 +95,12 @@ public class UserProviderTest {
         return new UserProvider(root, ConfigurationParameters.of(options));
     }
 
+    private UserProvider createUserProviderRFC7612() {
+        Map<String, Object> options = new HashMap<String, Object>(customOptions);
+        options.put(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, true);
+        return new UserProvider(root, ConfigurationParameters.of(options));
+    }
+
     @Test
     public void testCreateUser() throws Exception {
         UserProvider up = createUserProvider();
@@ -215,6 +221,40 @@ public class UserProviderTest {
             } catch (CommitFailedException e) {
                 // success
             }
+        }
+    }
+
+    @Test
+    public void testCreateUserRFC7613Disabled() throws Exception {
+        String userHalfWidth = "Amalia";
+        String userFullWidth = "\uff21\uff4d\uff41\uff4c\uff49\uff41";
+
+        UserProvider userProvider = createUserProvider();
+
+        Tree userTreeHalfWidth = userProvider.createUser(userHalfWidth, null);
+        Tree userTreeFullWidth = userProvider.createUser(userFullWidth, null);
+
+        root.commit();
+
+        assertEquals(userHalfWidth, UserUtil.getAuthorizableId(userTreeHalfWidth));
+        assertEquals(userFullWidth, UserUtil.getAuthorizableId(userTreeFullWidth));
+    }
+
+    @Test
+    public void testCreateUserRFC7613Enabled() throws Exception {
+        String userHalfWidth = "Amalia";
+        String userFullWidth = "\uff21\uff4d\uff41\uff4c\uff49\uff41";
+
+        UserProvider userProvider = createUserProviderRFC7612();
+
+        userProvider.createUser(userHalfWidth, null);
+
+        try {
+            userProvider.createUser(userFullWidth, null);
+            root.commit();
+            fail("userID collision must be detected");
+        } catch (CommitFailedException e) {
+            // success
         }
     }
 
