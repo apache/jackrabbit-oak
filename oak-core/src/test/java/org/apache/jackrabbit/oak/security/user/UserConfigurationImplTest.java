@@ -49,6 +49,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     private static final Integer MAX_AGE = 10;
     private static final boolean INITIAL_PASSWORD_CHANGE = true;
     private static final Integer PASSWORD_HISTORY_SIZE = 12;
+    private static final boolean ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = true;
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
@@ -97,6 +98,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE, UserConstants.DEFAULT_PASSWORD_MAX_AGE), MAX_AGE);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE), INITIAL_PASSWORD_CHANGE);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE), PASSWORD_HISTORY_SIZE);
+        assertEquals(parameters.getConfigValue(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, UserConstants.DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE), ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
     }
 
     private ConfigurationParameters getParams() {
@@ -112,6 +114,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
             put(UserConstants.PARAM_PASSWORD_MAX_AGE, MAX_AGE);
             put(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, INITIAL_PASSWORD_CHANGE);
             put(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_SIZE);
+            put(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
         }});
         return params;
     }
