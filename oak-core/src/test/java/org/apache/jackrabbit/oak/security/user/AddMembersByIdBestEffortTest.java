@@ -126,7 +126,6 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
 
     @Test
     public void testAddByContentID() throws Exception {
-        //TODO
         Set<String> failed = testGroup.addMembers(AuthorizableBaseProvider.getContentID(getTestUser().getID(), false));
         assertTrue(failed.isEmpty());
 
