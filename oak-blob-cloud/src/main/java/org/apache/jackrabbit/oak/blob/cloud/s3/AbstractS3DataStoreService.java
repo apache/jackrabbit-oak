@@ -35,7 +35,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 @Component(componentAbstract = true)
-public class AbstractS3DataStoreService extends AbstractDataStoreService {
+public abstract class AbstractS3DataStoreService extends AbstractDataStoreService {
     private static final String DESCRIPTION = "oak.datastore.description";
 
     private ServiceRegistration delegateReg;
