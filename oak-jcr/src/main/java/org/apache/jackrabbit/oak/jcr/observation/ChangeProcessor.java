@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
-import static org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
@@ -33,45 +32,39 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Monitor;
+import com.google.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.observation.Filter;
-import org.apache.jackrabbit.oak.plugins.observation.FilteringAwareObserver;
-import org.apache.jackrabbit.oak.plugins.observation.FilteringDispatcher;
-import org.apache.jackrabbit.oak.plugins.observation.FilteringObserver;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterConfigMBean;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
-import org.apache.jackrabbit.oak.plugins.observation.filter.ChangeSetFilter;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
-import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.Monitor;
-import com.google.common.util.concurrent.Monitor.Guard;
 
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
@@ -80,27 +73,11 @@ import com.google.common.util.concurrent.Monitor.Guard;
  * After instantiation a {@code ChangeProcessor} must be started in order to start
  * delivering observation events and stopped to stop doing so.
  */
-class ChangeProcessor implements FilteringAwareObserver {
+class ChangeProcessor implements Observer {
     private static final Logger LOG = LoggerFactory.getLogger(ChangeProcessor.class);
     private static final PerfLogger PERF_LOGGER = new PerfLogger(
             LoggerFactory.getLogger(ChangeProcessor.class.getName() + ".perf"));
 
-    private static enum FilterResult {
-        /** marks a commit as to be included, ie delivered.
-         * It's okay to falsely mark a commit as included,
-         * since filtering (as part of converting to events)
-         * will be applied at a later stage again. */
-        INCLUDE,
-        /** mark a commit as not of interest to this ChangeProcessor.
-         * Exclusion is definite, ie it's not okay to falsely
-         * mark a commit as excluded */
-        EXCLUDE, 
-        /** mark a commit as included but indicate that this
-         * is not a result of prefiltering but that prefiltering
-         * was skipped/not applicable for some reason */
-        PREFILTERING_SKIPPED
-    }
-    
     /**
      * Fill ratio of the revision queue at which commits should be delayed
      * (conditional of {@code commitRateLimiter} being non {@code null}).
@@ -112,12 +89,7 @@ class ChangeProcessor implements FilteringAwareObserver {
      * kicks in.
      */
     public static final int MAX_DELAY;
-    
-    /** The test mode can be used to just verify if prefiltering would have
-     * correctly done its job and warn if that's not the case.
-     */
-    private static final boolean PREFILTERING_TESTMODE;
-    
+
     // OAK-4533: make DELAY_THRESHOLD and MAX_DELAY adjustable - using System.properties for now
     static {
         final String delayThresholdStr = System.getProperty("oak.commitRateLimiter.delayThreshold");
@@ -142,18 +114,6 @@ class ChangeProcessor implements FilteringAwareObserver {
         }
         DELAY_THRESHOLD = delayThreshold;
         MAX_DELAY = maxDelay;
-
-        final String prefilteringTestModeStr = System.getProperty("oak.observation.prefilteringTestMode");
-        boolean prefilteringTestModeBool = false; // default is enabled
-        try {
-            if (prefilteringTestModeStr != null && prefilteringTestModeStr.length() != 0) {
-                prefilteringTestModeBool = Boolean.parseBoolean(prefilteringTestModeStr);
-                LOG.info("<clinit> using oak.observation.prefilteringTestMode = " + prefilteringTestModeBool);
-            }
-        } catch(RuntimeException e) {
-            LOG.warn("<clinit> could not parse oak.observation.prefilteringTestMode, using default (" + prefilteringTestModeBool + "): " + e, e);
-        }
-        PREFILTERING_TESTMODE = prefilteringTestModeBool;
     }
     
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -185,22 +145,8 @@ class ChangeProcessor implements FilteringAwareObserver {
      */
     private CompositeRegistration registration;
 
-    /**
-     * for statistics: tracks how many times prefiltering excluded a commit
-     */
-    private int prefilterExcludeCount;
-    
-    /**
-     * for statistics: tracks how many times prefiltering included a commit
-     */
-    private int prefilterIncludeCount;
-    
-    /**
-     * for statistics: tracks how many times prefiltering was ignored (not evaluated at all),
-     * either because it was disabled, queue too small, CommitInfo null or CommitContext null
-     */
-    private int prefilterSkipCount;
-    
+    private volatile NodeState previousRoot;
+
     public ChangeProcessor(
             ContentSession contentSession,
             NamePathMapper namePathMapper,
@@ -234,29 +180,6 @@ class ChangeProcessor implements FilteringAwareObserver {
         return filterProvider.get();
     }
 
-    @Nonnull
-    public ChangeProcessorMBean getMBean() {
-        return new ChangeProcessorMBean() {
-
-            @Override
-            public int getPrefilterExcludeCount() {
-                return prefilterExcludeCount;
-            }
-
-            @Override
-            public int getPrefilterIncludeCount() {
-                return prefilterIncludeCount;
-            }
-
-            @Override
-            public int getPrefilterSkipCount() {
-                return prefilterSkipCount;
-            }
-
-        };
-    }
-
-    
     /**
      * Start this change processor
      * @param whiteboard  the whiteboard instance to used for scheduling individual
@@ -267,18 +190,16 @@ class ChangeProcessor implements FilteringAwareObserver {
         checkState(registration == null, "Change processor started already");
         final WhiteboardExecutor executor = new WhiteboardExecutor();
         executor.start(whiteboard);
-        final FilteringObserver filteringObserver = createObserver(executor);
+        final BackgroundObserver observer = createObserver(executor);
         listenerId = COUNTER.incrementAndGet() + "";
         Map<String, String> attrs = ImmutableMap.of(LISTENER_ID, listenerId);
         String name = tracker.toString();
         registration = new CompositeRegistration(
-            registerObserver(whiteboard, filteringObserver),
+            registerObserver(whiteboard, observer),
             registerMBean(whiteboard, EventListenerMBean.class,
                     tracker.getListenerMBean(), "EventListener", name, attrs),
             registerMBean(whiteboard, BackgroundObserverMBean.class,
-                    filteringObserver.getBackgroundObserver().getMBean(), BackgroundObserverMBean.TYPE, name, attrs),
-            registerMBean(whiteboard, ChangeProcessorMBean.class,
-                    getMBean(), ChangeProcessorMBean.TYPE, name, attrs),
+                    observer.getMBean(), BackgroundObserverMBean.TYPE, name, attrs),
             //TODO If FilterProvider gets changed later then MBean would need to be
             // re-registered
             registerMBean(whiteboard, FilterConfigMBean.class,
@@ -286,7 +207,7 @@ class ChangeProcessor implements FilteringAwareObserver {
             new Registration() {
                 @Override
                 public void unregister() {
-                    filteringObserver.close();
+                    observer.close();
                 }
             },
             new Registration() {
@@ -304,9 +225,8 @@ class ChangeProcessor implements FilteringAwareObserver {
         );
     }
 
-    private FilteringObserver createObserver(final WhiteboardExecutor executor) {
-        FilteringDispatcher fd = new FilteringDispatcher(this);
-        BackgroundObserver bo = new BackgroundObserver(fd, executor, queueLength) {
+    private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
+        return new BackgroundObserver(this, executor, queueLength) {
             private volatile long delay;
             private volatile boolean blocking;
 
@@ -367,43 +287,7 @@ class ChangeProcessor implements FilteringAwareObserver {
                 }
             }
 
-            
-            @Override
-            public String toString() {
-                return "Prefiltering BackgroundObserver for "+ChangeProcessor.this;
-            }
         };
-        return new FilteringObserver(bo, new Filter() {
-            
-            @Override
-            public boolean excludes(NodeState root, CommitInfo info) {
-                if (PREFILTERING_TESTMODE) {
-                    // then we don't prefilter but only test later
-                    prefilterSkipCount++;
-                    return false;
-                }
-                final FilterResult filterResult = evalPrefilter(root, info, getChangeSet(info));
-                switch (filterResult) {
-                case PREFILTERING_SKIPPED: {
-                    prefilterSkipCount++;
-                    return false;
-                }
-                case EXCLUDE: {
-                    prefilterExcludeCount++;
-                    return true;
-                }
-                case INCLUDE: {
-                    prefilterIncludeCount++;
-                    return false;
-                }
-                default: {
-                    LOG.info("isExcluded: unknown/unsupported filter result: " + filterResult);
-                    prefilterSkipCount++;
-                    return false;
-                }
-                }
-            }
-        });
     }
 
     private final Monitor runningMonitor = new Monitor();
@@ -455,48 +339,16 @@ class ChangeProcessor implements FilteringAwareObserver {
         }
     }
 
-    /**
-     * Utility method that extracts the ChangeSet from a CommitInfo if possible.
-     * @param info
-     * @return
-     */
-    public static ChangeSet getChangeSet(CommitInfo info) {
-        if (info == null) {
-            return null;
-        }
-        CommitContext context = (CommitContext) info.getInfo().get(CommitContext.NAME);
-        if (context == null) {
-            return null;
-        }
-        return (ChangeSet) context.get(COMMIT_CONTEXT_OBSERVATION_CHANGESET);
-    }
-
     @Override
-    public void contentChanged(NodeState before, NodeState after, CommitInfo info) {
-        FilterResult prefilterTestResult = null;
-        if (PREFILTERING_TESTMODE) {
-            // OAK-4908 test mode: when the ChangeCollectorProvider is enabled
-            // there is the option to have the ChangeProcessors run in so-called
-            // 'test mode'. In this test mode the prefiltering is not applied,
-            // but instead verified if it *would have prefiltered correctly*.
-            // that test is therefore done at dequeue-time, hence in
-            // contentChanged
-            // TODO: remove this testing mechanism after a while
-            try {
-                prefilterTestResult = evalPrefilter(after, info, getChangeSet(info));
-            } catch (Exception e) {
-                LOG.warn("contentChanged: exception in wouldBeExcludedCommit: " + e, e);
-            }
-        }
-        if (before != null) {
+    public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+        if (previousRoot != null) {
             try {
                 long start = PERF_LOGGER.start();
                 FilterProvider provider = filterProvider.get();
-                boolean onEventInvoked = false;
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
-                    EventFilter filter = provider.getFilter(before, after);
-                    EventIterator events = new EventQueue(namePathMapper, info, before, after,
+                    EventFilter filter = provider.getFilter(previousRoot, root);
+                    EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
                             provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
                             provider.getEventAggregator());
 
@@ -509,7 +361,6 @@ class ChangeProcessor implements FilteringAwareObserver {
                         }
                         try {
                             CountingIterator countingEvents = new CountingIterator(events);
-                            onEventInvoked = true;
                             eventListener.onEvent(countingEvents);
                             countingEvents.updateCounters(eventCount, eventDuration);
                         } finally {
@@ -520,33 +371,14 @@ class ChangeProcessor implements FilteringAwareObserver {
                         }
                     }
                 }
-                if (prefilterTestResult != null) {
-                    // OAK-4908 test mode
-                    if (prefilterTestResult == FilterResult.EXCLUDE && onEventInvoked) {
-                        // this is not ok, an event would have gotten
-                        // excluded-by-prefiltering even though
-                        // it actually got an event.
-                        LOG.warn("contentChanged: delivering event which would have been prefiltered, "
-                                + "info={}, this={}, listener={}", info, this, eventListener);
-                    } else if (prefilterTestResult == FilterResult.INCLUDE && !onEventInvoked && info != null
-                            && info != CommitInfo.EMPTY) {
-                        // this can occur arbitrarily frequent. as prefiltering
-                        // is not perfect, it can
-                        // have false negatives - ie it can include even though
-                        // no event is then created
-                        // hence we can only really log at debug here
-                        LOG.debug(
-                                "contentChanged: no event to deliver but not prefiltered, info={}, this={}, listener={}",
-                                info, this, eventListener);
-                    }
-                }
                 PERF_LOGGER.end(start, 100,
                         "Generated events (before: {}, after: {})",
-                        before, after);
+                        previousRoot, root);
             } catch (Exception e) {
                 LOG.warn("Error while dispatching observation events for " + tracker, e);
             }
         }
+        previousRoot = root;
     }
 
     private static class CountingIterator implements EventIterator {
@@ -657,46 +489,5 @@ class ChangeProcessor implements FilteringAwareObserver {
                 + ", eventDuration=" + eventDuration 
                 + ", commitRateLimiter=" + commitRateLimiter
                 + ", running=" + running.isSatisfied() + "]";
-    }
-
-    /**
-     * Evaluate the prefilter for a given commit.
-     * @param changeSet 
-     * 
-     * @return a FilterResult indicating either inclusion, exclusion or
-     *         inclusion-due-to-skipping. The latter is used to reflect
-     *         prefilter evaluation better in statistics (as it could also have
-     *         been reported just as include)
-     */
-    private FilterResult evalPrefilter(NodeState root, CommitInfo info, ChangeSet changeSet) {
-        if (info == null) {
-            return FilterResult.PREFILTERING_SKIPPED;
-        }
-        if (root == null) {
-            // likely only occurs at startup
-            // we can't do any diffing etc, so just not exclude it
-            return FilterResult.PREFILTERING_SKIPPED;
-        }
-
-        final FilterProvider fp = filterProvider.get();
-        // FIXME don't rely on toString for session id
-        if (!fp.includeCommit(contentSession.toString(), info)) {
-            // 'classic' (and cheap pre-) filtering
-            return FilterResult.EXCLUDE;
-        }
-        if (changeSet == null) {
-            // then can't do any prefiltering since it was not
-            // able to complete the sets (within the given boundaries)
-            // (this corresponds to a large commit, which thus can't
-            // go through prefiltering)
-            return FilterResult.PREFILTERING_SKIPPED;
-        }
-
-        final ChangeSetFilter prefilter = fp;
-        if (prefilter.excludes(changeSet)) {
-            return FilterResult.EXCLUDE;
-        } else {
-            return FilterResult.INCLUDE;
-        }
     }
 }

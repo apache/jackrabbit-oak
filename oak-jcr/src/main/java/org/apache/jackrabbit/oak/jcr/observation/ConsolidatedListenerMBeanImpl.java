@@ -84,12 +84,6 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
                 referenceInterface = BackgroundObserverMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
                 cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "changeProcessorMBean",
-                bind = "bindChangeProcessorMBean",
-                unbind = "unbindChangeProcessorMBean",
-                referenceInterface = ChangeProcessorMBean.class,
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
         @Reference(name = "filterConfigMBean",
                 bind = "bindFilterConfigMBean",
                 unbind = "unbindFilterConfigMBean",
@@ -102,7 +96,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     private final AtomicInteger observerCount = new AtomicInteger();
     private final Map<ObjectName, EventListenerMBean> eventListeners = Maps.newConcurrentMap();
     private final Map<ObjectName, BackgroundObserverMBean> bgObservers = Maps.newConcurrentMap();
-    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = Maps.newConcurrentMap();
     private final Map<ObjectName, FilterConfigMBean> filterConfigs = Maps.newConcurrentMap();
 
     private Registration mbeanReg;
@@ -208,11 +201,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                     m.observerMBean = ef.getValue();
                 }
             }
-            for (Map.Entry<ObjectName, ChangeProcessorMBean> ef : changeProcessors.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
-                    m.changeProcessorMBean = ef.getValue();
-                }
-            }
             mbeans.add(m);
         }
         return mbeans;
@@ -261,16 +249,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     }
 
     @SuppressWarnings("unused")
-    protected void bindChangeProcessorMBean(ChangeProcessorMBean mbean, Map<String, ?> config){
-    	changeProcessors.put(getObjectName(config), mbean);
-    }
-
-    @SuppressWarnings("unused")
-    protected void unbindChangeProcessorMBean(ChangeProcessorMBean mbean, Map<String, ?> config){
-    	changeProcessors.remove(getObjectName(config));
-    }
-
-    @SuppressWarnings("unused")
     protected void bindListenerMBean(EventListenerMBean mbean, Map<String, ?> config){
         eventListeners.put(getObjectName(config), mbean);
     }
@@ -302,7 +280,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     private static class ListenerMBeans {
         EventListenerMBean eventListenerMBean;
         BackgroundObserverMBean observerMBean;
-        ChangeProcessorMBean changeProcessorMBean;
         FilterConfigMBean filterConfigMBean;
     }
 
@@ -324,9 +301,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                 "ratioOfTimeSpentProcessingEvents",
                 "eventConsumerTimeRatio",
                 "queueBacklogMillis",
-                "prefilterSkips",
-                "prefilterExcludes",
-                "prefilterIncludes",
                 "queueSize",
                 "localEventCount",
                 "externalEventCount",
@@ -354,9 +328,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                 SimpleType.DOUBLE,
                 SimpleType.DOUBLE,
                 SimpleType.LONG,
-                SimpleType.INTEGER,
-                SimpleType.INTEGER,
-                SimpleType.INTEGER,
                 SimpleType.INTEGER,
                 SimpleType.INTEGER,
                 SimpleType.INTEGER,
@@ -405,9 +376,6 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                     mbeans.eventListenerMBean.getRatioOfTimeSpentProcessingEvents(),
                     mbeans.eventListenerMBean.getEventConsumerTimeRatio(),
                     mbeans.eventListenerMBean.getQueueBacklogMillis(),
-                    mbeans.changeProcessorMBean == null ? -1 : mbeans.changeProcessorMBean.getPrefilterSkipCount(),
-                    mbeans.changeProcessorMBean == null ? -1 : mbeans.changeProcessorMBean.getPrefilterExcludeCount(),
-                    mbeans.changeProcessorMBean == null ? -1 : mbeans.changeProcessorMBean.getPrefilterIncludeCount(),
                     mbeans.observerMBean.getQueueSize(),
                     mbeans.observerMBean.getLocalEventCount(),
                     mbeans.observerMBean.getExternalEventCount(),

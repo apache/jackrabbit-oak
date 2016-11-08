@@ -42,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -60,25 +59,12 @@ public final class FilterBuilder {
     private boolean includeClusterLocal = true;
     private final List<String> subTrees = newArrayList();
     private Condition condition = includeAll();
-    private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
-        
-        @Override
-        public boolean excludes(ChangeSet changeSet) {
-            return false;
-        }
-    };
 
     private EventAggregator aggregator;
 
     public interface Condition {
         @Nonnull
         EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after);
-    }
-    
-    @Nonnull
-    public FilterBuilder setChangeSetFilter(@Nonnull ChangeSetFilter changeSetFilter) {
-        this.changeSetFilter = changeSetFilter;
-        return this;
     }
 
     /**
@@ -394,7 +380,6 @@ public final class FilterBuilder {
             final EventAggregator aggregator = FilterBuilder.this.aggregator;
             final Iterable<String> subTrees = FilterBuilder.this.getSubTrees();
             final Condition condition = FilterBuilder.this.condition;
-            final ChangeSetFilter changeSetFilter = FilterBuilder.this.changeSetFilter;
 
             @Override
             public boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info) {
@@ -431,11 +416,6 @@ public final class FilterBuilder {
             @Override
             public EventAggregator getEventAggregator() {
                 return aggregator;
-            }
-            
-            @Override
-            public boolean excludes(ChangeSet changeSet) {
-                return changeSetFilter.excludes(changeSet);
             }
         };
     }
