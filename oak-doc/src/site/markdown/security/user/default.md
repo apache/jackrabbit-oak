@@ -251,6 +251,7 @@ as of OAK 1.0:
 | `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        |
 | `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            |
 | `PARAM_CACHE_EXPIRATION`            | long    | 0                                            |
+| `PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE`| boolean | false                              |
 | | | |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
