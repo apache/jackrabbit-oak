@@ -436,7 +436,25 @@ public class ObservationTest extends AbstractRepositoryTest {
             observationManager.removeEventListener(listener);
         }
     }
+    
+    @Test
+    public void propertyFilter() throws Exception {
+        Node root = getNode("/");
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, PROPERTY_ADDED, "/a/b", false, null, null, false);
+        Node a = root.addNode("a");
+        Node b = a.addNode("b");
+        listener.expect("/a/b/jcr:primaryType", PROPERTY_ADDED);
 
+        listener.expectAdd(b.setProperty("propName", 1));
+    	root.getSession().save();
+
+    	List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
     @Test
     public void pathFilter() throws Exception {
         final String path = "/events/only/here";
@@ -1515,7 +1533,7 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         filter = new JackrabbitEventFilter();
         filter.setEventTypes(ALL_EVENTS);
-        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/y/*");
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/y");
         oManager.addEventListener(listener, filter);
         cp = oManager.getChangeProcessor(listener);
         assertNotNull(cp);
