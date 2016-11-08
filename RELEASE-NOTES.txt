@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.13
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.12 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.13 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,48 +15,255 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.12
+Changes in Oak 1.5.13
 ---------------------
+
+Sub-task
+
+    [OAK-2629] - Cleanup Oak Travis jobs
+    [OAK-5035] - Implement mini-benchmark for PersistentCache
+    [OAK-5038] - Extend PersistentCacheStats with async queue-related
+    stats
 
 Technical task
 
-    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to
-    5.1.40
-    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to
-    9.4.1211
+    [OAK-3404] - Path to logical store mapping
+    [OAK-4868] - Update SegmentS3DataStoreBlobGCTest in oak-it once
+    oak-segment-tar updated
+    [OAK-4869] - Enable benchmarks for DataStore
+    [OAK-4870] - Implement caching for S3DataStore
+    [OAK-4907] - Collect changes (paths, nts, props..) of a commit in
+    a validator
+    [OAK-4908] - Best-effort prefiltering in ChangeProcessor based on
+    ChangeSet
+    [OAK-4915] - Interrupt online revision cleanup on documentmk
+    [OAK-4916] - Add support for excluding commits to
+    BackgroundObserver
+    [OAK-4929] - Clean GCMonitor#compacted method arguments
+    [OAK-4941] - Provide status for gc process
+    [OAK-4944] - Enable RefreshOnGCTest segment-tar fixture
+    [OAK-4945] - Update GCMonitor api on segment-tar
+    [OAK-4951] - UpdateOp without set operation for _id: clarify, add
+    unit tests, fix DocumentStore instances
+    [OAK-4964] - UpdateOp.set("_id", ...) should do a sanity check on
+    the id
+    [OAK-4971] - Implement caching for FileDataStore
+    [OAK-4979] - Caching sub-system implementation for DataStore
+    [OAK-4986] - RDBDocumentStore: potential NPE in document read
+    [OAK-5015] - Retry mechanism for failed async uploads
 
 Bug
 
-    [OAK-4082] - RDBDocumentStore on MySQL may fail when using
-    useServerPrepStmts=true
-    [OAK-4828] - oak-ugrade tests fail with segment tar 0.0.12 (on
-    Windows)
-    [OAK-4894] - Potential NPE in Commit.apply()
-    [OAK-4909] - NRTIndex can get closed while in use
+    [OAK-2722] - IndexCopier fails to delete older index directory
+    upon reindex
+    [OAK-3232] - Oak Console cannot deal with spaces in node names
+    [OAK-4396] - HttpStore.containsSegment throws SNFE instead of
+    returning false for non existing segments
+    [OAK-4403] - Diff traversal in persisted branch commit traversing
+    to unrelated paths
+    [OAK-4879] - Proper implementation of getOrCreateReferenceKey in
+    CachingFDS
+    [OAK-4882] - Bottleneck in the asynchronous persistent cache
+    [OAK-4921] - SegmentS3DataStoreStatsTest failing
+    [OAK-4925] - Don't call @Nonnull TypeEditor.getEffective() from
+    constructor
+    [OAK-4930] - External Principal Management: DynamicSyncContext
+    makes redundant calls to IdentityProvider.getIdentity()
+    [OAK-4931] - LdapIdentityProvider doesn't use configured custom
+    attributes for all searches
+    [OAK-4937] - JournalGC failing with RDB DocumentStore
+    [OAK-4956] - SegmentGCOptions retainedGenerations setting not
+    exposed via OSGi
+    [OAK-4958] - Test failure: BrokenNetworkTest
+    [OAK-4961] - Default repository.home in DocumentNodeStoreService
+    hides framework property
+    [OAK-4963] - Test failure: SegmentDataStoreBlobGCIT
+    [OAK-4965] - Cold standby logs SNFE ERROR
+    [OAK-4969] - ColdStandby does not fetch missing blobs
+    [OAK-4980] - occasional test failure of JournalGCIT
+    [OAK-4984] - Server time unavailable with authenticated connection
+    to MongoDB
+    [OAK-4996] - Open up getBlobStore() to protected access in
+    SegmentDataStoreBlobGCTest
+    [OAK-4997] - RevisionGCTest.teardown() may fail with NPE when
+    store == null
+    [OAK-4998] - NPE when starting Oak Console
+    [OAK-4999] - ISE when starting Oak Console
+    [OAK-5002] - NPE when creating read only store
+    [OAK-5003] - no output from oak-run check
+    [OAK-5005] - S3 async upload fails to catch and log exceptions
+    other than DataStoreException
+    [OAK-5007] - Put oak-segment-tar back in the main release cycle
+    [OAK-5008] - SegmentRevisionGCMBean getLastRepositorySize wrong
+    value
+    [OAK-5010] - Document split with binary properties too eager
+    [OAK-5016] - OOM in SegmentDataStoreBlobGCIT
+    [OAK-5018] - Warn traversal queries: false positives
+    [OAK-5034] - FileStoreUtil#readSegmentWithRetry max retry delay is
+    too short to be functional
+    [OAK-5044] - The background flush operation might flush a closed
+    store
+    [OAK-5055] - o.a.j.o.s.s.RevisionGC returns status that don't
+    comply with the API
+    [OAK-5061] - ObservationTest.applyNodeTypeOnSelf sometimes fails
+    [OAK-5064] - XPath: chained conditions and union bugfix
+    [OAK-5067] - Node bundling does not work with SecondaryNodeStore
+    feature
+    [OAK-5068] - Aggregate index: superfluous warning "Full-text index
+    without plan"
+    [OAK-5070] - Journal diff not working for changes in bundled node
+    [OAK-5073] - Bug in JcrPathParser
+    [OAK-5077] - Class "AbstractS3DataStoreService" should be declared
+    abstract
+    [OAK-5078] - Improper handling of relative paths in
+    OakFileDataStore#getAllIdentifiers
+    [OAK-5084] - oak-jcr does not export all public api
+
+Documentation
+
+    [OAK-5014] - Minor description change for OSGi
+    blobTrackSnapshotIntervalInSecs property
+
+Epic
+
+    [OAK-2849] - Improve revision gc on SegmentMK
 
 Improvement
 
-    [OAK-4816] - Property index: cost estimate with path restriction
-    is too optimistic
-    [OAK-4890] - Invalidate cache on missing previous document
-    [OAK-4892] - Speed up DocumentNodeStoreStatsCollectorIT
-    [OAK-4904] - For unique indexes avoid consulting indexes other
-    than property index
-    [OAK-4910] - Update segment tar to 0.0.14
+    [OAK-1558] - Expose FileStoreBackupRestoreMBean for supported
+    NodeStores
+    [OAK-2460] - Resolve the base directory path of persistent cache
+    against repository home
+    [OAK-2910] - oak-jcr bundle should be usable as a standalone
+    bundle
+    [OAK-3018] - Use batch-update in backgroundWrite
+    [OAK-3796] - Prevent blob gc and revision gc from running
+    concurrently
+    [OAK-4139] - Idle session warnings for observation sessions
+    [OAK-4314] - BlobReferenceRetriever#collectReferences should allow
+    exceptions
+    [OAK-4586] - Collect affected node types on commit
+    [OAK-4627] - [BlobGC] Reduce logging during delete
+    [OAK-4710] - AsyncIndexUpdate delay time should show clock time
+    left
+    [OAK-4713] - Builder class to simplify Lucene Index Definition
+    building
+    [OAK-4788] - Fulltext parser sorts and unique-s parsed terms
+    [OAK-4789] - SegmentBlob should return null contentIdentity for
+    inlined blobs
+    [OAK-4796] - filter events before adding to ChangeProcessor's
+    queue
+    [OAK-4817] - QueryEngineSettings without MBean
+    [OAK-4849] - Refactor the MigrationCliArguments from implicit to
+    explicit
+    [OAK-4855] - Expose actual listener.toString in consolidated
+    listener mbean
+    [OAK-4859] - Warn if lease update is invoked with large delay
+    [OAK-4881] - Make merge semaphore in SegmentNodeStore fair by
+    default
+    [OAK-4888] - Warn or fail queries above a configurable cost value
+    [OAK-4900] - Enable persistent caches by default
+    [OAK-4902] - Blob GC completion time should be logged in millis
+    [OAK-4919] - Better feedback from method invocations on
+    RevisionGCMBean
+    [OAK-4950] - LIRS cache: improve hit rate
+    [OAK-4966] - Re-introduce a blocker for compaction based on
+    available heap
+    [OAK-4968] - Query engine: sort order is calculated multiple times
+    unnecessarily
+    [OAK-4970] - Sidegrade disk usage issues related to copying
+    version storage
+    [OAK-4974] - Enable configuring QueryEngineSettings via OSGi
+    config
+    [OAK-4975] - Setup a default Bundling config
+    [OAK-4981] - Config option to disable specific bundling config
+    [OAK-4989] - Simplify GCListener
+    [OAK-4990] - SegmentBufferWriter should not depend on
+    SegmentTracker
+    [OAK-4991] - Persistent cache should not cache those paths which
+    are covered by DocumentNodeStateCache
+    [OAK-4992] - Use the role name as prefix for directory used by
+    SegmentNodeStoreFactory
+    [OAK-5004] - Offline compaction explodes checkpoints
+    [OAK-5006] - Persistent cache: improve concurrency
+    [OAK-5011] - Add event aggregation support to observation
+    filtering
+    [OAK-5013] - Introduce observation filter extension mechanism to
+    Oak
+    [OAK-5019] - Support glob patterns through OakEventFilter
+    [OAK-5020] - Improved support for node removals
+    [OAK-5021] - Improve observation of files
+    [OAK-5022] - add includeSubtreeOnDelete flag to OakEventFilter
+    [OAK-5023] - add applyNoteTypeOnSelf property to OakEventFilter
+    [OAK-5024] - Improve the usage of the SegmentWriter for compaction
+    [OAK-5026] - Enable default memory mapping for segment mode in
+    oak-run console
+    [OAK-5029] - Use head GC generation number to trigger cleanup on
+    standby instance
+    [OAK-5030] - Copying the versions store is slow and increase the
+    repository size
+    [OAK-5032] - Update Groovy version in oak-run to 2.4.7
+    [OAK-5041] - AbstractPropertyState.toString should handle case
+    when BlobStore is not configured
+    [OAK-5043] - Very old JR2 repositories may have invalid nodetypes
+    for groupsPath and usersPath
+    [OAK-5045] - Support bundling of nodes present in version store
+    [OAK-5046] - Remove the old estimation OSGi setting
+    (compaction.gainThreshold)
+    [OAK-5047] - Log clusterNodes document details in
+    ClusterNodeInfo.renewLease()
+    [OAK-5050] - Optimise ImmutableRecordNumbers
+    [OAK-5053] - Provide support for enabling fastResultSize via OSGi
+    config
+    [OAK-5065] - Make configuration optional for
+    SecondaryStoreCacheService
+    [OAK-5066] - Provide a config option to disable lease check at
+    DocumentNodeStoreService level
+    [OAK-5072] - ChangeCollectorProvider should enable metatype
+    support
+    [OAK-5076] - CopyOnWrite directory should clear working set of
+    files being written upon start
 
 New Feature
 
-    [OAK-4265] - XPath: support limited form of "union"
-    [OAK-4522] - Improve CommitRateLimiter to optionally block some
-    commits
+    [OAK-1312] - Bundle nodes into a document
+    [OAK-4681] - Automatically convert *all* "or" queries to "union"
+    for SQL-2
+    [OAK-4871] - Multiplexing NodeStore
 
 Task
 
-    [OAK-4823] - Upgrade Oak Segment Tar dependency to 0.0.12
-    [OAK-4889] - Update Oak trunk to Jackrabbit 2.13.4
+    [OAK-4247] - Deprecate oak-segment
+    [OAK-4606] - Avoid persisting rootRevision in PathFilteringDiff
+    [OAK-4977] - Add ProviderType annotation to MBean interfaces
+    [OAK-4985] - Upgrade Oak Segment Tar dependency to 0.0.16
+    [OAK-4988] - JournalGarbageCollector: re-order method signature
+    [OAK-5000] - Upgrade Oak Segment Tar dependency to 0.0.18
+    [OAK-5031] - Log configuration deprecation messages at WARN level
+    [OAK-5039] - Change globbing definition of GlobbingPathFilter
+    [OAK-5040] - Remove backup/restore methods in
+    RepositoryManagementMBean
+    [OAK-5049] - Add @Description annotations to methods in
+    RepositoryManagementMBean
+    [OAK-5054] - Disable oak-run build for Jackrabbit
+    [OAK-5071] - Persistent cache: use the asynchronous mode by
+    default
+    [OAK-5075] - Refactor IndexCopier to make it more modular
+
+Test
+
+    [OAK-4955] - Write log messages to file only (oak-pojosr)
+    [OAK-4973] - Speed up tests with MongoFixture
+    [OAK-4976] - AcquireRecoveryLockTest fails occasionally
+    [OAK-4993] - Report plan when QueryTest.nodeType() fails
+    [OAK-4995] - DocumentS3DataStoreStatsTest.testNoS3BlobStore() does
+    not unregister node store
+    [OAK-5012] - SegmentDataStoreBlobGCIT times out on travis-ci
+    [OAK-5027] - Test utils for commonly used functionality
+    [OAK-5059] - DocumentCachingDataStoreStatsTest sometimes stuck
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.4.x release.
+all changes included up to the Apache Jackrabbit Oak 1.5.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
