@@ -38,6 +38,8 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
@@ -72,7 +74,11 @@ public class IndexWriterUtils {
 
     public static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition, String dirName)
             throws IOException {
-        String path = definition.getString(PERSISTENCE_PATH);
+        String path = null;
+        if (LuceneIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
+                definition.getString(LuceneIndexConstants.PERSISTENCE_NAME))) {
+            path = definition.getString(PERSISTENCE_PATH);
+        }
         if (path == null) {
             return new OakDirectory(definition, dirName, indexDefinition, false);
         } else {
