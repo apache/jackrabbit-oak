@@ -126,7 +126,6 @@ public class ClusterNodeInfoTest {
     }
 
     // OAK-4779
-    @Ignore
     @Test
     public void renewLeaseWhileRecoveryRunning() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
