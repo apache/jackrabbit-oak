@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
@@ -34,6 +35,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class MongoConnection {
 
+    private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
@@ -98,6 +100,7 @@ public class MongoConnection {
     public static MongoClientOptions.Builder getDefaultBuilder() {
         return new MongoClientOptions.Builder()
                 .description("MongoConnection for Oak DocumentMK")
+                .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
                 .threadsAllowedToBlockForConnectionMultiplier(100);
     }
 
