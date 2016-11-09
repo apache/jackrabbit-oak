@@ -64,6 +64,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     private final DataType keyType;
     private final DataType valueType;
     private final CacheMetadata<K> memCacheMetadata;
+    private final boolean async;
     CacheWriteQueue<K, V> writeQueue;
 
     NodeCache(
@@ -73,16 +74,18 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             DocumentStore docStore,
             CacheType type,
             CacheActionDispatcher dispatcher,
-            StatisticsProvider statisticsProvider) {
+            StatisticsProvider statisticsProvider,
+            boolean async) {
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
+        this.async = async;
         PersistentCache.LOG.info("wrapping map " + this.type);
         map = new MultiGenerationMap<K, V>();
         keyType = new KeyDataType(type);
         valueType = new ValueDataType(docNodeStore, docStore, type);
         this.memCacheMetadata = new CacheMetadata<K>();
-        if (cache.isAsyncCache()) {
+        if (async) {
             this.writeQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
             LOG.info("The persistent cache {} writes will be asynchronous", type);
         } else {
@@ -194,7 +197,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             value = memCache.get(key, valueLoader);
             memCacheMetadata.increment(key);
             ctx.stop();
-            if (!cache.isAsyncCache()) {
+            if (!async) {
                 write((K) key, value);
             }
             broadcast(key, value);
@@ -217,7 +220,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     public void put(K key, V value) {
         memCache.put(key, value);
         memCacheMetadata.put(key);
-        if (!cache.isAsyncCache()) {
+        if (!async) {
             write((K) key, value);
         }
         broadcast(key, value);
@@ -228,7 +231,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     public void invalidate(Object key) {
         memCache.invalidate(key);
         memCacheMetadata.remove(key);
-        if (cache.isAsyncCache()) {
+        if (async) {
             writeQueue.addInvalidate(singleton((K) key));
         } else {
             write((K) key, null);
@@ -293,7 +296,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             memCacheMetadata.put(key);
         }
         stats.markRecvBroadcast();
-        if (!cache.isAsyncCache()) {
+        if (!async) {
             write(key, value);
         }
     }
@@ -303,7 +306,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
      */
     @Override
     public void evicted(K key, V value, RemovalCause cause) {
-        if (cache.isAsyncCache() && EVICTION_CAUSES.contains(cause) && value != null) {
+        if (async && EVICTION_CAUSES.contains(cause) && value != null) {
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
             boolean qualifiesToPersist = true;
             if (metadata != null && metadata.isReadFromPersistentCache()) {
