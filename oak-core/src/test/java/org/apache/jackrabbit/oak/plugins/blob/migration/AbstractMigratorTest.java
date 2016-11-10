@@ -91,7 +91,6 @@ public abstract class AbstractMigratorTest {
     }
 
     @Test
-    @Ignore("OAK-5009")
     public void blobsExistsOnTheNewBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
         NodeState root = nodeStore.getRoot();
@@ -101,7 +100,6 @@ public abstract class AbstractMigratorTest {
     }
 
     @Test
-    @Ignore("OAK-5009")
     public void blobsCanBeReadAfterSwitchingBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
         closeNodeStore();
