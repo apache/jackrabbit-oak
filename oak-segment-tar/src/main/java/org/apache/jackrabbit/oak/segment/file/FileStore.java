@@ -818,13 +818,13 @@ public class FileStore extends AbstractFileStore {
         }
 
         synchronized int compact() throws IOException {
+            final int newGeneration = getGcGeneration() + 1;
             try {
                 Stopwatch watch = Stopwatch.createStarted();
                 gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
 
                 SegmentNodeState before = getHead();
                 Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
-                final int newGeneration = getGcGeneration() + 1;
                 SegmentWriter writer = segmentWriterBuilder("c")
                         .with(cacheManager)
                         .withGeneration(newGeneration)
@@ -834,7 +834,7 @@ public class FileStore extends AbstractFileStore {
                 SegmentNodeState after = compact(before, writer, cancel);
                 if (after == null) {
                     gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
-                    return 0;
+                    return -newGeneration;
                 }
 
                 gcListener.info("TarMK GC #{}: compacted {} to {}",
@@ -855,7 +855,7 @@ public class FileStore extends AbstractFileStore {
                     after = compact(head, writer, cancel);
                     if (after == null) {
                         gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
-                        return 0;
+                        return -newGeneration;
                     }
 
                     gcListener.info("TarMK GC #{}: compacted {} against {} to {}",
@@ -899,10 +899,10 @@ public class FileStore extends AbstractFileStore {
             } catch (InterruptedException e) {
                 gcListener.error("TarMK GC #" + GC_COUNT + ": compaction interrupted", e);
                 currentThread().interrupt();
-                return 0;
+                return -newGeneration;
             } catch (Exception e) {
                 gcListener.error("TarMK GC #" + GC_COUNT + ": compaction encountered an error", e);
-                return 0;
+                return -newGeneration;
             }
         }
 
