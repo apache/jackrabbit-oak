@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -63,6 +65,10 @@ class StandbyClientSyncExecution {
     void execute() throws Exception {
         RecordId remoteHead = getHead();
 
+        if (remoteHead == null) {
+            throw new IllegalStateException("Unable to fetch remote head");
+        }
+
         if (remoteHead.equals(store.getHead().getRecordId())) {
             return;
         }
@@ -77,8 +83,13 @@ class StandbyClientSyncExecution {
         log.debug("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
     }
 
+    @Nullable
     private RecordId getHead() throws Exception {
-        return RecordId.fromString(store, client.getHead());
+        String head = client.getHead();
+        if (head == null) {
+            return null;
+        }
+        return RecordId.fromString(store, head);
     }
 
     private SegmentNodeState newSegmentNodeState(RecordId id) {

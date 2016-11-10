@@ -21,6 +21,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -172,6 +174,7 @@ class StandbyClient implements AutoCloseable {
         }
     }
 
+    @Nullable
     String getHead() throws InterruptedException {
         channel.writeAndFlush(new GetHeadRequest(clientId));
 
@@ -184,6 +187,7 @@ class StandbyClient implements AutoCloseable {
         return response.getHeadRecordId();
     }
 
+    @Nullable
     byte[] getSegment(String segmentId) throws InterruptedException {
         channel.writeAndFlush(new GetSegmentRequest(clientId, segmentId));
 
@@ -196,6 +200,7 @@ class StandbyClient implements AutoCloseable {
         return response.getSegmentData();
     }
 
+    @Nullable
     byte[] getBlob(String blobId) throws InterruptedException {
         channel.writeAndFlush(new GetBlobRequest(clientId, blobId));
 
@@ -208,6 +213,7 @@ class StandbyClient implements AutoCloseable {
         return response.getBlobData();
     }
 
+    @Nullable
     Iterable<String> getReferences(String segmentId) throws InterruptedException {
         channel.writeAndFlush(new GetReferencesRequest(clientId, segmentId));
 
