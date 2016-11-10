@@ -290,7 +290,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore,
 
         DataRecord record;
         try {
-            record = delegate.getRecord(new DataIdentifier(blobId));
+            record = delegate.getRecordIfStored(new DataIdentifier(blobId));
             if (record != null) {
                 return record.getReference();
             } else {
