@@ -146,6 +146,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataStore mockedDS = mock(DataStore.class);
         when(mockedDS.getRecordFromReference(reference)).thenReturn(testDR);
         when(mockedDS.getRecord(testDI)).thenReturn(testDR);
+        when(mockedDS.getRecordIfStored(testDI)).thenReturn(testDR);
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
         assertEquals(reference,ds.getReference(blobId));
