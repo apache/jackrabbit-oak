@@ -761,7 +761,6 @@ public class DocumentBundlingTest {
         assertTrue("No change reported for /test/book.jpg/jcr:content", addedPropertyNames.contains("fooContent"));
     }
 
-    @Ignore("OAK-5079")
     @Test
     public void bundledNodeAndDiffFew() throws Exception{
         store.dispose();
