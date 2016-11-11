@@ -40,7 +40,7 @@ public class BundledDocumentDiffer {
 
     /**
      * Performs diff for bundled nodes. The passed state can be DocumentNodeState or
-     * one from secondary nodestore i.e. {@link DelegatingDocumentNodeState}. So the
+     * one from secondary nodestore i.e. {@code DelegatingDocumentNodeState}. So the
      * passed states cannot be cast down to DocumentNodeState
      *
      * @param from from state
