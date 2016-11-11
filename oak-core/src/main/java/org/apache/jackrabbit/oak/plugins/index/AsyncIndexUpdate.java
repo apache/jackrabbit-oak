@@ -79,7 +79,10 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
-
+    /**
+     * Name of service property which determines the name of Async task
+     */
+    public static final String PROP_ASYNC_NAME = "oak.async";
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
 

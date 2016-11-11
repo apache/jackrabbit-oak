@@ -20,7 +20,9 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -39,7 +41,8 @@ public class IndexMBeanRegistration implements Registration {
 
     public void registerAsyncIndexer(AsyncIndexUpdate task, long delayInSeconds) {
         task.setIndexMBeanRegistration(this);
-        regs.add(scheduleWithFixedDelay(whiteboard, task, delayInSeconds, true, true));
+        Map<String, Object> config = ImmutableMap.<String, Object>of(AsyncIndexUpdate.PROP_ASYNC_NAME, task.getName());
+        regs.add(scheduleWithFixedDelay(whiteboard, task, config, delayInSeconds, true, true));
         regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                 task.getIndexStats(), IndexStatsMBean.TYPE, task.getName()));
         // Register AsyncIndexStats for execution stats update
