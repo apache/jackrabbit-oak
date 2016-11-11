@@ -266,7 +266,6 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         testDocumentStoreStats(ns)
     }
 
-    @Ignore("OAK-5070")
     @Test
     public void testBundlingEnabledByDefault() throws Exception {
         registry = repositoryFactory.initializeServiceRegistry(config)
