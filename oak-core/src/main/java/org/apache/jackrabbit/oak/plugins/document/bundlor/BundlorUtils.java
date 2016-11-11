@@ -32,6 +32,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLING_PATH;
 
@@ -103,5 +104,17 @@ public final class BundlorUtils {
             }
         }
         return childNodeNames;
+    }
+
+    static boolean isBundlingRoot(NodeState state){
+        return state.hasProperty(DocumentBundlor.META_PROP_PATTERN);
+    }
+
+    static boolean isBundledChild(NodeState state){
+        return state.hasProperty(DocumentBundlor.META_PROP_BUNDLING_PATH);
+    }
+
+    static boolean isBundledNode(NodeState state){
+        return isBundlingRoot(state) || isBundledChild(state);
     }
 }

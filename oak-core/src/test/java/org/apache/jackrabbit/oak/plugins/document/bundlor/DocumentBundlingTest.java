@@ -152,6 +152,25 @@ public class DocumentBundlingTest {
     }
 
     @Test
+    public void bundlorUtilsIsBundledMethods() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+
+        merge(builder);
+        NodeState fileNodeState =  NodeStateUtils.getNode(store.getRoot(), "/test/book.jpg");
+        assertTrue(BundlorUtils.isBundledNode(fileNodeState));
+        assertFalse(BundlorUtils.isBundledChild(fileNodeState));
+        assertTrue(BundlorUtils.isBundlingRoot(fileNodeState));
+
+        NodeState contentNode =  NodeStateUtils.getNode(store.getRoot(), "/test/book.jpg/jcr:content");
+        assertTrue(BundlorUtils.isBundledNode(contentNode));
+        assertTrue(BundlorUtils.isBundledChild(contentNode));
+        assertFalse(BundlorUtils.isBundlingRoot(contentNode));
+    }
+
+    @Test
     public void bundledParent() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder appNB = newNode("app:Asset");
