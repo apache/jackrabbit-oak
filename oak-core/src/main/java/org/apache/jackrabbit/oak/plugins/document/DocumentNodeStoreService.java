@@ -380,7 +380,7 @@ public class DocumentNodeStoreService {
     )
     public static final String PROP_DS_TYPE = "documentStoreType";
 
-    private static final boolean DEFAULT_BUNDLING_DISABLED = true;
+    private static final boolean DEFAULT_BUNDLING_DISABLED = false;
     @Property(boolValue = DEFAULT_BUNDLING_DISABLED,
             label = "Bundling Disabled",
             description = "Boolean value indicating that Node bundling is disabled"
