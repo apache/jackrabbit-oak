@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
+import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
@@ -54,7 +55,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -65,6 +65,9 @@ import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLED_CHILD;
@@ -817,14 +820,6 @@ public class DocumentBundlingTest {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    static DocumentNodeState asDocumentState(NodeState state){
-        if (state instanceof DocumentNodeState){
-            return (DocumentNodeState) state;
-        }
-        fail("Not of type AbstractDoucmentNodeState");
-        return null;
-    }
-
     private static String getBundlingPath(NodeState contentNode) {
         PropertyState ps = contentNode.getProperty(DocumentBundlor.META_PROP_BUNDLING_PATH);
         return checkNotNull(ps).getValue(Type.STRING);
@@ -842,21 +837,6 @@ public class DocumentBundlingTest {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
         return builder;
-    }
-
-    private static NodeBuilder createChild(NodeBuilder root, String ... paths){
-        for (String path : paths){
-            childBuilder(root, path);
-        }
-        return root;
-    }
-
-    private static NodeBuilder childBuilder(NodeBuilder root, String path){
-        NodeBuilder nb = root;
-        for (String nodeName : PathUtils.elements(path)){
-            nb = nb.child(nodeName);
-        }
-        return nb;
     }
 
     private static class RecordingDocumentStore extends MemoryDocumentStore {

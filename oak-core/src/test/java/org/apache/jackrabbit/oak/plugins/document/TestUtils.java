@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import static org.junit.Assert.fail;
+
 public class TestUtils {
 
     public static final Predicate<UpdateOp> IS_LAST_REV_UPDATE = new Predicate<UpdateOp>() {
@@ -75,5 +77,13 @@ public class TestUtils {
             nb = nb.child(nodeName);
         }
         return nb;
+    }
+
+    public static DocumentNodeState asDocumentState(NodeState state){
+        if (state instanceof DocumentNodeState){
+            return (DocumentNodeState) state;
+        }
+        fail("Not of type DocumentNodeState " + state.getClass());
+        return null;
     }
 }

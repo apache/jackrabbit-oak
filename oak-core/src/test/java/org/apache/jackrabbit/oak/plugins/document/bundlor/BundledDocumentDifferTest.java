@@ -54,7 +54,7 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
-import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlingTest.asDocumentState;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlingTest.newNode;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
