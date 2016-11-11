@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
@@ -107,6 +108,23 @@ public class WhiteboardUtilsTest {
         WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), 1, true, false);
         assertNull(props.get().get("scheduler.threadPool"));
         assertEquals("SINGLE", props.get().get("scheduler.runOn"));
+    }
+
+    @Test
+    public void scheduledJobWithExtraProps() throws Exception{
+        final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
+        Whiteboard wb = new DefaultWhiteboard(){
+            @Override
+            public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
+                props.set(properties);
+                return super.register(type, service, properties);
+            }
+        };
+
+        Map<String, Object> config = ImmutableMap.<String, Object>of("foo", "bar");
+        WhiteboardUtils.scheduleWithFixedDelay(wb, new TestRunnable(), config, 1, false, true);
+        assertNotNull(props.get().get("scheduler.threadPool"));
+        assertEquals("bar", props.get().get("foo"));
     }
 
     public interface HelloMBean {
