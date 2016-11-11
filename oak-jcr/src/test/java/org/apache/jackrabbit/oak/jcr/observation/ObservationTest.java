@@ -38,6 +38,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
@@ -52,20 +53,30 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
+import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
+import javax.jcr.version.VersionException;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ForwardingListenableFuture;
@@ -1756,7 +1767,7 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     /**
-     * OAK -5096 : new test case for OR mode
+     * OAK-5096 : new test case for OR mode
      */
     @Test
     public void testAggregate5() throws Exception {
@@ -1790,6 +1801,108 @@ public class ObservationTest extends AbstractRepositoryTest {
         Thread.sleep(1000);
         List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    @Test
+    public void testFileWithGlobs() throws Exception {
+        doTestFileWithGlobs("/parent/bar/zet.jsp", "/parent/bar/zet.jsp");
+        doTestFileWithGlobs("/parent/bar/*.jsp", "/parent/bar");
+        doTestFileWithGlobs("/parent/*/zet.jsp", "/parent");
+        doTestFileWithGlobs("/parent/*/*.jsp", "/parent");
+        doTestFileWithGlobs("/parent/**/zet.jsp", "/parent");
+        doTestFileWithGlobs("/parent/**/*.jsp", "/parent");
+        doTestFileWithGlobs("/*/bar/*.jsp", "");
+        doTestFileWithGlobs("/**/bar/*.jsp", "");
+        doTestFileWithGlobs("/**/*.jsp", "");
+        doTestFileWithGlobs("**/*.jsp", "");
+    }
+
+    private void doTestFileWithGlobs(String globPath, String... expectedSubTrees)
+            throws RepositoryException, ItemExistsException, PathNotFoundException, NoSuchNodeTypeException,
+            LockException, VersionException, ConstraintViolationException, AccessDeniedException,
+            ReferentialIntegrityException, InvalidItemStateException, InterruptedException, ExecutionException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withIncludeGlobPaths(globPath);
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertArrayEquals(expectedSubTrees, Iterables.toArray(filterProvider.getSubTrees(), String.class));
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node bar = parent.addNode("bar", "nt:unstructured");
+        Node zetDotJsp = bar.addNode("zet.jsp", "nt:unstructured");
+        listener.expect(zetDotJsp.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        
+        Session session = getAdminSession();
+        session.getRootNode().getNode("parent").remove();
+        session.save();
+        oManager.removeEventListener(listener);
+    }
+
+    // OAK-5096 : a specific **/*.jsp test case
+    @Test
+    public void testAggregate6() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("**/*.jsp");
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node bar = parent.addNode("bar", "nt:unstructured");
+        Node zetDotJsp = bar.addNode("zet.jsp", "nt:unstructured");
+        listener.expect(zetDotJsp.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node c = bar.addNode("c", "nt:unstructured");
+        Node fooDotJsp = c.addNode("foo.jsp", "oak:Unstructured");
+        listener.expect(fooDotJsp.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node jcrContent = fooDotJsp.addNode("jcr:content", "nt:unstructured");
+        jcrContent.setProperty("jcr:data", "foo");
+        listener.expectAdd(jcrContent);
+        listener.expect(jcrContent.getPath() + "/jcr:data", "/parent/bar/c/foo.jsp", PROPERTY_ADDED);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        
+        // OAK-5096 : this is what OAK-5096 is all about: when you change
+        // the property jcr:content/jcr:data it should be reported with 
+        // identifier of the aggregate - even though it is not in the original glob path
+        jcrContent.setProperty("jcr:data", "bar");
+        listener.expect(jcrContent.getPath() + "/jcr:data", "/parent/bar/c/foo.jsp", PROPERTY_CHANGED);
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
         assertTrue("Missing events: " + missing, missing.isEmpty());
     }

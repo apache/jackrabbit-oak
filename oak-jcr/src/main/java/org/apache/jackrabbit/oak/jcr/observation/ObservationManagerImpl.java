@@ -285,9 +285,9 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         Selector nodeTypeSelector = Selectors.PARENT;
         boolean deleteSubtree = true;
         if (oakEventFilter != null) {
-            Condition ands = oakEventFilter.getAnds();
-            if (ands != null) {
-                excludeConditions.add(ands);
+            Condition additionalIncludes = oakEventFilter.getAdditionalIncludeConditions(includePaths);
+            if (additionalIncludes != null) {
+                includeConditions.add(additionalIncludes);
             }
             filterBuilder.aggregator(oakEventFilter.getAggregator());
             if (oakEventFilter.getApplyNodeTypeOnSelf()) {
