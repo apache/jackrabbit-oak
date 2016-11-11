@@ -53,7 +53,15 @@ public class WhiteboardUtils {
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, long delayInSeconds, boolean runOnSingleClusterNode,
             boolean useDedicatedPool) {
+        return scheduleWithFixedDelay(whiteboard, runnable, Collections.<String, Object>emptyMap(),
+                delayInSeconds, runOnSingleClusterNode, useDedicatedPool);
+    }
+
+    public static Registration scheduleWithFixedDelay(
+            Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps, long delayInSeconds, boolean runOnSingleClusterNode,
+            boolean useDedicatedPool) {
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
+                .putAll(extraProps)
                 .put("scheduler.period", delayInSeconds)
                 .put("scheduler.concurrent", false);
         if (runOnSingleClusterNode) {
