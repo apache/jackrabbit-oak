@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -30,6 +31,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -85,8 +87,8 @@ public final class BundlorUtils {
         return result;
     }
 
-    public static List<String> getChildNodeNames(Collection<String> keys, Matcher matcher){
-        List<String> childNodeNames = Lists.newArrayList();
+    public static Set<String> getChildNodeNames(Collection<String> keys, Matcher matcher){
+        Set<String> childNodeNames = Sets.newHashSet();
 
         //Immediate child should have depth 1 more than matcher depth
         int expectedDepth = matcher.depth() + 1;
