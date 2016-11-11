@@ -168,11 +168,13 @@ public final class DocumentNodeStore
     private long recoveryWaitTimeoutMS =
             Long.getLong("oak.recoveryWaitTimeoutMS", 60000);
 
+
+    public static final String SYS_PROP_DISABLE_JOURNAL = "oak.disableJournalDiff";
     /**
      * Feature flag to disable the journal diff mechanism. See OAK-4528.
      */
     private boolean disableJournalDiff =
-            Boolean.getBoolean("oak.disableJournalDiff");
+            Boolean.getBoolean(SYS_PROP_DISABLE_JOURNAL);
 
     /**
      * The document store (might be used by multiple node stores).

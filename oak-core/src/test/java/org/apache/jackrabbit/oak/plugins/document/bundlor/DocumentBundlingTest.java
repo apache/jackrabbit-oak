@@ -52,7 +52,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -61,6 +63,7 @@ import static java.lang.String.format;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLED_CHILD;
@@ -80,6 +83,7 @@ public class DocumentBundlingTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     private DocumentNodeStore store;
     private RecordingDocumentStore ds = new RecordingDocumentStore();
+    private String journalDisabledProp;
 
     @Before
     public void setUpBundlor() throws CommitFailedException {
@@ -104,6 +108,16 @@ public class DocumentBundlingTest {
                 .setChildNode("app:Asset", registryState.getChildNode("app:Asset"));
         merge(builder);
         store.runBackgroundOperations();
+        journalDisabledProp = System.getProperty(SYS_PROP_DISABLE_JOURNAL);
+    }
+
+    @After
+    public void resetSysProps(){
+        if (journalDisabledProp != null) {
+            System.setProperty(SYS_PROP_DISABLE_JOURNAL, journalDisabledProp);
+        } else {
+            System.clearProperty(SYS_PROP_DISABLE_JOURNAL);
+        }
     }
 
     @Test
@@ -670,6 +684,38 @@ public class DocumentBundlingTest {
 
         assertTrue("No change reported for /test/book.jpg", addedPropertyNames.contains("fooBook"));
         assertTrue("No change reported for /test/book.jpg/jcr:content", addedPropertyNames.contains("fooContent"));
+    }
+
+    @Ignore("OAK-5079")
+    @Test
+    public void bundledNodeAndDiffFew() throws Exception{
+        store.dispose();
+        disableJournalUse();
+        store = builderProvider
+                .newBuilder()
+                .setDocumentStore(ds)
+                .memoryCacheSize(0)
+                .getNodeStore();
+
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        //Make some modifications under the bundled node
+        //This would cause an entry for bundled node in Commit modified set
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+
+        TestNodeObserver o = new TestNodeObserver("test");
+        store.addObserver(o);
+        merge(builder);
+        assertEquals(1, o.changed.size());
+    }
+
+    private static void disableJournalUse() {
+        System.setProperty(SYS_PROP_DISABLE_JOURNAL, "true");
     }
 
     private void createTestNode(String path, NodeState state) throws CommitFailedException {
