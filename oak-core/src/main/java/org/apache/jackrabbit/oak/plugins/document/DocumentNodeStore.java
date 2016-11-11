@@ -86,6 +86,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledDocumentDiffer;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
@@ -431,6 +432,8 @@ public final class DocumentNodeStore
     private final StatisticsProvider statisticsProvider;
 
     private final BundlingConfigHandler bundlingConfigHandler = new BundlingConfigHandler();
+
+    private final BundledDocumentDiffer bundledDocDiffer = new BundledDocumentDiffer(this);
 
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
@@ -915,7 +918,7 @@ public final class DocumentNodeStore
      *          given revision.
      */
     @CheckForNull
-    DocumentNodeState getNode(@Nonnull final String path,
+    public DocumentNodeState getNode(@Nonnull final String path,
                               @Nonnull final RevisionVector rev) {
         checkNotNull(rev);
         checkNotNull(path);
@@ -2278,30 +2281,36 @@ public final class DocumentNodeStore
             diffAlgo = "diffJournalChildren";
             diff = new JournalDiffLoader(from, to, this).call();
         } else {
-            DocumentNodeState.Children fromChildren, toChildren;
-            fromChildren = getChildren(from, null, max);
-            toChildren = getChildren(to, null, max);
-            getChildrenDoneIn = debug ? now() : 0;
-
             JsopWriter w = new JsopStream();
-            if (!fromChildren.hasMore && !toChildren.hasMore) {
-                diffAlgo = "diffFewChildren";
-                diffFewChildren(w, from.getPath(), fromChildren,
-                        fromRev, toChildren, toRev);
-            } else {
-                if (FAST_DIFF) {
-                    diffAlgo = "diffManyChildren";
-                    fromRev = from.getRootRevision();
-                    toRev = to.getRootRevision();
-                    diffManyChildren(w, from.getPath(), fromRev, toRev);
-                } else {
-                    diffAlgo = "diffAllChildren";
-                    max = Integer.MAX_VALUE;
-                    fromChildren = getChildren(from, null, max);
-                    toChildren = getChildren(to, null, max);
+            boolean continueDiff = bundledDocDiffer.diff(from, to, w);
+
+            if (continueDiff) {
+                DocumentNodeState.Children fromChildren, toChildren;
+                fromChildren = getChildren(from, null, max);
+                toChildren = getChildren(to, null, max);
+                getChildrenDoneIn = debug ? now() : 0;
+
+                if (!fromChildren.hasMore && !toChildren.hasMore) {
+                    diffAlgo = "diffFewChildren";
                     diffFewChildren(w, from.getPath(), fromChildren,
                             fromRev, toChildren, toRev);
+                } else {
+                    if (FAST_DIFF) {
+                        diffAlgo = "diffManyChildren";
+                        fromRev = from.getRootRevision();
+                        toRev = to.getRootRevision();
+                        diffManyChildren(w, from.getPath(), fromRev, toRev);
+                    } else {
+                        diffAlgo = "diffAllChildren";
+                        max = Integer.MAX_VALUE;
+                        fromChildren = getChildren(from, null, max);
+                        toChildren = getChildren(to, null, max);
+                        diffFewChildren(w, from.getPath(), fromChildren,
+                                fromRev, toChildren, toRev);
+                    }
                 }
+            } else {
+                diffAlgo = "allBundledChildren";
             }
             diff = w.toString();
         }
