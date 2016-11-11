@@ -146,7 +146,10 @@ public final class DocumentNodeStore
      * in DocumentBundlor as those are only required by DocumentNodeState
      */
     public static final List<String> META_PROP_NAMES = ImmutableList.of(
-            DocumentBundlor.META_PROP_PATTERN
+            DocumentBundlor.META_PROP_PATTERN,
+            DocumentBundlor.META_PROP_BUNDLING_PATH,
+            DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,
+            DocumentBundlor.META_PROP_BUNDLED_CHILD
     );
 
     /**

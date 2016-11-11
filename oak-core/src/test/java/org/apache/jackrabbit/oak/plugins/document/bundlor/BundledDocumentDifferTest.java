@@ -19,13 +19,26 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.Collections;
+
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreCache;
+import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserver;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -34,6 +47,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static com.google.inject.internal.util.$ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
@@ -42,8 +56,10 @@ import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigH
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlingTest.asDocumentState;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlingTest.newNode;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class BundledDocumentDifferTest {
@@ -52,6 +68,7 @@ public class BundledDocumentDifferTest {
     private DocumentNodeStore store;
     private String journalDisabledProp;
     private BundledDocumentDiffer differ;
+    private MemoryNodeStore secondary = new MemoryNodeStore();
 
 
     @Before
@@ -120,6 +137,52 @@ public class BundledDocumentDifferTest {
         assertEquals("^\"jcr:content\":{}", w.toString());
     }
 
+    @Test
+    public void diffWithSecondary() throws Exception{
+        configureSecondary();
+        NodeBuilder builder = createContentStructure();
+        NodeState r1 = merge(store, builder);
+        NodeState rs1 = DelegatingDocumentNodeState.wrap(secondary.getRoot(), store);
+
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+        NodeState r2 = merge(store, builder);
+
+        JsopWriter w = new JsopBuilder();
+        String path = "/test/book.jpg";
+        assertFalse(differ.diff(adns(rs1, path), adns(r2, path), w));
+        assertEquals("^\"jcr:content\":{}", w.toString());
+    }
+
+    @Test
+    public void diffFewChildren() throws Exception{
+        NodeBuilder builder = createContentStructure();
+        NodeState r1 = merge(store, builder);
+
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+        childBuilder(builder, "/test/book.jpg/jcr:content/renditions/newChild2").setProperty("foo", "bar");
+        childBuilder(builder, "/test/book.jpg/newChild1");
+        NodeState r2 = merge(store, builder);
+
+        String path = "/test/book.jpg";
+        CollectingDiff diff = new CollectingDiff();
+        adns(r2, path).compareAgainstBaseState(adns(r1, path), diff);
+
+        assertThat(diff.changes.get("added"), hasItem("newChild1"));
+        assertThat(diff.changes.get("changed"), hasItem("jcr:content"));
+
+        diff = new CollectingDiff();
+        path = "/test/book.jpg/jcr:content/renditions";
+        adns(r2, path).compareAgainstBaseState(adns(r1, path), diff);
+
+        System.out.println(diff);
+        assertThat(diff.changes.get("added"), hasItem("newChild2"));
+
+    }
+
+
+
     private NodeBuilder createContentStructure() {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder appNB = newNode("app:Asset");
@@ -137,9 +200,52 @@ public class BundledDocumentDifferTest {
         return builder;
     }
 
-    private AbstractDocumentNodeState dns(NodeState root, String path){
+    private static class CollectingDiff extends DefaultNodeStateDiff {
+        private ListMultimap<String, String> changes = ArrayListMultimap.create();
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            changes.get("added").add(name);
+            return true;
+        }
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            changes.get("changed").add(name);
+            return super.childNodeChanged(name, before, after);
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            changes.get("deleted").add(name);
+            return super.childNodeDeleted(name, before);
+        }
+
+        @Override
+        public String toString() {
+            return changes.toString();
+        }
+    }
+
+    private DocumentNodeState dns(NodeState root, String path){
         return asDocumentState(NodeStateUtils.getNode(root, path));
     }
 
+    private AbstractDocumentNodeState adns(NodeState root, String path){
+        return (AbstractDocumentNodeState) NodeStateUtils.getNode(root, path);
+    }
+
+    private SecondaryStoreCache configureSecondary(){
+        SecondaryStoreBuilder builder = createBuilder(new PathFilter(of("/"), Collections.<String>emptyList()));
+        builder.metaPropNames(DocumentNodeStore.META_PROP_NAMES);
+        SecondaryStoreCache cache = builder.buildCache();
+        SecondaryStoreObserver observer = builder.buildObserver(cache);
+        store.addObserver(observer);
+        return cache;
+    }
+
+    private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {
+        return new SecondaryStoreBuilder(secondary).pathFilter(pathFilter);
+    }
 
 }

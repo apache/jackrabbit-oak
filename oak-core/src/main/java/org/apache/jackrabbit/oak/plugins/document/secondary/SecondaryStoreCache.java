@@ -39,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootObserver {
+public class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootObserver {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private static final AbstractDocumentNodeState[] EMPTY = new AbstractDocumentNodeState[0];
     private final NodeStore store;

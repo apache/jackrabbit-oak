@@ -105,7 +105,7 @@ public class BundledDocumentDiffer {
             String bundlingPath = state.getString(DocumentBundlor.META_PROP_BUNDLING_PATH);
             String bundlingRootPath = PathUtils.getAncestorPath(state.getPath(), PathUtils.getDepth(bundlingPath));
             DocumentNodeState bundlingRoot = nodeStore.getNode(bundlingRootPath, state.getLastRevision());
-            result = (DocumentNodeState) NodeStateUtils.getNode(bundlingRoot, bundlingRootPath);
+            result = (DocumentNodeState) NodeStateUtils.getNode(bundlingRoot, bundlingPath);
         } else {
             result = nodeStore.getNode(state.getPath(), state.getLastRevision());
         }

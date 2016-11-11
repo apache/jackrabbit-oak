@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class SecondaryStoreObserver implements Observer {
+public class SecondaryStoreObserver implements Observer {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
     private final PathFilter pathFilter;
