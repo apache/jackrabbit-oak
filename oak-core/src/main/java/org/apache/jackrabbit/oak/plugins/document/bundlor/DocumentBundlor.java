@@ -47,9 +47,11 @@ public class DocumentBundlor {
     /**
      * Hidden property name used as suffix for relative node path
      * to indicate presence of that node. So for a relative node 'jcr:content'
-     * the parent node must have a property 'jcr:content/:self
+     * the parent node must have a property 'jcr:content/:doc-self-path.
+     *
+     * <p>Its value is the depth of the bundled child node
      */
-    public static final String META_PROP_NODE = ":doc-self";
+    public static final String META_PROP_BUNDLING_PATH = ":doc-self-path";
 
     public static final String HAS_CHILD_PROP_PREFIX = ":doc-has-child-";
 

@@ -803,7 +803,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
 
         public boolean hasChildNode(String relativePath){
-            String key = concat(relativePath, DocumentBundlor.META_PROP_NODE);
+            String key = concat(relativePath, DocumentBundlor.META_PROP_BUNDLING_PATH);
             return rootProperties.containsKey(key);
         }
 

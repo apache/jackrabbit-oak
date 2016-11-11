@@ -24,20 +24,15 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class BundlingHandler {
-    /**
-     * True property which is used to mark the presence of relative node
-     * This needs to be set when a bundled relative node is added
-     */
-    private static final PropertyState NODE_PRESENCE_MARKER =
-            PropertyStates.createProperty(DocumentBundlor.META_PROP_NODE, Boolean.TRUE);
+
     private final BundledTypesRegistry registry;
     private final String path;
     private final BundlingContext ctx;
@@ -101,7 +96,7 @@ public class BundlingHandler {
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
             childContext = createChildContext(childMatcher);
-            childContext.addMetaProp(NODE_PRESENCE_MARKER);
+            childContext.addMetaProp(createProperty(DocumentBundlor.META_PROP_BUNDLING_PATH, childMatcher.getMatchedPath()));
         } else {
             DocumentBundlor bundlor = registry.getBundlor(state);
             if (bundlor != null){
@@ -179,7 +174,7 @@ public class BundlingHandler {
     }
 
     private static void removeDeletedChildProperties(NodeState state, BundlingContext childContext) {
-        childContext.removeProperty(DocumentBundlor.META_PROP_NODE);
+        childContext.removeProperty(DocumentBundlor.META_PROP_BUNDLING_PATH);
         for (PropertyState ps : state.getProperties()){
             String propName = ps.getName();
             //In deletion never touch child status related meta props

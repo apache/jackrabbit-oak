@@ -33,7 +33,7 @@ import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLING_PATH;
 
 public final class BundlorUtils {
     public static final Predicate<PropertyState> NOT_BUNDLOR_PROPS = new Predicate<PropertyState>() {
@@ -96,7 +96,7 @@ public final class BundlorUtils {
 
             if (depth == expectedDepth
                     && key.startsWith(matcher.getMatchedPath())
-                    && elements.get(elements.size() - 1).equals(META_PROP_NODE)){
+                    && elements.get(elements.size() - 1).equals(META_PROP_BUNDLING_PATH)){
                 //Child node name is the second last element
                 //[jcr:content/:self -> [jcr:content, :self]
                 childNodeNames.add(elements.get(elements.size() - 2));
