@@ -41,7 +41,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1598,7 +1597,11 @@ public class ObservationTest extends AbstractRepositoryTest {
                 new String[] { "", "jcr:content", "jcr:content/**" });
         oManager.addEventListener(listener, filter);
         Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(parent.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
         Node child = parent.addNode("child", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(child);
         Node file = child.addNode("file", "oak:Unstructured");
         listener.expectAdd(file);
         Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
@@ -1642,6 +1645,8 @@ public class ObservationTest extends AbstractRepositoryTest {
                                            // "file/jcr:content/**");
         oManager.addEventListener(listener, filter);
         Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(parent.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
         Node child = parent.addNode("child", "oak:Unstructured");
         listener.expectAdd(child);
         Node file = child.addNode("file", "nt:unstructured");
@@ -1687,8 +1692,11 @@ public class ObservationTest extends AbstractRepositoryTest {
         oManager.addEventListener(listener, filter);
         
         Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(parent.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
         Node child = parent.addNode("child", "nt:unstructured");
-//        listener.expectAdd(child);
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(child);
         Node file = child.addNode("file", "oak:Unstructured");
         listener.expect(file.getPath(), "/parent/child/file", NODE_ADDED);
         listener.expect(file.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
@@ -1727,9 +1735,53 @@ public class ObservationTest extends AbstractRepositoryTest {
         Node a = parent.addNode("a", "nt:unstructured");
         Node b = a.addNode("b", "nt:unstructured");
         Node bar = b.addNode("bar", "oak:Unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(bar.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
         Node c = bar.addNode("c", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(c);
         Node foo = c.addNode("foo", "nt:unstructured");
-        listener.expect(foo.getPath() + "/jcr:primaryType", bar.getPath(), PROPERTY_ADDED);
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(foo);
+        Node jcrContent = foo.addNode("jcr:content", "nt:unstructured");
+        listener.expectAdd(jcrContent);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    /**
+     * OAK -5096 : new test case for OR mode
+     */
+    @Test
+    public void testAggregate5() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "**/foo/**" } )
+                .withIncludeGlobPaths("/parent/**/bar/**");
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), "/parent");
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node bar = parent.addNode("bar", "nt:unstructured");
+        listener.expect(bar.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node c = bar.addNode("c", "nt:unstructured");
+        listener.expectAdd(c);
+        Node foo = c.addNode("foo", "nt:unstructured");
+        listener.expectAdd(foo);
         Node jcrContent = foo.addNode("jcr:content", "nt:unstructured");
         listener.expectAdd(jcrContent);
         
