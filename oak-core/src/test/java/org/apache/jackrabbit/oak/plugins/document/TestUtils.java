@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,5 +60,20 @@ public class TestUtils {
     public static NodeState merge(NodeStore store, NodeBuilder builder)
             throws CommitFailedException {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    public static NodeBuilder createChild(NodeBuilder root, String ... paths){
+        for (String path : paths){
+            childBuilder(root, path);
+        }
+        return root;
+    }
+
+    public static NodeBuilder childBuilder(NodeBuilder root, String path){
+        NodeBuilder nb = root;
+        for (String nodeName : PathUtils.elements(path)){
+            nb = nb.child(nodeName);
+        }
+        return nb;
     }
 }
