@@ -239,9 +239,11 @@ public class OakEventFilterImpl extends OakEventFilter {
 
     private FilterBuilder builder;
 
-    private Condition all;
-
     private EventAggregator aggregator;
+
+    private boolean withNodeTypeAggregate;
+
+    private Set<String> relativeGlobPaths;
 
     public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
         checkNotNull(delegate);
@@ -475,24 +477,46 @@ public class OakEventFilterImpl extends OakEventFilter {
         return builder;
     }
 
-    public OakEventFilterImpl and(Condition... condition) {
-        checkNotNull(condition);
-        if (all == null) {
-            all = builder().all(condition);
-        } else {
-            all = builder().all(all, builder.all(condition));
-        }
-        return this;
-    }
-
     public OakEventFilterImpl aggregator(EventAggregator aggregator) {
         checkNotNull(aggregator);
         this.aggregator = aggregator;
         return this;
     }
 
-    public Condition getAnds() {
-        return all;
+    public Condition getAdditionalIncludeConditions(Set<String> includePaths) {
+        if (!withNodeTypeAggregate) {
+            return null;
+        }
+        List<Condition> additionalIncludeConditions = new LinkedList<Condition>();
+        // for nodeTypeAggregation in OR mode we must append
+        // the relativeGlobPaths to all includePaths
+        for (String includePath : includePaths) {
+            if (includePath.equals("**") || includePath.endsWith("/*") || includePath.endsWith("/**")) {
+                // this will include anything, so nothing to append in this case
+            } else {
+                // otherwise append all the relativeGlobPaths, except ""
+                for (String relativeGlobPath : relativeGlobPaths) {
+                    if (relativeGlobPath.equals("")) {
+                        // this corresponds to 'SELF' which is already included, so skip
+                        continue;
+                    } else {
+                        String additionalGlobPath;
+                        if (includePath.endsWith("/")) {
+                            additionalGlobPath = includePath + relativeGlobPath;
+                        } else {
+                            additionalGlobPath = includePath + "/" + relativeGlobPath;
+                        }
+                        additionalIncludeConditions.add(builder().path(additionalGlobPath));
+                        additionalIncludeConditions.add(builder().path(additionalGlobPath + "/*"));
+                    }
+                }
+            }
+        }
+        if (additionalIncludeConditions.size() == 0) {
+            return null;
+        } else {
+            return builder().any(additionalIncludeConditions);
+        }
     }
 
     public EventAggregator getAggregator() {
@@ -501,6 +525,12 @@ public class OakEventFilterImpl extends OakEventFilter {
 
     @Override
     public OakEventFilter withNodeTypeAggregate(String[] nodeTypes, String[] relativeGlobPaths) {
+        this.withNodeTypeAggregate = true;
+        if (this.relativeGlobPaths == null) {
+            this.relativeGlobPaths = new HashSet<String>();
+        }
+        this.relativeGlobPaths.addAll(Arrays.asList(relativeGlobPaths));
+        
         final Pattern[] relativePathPatterns = new Pattern[relativeGlobPaths.length];
         for (int i = 0; i < relativePathPatterns.length; i++) {
             relativePathPatterns[i] = Pattern.compile(GlobbingPathHelper.globPathAsRegex(relativeGlobPaths[i]));
@@ -527,6 +557,25 @@ public class OakEventFilterImpl extends OakEventFilter {
         if (includeAncestorRemove) {
             includePaths.clear();
             includePaths.add("/");
+        } else if (withNodeTypeAggregate) {
+            // ensure that, for prefixing, all includePaths allow additional
+            // subpaths for the aggregation - this can be simplified
+            // to just allow anything (**) below there, as this is just
+            // about prefiltering, not actual (precise) filtering.
+            // so the goal is just to ensure nothing is erroneously excluded
+            // so more including is fine.
+            Set<String> originalPaths = new HashSet<String>(includePaths);
+            for (String includePath : originalPaths) {
+                if (includePath.equals("**") || includePath.endsWith("/*") || includePath.endsWith("/**")) {
+                    // skip, this is fine
+                } else if (includePath.endsWith("/")) {
+                    includePaths.remove(includePath);
+                    includePaths.add(includePath + "**");
+                } else {
+                    includePaths.remove(includePath);
+                    includePaths.add(includePath + "/**");
+                }
+            }
         }
     }
 
