@@ -145,7 +145,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         if (path == null) {
             path = homeDir + "/repository/datastore";
         }
-        path = FilenameUtils.normalizeNoEndSeparator(path);
+        path = FilenameUtils.normalizeNoEndSeparator(new File(path).getAbsolutePath());
         checkArgument(stagingSplitPercentage >= 0 && stagingSplitPercentage <= 50,
             "Staging percentage cache should be between 0 and 50");
 
