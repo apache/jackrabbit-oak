@@ -343,6 +343,17 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
     }
 
+    public Set<String> getBundledChildNodeNames(){
+        return bundlingContext.getBundledChildNodeNames();
+    }
+
+    public boolean hasOnlyBundledChildren(){
+        if (bundlingContext.isBundled()){
+            return bundlingContext.hasOnlyBundledChildren();
+        }
+        return false;
+    }
+
     String getPropertyAsString(String propertyName) {
         return asString(properties.get(propertyName));
     }
@@ -815,11 +826,11 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return !hasNonBundledChildren;
         }
 
-        public List<String> getBundledChildNodeNames(){
+        public Set<String> getBundledChildNodeNames(){
             if (isBundled()) {
                 return BundlorUtils.getChildNodeNames(rootProperties.keySet(), matcher);
             }
-            return Collections.emptyList();
+            return Collections.emptySet();
         }
 
         private boolean hasBundledChildren(Matcher matcher){

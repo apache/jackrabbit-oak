@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -89,7 +90,7 @@ public class BundlorUtilsTest {
         );
 
         Matcher m = new Include("jcr:content/*").createMatcher();
-        List<String> names = BundlorUtils.getChildNodeNames(testData, m);
+        Set<String> names = BundlorUtils.getChildNodeNames(testData, m);
         assertThat(names, hasItem("jcr:content"));
 
         names = BundlorUtils.getChildNodeNames(testData, m.next("jcr:content"));

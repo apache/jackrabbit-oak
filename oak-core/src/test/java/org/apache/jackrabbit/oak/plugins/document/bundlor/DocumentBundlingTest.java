@@ -528,6 +528,36 @@ public class DocumentBundlingTest {
     }
 
     @Test
+    public void documentNodeStateBundledMethods() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments", //not bundled
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp", //not bundled
+                "jcr:content/renditions", //includes all
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+
+        merge(builder);
+        DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+        assertTrue(appNode.hasOnlyBundledChildren());
+        assertEquals(ImmutableSet.of("jcr:content"), appNode.getBundledChildNodeNames());
+        assertEquals(ImmutableSet.of("metadata", "renditions"),
+                asDocumentState(appNode.getChildNode("jcr:content")).getBundledChildNodeNames());
+
+        builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/foo");
+        merge(builder);
+
+        DocumentNodeState appNode2 = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+        assertFalse(appNode2.hasOnlyBundledChildren());
+    }
+
+    @Test
     public void bundledDocsShouldNotBePartOfBackgroundUpdate() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder fileNode = newNode("nt:file");
@@ -788,7 +818,7 @@ public class DocumentBundlingTest {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static DocumentNodeState asDocumentState(NodeState state){
+    static DocumentNodeState asDocumentState(NodeState state){
         if (state instanceof DocumentNodeState){
             return (DocumentNodeState) state;
         }
@@ -809,7 +839,7 @@ public class DocumentBundlingTest {
         return copyOf(getNode(state, path).getChildNodeNames());
     }
 
-    private static NodeBuilder newNode(String typeName){
+    static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
         return builder;
