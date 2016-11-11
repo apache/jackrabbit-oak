@@ -507,7 +507,8 @@ public class OakEventFilterImpl extends OakEventFilter {
         }
         aggregator(new NodeTypeAggregator(nodeTypes, relativePathPatterns));
 
-        and(new NodeTypeAggregationFilter(nodeTypes, relativeGlobPaths));
+        // OAK-5096: the following AND is not necessary:
+//        and(new NodeTypeAggregationFilter(nodeTypes, relativeGlobPaths));
 
         return this;
     }
