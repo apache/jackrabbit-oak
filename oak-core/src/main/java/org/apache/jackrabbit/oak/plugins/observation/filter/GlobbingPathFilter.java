@@ -146,7 +146,7 @@ public class GlobbingPathFilter implements EventFilter {
         if (wildcardMatch(name, head)) {
             return new GlobbingPathFilter(pattern.subList(1, pattern.size()), patternMap);
         } else if (STAR_STAR.equals(head)) {
-            if (pattern.size() >= 2 && pattern.get(1).equals(name)) {
+            if (pattern.size() >= 2 && wildcardMatch(name, pattern.get(1))) {
                 // ** matches empty list of elements and pattern.get(1) matches name
                 // match the rest of the pattern against the rest of the path and
                 // match the whole pattern against the rest of the path
