@@ -142,8 +142,7 @@ public final class DocumentNodeStore
 
     /**
      * List of meta properties which are created by DocumentNodeStore and which needs to be
-     * retained in any cloned copy of DocumentNodeState. This does not include other properties defined
-     * in DocumentBundlor as those are only required by DocumentNodeState
+     * retained in any cloned copy of DocumentNodeState.
      */
     public static final List<String> META_PROP_NAMES = ImmutableList.of(
             DocumentBundlor.META_PROP_PATTERN,
