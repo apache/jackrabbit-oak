@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static com.google.inject.internal.util.$ImmutableList.of;
+import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
@@ -181,7 +181,16 @@ public class BundledDocumentDifferTest {
 
     }
 
+    @Test
+    public void jsopDiff() throws Exception{
+        JsopWriter w = new JsopBuilder();
+        differ.diffChildren(of("a", "b"), of("b", "c"), w);
 
+        //removed a
+        //changed b
+        //added b
+        assertEquals("-\"a\"^\"b\":{}+\"c\":{}", w.toString());
+    }
 
     private NodeBuilder createContentStructure() {
         NodeBuilder builder = store.getRoot().builder();
