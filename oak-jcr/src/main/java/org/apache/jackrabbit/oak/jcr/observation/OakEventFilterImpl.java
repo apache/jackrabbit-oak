@@ -556,7 +556,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     void adjustPrefilterIncludePaths(Set<String> includePaths) {
         if (includeAncestorRemove) {
             includePaths.clear();
-            includePaths.add("/");
+            includePaths.add("/**");
         } else if (withNodeTypeAggregate) {
             // ensure that, for prefixing, all includePaths allow additional
             // subpaths for the aggregation - this can be simplified
