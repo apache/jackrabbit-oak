@@ -1424,6 +1424,46 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void includeRemovedSubtree_Globs() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("b").addNode("c").addNode("d.jsp");
+        testNode.addNode("e").addNode("f").addNode("g.jsp");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        OakEventFilter oef = FilterFactory.wrap(filter);
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/**/*.jsp");
+        oef.withNodeTypeAggregate(new String[] {"nt:unstructured"}, new String[] {""});
+        oef.withIncludeSubtreeOnRemove();
+
+        oManager.addEventListener(listener, oef);
+
+        // the glob is for a jsp - so we should (only) get an event for that
+        // but only for the properties of d.jsp that get removed, not of removal of d.jsp itself
+        // as that would again be reported towards the parent of d.jsp which is /a/b/c
+        Node dDotJsp = testNode.getNode("a").getNode("b").getNode("c").getNode("d.jsp");
+        listener.expect(dDotJsp.getPath() + "/jcr:primaryType", dDotJsp.getPath(), PROPERTY_REMOVED);
+
+        // but we're removing /a/b
+        testNode.getNode("a").getNode("b").remove();
+        // and for removal of /e nothing should be generated
+        testNode.getNode("e").remove();
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
     public void includeRemovedSubtree() throws RepositoryException, ExecutionException, InterruptedException {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
 
