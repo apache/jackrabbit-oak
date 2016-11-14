@@ -87,6 +87,8 @@ public class MigrationOptions {
 
     private final String dstS3;
 
+    private final Boolean srcExternalBlobs;
+
     public MigrationOptions(MigrationCliArguments args) {
         this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
         this.copyBinaries = args.hasOption(OptionParserFactory.COPY_BINARIES);
@@ -134,6 +136,13 @@ public class MigrationOptions {
         this.dstFds = args.getOption(OptionParserFactory.DST_FDS);
         this.dstS3 = args.getOption(OptionParserFactory.DST_S3);
         this.dstS3Config = args.getOption(OptionParserFactory.DST_S3_CONFIG);
+
+        if (args.hasOption(OptionParserFactory.SRC_EXTERNAL_BLOBS)) {
+            this.srcExternalBlobs = Boolean
+                    .valueOf(OptionParserFactory.SRC_EXTERNAL_BLOBS);
+        } else {
+            this.srcExternalBlobs = null;
+        }
     }
 
     public boolean isCopyBinaries() {
@@ -329,6 +338,10 @@ public class MigrationOptions {
             log.info("Missing binaries won't break the migration");
         }
 
+        if (srcExternalBlobs != null) {
+            log.info("Source DataStore external blobs: {}", srcExternalBlobs);
+        }
+
         log.info("Cache size: {} MB", cacheSizeInMB);
 
     }
@@ -350,6 +363,10 @@ public class MigrationOptions {
             calendar = null;
         }
         return calendar;
+    }
+
+    public Boolean getSrcExternalBlobs() {
+        return srcExternalBlobs;
     }
 
 }
