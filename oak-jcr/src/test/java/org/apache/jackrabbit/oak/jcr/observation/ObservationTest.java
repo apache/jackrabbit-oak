@@ -52,6 +52,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
@@ -1141,6 +1142,8 @@ public class ObservationTest extends AbstractRepositoryTest {
     private static class ExpectationListener implements EventListener {
         private final Set<Expectation> expected = synchronizedSet(
                 Sets.<Expectation>newCopyOnWriteArraySet());
+        private final Set<Expectation> optional = synchronizedSet(
+                Sets.<Expectation>newCopyOnWriteArraySet());
         private final List<Event> unexpected = synchronizedList(
                 Lists.<Event>newCopyOnWriteArrayList());
 
@@ -1151,6 +1154,14 @@ public class ObservationTest extends AbstractRepositoryTest {
                 expectation.fail(failed);
             }
             expected.add(expectation);
+            return expectation;
+        }
+        
+        public Expectation optional(Expectation expectation) {
+            if (failed != null) {
+                expectation.fail(failed);
+            }
+            optional.add(expectation);
             return expectation;
         }
 
@@ -1273,6 +1284,12 @@ public class ObservationTest extends AbstractRepositoryTest {
                             exp.complete(event);
                         }
                     }
+                    for (Expectation opt : optional) {
+                        if (opt.isEnabled() && !opt.isComplete() && opt.onEvent(event)) {
+                            found = true;
+                            opt.complete(event);
+                        }
+                    }
                     if (!found) {
                         unexpected.add(event);
                     }
@@ -1337,6 +1354,138 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     
     }
+    
+    @Test
+    public void includeAncestorsRemove_WithGlobs() throws Exception {
+        OakEventFilter oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/b/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/b/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/*/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/b/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/b/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/*/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/*/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/**/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/**/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths("/**/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/**/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+    }
+    
+    void doIncludeAncestorsRemove_WithGlobs(OakEventFilter oef) throws Exception {
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("b").addNode("c").addNode("d.jsp").setProperty("e", 42);
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        final AtomicBoolean done = new AtomicBoolean(false);
+        final AtomicBoolean unexpected = new AtomicBoolean(false);
+        final AtomicBoolean failure = new AtomicBoolean(false);
+        EventListener listener = new EventListener() {
+            
+            @Override
+            public void onEvent(EventIterator events) {
+                while(events.hasNext()) {
+                    Event event = events.nextEvent();
+                    System.out.println("got: "+event);
+                    String path = "";
+                    try {
+                        path = event.getPath();
+                    } catch (RepositoryException e) {
+                        e.printStackTrace();
+                        failure.set(true);
+                    }
+                    if (path.equals(TEST_PATH + "/a/b") && event.getType() == NODE_REMOVED) {
+                        done.set(true);
+                    } else if (path.equals(TEST_PATH + "/a/b/c/d.jsp") && event.getType() == NODE_REMOVED) {
+                        done.set(true);
+                    } else if (path.equals(TEST_PATH + "/a/b/c/d.jsp/jcr:primaryType") && event.getType() == PROPERTY_REMOVED) {
+                        done.set(true);
+                    } else {
+                        System.out.println("Unexpected event: "+event);
+                        unexpected.set(true);
+                    }
+                }
+            }
+        };
+        oManager.addEventListener(listener, oef);
+        
+        Node b = testNode.getNode("a").getNode("b");
+        b.remove();
+        testNode.getSession().save();
+        
+        Thread.sleep(1000);
+        assertTrue("didnt get either event", done.get());
+        assertFalse("did get unexpected events", unexpected.get());
+        assertFalse("got an exception", failure.get());
+        
+        oManager.removeEventListener(listener);
+        testNode.getNode("a").remove();
+        testNode.getSession().save();
+    }
 
     @Test
     public void includeAncestorsRemove() throws Exception {
@@ -1356,6 +1505,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         filterProvider = doIncludeAncestorsRemove(filter);
         // with 'includeAncestorsRemove' flag the listener is registered at '/'
         assertMatches(filterProvider.getSubTrees(), "/");
+
     }
     
     private FilterProvider doIncludeAncestorsRemove(JackrabbitEventFilter filter) throws Exception {
@@ -1389,7 +1539,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             @Override
             public void onEvent(EventIterator events) {
                 while(events.hasNext()) {
-                    System.out.println("GOT: "+events.next());
+                    System.out.println("/a-listener GOT: "+events.next());
                 }
                 
             }
@@ -1399,6 +1549,15 @@ public class ObservationTest extends AbstractRepositoryTest {
         testNode = getNode(TEST_PATH);
         Node b = testNode.getNode("a").getNode("b");
         listener.expect(b.getPath(), NODE_REMOVED);
+        listener.optional(new Expectation("/a/b/c is optionally sent depending on filter") {
+            @Override
+            public boolean onEvent(Event event) throws Exception {
+                if (event.getPath().equals(TEST_PATH + "/a/b/c") && event.getType() == NODE_REMOVED) {
+                    return true;
+                }
+                return false;
+            }
+        });
         b.remove();
         // but not the jcr:primaryType
         testNode.getSession().save();
