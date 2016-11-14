@@ -58,6 +58,10 @@ public class StoreArguments {
 
         src = descriptors.get(0);
         dst = descriptors.get(1);
+
+        if (options.getSrcExternalBlobs() != null) {
+            srcHasExternalBlobRefs = options.getSrcExternalBlobs();
+        }
     }
 
     public void logOptions() {

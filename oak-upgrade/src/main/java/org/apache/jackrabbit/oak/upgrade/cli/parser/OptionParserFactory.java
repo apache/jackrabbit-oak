@@ -52,6 +52,8 @@ public class OptionParserFactory {
 
     public static final String SRC_S3_CONFIG = "src-s3config";
 
+    public static final String SRC_EXTERNAL_BLOBS = "src-external-ds";
+
     public static final String DST_FDS = "datastore";
 
     public static final String DST_FBS = "fileblobstore";
@@ -112,6 +114,7 @@ public class OptionParserFactory {
         op.accepts(DST_S3_CONFIG, "Configuration file for the target S3DataStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(IGNORE_MISSING_BINARIES, "Don't break the migration if some binaries are missing");
+        op.accepts(SRC_EXTERNAL_BLOBS, "Flag specifying if the source Store has external references or not");
     }
 
     private static void addRdbOptions(OptionParser op) {
