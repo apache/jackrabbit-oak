@@ -87,7 +87,8 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
 
     @Override
     public boolean excludes(ChangeSet changeSet) {
-        final Set<String> parentPaths = new HashSet<String>(changeSet.getParentPaths());
+        final Set<String> cpp = changeSet.getParentPaths();
+        final Set<String> parentPaths = cpp != null ? new HashSet<String>(cpp) : new HashSet<String>();
 
         // first go through excludes to remove those that are explicitly
         // excluded
