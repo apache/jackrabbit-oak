@@ -58,6 +58,11 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      * filters on /a/b/c, on /a/b and on /a</li>
      * <li>include path /a/b/** results in additional !deep NODE_REMOVED
      * filter on /a</li>
+     * <li>additionally for paths with globs (eg /a/b/**{@code /}*.jsp)
+     * it adds a deep NODE_REMOVED filter explicitly for that path
+     * using the same method as withIncludeSubtreeOnRemove does, but only
+     * limited to said path. So in this case you get a NODE_REMOVED
+     * for all *.jsp that are deleted in a subtree individually</li>
      * </ul>
      * <p>
      * Note that unlike 'normal' include and exclude paths, this variant

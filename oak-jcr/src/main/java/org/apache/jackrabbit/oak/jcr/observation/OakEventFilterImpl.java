@@ -433,14 +433,25 @@ public class OakEventFilterImpl extends OakEventFilter {
         }
         List<Condition> ancestorsIncludeConditions = new LinkedList<Condition>();
         for (String aParentPath : parentPaths) {
-            ancestorsIncludeConditions.add(filterBuilder.path(aParentPath));
+            ancestorsIncludeConditions.add(
+                    filterBuilder.all(
+                            filterBuilder.path(aParentPath),
+                            filterBuilder.deleteSubtree()));
+        }
+        if (globPaths != null) {
+            for (String globPath : globPaths) {
+                if (globPath.contains("**") || globPath.contains("/*/")) {
+                    ancestorsIncludeConditions.add(filterBuilder.path(globPath));
+                    // unlike the known parent case above, this variant doesn't filter out deleteSubtrees
+                    // that way it will report the actual file deleted
+                }
+            }
         }
         return filterBuilder.any(
                         mainCondition,
                         filterBuilder.all(
                                 filterBuilder.eventType(NODE_REMOVED),
                                 filterBuilder.any(ancestorsIncludeConditions),
-                                filterBuilder.deleteSubtree(),
                                 filterBuilder.accessControl(permissionProviderFactory)
                                 )
                         );
