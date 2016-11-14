@@ -15,10 +15,7 @@
  * limitations under the License.
  */
 
-/**
- * TODO will have to be switched to 1.0.0 before oak 1.5.13 is released!
- */
-@Version("0.0.0")
+@Version("1.0.0")
 package org.apache.jackrabbit.oak.jcr.observation.filter;
 
 import aQute.bnd.annotation.Version;
