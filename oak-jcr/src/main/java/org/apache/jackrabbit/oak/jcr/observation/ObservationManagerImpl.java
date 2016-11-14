@@ -323,8 +323,9 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         ListenerTracker tracker = new WarningListenerTracker(
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
+        Set<String> additionalIncludePaths = null;
         if (oakEventFilter != null) {
-            oakEventFilter.adjustPrefilterIncludePaths(includePaths);
+            additionalIncludePaths = oakEventFilter.calcPrefilterIncludePaths(includePaths);
         }
         
         // OAK-5082 : node type filtering should not only be direct but include derived types
@@ -346,7 +347,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         // OAK-4908 : prefiltering support. here we have explicit yes/no/maybe filtering
         // for things like propertyNames/nodeTypes/nodeNames/paths which cannot be 
         // applied on the full-fledged filterBuilder above but requires an explicit 'prefilter' for that.
-        filterBuilder.setChangeSetFilter(new ChangeSetFilterImpl(includePaths, isDeep, excludedPaths, null,
+        filterBuilder.setChangeSetFilter(new ChangeSetFilterImpl(includePaths, isDeep, additionalIncludePaths, excludedPaths, null,
                 explodedNodeTypes, null));
         
         addEventListener(listener, tracker, filterBuilder.build());

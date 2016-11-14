@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 
@@ -41,6 +42,12 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
 
     public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep, Set<String> excludedParentPaths,
             Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
+        this(includedParentPaths, isDeep, null, excludedParentPaths, parentNodeNames, parentNodeTypes, propertyNames);
+    }
+
+    public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep,
+            @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
+            Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
         this.rootIncludePaths = new HashSet<String>();
         this.includePathPatterns = new HashSet<Pattern>();
         for (String aRawIncludePath : includedParentPaths) {
@@ -54,6 +61,12 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
             this.rootIncludePaths.add(aRawIncludePath);
             this.includePathPatterns.add(asPattern(aGlobbingIncludePath));
         }
+        if (additionalIncludedParentPaths != null) {
+            for (String path : additionalIncludedParentPaths) {
+                this.rootIncludePaths.add(path);
+                this.includePathPatterns.add(asPattern(path));
+            }
+        }
         this.excludePathPatterns = new HashSet<Pattern>();
         for (String aRawExcludePath : excludedParentPaths) {
             this.excludePathPatterns.add(asPattern(concat(aRawExcludePath, "**")));
@@ -61,6 +74,11 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         this.propertyNames = propertyNames == null ? null : new HashSet<String>(propertyNames);
         this.parentNodeTypes = parentNodeTypes == null ? null : new HashSet<String>(parentNodeTypes);
         this.parentNodeNames = parentNodeNames == null ? null : new HashSet<String>(parentNodeNames);
+    }
+    
+    /** for testing only **/
+    public Set<String> getRootIncludePaths() {
+        return rootIncludePaths;
     }
 
     private Pattern asPattern(String patternWithGlobs) {
