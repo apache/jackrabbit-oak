@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.34
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.35
 
 Introduction
 ------------
@@ -8,38 +8,37 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.34 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.35 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.34
+Changes in Oak 1.0.35
 ---------------------
 
 Technical task
 
-    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
-    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
+    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to 5.1.40
+    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to 9.4.1211
+    [OAK-4964] - UpdateOp.set("_id", ...) should do a sanity check on the id
+    [OAK-4986] - RDBDocumentStore: potential NPE in document read
 
 Bug
 
-    [OAK-4153] - segment's compareAgainstBaseState wont call childNodeDeleted when deleting last and adding n nodes
-    [OAK-4675] - SNFE thrown while testing FileStore.cleanup() running concurrently with writes
-
-
-Improvement
-
-    [OAK-3648] - Use StandardTokenizer instead of ClassicTokenizer in OakAnalyzer
-    [OAK-4623] - Log more information when null DocumentNodeState is read for a child while fetching children
-    [OAK-4851] - Update httpclient to 4.3.6 in Oak 1.4- branches
-
+    [OAK-3474] - NodeDocument.getNodeAtRevision can go into property history traversal when latest rev on current doc isn't committed
+    [OAK-4082] - RDBDocumentStore on MySQL may fail when using useServerPrepStmts=true
+    [OAK-4125] - Test failure: testUpdateAndDelete [MyFixture: RDB-Derby(embedded)]
+    [OAK-4997] - RevisionGCTest.teardown() may fail with NPE when store == null
 
 Task
 
-    [OAK-4783] - Update Oak 1.0 to Jackrabbit 2.8.3
-    [OAK-4791] - Enable animal sniffer plugin
+    [OAK-3613] - Backport TarMK revision gc related issues
+
+Test
+
+    [OAK-4976] - AcquireRecoveryLockTest fails occasionally
 
 
 In addition to the above-mentioned changes, this release contains
