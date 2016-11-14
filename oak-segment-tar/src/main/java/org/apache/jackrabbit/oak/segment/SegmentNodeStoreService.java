@@ -255,6 +255,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     "By default large binary content would be stored within segment tar files"
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
+    
+    @Property(
+            label = "Backup Directory",
+            description="Directory location for storing repository backups. If not set, defaults to" +
+                    " 'segmentstore-backup' subdirectory under 'repository.home'."
+    )
+    public static final String BACKUP_DIRECTORY = "repository.backup.dir";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -612,7 +619,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         registrations.add(registerMBean(
                 whiteboard,
                 FileStoreBackupRestoreMBean.class,
-                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(), getDirectory(), executor), 
+                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(), getBackupDirectory(), executor), 
                 FileStoreBackupRestoreMBean.TYPE, "Segment node store backup/restore"
         ));
 
@@ -675,6 +682,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private File getDirectory() {
         return new File(getBaseDirectory(), "segmentstore");
+    }
+    
+    private File getBackupDirectory() {
+        String backupDirectory = property(BACKUP_DIRECTORY);
+        
+        if (backupDirectory != null) {
+            return new File(backupDirectory);
+        }
+        
+        return new File(getBaseDirectory(), "segmentstore-backup");
     }
 
     private String getMode() {
