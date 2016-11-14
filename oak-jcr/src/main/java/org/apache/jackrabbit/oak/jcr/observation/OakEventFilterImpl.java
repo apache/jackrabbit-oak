@@ -380,24 +380,27 @@ public class OakEventFilterImpl extends OakEventFilter {
         return includeAncestorRemove;
     }
 
-    private void addAncestorsRemoveCondition(Set<String> parentPaths, String globPath) {
+    static void addAncestorPaths(Set<String> ancestorPaths, String globPath) {
         if (globPath == null || !globPath.contains("/")) {
             return;
         }
-        // from /a/b/c         => add /a and /a/b
-        // from /a/b/**        => add /a
-        // from /a             => add nothing
+        // from /a/b/c         => add /*, /a/* and /a/b/*
+        // from /a/b/**        => add /*, /a/*
+        // from /a             => add /*, nothing
         // from /              => add nothing
-        // from /a/b/**/*.html => add /a
-        // from /a/b/*/*.html  => add /a
+        // from /a/b/**/*.html => add /*, /a/*
+        // from /a/b/*/*.html  => add /*, /a/*
 
         Iterator<String> it = PathUtils.elements(globPath).iterator();
         StringBuffer sb = new StringBuffer();
+        if (it.hasNext()) {
+            ancestorPaths.add("/*");
+        }
         while(it.hasNext()) {
             String element = it.next();
             if (element.contains("*")) {
-                if (parentPaths.size() > 0) {
-                    parentPaths.remove(parentPaths.size()-1);
+                if (ancestorPaths.size() > 0) {
+                    ancestorPaths.remove(ancestorPaths.size()-1);
                 }
                 break;
             } else if (!it.hasNext()) {
@@ -405,7 +408,7 @@ public class OakEventFilterImpl extends OakEventFilter {
             }
             sb.append("/");
             sb.append(element);
-            parentPaths.add(sb.toString() + "/*");
+            ancestorPaths.add(sb.toString() + "/*");
         }
     }
 
@@ -414,29 +417,29 @@ public class OakEventFilterImpl extends OakEventFilter {
             return mainCondition;
         }
         Set<String> parentPaths = new HashSet<String>();
-        addAncestorsRemoveCondition(parentPaths, getAbsPath());
+        addAncestorPaths(parentPaths, getAbsPath());
         if (getAdditionalPaths() != null) {
             for (String absPath : getAdditionalPaths()) {
-                addAncestorsRemoveCondition(parentPaths, absPath);
+                addAncestorPaths(parentPaths, absPath);
             }
         }
         if (globPaths != null) {
             for (String globPath : globPaths) {
-                addAncestorsRemoveCondition(parentPaths, globPath);
+                addAncestorPaths(parentPaths, globPath);
             }
         }
         if (parentPaths.size() == 0) {
             return mainCondition;
         }
-        List<Condition> ancestorsRemoveConditions = new LinkedList<Condition>();
+        List<Condition> ancestorsIncludeConditions = new LinkedList<Condition>();
         for (String aParentPath : parentPaths) {
-            ancestorsRemoveConditions.add(filterBuilder.path(aParentPath));
+            ancestorsIncludeConditions.add(filterBuilder.path(aParentPath));
         }
         return filterBuilder.any(
                         mainCondition,
                         filterBuilder.all(
                                 filterBuilder.eventType(NODE_REMOVED),
-                                filterBuilder.any(ancestorsRemoveConditions),
+                                filterBuilder.any(ancestorsIncludeConditions),
                                 filterBuilder.deleteSubtree(),
                                 filterBuilder.accessControl(permissionProviderFactory)
                                 )
@@ -553,30 +556,31 @@ public class OakEventFilterImpl extends OakEventFilter {
      * not apply the normally applied prefilter paths.
      * @param includePaths the set to adjust depending on filter flags
      */
-    void adjustPrefilterIncludePaths(Set<String> includePaths) {
+    Set<String> calcPrefilterIncludePaths(Set<String> includePaths) {
+        Set<String> paths = new HashSet<String>();
         if (includeAncestorRemove) {
-            includePaths.clear();
-            includePaths.add("/**");
-        } else if (withNodeTypeAggregate) {
+            for (String includePath : includePaths) {
+                addAncestorPaths(paths, includePath);
+            }
+        }
+        if (withNodeTypeAggregate) {
             // ensure that, for prefixing, all includePaths allow additional
             // subpaths for the aggregation - this can be simplified
             // to just allow anything (**) below there, as this is just
             // about prefiltering, not actual (precise) filtering.
             // so the goal is just to ensure nothing is erroneously excluded
             // so more including is fine.
-            Set<String> originalPaths = new HashSet<String>(includePaths);
-            for (String includePath : originalPaths) {
-                if (includePath.equals("**") || includePath.endsWith("/*") || includePath.endsWith("/**")) {
+            for (String includePath : includePaths) {
+                if (includePath.equals("**") || includePath.endsWith("/**")) {
                     // skip, this is fine
                 } else if (includePath.endsWith("/")) {
-                    includePaths.remove(includePath);
-                    includePaths.add(includePath + "**");
+                    paths.add(includePath + "**");
                 } else {
-                    includePaths.remove(includePath);
-                    includePaths.add(includePath + "/**");
+                    paths.add(includePath + "/**");
                 }
             }
         }
+        return paths;
     }
 
 }
