@@ -56,8 +56,9 @@
     <!-- recent version (if required) when we are in control the runtime environment. -->
     <slf4j.api.version>1.7.6</slf4j.api.version>
     <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
-    <h2.version>1.4.190</h2.version>
     <logback.version>1.1.0</logback.version>
+    <h2.version>1.4.190</h2.version>
+    <findbugs.version>3.0.0</findbugs.version>
     <java.version.signature>java16</java.version.signature>
   </properties>
 
@@ -193,7 +194,6 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>findbugs-maven-plugin</artifactId>
-            <version>2.5.3</version>
           </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
@@ -483,6 +483,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>findbugs-maven-plugin</artifactId>
+            <version>${findbugs.version}</version>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
@@ -620,6 +621,16 @@
       </activation>
       <properties>
         <test.opts.memory>-Xmx512m</test.opts.memory>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>findbugs-jdk6</id>
+      <activation>
+        <jdk>1.6</jdk>
+      </activation>
+      <properties>
+        <findbugs.version>2.5.5</findbugs.version>
       </properties>
     </profile>
   </profiles>
