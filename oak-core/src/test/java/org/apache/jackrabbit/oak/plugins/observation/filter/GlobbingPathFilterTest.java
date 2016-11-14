@@ -108,6 +108,29 @@ public class GlobbingPathFilterTest {
     }
 
     /**
+     * match ** 'in the middle'
+     */
+    @Test
+    public void inTheMiddle() {
+        EventFilter filter = new GlobbingPathFilter("/foo/"+STAR_STAR+"/bar");
+        ImmutableTree t = tree;
+
+        for(String name : elements("foo/a/b/c")) {
+            t = t.getChild(name);
+            assertFalse(filter.includeAdd(name, t.getNodeState()));
+            filter = filter.create(name, t.getNodeState(), t.getNodeState());
+            assertNotNull(filter);
+        }
+
+        for(String name : elements("bar")) {
+            t = t.getChild(name);
+            assertTrue(filter.includeAdd(name, t.getNodeState()));
+            filter = filter.create(name, t.getNodeState(), t.getNodeState());
+            assertNotNull(filter);
+        }
+    }
+
+    /**
      * ** should match every path
      */
     @Test

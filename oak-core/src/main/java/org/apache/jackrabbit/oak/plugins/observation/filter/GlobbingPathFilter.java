@@ -175,10 +175,18 @@ public class GlobbingPathFilter implements EventFilter {
     private boolean includeItem(String name) {
         if (!pattern.isEmpty() && pattern.size() <= 2) {
             String head = pattern.get(0);
-            boolean headMatches = wildcardMatch(name, head) || STAR_STAR.equals(head);
-            return pattern.size() == 1
+            if (STAR_STAR.equals(head)) {
+                if (pattern.size() == 1) {
+                    return true;
+                } else {
+                    return wildcardMatch(name, pattern.get(1));
+                }
+            }
+            boolean headMatches = wildcardMatch(name, head);
+            boolean result = pattern.size() == 1
                 ? headMatches
                 : headMatches && STAR_STAR.equals(pattern.get(1));
+            return result;
         } else {
             return false;
         }
