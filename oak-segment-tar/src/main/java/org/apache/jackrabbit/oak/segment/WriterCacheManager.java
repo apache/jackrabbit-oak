@@ -68,7 +68,7 @@ public abstract class WriterCacheManager {
      * @see #getNodeCache(int)
      */
     public static final int DEFAULT_NODE_CACHE_SIZE = getInteger(
-            "oak.tar.nodeCacheSize", 8388608);
+            "oak.tar.nodeCacheSize", 1048576);
 
     /**
      * @param generation
