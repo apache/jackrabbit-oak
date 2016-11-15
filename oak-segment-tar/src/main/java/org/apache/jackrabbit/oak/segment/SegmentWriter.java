@@ -332,7 +332,14 @@ public class SegmentWriter {
     }
 
     /**
-     * Write a node state
+     * Write a node state.
+     * <p>
+     * <em>Note:</em> the returned {@code SegmentNodeState} instance is bound to this
+     * {@code SegmentWriter} instance. That is, future calls to {@code #builder()}
+     * return a {@code NodeBuilder} that is also bound to the same {@code SegmentWriter}
+     * instance and uses it for writing any changes. This might not always be desired
+     * and callers of this method need to take care not to proliferate this writer
+     * through the returned node states beyond the intended bounds.
      * @param state node state to write
      * @return segment node state equal to {@code state}
      * @throws IOException
@@ -349,7 +356,14 @@ public class SegmentWriter {
     }
 
     /**
-     * Write a node state, unless cancelled using a dedicated write operation handler.
+     * Write a node state, unless cancelled.
+     * <p>
+     * <em>Note:</em> the returned {@code SegmentNodeState} instance is bound to this
+     * {@code SegmentWriter} instance. That is, future calls to {@code #builder()}
+     * return a {@code NodeBuilder} that is also bound to the same {@code SegmentWriter}
+     * instance and uses it for writing any changes. This might not always be desired
+     * and callers of this method need to take care not to proliferate this writer
+     * through the returned node states beyond the intended bounds.
      * @param state   node state to write
      * @param cancel  supplier to signal cancellation of this write operation
      * @return segment node state equal to {@code state} or {@code null} if cancelled.
