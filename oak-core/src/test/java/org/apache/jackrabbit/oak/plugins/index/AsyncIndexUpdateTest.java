@@ -1631,7 +1631,7 @@ public class AsyncIndexUpdateTest {
         }
     }
 
-    private static class CommitInfoCollector implements Observer {
+    static class CommitInfoCollector implements Observer {
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
