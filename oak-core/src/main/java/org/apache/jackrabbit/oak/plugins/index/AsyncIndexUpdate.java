@@ -52,11 +52,13 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -697,7 +699,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 new EditorHook(new ConflictValidatorProvider()),
                 concurrentUpdateCheck);
         try {
-            store.merge(builder, hooks, CommitInfo.EMPTY);
+            store.merge(builder, hooks, createCommitInfo());
         } catch (CommitFailedException ex) {
             // OAK-2961
             if (ex.isOfType(CommitFailedException.STATE) && ex.getCode() == 1) {
@@ -706,6 +708,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 throw ex;
             }
         }
+    }
+
+    private static CommitInfo createCommitInfo() {
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
     /**

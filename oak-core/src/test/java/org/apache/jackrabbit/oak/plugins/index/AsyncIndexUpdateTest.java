@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -1532,6 +1533,43 @@ public class AsyncIndexUpdateTest {
         async.close();
     }
 
+    @Test
+    public void commitContext() throws Exception{
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        CommitInfoCollector infoCollector = new CommitInfoCollector();
+        store.addObserver(infoCollector);
+
+        async.run();
+
+        assertFalse(infoCollector.infos.isEmpty());
+        assertNotNull(infoCollector.infos.get(0).getInfo().get(CommitContext.NAME));
+    }
+
+    private static class CommitInfoCollector implements Observer {
+        List<CommitInfo> infos = Lists.newArrayList();
+
+        @Override
+        public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+            if (info != null){
+                infos.add(info);
+            }
+        }
+
+        void reset(){
+            infos.clear();
+        }
+    }
 
 }
