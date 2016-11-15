@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService.AsyncConfig;
@@ -53,9 +54,25 @@ public class AsyncIndexerServiceTest {
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         assertNotNull(context.getService(Runnable.class));
+        assertEquals(TimeUnit.MINUTES.toMillis(15), getIndexUpdate("async").getLeaseTimeOut());
 
         MockOsgi.deactivate(service);
         assertNull(context.getService(Runnable.class));
+    }
+
+    @Test
+    public void leaseTimeout() throws Exception{
+        Map<String,Object> config = ImmutableMap.<String, Object>of(
+                "asyncConfigs", new String[] {"async:5"},
+                "leaseTimeOutMinutes" , "20"
+        );
+        MockOsgi.activate(service, context.bundleContext(), config);
+        AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+        assertEquals(TimeUnit.MINUTES.toMillis(20), indexUpdate.getLeaseTimeOut());
+    }
+
+    private AsyncIndexUpdate getIndexUpdate(String name) {
+        return (AsyncIndexUpdate) context.getServices(Runnable.class, "(oak.async="+name+")")[0];
     }
 
     @Test
