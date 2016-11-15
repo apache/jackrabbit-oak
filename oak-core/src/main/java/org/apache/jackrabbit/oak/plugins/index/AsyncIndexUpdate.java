@@ -360,7 +360,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
-            this.validatorProviders = validatorProviders;
+            this.validatorProviders = checkNotNull(validatorProviders);
         }
     }
 
