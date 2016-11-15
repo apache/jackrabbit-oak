@@ -29,7 +29,9 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 
 import java.io.Closeable;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
@@ -47,6 +49,7 @@ import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -61,9 +64,12 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -183,6 +189,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      */
     private long lastCheckpointCleanUpTime;
 
+    private List<ValidatorProvider> validatorProviders = Collections.emptyList();
+
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
         this.name = checkNotNull(name);
@@ -226,6 +234,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         private final AtomicBoolean forcedStop;
 
+        private List<ValidatorProvider> validatorProviders = Collections.emptyList();
+
         /** Expiration time of the last lease we committed */
         private long lease;
 
@@ -260,7 +270,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             NodeBuilder builder = root.builder();
             NodeBuilder async = builder.child(ASYNC);
             async.setProperty(leaseName, lease);
-            mergeWithConcurrencyCheck(store, builder, checkpoint, beforeLease, name);
+            mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, beforeLease, name);
             hasLease = true;
         }
 
@@ -274,7 +284,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             NodeBuilder async = builder.child(ASYNC);
 
             updateTempCheckpoints(async, checkpoint, afterCheckpoint);
-            mergeWithConcurrencyCheck(store, builder, checkpoint, lease, name);
+            mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, lease, name);
 
             // reset updates counter
             indexStats.resetUpdates();
@@ -312,7 +322,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             NodeBuilder builder = store.getRoot().builder();
             NodeBuilder async = builder.child(ASYNC);
             async.removeProperty(leaseName);
-            mergeWithConcurrencyCheck(store, builder, async.getString(name), lease, name);
+            mergeWithConcurrencyCheck(store, validatorProviders, builder, async.getString(name), lease, name);
         }
 
         @Override
@@ -328,7 +338,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     long newLease = now + 2 * leaseTimeOut;
                     NodeBuilder builder = store.getRoot().builder();
                     builder.child(ASYNC).setProperty(leaseName, newLease);
-                    mergeWithConcurrencyCheck(store, builder, checkpoint, lease, name);
+                    mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, lease, name);
                     lease = newLease;
                 }
             }
@@ -336,6 +346,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         public void setCheckpoint(String checkpoint) {
             this.checkpoint = checkpoint;
+        }
+
+        public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
+            this.validatorProviders = validatorProviders;
         }
     }
 
@@ -583,8 +597,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                                                          String name, long leaseTimeOut, String beforeCheckpoint,
                                                          AsyncIndexStats indexStats,
                                                          AtomicBoolean stopFlag) {
-        return new AsyncUpdateCallback(store, name, leaseTimeOut,
+        AsyncUpdateCallback callback = new AsyncUpdateCallback(store, name, leaseTimeOut,
                 beforeCheckpoint, indexStats, stopFlag);
+        callback.setValidatorProviders(validatorProviders);
+        return callback;
     }
 
     protected boolean updateIndex(NodeState before, String beforeCheckpoint,
@@ -643,7 +659,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 }
                 updatePostRunStatus = true;
             }
-            mergeWithConcurrencyCheck(store, builder, beforeCheckpoint,
+            mergeWithConcurrencyCheck(store, validatorProviders, builder, beforeCheckpoint,
                     callback.lease, name);
             if (indexUpdate.isReindexingPerformed()) {
                 log.info("[{}] Reindexing completed for indexes: {} in {}",
@@ -675,9 +691,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return name + "-temp";
     }
 
-    private static void mergeWithConcurrencyCheck(final NodeStore store,
-            NodeBuilder builder, final String checkpoint, final long lease,
-            final String name) throws CommitFailedException {
+    private static void mergeWithConcurrencyCheck(final NodeStore store, List<ValidatorProvider> validatorProviders,
+                                                  NodeBuilder builder, final String checkpoint, final long lease,
+                                                  final String name) throws CommitFailedException {
         CommitHook concurrentUpdateCheck = new CommitHook() {
             @Override @Nonnull
             public NodeState processCommit(
@@ -694,9 +710,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 }
             }
         };
+        List<EditorProvider> editorProviders = Lists.newArrayList();
+        editorProviders.add(new ConflictValidatorProvider());
+        editorProviders.addAll(validatorProviders);
         CompositeHook hooks = new CompositeHook(
                 new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(new ConflictValidatorProvider()),
+                new EditorHook(CompositeEditorProvider.compose(editorProviders)),
                 concurrentUpdateCheck);
         try {
             store.merge(builder, hooks, createCommitInfo());
@@ -730,6 +749,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     protected AsyncIndexUpdate setCloseTimeOut(int timeOutInSec) {
         this.softTimeOutSecs = timeOutInSec;
         return this;
+    }
+
+    public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
+        this.validatorProviders = validatorProviders;
     }
 
     public boolean isClosed(){
@@ -1225,7 +1248,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             if (!updated.isEmpty()) {
-                mergeWithConcurrencyCheck(store, builder, refCheckpoint, lease, name);
+                mergeWithConcurrencyCheck(store, validatorProviders, builder, refCheckpoint, lease, name);
                 log.info(
                         "[{}] Successfully split index definitions {} to async task named {} with referenced checkpoint {}.",
                         name, updated, newIndexTaskName, refCheckpoint);

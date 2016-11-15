@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -51,11 +52,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.management.openmbean.CompositeData;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTaskSpliter;
@@ -66,9 +69,12 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -1555,6 +1561,74 @@ public class AsyncIndexUpdateTest {
 
         assertFalse(infoCollector.infos.isEmpty());
         assertNotNull(infoCollector.infos.get(0).getInfo().get(CommitContext.NAME));
+    }
+
+    @Test
+    public void validatorProviderInvocation() throws Exception{
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        CollectingValidatorProvider v = new CollectingValidatorProvider();
+
+        async.setValidatorProviders(ImmutableList.<ValidatorProvider>of(v));
+        async.run();
+
+        assertFalse(v.visitedPaths.isEmpty());
+        assertThat(v.visitedPaths, hasItem("/:async"));
+        assertThat(v.visitedPaths, hasItem("/oak:index/rootIndex"));
+
+    }
+
+    private static class CollectingValidatorProvider extends ValidatorProvider {
+        final Set<String> visitedPaths = Sets.newHashSet();
+
+        @Override
+        protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+            return new CollectingValidator("/");
+        }
+
+        public void reset(){
+            visitedPaths.clear();
+        }
+
+        private class CollectingValidator extends DefaultValidator {
+            private final String path;
+
+            public CollectingValidator(String path){
+                this.path = path;
+            }
+
+            @Override
+            public void enter(NodeState before, NodeState after) throws CommitFailedException {
+                visitedPaths.add(path);
+                super.enter(before, after);
+            }
+
+            @Override
+            public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+                return new CollectingValidator(PathUtils.concat(path, name));
+            }
+
+            @Override
+            public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+                return new CollectingValidator(PathUtils.concat(path, name));
+            }
+
+            @Override
+            public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+                return new CollectingValidator(PathUtils.concat(path, name));
+            }
+        }
     }
 
     private static class CommitInfoCollector implements Observer {
