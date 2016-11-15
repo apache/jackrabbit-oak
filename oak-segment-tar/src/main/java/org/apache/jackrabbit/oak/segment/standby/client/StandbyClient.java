@@ -77,14 +77,14 @@ class StandbyClient implements AutoCloseable {
 
     private Channel channel;
 
-    StandbyClient(String clientId, boolean secure, int readTimeoutMs) {
+    StandbyClient(NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs) {
+        this.group = group;
         this.clientId = clientId;
         this.secure = secure;
         this.readTimeoutMs = readTimeoutMs;
     }
 
     void connect(String host, int port) throws Exception {
-        group = new NioEventLoopGroup();
 
         final SslContext sslContext;
 
@@ -148,11 +148,6 @@ class StandbyClient implements AutoCloseable {
 
     @Override
     public void close() {
-        closeChannel();
-        closeGroup();
-    }
-
-    private void closeChannel() {
         if (channel == null) {
             return;
         }
@@ -160,17 +155,6 @@ class StandbyClient implements AutoCloseable {
             log.debug("Channel closed");
         } else {
             log.debug("Channel close timed out");
-        }
-    }
-
-    private void closeGroup() {
-        if (group == null) {
-            return;
-        }
-        if (group.shutdownGracefully(2, 15, TimeUnit.SECONDS).awaitUninterruptibly(20, TimeUnit.SECONDS)) {
-            log.debug("Group shut down");
-        } else {
-            log.debug("Group shutdown timed out");
         }
     }
 

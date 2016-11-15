@@ -132,7 +132,9 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
     public void close() {
         stop();
         state = STATUS_CLOSING;
-
+        if (server != null) {
+            server.close();
+        }
         observer.unregister();
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {

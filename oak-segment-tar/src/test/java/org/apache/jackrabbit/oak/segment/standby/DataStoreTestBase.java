@@ -43,11 +43,15 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public abstract class DataStoreTestBase extends TestBase {
 
     private static final int MB = 1024 * 1024;
+
+    private static NetworkErrorProxy proxy;
 
     abstract FileStore getPrimary();
 
@@ -68,6 +72,16 @@ public abstract class DataStoreTestBase extends TestBase {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return data;
+    }
+
+    @BeforeClass
+    public static void beforeClass() {
+        proxy = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        proxy.close();
     }
 
     @Test
@@ -174,13 +188,12 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-                NetworkErrorProxy p = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
                 StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
                 StandbyClientSync clientSync = newStandbyClientSync(secondary, getProxyPort())
         ) {
-            p.skipBytes(skipPosition, skipBytes);
-            p.flipByte(flipPosition);
-            p.connect();
+            proxy.skipBytes(skipPosition, skipBytes);
+            proxy.flipByte(flipPosition);
+            proxy.connect();
 
             serverSync.start();
             primary.flush();
@@ -191,7 +204,7 @@ public abstract class DataStoreTestBase extends TestBase {
                 if (!storesShouldBeEqual()) {
                     assertFalse("stores are not expected to be equal", primary.getHead().equals(secondary.getHead()));
                 }
-                p.reset();
+                proxy.reset();
                 if (intermediateChange) {
                     blobSize = 2 * MB;
                     data = addTestContent(store, "server", blobSize);

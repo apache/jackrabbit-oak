@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.management.MBeanServer;
@@ -31,6 +32,7 @@ import javax.management.StandardMBean;
 import javax.net.ssl.SSLException;
 
 import com.google.common.base.Supplier;
+import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
@@ -74,6 +76,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private long syncEndTimestamp;
 
+    private final NioEventLoopGroup group;
+
     public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) throws SSLException {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
@@ -88,6 +92,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.fileStore = store;
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.length() == 0) ? UUID.randomUUID().toString() : s);
+        group = new NioEventLoopGroup();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
@@ -111,6 +116,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         } catch (Exception e) {
             log.error("can unregister standby status mbean", e);
         }
+        closeGroup();
         observer.unregister();
         state = STATUS_CLOSED;
     }
@@ -134,7 +140,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
         try {
             long startTimestamp = System.currentTimeMillis();
-            try (StandbyClient client = new StandbyClient(observer.getID(), secure, readTimeoutMs)) {
+            try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
                 client.connect(host, port);
 
                 int genBefore = headGeneration(fileStore);
@@ -246,6 +252,17 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
     @Override
     public long getSyncEndTimestamp() {
         return syncEndTimestamp;
+    }
+
+    private void closeGroup() {
+        if (group == null) {
+            return;
+        }
+        if (group.shutdownGracefully(2, 15, TimeUnit.SECONDS).awaitUninterruptibly(20, TimeUnit.SECONDS)) {
+            log.debug("Group shut down");
+        } else {
+            log.debug("Group shutdown timed out");
+        }
     }
 
 }
