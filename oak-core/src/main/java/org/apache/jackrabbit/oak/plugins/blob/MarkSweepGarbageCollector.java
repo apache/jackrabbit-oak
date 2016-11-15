@@ -523,7 +523,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     
             // Find all blobs available in the blob store
             ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
-                false));
+                true));
             executor.execute(blobIdRetriever);
     
             // Mark all used blob references
