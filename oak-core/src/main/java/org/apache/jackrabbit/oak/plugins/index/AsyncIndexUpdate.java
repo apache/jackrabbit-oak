@@ -37,8 +37,6 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -50,6 +48,7 @@ import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -76,7 +75,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.stats.TimeSeriesRecorder;
+import org.apache.jackrabbit.oak.stats.Counting;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -131,7 +135,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private final long lifetime = DEFAULT_LIFETIME; // TODO: make configurable
 
-    private final AsyncIndexStats indexStats = new AsyncIndexStats();
+    private final AsyncIndexStats indexStats;
 
     /** Flag to switch to synchronous updates once the index caught up to the repo */
     private final boolean switchOnSync;
@@ -193,13 +197,19 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private List<ValidatorProvider> validatorProviders = Collections.emptyList();
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
-            @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
+                            @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
+        this(name, store, provider, StatisticsProvider.NOOP, switchOnSync);
+    }
+
+    public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
+                            @Nonnull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
         this.name = checkNotNull(name);
         this.lastIndexedTo = name + "-LastIndexedTo";
         this.store = checkNotNull(store);
         this.provider = checkNotNull(provider);
         this.switchOnSync = switchOnSync;
         this.leaseTimeOut = DEFAULT_ASYNC_TIMEOUT;
+        this.indexStats = new AsyncIndexStats(name, statsProvider);
     }
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
@@ -785,11 +795,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return indexStats.getStatus() == STATUS_DONE;
     }
 
-    final class AsyncIndexStats extends AnnotatedStandardMBean implements
-            IndexStatsMBean, Runnable {
+    final class AsyncIndexStats extends AnnotatedStandardMBean implements  IndexStatsMBean {
 
-        protected AsyncIndexStats() {
+        protected AsyncIndexStats(String name, StatisticsProvider statsProvider) {
             super(IndexStatsMBean.class);
+            this.execStats = new ExecutionStats(name, statsProvider);
         }
 
         private String start = "";
@@ -802,7 +812,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         private volatile boolean isPaused;
         private volatile long updates;
         private final Stopwatch watch = Stopwatch.createUnstarted();
-        private final ExecutionStats execStats = new ExecutionStats();
+        private final ExecutionStats execStats;
 
         /** Flag to avoid repeatedly logging failure warnings */
         private volatile boolean failing = false;
@@ -830,8 +840,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             if (watch.isRunning()) {
                 watch.stop();
             }
-            execStats.incrementCounter();
-            execStats.recordExecution(watch.elapsed(TimeUnit.MILLISECONDS), updates);
+            execStats.doneOneCycle(watch.elapsed(TimeUnit.MILLISECONDS), updates);
             watch.reset();
         }
 
@@ -986,7 +995,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public CompositeData getExecutionTime() {
-            return execStats.getExecutionTime();
+            //Do nothing. Kept for backward compatibility
+            return null;
         }
 
         @Override
@@ -1001,7 +1011,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public void resetConsolidatedExecutionStats() {
-            execStats.resetConsolidatedStats();
+            //Do nothing. Kept for backward compatibility
         }
 
         @Override
@@ -1016,68 +1026,70 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     + latestErrorTime + ", latestError=" + latestError + " ]";
         }
 
-        @Override
-        public void run() {
-            execStats.recordTick();
+        ExecutionStats getExecutionStats() {
+            return execStats;
         }
 
-        private class ExecutionStats {
-            private final TimeSeriesRecorder execCounter;
-            private final TimeSeriesRecorder execTimer;
-            private final TimeSeriesRecorder indexedNodesCounter;
+        class ExecutionStats {
+            public static final String INDEXER_COUNT = "INDEXER_COUNT";
+            public static final String INDEXER_NODE_COUNT = "INDEXER_NODE_COUNT";
+            private final MeterStats indexerExecutionCountMeter;
+            private final MeterStats indexedNodeCountMeter;
+            private final TimerStats indexerTimer;
+            private final HistogramStats indexedNodePerCycleHisto;
+            private StatisticsProvider statisticsProvider;
 
-            /**
-             * Captures consolidated execution stats since last reset
-             */
-            private final AtomicLong consolidatedExecTime = new AtomicLong();
-            private final AtomicInteger consolidatedExecRuns = new AtomicInteger();
-            private final AtomicLong consolidatedNodes = new AtomicLong();
-            private final String[] names = {"Executions", "Execution Time", "Nodes"};
+            private final String[] names = {"Executions", "Nodes"};
+            private final String name;
             private CompositeType consolidatedType;
 
-            private ExecutionStats() {
-                execCounter = new TimeSeriesRecorder(true);
-                execTimer = new TimeSeriesRecorder(true);
-                indexedNodesCounter = new TimeSeriesRecorder(true);
-
+            public ExecutionStats(String name, StatisticsProvider statsProvider) {
+                this.name = name;
+                this.statisticsProvider = statsProvider;
+                indexerExecutionCountMeter = statsProvider.getMeter(stats(INDEXER_COUNT), StatsOptions.DEFAULT);
+                indexedNodeCountMeter = statsProvider.getMeter(stats(INDEXER_NODE_COUNT), StatsOptions.DEFAULT);
+                indexerTimer = statsProvider.getTimer(stats("INDEXER_TIME"), StatsOptions.METRICS_ONLY);
+                indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
+                        .METRICS_ONLY);
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                         "Consolidated stats", names,
                         names,
-                        new OpenType[] {SimpleType.LONG, SimpleType.LONG, SimpleType.LONG});
+                        new OpenType[] {SimpleType.LONG, SimpleType.LONG});
                 } catch (OpenDataException e) {
-                    log.warn("[{}] Error in creating CompositeType for consolidated stats", name, e);
+                    log.warn("[{}] Error in creating CompositeType for consolidated stats", AsyncIndexUpdate.this.name, e);
                 }
             }
 
-            private void incrementCounter() {
-                execCounter.getCounter().incrementAndGet();
-                consolidatedExecRuns.incrementAndGet();
+            public void doneOneCycle(long timeInMillis, long updates){
+                indexerExecutionCountMeter.mark();
+                indexedNodeCountMeter.mark(updates);
+                indexerTimer.update(timeInMillis, TimeUnit.MILLISECONDS);
+                indexedNodePerCycleHisto.update(updates);
             }
 
-            private void recordExecution(long time, long updates) {
-                execTimer.getCounter().addAndGet(time);
-                indexedNodesCounter.getCounter().addAndGet(updates);
-                consolidatedExecTime.addAndGet(time);
-                consolidatedNodes.addAndGet(updates);
+            public Counting getExecutionCounter() {
+                return indexerExecutionCountMeter;
+            }
+
+            public Counting getIndexedNodeCount() {
+                return indexedNodeCountMeter;
             }
 
             private CompositeData getExecutionCount() {
-                return TimeSeriesStatsUtil.asCompositeData(execCounter, "ExecutionCount");
-            }
-
-            private CompositeData getExecutionTime() {
-                return TimeSeriesStatsUtil.asCompositeData(execTimer, "ExecutionTime");
+                return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(stats(INDEXER_COUNT)),
+                        "Indexer Execution Count");
             }
 
             private CompositeData getIndexedNodesCount() {
-                return TimeSeriesStatsUtil.asCompositeData(indexedNodesCounter, "ExecutionNodesCount");
+                return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(stats(INDEXER_NODE_COUNT)),
+                        "Indexer Node Count");
             }
 
             private CompositeData getConsolidatedStats() {
                 try {
-                    Long[] values = new Long[]{consolidatedExecRuns.longValue(),
-                        consolidatedExecTime.longValue(), consolidatedNodes.longValue()};
+                    Long[] values = new Long[]{indexerExecutionCountMeter.getCount(),
+                            indexedNodeCountMeter.getCount()};
                     return new CompositeDataSupport(consolidatedType, names, values);
                 } catch (Exception e) {
                     log.error("[{}] Error retrieving consolidated stats", name, e);
@@ -1085,16 +1097,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 }
             }
 
-            private void resetConsolidatedStats() {
-                consolidatedExecRuns.set(0);
-                consolidatedExecTime.set(0);
-                consolidatedNodes.set(0);
+            private String stats(String suffix){
+                return name + ":" + suffix;
             }
 
-            private void recordTick() {
-                execCounter.recordOneSecond();
-                execTimer.recordOneSecond();
-                indexedNodesCounter.recordOneSecond();
+            private TimeSeries getTimeSeries(String name) {
+                return statisticsProvider.getStats().getTimeSeries(name, true);
             }
         }
 

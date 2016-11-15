@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexEditorProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,9 @@ public class AsyncIndexerService {
     @Reference(target = "(type=" + ChangeCollectorProvider.TYPE + ")")
     private ValidatorProvider validatorProvider;
 
+    @Reference
+    private StatisticsProvider statisticsProvider;
+
     private IndexMBeanRegistration indexRegistration;
 
     @Activate
@@ -94,7 +98,8 @@ public class AsyncIndexerService {
         long leaseTimeOutMin = PropertiesUtil.toInteger(config.get(PROP_LEASE_TIME_OUT), PROP_LEASE_TIMEOUT_DEFAULT);
 
         for (AsyncConfig c : asyncIndexerConfig) {
-            AsyncIndexUpdate task = new AsyncIndexUpdate(c.name, nodeStore, indexEditorProvider);
+            AsyncIndexUpdate task = new AsyncIndexUpdate(c.name, nodeStore, indexEditorProvider,
+                    statisticsProvider, false);
             task.setValidatorProviders(Collections.singletonList(validatorProvider));
             task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
             indexRegistration.registerAsyncIndexer(task, c.timeIntervalInSecs);

@@ -45,8 +45,6 @@ public class IndexMBeanRegistration implements Registration {
         regs.add(scheduleWithFixedDelay(whiteboard, task, config, delayInSeconds, true, true));
         regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                 task.getIndexStats(), IndexStatsMBean.TYPE, task.getName()));
-        // Register AsyncIndexStats for execution stats update
-        regs.add(scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1));
     }
 
     @Override

@@ -35,6 +35,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -42,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,12 +62,14 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTaskSpliter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -83,6 +88,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.After;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -92,6 +98,15 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class AsyncIndexUpdateTest {
+    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private MetricStatisticsProvider statsProvider =
+            new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(),executor);
+
+    @After
+    public void shutDown(){
+        statsProvider.close();
+        new ExecutorCloser(executor).close();
+    }
 
     // TODO test index config deletes
 
@@ -1034,17 +1049,18 @@ public class AsyncIndexUpdateTest {
         // merge it back in
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
         runOneCycle(async);
-        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+        assertEquals(1, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
 
         //Run a cycle so that change of reindex flag gets indexed
         runOneCycle(async);
-        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+        assertEquals(2, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
 
+        long indexedNodeCount = async.getIndexStats().getExecutionStats().getIndexedNodeCount().getCount();
         //Now run so that it results in an empty cycle
         runOneCycle(async);
-        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+        assertEquals(indexedNodeCount, async.getIndexStats().getExecutionStats().getIndexedNodeCount().getCount());
 
         //Do some updates and counter should increase
         builder = store.getRoot().builder();
@@ -1052,7 +1068,7 @@ public class AsyncIndexUpdateTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         runOneCycle(async);
-        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+        assertEquals(4, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
 
         //Do some updates but disable checkpoints. Counter should not increase
         builder = store.getRoot().builder();
@@ -1073,7 +1089,6 @@ public class AsyncIndexUpdateTest {
 
     private static void runOneCycle(AsyncIndexUpdate async){
         async.run();
-        async.getIndexStats().run();
     }
 
     @Test
