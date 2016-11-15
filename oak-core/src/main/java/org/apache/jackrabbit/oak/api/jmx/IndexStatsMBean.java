@@ -139,6 +139,7 @@ public interface IndexStatsMBean {
      *
      * @return the execution times time series
      */
+    @Deprecated
     CompositeData getExecutionTime();
 
     /**
@@ -157,6 +158,7 @@ public interface IndexStatsMBean {
     /**
      * Resets the consolidated stats.
      */
+    @Deprecated
     void resetConsolidatedExecutionStats();
 
     /**

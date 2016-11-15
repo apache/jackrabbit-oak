@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
@@ -57,6 +58,7 @@ public class AsyncIndexerServiceTest {
 
     @Before
     public void setUp() {
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(NodeStore.class, nodeStore);
         context.registerService(ValidatorProvider.class, new ChangeCollectorProvider());
         MockOsgi.injectServices(service, context.bundleContext());
