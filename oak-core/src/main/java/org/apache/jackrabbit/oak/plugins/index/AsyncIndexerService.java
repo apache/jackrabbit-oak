@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
@@ -57,6 +58,16 @@ public class AsyncIndexerService {
             description = "Async indexer configs in the form of <name>:<interval in secs> e.g. \"async:5\""
     )
     private static final String PROP_ASYNC_CONFIG = "asyncConfigs";
+
+    private static final int PROP_LEASE_TIMEOUT_DEFAULT = 15;
+    @Property(
+            intValue = PROP_LEASE_TIMEOUT_DEFAULT,
+            label = "Lease time out",
+            description = "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking " +
+                    "async indexer lease"
+    )
+    private static final String PROP_LEASE_TIME_OUT = "leaseTimeOutMinutes";
+
     private static final char CONFIG_SEP = ':';
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WhiteboardIndexEditorProvider indexEditorProvider = new WhiteboardIndexEditorProvider();
@@ -72,12 +83,15 @@ public class AsyncIndexerService {
         indexRegistration = new IndexMBeanRegistration(whiteboard);
         indexEditorProvider.start(whiteboard);
 
+        long leaseTimeOutMin = PropertiesUtil.toInteger(config.get(PROP_LEASE_TIME_OUT), PROP_LEASE_TIMEOUT_DEFAULT);
+
         for (AsyncConfig c : asyncIndexerConfig) {
-            //TODO Pass name as part of scheduled job service property
             AsyncIndexUpdate task = new AsyncIndexUpdate(c.name, nodeStore, indexEditorProvider);
+            task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
             indexRegistration.registerAsyncIndexer(task, c.timeIntervalInSecs);
         }
         log.info("Configured async indexers {} ", asyncIndexerConfig);
+        log.info("Lease time: {} mins", leaseTimeOutMin);
     }
 
     @Deactivate
