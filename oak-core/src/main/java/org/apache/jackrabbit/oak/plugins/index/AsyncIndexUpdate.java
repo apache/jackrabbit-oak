@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.core.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -714,6 +715,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         editorProviders.add(new ConflictValidatorProvider());
         editorProviders.addAll(validatorProviders);
         CompositeHook hooks = new CompositeHook(
+                ResetCommitAttributeHook.INSTANCE,
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(CompositeEditorProvider.compose(editorProviders)),
                 concurrentUpdateCheck);
