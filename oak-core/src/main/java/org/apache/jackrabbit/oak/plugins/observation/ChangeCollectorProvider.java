@@ -61,9 +61,10 @@ import com.google.common.collect.Iterables;
         description = "It hooks into the commit and collects a ChangeSet of changed items of a commit which " +
                 "is then used to speed up observation processing"
 )
-@Property(name = "type", value = "changeCollectorProvider", propertyPrivate = true)
+@Property(name = "type", value = ChangeCollectorProvider.TYPE, propertyPrivate = true)
 @Service(ValidatorProvider.class)
 public class ChangeCollectorProvider extends ValidatorProvider {
+    public static final String TYPE = "changeCollectorProvider";
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeCollectorProvider.class);
 
@@ -212,7 +213,9 @@ public class ChangeCollectorProvider extends ValidatorProvider {
             // but if we're at the root, then we add the ChangeSet to the
             // CommitContext of the CommitInfo
             CommitContext commitContext = (CommitContext) support.getInfo().getInfo().get(CommitContext.NAME);
-            commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, support.getChangeSetBuilder().build());
+            ChangeSet changeSet = support.getChangeSetBuilder().build();
+            commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
+            LOG.debug("Collected changeSet for commit {} is {}", support.getInfo(), changeSet);
         }
 
         @Override
