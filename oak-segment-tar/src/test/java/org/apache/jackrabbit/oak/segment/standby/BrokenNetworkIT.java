@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -47,11 +49,23 @@ public class BrokenNetworkIT extends TestBase {
 
     private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder, true);
 
+    private static NetworkErrorProxy proxy;
+
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
             .around(clientFileStore1)
             .around(clientFileStore2);
+
+    @BeforeClass
+    public static void beforeClass() {
+        proxy = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        proxy.close();
+    }
 
     @Test
     public void testProxy() throws Exception {
@@ -133,13 +147,12 @@ public class BrokenNetworkIT extends TestBase {
         storeS.flush();  // this speeds up the test a little bit...
 
         try (
-                NetworkErrorProxy p = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
                 StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, ssl);
                 StandbyClientSync clientSync = newStandbyClientSync(storeC, getProxyPort(), ssl);
         ) {
-            p.skipBytes(skipPosition, skipBytes);
-            p.flipByte(flipPosition);
-            p.connect();
+            proxy.skipBytes(skipPosition, skipBytes);
+            proxy.flipByte(flipPosition);
+            proxy.connect();
 
             serverSync.start();
 
@@ -149,7 +162,7 @@ public class BrokenNetworkIT extends TestBase {
                 assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
                 assertEquals(storeC2.getHead(), storeC.getHead());
 
-                p.reset();
+                proxy.reset();
                 if (intermediateChange) {
                     addTestContent(store, "server2");
                     storeS.flush();
