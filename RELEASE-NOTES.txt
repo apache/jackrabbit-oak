@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.20
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.21
 
 Introduction
 ------------
@@ -7,51 +7,43 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.20 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.21 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.20
+Changes in Oak 1.2.21
 ---------------------
 
 Technical task
-
-    [OAK-4583] - RDB*Store: update Tomcat JDBC pool dependency
-    [OAK-4794] - RDBDocumentStore: update PostgresQL JDBC driver
-    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to 5.1.40
-    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to 9.4.1211
+  
+  [OAK-4964] - UpdateOp.set("_id", ...) should do a sanity check on the id
+  [OAK-4986] - RDBDocumentStore: potential NPE in document read
 
 
 Bug
 
-    [OAK-3917] - SuggestionHelper creating unnecessary temporary directories
-    [OAK-4082] - RDBDocumentStore on MySQL may fail when using useServerPrepStmts=true
-    [OAK-4805] - Misconfigured lucene index definition can render the whole system unusable
-    [OAK-4879] - Proper implementation of getOrCreateReferenceKey in CachingFDS
-
-
-Improvement
-
-    [OAK-3253] - Support caching in FileDataStoreService
-    [OAK-4819] - Improve revision GC resilience
-    [OAK-4851] - Update httpclient to 4.3.6 in Oak 1.4- branches
+ [OAK-3474] - NodeDocument.getNodeAtRevision can go into property history traversal when latest rev on current doc isn't committed
+ [OAK-4125] - Test failure: testUpdateAndDelete [MyFixture: RDB-Derby(embedded)]
+ [OAK-4969] - ColdStandby does not fetch missing blobs
+ [OAK-4997] - RevisionGCTest.teardown() may fail with NPE when store == null
+ [OAK-5005] - S3 async upload fails to catch and log exceptions other than DataStoreException
 
 
 Task
-
-    [OAK-4827] - Backport OAK-3415 into 1.2.x
+ 
+ [OAK-5037] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.5
 
 
 Test
-
-    [OAK-3277] - Turn VersionGarbageCollectorTest into an integration test
+ 
+ [OAK-4976] - AcquireRecoveryLockTest fails occasionally
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.19 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.20 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
