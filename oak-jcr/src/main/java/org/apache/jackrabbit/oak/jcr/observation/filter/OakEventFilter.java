@@ -42,6 +42,10 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      * <p>
      * Note that this is an 'either/or' thing: either the node type is applied
      * on the parent (default) or on 'self/this' (via this switch) but not both.
+     * <p>
+     * Also note that this is independent from the nodeTypeAggregate, 
+     * and will only be applied to the (main) node types set on this filter,
+     * not on the nodeTypeAggregate's node types.
      * @return this filter with the filter change applied
      */
     public abstract OakEventFilter withApplyNodeTypeOnSelf();
