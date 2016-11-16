@@ -381,13 +381,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             super.ds.create(Collection.JOURNAL, Collections.singletonList(up));
         }
 
-        assertEquals("Number of entries removed didn't match", 5,
+        assertEquals("Number of entries removed didn't match", 3,
                 ds.remove(Collection.JOURNAL, "_modified", 20, 24));
 
         assertEquals("Number of entries removed didn't match", 0,
                 ds.remove(Collection.JOURNAL, "_modified", 20, 24));
 
-        assertEquals("Number of entries removed didn't match", 5,
+        assertEquals("Number of entries removed didn't match", 4,
                 ds.remove(Collection.JOURNAL, "_modified", -1, 5));
 
         assertEquals("Number of entries removed didn't match", 5,
@@ -400,7 +400,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals("Number of entries removed didn't match", 0,
                 ds.remove(Collection.JOURNAL, "_modified", 31, 40));
 
-        assertEquals("Number of entries removed didn't match", 3,
+        assertEquals("Number of entries removed didn't match", 2,
                 ds.remove(Collection.JOURNAL, "_modified", 28, 40));
     }
 
