@@ -62,7 +62,7 @@ public class JournalGCTest {
         c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(2));
 
         // instruct journal collector to remove entries older than one hour
-        ns.getJournalGarbageCollector().gc(1, TimeUnit.HOURS, 10);
+        ns.getJournalGarbageCollector().gc(1, TimeUnit.HOURS);
 
         // must not remove existing entry, because checkpoint is still valid
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
@@ -70,7 +70,7 @@ public class JournalGCTest {
 
         ns.release(cp);
 
-        ns.getJournalGarbageCollector().gc(1, TimeUnit.HOURS, 10);
+        ns.getJournalGarbageCollector().gc(1, TimeUnit.HOURS);
         // now journal GC can remove the entry
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
         assertNull(entry);
@@ -91,7 +91,7 @@ public class JournalGCTest {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ns.runBackgroundOperations();
 
-        assertEquals(0, jgc.gc(1, TimeUnit.HOURS, 10));
+        assertEquals(0, jgc.gc(1, TimeUnit.HOURS));
 
         // current time, but without the increment done by getTime()
         long now = c.getTime() - 1;
@@ -105,7 +105,7 @@ public class JournalGCTest {
         // must collect all journal entries. the first created when
         // DocumentNodeStore was initialized and the second created
         // by the background update
-        assertEquals(2, jgc.gc(1, TimeUnit.HOURS, 10));
+        assertEquals(2, jgc.gc(1, TimeUnit.HOURS));
 
         // current time, but without the increment done by getTime()
         now = c.getTime() - 1;
