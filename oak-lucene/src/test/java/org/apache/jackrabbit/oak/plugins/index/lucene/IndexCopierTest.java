@@ -62,6 +62,7 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1019,6 +1020,42 @@ public class IndexCopierTest {
         assertTrue("f2 should exist", remote.fileExists("f2"));
 
         executorService.shutdown();
+    }
+
+    @Ignore("OAK-4114")
+    @Test
+    public void directoryContentMismatch_COR() throws Exception{
+        Directory baseDir = new CloseSafeDir();
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir(), true);
+
+        Directory remote = new RAMDirectory();
+        byte[] t1 = writeFile(remote, "t1");
+        byte[] t2 = writeFile(remote, "t2");
+
+        //State of remote directory should set before wrapping as later
+        //additions would not be picked up given COW assume remote directory
+        //to be read only
+        Directory local = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+
+        readAndAssert(local, "t1", t1);
+        readAndAssert(local, "t2", t2);
+
+        copier.close();
+
+        //2. Modify the same file in remote directory simulating rollback scenario
+        Directory remoteModified = new RAMDirectory();
+        t1 = writeFile(remoteModified, "t1");
+
+        //3. Reopen the copier
+        copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir(), true);
+
+        //4. Post opening local the content should be in sync with remote
+        //So t1 should be recreated matching remote
+        //t2 should be removed
+        local = copier.wrapForRead("/foo", defn, remoteModified, INDEX_DATA_CHILD_NAME);
+        readAndAssert(baseDir, "t1", t1);
+        assertFalse(baseDir.fileExists("t2"));
     }
 
     private static void doReindex(NodeBuilder builder) {
