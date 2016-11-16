@@ -85,11 +85,12 @@ public class GCMemoryBarrier implements Closeable {
             emitter = (NotificationEmitter) getMemoryMXBean();
             listener = new MemoryListener();
             emitter.addNotificationListener(listener, null, null);
-            long maxMemory = pool.getUsage().getMax();
+            MemoryUsage usage = pool.getCollectionUsage();
+            long maxMemory = usage.getMax();
             long required = (long) (maxMemory * percentage / 100);
             gcListener
-                    .info("TarMK GC #{}: setting up a listener to cancel compaction if available memory drops below {}%, {} ({} bytes).",
-                            gcCount, percentage,
+                    .info("TarMK GC #{}: setting up a listener to cancel compaction if available memory on pool '{}' drops below {}%, {} ({} bytes).",
+                            gcCount, pool.getName(), percentage,
                             humanReadableByteCount(required), required);
 
             long warningThreshold = maxMemory - required;
@@ -98,7 +99,7 @@ public class GCMemoryBarrier implements Closeable {
                 warningThreshold = Math.min(warningThreshold, current);
             }
             pool.setCollectionUsageThreshold(warningThreshold);
-            checkMemory(pool.getUsage());
+            checkMemory(usage);
         } else {
             emitter = null;
             listener = null;
@@ -107,13 +108,20 @@ public class GCMemoryBarrier implements Closeable {
     }
 
     private static MemoryPoolMXBean getMemoryPool() {
+        long maxSize = 0;
+        MemoryPoolMXBean maxPool = null;
         for (MemoryPoolMXBean pool : getMemoryPoolMXBeans()) {
             if (HEAP == pool.getType()
                     && pool.isCollectionUsageThresholdSupported()) {
-                return pool;
+                // Get usage after a GC, which is more stable, if available
+                long poolSize = pool.getCollectionUsage().getMax();
+                // Keep the pool with biggest size, by default it should be Old Gen Space
+                if (poolSize > maxSize) {
+                    maxPool = pool;
+                }
             }
         }
-        return null;
+        return maxPool;
     }
 
     private void checkMemory(MemoryUsage usage) {
