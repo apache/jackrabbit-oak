@@ -234,7 +234,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             } finally {
                 // Explicitly give up reference to the previous root state
                 // otherwise they would block cleanup. See OAK-3347
-                refreshHead();
+                refreshHead(true);
                 commitSemaphore.release();
             }
         }
@@ -244,12 +244,15 @@ public class SegmentNodeStore implements NodeStore, Observable {
     /**
      * Refreshes the head state. Should only be called while holding a
      * permit from the {@link #commitSemaphore}.
+     * @param dispatchChanges if set to true the changes would also be dispatched
      */
-    private void refreshHead() {
+    private void refreshHead(boolean dispatchChanges) {
         SegmentNodeState state = reader.readHeadState(revisions);
         if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
-            contentChanged(state.getChildNode(ROOT), null);
+            if (dispatchChanges) {
+                contentChanged(state.getChildNode(ROOT), null);
+            }
         }
     }
 
@@ -265,7 +268,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public NodeState getRoot() {
         if (commitSemaphore.tryAcquire()) {
             try {
-                refreshHead();
+                refreshHead(true);
             } finally {
                 commitSemaphore.release();
             }
@@ -392,7 +395,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         public Boolean call() {
             long now = System.currentTimeMillis();
 
-            refreshHead();
+            refreshHead(true);
 
             SegmentNodeState state = head.get();
             SegmentNodeBuilder builder = state.builder();
@@ -423,7 +426,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
             SegmentNodeState newState = builder.getNodeState();
             if (revisions.setHead(state.getRecordId(), newState.getRecordId())) {
-                refreshHead();
+                refreshHead(false);
                 return true;
             } else {
                 return false;
@@ -480,7 +483,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         for (int i = 0; i < 5; i++) {
             if (commitSemaphore.tryAcquire()) {
                 try {
-                    refreshHead();
+                    refreshHead(true);
 
                     SegmentNodeState state = head.get();
                     SegmentNodeBuilder builder = state.builder();
@@ -491,7 +494,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                         cp.remove();
                         SegmentNodeState newState = builder.getNodeState();
                         if (revisions.setHead(state.getRecordId(), newState.getRecordId())) {
-                            refreshHead();
+                            refreshHead(false);
                             return true;
                         }
                     }
@@ -530,11 +533,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
 
         private boolean setHead(SegmentNodeState before, SegmentNodeState after) {
-            refreshHead();
+            refreshHead(true);
             if (revisions.setHead(before.getRecordId(), after.getRecordId())) {
                 head.set(after);
                 contentChanged(after.getChildNode(ROOT), info);
-                refreshHead();
+                refreshHead(true);
                 return true;
             } else {
                 return false;
@@ -569,7 +572,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             for (long backoff = 1; backoff < maximumBackoff; backoff *= 2) {
                 long start = System.nanoTime();
 
-                refreshHead();
+                refreshHead(true);
                 SegmentNodeState state = head.get();
                 if (state.hasProperty("token")
                         && state.getLong("timeout") >= currentTimeMillis()) {
