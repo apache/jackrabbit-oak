@@ -1588,16 +1588,17 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private <T extends Document> int delete(Collection<T> collection,
-                                            String indexedProperty, long startVal, long endVal) {
+                                            String indexedProperty, long startValue, long endValue) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
         Connection connection = null;
         try {
             connection = this.ch.getRWConnection();
-            numDeleted = db.delete(connection, tmd, indexedProperty, startVal, endVal);
+            numDeleted = db.delete(connection, tmd, indexedProperty, startValue, endValue);
             connection.commit();
         } catch (Exception ex) {
-            throw DocumentStoreException.convert(ex, "deleting " + collection + ": " + indexedProperty + " in [" + startVal + ", " + endVal + "]");
+            throw DocumentStoreException.convert(ex, "deleting " + collection + ": " +
+                    indexedProperty + " in (" + startValue + ", " + endValue + ")");
         } finally {
             this.ch.closeConnection(connection);
         }

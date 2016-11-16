@@ -774,13 +774,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         long start = PERFLOG.start();
         try {
             QueryBuilder queryBuilder = QueryBuilder.start(indexedProperty);
-            queryBuilder.greaterThanEquals(startValue);
-            queryBuilder.lessThanEquals(endValue);
+            queryBuilder.greaterThan(startValue);
+            queryBuilder.lessThan(endValue);
             try {
                 num = dbCollection.remove(queryBuilder.get()).getN();
             } catch (Exception e) {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
-                    indexedProperty + " in [" + startValue + ", " + endValue + "]");
+                    indexedProperty + " in (" + startValue + ", " + endValue + ")");
             } finally {
                 if (num > 0 && collection == Collection.NODES) {
                     // this method is currently being used only for Journal collection while GC.
@@ -792,7 +792,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
             }
         } finally {
-            PERFLOG.end(start, 1, "remove from {}: {} in [{}, {}]", collection, indexedProperty, startValue, endValue);
+            PERFLOG.end(start, 1, "remove from {}: {} in ({}, {})", collection, indexedProperty, startValue, endValue);
         }
         return num;
     }

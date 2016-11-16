@@ -205,7 +205,7 @@ public interface DocumentStore {
 
     /**
      * Batch remove documents where the given "indexed property" is within the given
-     * range (inclusive) - {@code [startValue, endValue]}.
+     * range (exclusive) - {@code (startValue, endValue)}.
      * <p>
      * The indexed property is a {@link Long} value and numeric comparison applies.
      * <p>
@@ -220,8 +220,8 @@ public interface DocumentStore {
      * @param <T> the document type
      * @param collection the collection.
      * @param indexedProperty the name of the indexed property
-     * @param startValue the minimum value of the indexed property
-     * @param endValue the maximum value of the indexed property
+     * @param startValue the minimum value of the indexed property (exclusive)
+     * @param endValue the maximum value of the indexed property (exclusive)
      * @return the number of removed documents.
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.

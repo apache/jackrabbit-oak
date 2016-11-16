@@ -221,7 +221,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
             updateAndLogTimes("remove", start, 0, 0);
             if (logCommonCall()) {
                 logCommonCall(start, "remove " + collection + "; indexedProperty" + indexedProperty +
-                    "; range - [" + startValue + ", " + endValue + "]");
+                    "; range - (" + startValue + ", " + endValue + ")");
             }
             return result;
         } catch (Exception e) {

@@ -220,7 +220,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 @Override
                 public boolean apply(@Nullable T doc) {
                     Long modified = Utils.asLong((Number) doc.get(indexedProperty));
-                    return startValue <= modified && modified <= endValue;
+                    return startValue < modified && modified < endValue;
                 }
             }).clear();
         } finally {
