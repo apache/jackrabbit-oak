@@ -91,7 +91,6 @@ public class CheckpointTest extends OakBaseTest {
         assertEquals(props, store.checkpointInfo(cp));
     }
 
-    @Ignore("OAK-5113")
     @Test
     public void noContentChangeForCheckpoints() throws Exception{
         final AtomicInteger invocationCount = new AtomicInteger();
