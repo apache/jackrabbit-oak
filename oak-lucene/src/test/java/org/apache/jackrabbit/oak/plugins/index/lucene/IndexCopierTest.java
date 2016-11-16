@@ -866,6 +866,7 @@ public class IndexCopierTest {
 
         //Let copy to proceed
         copyLatch.countDown();
+        copyTasks.get();
 
         //Now wait for close to finish
         closeTasks.get();
