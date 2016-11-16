@@ -782,7 +782,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
                     indexedProperty + " in (" + startValue + ", " + endValue + ")");
             } finally {
-                if (num > 0 && collection == Collection.NODES) {
+                if (collection == Collection.NODES) {
                     // this method is currently being used only for Journal collection while GC.
                     // But, to keep sanctity of the API, we need to acknowledge that Nodes collection
                     // could've been used. But, in this signature, there's no useful way to invalidate

@@ -44,7 +44,6 @@ public class JournalGCTest {
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .clock(c).setAsyncDelay(0).getNodeStore();
 
-        String cp = ns.checkpoint(TimeUnit.DAYS.toMillis(1));
         // perform some change
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -54,6 +53,7 @@ public class JournalGCTest {
 
         // trigger creation of journal entry
         ns.runBackgroundOperations();
+        String cp = ns.checkpoint(TimeUnit.DAYS.toMillis(1));
 
         JournalEntry entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
         assertNotNull(entry);
