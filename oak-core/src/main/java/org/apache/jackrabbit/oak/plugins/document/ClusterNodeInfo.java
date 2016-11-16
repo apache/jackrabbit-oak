@@ -448,7 +448,6 @@ public class ClusterNodeInfo {
             ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId, configuredClusterId, i == 0);
             String key = String.valueOf(clusterNode.id);
             UpdateOp update = new UpdateOp(key, true);
-            update.set(ID, key);
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
             if (updateLease) {

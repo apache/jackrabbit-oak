@@ -84,7 +84,6 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             for (int i = 0; i < amount; i++) {
                 String id = this.getClass().getName() + ".testCreatePerf-" + size + "-" + cnt + "-" + i;
                 UpdateOp up = new UpdateOp(id, true);
-                up.set("_id", id);
                 up.set("foo", pval);
                 ups.add(up);
                 ids.add(id);
@@ -120,14 +119,12 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
         List<UpdateOp> ups = new ArrayList<UpdateOp>();
 
         UpdateOp container = new UpdateOp(cid, true);
-        container.set("_id", cid);
         ups.add(container);
         removeMe.add(cid);
         for (int i = 0; i < nodecount; i++) {
             String id = String.format("%s/%08d", cid, i);
             removeMe.add(id);
             UpdateOp u = new UpdateOp(id, true);
-            u.set("_id", id);
             ups.add(u);
         }
 
@@ -189,7 +186,6 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             super.ds.remove(Collection.NODES, id);
             removeMe.add(id);
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("testprop", generateString(100 * i, true));
             up.setMapEntry("_lastRev", cr, "setup");
             up.set("_modified", NodeDocument.getModifiedInSecs(System.currentTimeMillis()));
@@ -237,7 +233,6 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
 
         super.ds.remove(Collection.NODES, Collections.singletonList(id));
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         for (int i = 0; i < 100; i++) {
             up.set("foo" + i, generateString(1024, true));
         }
@@ -285,7 +280,6 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
 
         while (System.currentTimeMillis() < end) {
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             if (growing) {
                 Revision r = new Revision(System.currentTimeMillis(), (int) cnt, 1);
                 up.setMapEntry("foo", r, pval);
@@ -333,7 +327,6 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
 
         ds1.remove(Collection.NODES, id);
         UpdateOp up = new UpdateOp(id, true);
-        up.set(Document.ID, id);
         up.set(Document.MOD_COUNT, 1L);
         up.set("c", 0L);
         up.set("u", 0L);
@@ -380,7 +373,6 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
                 int failures = 0;
                 // operation that does not require fetching the previous state
                 UpdateOp up = new UpdateOp(id, false);
-                up.set(Document.ID, id);
                 up.increment("u", 1);
                 while (!threadOneIsDone.get()) {
                     try {

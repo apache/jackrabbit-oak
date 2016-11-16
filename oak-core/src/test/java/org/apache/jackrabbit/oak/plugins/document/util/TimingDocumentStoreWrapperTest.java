@@ -31,7 +31,6 @@ public class TimingDocumentStoreWrapperTest {
     public void createOrUpdate() {
         DocumentStore store = new TimingDocumentStoreWrapper(new MemoryDocumentStore());
         UpdateOp op = new UpdateOp("foo", true);
-        op.set(Document.ID, "foo");
         store.createOrUpdate(Collection.NODES, Collections.singletonList(op));
     }
 }

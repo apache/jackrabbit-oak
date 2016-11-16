@@ -169,7 +169,6 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         DocumentStore store = mk.getDocumentStore();
         String id = Utils.getIdFromPath("/test");
         UpdateOp updateOp = new UpdateOp(id, true);
-        updateOp.set(Document.ID, id);
         Revision r1 = Revision.newRevision(1);
         updateOp.setMapEntry("p", r1, "a");
         Revision r2 = Revision.newRevision(1);
@@ -191,7 +190,6 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         DocumentStore store = mk.getDocumentStore();
         String id = Utils.getIdFromPath("/test");
         UpdateOp updateOp = new UpdateOp(id, true);
-        updateOp.set(Document.ID, id);
         Revision r1 = Revision.newRevision(1);
         updateOp.setMapEntry("p", r1, "a");
         Revision r2 = Revision.newRevision(1);

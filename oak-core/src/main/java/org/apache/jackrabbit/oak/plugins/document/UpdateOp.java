@@ -194,16 +194,13 @@ public final class UpdateOp {
     /**
      * Set the property to the given String value.
      * <p>
-     * Note that {@link Document#ID} does not need to be set using this method;
+     * Note that {@link Document#ID} must not be set using this method;
      * it is sufficiently specified by the id parameter set in the constructor.
      *
      * @param property the property name
      * @param value the value
      * @throws IllegalArgumentException
-     *             if an attempt is made to set {@link Document#ID} to a value
-     *             inconsistent with the id parameter set in the constructor
-     *             (note that setting the ID here is redundant and might be
-     *             rejected in future versions)
+     *             if an attempt is made to set {@link Document#ID}.
      */
     public void set(String property, String value) {
         internalSet(property, value);
@@ -348,9 +345,9 @@ public final class UpdateOp {
     }
 
     private void internalSet(String property, Object value) {
-        if (Document.ID.equals(property) && !id.equals(value.toString())) {
+        if (Document.ID.equals(property)) {
             throw new IllegalArgumentException(
-                    "updateOp.id (" + id + ") and set operation on " + Document.ID + " (" + value + ") disagree");
+                    "updateOp.id (" + id + ") must not set " + Document.ID);
         }
         Operation op = new Operation(Operation.Type.SET, value);
         changes.put(new Key(property, null), op);

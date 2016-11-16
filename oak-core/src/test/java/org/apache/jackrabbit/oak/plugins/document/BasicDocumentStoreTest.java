@@ -67,7 +67,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // add
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
         super.ds.invalidateCache();
         assertNotNull(super.ds.find(Collection.NODES, id));
@@ -93,15 +92,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testConflictingId() {
-        String id = this.getClass().getName() + ".testConflictingId";
+    public void testSetId() {
+        String id = this.getClass().getName() + ".testSetId";
 
         UpdateOp up = new UpdateOp(id, true);
         try {
-            up.set("_id", id + "x");
+            up.set("_id", id);
         } catch (IllegalArgumentException expected) {
-        } finally {
-            removeMe.add(id);
         }
     }
 
@@ -117,12 +114,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // create
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         assertNull(super.ds.createOrUpdate(Collection.NODES, up));
 
         // update
         up = new UpdateOp(id, true);
-        up.set("_id", id);
         assertNotNull(super.ds.createOrUpdate(Collection.NODES, up));
         removeMe.add(id);
     }
@@ -160,7 +155,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // add
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         assertTrue(super.ds.create(Collection.JOURNAL, Collections.singletonList(up)));
     }
 
@@ -182,93 +176,78 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // add
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set(existingProp, "lock");
         up.setMapEntry(existingRevisionProp, r, "lock");
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
 
         // updates
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.notEquals(nonExistingProp, "none");
         NodeDocument result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNotNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(nonExistingProp, null);
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNotNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.notEquals(nonExistingRevisionProp, r, "none");
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNotNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(nonExistingRevisionProp, r, null);
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNotNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingProp, "none");
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingProp, null);
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingRevisionProp, r, "none");
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingRevisionProp, r, null);
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.notEquals(existingProp, "lock");
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingProp, null);
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.notEquals(existingRevisionProp, r, "lock");
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingRevisionProp, r, null);
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingProp, "lock");
         up.set(existingProp, "none");
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNotNull(result);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.equals(existingRevisionProp, r, "lock");
         up.setMapEntry(existingRevisionProp, r, "none");
         result = super.ds.findAndUpdate(Collection.NODES, up);
@@ -289,7 +268,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         try {
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.equals("foo", "bar");
             super.ds.create(Collection.NODES, Collections.singletonList(up));
             fail("conditional create should fail");
@@ -299,13 +277,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         UpdateOp cup = new UpdateOp(id, true);
-        cup.set("_id", id);
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(cup)));
         removeMe.add(id);
 
         try {
             UpdateOp up = new UpdateOp(id, false);
-            up.set("_id", id);
             up.equals("foo", "bar");
             super.ds.createOrUpdate(Collection.NODES, up);
             fail("conditional createOrUpdate should fail");
@@ -316,7 +292,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         try {
             UpdateOp up = new UpdateOp(id, false);
-            up.set("_id", id);
             up.equals("foo", "bar");
             super.ds.createOrUpdate(Collection.NODES, Collections.singletonList(up));
             fail("conditional createOrUpdate should fail");
@@ -327,7 +302,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         try {
             UpdateOp up = new UpdateOp(id, false);
-            up.set("_id", id);
             up.equals("foo", "bar");
             super.ds.update(Collection.NODES, Collections.singletonList(id), up);
             fail("conditional update should fail");
@@ -355,7 +329,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         if (! super.dsname.contains("Memory")) {
             UpdateOp up = new UpdateOp(id,  true);
-            up.set("_id", id);
             assertFalse("create() with ultra-long id needs to fail", super.ds.create(Collection.NODES, Collections.singletonList(up)));
         }
     }
@@ -376,7 +349,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
             // add
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("_modified", modTime);
             super.ds.create(Collection.JOURNAL, Collections.singletonList(up));
         }
@@ -419,7 +391,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             } catch (DocumentStoreException ignored) {
             }
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             if (success) {
                 // check that we really can read it
@@ -454,7 +425,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String id = this.getClass().getName() + ".testMaxProperty-" + test;
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("foo", pval);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             if (success) {
@@ -481,7 +451,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("foo", pval);
             super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -493,7 +462,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
             String pval = generateString(test, false);
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("foo", pval);
             super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -527,17 +495,14 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
         removeMe.add(id);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.set("f0", generateConstantString(3000));
         super.ds.update(Collection.NODES, Collections.singletonList(id), up);
 
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.set("f1", generateConstantString(967));
         super.ds.update(Collection.NODES, Collections.singletonList(id), up);
 
@@ -550,7 +515,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = this.getClass().getName() + ".testModifiedMaxUpdate";
         // create a test node
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_modified", 1000L);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);
@@ -558,7 +522,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // update with smaller _modified
         UpdateOp up2 = new UpdateOp(id, true);
-        up2.set("_id", id);
         up2.max("_modified", 100L);
         super.ds.findAndUpdate(Collection.NODES, up2);
 
@@ -577,7 +540,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = this.getClass().getName() + ".testModifiedMaxUpdate2";
         // create a test node
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_modified", 1000L);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);
@@ -586,7 +548,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < 25; i++) {
             // update with smaller _modified
             UpdateOp up2 = new UpdateOp(id, true);
-            up2.set("_id", id);
             up2.max("_modified", 100L);
             super.ds.findAndUpdate(Collection.NODES, up2);
             super.ds.invalidateCache();
@@ -601,7 +562,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = this.getClass().getName() + ".testModifyModified";
         // create a test node
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_modified", 1000L);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);
@@ -609,7 +569,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // update with "max" operation
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.max("_modified", 2000L);
         super.ds.update(Collection.NODES, Collections.singletonList(id), up);
         NodeDocument nd = super.ds.find(Collection.NODES, id, 0);
@@ -617,7 +576,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // update with "set" operation
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.set("_modified", 1500L);
         super.ds.update(Collection.NODES, Collections.singletonList(id), up);
         nd = super.ds.find(Collection.NODES, id, 0);
@@ -630,7 +588,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = this.getClass().getName() + ".testModifyDeletedOnce";
         // create a test node
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set(NodeDocument.DELETED_ONCE, Boolean.FALSE);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);
@@ -645,7 +602,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // update
         up = new UpdateOp(id, false);
-        up.set("_id", id);
         up.set(NodeDocument.DELETED_ONCE, Boolean.TRUE);
         super.ds.update(Collection.NODES, Collections.singletonList(id), up);
         nd = super.ds.find(Collection.NODES, id, 0);
@@ -670,7 +626,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String id = this.getClass().getName() + ".testInterestingStrings-" + testname;
             super.ds.remove(Collection.NODES, id);
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("foo", test);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("failed to insert a document with property value of " + test + " (" + testname + ") in " + super.dsname, success);
@@ -697,7 +652,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // create one of the test nodes
         int pre = cnt / 2;
         UpdateOp up = new UpdateOp(bid + pre, true);
-        up.set("_id", bid + pre);
         up.set("foo", "bar");
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
 
@@ -707,7 +661,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         List<UpdateOp> ups = new ArrayList<UpdateOp>();
         for (int i = 0; i < cnt; i++) {
             UpdateOp op = new UpdateOp(bid + i, true);
-            op.set("_id", bid + i);
             op.set("foo", "qux");
             ups.add(op);
             if (i != pre) {
@@ -755,7 +708,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = this.getClass().getName() + ".testDeleteNonExistingMultiple-" + UUID.randomUUID();
         // create a test node
         UpdateOp up = new UpdateOp(id + "-2", true);
-        up.set("_id", id + "-2");
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);
         List<String> todelete = new ArrayList<String>();
@@ -773,7 +725,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // create a test node
         super.ds.remove(Collection.NODES, id);
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);
         removeMe.add(id);
@@ -801,7 +752,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // create a test node
         super.ds.remove(Collection.SETTINGS, id);
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         boolean success = super.ds.create(Collection.SETTINGS, Collections.singletonList(up));
         assertTrue(success);
         removeMeSettings.add(id);
@@ -811,7 +761,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertNull("_modified should be null until set", m);
 
         up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_modified", 123L);
         super.ds.findAndUpdate(Collection.SETTINGS, up); 
 
@@ -821,7 +770,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals("123", m.toString());
 
         up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.max("_modified", 122L);
         super.ds.findAndUpdate(Collection.SETTINGS, up); 
 
@@ -831,7 +779,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals("123", m.toString());
 
         up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.max("_modified", 124L);
         super.ds.findAndUpdate(Collection.SETTINGS, up); 
 
@@ -849,7 +796,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < 10; i++) {
             String id = base + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("document with " + id + " not created", success);
             removeMe.add(id);
@@ -873,7 +819,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < 10; i++) {
             String id = base + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set(NodeDocument.HAS_BINARY_FLAG, i % 2L);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("document with " + id + " not created", success);
@@ -894,7 +839,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < 10; i++) {
             String id = base + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set(NodeDocument.DELETED_ONCE, Boolean.valueOf(i % 2 == 0));
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("document with " + id + " not created", success);
@@ -919,12 +863,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (char c : "!\"#$%&'()*+,-./0123456789:;<=>?@AZ[\\]^_`az{|}~".toCharArray()) {
             String id = base + c;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             creates.add(up);
             removeMe.add(id);
             id = base + "/" + c;
             up = new UpdateOp(id, true);
-            up.set("_id", id);
             creates.add(up);
             expected.add(id);
             removeMe.add(id);
@@ -985,7 +927,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // add
         Revision revision = Revision.fromString("r0-0-1");
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.setMapEntry("_collisions", revision, "foo");
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
         removeMe.add(id);
@@ -1001,7 +942,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             // update 
             Revision revision2 = Revision.fromString("r0-0-2");
             UpdateOp up2 = new UpdateOp(id, false);
-            up2.set("_id", id);
             up2.setMapEntry("_collisions", revision2, "foobar");
             NodeDocument old = super.ds.findAndUpdate(Collection.NODES, up2);
             assertNotNull(old);
@@ -1014,7 +954,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
             // update 
             UpdateOp up3 = new UpdateOp(id, false);
-            up3.set("_id", id);
             up3.set("foo", "bar");
             old = super.ds.findAndUpdate(Collection.NODES, up3);
             assertNotNull(old);
@@ -1036,7 +975,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testServerTimeDiff() throws Exception {
         UpdateOp up = new UpdateOp("0:/", true);
-        up.set("_id", "0:/");
         super.ds.create(Collection.NODES, Collections.singletonList(up));
         removeMe.add("0:/");
         long td = super.ds.determineServerTimeDifferenceMillis();
@@ -1104,7 +1042,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
-        op.set(Document.ID, id);
         return op;
     }
 

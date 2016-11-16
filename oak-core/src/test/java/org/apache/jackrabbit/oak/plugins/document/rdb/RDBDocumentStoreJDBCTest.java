@@ -74,7 +74,6 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         String id = this.getClass().getName() + ".conditionalRead";
         super.ds.remove(Collection.NODES, id);
         UpdateOp op = new UpdateOp(id, true);
-        op.set("_id", id);
         op.set("_modified", 1L);
         removeMe.add(id);
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(op)));

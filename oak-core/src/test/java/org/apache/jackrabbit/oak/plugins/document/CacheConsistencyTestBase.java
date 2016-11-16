@@ -61,15 +61,12 @@ public abstract class CacheConsistencyTestBase {
     public void testExceptionInvalidatesCache() {
         String id1 = this.getClass().getName() + ".testExceptionInvalidatesCache1";
         UpdateOp up1 = new UpdateOp(id1, true);
-        up1.set("_id", id1);
         up1.set("_test", "oldvalue");
         String id2 = this.getClass().getName() + ".testExceptionInvalidatesCache2";
         UpdateOp up2 = new UpdateOp(id2, true);
-        up2.set("_id", id2);
         up2.set("_test", "oldvalue");
         String id3 = this.getClass().getName() + ".testExceptionInvalidatesCache3";
         UpdateOp up3 = new UpdateOp(id3, true);
-        up3.set("_id", id3);
         up3.set("_test", "oldvalue");
         ds.create(Collection.NODES, Lists.newArrayList(up1, up2, up3));
         removeMe.add(id1);
@@ -92,7 +89,6 @@ public abstract class CacheConsistencyTestBase {
             setTemporaryUpdateException(random);
             try {
                 up1 = new UpdateOp(id1, false);
-                up1.set("_id", id1);
                 up1.set("_test", random);
                 ds.findAndUpdate(Collection.NODES, up1);
                 fail("should have failed with DocumentStoreException");
@@ -116,7 +112,6 @@ public abstract class CacheConsistencyTestBase {
             setTemporaryUpdateException(random);
             try {
                 up1 = new UpdateOp(id1, false);
-                up1.set("_id", id1);
                 up1.set("_test", random);
                 ds.update(Collection.NODES, Collections.singletonList(id1), up1);
                 fail("should have failed with DocumentStoreException");
@@ -140,7 +135,6 @@ public abstract class CacheConsistencyTestBase {
             setTemporaryUpdateException(random);
             try {
                 up1 = new UpdateOp(id1, false);
-                up1.set("_id", id1);
                 up1.set("_test", random);
                 ds.createOrUpdate(Collection.NODES, up1);
                 fail("should have failed with DocumentStoreException");
@@ -169,13 +163,10 @@ public abstract class CacheConsistencyTestBase {
             setTemporaryUpdateException(random);
             try {
                 up1 = new UpdateOp(id1, false);
-                up1.set("_id", id1);
                 up1.set("_test", random);
                 up2 = new UpdateOp(id2, false);
-                up2.set("_id", id2);
                 up2.set("_test", random);
                 up3 = new UpdateOp(id3, false);
-                up3.set("_id", id3);
                 up3.set("_test", random);
 
                 ds.createOrUpdate(Collection.NODES, Lists.newArrayList(up1, up2, up3));

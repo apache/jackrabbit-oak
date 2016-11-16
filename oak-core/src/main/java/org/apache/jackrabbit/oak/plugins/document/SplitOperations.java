@@ -310,7 +310,6 @@ class SplitOperations {
                 String prevPath = Utils.getPreviousPathFor(path, h, entry.getKey() + 1);
                 String prevId = Utils.getIdFromPath(prevPath);
                 UpdateOp intermediate = new UpdateOp(prevId, true);
-                intermediate.set(Document.ID, prevId);
                 if (Utils.isLongPath(prevPath)) {
                     intermediate.set(NodeDocument.PATH, prevPath);
                 }
@@ -347,7 +346,6 @@ class SplitOperations {
             setPrevious(main, new Range(high, low, 0));
             String oldPath = Utils.getPreviousPathFor(path, high, 0);
             UpdateOp old = new UpdateOp(Utils.getIdFromPath(oldPath), true);
-            old.set(Document.ID, old.getId());
             if (Utils.isLongPath(oldPath)) {
                 old.set(NodeDocument.PATH, oldPath);
             }

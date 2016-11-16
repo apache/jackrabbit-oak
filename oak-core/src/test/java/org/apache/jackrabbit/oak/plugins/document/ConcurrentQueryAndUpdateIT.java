@@ -49,7 +49,6 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
             String id = Utils.getIdFromPath("/node-" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
-            op.set(Document.ID, id);
             NodeDocument.setLastRev(op, r);
             ops.add(op);
             removeMe.add(id);

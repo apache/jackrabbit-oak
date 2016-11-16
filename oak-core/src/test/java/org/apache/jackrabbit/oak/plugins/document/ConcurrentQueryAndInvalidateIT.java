@@ -80,7 +80,6 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
             String id = Utils.getIdFromPath("/node-" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
-            op.set(Document.ID, id);
             NodeDocument.setLastRev(op, r);
             ops.add(op);
             removeMe.add(id);
