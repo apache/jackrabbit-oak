@@ -216,10 +216,15 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 //Do a simple consistency check. Ideally Lucene index files are never
                 //updated but still do a check if the copy is consistent
                 if (localLength != remoteLength) {
-                    log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
-                                    "Content would be read from remote file only",
-                            indexPath, name, local, localLength, remoteLength);
-                    indexCopier.foundInvalidFile();
+                    LocalIndexFile file = new LocalIndexFile(local, name, remoteLength, true);
+                    if (!indexCopier.isCopyInProgress(file)) {
+                        log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
+                                        "Content would be read from remote file only",
+                                indexPath, name, local, localLength, remoteLength);
+                        indexCopier.foundInvalidFile();
+                    } else {
+                        log.trace("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
+                    }
                 } else {
                     reference.markValid();
                     log.trace("[{}] found local copy of file {}",

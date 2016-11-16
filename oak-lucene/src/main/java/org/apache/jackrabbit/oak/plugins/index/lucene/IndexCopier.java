@@ -279,6 +279,10 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return System.currentTimeMillis();
     }
 
+    public boolean isCopyInProgress(LocalIndexFile file) {
+        return copyInProgressFiles.contains(file);
+    }
+
     public void doneCopy(LocalIndexFile file, long start) {
         copyInProgressFiles.remove(file);
         copyInProgressCount.decrementAndGet();
