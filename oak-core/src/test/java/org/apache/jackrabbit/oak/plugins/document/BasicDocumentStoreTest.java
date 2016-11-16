@@ -41,8 +41,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ContiguousSet;
+import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Range;
 
 public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
@@ -355,6 +358,50 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("_id", id);
             assertFalse("create() with ultra-long id needs to fail", super.ds.create(Collection.NODES, Collections.singletonList(up)));
         }
+    }
+
+    //OAK-3001
+    @Test
+    public void testRangeRemove() {
+        String idPrefix = this.getClass().getName() + ".testRangeRemove";
+
+        com.google.common.collect.Range<Long> modTimes = Range.closed(1L, 30L);
+        for (Long modTime : ContiguousSet.create(modTimes, DiscreteDomain.longs())) {
+            String id = idPrefix + modTime;
+            // remove if present
+            Document d = super.ds.find(Collection.JOURNAL, id);
+            if (d != null) {
+                super.ds.remove(Collection.JOURNAL, id);
+            }
+
+            // add
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("_modified", modTime);
+            super.ds.create(Collection.JOURNAL, Collections.singletonList(up));
+        }
+
+        assertEquals("Number of entries removed didn't match", 5,
+                ds.remove(Collection.JOURNAL, "_modified", 20, 24));
+
+        assertEquals("Number of entries removed didn't match", 0,
+                ds.remove(Collection.JOURNAL, "_modified", 20, 24));
+
+        assertEquals("Number of entries removed didn't match", 5,
+                ds.remove(Collection.JOURNAL, "_modified", -1, 5));
+
+        assertEquals("Number of entries removed didn't match", 5,
+                ds.remove(Collection.JOURNAL, "_modified", 0, 10));
+
+        // interesting cases
+        assertEquals("Number of entries removed didn't match", 0,
+                ds.remove(Collection.JOURNAL, "_modified", 20, 19));
+
+        assertEquals("Number of entries removed didn't match", 0,
+                ds.remove(Collection.JOURNAL, "_modified", 31, 40));
+
+        assertEquals("Number of entries removed didn't match", 3,
+                ds.remove(Collection.JOURNAL, "_modified", 28, 40));
     }
 
     private int testMaxId(boolean ascii) {

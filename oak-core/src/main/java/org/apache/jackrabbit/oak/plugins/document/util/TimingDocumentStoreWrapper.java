@@ -212,6 +212,25 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                               String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        try {
+            long start = now();
+            int result = base.remove(collection, indexedProperty, startValue, endValue);
+            updateAndLogTimes("remove", start, 0, 0);
+            if (logCommonCall()) {
+                logCommonCall(start, "remove " + collection + "; indexedProperty" + indexedProperty +
+                    "; range - [" + startValue + ", " + endValue + "]");
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+
+    @Override
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         try {
             long start = now();

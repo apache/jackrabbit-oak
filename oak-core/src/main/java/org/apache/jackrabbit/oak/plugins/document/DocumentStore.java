@@ -202,6 +202,34 @@ public interface DocumentStore {
                                     Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove)
             throws DocumentStoreException;
 
+
+    /**
+     * Batch remove documents where the given "indexed property" is within the given
+     * range (inclusive) - {@code [startValue, endValue]}.
+     * <p>
+     * The indexed property is a {@link Long} value and numeric comparison applies.
+     * <p>
+     * In case of a {@code DocumentStoreException}, the documents with the given
+     * keys may or may not have been removed from the store. It may also be
+     * possible that only some have been removed from the store. It is the
+     * responsibility of the caller to check which documents still exist. The
+     * implementation however ensures that the result of the operation is
+     * properly reflected in the document cache. That is, an implementation
+     * could simply evict documents with the given keys from the cache.
+     *
+     * @param <T> the document type
+     * @param collection the collection.
+     * @param indexedProperty the name of the indexed property
+     * @param startValue the minimum value of the indexed property
+     * @param endValue the maximum value of the indexed property
+     * @return the number of removed documents.
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
+     */
+    <T extends Document> int remove(Collection<T> collection,
+                                    String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException;
+
     /**
      * Try to create a list of documents. This method returns {@code true} iff
      * none of the documents existed before and the create was successful. This

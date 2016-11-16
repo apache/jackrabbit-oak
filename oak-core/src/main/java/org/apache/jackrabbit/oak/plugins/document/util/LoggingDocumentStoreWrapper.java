@@ -173,6 +173,24 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
     }
 
     @Override
+    public <T extends Document> int remove(final Collection<T> collection,
+                                           final String indexedProperty, final long startValue, final long endValue)
+            throws DocumentStoreException {
+        try {
+            logMethod("remove", collection, indexedProperty, startValue, endValue);
+            return logResult(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    return store.remove(collection, indexedProperty, startValue, endValue);
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
     public <T extends Document> boolean create(final Collection<T> collection,
                                                final List<UpdateOp> updateOps) {
         try {

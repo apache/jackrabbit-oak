@@ -225,6 +225,23 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
+    public int delete(Connection connection, RDBTableMetaData tmd, String property, long startVal, long endVal)
+            throws SQLException, DocumentStoreException {
+        if (!MODIFIED.equals(property)) {
+            throw new DocumentStoreException("Unsupported condition: " + property + " in [" + startVal + ", " + endVal + "]");
+        }
+        PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() +
+                " where MODIFIED >= ? AND MODIFIED <= ?");
+        try {
+            int i = 1;
+            stmt.setLong(i++, startVal);
+            stmt.setLong(i++, endVal);
+            return stmt.executeUpdate();
+        } finally {
+            stmt.close();
+        }
+    }
+
     public long determineServerTimeDifferenceMillis(Connection connection) {
         String sql = this.dbInfo.getCurrentTimeStampInSecondsSyntax();
 

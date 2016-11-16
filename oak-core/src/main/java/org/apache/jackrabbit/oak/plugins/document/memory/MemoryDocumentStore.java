@@ -27,8 +27,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -44,6 +47,7 @@ import com.google.common.base.Splitter;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
@@ -199,6 +203,31 @@ public class MemoryDocumentStore implements DocumentStore {
                 lock.unlock();
             }
         }
+        return num;
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                    final String indexedProperty, final long startValue, final long endValue)
+            throws DocumentStoreException {
+        ConcurrentSkipListMap<String, T> map = getMap(collection);
+        int num = map.size();
+
+        Lock lock = rwLock.writeLock();
+        lock.lock();
+        try {
+            Maps.filterValues(map, new Predicate<T>() {
+                @Override
+                public boolean apply(@Nullable T doc) {
+                    Long modified = Utils.asLong((Number) doc.get(indexedProperty));
+                    return startValue <= modified && modified <= endValue;
+                }
+            }).clear();
+        } finally {
+            lock.unlock();
+        }
+
+        num -= map.size();
         return num;
     }
 
