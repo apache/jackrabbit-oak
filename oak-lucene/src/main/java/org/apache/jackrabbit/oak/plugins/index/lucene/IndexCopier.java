@@ -46,11 +46,11 @@ import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexSanityChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
-import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
@@ -102,6 +102,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final boolean prefetchEnabled;
     private volatile boolean closed;
     private final IndexRootDirectory indexRootDirectory;
+    private final Set<String> validatedIndexPaths = Sets.newConcurrentHashSet();
 
     public IndexCopier(Executor executor, File indexRootDir) throws IOException {
         this(executor, indexRootDir, false);
@@ -117,12 +118,14 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     public Directory wrapForRead(String indexPath, IndexDefinition definition,
                                  Directory remote, String dirName) throws IOException {
         Directory local = createLocalDirForIndexReader(indexPath, definition, dirName);
+        checkIntegrity(indexPath, local, remote);
         return new CopyOnReadDirectory(this, remote, local, prefetchEnabled, indexPath, executor);
     }
 
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition, dirName);
         String indexPath = definition.getIndexPathFromConfig();
+        checkIntegrity(indexPath, local, remote);
         return new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
     }
 
@@ -231,6 +234,22 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             }
         }
         return sharedSet;
+    }
+
+    private void checkIntegrity(String indexPath, Directory local, Directory remote) throws IOException {
+        if (validatedIndexPaths.contains(indexPath)){
+            return;
+        }
+
+        //The integrity check needs to be done for the very first time at startup when
+        //a directory gets created as at that time it can be ensured that there is no
+        //work in progress files, no memory mapping issue etc
+        //Also at this time its required that state in local dir should exactly same as
+        //one in remote dir
+        synchronized (validatedIndexPaths){
+            new IndexSanityChecker(indexPath, local, remote).check();
+            validatedIndexPaths.add(indexPath);
+        }
     }
 
     /**
