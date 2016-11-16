@@ -90,68 +90,11 @@ public class JournalGarbageCollector {
         }
         Stopwatch sw = Stopwatch.createStarted();
 
-        // the journal has ids of the following format:
-        // 1-0000014db9aaf710-00000001
-        // whereas the first number is the cluster node id.
-        // now, this format prevents from doing a generic
-        // query to get all 'old' entries, as the documentstore
-        // can only query for a sequential list of entries.
-        // (and the cluster node id here partitions the set
-        // of entries that we have to delete)
-        // To account for that, we simply iterate over all 
-        // cluster node ids and clean them up individually.
-        // Note that there are possible alternatives, such
-        // as: let each node clean up its own old entries
-        // but the chosen path is also quite simple: it can
-        // be started on any instance - but best on only one.
-        // if it's run on multiple concurrently, then they
-        // will compete at deletion, which is not optimal
-        // due to performance, but does not harm.
-
         // update the tail timestamp in the journalGC document
         // of the settings collection
         updateTailTimestamp(gcOlderThan);
 
-        // 1. get the list of cluster node ids
-        final List<ClusterNodeInfoDocument> clusterNodeInfos = ClusterNodeInfoDocument.all(ds);
-        int numDeleted = 0;
-        for (ClusterNodeInfoDocument clusterNodeInfoDocument : clusterNodeInfos) {
-            // current algorithm is to simply look at all cluster nodes
-            // irrespective of whether they are active or inactive etc.
-            // this could be optimized for inactive ones: at some point, all
-            // journal entries of inactive ones would have been cleaned up
-            // and at that point we could stop including those long-time-inactive ones.
-            // that 'long time' aspect would have to be tracked though, to be sure
-            // we don't leave garbage.
-            // so simpler is to quickly do a query even for long-time inactive ones
-            final int clusterNodeId = clusterNodeInfoDocument.getClusterId();
-
-            // 2. iterate over that list and do a query with
-            //    a limit of 'batch size'
-            boolean branch = false;
-            long startPointer = 0;
-            while (true) {
-                String fromKey = JournalEntry.asId(new Revision(startPointer, 0, clusterNodeId, branch));
-                String toKey = JournalEntry.asId(new Revision(gcOlderThan, 0, clusterNodeId, branch));
-                List<JournalEntry> deletionBatch = ds.query(Collection.JOURNAL, fromKey, toKey, batchSize);
-                if (deletionBatch.size() > 0) {
-                    ds.remove(Collection.JOURNAL, asKeys(deletionBatch));
-                    numDeleted += deletionBatch.size();
-                }
-                if (deletionBatch.size() < batchSize) {
-                    if (!branch) {
-                        // do the same for branches:
-                        // this will start at the beginning again with branch set to true
-                        // and eventually finish too
-                        startPointer = 0;
-                        branch = true;
-                        continue;
-                    }
-                    break;
-                }
-                startPointer = deletionBatch.get(deletionBatch.size() - 1).getRevisionTimestamp();
-            }
-        }
+        int numDeleted = ds.remove(Collection.JOURNAL, JournalEntry.MODIFIED, 0, gcOlderThan);
 
         sw.stop();
 

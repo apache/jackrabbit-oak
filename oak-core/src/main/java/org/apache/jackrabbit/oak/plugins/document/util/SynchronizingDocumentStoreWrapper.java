@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -80,6 +81,13 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     public synchronized <T extends Document> int remove(Collection<T> collection,
                                                         Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
         return store.remove(collection, toRemove);
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        return store.remove(collection, indexedProperty, startValue, endValue);
     }
 
     @Override

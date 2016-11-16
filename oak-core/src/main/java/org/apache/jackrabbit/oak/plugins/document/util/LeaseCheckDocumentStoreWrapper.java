@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -105,6 +106,14 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
             Map<String, Map<Key, Condition>> toRemove) {
         performLeaseCheck();
         return delegate.remove(collection, toRemove);
+    }
+
+    @Override
+    public<T extends Document> int remove(Collection<T> collection,
+                                          String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        performLeaseCheck();
+        return delegate.remove(collection, indexedProperty, startValue, endValue);
     }
 
     @Override

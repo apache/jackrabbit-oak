@@ -279,6 +279,27 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                    String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        int num = 0;
+        try {
+            num = delete(collection, indexedProperty, startValue, endValue);
+        } finally {
+            if (num > 0 && collection == Collection.NODES) {
+                // this method is currently being used only for Journal collection while GC.
+                // But, to keep sanctity of the API, we need to acknowledge that Nodes collection
+                // could've been used. But, in this signature, there's no useful way to invalidate
+                // cache.
+                // So, we use the hammer for this task
+                invalidateCache();
+            }
+        }
+        return num;
+    }
+
+
+    @Override
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         return internalCreate(collection, updateOps);
     }
@@ -1562,6 +1583,23 @@ public class RDBDocumentStore implements DocumentStore {
                 }
                 subMap.clear();
             }
+        }
+        return numDeleted;
+    }
+
+    private <T extends Document> int delete(Collection<T> collection,
+                                            String indexedProperty, long startVal, long endVal) {
+        int numDeleted = 0;
+        RDBTableMetaData tmd = getTable(collection);
+        Connection connection = null;
+        try {
+            connection = this.ch.getRWConnection();
+            numDeleted = db.delete(connection, tmd, indexedProperty, startVal, endVal);
+            connection.commit();
+        } catch (Exception ex) {
+            throw DocumentStoreException.convert(ex, "deleting " + collection + ": " + indexedProperty + " in [" + startVal + ", " + endVal + "]");
+        } finally {
+            this.ch.closeConnection(connection);
         }
         return numDeleted;
     }

@@ -149,6 +149,14 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        getStats(collection).numRemoveCalls++;
+        return delegate.remove(collection, indexedProperty, startValue, endValue);
+    }
+
+    @Override
     public <T extends Document> boolean create(Collection<T> collection,
                                                List<UpdateOp> updateOps) {
         getStats(collection).numCreateOrUpdateCalls++;
