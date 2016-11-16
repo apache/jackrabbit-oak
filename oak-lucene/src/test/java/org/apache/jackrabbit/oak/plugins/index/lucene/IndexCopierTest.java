@@ -1022,7 +1022,6 @@ public class IndexCopierTest {
         executorService.shutdown();
     }
 
-    @Ignore("OAK-4114")
     @Test
     public void directoryContentMismatch_COR() throws Exception{
         Directory baseDir = new CloseSafeDir();
