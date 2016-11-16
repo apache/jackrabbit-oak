@@ -295,7 +295,6 @@ public final class JournalEntry extends Document {
     UpdateOp asUpdateOp(@Nonnull Revision revision) {
         String id = asId(revision);
         UpdateOp op = new UpdateOp(id, true);
-        op.set(ID, id);
         op.set(CHANGES, getChanges().serialize());
         // OAK-3085 : introduce a timestamp property
         // for later being used by OAK-3001

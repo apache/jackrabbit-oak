@@ -168,7 +168,6 @@ public class ClusterInfoTest {
         long waitFor = 2000;
         // modify record to indicate "active" with a lease end in the future
         UpdateOp up = new UpdateOp("" + cid, false);
-        up.set(Document.ID, "" + cid);
         up.set(ClusterNodeInfo.STATE, ClusterNodeState.ACTIVE.toString());
         long now = clock.getTime();
         up.set(ClusterNodeInfo.LEASE_END_KEY, now + waitFor);

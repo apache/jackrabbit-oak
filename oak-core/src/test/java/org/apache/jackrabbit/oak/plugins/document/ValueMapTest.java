@@ -51,14 +51,12 @@ public class ValueMapTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         // create previous docs
         UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r0, 0), true);
-        op.set(ID, op.getId());
         op.setMapEntry("prop", r0, "0");
         NodeDocument.setRevision(op, r0, "c");
         store.createOrUpdate(NODES, op);
         Revision r1low = new Revision(1, 0, 1);
         Revision r1high = new Revision(1, 10, 1);
         op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r1high, 0), true);
-        op.set(ID, op.getId());
         for (int i = r1low.getCounter(); i <= r1high.getCounter(); i++) {
             Revision r = new Revision(1, i, 1);
             op.setMapEntry("foo", r, String.valueOf(i));
@@ -67,7 +65,6 @@ public class ValueMapTest {
         store.createOrUpdate(NODES, op);
         // create root doc
         op = new UpdateOp(rootId, true);
-        op.set(ID, op.getId());
         Revision r2 = new Revision(2, 0, 1);
         op.setMapEntry("prop", r2, "1");
         NodeDocument.setRevision(op, r2, "c");
@@ -101,7 +98,6 @@ public class ValueMapTest {
         Revision r51 = new Revision(5, 0, 1);
         // create previous docs
         UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r31, 0), true);
-        op.set(ID, op.getId());
         op.setMapEntry("p0", r01, "0");
         NodeDocument.setRevision(op, r01, "c");
         op.setMapEntry("p1", r31, "1");
@@ -109,7 +105,6 @@ public class ValueMapTest {
         store.createOrUpdate(NODES, op);
 
         op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r42, 0), true);
-        op.set(ID, op.getId());
         op.setMapEntry("p1", r12, "0");
         NodeDocument.setRevision(op, r12, "c");
         op.setMapEntry("p1", r22, "1");
@@ -120,7 +115,6 @@ public class ValueMapTest {
 
         // create root doc
         op = new UpdateOp(rootId, true);
-        op.set(ID, op.getId());
         op.setMapEntry("p0", r51, "2");
         op.setMapEntry("p1", r51, "2");
         NodeDocument.setRevision(op, r51, "c");
@@ -196,20 +190,17 @@ public class ValueMapTest {
         
         String prevId1 = Utils.getPreviousIdFor("/", range1.high, 0);
         UpdateOp prevOp1 = new UpdateOp(prevId1, true);
-        prevOp1.set(Document.ID, prevId1);
         NodeDocument.setRevision(prevOp1, r5, "c");
         NodeDocument.setRevision(prevOp1, r7, "c");
 
         String prevId2 = Utils.getPreviousIdFor("/", range2.high, 0);
         UpdateOp prevOp2 = new UpdateOp(prevId2, true);
-        prevOp2.set(Document.ID, prevId2);
         NodeDocument.setRevision(prevOp2, r1, "c");
         NodeDocument.setRevision(prevOp2, r2, "c");
         NodeDocument.setRevision(prevOp2, r4, "c");
 
         String rootId = Utils.getIdFromPath("/");
         UpdateOp op = new UpdateOp(rootId, true);
-        op.set(Document.ID, rootId);
         NodeDocument.setRevision(op, r3, "c");
         NodeDocument.setRevision(op, r6, "c");
         NodeDocument.setPrevious(op, range1);

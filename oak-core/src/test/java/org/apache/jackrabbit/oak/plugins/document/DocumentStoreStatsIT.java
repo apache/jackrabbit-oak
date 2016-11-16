@@ -62,7 +62,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         ds.create(Collection.NODES, singletonList(up));
         removeMe.add(id);
 
@@ -74,7 +73,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         ds.create(Collection.NODES, singletonList(up));
         removeMe.add(id);
 
@@ -93,7 +91,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         for (int i = 0; i < 10; i++) {
             String id = base + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("document with " + id + " not created", success);
             removeMe.add(id);
@@ -113,7 +110,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         ds.create(Collection.NODES, singletonList(up));
         removeMe.add(id);
 
@@ -133,7 +129,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         ds.create(Collection.NODES, singletonList(up));
         removeMe.add(id);
 
@@ -142,7 +137,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
 
         up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.max("_modified", 122L);
         ds.findAndUpdate(Collection.NODES, up);
 

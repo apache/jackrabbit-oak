@@ -58,7 +58,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         }
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_foo", 0);
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
         removeMe.add(id);
@@ -67,7 +66,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
         for (int i = 0; i < increments; i++) {
             up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.increment("_foo", 1);
             if (i % 2 == 0) {
                 super.ds1.update(Collection.NODES, Collections.singletonList(id), up);
@@ -95,7 +93,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         }
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_foo", "bar");
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
         removeMe.add(id);
@@ -112,7 +109,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
         // update through ds1
         UpdateOp upds1 = new UpdateOp(id, true);
-        upds1.set("_id", id);
         upds1.set("foo", "qux");
         super.ds1.update(Collection.NODES, Collections.singletonList(id), upds1);
         nd1 = super.ds1.find(Collection.NODES, id);
@@ -132,7 +128,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
         // update through ds2
         UpdateOp upds2 = new UpdateOp(id, true);
-        upds2.set("_id", id);
         upds2.set("foo", "blub");
         super.ds2.update(Collection.NODES, Collections.singletonList(id), upds1);
         nd2 = super.ds2.find(Collection.NODES, id);
@@ -172,7 +167,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             for (int i = 0; i < halfAmount; i++) {
                 String id = baseId + "-" + i;
                 UpdateOp up = new UpdateOp(id, true);
-                up.set(Document.ID, id);
                 up.set("_createdby", "ds1");
                 ops.add(up);
             }
@@ -189,7 +183,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             for (int i = 0; i < amount; i++) {
                 String id = baseId + "-" + i;
                 UpdateOp up = new UpdateOp(id, true);
-                up.set(Document.ID, id);
                 up.set("_createdby", "ds2");
                 ops.add(up);
             }
@@ -234,7 +227,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                     List<UpdateOp> ops = Lists.newArrayList();
                     for (String id : ids) {
                         UpdateOp op = new UpdateOp(id, true);
-                        op.set(Document.ID, id);
                         op.set("_t1", "value");
                         ops.add(op);
                     }
@@ -259,7 +251,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                     List<UpdateOp> ops = Lists.newArrayList();
                     for (String id : ids) {
                         UpdateOp op = new UpdateOp(id, true);
-                        op.set(Document.ID, id);
                         op.set("_t2", "value");
                         ops.add(op);
                     }
@@ -304,7 +295,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         removeMe.add(id);
 
         UpdateOp op = new UpdateOp(id, true);
-        op.set(Document.ID, id);
         op.set("_ds1", 1);
         assertNull(ds1.createOrUpdate(Collection.NODES, op));
 
@@ -326,7 +316,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             // update call is triggered
             String docId = Utils.getIdFromPath("/node-" + i);
             UpdateOp update = new UpdateOp(docId, true);
-            update.set(Document.ID, docId);
             update.set("_ds2", 1);
             removeMe.add(docId);
             ops.add(update);
@@ -349,7 +338,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         super.ds1.remove(Collection.NODES, id);
 
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("_foo", 0);
         up.set("_bar", 0);
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
@@ -361,7 +349,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             long origMc = orig.getModCount();
 
             UpdateOp up2 = new UpdateOp(id, false);
-            up2.set("_id", id);
             up2.increment("_foo", 1L);
             super.ds2.update(Collection.NODES, Collections.singletonList(id), up2);
             NodeDocument ds2doc = super.ds2.find(Collection.NODES, id);
@@ -369,7 +356,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             assertTrue("_modCount needs to be > " + origMc + " but was " + ds2Mc, ds2Mc > origMc);
 
             UpdateOp up1 = new UpdateOp(id, false);
-            up1.set("_id", id);
             up1.increment("_bar", 1L);
             super.ds1.update(Collection.NODES, Collections.singletonList(id), up1);
 
@@ -386,7 +372,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         ds2.invalidateCache();
         removeMe.add(id);
         UpdateOp op = new UpdateOp(id, true);
-        op.set(Document.ID, id);
         ds1.create(Collection.NODES, Collections.singletonList(op));
 
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());

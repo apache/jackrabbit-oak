@@ -215,9 +215,6 @@ class ClusterViewDocument {
             // tries to create this first one simultaneously - so we use
             // 'create'
 
-            // going via 'create' requires ID to be set again (not only in new
-            // UpdateOp(id,isNew)):
-            updateOp.set(Document.ID, CLUSTERVIEW_DOC_ID);
             ArrayList<UpdateOp> updateOps = new ArrayList<UpdateOp>();
             newViewSeqNum = 1L;
             updateOp.setNew(true); // paranoia as that's already set above

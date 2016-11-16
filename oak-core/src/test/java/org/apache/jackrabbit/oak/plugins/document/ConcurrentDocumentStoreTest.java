@@ -42,7 +42,6 @@ public class ConcurrentDocumentStoreTest extends AbstractDocumentStoreTest {
                           // RDBDocumentStore
         String id = this.getClass().getName() + ".testConcurrentUpdate";
         UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
         up.set("thread", Thread.currentThread().getName());
         up.set("counter", 0L);
         ds.create(Collection.NODES, Collections.singletonList(up));
@@ -108,7 +107,6 @@ public class ConcurrentDocumentStoreTest extends AbstractDocumentStoreTest {
         public void run() {
             try {
                 UpdateOp up = new UpdateOp(id, true);
-                up.set("_id", id);
                 up.set("thread", Thread.currentThread().getName());
                 up.increment("counter", 1L);
                 if (create) {

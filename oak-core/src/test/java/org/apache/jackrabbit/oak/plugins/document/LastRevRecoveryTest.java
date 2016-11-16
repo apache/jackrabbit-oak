@@ -299,6 +299,9 @@ public class LastRevRecoveryTest {
     private static UpdateOp updateOpFromDocument(Document doc) {
         UpdateOp op = new UpdateOp(doc.getId(), true);
         for (String key : doc.keySet()) {
+            if (key.equals(Document.ID)) {
+                continue;
+            }
             Object obj = doc.get(key);
             if (obj instanceof Map) {
                 @SuppressWarnings("unchecked")

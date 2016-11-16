@@ -522,7 +522,6 @@ public class VersionGarbageCollectorIT {
         // add a document with a malformed id
         String id = "42";
         UpdateOp op = new UpdateOp(id, true);
-        op.set(ID, id);
         NodeDocument.setDeletedOnce(op);
         NodeDocument.setModified(op, store.newRevision());
         store.getDocumentStore().create(NODES, Lists.newArrayList(op));

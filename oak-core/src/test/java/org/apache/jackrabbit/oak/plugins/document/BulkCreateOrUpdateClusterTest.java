@@ -57,7 +57,6 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
         for (int i = 0; i < amount; i += 2) {
             String id = this.getClass().getName() + ".testConcurrentNoConflict" + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("prop", 100);
             updates.add(up);
         }
@@ -72,7 +71,6 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
             for (int j = 0; j < amountPerThread; j++) {
                 String id = this.getClass().getName() + ".testConcurrentNoConflict" + (j + i * amountPerThread);
                 UpdateOp up = new UpdateOp(id, true);
-                up.set("_id", id);
                 up.set("prop", 200 + i + j);
                 threadUpdates.add(up);
                 removeMe.add(id);
@@ -142,7 +140,6 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
         for (int i = 0; i < amount; i += 2) {
             String id = this.getClass().getName() + ".testConcurrentNoConflict" + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set("_id", id);
             up.set("prop", 100);
             updates.add(up);
             removeMe.add(id);
@@ -157,7 +154,6 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
             for (int j = 0; j < amount; j++) {
                 String id = this.getClass().getName() + ".testConcurrentWithConflict" + j;
                 UpdateOp up = new UpdateOp(id, true);
-                up.set("_id", id);
                 up.set("prop", 200 + i * amount + j);
                 threadUpdates.add(up);
                 removeMe.add(id);

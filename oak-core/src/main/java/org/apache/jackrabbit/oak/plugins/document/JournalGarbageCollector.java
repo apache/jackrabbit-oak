@@ -107,7 +107,6 @@ public class JournalGarbageCollector {
 
     private void updateTailTimestamp(long gcOlderThan) {
         UpdateOp op = new UpdateOp(JOURNAL_GC_ID, true);
-        op.set(Document.ID, JOURNAL_GC_ID);
         op.max(TAIL_TIMESTAMP, gcOlderThan);
         ns.getDocumentStore().createOrUpdate(SETTINGS, op);
     }

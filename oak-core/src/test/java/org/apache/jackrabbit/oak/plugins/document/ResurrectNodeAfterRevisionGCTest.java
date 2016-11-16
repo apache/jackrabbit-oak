@@ -199,7 +199,6 @@ public class ResurrectNodeAfterRevisionGCTest
     private void resurrectInvalidateWithModified(Invalidate inv)
             throws Exception {
         UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
-        op.set(Document.ID, op.getId());
         op.set("p", 0);
         op.set(NodeDocument.MODIFIED_IN_SECS, 50);
         assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
@@ -223,7 +222,6 @@ public class ResurrectNodeAfterRevisionGCTest
 
     private void resurrectInvalidate(Invalidate inv) throws Exception {
         UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
-        op.set(Document.ID, op.getId());
         op.set("p", 0);
         assertTrue(ds1.create(Collection.NODES, Lists.newArrayList(op)));
         NodeDocument doc = ds2.find(Collection.NODES, op.getId());

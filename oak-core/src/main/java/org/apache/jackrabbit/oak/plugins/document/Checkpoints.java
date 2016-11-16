@@ -217,7 +217,6 @@ class Checkpoints {
     private void createIfNotExist() {
         if (store.find(Collection.SETTINGS, ID) == null) {
             UpdateOp updateOp = new UpdateOp(ID, true);
-            updateOp.set(Document.ID, ID);
             store.createOrUpdate(Collection.SETTINGS, updateOp);
         }
     }

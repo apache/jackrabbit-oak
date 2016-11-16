@@ -401,7 +401,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     UpdateOp asOperation(@Nonnull Revision revision) {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, true);
-        op.set(Document.ID, id);
         if (Utils.isLongPath(path)) {
             op.set(NodeDocument.PATH, path);
         }
