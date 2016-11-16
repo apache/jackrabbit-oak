@@ -238,7 +238,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             } finally {
                 // Explicitly give up reference to the previous root state
                 // otherwise they would block cleanup. See OAK-3347
-                refreshHead();
+                refreshHead(true);
                 commitSemaphore.release();
             }
         }
@@ -249,11 +249,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
      * Refreshes the head state. Should only be called while holding a
      * permit from the {@link #commitSemaphore}.
      */
-    private void refreshHead() {
+    private void refreshHead(boolean dispatchChanges) {
         SegmentNodeState state = store.getHead();
         if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
-            changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
+            if (dispatchChanges) {
+                changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
+            }
         }
     }
 
@@ -268,7 +270,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public NodeState getRoot() {
         if (commitSemaphore.tryAcquire()) {
             try {
-                refreshHead();
+                refreshHead(true);
             } finally {
                 commitSemaphore.release();
             }
@@ -281,7 +283,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public NodeState getSuperRoot() {
         if (commitSemaphore.tryAcquire()) {
             try {
-                refreshHead();
+                refreshHead(true);
             } finally {
                 commitSemaphore.release();
             }
@@ -415,7 +417,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         public Boolean call() {
             long now = System.currentTimeMillis();
 
-            refreshHead();
+            refreshHead(true);
 
             SegmentNodeState state = head.get();
             SegmentNodeBuilder builder = state.builder();
@@ -446,7 +448,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
             SegmentNodeState newState = builder.getNodeState();
             if (store.setHead(state, newState)) {
-                refreshHead();
+                refreshHead(false);
                 return true;
             } else {
                 return false;
@@ -508,7 +510,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         for (int i = 0; i < 5; i++) {
             if (commitSemaphore.tryAcquire()) {
                 try {
-                    refreshHead();
+                    refreshHead(true);
 
                     SegmentNodeState state = head.get();
                     SegmentNodeBuilder builder = state.builder();
@@ -519,7 +521,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                         cp.remove();
                         SegmentNodeState newState = builder.getNodeState();
                         if (store.setHead(state, newState)) {
-                            refreshHead();
+                            refreshHead(false);
                             return true;
                         }
                     }
@@ -558,11 +560,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
 
         private boolean setHead(SegmentNodeState before, SegmentNodeState after) {
-            refreshHead();
+            refreshHead(true);
             if (store.setHead(before, after)) {
                 head.set(after);
                 changeDispatcher.contentChanged(after.getChildNode(ROOT), info);
-                refreshHead();
+                refreshHead(true);
                 return true;
             } else {
                 return false;
@@ -597,7 +599,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             for (long backoff = 1; backoff < maximumBackoff; backoff *= 2) {
                 long start = System.nanoTime();
 
-                refreshHead();
+                refreshHead(true);
                 SegmentNodeState state = head.get();
                 if (state.hasProperty("token")
                         && state.getLong("timeout") >= currentTimeMillis()) {
