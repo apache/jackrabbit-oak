@@ -36,6 +36,24 @@ public class XPathTest {
     
     @Test
     public void queryOptions() throws ParseException {
+        verify("//(element(*, nt:address))", 
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:address] as a " +
+                "/* xpath: //element(*, nt:address) */"); 
+        verify("//(element(*, nt:address) | element(*, nt:folder))", 
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:address] as a " +
+                "/* xpath: //element(*, nt:address) */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:folder] as a " +
+                "/* xpath: // element(*, nt:folder) */");
+        verify("(//element(*, nt:address) | //element(*, nt:folder))", 
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:address] as a " +
+                "/* xpath: //element(*, nt:address) */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:folder] as a " +
+                "/* xpath: //element(*, nt:folder) */");
         verify("/jcr:root/content//*[@a] order by @c option(traversal fail)",
                 "select [jcr:path], [jcr:score], * " +
                 "from [nt:base] as a " +
