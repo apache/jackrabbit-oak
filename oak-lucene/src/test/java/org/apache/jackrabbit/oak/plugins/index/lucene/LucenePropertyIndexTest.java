@@ -1141,6 +1141,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
+        assertThat(explain("select [jcr:path] from [nt:base] order by [jcr:score], [foo]"), containsString("lucene:test1"));
+
         assertThat(explain("select [jcr:path] from [nt:base] order by [foo]"), containsString("lucene:test1"));
 
         List<Tuple> tuples = createDataForLongProp();

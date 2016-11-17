@@ -698,17 +698,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return null;
         }
 
+        sortOrder = removeNativeSort(sortOrder);
         List<SortField> fieldsList = newArrayListWithCapacity(sortOrder.size());
         PlanResult planResult = getPlanResult(plan);
         for (int i = 0; i < sortOrder.size(); i++) {
             OrderEntry oe = sortOrder.get(i);
-            if (!isNativeSort(oe)) {
-                PropertyDefinition pd = planResult.getOrderedProperty(i);
-                boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
-                String propName = oe.getPropertyName();
-                propName = FieldNames.createDocValFieldName(propName);
-                fieldsList.add(new SortField(propName, toLuceneSortType(oe, pd), reverse));
-            }
+            PropertyDefinition pd = planResult.getOrderedProperty(i);
+            boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
+            String propName = oe.getPropertyName();
+            propName = FieldNames.createDocValFieldName(propName);
+            fieldsList.add(new SortField(propName, toLuceneSortType(oe, pd), reverse));
         }
 
         if (fieldsList.isEmpty()) {
@@ -716,6 +715,25 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         } else {
             return new Sort(fieldsList.toArray(new SortField[0]));
         }
+    }
+    
+    /**
+     * Remove all "jcr:score" entries.
+     * 
+     * @param original the original list (is not modified)
+     * @return the list with the entries removed
+     */
+    private static List<OrderEntry> removeNativeSort(List<OrderEntry> original) {
+        if (original == null || original.isEmpty()) {
+            return original;
+        }
+        ArrayList<OrderEntry> result = new ArrayList<OrderEntry>();
+        for(OrderEntry oe : original) {
+            if (!isNativeSort(oe)) {
+                result.add(oe);
+            }
+        }
+        return result;
     }
 
     /**
@@ -817,17 +835,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             //This case indicates that query just had order by and no
             //property restriction defined. In this case property
             //existence queries for each sort entry
-            List<OrderEntry> orders = plan.getSortOrder();
+            List<OrderEntry> orders = removeNativeSort(plan.getSortOrder());
             for (int i = 0; i < orders.size(); i++) {
                 OrderEntry oe = orders.get(i);
-                if (!isNativeSort(oe)) {
-                    PropertyDefinition pd = planResult.getOrderedProperty(i);
-                    PropertyRestriction orderRest = new PropertyRestriction();
-                    orderRest.propertyName = oe.getPropertyName();
-                    Query q = createQuery(orderRest, pd);
-                    if (q != null) {
-                        qs.add(q);
-                    }
+                PropertyDefinition pd = planResult.getOrderedProperty(i);
+                PropertyRestriction orderRest = new PropertyRestriction();
+                orderRest.propertyName = oe.getPropertyName();
+                Query q = createQuery(orderRest, pd);
+                if (q != null) {
+                    qs.add(q);
                 }
             }
         }
