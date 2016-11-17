@@ -30,9 +30,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChangeSetFilterImpl implements ChangeSetFilter {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ChangeSetFilterImpl.class);
+    
     private final Set<String> rootIncludePaths;
     private final Set<Pattern> includePathPatterns;
     private final Set<Pattern> excludePathPatterns;
@@ -87,6 +91,16 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
 
     @Override
     public boolean excludes(ChangeSet changeSet) {
+        try{
+            return doExcludes(changeSet);
+        } catch(Exception e) {
+            LOG.warn("excludes: got an Exception while evaluating excludes: " + e.getMessage() + 
+                    ", changeSet=" + changeSet, e);
+            return false; // false is the safer option
+        }
+    }
+    
+    private boolean doExcludes(ChangeSet changeSet) {
         final Set<String> cpp = changeSet.getParentPaths();
         final Set<String> parentPaths = cpp != null ? new HashSet<String>(cpp) : new HashSet<String>();
 
