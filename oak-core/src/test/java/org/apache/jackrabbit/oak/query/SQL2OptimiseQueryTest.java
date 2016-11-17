@@ -236,6 +236,14 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     public void optimiseAndOrAnd() throws ParseException {
         optimiseAndOrAnd(
                 "select * from [nt:unstructured] as [c] " + 
+                "where isdescendantnode('/tmp') " + 
+                "and ([a]=1 or [b]=2) and ([c]=3 or [d]=4)",
+                "(isdescendantnode(c, /tmp)) and (d = 4) and (b = 2), " + 
+                "(isdescendantnode(c, /tmp)) and (d = 4) and (a = 1), " + 
+                "(isdescendantnode(c, /tmp)) and (c = 3) and (b = 2), " + 
+                "(isdescendantnode(c, /tmp)) and (c = 3) and (a = 1)");
+        optimiseAndOrAnd(
+                "select * from [nt:unstructured] as [c] " + 
                 "where ([a]=1 or [b]=2) and ([x]=3 or [y]=4)",
                 "(y = 4) and (b = 2), " + 
                 "(y = 4) and (a = 1), " + 
