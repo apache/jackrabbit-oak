@@ -41,25 +41,173 @@ provide details around various PID used in Oak
 
 #### SegmentNodeStore
 
-_PID `org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService`_
+This section describes the configuration for the Segment Node Store, an implementation of the Node Store that saves repository data on disk.
 
-repository.home
-: Path to repository home under which various repository related data is stored. Segment files would be
-stored under _${repository.home}/segmentstore_ directory
+The first of these configurations, identified by `org.apache.jackrabbit.oak.segment.SegmentNodeStoreService`, refers to the implementation provided by the `oak-segment-tar` bundle.
+This implementation is the newest and the only actively maintained one, and should be used unless some legacy use case needs to be supported.
 
-tarmk.size
-: Default - 256 (in MB)
-: Maximum file size (in MB)
+The second and last configuration, identified by `org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService`, refers to the old implementation of the Node Store provided by the `oak-segment` bundle.
+This implementation has been deprecated, will not receive any further improvements and should not be used, if possible.
 
-customBlobStore
-: Default false
-: Boolean value indicating that custom `BlobStore` to use. By default it uses `MongoBlobStore`.
+##### org.apache.jackrabbit.oak.segment.SegmentNodeStoreService
 
-blobGcMaxAgeInSecs
-: Default 86400 (24 hrs)
-: Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently 
-  (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have
-  been created 24 hrs ago would be considered for GC
+repository.home (string) - tarmk
+: A path on the file system where repository data will be stored.
+The Segment Store persists its data in a subdirectory of `repository.home` named `segmentstore`.
+
+tarmk.mode (string) - 64
+: The architecture model.
+It can assume only two values, `32` or `64`.
+If this property is set to `64`, data files used by the Segment Store are memory-mapped.
+Any other value will instruct the Segment Store not to use memory-mapped files.
+
+tarmk.size (int) - 256
+: The maximum size of TAR files on disk in MB.
+
+segmentCache.size (int) - 256
+: The maximum size of the segment cache in MB.
+The segment cache keeps a subset of the segments in memory and avoids performing I/O operations when those segments are used.
+
+stringCache.size (int) - 256
+: The maximum size of the strings cache in MB.
+The string cache keeps a subset of the string records in memory and avoids performing I/O operations when those strings are used.
+
+templateCache.size (int) - 256
+: The maximum size of the template cache in MB.
+The template cache keeps a subset of the template records in memory and avoids performing I/O operations when those templates are used.
+
+stringDeduplicationCache.size (int) - 15000
+: The maximum size of the string deduplication cache in number of items.
+The string deduplication cache tracks string records across different GC generations. It avoids duplicating a string record to the current GC generation if it was already duplicated in the past.
+
+templateDeduplicationCache.size (int) - 3000
+: The maximum size of the template deduplication cache in number of items.
+The template deduplication cache tracks template records across different GC generations. It avoids duplicating a template record to the current GC generation if it was already duplicated in the past.
+
+nodeDeduplicationCache.size (int) - 1048576
+: The maximum size of the node deduplication cache in number of items.
+The node deduplication cache tracks node records across different GC generations. It avoids duplicating a node record to the current generation if it was already duplicated in the past.
+
+pauseCompaction (boolean) - false
+: Determines if online compaction should be executed.
+If this property is `true`, both the estimation and compaction phases of the online compaction process are not executed.
+
+compaction.retryCount (int) - 5
+: The number of commit attempts the online compaction process should try before giving up.
+This property determines how many times the online compaction process should try to merge the compacted repository state with the user-generated state produced by commits executed concurrently during compaction.
+
+compaction.force.timeout (int) - 60
+: The amount of time the online compaction process is allowed to exclusively lock the store, in seconds.
+If this property is set to a positive value, if the compaction process fails to commit the compacted state concurrently with other commits, it will acquire an exclusive lock on the Node Store.
+The exclusive lock prevents other commits for completion, giving the compaction process a possibility to commit the compacted state.
+This property determines how long the compaction process is allowed to use the Node Store in exclusive mode.
+If this property is set to zero or to a negative value, the compaction process will not acquire an exclusive lock on the Node Store and will just give up if too many concurrent commits are detected.
+
+compaction.sizeDeltaEstimation (long) - 10737418240
+: The increase in size of the Node Store (in bytes) since the last successful compaction that will trigger another execution of the compaction phase.
+
+compaction.disableEstimation (boolean) - false
+: Disables the estimation phase of the online compaction process.
+If this property is set to `true`, the estimation phase of the compaction process will never run, and compaction will always be triggered for any amount of garbage in the Node Store.
+
+compaction.retainedGenerations (int) - 2
+: The number of generations to retain the Node Store.
+
+compaction.memoryThreshold (int) - 15
+: The percentage of heap memory that should always be free while compaction runs.
+If the available heap memory falls below the specified percentage, compaction will not be started or it will be aborted if it is already running.
+
+standby (boolean) - false
+: Determines if this Node Store is supposed to be used in standby mode.
+
+customBlobStore (boolean) - false
+: Determines if this Node Store is supposed to use a custom Blob Store.
+
+repository.backup.dir (string)
+: The path on the file system where backups of this Node Store should be stored.
+It defaults to a subdirectory of `repository.home` named `segmentstore-backup`.
+
+##### org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService
+
+**This configuration is deprecated.
+It belongs to the legacy Node Store implementation provided by the oak-segment bundle.
+This implementation should not be used anymore.
+Instead, rely on the Node Store implementation provided by the oak-segment-tar bundle, whose configuration is described above.**
+
+repository.home (string) - tarmk
+: Path to repository home under which various repository related data is stored.
+Segment files would be stored under the `${repository.home}/segmentstore` directory.
+
+tarmk.mode (string) - 64
+: The architecture model.
+It can assume only two values, `32` or `64`.
+If this property is set to `64`, data files used by the Segment Store are memory-mapped.
+Any other value will instruct the Segment Store not to use memory-mapped files.
+
+tarmk.size (int) - 256
+: Maximum file size (in MB).
+
+customBlobStore (boolean) - false
+: Determines if this Node Store is supposed to use a custom Blob Store.
+
+cache (int) - 256
+: Size of the segment cache in MB.
+
+compaction.cloneBinaries (boolean) - false
+: Determines if binaries should be cloned when performing online compaction.
+
+compaction.cleanup (string) - CLEAN_OLD
+: Determines how in-memory references to persisted data might influence the outcome of online compaction.
+It can only assume the values `CLEAN_ALL`, `CLEAN_OLD` and `CLEAN_NONE`.
+If this property is `CLEAN_ALL`, every memory reference is ignored.
+If this property is `CLEAN_OLD`, only memory references newer than a certain timestamp are considered (see `compaction.cleanup.timestamp`).
+If this property is `CLEAN_NONE`, no data pointed to by an in-memory reference will be cleaned up.
+
+compaction.cleanup.timestamp (long) - 36000000
+: The expiry time for in-memory references in ms.
+If `CLEAN_OLD` is used as the value of the `compaction.cleanup` property, every piece of data pointed to by a reference newer than this time interval will not be considered eligible for compaction.
+
+compaction.memoryThreshold (byte) - 5
+: A multiplier to help in estimating the amount of memory needed for compaction.
+Setting this property to `0` indirectly skips compaction because not enough memory is available.
+
+compaction.gainThreshold (byte) - 10.
+: A percentage, expressed as an integer between `0` and `100`, representing the expected gain of online compaction.
+If the amount of garbage is not equals to or greater than this percentage of the total disk space occupied by the Node Store, compaction will not run.
+Setting this property to `0` or to a negative value indirectly disables the estimation phase of the online compaction process.
+
+pauseCompaction (boolean) - true
+: Determines if online compaction should be executed.
+If this property is `true`, both the estimation and compaction phases of the online compaction process are not executed.
+
+compaction.retryCount (int) - 5
+: The number of commit attempts the online compaction process should try before giving up.
+It defaults to `5`.
+This property determines how many times the online compaction process should try to merge the compacted repository state with the user-generated state produced by commits executed concurrently during compaction.
+
+compaction.forceAfterFail (boolean) - false
+: Determines if online compaction should force its commit after a certain amount of attempts.
+
+compaction.lockWaitTime (int) - 60
+: Determines how long (in seconds) online compaction can use the Node Store in exclusive mode.
+It defaults to `60`.
+This value determines the validity of the exclusive lock on the Node Store acquired by the online compaction process when forcing its commit.
+
+persistCompactionMap (boolean) - true
+: Determines if the compaction map should be persisted on disk.
+
+standby (boolean) - false
+: Determines if this Node Store should be started in standby mode.
+
+secondary (boolean) - false
+: Determines if this Node Store should be started as a secondary store.
+
+customBlobStore (boolean) - false
+: Determines if this Node Store needs a Blob Store.
+
+blobGcMaxAgeInSecs (long) - 86400
+: BLOB Garbage Collector (GC) logic would only consider those BLOBs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs).
+For example, as per default, only those BLOBs which have been created 24 hours in the past would be considered for GC.
 
 <a name="document-node-store"></a>
 #### DocumentNodeStore
