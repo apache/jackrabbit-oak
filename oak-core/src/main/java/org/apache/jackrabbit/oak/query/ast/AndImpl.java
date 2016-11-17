@@ -254,11 +254,12 @@ public class AndImpl extends ConstraintImpl {
         if (getLastConstraint() instanceof OrImpl) {
             return this;
         }
-        for (int i = 0; i < constraints.size() - 1; i++) {
-            ConstraintImpl c = constraints.get(i);
+        ArrayList<ConstraintImpl> andList = getAllAndConditions();
+        for (int i = 0; i < andList.size() - 1; i++) {
+            ConstraintImpl c = andList.get(i);
             if (c instanceof OrImpl) {
                 ArrayList<ConstraintImpl> list = new ArrayList<ConstraintImpl>();
-                list.addAll(constraints);
+                list.addAll(andList);
                 list.remove(i);
                 list.add(c);
                 return new AndImpl(list);
@@ -266,6 +267,18 @@ public class AndImpl extends ConstraintImpl {
         }
         return this;
     }
+    
+    private ArrayList<ConstraintImpl> getAllAndConditions() {
+        ArrayList<ConstraintImpl> list = new ArrayList<ConstraintImpl>();
+        for(ConstraintImpl c : constraints) {
+            if (c instanceof AndImpl) {
+                list.addAll(((AndImpl) c).getAllAndConditions());
+            } else {
+                list.add(c);
+            }
+        }
+        return list;
+    }    
 
     @Override
     public Set<ConstraintImpl> convertToUnion() {
