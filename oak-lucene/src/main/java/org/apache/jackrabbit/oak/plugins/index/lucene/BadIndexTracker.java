@@ -38,7 +38,8 @@ class BadIndexTracker {
     private static final long DEFAULT_RECHECK_INTERVAL = TimeUnit.MINUTES.toMillis(15);
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Map<String, BadIndexInfo> badIndexes = Maps.newConcurrentMap();
+    private final Map<String, BadIndexInfo> badIndexesForRead = Maps.newConcurrentMap();
+    private final Map<String, BadIndexInfo> badPersistedIndexes = Maps.newConcurrentMap();
     private final long recheckIntervalMillis;
     private Ticker ticker = Ticker.systemTicker();
     private int indexerCycleCount;
@@ -61,17 +62,41 @@ class BadIndexTracker {
     }
 
     public void markGoodIndex(String indexPath) {
-        BadIndexInfo info = badIndexes.remove(indexPath);
+        BadIndexInfo info = badIndexesForRead.remove(indexPath);
+        badPersistedIndexes.remove(indexPath);
         if (info != null) {
             log.info("Index [{}] which was not working {} is found to be healthy again",
                     indexPath, info.getStats());
         }
     }
 
-    public void markBadIndex(String path, Throwable e) {
-        BadIndexInfo badIndex = badIndexes.get(path);
+    /**
+     * Invoked to mark a persisted index as bad i.e. where exception is thrown when index is reopened
+     * after update
+     *
+     * @param path index path
+     * @param e exception
+     */
+    public void markBadPersistedIndex(String path, Throwable e) {
+        BadIndexInfo badIndex = badPersistedIndexes.get(path);
         if (badIndex == null) {
-            badIndexes.put(path, new BadIndexInfo(path, e));
+            badPersistedIndexes.put(path, new BadIndexInfo(path, e, true));
+            log.error("Could not open the Lucene index at [{}]", path, e);
+        } else {
+            badIndex.failedAccess(e);
+            log.error("Could not open the Lucene index at [{}] . {}",
+                    path, badIndex.getStats(), e);
+        }
+    }
+
+    /**
+     * Invoked to mark a local index as bad i.e. where exception was thrown when index was
+     * opened for query. It can h
+     */
+    public void markBadIndexForRead(String path, Throwable e) {
+        BadIndexInfo badIndex = badIndexesForRead.get(path);
+        if (badIndex == null) {
+            badIndexesForRead.put(path, new BadIndexInfo(path, e, false));
             log.error("Could not access the Lucene index at [{}]", path, e);
         } else {
             badIndex.failedAccess(e);
@@ -81,7 +106,7 @@ class BadIndexTracker {
     }
 
     public boolean isIgnoredBadIndex(String path) {
-        BadIndexInfo badIdx = badIndexes.get(path);
+        BadIndexInfo badIdx = badIndexesForRead.get(path);
         if (badIdx == null) {
             return false;
         }
@@ -89,34 +114,49 @@ class BadIndexTracker {
     }
 
     public Set<String> getIndexPaths() {
-        return badIndexes.keySet();
+        return badIndexesForRead.keySet();
+    }
+
+    BadIndexInfo getInfo(String indexPath){
+        return badIndexesForRead.get(indexPath);
+    }
+
+    Set<String> getBadPersistedIndexPaths() {
+        return badPersistedIndexes.keySet();
+    }
+
+    BadIndexInfo getPersistedIndexInfo(String indexPath){
+        return badPersistedIndexes.get(indexPath);
     }
 
     public long getRecheckIntervalMillis() {
         return recheckIntervalMillis;
     }
 
-    BadIndexInfo getInfo(String indexPath){
-        return badIndexes.get(indexPath);
-    }
-
     void setTicker(Ticker ticker) {
         this.ticker = ticker;
+    }
+
+    public boolean hasBadIndexes(){
+        return !(badIndexesForRead.isEmpty() && badPersistedIndexes.isEmpty());
     }
 
     class BadIndexInfo {
         final String path;
         final int lastIndexerCycleCount = indexerCycleCount;
         private final long createdTime = TimeUnit.NANOSECONDS.toMillis(ticker.read());
+        private final boolean persistedIndex;
         private final Stopwatch created = Stopwatch.createStarted(ticker);
         private final Stopwatch watch = Stopwatch.createStarted(ticker);
         private String exception;
         private int accessCount;
         private int failedAccessCount;
 
-        public BadIndexInfo(String path, Throwable e) {
+
+        public BadIndexInfo(String path, Throwable e, boolean persistedIndex) {
             this.path = path;
             this.exception = Throwables.getStackTraceAsString(e);
+            this.persistedIndex = persistedIndex;
         }
 
         public boolean tryAgain() {
@@ -152,6 +192,10 @@ class BadIndexTracker {
 
         public long getCreatedTime() {
             return createdTime;
+        }
+
+        public boolean isPersistedIndex() {
+            return persistedIndex;
         }
 
         private int getCycleCount() {

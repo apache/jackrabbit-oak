@@ -125,8 +125,29 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     @Override
+    public TabularData getBadPersistedIndexStats() {
+        TabularDataSupport tds;
+        try {
+            TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
+                    "Lucene Bad Persisted Index Stats", BadIndexStats.TYPE, new String[]{"path"});
+            tds = new TabularDataSupport(tt);
+            Set<String> indexes = indexTracker.getBadIndexTracker().getBadPersistedIndexPaths();
+            for (String path : indexes) {
+                BadIndexInfo info = indexTracker.getBadIndexTracker().getPersistedIndexInfo(path);
+                if (info != null){
+                    BadIndexStats stats = new BadIndexStats(info);
+                    tds.put(stats.toCompositeData());
+                }
+            }
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    @Override
     public boolean isFailing() {
-        return !indexTracker.getBadIndexTracker().getIndexPaths().isEmpty();
+        return indexTracker.getBadIndexTracker().hasBadIndexes();
     }
 
     @Override

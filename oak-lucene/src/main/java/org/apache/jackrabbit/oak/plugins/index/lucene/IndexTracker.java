@@ -133,7 +133,7 @@ public class IndexTracker {
                         PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
-                        log.error("Failed to open Lucene index at " + path, e);
+                        badIndexTracker.markBadPersistedIndex(path, e);
                     }
                 }
             }, Iterables.toArray(PathUtils.elements(path), String.class)));
@@ -234,7 +234,7 @@ public class IndexTracker {
                 log.warn("Cannot open Lucene Index at path {} as the index is not of type {}", path, TYPE_LUCENE);
             }
         } catch (Throwable e) {
-            badIndexTracker.markBadIndex(path, e);
+            badIndexTracker.markBadIndexForRead(path, e);
         }
 
         return null;
