@@ -54,6 +54,9 @@ This implementation has been deprecated, will not receive any further improvemen
 repository.home (string) - tarmk
 : A path on the file system where repository data will be stored.
 The Segment Store persists its data in a subdirectory of `repository.home` named `segmentstore`.
+The provided path can be relative or absolute.
+If a relative path is provided, it is handled according to the definition of relative path as specified by `java.io.File`.
+Placeholders of any kind in the path are not supported.
 
 tarmk.mode (string) - 64
 : The architecture model.
@@ -122,10 +125,14 @@ standby (boolean) - false
 
 customBlobStore (boolean) - false
 : Determines if this Node Store is supposed to use a custom Blob Store.
+If this property is `true`, a Data Store or a Blob Store needs to be configured for the Segment Store to pick it up (see below).
+If this property is `false`, binaries will be stored in the Segment Store.
 
 repository.backup.dir (string)
 : The path on the file system where backups of this Node Store should be stored.
 It defaults to a subdirectory of `repository.home` named `segmentstore-backup`.
+If a relative path is provided, it is handled according to the definition of relative path as specified by `java.io.File`.
+Placeholders of any kind in the path are not supported.
 
 ##### org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService
 
@@ -135,8 +142,11 @@ This implementation should not be used anymore.
 Instead, rely on the Node Store implementation provided by the oak-segment-tar bundle, whose configuration is described above.**
 
 repository.home (string) - tarmk
-: Path to repository home under which various repository related data is stored.
-Segment files would be stored under the `${repository.home}/segmentstore` directory.
+: A path on the file system where repository data will be stored.
+The Segment Store persists its data in a subdirectory of `repository.home` named `segmentstore`.
+The provided path can be relative or absolute.
+If a relative path is provided, it is handled according to the definition of relative path as specified by `java.io.File`.
+Placeholders of any kind in the path are not supported.
 
 tarmk.mode (string) - 64
 : The architecture model.
@@ -146,9 +156,6 @@ Any other value will instruct the Segment Store not to use memory-mapped files.
 
 tarmk.size (int) - 256
 : Maximum file size (in MB).
-
-customBlobStore (boolean) - false
-: Determines if this Node Store is supposed to use a custom Blob Store.
 
 cache (int) - 256
 : Size of the segment cache in MB.
@@ -203,7 +210,9 @@ secondary (boolean) - false
 : Determines if this Node Store should be started as a secondary store.
 
 customBlobStore (boolean) - false
-: Determines if this Node Store needs a Blob Store.
+: Determines if this Node Store is supposed to use a custom Blob Store.
+If this property is `true`, a Data Store or a Blob Store needs to be configured for the Segment Store to pick it up (see below).
+If this property is `false`, binaries will be stored in the Segment Store.
 
 blobGcMaxAgeInSecs (long) - 86400
 : BLOB Garbage Collector (GC) logic would only consider those BLOBs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs).
