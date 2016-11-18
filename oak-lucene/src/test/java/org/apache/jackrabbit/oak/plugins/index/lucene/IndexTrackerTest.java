@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -101,6 +102,15 @@ public class IndexTrackerTest {
         //2. Corrupt the index
         builder = indexed.builder();
         indexed = corruptIndex("/oak:index/foo");
+
+        tracker.update(indexed);
+        indexNode = tracker.acquireIndexNode("/oak:index/foo");
+        //Even if the persisted index is corrupted the index should be accessible
+        //as update would have failed so old copy would be used
+        assertNotNull(indexNode);
+        assertFalse(tracker.getBadIndexTracker().getBadPersistedIndexPaths().isEmpty());
+
+
 
         //3. Recreate the tracker as we cannot push corrupt index in existing tracker
         //As diffAndUpdate would fail and existing IndexNode would not be changed

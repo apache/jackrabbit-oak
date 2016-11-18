@@ -33,6 +33,8 @@ public interface LuceneIndexMBean {
 
     TabularData getBadIndexStats();
 
+    TabularData getBadPersistedIndexStats();
+
     boolean isFailing();
 
     @Description("Determines the set of index paths upto given maxLevel. This can be used to determine the value for" +

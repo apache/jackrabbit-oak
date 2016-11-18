@@ -34,7 +34,7 @@ public class BadIndexTrackerTest {
 
     @Test
     public void basics() throws Exception{
-        tracker.markBadIndex("foo", new Exception());
+        tracker.markBadIndexForRead("foo", new Exception());
         assertThat(tracker.getIndexPaths(), hasItem("foo"));
 
         assertTrue(tracker.isIgnoredBadIndex("foo"));
@@ -45,7 +45,7 @@ public class BadIndexTrackerTest {
 
     @Test
     public void updatedIndexesMakesGood() throws Exception{
-        tracker.markBadIndex("foo", new Exception());
+        tracker.markBadIndexForRead("foo", new Exception());
         assertTrue(tracker.isIgnoredBadIndex("foo"));
 
         tracker.markGoodIndexes(Collections.singleton("foo"));
@@ -56,7 +56,7 @@ public class BadIndexTrackerTest {
     public void recheckDelay() throws Exception{
         tracker = new BadIndexTracker(100);
         tracker.setTicker(ticker);
-        tracker.markBadIndex("foo", new Exception());
+        tracker.markBadIndexForRead("foo", new Exception());
         ticker.addTime(50, TimeUnit.MILLISECONDS);
 
         assertTrue(tracker.isIgnoredBadIndex("foo"));
