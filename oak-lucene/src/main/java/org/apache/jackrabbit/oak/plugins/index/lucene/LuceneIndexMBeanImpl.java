@@ -41,11 +41,9 @@ import javax.management.openmbean.TabularType;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -103,6 +101,32 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             throw new IllegalStateException(e);
         }
         return tds;
+    }
+
+    @Override
+    public TabularData getBadIndexStats() {
+        TabularDataSupport tds;
+        try {
+            TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
+                    "Lucene Bad Index Stats", BadIndexStats.TYPE, new String[]{"path"});
+            tds = new TabularDataSupport(tt);
+            Set<String> indexes = indexTracker.getBadIndexTracker().getIndexPaths();
+            for (String path : indexes) {
+                BadIndexInfo info = indexTracker.getBadIndexTracker().getInfo(path);
+                if (info != null){
+                    BadIndexStats stats = new BadIndexStats(info);
+                    tds.put(stats.toCompositeData());
+                }
+            }
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    @Override
+    public boolean isFailing() {
+        return !indexTracker.getBadIndexTracker().getIndexPaths().isEmpty();
     }
 
     @Override
@@ -387,6 +411,64 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
     }
 
+    private static class BadIndexStats {
+        static final String[] FIELD_NAMES = new String[]{
+                "path",
+                "stats",
+                "failingSince",
+                "exception"
+        };
+
+        static final String[] FIELD_DESCRIPTIONS = new String[]{
+                "Path",
+                "Failure stats",
+                "Failure start time",
+                "Exception"
+        };
+
+        @SuppressWarnings("rawtypes")
+        static final OpenType[] FIELD_TYPES = new OpenType[]{
+                SimpleType.STRING,
+                SimpleType.STRING,
+                SimpleType.STRING,
+                SimpleType.STRING,
+        };
+
+        static final CompositeType TYPE = createCompositeType();
+
+        static CompositeType createCompositeType() {
+            try {
+                return new CompositeType(
+                        BadIndexStats.class.getName(),
+                        "Composite data type for Lucene Bad Index statistics",
+                        BadIndexStats.FIELD_NAMES,
+                        BadIndexStats.FIELD_DESCRIPTIONS,
+                        BadIndexStats.FIELD_TYPES);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private final BadIndexInfo info;
+
+        public BadIndexStats(BadIndexInfo info){
+            this.info = info;
+        }
+
+        CompositeDataSupport toCompositeData() {
+            Object[] values = new Object[]{
+                    info.path,
+                    info.getStats(),
+                    String.format("%tc", info.getCreatedTime()),
+                    info.getException(),
+            };
+            try {
+                return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
     //~---------------------------------------------------------< Internal >
 
     private static Directory getDirectory(IndexReader reader) {

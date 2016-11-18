@@ -107,6 +107,7 @@ class BadIndexTracker {
     class BadIndexInfo {
         final String path;
         final int lastIndexerCycleCount = indexerCycleCount;
+        private final long createdTime = TimeUnit.NANOSECONDS.toMillis(ticker.read());
         private final Stopwatch created = Stopwatch.createStarted(ticker);
         private final Stopwatch watch = Stopwatch.createStarted(ticker);
         private String exception;
@@ -143,6 +144,14 @@ class BadIndexTracker {
 
         public int getAccessCount() {
             return accessCount;
+        }
+
+        public String getException() {
+            return exception;
+        }
+
+        public long getCreatedTime() {
+            return createdTime;
         }
 
         private int getCycleCount() {
