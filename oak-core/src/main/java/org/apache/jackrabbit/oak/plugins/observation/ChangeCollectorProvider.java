@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,7 @@ import javax.annotation.Nullable;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.JcrConstants;
@@ -84,6 +86,12 @@ public class ChangeCollectorProvider extends ValidatorProvider {
             + "any other collected item such as property, nodeType - ie those will "
             + "all be collected irrespective of this config param." + "Default is " + DEFAULT_MAX_PATH_DEPTH)
     private static final String PROP_MAX_PATH_DEPTH = "maxPathDepth";
+
+    private static final boolean DEFAULT_ENABLED = true;
+    @Property(boolValue = DEFAULT_ENABLED, label = "enable/disable this validator", 
+            description = "Whether this validator is enabled. If disabled no ChangeSet will be generated. Default is "
+            + DEFAULT_ENABLED)
+    private static final String PROP_ENABLED = "enabled";
 
     /**
      * There is one CollectorSupport per validation process - it is shared
@@ -268,12 +276,25 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     private int maxItems = DEFAULT_MAX_ITEMS;
 
     private int maxPathDepth = DEFAULT_MAX_PATH_DEPTH;
+    
+    private boolean enabled = DEFAULT_ENABLED;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) {
+        reconfig(config);
+        LOG.info("activate: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled=" + enabled);
+    }
+
+    @Modified
+    protected void modified(final Map<String, Object> config) {
+        reconfig(config);
+        LOG.info("modified: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled=" + enabled);
+    }
+
+    private void reconfig(Map<String, ?> config) {
         maxItems = toInteger(config.get(PROP_MAX_ITEMS), DEFAULT_MAX_ITEMS);
         maxPathDepth = toInteger(config.get(PROP_MAX_PATH_DEPTH), DEFAULT_MAX_PATH_DEPTH);
-        LOG.info("activate: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth);
+        enabled = toBoolean(config.get(PROP_ENABLED), DEFAULT_ENABLED);
     }
 
     /** FOR TESTING-ONLY **/
@@ -298,6 +319,9 @@ public class ChangeCollectorProvider extends ValidatorProvider {
 
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+        if (!enabled) {
+            return null;
+        }
         if (info == null || !info.getInfo().containsKey(CommitContext.NAME)) {
             // then we cannot do change-collecting, as we can't store
             // it in the info
