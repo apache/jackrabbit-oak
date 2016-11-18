@@ -1098,7 +1098,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             private String stats(String suffix){
-                return name + ":" + suffix;
+                return name + "." + suffix;
             }
 
             private TimeSeries getTimeSeries(String name) {
