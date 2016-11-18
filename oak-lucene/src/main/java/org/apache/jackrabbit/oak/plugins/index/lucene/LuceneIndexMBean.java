@@ -31,6 +31,10 @@ public interface LuceneIndexMBean {
 
     TabularData getIndexStats() throws IOException;
 
+    TabularData getBadIndexStats();
+
+    boolean isFailing();
+
     @Description("Determines the set of index paths upto given maxLevel. This can be used to determine the value for" +
             "[includedPaths]. For this to work you should have [evaluatePathRestrictions] set to true in your index " +
             "definition")
