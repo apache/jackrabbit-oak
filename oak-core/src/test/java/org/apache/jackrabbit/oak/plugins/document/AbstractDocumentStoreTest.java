@@ -37,6 +37,7 @@ public abstract class AbstractDocumentStoreTest {
     protected DataSource rdbDataSource;
     protected List<String> removeMe = new ArrayList<String>();
     protected List<String> removeMeSettings = new ArrayList<String>();
+    protected List<String> removeMeJournal = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
@@ -51,6 +52,7 @@ public abstract class AbstractDocumentStoreTest {
     public void cleanUp() throws Exception {
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS, removeMeSettings);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL, removeMeJournal);
         ds.dispose();
         dsf.dispose();
     }

@@ -351,6 +351,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             UpdateOp up = new UpdateOp(id, true);
             up.set("_modified", modTime);
             super.ds.create(Collection.JOURNAL, Collections.singletonList(up));
+            removeMeJournal.add(id);
         }
 
         assertEquals("Number of entries removed didn't match", 3,
