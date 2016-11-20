@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdateTest.CommitInfoCollector;
@@ -35,12 +37,12 @@ import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -53,19 +55,13 @@ public class AsyncIndexerServiceTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private MemoryNodeStore nodeStore = new MemoryNodeStore();
+    private MemoryNodeStore nodeStore = new FakeClusterableMemoryNodeStore();
     private AsyncIndexerService service = new AsyncIndexerService();
 
-    @Before
-    public void setUp() {
-        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-        context.registerService(NodeStore.class, nodeStore);
-        context.registerService(ValidatorProvider.class, new ChangeCollectorProvider());
-        MockOsgi.injectServices(service, context.bundleContext());
-    }
 
     @Test
     public void asyncReg() throws Exception{
+        injectDefaultServices();
         Map<String,Object> config = ImmutableMap.<String, Object>of(
                 "asyncConfigs", new String[] {"async:5"}
         );
@@ -79,6 +75,7 @@ public class AsyncIndexerServiceTest {
 
     @Test
     public void leaseTimeout() throws Exception{
+        injectDefaultServices();
         Map<String,Object> config = ImmutableMap.<String, Object>of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
@@ -90,6 +87,7 @@ public class AsyncIndexerServiceTest {
 
     @Test
     public void changeCollectionEnabled() throws Exception{
+        injectDefaultServices();
         Map<String,Object> config = ImmutableMap.<String, Object>of(
                 "asyncConfigs", new String[] {"async:5"}
         );
@@ -117,8 +115,18 @@ public class AsyncIndexerServiceTest {
         assertNotNull(changeSet);
     }
 
-    private AsyncIndexUpdate getIndexUpdate(String name) {
-        return (AsyncIndexUpdate) context.getServices(Runnable.class, "(oak.async="+name+")")[0];
+    @Test
+    public void nonClusterableNodeStoreAndLeaseTimeout() throws Exception{
+        nodeStore = new MemoryNodeStore();
+        injectDefaultServices();
+
+        Map<String,Object> config = ImmutableMap.<String, Object>of(
+                "asyncConfigs", new String[] {"async:5"},
+                "leaseTimeOutMinutes" , "20"
+        );
+        MockOsgi.activate(service, context.bundleContext(), config);
+        AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+        assertEquals(0, indexUpdate.getLeaseTimeOut());
     }
 
     @Test
@@ -132,5 +140,24 @@ public class AsyncIndexerServiceTest {
         assertEquals(2, configs.size());
         assertEquals("foo", configs.get(1).name);
         assertEquals(23, configs.get(1).timeIntervalInSecs);
+    }
+
+    private void injectDefaultServices() {
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        context.registerService(NodeStore.class, nodeStore);
+        context.registerService(ValidatorProvider.class, new ChangeCollectorProvider());
+        MockOsgi.injectServices(service, context.bundleContext());
+    }
+
+    private AsyncIndexUpdate getIndexUpdate(String name) {
+        return (AsyncIndexUpdate) context.getServices(Runnable.class, "(oak.async="+name+")")[0];
+    }
+
+    private static class FakeClusterableMemoryNodeStore extends MemoryNodeStore implements Clusterable {
+        @Nonnull
+        @Override
+        public String getInstanceId() {
+            return "foo";
+        }
     }
 }

@@ -247,8 +247,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         private List<ValidatorProvider> validatorProviders = Collections.emptyList();
 
-        /** Expiration time of the last lease we committed */
-        private long lease;
+        /**
+         * Expiration time of the last lease we committed, null if lease is
+         * disabled
+         */
+        private Long lease = null;
 
         private boolean hasLease = false;
 
@@ -269,19 +272,29 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             if (hasLease) {
                 return;
             }
-            long now = System.currentTimeMillis();
-            this.lease = now + 2 * leaseTimeOut;
-
             NodeState root = store.getRoot();
-            long beforeLease = root.getChildNode(ASYNC).getLong(leaseName);
-            if (beforeLease > now) {
-                throw CONCURRENT_UPDATE;
-            }
+            NodeState async = root.getChildNode(ASYNC);
+            if(isLeaseCheckEnabled(leaseTimeOut)) {
+                long now = System.currentTimeMillis();
+                this.lease = now + 2 * leaseTimeOut;
+                long beforeLease = async.getLong(leaseName);
+                if (beforeLease > now) {
+                    throw CONCURRENT_UPDATE;
+                }
 
-            NodeBuilder builder = root.builder();
-            NodeBuilder async = builder.child(ASYNC);
-            async.setProperty(leaseName, lease);
-            mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, beforeLease, name);
+                NodeBuilder builder = root.builder();
+                builder.child(ASYNC).setProperty(leaseName, lease);
+                mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, beforeLease, name);
+            } else {
+                lease = null;
+                // remove stale lease info if needed
+                if (async.hasProperty(leaseName)) {
+                    NodeBuilder builder = root.builder();
+                    builder.child(ASYNC).removeProperty(leaseName);
+                    mergeWithConcurrencyCheck(store, validatorProviders,
+                            builder, checkpoint, null, name);
+                }
+            }
             hasLease = true;
         }
 
@@ -330,10 +343,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         void close() throws CommitFailedException {
-            NodeBuilder builder = store.getRoot().builder();
-            NodeBuilder async = builder.child(ASYNC);
-            async.removeProperty(leaseName);
-            mergeWithConcurrencyCheck(store, validatorProviders, builder, async.getString(name), lease, name);
+            if (isLeaseCheckEnabled(leaseTimeOut)) {
+                NodeBuilder builder = store.getRoot().builder();
+                NodeBuilder async = builder.child(ASYNC);
+                async.removeProperty(leaseName);
+                mergeWithConcurrencyCheck(store, validatorProviders, builder,
+                        async.getString(name), lease, name);
+            }
         }
 
         @Override
@@ -343,7 +359,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 throw INTERRUPTED;
             }
 
-            if (indexStats.incUpdates() % 100 == 0) {
+            if (indexStats.incUpdates() % 100 == 0 && isLeaseCheckEnabled(leaseTimeOut)) {
                 long now = System.currentTimeMillis();
                 if (now + leaseTimeOut > lease) {
                     long newLease = now + 2 * leaseTimeOut;
@@ -422,17 +438,19 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         log.debug("[{}] Running background index task", name);
 
         NodeState root = store.getRoot();
-
-        // check for concurrent updates
         NodeState async = root.getChildNode(ASYNC);
-        long leaseEndTime = async.getLong(leasify(name));
-        long currentTime = System.currentTimeMillis();
-        if (leaseEndTime > currentTime) {
-            long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
-            String err = String.format("Another copy of the index update is already running; skipping this update. " +
-                    "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
-            indexStats.failed(new Exception(err, CONCURRENT_UPDATE));
-            return;
+
+        if (isLeaseCheckEnabled(leaseTimeOut)) {
+            // check for concurrent updates
+            long leaseEndTime = async.getLong(leasify(name));
+            long currentTime = System.currentTimeMillis();
+            if (leaseEndTime > currentTime) {
+                long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
+                String err = String.format("Another copy of the index update is already running; skipping this update. " +
+                        "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
+                indexStats.failed(new Exception(err, CONCURRENT_UPDATE));
+                return;
+            }
         }
 
         // start collecting runtime statistics
@@ -702,8 +720,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return name + "-temp";
     }
 
+    private static boolean isLeaseCheckEnabled(long leaseTimeOut) {
+        return leaseTimeOut > 0;
+    }
+
     private static void mergeWithConcurrencyCheck(final NodeStore store, List<ValidatorProvider> validatorProviders,
-                                                  NodeBuilder builder, final String checkpoint, final long lease,
+                                                  NodeBuilder builder, final String checkpoint, final Long lease,
                                                   final String name) throws CommitFailedException {
         CommitHook concurrentUpdateCheck = new CommitHook() {
             @Override @Nonnull
@@ -712,9 +734,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     throws CommitFailedException {
                 // check for concurrent updates by this async task
                 NodeState async = before.getChildNode(ASYNC);
-                if ((checkpoint == null || Objects.equal(checkpoint,
-                        async.getString(name)))
-                        && lease == async.getLong(leasify(name))) {
+                if ((checkpoint == null || Objects.equal(checkpoint, async.getString(name)))
+                    &&
+                    (lease == null      || lease == async.getLong(leasify(name)))) {
                     return after;
                 } else {
                     throw CONCURRENT_UPDATE;
@@ -1217,7 +1239,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             this.newIndexTaskName = newIndexTaskName;
         }
 
-        void maybeSplit(@CheckForNull String refCheckpoint, long lease)
+        void maybeSplit(@CheckForNull String refCheckpoint, Long lease)
                 throws CommitFailedException {
             if (paths == null) {
                 return;
@@ -1225,7 +1247,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             split(refCheckpoint, lease);
         }
 
-        private void split(@CheckForNull String refCheckpoint, long lease) throws CommitFailedException {
+        private void split(@CheckForNull String refCheckpoint, Long lease) throws CommitFailedException {
             NodeBuilder builder = store.getRoot().builder();
             if (refCheckpoint != null) {
                 String tempCpName = getTempCpName(name);
