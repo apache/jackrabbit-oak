@@ -225,18 +225,22 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public int delete(Connection connection, RDBTableMetaData tmd, String property, long startValue, long endValue)
+    public int deleteWithCondition(Connection connection, RDBTableMetaData tmd, List<QueryCondition> conditions)
             throws SQLException, DocumentStoreException {
-        if (!MODIFIED.equals(property)) {
-            throw new DocumentStoreException("Unsupported condition: " +
-                        property + " in (" + startValue + ", " + endValue + ")");
+
+        StringBuilder query = new StringBuilder("delete from " + tmd.getName());
+
+        String whereClause = buildWhereClause(null, null, null, conditions);
+        if (whereClause.length() != 0) {
+            query.append(" where ").append(whereClause);
         }
-        PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() +
-                " where MODIFIED > ? AND MODIFIED < ?");
+
+        PreparedStatement stmt = connection.prepareStatement(query.toString());
         try {
-            int i = 1;
-            stmt.setLong(i++, startValue);
-            stmt.setLong(i++, endValue);
+            int si = 1;
+            for (QueryCondition cond : conditions) {
+                stmt.setLong(si++, cond.getValue());
+            }
             return stmt.executeUpdate();
         } finally {
             stmt.close();
@@ -443,71 +447,17 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    private final static Map<String, String> INDEXED_PROP_MAPPING;
-    static {
-        Map<String, String> tmp = new HashMap<String, String>();
-        tmp.put(MODIFIED, "MODIFIED");
-        tmp.put(NodeDocument.HAS_BINARY_FLAG, "HASBINARY");
-        tmp.put(NodeDocument.DELETED_ONCE, "DELETEDONCE");
-        INDEXED_PROP_MAPPING = Collections.unmodifiableMap(tmp);
-    }
-
-    private final static Set<String> SUPPORTED_OPS;
-    static {
-        Set<String> tmp = new HashSet<String>();
-        tmp.add(">=");
-        tmp.add(">");
-        tmp.add("<=");
-        tmp.add("<");
-        tmp.add("=");
-        SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
-    }
-
     @Nonnull
     public List<RDBRow> query(Connection connection, RDBTableMetaData tmd, String minId, String maxId,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) throws SQLException {
         long start = System.currentTimeMillis();
         StringBuilder selectClause = new StringBuilder();
-        StringBuilder whereClause = new StringBuilder();
         if (limit != Integer.MAX_VALUE && this.dbInfo.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
             selectClause.append("TOP " + limit + " ");
         }
         selectClause.append("ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ").append(tmd.getName());
 
-        // dynamically build where clause
-        String whereSep = "";
-        if (minId != null) {
-            whereClause.append("ID > ?");
-            whereSep = " and ";
-        }
-        if (maxId != null) {
-            whereClause.append(whereSep).append("ID < ?");
-            whereSep = " and ";
-        }
-        if (!excludeKeyPatterns.isEmpty()) {
-            whereClause.append(whereSep);
-            whereSep = " and ";
-            whereClause.append("not (");
-            for (int i = 0; i < excludeKeyPatterns.size(); i++) {
-                whereClause.append(i == 0 ? "" : " or ");
-                whereClause.append("ID like ?");
-            }
-            whereClause.append(")");
-        }
-        for (QueryCondition cond : conditions) {
-            String op = cond.getOperator();
-            if (!SUPPORTED_OPS.contains(op)) {
-                throw new DocumentStoreException("unsupported operator: " + op);
-            }
-            String indexedProperty = cond.getPropertyName();
-            String column = INDEXED_PROP_MAPPING.get(indexedProperty);
-            if (column != null) {
-                whereClause.append(whereSep).append(column).append(" ").append(op).append(" ?");
-                whereSep = " and ";
-            } else {
-                throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
-            }
-        }
+        String whereClause = buildWhereClause(minId, maxId, excludeKeyPatterns, conditions);
 
         StringBuilder query = new StringBuilder();
         query.append("select ").append(selectClause);
@@ -751,6 +701,65 @@ public class RDBDocumentStoreJDBC {
         } finally {
             stmt.close();
         }
+    }
+
+    private final static Map<String, String> INDEXED_PROP_MAPPING;
+    static {
+        Map<String, String> tmp = new HashMap<String, String>();
+        tmp.put(MODIFIED, "MODIFIED");
+        tmp.put(NodeDocument.HAS_BINARY_FLAG, "HASBINARY");
+        tmp.put(NodeDocument.DELETED_ONCE, "DELETEDONCE");
+        INDEXED_PROP_MAPPING = Collections.unmodifiableMap(tmp);
+    }
+
+    private final static Set<String> SUPPORTED_OPS;
+    static {
+        Set<String> tmp = new HashSet<String>();
+        tmp.add(">=");
+        tmp.add(">");
+        tmp.add("<=");
+        tmp.add("<");
+        tmp.add("=");
+        SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
+    }
+
+    private static String buildWhereClause(String minId, String maxId, List<String> excludeKeyPatterns, List<QueryCondition> conditions) {
+        StringBuilder result = new StringBuilder();
+
+        String whereSep = "";
+        if (minId != null) {
+            result.append("ID > ?");
+            whereSep = " and ";
+        }
+        if (maxId != null) {
+            result.append(whereSep).append("ID < ?");
+            whereSep = " and ";
+        }
+        if (excludeKeyPatterns != null && !excludeKeyPatterns.isEmpty()) {
+            result.append(whereSep);
+            whereSep = " and ";
+            result.append("not (");
+            for (int i = 0; i < excludeKeyPatterns.size(); i++) {
+                result.append(i == 0 ? "" : " or ");
+                result.append("ID like ?");
+            }
+            result.append(")");
+        }
+        for (QueryCondition cond : conditions) {
+            String op = cond.getOperator();
+            if (!SUPPORTED_OPS.contains(op)) {
+                throw new DocumentStoreException("unsupported operator: " + op);
+            }
+            String indexedProperty = cond.getPropertyName();
+            String column = INDEXED_PROP_MAPPING.get(indexedProperty);
+            if (column != null) {
+                result.append(whereSep).append(column).append(" ").append(op).append(" ?");
+                whereSep = " and ";
+            } else {
+                throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
+            }
+        }
+        return result.toString();
     }
 
     private static String getIdFromRS(RDBTableMetaData tmd, ResultSet rs, int idx) throws SQLException {
