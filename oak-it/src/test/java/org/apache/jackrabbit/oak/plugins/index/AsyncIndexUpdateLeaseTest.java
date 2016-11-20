@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -347,6 +348,52 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
                 .setLeaseTimeOut(lease));
+    }
+
+
+    @Test
+    public void testLeaseDisabled() throws Exception {
+        // take care of initial reindex before
+        AsyncIndexUpdate async = new AsyncIndexUpdate(name, store, provider).setLeaseTimeOut(0);
+        async.run();
+
+        testContent(store);
+        assertRunOk(async);
+
+        testContent(store);
+        assertRunOk(async);
+
+        executed.set(true);
+    }
+
+    @Test
+    public void testLeaseExpiredToDisabled() throws Exception {
+        // take care of initial reindex before
+        new AsyncIndexUpdate(name, store, provider).run();
+
+        // add extra indexed content
+        testContent(store);
+
+        // make it look like lease got stuck due to force shutdown
+        NodeBuilder builder = store.getRoot().builder();
+        builder.getChildNode(AsyncIndexUpdate.ASYNC).setProperty(
+                AsyncIndexUpdate.leasify(name),
+                System.currentTimeMillis() + 500000);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        final IndexStatusListener l1 = new IndexStatusListener() {
+
+            @Override
+            protected void postIndexUpdate() {
+                executed.set(true);
+            }
+        };
+        assertRunOk(new SpecialAsyncIndexUpdate(name, store, provider, l1)
+                .setLeaseTimeOut(0));
+
+        assertFalse("Stale lease info must be cleaned",
+                store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                        .hasProperty(AsyncIndexUpdate.leasify(name)));
     }
 
     // -------------------------------------------------------------------
