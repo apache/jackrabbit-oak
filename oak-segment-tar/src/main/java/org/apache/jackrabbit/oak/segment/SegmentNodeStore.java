@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +100,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
         private boolean isCreated;
 
         private boolean dispatchChanges = true;
-
+        
+        @Nonnull
+        private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        
         private SegmentNodeStoreBuilder(
                 @Nonnull Revisions revisions,
                 @Nonnull SegmentReader reader,
@@ -116,7 +120,18 @@ public class SegmentNodeStore implements NodeStore, Observable {
             this.dispatchChanges = dispatchChanges;
             return this;
         }
-
+        
+        /**
+         * {@link StatisticsProvider} for collecting statistics related to SegmentStore
+         * @param statisticsProvider
+         * @return this instance
+         */
+        @Nonnull
+        public SegmentNodeStoreBuilder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
+            this.statsProvider = checkNotNull(statisticsProvider);
+            return this;
+        }
+        
         @Nonnull
         public SegmentNodeStore build() {
             checkState(!isCreated);
@@ -128,6 +143,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         @Nonnull
         private static String getString(@CheckForNull BlobStore blobStore) {
             return "blobStore=" + (blobStore == null ? "inline" : blobStore);
+        }
+        
+        @Nonnull
+        StatisticsProvider getStatsProvider() {
+            return statsProvider;
         }
 
         @Override
@@ -165,7 +185,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @CheckForNull
     private final BlobStore blobStore;
-
+    
     private final ChangeDispatcher changeDispatcher;
 
     /**
@@ -194,6 +214,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
      */
     private static final boolean COMMIT_FAIR_LOCK = Boolean
             .parseBoolean(System.getProperty("oak.segmentNodeStore.commitFairLock", "true"));
+    
+    private final SegmentNodeStoreStats stats;
 
     private SegmentNodeStore(SegmentNodeStoreBuilder builder) {
         if (COMMIT_FAIR_LOCK) {
@@ -210,6 +232,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         } else {
             this.changeDispatcher = null;
         }
+        this.stats = new SegmentNodeStoreStats(builder.getStatsProvider());
     }
 
     void setMaximumBackoff(long max) {
@@ -285,12 +308,35 @@ public class SegmentNodeStore implements NodeStore, Observable {
         checkArgument(snb.isRootBuilder());
         checkNotNull(commitHook);
 
+        boolean queued = false;
+        
         try {
+            long queuedTime = -1;
+            
+            if (commitSemaphore.availablePermits() < 1) {
+                queuedTime = System.nanoTime();
+                stats.onCommitQueued();
+                queued = true;
+            }
+            
             commitSemaphore.acquire();
             try {
+                if (queued) {
+                    long dequeuedTime = System.nanoTime();
+                    stats.dequeuedAfter(dequeuedTime - queuedTime);
+                    stats.onCommitDequeued();
+                }
+                
+                long beforeCommitTime = System.nanoTime();
+                
                 Commit commit = new Commit(snb, commitHook, info);
                 NodeState merged = commit.execute();
                 snb.reset(merged);
+                
+                long afterCommitTime = System.nanoTime();
+                stats.committedAfter(afterCommitTime - beforeCommitTime);
+                stats.onCommit();
+
                 return merged;
             } finally {
                 commitSemaphore.release();
@@ -508,6 +554,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     NodeState getCheckpoints() {
         return head.get().getChildNode(CHECKPOINTS);
+    }
+    
+    public SegmentNodeStoreStats getStats() {
+        return stats;
     }
 
     private class Commit {
