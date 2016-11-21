@@ -17,23 +17,16 @@
 
 # Segment Node Store
 
-The Segment Node Store is the implementation of the [Node
-Store](../overview.html) that persists repository data on the file
-system in an efficient, organized and performant way.
+The Segment Node Store is an implementation of the Node Store that persists repository data on the file system.
 
-One of the most important tasks of the Segment Node Store is the management of a
-set of TAR files. These files are the most coarse-grained containers for the
-repository data. You can learn more about the general structure of a TAR file
-and how Oak leverages TAR files by reading [this page](tar.html).
+The Segment Node Store serializes repository data and stores it in a set of TAR files.
+These files are the most coarse-grained containers for the repository data.
+You can learn more about the general structure of TAR files by reading [this page](tar.html).
 
 Every TAR file contains segments, finer-grained containers of repository data.
 Unsurprisingly, segments inspired the name of this Node Store implementation.
-Repository nodes and properties are serialized to one or more records, and these
-records are saved into the segments. You can learn about the internal
-organization of segments and the different ways to serialize records by reading
-[this page](records.html).
+Repository data is serialized to one or more records, and these records are saved into the segments.
+You can learn about the internal organization of segments and the different ways to serialize records by reading [this page](records.html).
 
-This website also contain a broader overview of the Segment Store and of the
-design desictions that brought to his implementation. The page is quite old and
-potentially outdated, but contains valuable information and is accessible
-[here](../segmentmk.html).
+This website also contains an overview of the legacy implementation of the Segment Store and of the design decisions that brought to this implementation.
+The page is old and describes a deprecated implementation, but can still be accessed [here](../segmentmk.html).
