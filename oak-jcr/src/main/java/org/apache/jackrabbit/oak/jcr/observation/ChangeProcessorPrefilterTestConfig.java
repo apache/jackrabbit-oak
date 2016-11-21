@@ -34,8 +34,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Temporary class to be removed before 1.6 which allows to turn on/off
- * the prefiltering test mode via an osgi-config, rather than via
- * a System.property (the two ways overlap - but the osgi one, if configured, wins)
+ * the prefiltering test mode via an osgi-config.
+ * <p>
+ * Note: the system property (oak.observation.prefilteringTestMode) 
+ * has thus been removed.
  * TODO: remove me before 1.6
  * @deprecated to be removed before 1.6
  */
