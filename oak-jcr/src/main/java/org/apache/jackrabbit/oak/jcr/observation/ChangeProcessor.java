@@ -116,8 +116,9 @@ class ChangeProcessor implements FilteringAwareObserver {
     
     /** The test mode can be used to just verify if prefiltering would have
      * correctly done its job and warn if that's not the case.
+     * @deprecated remove this before 1.6 - see OAK-5136
      */
-    private static final boolean PREFILTERING_TESTMODE;
+    private static boolean PREFILTERING_TESTMODE;
     
     // OAK-4533: make DELAY_THRESHOLD and MAX_DELAY adjustable - using System.properties for now
     static {
@@ -143,18 +144,15 @@ class ChangeProcessor implements FilteringAwareObserver {
         }
         DELAY_THRESHOLD = delayThreshold;
         MAX_DELAY = maxDelay;
-
-        final String prefilteringTestModeStr = System.getProperty("oak.observation.prefilteringTestMode");
-        boolean prefilteringTestModeBool = false; // default is enabled
-        try {
-            if (prefilteringTestModeStr != null && prefilteringTestModeStr.length() != 0) {
-                prefilteringTestModeBool = Boolean.parseBoolean(prefilteringTestModeStr);
-                LOG.info("<clinit> using oak.observation.prefilteringTestMode = " + prefilteringTestModeBool);
-            }
-        } catch(RuntimeException e) {
-            LOG.warn("<clinit> could not parse oak.observation.prefilteringTestMode, using default (" + prefilteringTestModeBool + "): " + e, e);
-        }
-        PREFILTERING_TESTMODE = prefilteringTestModeBool;
+    }
+    
+    /**
+     * @deprecated remove this before 1.6 - see OAK-5136
+     * @param testMode
+     */
+    static void setPrefilteringTestMode(boolean testMode) {
+        PREFILTERING_TESTMODE = testMode;
+        LOG.info("setPrefilteringTestMode: PREFILTERING_TESTMODE = " + PREFILTERING_TESTMODE);
     }
     
     private static final AtomicInteger COUNTER = new AtomicInteger();
