@@ -178,6 +178,8 @@ public class ChangeCollectorProviderTest {
                 "grandChild1", "grandChild2");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType",
                 "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
+                "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child1Prop",
                 "child2Prop", "grandChild1Prop", "grandChild2Prop", "greatGrandChild1Prop");
 
@@ -221,6 +223,8 @@ public class ChangeCollectorProviderTest {
                 "greatGrandChild1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType",
                 "test:grandChildType", "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
+                "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child1Prop",
                 "grandChild1Prop", "greatGrandChild1Prop");
     }
@@ -238,6 +242,8 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1", "greatGrandChild1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:greatGrandChildType",
                 "test:grandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
+                "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
                 "greatGrandChild1Prop");
     }
@@ -254,6 +260,8 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1/grandChild1/greatGrandChild1");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "greatGrandChild1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
+                "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), "greatGrandChild1Prop");
     }
 
@@ -272,6 +280,8 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1", "greatGrandChild1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:grandChildType",
                 "test:greatGrandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
+                "test:grandChildType", "test:greatGrandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), "grandChild1Prop", "greatGrandChild1Prop");
     }
 
@@ -286,6 +296,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType");
         assertMatches("propertyNames", changeSet.getPropertyNames());
     }
 
@@ -301,6 +312,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType");
         assertMatches("propertyNames", changeSet.getPropertyNames());
     }
 
@@ -318,6 +330,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child", "/test/child/grandChild");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "grandChild");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), "childProperty", "grandChildProperty");
     }
 
@@ -340,6 +353,9 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:type0", "test:type1",
                 "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7", "test:type8",
                 "test:type9");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:type0", "test:type1",
+                "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7", "test:type8",
+                "test:type9");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "foo0", "foo1",
                 "foo2", "foo3", "foo4", "foo5", "foo6", "foo7", "foo8", "foo9");
     }
@@ -358,6 +374,8 @@ public class ChangeCollectorProviderTest {
                 "/test/child2/grandChild2");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "child2", "grandChild2");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType",
+                "test:grandChildType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType",
                 "test:grandChildType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child2Prop",
                 "grandChild2Prop");
@@ -405,6 +423,7 @@ public class ChangeCollectorProviderTest {
                 "n14"/* , "n15" */);
         assertMatches("parentNodeTypes-" + maxPathDepth, changeSet.getParentNodeTypes(), "test:parentType", "test:even",
                 "test:odd");
+        assertMatches("allNodeTypes-" + maxPathDepth, changeSet.getAllNodeTypes(), "test:parentType", "test:even", "test:odd");
         assertMatches("propertyNames-" + maxPathDepth, changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
                 /* "nextProp0", */"nextProp1", "nextProp2", /* "nextProp3", */ "nextProp4",
                 "nextProp5"/* , "nextProp6" */
@@ -425,6 +444,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "aMixin1", "aMixin2");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aMixin1", "aMixin2");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_MIXINTYPES);
     }
 
@@ -441,6 +461,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/newchild");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "newchild");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "aPrimaryType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aPrimaryType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "aProp");
     }
 
@@ -471,6 +492,8 @@ public class ChangeCollectorProviderTest {
                 expectedParentNodeNames.toArray(new String[0]));
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(),
                 expectedParentNodeTypes.toArray(new String[0]));
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(),
+                expectedParentNodeTypes.toArray(new String[0]));
         assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "aProperty");
     }
 
@@ -495,6 +518,7 @@ public class ChangeCollectorProviderTest {
         assertEquals("parentPaths", null, changeSet.getParentPaths());
         assertEquals("parentNodeNames", null, changeSet.getParentNodeNames());
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), "aProperty");
     }
 
@@ -514,6 +538,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:childType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType");
         assertMatches("propertyNames", changeSet.getPropertyNames(), expectedPropertyNames.toArray(new String[0]));
     }
 
@@ -540,6 +565,7 @@ public class ChangeCollectorProviderTest {
         assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1");
         assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child1");
         assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:childType");
+        assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType");
         assertEquals("propertyNames", null, changeSet.getPropertyNames());
     }
 
@@ -594,6 +620,7 @@ public class ChangeCollectorProviderTest {
                 expectedParentPaths.toArray(new String[0]));
         assertMatches("parentNodeNames-" + maxPathDepth, changeSet.getParentNodeNames(), "n13", "n14");
         assertMatches("parentNodeTypes-" + maxPathDepth, changeSet.getParentNodeTypes(), "test:even", "test:odd");
+        assertMatches("allNodeTypes-" + maxPathDepth, changeSet.getAllNodeTypes(), "test:parentType", "test:even", "test:odd");
         assertMatches("propertyNames-" + maxPathDepth, changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE,
                 "nextProp14");
     }
@@ -629,6 +656,7 @@ public class ChangeCollectorProviderTest {
         next = rootTree;
         List<String> expectedParentPaths = new LinkedList<String>();
         List<String> expectedParentNodeNames = new LinkedList<String>();
+        Set<String> expectedAllNodeTypes = new HashSet<String>();
         List<String> expectedParentNodeTypes = new LinkedList<String>();
         List<String> expectedPropertyNames = new LinkedList<String>();
         expectedPropertyNames.add(JcrConstants.JCR_PRIMARYTYPE);
@@ -636,20 +664,29 @@ public class ChangeCollectorProviderTest {
         if (maxPathDepth > 0) {
             parent = "/test";
         }
+        expectedAllNodeTypes.add("test:parentType");
         for (int i = 0; i <= changeAt; i++) {
             String childName = "n" + i;
             next = next.getChild(childName);
             if (i < maxPathDepth - 1) {
                 parent = concat(parent, childName);
             }
+            final String originalNodeTypeName = i % 2 == 0 ? "test:even" : "test:odd";
+            if (i % 3 != 0) {
+                if (i == changeAt) {
+                    expectedParentNodeTypes.add(originalNodeTypeName);
+                }
+                expectedAllNodeTypes.add(originalNodeTypeName);
+            }
             if (i == changeAt) {
                 expectedParentNodeNames.add(next.getName());
                 String propertyName = "nextProp" + i;
                 next.setProperty(propertyName, i + 1);
                 expectedPropertyNames.add(propertyName);
-                final String nodeTypeName = i % 2 == 0 ? "test:evenChanged" : "test:oddChanged";
-                expectedParentNodeTypes.add(nodeTypeName);
-                next.setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeTypeName, Type.NAME);
+                final String changedNodeTypeName = i % 2 == 0 ? "test:evenChanged" : "test:oddChanged";
+                expectedParentNodeTypes.add(changedNodeTypeName);
+                expectedAllNodeTypes.add(changedNodeTypeName);
+                next.setProperty(JcrConstants.JCR_PRIMARYTYPE, changedNodeTypeName, Type.NAME);
             }
         }
         expectedParentPaths.add(parent);
@@ -662,6 +699,8 @@ public class ChangeCollectorProviderTest {
                 expectedParentNodeNames.toArray(new String[0]));
         assertMatches("parentNodeTypes-" + changeAt + "-" + maxPathDepth, changeSet.getParentNodeTypes(),
                 expectedParentNodeTypes.toArray(new String[0]));
+        assertMatches("allNodeTypes-" + changeAt + "-" + maxPathDepth, changeSet.getAllNodeTypes(),
+                expectedAllNodeTypes.toArray(new String[0]));
         assertMatches("propertyNames-" + changeAt + "-" + maxPathDepth, changeSet.getPropertyNames(),
                 expectedPropertyNames.toArray(new String[0]));
     }

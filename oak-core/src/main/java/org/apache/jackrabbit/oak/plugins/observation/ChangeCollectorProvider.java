@@ -142,6 +142,11 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         private Set<String> getPropertyNames() {
             return changeSetBuilder.getPropertyNames();
         }
+
+        private Set<String> getAllNodeTypes() {
+            return changeSetBuilder.getAllNodeTypes();
+        }
+
     }
 
     /**
@@ -159,7 +164,8 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         private final CollectorSupport support;
 
         private final boolean isRoot;
-        private final NodeState parentNodeOrNull;
+        private final NodeState beforeParentNodeOrNull;
+        private final NodeState afterParentNodeOrNull;
         private final String path;
         private final String childName;
         private final int level;
@@ -169,18 +175,19 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         private static ChangeCollector newRootCollector(@Nonnull CommitInfo info, int maxItems, int maxPathDepth) {
             ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(maxItems, maxPathDepth);
             CollectorSupport support = new CollectorSupport(info, changeSetBuilder, maxPathDepth);
-            return new ChangeCollector(support, true, null, "/", null, 0);
+            return new ChangeCollector(support, true, null, null, "/", null, 0);
         }
 
-        private ChangeCollector newChildCollector(@Nonnull NodeState parentNode, @Nonnull String childName) {
-            return new ChangeCollector(support, false, parentNode, concat(path, childName), childName, level + 1);
+        private ChangeCollector newChildCollector(@Nullable NodeState beforeParentNodeOrNull, @Nullable NodeState afterParentNodeOrNull, @Nonnull String childName) {
+            return new ChangeCollector(support, false, beforeParentNodeOrNull, afterParentNodeOrNull, concat(path, childName), childName, level + 1);
         }
 
-        private ChangeCollector(@Nonnull CollectorSupport support, boolean isRoot, @Nullable NodeState parentNodeOrNull,
-                @Nonnull String path, @Nullable String childNameOrNull, int level) {
+        private ChangeCollector(@Nonnull CollectorSupport support, boolean isRoot, @Nullable NodeState beforeParentNodeOrNull,
+                @Nullable NodeState afterParentNodeOrNull, @Nonnull String path, @Nullable String childNameOrNull, int level) {
             this.support = support;
             this.isRoot = isRoot;
-            this.parentNodeOrNull = parentNodeOrNull;
+            this.beforeParentNodeOrNull = beforeParentNodeOrNull;
+            this.afterParentNodeOrNull = afterParentNodeOrNull;
             this.path = path;
             this.childName = childNameOrNull;
             this.level = level;
@@ -205,12 +212,19 @@ public class ChangeCollectorProvider extends ValidatorProvider {
             if (changed && childName != null) {
                 support.getParentNodeNames().add(childName);
             }
-            if (changed && parentNodeOrNull != null) {
-                String primaryType = parentNodeOrNull.getName(JcrConstants.JCR_PRIMARYTYPE);
+            if (changed && beforeParentNodeOrNull != null) {
+                String primaryType = beforeParentNodeOrNull.getName(JcrConstants.JCR_PRIMARYTYPE);
                 if (primaryType != null) {
                     support.getParentNodeTypes().add(primaryType);
                 }
-                Iterables.addAll(support.getParentNodeTypes(), parentNodeOrNull.getNames(JcrConstants.JCR_MIXINTYPES));
+                Iterables.addAll(support.getParentNodeTypes(), beforeParentNodeOrNull.getNames(JcrConstants.JCR_MIXINTYPES));
+            }
+            if (changed && afterParentNodeOrNull != null) {
+                String primaryType = afterParentNodeOrNull.getName(JcrConstants.JCR_PRIMARYTYPE);
+                if (primaryType != null) {
+                    support.getParentNodeTypes().add(primaryType);
+                }
+                Iterables.addAll(support.getParentNodeTypes(), afterParentNodeOrNull.getNames(JcrConstants.JCR_MIXINTYPES));
             }
 
             // then if we're not at the root, we're done
@@ -247,7 +261,8 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         @Override
         public Validator childNodeAdded(String childName, NodeState after) throws CommitFailedException {
             changed = true;
-            return newChildCollector(after, childName);
+            addToAllNodeType(after);
+            return newChildCollector(null, after, childName);
         }
 
         @Override
@@ -261,14 +276,27 @@ public class ChangeCollectorProvider extends ValidatorProvider {
                 // however, continue normally to handle names/types/properties
                 // below
             }
+            
+            // in theory the node type could be changed, so collecting both before and after
+            addToAllNodeType(before);
+            addToAllNodeType(after);
 
-            return newChildCollector(after, childName);
+            return newChildCollector(before, after, childName);
         }
 
         @Override
         public Validator childNodeDeleted(String childName, NodeState before) throws CommitFailedException {
             changed = true;
-            return newChildCollector(before, childName);
+            addToAllNodeType(before);
+            return newChildCollector(before, null, childName);
+        }
+        
+        private void addToAllNodeType(NodeState state) {
+            String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
+            if (primaryType != null) {
+                support.getAllNodeTypes().add(primaryType);
+            }
+            Iterables.addAll(support.getAllNodeTypes(), state.getNames(JcrConstants.JCR_MIXINTYPES));
         }
 
     }

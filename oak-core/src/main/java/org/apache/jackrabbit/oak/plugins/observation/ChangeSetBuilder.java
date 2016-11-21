@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 /**
@@ -34,11 +33,13 @@ public class ChangeSetBuilder {
     private final Set<String> parentNodeNames = Sets.newHashSet();
     private final Set<String> parentNodeTypes = Sets.newHashSet();
     private final Set<String> propertyNames = Sets.newHashSet();
+    private final Set<String> allNodeTypes = Sets.newHashSet();
 
     private boolean parentPathOverflow;
     private boolean parentNodeNameOverflow;
     private boolean parentNodeTypeOverflow;
     private boolean propertyNameOverflow;
+    private boolean allNodeTypeOverflow;
 
     public ChangeSetBuilder(int maxItems, int maxPathDepth) {
         this.maxItems = maxItems;
@@ -47,8 +48,9 @@ public class ChangeSetBuilder {
 
     @Override
     public String toString() {
-        return "ChangeSetBuilder{paths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames="
-                + propertyNames + ", nodeNames=" + parentNodeNames + ", nodeTypes=" + parentNodeTypes + "}";
+        return "ChangeSetBuilder{parentPaths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames="
+                + propertyNames + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes
+                + ", allNodeTypes=" + allNodeTypes + "}";
     }
 
     public boolean getParentPathOverflown() {
@@ -103,6 +105,19 @@ public class ChangeSetBuilder {
         return propertyNames;
     }
 
+    public boolean getAllNodeTypeOverflown() {
+        return allNodeTypeOverflow;
+    }
+
+    public Set<String> getAllNodeTypes() {
+        if (allNodeTypeOverflow || allNodeTypes.size() > maxItems) {
+            // if already overflown, reset the buffers anyway
+            allNodeTypeOverflow = true;
+            allNodeTypes.clear();
+        }
+        return allNodeTypes;
+    }
+
     public int getMaxPrefilterPathDepth() {
         return maxPathDepth;
     }
@@ -113,10 +128,12 @@ public class ChangeSetBuilder {
         getParentNodeNames();
         getParentNodeTypes();
         getPropertyNames();
+        getAllNodeTypes();
         return new ChangeSet(maxPathDepth, parentPathOverflow ? null : parentPaths,
                 parentNodeNameOverflow ? null : parentNodeNames,
                 parentNodeTypeOverflow ? null : parentNodeTypes,
-                propertyNameOverflow ? null : propertyNames);
+                propertyNameOverflow ? null : propertyNames,
+                allNodeTypeOverflow ? null : allNodeTypes);
     }
 
 }
