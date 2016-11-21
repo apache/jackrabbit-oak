@@ -129,6 +129,7 @@ import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
 import org.apache.jackrabbit.oak.upgrade.version.VersionablePropertiesEditor;
 import org.apache.jackrabbit.spi.Name;
@@ -407,6 +408,10 @@ public class RepositoryUpgrade {
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
             NodeBuilder targetBuilder = target.getRoot().builder();
+            if (VersionHistoryUtil.getVersionStorage(targetBuilder).exists() && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                logger.warn("The version storage on destination already exists. Orphaned version histories will be skipped.");
+                versionCopyConfiguration.setCopyOrphanedVersions(null);
+            }
             final Root upgradeRoot = new UpgradeRoot(targetBuilder);
 
             String workspaceName =

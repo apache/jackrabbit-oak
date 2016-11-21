@@ -29,6 +29,7 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Function;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -46,6 +47,7 @@ import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -257,6 +259,10 @@ public class RepositorySidegrade {
         try {
             if (!onlyVerify) {
                 NodeBuilder targetRoot = target.getRoot().builder();
+                if (VersionHistoryUtil.getVersionStorage(targetRoot).exists() && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                    LOG.warn("The version storage on destination already exists. Orphaned version histories will be skipped.");
+                    versionCopyConfiguration.setCopyOrphanedVersions(null);
+                }
 
                 if (initializer != null) {
                     initializer.initialize(targetRoot);
@@ -307,8 +313,13 @@ public class RepositorySidegrade {
 
         final List<CommitHook> hooks = new ArrayList<CommitHook>();
         if (!versionCopyConfiguration.isCopyAll()) {
+            NodeBuilder versionStorage = VersionHistoryUtil.getVersionStorage(targetRoot);
+            if (!versionStorage.exists()) { // it's possible that this is a new repository and the version storage
+                                            // hasn't been created/copied yet
+                versionStorage = VersionHistoryUtil.createVersionStorage(targetRoot);
+            }
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-                copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), getVersionStorage(targetRoot), versionCopyConfiguration);
+                copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), versionStorage, versionCopyConfiguration);
             }
             hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, getWorkspaceName(), versionCopyConfiguration)));
         }

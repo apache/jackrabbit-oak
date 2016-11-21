@@ -252,6 +252,8 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
         assertMissingHistories(session,
                 VERSIONABLES_OLD, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
+        assertNotNull(session.getNode("/jcr:system/jcr:versionStorage")
+                .getPrimaryNodeType());
     }
 
     protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
