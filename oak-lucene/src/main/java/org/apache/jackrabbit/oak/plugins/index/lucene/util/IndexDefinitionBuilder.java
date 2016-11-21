@@ -180,6 +180,16 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule useInSpellcheck(){
+            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true);
+            return this;
+        }
+
+        public PropertyRule useInSuggest(){
+            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+            return this;
+        }
+
         public PropertyRule analyzed(){
             propTree.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
             return this;
