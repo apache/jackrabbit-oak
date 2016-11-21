@@ -105,14 +105,11 @@ public class SegmentFactory implements NodeStoreFactory {
     public boolean hasExternalBlobReferences() throws IOException {
         Builder builder = FileStore.builder(new File(dir, "segmentstore"));
         builder.withMaxFileSize(256);
-        if (disableMmap) {
-            builder.withMemoryMapping(false);
-        } else {
-            builder.withDefaultMemoryMapping();
-        }
+        builder.withMemoryMapping(false);
+
         FileStore fs;
         try {
-            fs = builder.build();
+            fs = builder.buildReadOnly();
         } catch (InvalidFileStoreVersionException e) {
             throw new IOException(e);
         }

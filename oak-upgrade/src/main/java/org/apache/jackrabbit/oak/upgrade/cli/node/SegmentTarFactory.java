@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -105,11 +106,7 @@ public class SegmentTarFactory implements NodeStoreFactory {
     public boolean hasExternalBlobReferences() throws IOException {
         final FileStoreBuilder builder = fileStoreBuilder(new File(dir, "segmentstore"));
         builder.withMaxFileSize(256);
-        if (disableMmap) {
-            builder.withMemoryMapping(false);
-        } else {
-            builder.withDefaultMemoryMapping();
-        }
+        builder.withMemoryMapping(false);
         final FileStore fs;
         try {
             fs = builder.build();
