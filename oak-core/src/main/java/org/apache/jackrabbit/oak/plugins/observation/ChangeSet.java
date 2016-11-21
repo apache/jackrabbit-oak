@@ -60,20 +60,23 @@ public class ChangeSet {
     private final Set<String> parentNodeNames;
     private final Set<String> parentNodeTypes;
     private final Set<String> propertyNames;
+    private final Set<String> allNodeTypes;
 
     ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames, Set<String> parentNodeTypes,
-            Set<String> propertyNames) {
+            Set<String> propertyNames, Set<String> allNodeTypes) {
         this.maxPathDepth = maxPathDepth;
         this.parentPaths = parentPaths == null ? null : ImmutableSet.copyOf(parentPaths);
         this.parentNodeNames = parentNodeNames == null ? null : ImmutableSet.copyOf(parentNodeNames);
         this.parentNodeTypes = parentNodeTypes == null ? null : ImmutableSet.copyOf(parentNodeTypes);
         this.propertyNames = propertyNames == null ? null : ImmutableSet.copyOf(propertyNames);
+        this.allNodeTypes = allNodeTypes == null ? null : ImmutableSet.copyOf(allNodeTypes);
     }
 
     @Override
     public String toString() {
         return "ChangeSet{paths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames=" + propertyNames
-                + ", nodeNames=" + parentNodeNames + ", nodeTypes=" + parentNodeTypes + "}";
+                + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes 
+                + ", allNodeTypes=" + allNodeTypes + "}";
     }
 
     @CheckForNull
@@ -98,6 +101,11 @@ public class ChangeSet {
 
     public int getMaxPrefilterPathDepth() {
         return maxPathDepth;
+    }
+
+    @CheckForNull
+    public Set<String> getAllNodeTypes() {
+        return allNodeTypes;
     }
 
 }

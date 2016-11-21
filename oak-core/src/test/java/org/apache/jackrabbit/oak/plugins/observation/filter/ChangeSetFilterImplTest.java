@@ -40,11 +40,20 @@ public class ChangeSetFilterImplTest {
             Set<String> parentNodeNames,
             Set<String> parentNodeTypes,
             Set<String> propertyNames) {
+        return newChangeSet(maxPathDepth, parentPaths, parentNodeNames, parentNodeTypes, propertyNames, s());
+    }
+    
+    private ChangeSet newChangeSet(int maxPathDepth, Set<String> parentPaths,
+            Set<String> parentNodeNames,
+            Set<String> parentNodeTypes,
+            Set<String> propertyNames,
+            Set<String> allNodeTypes) {
         ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(Integer.MAX_VALUE, maxPathDepth);
         changeSetBuilder.getParentPaths().addAll(parentPaths);
         changeSetBuilder.getParentNodeNames().addAll(parentNodeNames);
         changeSetBuilder.getParentNodeTypes().addAll(parentNodeTypes);
         changeSetBuilder.getPropertyNames().addAll(propertyNames);
+        changeSetBuilder.getAllNodeTypes().addAll(allNodeTypes);
         return changeSetBuilder.build();
     }
 
