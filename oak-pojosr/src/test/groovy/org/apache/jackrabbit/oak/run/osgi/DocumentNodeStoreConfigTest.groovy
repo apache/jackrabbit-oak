@@ -81,6 +81,36 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     }
 
     @Test
+    public void testRDBDocumentStore2Datasources() throws Exception {
+        // see https://issues.apache.org/jira/browse/OAK-5098
+        registry = repositoryFactory.initializeServiceRegistry(config)
+
+        //1. Register the DataSource as a service
+        DataSource ds = createDS("jdbc:h2:mem:testRDB;DB_CLOSE_DELAY=-1")
+        ServiceRegistration fds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+
+        //2. Register another DataSource as a service with the same name
+        DataSource ds2 = createDS("jdbc:h2:mem:testRDB;DB_CLOSE_DELAY=-1")
+        registry.registerService(DataSource.class.name, ds2, ['datasource.name': 'oak'] as Hashtable)
+
+        //3. Create config for DocumentNodeStore with RDB enabled
+        createConfig([
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
+                        documentStoreType: 'RDB'
+                ]
+        ])
+
+        DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+
+        //4. unregister first DS
+        fds.unregister()
+
+        //5. check that nodestore is gone
+        TimeUnit.MILLISECONDS.sleep(500)
+        assertNoService(NodeStore.class)
+    }
+
+    @Test
     public void testRDBDocumentStoreRestart() throws Exception {
         registry = repositoryFactory.initializeServiceRegistry(config)
 

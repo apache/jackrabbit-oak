@@ -637,28 +637,47 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindDataSource(DataSource dataSource) throws IOException {
-        log.info("Initializing DocumentNodeStore with dataSource [{}]", dataSource);
-        this.dataSource = dataSource;
-        registerNodeStoreIfPossible();
+        if (this.dataSource != null) {
+            log.info("Ignoring bindDataSource [{}] because dataSource [{}] is already bound", dataSource, this.dataSource);
+        } else {
+            log.info("Initializing DocumentNodeStore with dataSource [{}]", dataSource);
+            this.dataSource = dataSource;
+            registerNodeStoreIfPossible();
+        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindDataSource(DataSource dataSource) {
-        this.dataSource = null;
-        unregisterNodeStore();
+        if (this.dataSource != dataSource) {
+            log.info("Ignoring unbindDataSource [{}] because dataSource is bound to [{}]", dataSource, this.dataSource);
+        } else {
+            log.info("Unregistering DocumentNodeStore because dataSource [{}] was unbound", dataSource);
+            this.dataSource = null;
+            unregisterNodeStore();
+        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobDataSource(DataSource dataSource) throws IOException {
-        log.info("Initializing DocumentNodeStore with blobDataSource [{}]", dataSource);
-        this.blobDataSource = dataSource;
-        registerNodeStoreIfPossible();
+        if (this.blobDataSource != null) {
+            log.info("Ignoring bindBlobDataSource [{}] because blobDataSource [{}] is already bound", dataSource,
+                    this.blobDataSource);
+        } else {
+            log.info("Initializing DocumentNodeStore with blobDataSource [{}]", dataSource);
+            this.blobDataSource = dataSource;
+            registerNodeStoreIfPossible();
+        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindBlobDataSource(DataSource dataSource) {
-        this.blobDataSource = null;
-        unregisterNodeStore();
+        if (this.blobDataSource != dataSource) {
+            log.info("Ignoring unbindBlobDataSource [{}] because dataSource is bound to [{}]", dataSource, this.blobDataSource);
+        } else {
+            log.info("Unregistering DocumentNodeStore because blobDataSource [{}] was unbound", dataSource);
+            this.blobDataSource = null;
+            unregisterNodeStore();
+        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
