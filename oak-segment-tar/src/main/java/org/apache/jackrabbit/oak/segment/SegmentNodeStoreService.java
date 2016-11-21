@@ -536,7 +536,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder =
-                SegmentNodeStoreBuilders.builder(store);
+                SegmentNodeStoreBuilders.builder(store)
+                .withStatisticsProvider(statisticsProvider);
         if (toBoolean(property(STANDBY), false)) {
             segmentNodeStoreBuilder.dispatchChanges(false);
         }
@@ -623,6 +624,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 FileStoreBackupRestoreMBean.TYPE, "Segment node store backup/restore"
         ));
 
+        // Expose statistics about the SegmentNodeStore
+        
+        registrations.add(registerMBean(
+                whiteboard,
+                SegmentNodeStoreStatsMBean.class,
+                segmentNodeStore.getStats(),
+                SegmentNodeStoreStatsMBean.TYPE,
+                "SegmentNodeStore statistics"
+        ));
+        
         log.info("SegmentNodeStore initialized");
 
         // Register a factory service to expose the FileStore
