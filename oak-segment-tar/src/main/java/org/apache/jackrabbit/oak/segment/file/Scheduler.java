@@ -123,18 +123,23 @@ public class Scheduler implements Closeable {
     }
 
     /**
-     * Close this scheduler and wait 5 second for currently executing tasks to finish.
-     * Logs a warning if not all tasks finished executing after 5 seconds.
+     * Close this scheduler.
      * @see ScheduledExecutorService#shutdown()
      */
     @Override
     public void close() {
         try {
             executor.shutdown();
-            if (executor.awaitTermination(5, SECONDS)) {
+            if (executor.awaitTermination(60, SECONDS)) {
                 LOG.debug("The scheduler {} was successfully shut down", name);
             } else {
-                LOG.warn("The scheduler {} takes too long to shutdown", name);
+                LOG.warn("The scheduler {} takes too long to shut down, forcing termination", name);
+                executor.shutdownNow();
+                if (executor.awaitTermination(60, SECONDS)) {
+                    LOG.debug("The scheduler {} was successfully shut down", name);
+                } else {
+                    LOG.error("The scheduler {} takes too long to shutdown", name);
+                }
             }
         } catch (InterruptedException e) {
             LOG.warn("Interrupt while shutting down he scheduler {}", name, e);
