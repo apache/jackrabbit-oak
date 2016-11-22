@@ -165,6 +165,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
     static final boolean USE_PATH_RESTRICTION = Boolean.getBoolean("oak.luceneUsePath");
 
+    static final int MAX_RELOAD_COUNT = Integer.getInteger("oak.luceneMaxReloadCount", 16);
+
     protected final IndexTracker tracker;
 
     private final NodeAggregator aggregator;
@@ -289,6 +291,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
             private long lastSearchIndexerVersion;
+            private int reloadCount;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -457,9 +460,16 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             private void checkForIndexVersionChange(IndexSearcher searcher) {
                 long currentVersion = LucenePropertyIndex.getVersion(searcher);
                 if (currentVersion != lastSearchIndexerVersion && lastDoc != null){
+                    reloadCount++;
+                    if (reloadCount > MAX_RELOAD_COUNT) {
+                        LOG.error("More than {} index version changes detected for query {}", 
+                                MAX_RELOAD_COUNT, 
+                                plan);
+                        throw new IllegalStateException("Too many version changes");
+                    }
                     lastDoc = null;
                     LOG.debug("Change in index version detected {} => {}. Query would be performed without " +
-                            "offset", currentVersion, lastSearchIndexerVersion);
+                            "offset; reload {}", currentVersion, lastSearchIndexerVersion, reloadCount);
                 }
                 this.lastSearchIndexerVersion = currentVersion;
             }
