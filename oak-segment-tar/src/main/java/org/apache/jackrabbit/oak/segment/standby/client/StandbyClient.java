@@ -139,6 +139,10 @@ class StandbyClient implements AutoCloseable {
                         p.addLast(new GetSegmentResponseHandler(segmentQueue));
                         p.addLast(new GetBlobResponseHandler(blobQueue));
                         p.addLast(new GetReferencesResponseHandler(referencesQueue));
+
+                        // Exception handler
+
+                        p.addLast(new ExceptionHandler(clientId));
                     }
 
                 });
