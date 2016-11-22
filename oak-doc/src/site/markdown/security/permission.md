@@ -19,7 +19,7 @@ Permissions
 --------------------------------------------------------------------------------
 
 <a href="jcr_api"/>
-### JCR API
+### JCR and Jackrabbit API
 
 While access control management is a optional feature, a JCR implementation is
 required to support the basic permission checking. The basic requirements for
@@ -33,6 +33,7 @@ The methods defined to check permissions:
 
 - `Session#hasPermission(String absPath, String actions)`
 - `Session#checkPermission(String absPath, String actions)`
+- `JackrabbitSession.hasPermission(String absPath, @Nonnull String... actions)` (since Jackrabbit API 2.11.0 and Oak 1.4)
 
 The actions are expected to be a comma separated list of any of the following string constants:
 
@@ -41,6 +42,19 @@ The actions are expected to be a comma separated list of any of the following st
 - `Session.ACTION_REMOVE`
 - `Session.ACTION_SET_PROPERTY`
 
+And defined by Jackrabbit API the following additional actions (since Jackrabbit API 2.11.0):
+
+- `JackrabbitSession.ACTION_ADD_PROPERTY`
+- `JackrabbitSession.ACTION_MODIFY_PROPERTY`
+- `JackrabbitSession.ACTION_REMOVE_PROPERTY`
+- `JackrabbitSession.ACTION_REMOVE_NODE`
+- `JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT`
+- `JackrabbitSession.ACTION_VERSIONING`
+- `JackrabbitSession.ACTION_LOCKING`
+- `JackrabbitSession.ACTION_READ_ACCESS_CONTROL`
+- `JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL`
+- `JackrabbitSession.ACTION_USER_MANAGEMENT`
+
 **Note**: As of Oak 1.0 the these methods also handle the names of the permissions
 defined by Oak (see `Permissions#getString(long permissions)`).
 
@@ -48,7 +62,7 @@ See also section [Permissions vs Privileges](permission/permissionsandprivileges
 a comparison of these permission checks and testing privileges on the `AccessControlManager`. 
 
 ##### Examples
-###### Test if session has permission to add a new node
+###### Test if session has permission to add a new node (JCR API)
 
 Important: `absPath` refers to the node to be created
 
@@ -58,7 +72,15 @@ Important: `absPath` refers to the node to be created
          session.save();
     }
 
-###### Test if session has permission to perform version operations
+###### Test if session has permission to perform version and lock operations (Jackrabbit API)
+
+    Node content = jrSession.getNode("/content");
+    if (jrSession.hasPermission("/content", JackrabbitSession.ACTION_VERSIONING, JackrabbitSession.ACTION_LOCKING))) {
+         content.checkin();
+         session.save();
+    }
+
+###### Test if session has permission to perform version operations (Oak SPI)
 
     Node content = session.getNode("/content");
     if (session.hasPermission("/content", Permissions.getString(Permissions.VERSION_MANAGEMENT))) {
@@ -154,6 +176,50 @@ Not used in Oak 1.0:
 - access control content: `Permissions.MODIFY_ACCESS_CONTROL`
 - regular properties: `Permissions.MODIFY_PROPERTY`
 - non-existing properties: `Permissions.ADD_PROPERTY`
+
+`ACTION_ADD_PROPERTY`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- other properties: `Permissions.ADD_PROPERTY`
+
+`ACTION_MODIFY_PROPERTY`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- other properties: `Permissions.MODIFY_PROPERTY`
+
+`ACTION_REMOVE_PROPERTY`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- other properties: `Permissions.REMOVE_PROPERTY`
+
+`ACTION_REMOVE_NODE`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- regular nodes: `Permissions.REMOVE_NODE`
+
+`ACTION_NODE_TYPE_MANAGEMENT`
+
+- `Permissions.NODE_TYPE_MANAGEMENT`
+
+`ACTION_VERSIONING`
+
+- `Permissions.VERSION_MANAGEMENT`
+
+`ACTION_LOCKING`
+
+- `Permissions.LOCK_MANAGEMENT`
+
+`ACTION_READ_ACCESS_CONTROL`
+
+- `Permissions.READ_ACCESS_CONTROL`
+
+`ACTION_MODIFY_ACCESS_CONTROL`
+
+- `Permissions.MODIFY_ACCESS_CONTROL`
+
+`ACTION_USER_MANAGEMENT`
+
+- `Permissions.USER_MANAGEMENT`
 
 
 #### Permissions for Different Operations

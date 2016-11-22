@@ -51,23 +51,8 @@ Where
 - `actions` defines a comma-separated string (or string array respectively) of the actions defined on `Session` and `JackrabbitSession` (see below). 
   With the default implementation also Oak internal permission names are allowed ( _Note:_ permission names != privilege names)
   
-#### Supported Actions  
-
-- `Session.ACTION_READ`
-- `Session.ACTION_ADD_NODE`
-- `Session.ACTION_SET_PROPERTY`
-- `Session.ACTION_REMOVE`
-
-- `JackrabbitSession.ACTION_ADD_PROPERTY`
-- `JackrabbitSession.ACTION_MODIFY_PROPERTY`
-- `JackrabbitSession.ACTION_REMOVE_PROPERTY`
-- `JackrabbitSession.ACTION_REMOVE_NODE`
-- `JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT`
-- `JackrabbitSession.ACTION_VERSIONING`
-- `JackrabbitSession.ACTION_LOCKING`
-- `JackrabbitSession.ACTION_READ_ACCESS_CONTROL`
-- `JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL`
-- `JackrabbitSession.ACTION_USER_MANAGEMENT`
+See section [Permissions](../permission.html#oak_permissions) for a comprehensive
+list and the mapping from actions to permissions.
 
 #### Characteristics
 

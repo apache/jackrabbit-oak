@@ -54,6 +54,7 @@ The Oak Security Layer
 #### Permissions
 
  * [Overview](permission.html)
+    * [Permissions vs Privileges](permission/permissionsandprivileges.html)
  * [Differences wrt Jackrabbit 2.x](permission/differences.html)
  * [Permissions : The Default Implementation](permission/default.html)
     * [Permission Evaluation in Detail](permission/evaluation.html)
