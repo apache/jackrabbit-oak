@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -113,22 +114,20 @@ final class Util implements AccessControlConstants {
     }
 
     /**
-     * Create a unique valid name for the Permission nodes to be save.
+     * Create a valid name for the ACE node based on the entry and it's index.
      *
-     * @param aclTree The acl for which a new ACE name should be generated.
-     * @param isAllow If the ACE is allowing or denying.
+     * @param ace The access control entry.
+     * @param index The index of the entry in the list
      * @return the name of the ACE node.
      */
     @Nonnull
-    public static String generateAceName(@Nonnull Tree aclTree, boolean isAllow) {
-        int i = 0;
-        String hint = (isAllow) ? "allow" : "deny";
-        String aceName = hint;
-        while (aclTree.hasChild(aceName)) {
-            aceName = hint + i;
-            i++;
+    public static String generateAceName(@Nonnull ACE ace, int index) {
+        String hint = (ace.isAllow()) ? "allow" : "deny";
+        if (index == 0) {
+            return hint;
+        } else {
+            return hint + index;
         }
-        return aceName;
     }
 
     public static int getImportBehavior(AuthorizationConfiguration config) {

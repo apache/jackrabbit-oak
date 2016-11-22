@@ -44,10 +44,12 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -1394,6 +1396,65 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         } catch (AccessControlException e) {
             // success
         }
+    }
+
+    @Test
+    public void testSetPolicyModifiesRoot() throws Exception {
+        ACL acl = getApplicablePolicy(testPath);
+        assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+        assertFalse(root.hasPendingChanges());
+
+        acMgr.setPolicy(testPath, acl);
+        assertTrue(root.hasPendingChanges());
+
+        root.commit();
+
+        acl = (ACL) acMgr.getPolicies(testPath)[0];
+        assertEquals(1, acl.getAccessControlEntries().length);
+
+        acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, getGlobRestriction("*/something"));
+        acMgr.setPolicy(testPath, acl);
+        assertTrue(root.hasPendingChanges());
+
+        root.commit();
+
+        acl = (ACL) acMgr.getPolicies(testPath)[0];
+        assertEquals(2, acl.getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testSetPolicyWithRestrictions() throws Exception {
+        ACL acl = getApplicablePolicy(testPath);
+        acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/a/b")));
+        acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/c/d")));
+        acMgr.setPolicy(testPath, acl);
+        root.commit();
+
+        ACL l = (ACL) acMgr.getPolicies(testPath)[0];
+        assertEquals(2, l.getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testSetPolicyCreatesIndexedAceNodeNames() throws Exception {
+        ACL acl = getApplicablePolicy(testPath);
+        assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/*/a"))));
+        assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false));
+        assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/*/a"))));
+        acMgr.setPolicy(testPath, acl);
+        root.commit();
+
+        acl = (ACL) acMgr.getPolicies(testPath)[0];
+        assertEquals(4, acl.getAccessControlEntries().length);
+
+        Iterable<Tree> aceTrees = root.getTree(testPath).getChild(AccessControlConstants.REP_POLICY).getChildren();
+        String[] aceNodeNames = Iterables.toArray(Iterables.transform(aceTrees, new Function<Tree, String>() {
+            @Override
+            public String apply(Tree aceTree) {
+                return aceTree.getName();
+            }
+        }), String.class);
+        assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }
 
     //--------------------------< removePolicy(String, AccessControlPolicy) >---
