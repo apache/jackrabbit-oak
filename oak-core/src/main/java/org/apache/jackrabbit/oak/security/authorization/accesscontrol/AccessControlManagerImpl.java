@@ -280,10 +280,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             aclTree = createAclTree(oakPath, tree);
         }
         aclTree.setOrderableChildren(true);
-        for (ACE ace : acl.getEntries()) {
-            boolean isAllow = ace.isAllow();
-            String nodeName = Util.generateAceName(aclTree, isAllow);
-            String ntName = (isAllow) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
+        List<ACE> entries = acl.getEntries();
+        for (int i = 0; i < entries.size(); i++) {
+            ACE ace = entries.get(i);
+            String nodeName = Util.generateAceName(ace, i);
+            String ntName = (ace.isAllow()) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
 
             NodeUtil aceNode = new NodeUtil(aclTree).addChild(nodeName, ntName);
             aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());

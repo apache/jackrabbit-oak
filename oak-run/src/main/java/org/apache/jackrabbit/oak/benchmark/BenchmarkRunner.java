@@ -42,6 +42,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
@@ -116,6 +117,8 @@ public class BenchmarkRunner {
                         .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
         OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
                         .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
+        OptionSpec<Integer> numberOfInitialAce = parser.accepts("numberOfInitialAce", "Number of ACE to create before running the test.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(AceCreationTest.NUMBER_OF_INITIAL_ACE_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
         OptionSpec<Integer> batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
@@ -150,6 +153,9 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<String> autoMembership = parser.accepts("autoMembership", "Ids of those groups a given external identity automatically become member of.")
                 .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
+        OptionSpec<Boolean> transientWrites = parser.accepts("transient", "Do not save data.")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -325,6 +331,8 @@ public class BenchmarkRunner {
                     randomUser.value(options)),
             new ConcurrentWriteACLTest(itemsToRead.value(options)),
             new ConcurrentEveryoneACLTest(runAsAdmin.value(options), itemsToRead.value(options)),
+            new AceCreationTest(batchSize.value(options), numberOfInitialAce.value(options), transientWrites.value(options)),
+
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),
