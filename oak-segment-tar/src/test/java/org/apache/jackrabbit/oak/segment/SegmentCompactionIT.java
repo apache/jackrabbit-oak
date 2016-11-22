@@ -720,6 +720,11 @@ public class SegmentCompactionIT {
             cleaned = true;
             delegate.cleaned(reclaimedSize, currentSize);
         }
+        
+        @Override
+        public void updateStatus(String status) {
+            delegate.updateStatus(status);
+        }
 
         public boolean isCleaned() {
             return cleaned;

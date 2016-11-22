@@ -70,6 +70,12 @@ public interface GCMonitor {
      * @param currentSize    number of bytes after garbage collection
      */
     void cleaned(long reclaimedSize, long currentSize);
+    
+    /**
+     * The garbage collection entered a new phase e.g. idle, estimation, etc.
+     * @param status short summary of the GC phase
+     */
+    void updateStatus(String status);
 
     class Empty implements GCMonitor {
         @Override public void info(String message, Object[] arguments) { }
@@ -78,5 +84,6 @@ public interface GCMonitor {
         @Override public void skipped(String reason, Object[] arguments) { }
         @Override public void compacted() { }
         @Override public void cleaned(long reclaimedSize, long currentSize) { }
+        @Override public void updateStatus(String status) { }
     }
 }
