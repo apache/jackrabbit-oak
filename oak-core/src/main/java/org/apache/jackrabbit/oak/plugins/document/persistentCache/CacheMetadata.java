@@ -21,6 +21,37 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.google.common.collect.Maps.newConcurrentMap;
 
+/**
+ * In order to avoid leaking values from the metadataMap, following order should
+ * be maintained for combining the cache and CacheMetadata:
+ *
+ * 1. For remove(), removeAll() and clear():
+ *
+ * - cache.invalidate()
+ * - metadata.remove()
+ *
+ * 2. For put(), putAll() and putFromPersistenceAndIncrement():
+ *
+ * - metadata.put()
+ * - cache.put()
+ *
+ * 3. For increment():
+ *
+ * - metadata.increment()
+ * - cache.get()
+ * - (metadata.remove() if value doesn't exists in cache)
+ *
+ * 4. For incrementAll():
+ *
+ * - metadata.incrementAll()
+ * - cache.getAll()
+ * - (metadata.removeAll() on keys that returned nulls)
+ *
+ * Preserving this order will allow to avoid leaked values in the metadata without
+ * an extra synchronization between cache and metadata operations. This strategy
+ * is a best-effort option - it may happen that cache values won't have their
+ * metadata entries.
+ */
 public class CacheMetadata<K> {
 
     private final ConcurrentMap<K, MetadataEntry> metadataMap = newConcurrentMap();

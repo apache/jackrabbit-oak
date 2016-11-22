@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.cache.RemovalCause.COLLECTED;
 import static com.google.common.cache.RemovalCause.EXPIRED;
 import static com.google.common.cache.RemovalCause.SIZE;
+import static com.google.common.collect.Iterables.filter;
 import static java.util.Collections.singleton;
 
 import java.nio.ByteBuffer;
@@ -31,6 +34,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
@@ -170,17 +175,19 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     @Nullable
     public V getIfPresent(Object key) {
+        memCacheMetadata.increment((K) key);
         V value = memCache.getIfPresent(key);
-        if (value != null) {
-            memCacheMetadata.increment((K) key);
+        if (value == null) {
+            memCacheMetadata.remove(key);
+        } else {
             return value;
         }
         stats.markRequest();
 
         value = readIfPresent((K) key);
         if (value != null) {
-            memCache.put((K) key, value);
             memCacheMetadata.putFromPersistenceAndIncrement((K) key);
+            memCache.put((K) key, value);
             stats.markHit();
         }
         return value;
@@ -200,8 +207,8 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
-            value = memCache.get(key, valueLoader);
             memCacheMetadata.increment(key);
+            value = memCache.get(key, valueLoader);
             ctx.stop();
             if (!async) {
                 write((K) key, value);
@@ -217,15 +224,17 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     public ImmutableMap<K, V> getAllPresent(
             Iterable<?> keys) {
-        ImmutableMap<K, V> result = memCache.getAllPresent(keys);
+        Iterable<K> typedKeys = (Iterable<K>) keys;
         memCacheMetadata.incrementAll(keys);
+        ImmutableMap<K, V> result = memCache.getAllPresent(keys);
+        memCacheMetadata.removeAll(filter(typedKeys, not(in(result.keySet()))));
         return result;
     }
 
     @Override
     public void put(K key, V value) {
-        memCache.put(key, value);
         memCacheMetadata.put(key);
+        memCache.put(key, value);
         if (!async) {
             write((K) key, value);
         }
@@ -248,8 +257,8 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
-        memCache.putAll(m);
         memCacheMetadata.putAll(m.keySet());
+        memCache.putAll(m);
     }
 
     @Override
@@ -298,8 +307,8 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             memCacheMetadata.remove(key);
         } else {
             value = (V) valueType.read(buff);
-            memCache.put(key, value);
             memCacheMetadata.put(key);
+            memCache.put(key, value);
         }
         stats.markRecvBroadcast();
         if (!async) {
