@@ -141,6 +141,12 @@ public interface SegmentRevisionGC {
      */
     @CheckForNull
     String getLastError();
+    
+    /**
+     * @return  last log message or {@code null} if none.
+     */
+    @Nonnull
+    String getLastLogMessage();
 
     /**
      * @return  current status.

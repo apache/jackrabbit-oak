@@ -67,4 +67,9 @@ public class LoggingGCMonitor implements GCMonitor {
     @Override
     public void cleaned(long reclaimedSize, long currentSize) {
     }
+    
+    @Override
+    public void updateStatus(String status) {
+        
+    }
 }

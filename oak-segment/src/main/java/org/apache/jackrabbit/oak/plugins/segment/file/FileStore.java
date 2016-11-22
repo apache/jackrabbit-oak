@@ -1609,5 +1609,10 @@ public class FileStore implements SegmentStore {
         public void cleaned(long reclaimedSize, long currentSize) {
             delegatee.cleaned(reclaimedSize, currentSize);
         }
+        
+        @Override
+        public void updateStatus(String status) {
+            delegatee.updateStatus(status);
+        }
     }
 }

@@ -29,6 +29,7 @@ import java.util.Date;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 
@@ -43,7 +44,8 @@ public class FileStoreGCMonitor implements GCMonitor {
     private long lastRepositorySize;
     private long lastReclaimedSize;
     private String lastError;
-    private String status = "NA";
+    private String lastLogMessage;
+    private String status = SegmentGCStatus.IDLE.message();
 
     public FileStoreGCMonitor(@Nonnull Clock clock) {
         this.clock = checkNotNull(clock);
@@ -53,12 +55,12 @@ public class FileStoreGCMonitor implements GCMonitor {
 
     @Override
     public void info(String message, Object... arguments) {
-        status = arrayFormat(message, arguments).getMessage();
+        lastLogMessage = arrayFormat(message, arguments).getMessage();
     }
 
     @Override
     public void warn(String message, Object... arguments) {
-        status = arrayFormat(message, arguments).getMessage();
+        lastLogMessage = arrayFormat(message, arguments).getMessage();
     }
 
     @Override
@@ -71,7 +73,7 @@ public class FileStoreGCMonitor implements GCMonitor {
 
     @Override
     public void skipped(String reason, Object... arguments) {
-        status = arrayFormat(reason, arguments).getMessage();
+        lastLogMessage = arrayFormat(reason, arguments).getMessage();
     }
 
     @Override
@@ -84,6 +86,11 @@ public class FileStoreGCMonitor implements GCMonitor {
         lastCleanup = clock.getTime();
         lastReclaimedSize = reclaimed;
         lastRepositorySize = current;
+    }
+    
+    @Override
+    public void updateStatus(String status) {
+        this.status = status;
     }
 
     public String getLastCompaction() {
@@ -114,6 +121,11 @@ public class FileStoreGCMonitor implements GCMonitor {
         return lastError;
     }
 
+    @Nonnull
+    public String getLastLogMessage() {
+        return lastLogMessage;
+    }
+    
     @Nonnull
     public String getStatus() {
         return status;

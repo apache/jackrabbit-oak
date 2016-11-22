@@ -73,4 +73,10 @@ public class GCMonitorTracker extends AbstractServiceTracker<GCMonitor> implemen
         }
     }
 
+    @Override
+    public void updateStatus(String status) {
+        for (GCMonitor gcMonitor : getServices()) {
+            gcMonitor.updateStatus(status);
+        }
+    }
 }

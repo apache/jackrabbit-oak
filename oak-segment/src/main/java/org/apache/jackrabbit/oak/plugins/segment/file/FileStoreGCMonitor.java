@@ -121,6 +121,11 @@ public class FileStoreGCMonitor extends AnnotatedStandardMBean
         repositorySize.getCounter().set(current);
         reclaimedSize.getCounter().addAndGet(reclaimed);
     }
+    
+    @Override
+    @Deprecated
+    public void updateStatus(String status) {
+    }
 
     //------------------------------------------------------------< GCMonitorMBean >---
 

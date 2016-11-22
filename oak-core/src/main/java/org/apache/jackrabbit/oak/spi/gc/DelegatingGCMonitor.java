@@ -110,5 +110,12 @@ public class DelegatingGCMonitor implements GCMonitor {
             gcMonitor.cleaned(reclaimedSize, currentSize);
         }
     }
+    
+    @Override
+    public void updateStatus(String status) {
+        for (GCMonitor gcMonitor : gcMonitors) {
+            gcMonitor.updateStatus(status);
+        }
+    }
 
 }
