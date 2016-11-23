@@ -674,12 +674,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         // sure to not delete the reference checkpoint, as the other index
         // task will take care of it
         taskSplitter.maybeSplit(beforeCheckpoint, callback.lease);
+        IndexUpdate indexUpdate;
         try {
             NodeBuilder builder = store.getRoot().builder();
 
             markFailingIndexesAsCorrupt(builder);
 
-            IndexUpdate indexUpdate =
+            indexUpdate =
                     new IndexUpdate(provider, name, after, builder, callback, CommitInfo.EMPTY, corruptIndexHandler)
                     .withMissingProviderStrategy(missingStrategy);
             CommitFailedException exception =
@@ -732,12 +733,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         if (!progressLogged) {
-            String msg = "[{}] AsyncIndex update run completed in {}. Indexed {} nodes";
+            String msg = "[{}] AsyncIndex update run completed in {}. Indexed {} nodes, {}";
             //Log at info level if time taken is more than 5 min
             if (watch.elapsed(TimeUnit.MINUTES) >= 5) {
-                log.info(msg, name, watch, indexStats.getUpdates());
+                log.info(msg, name, watch, indexStats.getUpdates(), indexUpdate.getIndexingStats());
             } else {
-                log.debug(msg, name, watch, indexStats.getUpdates());
+                log.debug(msg, name, watch, indexStats.getUpdates(), indexUpdate.getIndexingStats());
             }
         }
 
