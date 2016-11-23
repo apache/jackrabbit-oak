@@ -55,15 +55,22 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
     @SuppressWarnings("unchecked")
     @Override
     public V get(Object key) {
+        ValueWithGenerationInfo<V> value = readValue(key);
+        if (value == null) {
+            return null;
+        } else if (!value.isCurrentGeneration()) {
+            put((K) key, value.value);
+        }
+        return value.getValue();
+    }
+
+    ValueWithGenerationInfo<V> readValue(Object key) {
         for (int generation : read.descendingKeySet()) {
             CacheMap<K, V> m = read.get(generation);
             if (m != null) {
                 V value = m.get(key);
                 if (value != null) {
-                    if (m != write) {
-                        put((K) key, value);
-                    }
-                    return value;
+                    return new ValueWithGenerationInfo<V>(value, m == write);
                 }
             }
         }
@@ -128,4 +135,23 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
         throw new UnsupportedOperationException();
     }
 
+    static class ValueWithGenerationInfo<V> {
+
+        private final V value;
+
+        private final boolean isCurrentGeneration;
+
+        private ValueWithGenerationInfo(V value, boolean isCurrentGeneration) {
+            this.value = value;
+            this.isCurrentGeneration = isCurrentGeneration;
+        }
+
+        V getValue() {
+            return value;
+        }
+
+        boolean isCurrentGeneration() {
+            return isCurrentGeneration;
+        }
+    }
 }
