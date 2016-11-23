@@ -191,6 +191,10 @@ public class IndexUpdate implements Editor {
         return rootState.getUpdatedIndexPaths();
     }
 
+    public String getIndexingStats(){
+        return rootState.getIndexingStats();
+    }
+
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
             String name) {
         PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
@@ -318,6 +322,7 @@ public class IndexUpdate implements Editor {
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
+        rootState.propertyChanged(after.getName());
         for (Editor editor : editors) {
             editor.propertyAdded(after);
         }
@@ -326,6 +331,7 @@ public class IndexUpdate implements Editor {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
+        rootState.propertyChanged(before.getName());
         for (Editor editor : editors) {
             editor.propertyChanged(before, after);
         }
@@ -334,6 +340,7 @@ public class IndexUpdate implements Editor {
     @Override
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
+        rootState.propertyChanged(before.getName());
         for (Editor editor : editors) {
             editor.propertyDeleted(before);
         }
@@ -342,6 +349,7 @@ public class IndexUpdate implements Editor {
     @Override @Nonnull
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
+        rootState.nodeRead(name);
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
@@ -357,6 +365,7 @@ public class IndexUpdate implements Editor {
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
+        rootState.nodeRead(name);
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
@@ -471,6 +480,8 @@ public class IndexUpdate implements Editor {
         final Set<String> reindexedIndexes = Sets.newHashSet();
         final Map<String, CountingCallback> callbacks = Maps.newHashMap();
         final CorruptIndexHandler corruptIndexHandler;
+        private int changedNodeCount;
+        private int changedPropertyCount;
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
                                      IndexUpdateCallback updateCallback, CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
@@ -532,6 +543,19 @@ public class IndexUpdate implements Editor {
 
         public boolean isReindexingPerformed(){
             return !reindexedIndexes.isEmpty();
+        }
+
+        public void nodeRead(String name){
+            changedNodeCount++;
+        }
+
+        public void propertyChanged(String name){
+            changedPropertyCount++;
+        }
+
+        public String getIndexingStats() {
+            return String.format("changedNodeCount %d, changedPropertyCount %d",
+                    changedNodeCount, changedPropertyCount);
         }
 
         private class CountingCallback implements ContextAwareCallback, IndexingContext {
