@@ -142,6 +142,18 @@ public class AsyncIndexerServiceTest {
         assertEquals(23, configs.get(1).timeIntervalInSecs);
     }
 
+    @Test
+    public void corruptIndexTimeout() throws Exception{
+        injectDefaultServices();
+        Map<String,Object> config = ImmutableMap.<String, Object>of(
+                "asyncConfigs", new String[] {"async:5"},
+                "failingIndexTimeoutSeconds" , "43"
+        );
+        MockOsgi.activate(service, context.bundleContext(), config);
+        AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+        assertEquals(TimeUnit.SECONDS.toMillis(43), indexUpdate.getCorruptIndexHandler().getCorruptIntervalMillis());
+    }
+
     private void injectDefaultServices() {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(NodeStore.class, nodeStore);

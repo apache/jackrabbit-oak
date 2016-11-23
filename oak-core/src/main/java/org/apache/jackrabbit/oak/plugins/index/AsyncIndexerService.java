@@ -73,6 +73,15 @@ public class AsyncIndexerService {
     )
     private static final String PROP_LEASE_TIME_OUT = "leaseTimeOutMinutes";
 
+    private static final long PROP_FAILING_INDEX_TIMEOUT_DEFAULT = 30 * 60;
+    @Property(
+            longValue = PROP_FAILING_INDEX_TIMEOUT_DEFAULT,
+            label = "Failing Index Timeout (s)",
+            description = "Time interval in seconds after which a failing index is considered as corrupted and " +
+                    "ignored from further indexing untill reindex. To disable this set it to 0"
+    )
+    private static final String PROP_FAILING_INDEX_TIMEOUT = "failingIndexTimeoutSeconds";
+
     private static final char CONFIG_SEP = ':';
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WhiteboardIndexEditorProvider indexEditorProvider = new WhiteboardIndexEditorProvider();
@@ -103,11 +112,15 @@ public class AsyncIndexerService {
             log.info("Detected non clusterable setup. Lease checking would be disabled for async indexing");
         }
 
+        TrackingCorruptIndexHandler corruptIndexHandler = createCorruptIndexHandler(config);
+
         for (AsyncConfig c : asyncIndexerConfig) {
             AsyncIndexUpdate task = new AsyncIndexUpdate(c.name, nodeStore, indexEditorProvider,
                     statisticsProvider, false);
+            task.setCorruptIndexHandler(corruptIndexHandler);
             task.setValidatorProviders(Collections.singletonList(validatorProvider));
             task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
+
             indexRegistration.registerAsyncIndexer(task, c.timeIntervalInSecs);
         }
         log.info("Configured async indexers {} ", asyncIndexerConfig);
@@ -122,6 +135,23 @@ public class AsyncIndexerService {
     }
 
     //~-------------------------------------------< internal >
+
+    private TrackingCorruptIndexHandler createCorruptIndexHandler(Map<String, Object> config) {
+        long failingIndexTimeoutSeconds = PropertiesUtil.toLong(config.get(PROP_FAILING_INDEX_TIMEOUT),
+                PROP_FAILING_INDEX_TIMEOUT_DEFAULT);
+
+        TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
+        corruptIndexHandler.setCorruptInterval(failingIndexTimeoutSeconds, TimeUnit.SECONDS);
+
+        if (failingIndexTimeoutSeconds <= 0){
+            log.info("[{}] is set to {}. Auto corrupt index isolation handling is disabled,",
+                    PROP_FAILING_INDEX_TIMEOUT, failingIndexTimeoutSeconds);
+        } else {
+            log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for [{}]s would " +
+                    "be marked as corrupted and would be skipped from further indexing");
+        }
+        return corruptIndexHandler;
+    }
 
     static List<AsyncConfig> getAsyncConfig(String[] configs) {
         List<AsyncConfig> result = Lists.newArrayList();
