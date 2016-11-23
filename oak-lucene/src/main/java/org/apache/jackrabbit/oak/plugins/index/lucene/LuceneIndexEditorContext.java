@@ -29,6 +29,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
@@ -85,6 +86,8 @@ public class LuceneIndexEditorContext {
 
     private final NodeState root;
 
+    private final IndexingContext indexingContext;
+
     private final boolean asyncIndexing;
     /**
      * The media types supported by the parser used.
@@ -101,9 +104,10 @@ public class LuceneIndexEditorContext {
                              LuceneIndexWriterFactory indexWriterFactory,
                              ExtractedTextCache extractedTextCache,
                              IndexAugmentorFactory augmentorFactory,
-                             boolean asyncIndexing) {
+                             IndexingContext indexingContext, boolean asyncIndexing) {
         configureUniqueId(definition);
         this.root = root;
+        this.indexingContext = checkNotNull(indexingContext);
         this.definitionBuilder = definition;
         this.indexWriterFactory = indexWriterFactory;
         this.definition = indexDefinition != null ? indexDefinition : new IndexDefinition(root, definition);
@@ -131,6 +135,10 @@ public class LuceneIndexEditorContext {
             writer = indexWriterFactory.newInstance(definition, definitionBuilder, reindex);
         }
         return writer;
+    }
+
+    public IndexingContext getIndexingContext() {
+        return indexingContext;
     }
 
     /**

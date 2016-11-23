@@ -23,9 +23,11 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -43,12 +46,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("UnusedAssignment")
 public class IndexTrackerTest {
-    private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(
-                    new LuceneIndexEditorProvider()));
+    private TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
+    private EditorHook hook;
 
     private NodeState root = INITIAL_CONTENT;
 
@@ -56,16 +59,24 @@ public class IndexTrackerTest {
 
     private IndexTracker tracker = new IndexTracker();
 
+    @Before
+    public void setUp(){
+        IndexUpdateProvider updateProvider = new IndexUpdateProvider(
+                new LuceneIndexEditorProvider(), "async", false);
+        updateProvider.setCorruptIndexHandler(corruptIndexHandler);
+        hook = new EditorHook(updateProvider);
+    }
+
     @Test
     public void update() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), null);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         assertEquals(0, tracker.getIndexNodePaths().size());
 
@@ -91,7 +102,7 @@ public class IndexTrackerTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
 
         IndexNode indexNode = tracker.acquireIndexNode("/oak:index/foo");
@@ -152,7 +163,7 @@ public class IndexTrackerTest {
         before = indexed;
         after = reindex("/oak:index/foo");
 
-        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
 
         //7. Now indexNode should be accessible
@@ -162,6 +173,35 @@ public class IndexTrackerTest {
         //And this index would not be considered bad
         badIdxInfo = tracker.getBadIndexTracker().getInfo("/oak:index/foo");
         assertNull(badIdxInfo);
+    }
+
+    @Test
+    public void notifyFailedIndexing() throws Exception{
+        createIndex("foo");
+
+        //1. Create and populate index
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        builder = indexed.builder();
+        indexed = corruptIndex("/oak:index/foo");
+
+        builder = indexed.builder();
+        builder.setProperty("foo", "bar2");
+        after = builder.getNodeState();
+
+        try {
+            hook.processCommit(before, after, CommitInfo.EMPTY);
+            fail("Indexing should have failed");
+        } catch (CommitFailedException ignore){
+
+        }
+
+        assertTrue(corruptIndexHandler.getFailingIndexData("async").containsKey("/oak:index/foo"));
     }
 
     private NodeState corruptIndex(String indexPath) {
@@ -183,7 +223,7 @@ public class IndexTrackerTest {
 
     private void createIndex(String propName){
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, propName, ImmutableSet.of(propName), null);
+        newLucenePropertyIndexDefinition(index, propName, ImmutableSet.of(propName), "async");
     }
 
 }
