@@ -512,7 +512,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                     @Nonnull
                     @Override
                     public NodeState getNodeState() {
-                        return input.withRootRevision(rootRevision, fromExternalChange);
+                        return input;
                     }
                 };
             }

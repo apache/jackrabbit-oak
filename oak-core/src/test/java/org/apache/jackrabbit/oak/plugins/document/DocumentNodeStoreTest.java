@@ -2839,6 +2839,35 @@ public class DocumentNodeStoreTest {
         assertFalse(finds.contains(Utils.getIdFromPath("/node-1/bar")));
     }
 
+    // OAK-5149
+    @Test
+    public void getChildNodesWithRootRevision() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("foo").child("baz");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("qux");
+        merge(ns, builder);
+
+        RevisionVector headRev = ns.getHeadRevision();
+        Iterable<DocumentNodeState> nodes = ns.getChildNodes(
+                asDocumentNodeState(ns.getRoot().getChildNode("foo")), null, 10);
+        assertEquals(2, Iterables.size(nodes));
+        for (DocumentNodeState c : nodes) {
+            assertEquals(headRev, c.getRootRevision());
+        }
+    }
+
     private static class TestException extends RuntimeException {
 
     }
