@@ -140,6 +140,8 @@ public class QueryImpl implements Query {
     public static final String REP_SUGGEST = "rep:suggest()";
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
+    
+    private boolean potentiallySlowTraversalQueryLogged;
 
     private static final Ordering<QueryIndex> MINIMAL_COST_ORDERING = new Ordering<QueryIndex>() {
         @Override
@@ -1063,10 +1065,16 @@ public class QueryImpl implements Query {
             case OK:
                 break;
             case WARN:
-                LOG.info(message);
+                if (!potentiallySlowTraversalQueryLogged) {
+                    LOG.info(message);
+                    potentiallySlowTraversalQueryLogged = true;
+                }
                 break;
             case FAIL:
-                LOG.warn(message);
+                if (!potentiallySlowTraversalQueryLogged) {
+                    LOG.warn(message);
+                    potentiallySlowTraversalQueryLogged = true;
+                }
                 throw new IllegalArgumentException(message);
             }
         }
