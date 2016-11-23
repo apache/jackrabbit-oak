@@ -1117,7 +1117,7 @@ public class FileStore extends AbstractFileStore {
             long finalSize = size();
             long reclaimedSize = initialSize - afterCleanupSize;
             stats.reclaimed(reclaimedSize);
-            gcJournal.persist(reclaimedSize, finalSize);
+            gcJournal.persist(reclaimedSize, finalSize, getGcGeneration());
             gcListener.cleaned(reclaimedSize, finalSize);
             gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                             " and space reclaimed {} ({} bytes).",
