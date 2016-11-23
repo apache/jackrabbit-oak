@@ -76,7 +76,7 @@ public class ChangeSet {
     public String toString() {
         return "ChangeSet{paths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames=" + propertyNames
                 + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes 
-                + ", allNodeTypes=" + allNodeTypes + "}";
+                + ", allNodeTypes=" + allNodeTypes + ", any overflow: " + anyOverflow() + "}";
     }
 
     @CheckForNull
@@ -106,6 +106,14 @@ public class ChangeSet {
     @CheckForNull
     public Set<String> getAllNodeTypes() {
         return allNodeTypes;
+    }
+    
+    public boolean anyOverflow() {
+        return getAllNodeTypes() == null || 
+                getParentNodeNames() == null ||
+                getParentNodeTypes() == null ||
+                getParentPaths() == null ||
+                getPropertyNames() == null;
     }
 
 }
