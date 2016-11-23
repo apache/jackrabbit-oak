@@ -54,12 +54,6 @@ public class PersistentCache implements Broadcaster.Listener {
     
     static final Logger LOG = LoggerFactory.getLogger(PersistentCache.class);
 
-    /**
-     * Whether to use the queue to put items into cache. Default: false (cache
-     * will be updated synchronously).
-     */
-    private static final boolean ASYNC_CACHE = Boolean.getBoolean("oak.cache.asynchronous");
-
     private static final String FILE_PREFIX = "cache-";
     private static final String FILE_SUFFIX = ".data";
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -73,7 +67,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean cacheDocChildren;
     private boolean compactOnClose;
     private boolean compress = true;
-    private boolean asyncCache = ASYNC_CACHE;
+    private boolean asyncCache = true;
     private boolean asyncDiffCache = false;
     private HashMap<CacheType, GenerationCache> caches = 
             new HashMap<CacheType, GenerationCache>();
@@ -148,8 +142,6 @@ public class PersistentCache implements Broadcaster.Listener {
                 manualCommit = true;
             } else if (p.startsWith("broadcast=")) {
                 broadcast = p.split("=")[1];               
-            } else if (p.equals("+async")) {
-                asyncCache = true;
             } else if (p.equals("-async")) {
                 asyncCache = false;
             } else if (p.equals("+asyncDiff")) {
