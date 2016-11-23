@@ -205,10 +205,19 @@ public class IndexUpdate implements Editor {
                     // probably not an index def
                     continue;
                 }
-                manageIndexPath(definition, name);
-                boolean shouldReindex = shouldReindex(definition,
-                        before, name);
+
+                boolean shouldReindex = shouldReindex(definition, before, name);
                 String indexPath = getIndexPath(getPath(), name);
+                if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME) && !shouldReindex){
+                    String corruptSince = definition.getProperty(IndexConstants.CORRUPT_PROPERTY_NAME).getValue(Type.DATE);
+                    log.warn("Ignoring corrupt index [{}] which has been marked as corrupt since [{}]. This index " +
+                                    "MUST be reindex for indexing to work properly", indexPath,
+                            corruptSince);
+                    continue;
+                }
+
+                manageIndexPath(definition, name);
+
                 Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
                         rootState.newCallback(indexPath, shouldReindex));
                 if (editor == null) {
@@ -229,6 +238,8 @@ public class IndexUpdate implements Editor {
                                 definition.getChildNode(rm).remove();
                             }
                         }
+
+                        clearCorruptFlag(definition, indexPath);
                         reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), editor);
                     }
                 } else {
@@ -362,6 +373,16 @@ public class IndexUpdate implements Editor {
 
     protected Set<String> getReindexedDefinitions() {
         return reindex.keySet();
+    }
+
+    private void clearCorruptFlag(NodeBuilder definition, String indexPath) {
+        PropertyState corrupt = definition.getProperty(IndexConstants.CORRUPT_PROPERTY_NAME);
+        //Remove any corrupt property
+        if (corrupt != null) {
+            definition.removeProperty(IndexConstants.CORRUPT_PROPERTY_NAME);
+            log.info("Removing corrupt flag from index [{}] which has been marked " +
+                    "as corrupt since [{}]", indexPath, corrupt);
+        }
     }
 
     private static String getIndexPath(String path, String indexName) {

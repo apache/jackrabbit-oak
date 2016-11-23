@@ -77,4 +77,11 @@ public interface IndexConstants {
      * IndexEditors
      */
     String INDEX_PATH = ":indexPath";
+
+    /**
+     * Property name for indicating that given index is corrupt and should be excluded
+     * from further indexing. Its value is the date when this index was marked as
+     * corrupt
+     */
+    String CORRUPT_PROPERTY_NAME = "corrupt";
 }
