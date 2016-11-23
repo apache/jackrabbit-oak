@@ -43,6 +43,8 @@ public class IndexUpdateProvider implements EditorProvider {
 
     private final MissingIndexProviderStrategy missingStrategy;
 
+    private CorruptIndexHandler corruptIndexHandler = CorruptIndexHandler.NOOP;
+
     public IndexUpdateProvider(IndexEditorProvider provider, boolean failOnMissingIndexProvider) {
         this(provider, null, failOnMissingIndexProvider);
     }
@@ -64,9 +66,12 @@ public class IndexUpdateProvider implements EditorProvider {
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
 
-        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, info)
+        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, info, corruptIndexHandler)
                 .withMissingProviderStrategy(missingStrategy);
         return VisibleEditor.wrap(editor);
     }
 
+    public void setCorruptIndexHandler(CorruptIndexHandler corruptIndexHandler) {
+        this.corruptIndexHandler = corruptIndexHandler;
+    }
 }
