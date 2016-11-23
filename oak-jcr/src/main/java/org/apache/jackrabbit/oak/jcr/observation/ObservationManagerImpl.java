@@ -335,12 +335,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         if (validatedNodeTypeNames != null) {
             explodedNodeTypes = newHashSet();
             for (String nt : validatedNodeTypeNames) {
-                NodeTypeIterator it = ntMgr.getNodeType(nt).getSubtypes();
-                while(it.hasNext()) {
-                    String subnt = String.valueOf(it.next());
-                    explodedNodeTypes.add(subnt);
-                }
-                explodedNodeTypes.add(nt);
+                explodeSubtypes(nt, explodedNodeTypes);
             }
         }
         
@@ -351,6 +346,18 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                 explodedNodeTypes, null));
         
         addEventListener(listener, tracker, filterBuilder.build());
+    }
+    
+    private void explodeSubtypes(String nodeType, Set<String> set) throws RepositoryException {
+        set.add(nodeType);
+        NodeTypeIterator it = ntMgr.getNodeType(nodeType).getSubtypes();
+        while(it.hasNext()) {
+            String subnt = String.valueOf(it.next());
+            if (!set.contains(subnt)) {
+                set.add(subnt);
+                explodeSubtypes(subnt, set);
+            }
+        }
     }
 
     private String pathWithoutGlob(String path) {
