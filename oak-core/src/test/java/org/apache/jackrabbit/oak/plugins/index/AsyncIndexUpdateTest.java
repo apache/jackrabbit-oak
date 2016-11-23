@@ -66,6 +66,7 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTaskSpliter;
+import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler.CorruptIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -1602,6 +1603,127 @@ public class AsyncIndexUpdateTest {
         assertThat(v.visitedPaths, hasItem("/:async"));
         assertThat(v.visitedPaths, hasItem("/oak:index/rootIndex"));
 
+    }
+
+    @Test
+    public void longTimeFailingIndexMarkedAsCorrupt() throws Exception{
+        MemoryNodeStore store = new MemoryNodeStore();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "barIndex", true, false, ImmutableSet.of("bar"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot1").setProperty("foo", "abc");
+        builder.child("testRoot2").setProperty("bar", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        TestIndexEditorProvider provider = new TestIndexEditorProvider();
+
+        Clock clock = new Clock.Virtual();
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.getCorruptIndexHandler().setClock(clock);
+        async.run();
+
+        //1. Basic sanity check. Indexing works
+        PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+        assertEquals(ImmutableSet.of("testRoot1"), find(lookup, "foo", "abc"));
+        assertEquals(ImmutableSet.of("testRoot2"), find(lookup, "bar", "abc"));
+
+        //2. Add some new content
+        builder = store.getRoot().builder();
+        builder.child("testRoot3").setProperty("foo", "xyz");
+        builder.child("testRoot4").setProperty("bar", "xyz");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //3. Now fail the indexing for 'bar'
+        provider.enableFailureMode("/oak:index/barIndex");
+
+        async.run();
+        assertTrue(async.getIndexStats().isFailing());
+        //barIndex is failing but not yet considered corrupted
+        assertTrue(async.getCorruptIndexHandler().getFailingIndexData("async").containsKey("/oak:index/barIndex"));
+        assertFalse(async.getCorruptIndexHandler().getCorruptIndexData("async").containsKey("/oak:index/barIndex"));
+
+        CorruptIndexInfo barIndexInfo = async.getCorruptIndexHandler().getFailingIndexData("async").get("/oak:index/barIndex");
+
+        //fooIndex is fine
+        assertFalse(async.getCorruptIndexHandler().getFailingIndexData("async").containsKey("/oak:index/fooIndex"));
+
+        //lookup should also fail as indexing failed
+        lookup = new PropertyIndexLookup(store.getRoot());
+        assertTrue(find(lookup, "foo", "xyz").isEmpty());
+        assertTrue(find(lookup, "bar", "xyz").isEmpty());
+
+        //4.Now move the clock forward and let the failing index marked as corrupt
+        clock.waitUntil(clock.getTime() + async.getCorruptIndexHandler().getCorruptIntervalMillis() + 1);
+
+        //5. Let async run again
+        async.run();
+
+        //Indexing should be ok now
+        assertFalse(async.getIndexStats().isFailing());
+
+        //barIndex should be considered corrupt now
+        assertTrue(async.getCorruptIndexHandler().getCorruptIndexData("async").containsKey("/oak:index/barIndex"));
+
+        lookup = new PropertyIndexLookup(store.getRoot());
+
+        //fooIndex should now report updated result. barIndex would fail
+        assertEquals(ImmutableSet.of("testRoot3"), find(lookup, "foo", "xyz"));
+        assertTrue(find(lookup, "bar", "xyz").isEmpty());
+        assertEquals(1, barIndexInfo.getSkippedCount());
+
+        //6. Index some stuff
+        builder = store.getRoot().builder();
+        builder.child("testRoot5").setProperty("foo", "pqr");
+        builder.child("testRoot6").setProperty("bar", "pqr");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+        assertFalse(async.getIndexStats().isFailing());
+
+        //barIndex should be skipped
+        assertEquals(2, barIndexInfo.getSkippedCount());
+
+        //7. Lets reindex barIndex and ensure index is not misbehaving
+        provider.disableFailureMode();
+
+        builder = store.getRoot().builder();
+        builder.child("oak:index").child("barIndex").setProperty("reindex", true);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+
+        //now barIndex should not be part of failing index
+        assertFalse(async.getCorruptIndexHandler().getFailingIndexData("async").containsKey("/oak:index/barIndex"));
+    }
+
+    private static class TestIndexEditorProvider extends PropertyIndexEditorProvider {
+        private String indexPathToFail;
+        @Override
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
+                                     @Nonnull IndexUpdateCallback callback) {
+            IndexingContext context = ((ContextAwareCallback)callback).getIndexingContext();
+            if (indexPathToFail != null && indexPathToFail.equals(context.getIndexPath())){
+                RuntimeException e = new RuntimeException();
+                context.indexUpdateFailed(e);
+                throw e;
+            }
+            return super.getIndexEditor(type, definition, root, callback);
+        }
+
+        public void enableFailureMode(String indexPathToFail){
+            this.indexPathToFail = indexPathToFail;
+        }
+
+        public void disableFailureMode(){
+            indexPathToFail = null;
+        }
     }
 
     private static class CollectingValidatorProvider extends ValidatorProvider {

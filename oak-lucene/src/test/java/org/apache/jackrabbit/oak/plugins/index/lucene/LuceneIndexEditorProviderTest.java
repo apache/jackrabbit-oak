@@ -166,6 +166,11 @@ public class LuceneIndexEditorProviderTest {
         }
 
         @Override
+        public void indexUpdateFailed(Exception e) {
+
+        }
+
+        @Override
         public void indexUpdate() throws CommitFailedException {
 
         }

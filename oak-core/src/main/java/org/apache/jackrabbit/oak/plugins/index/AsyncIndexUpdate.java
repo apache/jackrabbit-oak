@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
@@ -60,6 +61,7 @@ import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
+import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler.CorruptIndexInfo;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -195,6 +197,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private long lastCheckpointCleanUpTime;
 
     private List<ValidatorProvider> validatorProviders = Collections.emptyList();
+
+    private TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
                             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
@@ -569,6 +573,28 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
     }
 
+    private void markFailingIndexesAsCorrupt(NodeBuilder builder) {
+        for (Map.Entry<String, CorruptIndexInfo> index : corruptIndexHandler.getCorruptIndexData(name).entrySet()){
+            NodeBuilder indexBuilder = childBuilder(builder, index.getKey());
+            if (!indexBuilder.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME)){
+                CorruptIndexInfo info = index.getValue();
+                String corruptSince = ISO8601.format(info.getCorruptSinceAsCal());
+                indexBuilder.setProperty(
+                        PropertyStates.createProperty(IndexConstants.CORRUPT_PROPERTY_NAME, corruptSince, Type.DATE));
+                log.info("Marking [{}] as corrupt. The index is failing {}", info.getPath(), info.getStats());
+            } else {
+                log.debug("Failing index at [{}] is already marked as corrupt. The index is failing {}");
+            }
+        }
+    }
+
+    private static NodeBuilder childBuilder(NodeBuilder nb, String path) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = nb.child(name);
+        }
+        return nb;
+    }
+
     private void maybeCleanUpCheckpoints() {
         // clean up every five minutes
         long currentMinutes = TimeUnit.MILLISECONDS.toMinutes(
@@ -649,8 +675,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         try {
             NodeBuilder builder = store.getRoot().builder();
 
+            markFailingIndexesAsCorrupt(builder);
+
             IndexUpdate indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback)
+                    new IndexUpdate(provider, name, after, builder, callback, CommitInfo.EMPTY, corruptIndexHandler)
                     .withMissingProviderStrategy(missingStrategy);
             CommitFailedException exception =
                     EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
@@ -695,6 +723,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                         name, indexUpdate.getReindexStats(), watch);
                 progressLogged = true;
             }
+
+            corruptIndexHandler.markWorkingIndexes(indexUpdate.getUpdatedIndexPaths());
         } finally {
             callback.close();
         }
@@ -786,7 +816,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
-        this.validatorProviders = validatorProviders;
+        this.validatorProviders = checkNotNull(validatorProviders);
+    }
+
+    public void setCorruptIndexHandler(TrackingCorruptIndexHandler corruptIndexHandler) {
+        this.corruptIndexHandler = checkNotNull(corruptIndexHandler);
+    }
+
+    TrackingCorruptIndexHandler getCorruptIndexHandler() {
+        return corruptIndexHandler;
     }
 
     public boolean isClosed(){

@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,10 +135,17 @@ public class IndexUpdate implements Editor {
             IndexEditorProvider provider, String async,
             NodeState root, NodeBuilder builder,
             IndexUpdateCallback updateCallback, CommitInfo commitInfo) {
+        this(provider, async, root, builder, updateCallback, commitInfo, CorruptIndexHandler.NOOP);
+    }
+
+    public IndexUpdate(
+            IndexEditorProvider provider, String async,
+            NodeState root, NodeBuilder builder,
+            IndexUpdateCallback updateCallback, CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback, commitInfo);
+        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback, commitInfo, corruptIndexHandler);
         this.builder = checkNotNull(builder);
     }
 
@@ -179,6 +187,10 @@ public class IndexUpdate implements Editor {
         return rootState.getReindexStats();
     }
 
+    public Set<String> getUpdatedIndexPaths(){
+        return rootState.getUpdatedIndexPaths();
+    }
+
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
             String name) {
         PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
@@ -211,8 +223,9 @@ public class IndexUpdate implements Editor {
                 if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME) && !shouldReindex){
                     String corruptSince = definition.getProperty(IndexConstants.CORRUPT_PROPERTY_NAME).getValue(Type.DATE);
                     log.warn("Ignoring corrupt index [{}] which has been marked as corrupt since [{}]. This index " +
-                                    "MUST be reindex for indexing to work properly", indexPath,
+                                    "MUST be reindexed for indexing to work properly", indexPath,
                             corruptSince);
+                    rootState.corruptIndexHandler.skippingCorruptIndex(rootState.async, indexPath, ISO8601.parse(corruptSince));
                     continue;
                 }
 
@@ -460,14 +473,16 @@ public class IndexUpdate implements Editor {
         final IndexUpdateCallback updateCallback;
         final Set<String> reindexedIndexes = Sets.newHashSet();
         final Map<String, CountingCallback> callbacks = Maps.newHashMap();
+        final CorruptIndexHandler corruptIndexHandler;
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
-                                     IndexUpdateCallback updateCallback, CommitInfo commitInfo) {
+                                     IndexUpdateCallback updateCallback, CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
             this.provider = checkNotNull(provider);
             this.async = async;
             this.root = checkNotNull(root);
             this.updateCallback = checkNotNull(updateCallback);
             this.commitInfo = commitInfo;
+            this.corruptIndexHandler = corruptIndexHandler;
         }
 
         public IndexUpdateCallback newCallback(String indexPath, boolean reindex) {
@@ -499,6 +514,14 @@ public class IndexUpdate implements Editor {
                 }
             }
             return stats;
+        }
+
+        public Set<String> getUpdatedIndexPaths(){
+            Set<String> indexPaths = Sets.newHashSet();
+            for (CountingCallback cb : callbacks.values()) {
+                indexPaths.add(cb.getIndexPath());
+            }
+            return indexPaths;
         }
 
         public boolean somethingIndexed() {
@@ -568,6 +591,11 @@ public class IndexUpdate implements Editor {
             @Override
             public boolean isAsync() {
                 return async != null;
+            }
+
+            @Override
+            public void indexUpdateFailed(Exception e) {
+                corruptIndexHandler.indexUpdateFailed(async, indexPath, e);
             }
         }
     }

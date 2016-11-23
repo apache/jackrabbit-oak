@@ -19,36 +19,22 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import java.util.Calendar;
 
-public interface IndexingContext {
+public interface CorruptIndexHandler {
+    CorruptIndexHandler NOOP = new CorruptIndexHandler() {
+        @Override
+        public void skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
 
-    /**
-     * Path of the index definition in the repository
-     * @return index path in the repository
-     */
-    String getIndexPath();
+        }
 
-    /**
-     * Commit info associated with commit as part of which
-     * IndexEditor is being invoked
-     */
-    CommitInfo getCommitInfo();
+        @Override
+        public void indexUpdateFailed(String async, String indexPath, Exception e) {
 
-    /**
-     * Flag indicating that index is being reindex
-     */
-    boolean isReindexing();
+        }
+    };
 
-    /**
-     * Flag indicating that indexed is being done
-     * asynchronously
-     */
-    boolean isAsync();
+    void skippingCorruptIndex(String async, String indexPath, Calendar corruptSince);
 
-    /**
-     * Invoked by IndexEditor to indicate that update of index has failed
-     * @param e exception stack for failed updated
-     */
-    void indexUpdateFailed(Exception e);
+    void indexUpdateFailed(String async, String indexPath, Exception e);
 }
