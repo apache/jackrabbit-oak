@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -37,13 +38,17 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Calendar;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
@@ -63,7 +68,9 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -512,6 +519,7 @@ public class IndexUpdateTest {
     }
 
     private static class CallbackCapturingProvider extends PropertyIndexEditorProvider {
+        private Map<String, IndexingContext> callbacks = Maps.newHashMap();
         IndexUpdateCallback callback;
 
         @Override
@@ -520,8 +528,21 @@ public class IndexUpdateTest {
             Editor editor = super.getIndexEditor(type, definition, root, callback);
             if (editor != null){
                 this.callback = callback;
+                if (callback instanceof ContextAwareCallback){
+                    IndexingContext context = ((ContextAwareCallback) callback).getIndexingContext();
+                    callbacks.put(context.getIndexPath(), context);
+                }
             }
             return editor;
+        }
+
+        public void reset(){
+            callback = null;
+            callbacks.clear();
+        }
+
+        public IndexingContext getContext(String indexPath){
+            return callbacks.get(indexPath);
         }
     }
 
@@ -600,6 +621,60 @@ public class IndexUpdateTest {
         assertFalse(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
         assertTrue(IndexUpdate.isIncluded("async-other", base));
+    }
+
+    @Test
+    public void corruptIndexSkipped() throws Exception{
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        //1. Basic sanity - provider gets invoked
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        String indexPath = "/oak:index/rootIndex";
+        assertNotNull(provider.getContext(indexPath));
+
+
+        //2. Mark as corrupt and assert that editor is not invoked
+        builder = indexed.builder();
+        before = indexed;
+        builder.child("testRoot").setProperty("foo", "abc");
+        markCorrupt(builder, "rootIndex");
+        after = builder.getNodeState();
+
+        provider.reset();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertNull(provider.getContext(indexPath));
+
+        //3. Now reindex and that should reset corrupt flag
+        builder = indexed.builder();
+        before = indexed;
+        child(builder, indexPath).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+        provider.reset();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        assertFalse(NodeStateUtils.getNode(indexed, indexPath).hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME));
+        assertNotNull(provider.getContext(indexPath));
+    }
+
+
+
+    private static void markCorrupt(NodeBuilder builder, String indexName) {
+        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
+                .setProperty(IndexConstants.CORRUPT_PROPERTY_NAME, ISO8601.format(Calendar.getInstance()));
+    }
+
+    private static NodeBuilder child(NodeBuilder nb, String path){
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = nb.child(name);
+        }
+        return nb;
     }
 
 }
