@@ -41,8 +41,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Persists the repository size and the reclaimed size following a cleanup operation in the
- * {@link #GC_JOURNAL gc journal} file with the format: 'repoSize, reclaimedSize, timestamp'.
+ * Persists the repository size and the reclaimed size following a cleanup
+ * operation in the {@link #GC_JOURNAL gc journal} file with the format:
+ * 'repoSize, reclaimedSize, timestamp, gcGen'.
  */
 public class GCJournal {
 
@@ -59,8 +60,20 @@ public class GCJournal {
         this.directory = checkNotNull(directory);
     }
 
-    public synchronized void persist(long reclaimedSize, long repoSize) {
-        latest = new GCJournalEntry(repoSize, reclaimedSize, System.currentTimeMillis());
+    /**
+     * Persists the repository size and the reclaimed size following a cleanup
+     * operation
+     */
+    public synchronized void persist(long reclaimedSize, long repoSize,
+            int gcGeneration) {
+        GCJournalEntry current = read();
+        if (current.getGcGeneration() == gcGeneration) {
+            // failed compaction, only update the journal if the generation
+            // increases
+            return;
+        }
+        latest = new GCJournalEntry(repoSize, reclaimedSize,
+                System.currentTimeMillis(), gcGeneration);
         Path path = new File(directory, GC_JOURNAL).toPath();
         try {
             try (BufferedWriter w = newBufferedWriter(path, UTF_8, WRITE,
@@ -73,6 +86,9 @@ public class GCJournal {
         }
     }
 
+    /**
+     * Returns the latest entry available
+     */
     public synchronized GCJournalEntry read() {
         if (latest == null) {
             List<String> all = readLines();
@@ -86,6 +102,9 @@ public class GCJournal {
         return latest;
     }
 
+    /**
+     * Returns all available entries from the journal
+     */
     public synchronized Collection<GCJournalEntry> readAll() {
         List<GCJournalEntry> all = new ArrayList<GCJournalEntry>();
         for (String l : readLines()) {
@@ -108,30 +127,38 @@ public class GCJournal {
 
     static class GCJournalEntry {
 
-        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1);
+        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1);
 
         private final long repoSize;
         private final long reclaimedSize;
         private final long ts;
+        private final int gcGeneration;
 
-        public GCJournalEntry(long repoSize, long reclaimedSize, long ts) {
+        public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
+                int gcGeneration) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
             this.ts = ts;
+            this.gcGeneration = gcGeneration;
         }
 
         @Override
         public String toString() {
-            return  repoSize + "," + reclaimedSize + "," + ts;
+            return repoSize + "," + reclaimedSize + "," + ts + ","
+                    + gcGeneration;
         }
 
         static GCJournalEntry fromString(String in) {
             String[] items = in.split(",");
-            if (items.length == 3) {
+            if (items.length == 3 || items.length == 4) {
                 long repoSize = safeParse(items[0]);
                 long reclaimedSize = safeParse(items[1]);
                 long ts = safeParse(items[2]);
-                return new GCJournalEntry(repoSize, reclaimedSize, ts);
+                int gcGen = -1;
+                if (items.length == 4) {
+                    gcGen = (int) safeParse(items[3]);
+                }
+                return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen);
             }
             return GCJournalEntry.EMPTY;
         }
@@ -157,11 +184,17 @@ public class GCJournal {
             return ts;
         }
 
+        public int getGcGeneration() {
+            return gcGeneration;
+        }
+
         @Override
         public int hashCode() {
             final int prime = 31;
             int result = 1;
-            result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
+            result = prime * result + gcGeneration;
+            result = prime * result
+                    + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
             result = prime * result + (int) (repoSize ^ (repoSize >>> 32));
             result = prime * result + (int) (ts ^ (ts >>> 32));
             return result;
@@ -176,6 +209,8 @@ public class GCJournal {
             if (getClass() != obj.getClass())
                 return false;
             GCJournalEntry other = (GCJournalEntry) obj;
+            if (gcGeneration != other.gcGeneration)
+                return false;
             if (reclaimedSize != other.reclaimedSize)
                 return false;
             if (repoSize != other.repoSize)
@@ -184,5 +219,6 @@ public class GCJournal {
                 return false;
             return true;
         }
+
     }
 }
