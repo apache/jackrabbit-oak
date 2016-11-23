@@ -2281,6 +2281,8 @@ public final class DocumentNodeStore
         if (!disableJournalDiff
                 && tailRev.getTimestamp() < minTimestamp) {
             diffAlgo = "diffJournalChildren";
+            fromRev = from.getRootRevision();
+            toRev = to.getRootRevision();
             diff = new JournalDiffLoader(from, to, this).call();
         } else {
             JsopWriter w = new JsopStream();
