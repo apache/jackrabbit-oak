@@ -1595,6 +1595,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             return this;
         }
 
+        /**
+         * How many other item are to be moved to the top of the stack before
+         * the current item is moved. The default is 16. Using higher values
+         * will avoid re-ordering in many cases, so less time is spent
+         * reordering. But this somewhat reduces cache hit rate, and eviction
+         * will become more random. Typically, cache hit rate can be improved by
+         * using smaller values, and access performance can be improved using
+         * larger values. Using values larger than 128 is not recommended.
+         */
         public Builder<K, V> stackMoveDistance(int stackMoveDistance) {
             if (stackMoveDistance < 0) {
                 LOG.warn("Illegal stack move distance: " + stackMoveDistance + ", using 16");
