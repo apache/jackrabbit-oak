@@ -147,11 +147,13 @@ public class AsyncIndexerServiceTest {
         injectDefaultServices();
         Map<String,Object> config = ImmutableMap.<String, Object>of(
                 "asyncConfigs", new String[] {"async:5"},
-                "failingIndexTimeoutSeconds" , "43"
+                "failingIndexTimeoutSeconds" , "43",
+                "errorWarnIntervalSeconds" , "53"
         );
         MockOsgi.activate(service, context.bundleContext(), config);
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
         assertEquals(TimeUnit.SECONDS.toMillis(43), indexUpdate.getCorruptIndexHandler().getCorruptIntervalMillis());
+        assertEquals(TimeUnit.SECONDS.toMillis(53), indexUpdate.getCorruptIndexHandler().getErrorWarnIntervalMillis());
     }
 
     private void injectDefaultServices() {

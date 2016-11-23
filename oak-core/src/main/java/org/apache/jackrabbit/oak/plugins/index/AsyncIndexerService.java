@@ -82,6 +82,15 @@ public class AsyncIndexerService {
     )
     private static final String PROP_FAILING_INDEX_TIMEOUT = "failingIndexTimeoutSeconds";
 
+    private static final long PROP_ERROR_WARN_INTERVAL_DEFAULT = 15 * 60;
+    @Property(
+            longValue = PROP_ERROR_WARN_INTERVAL_DEFAULT,
+            label = "Error warn interval (s)",
+            description = "Time interval in seconds after which a warning log would be logged for skipped indexes. " +
+                    "This is done to avoid flooding the log in case of corrupted index."
+    )
+    private static final String PROP_ERROR_WARN_INTERVAL = "errorWarnIntervalSeconds";
+
     private static final char CONFIG_SEP = ':';
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WhiteboardIndexEditorProvider indexEditorProvider = new WhiteboardIndexEditorProvider();
@@ -139,13 +148,17 @@ public class AsyncIndexerService {
     private TrackingCorruptIndexHandler createCorruptIndexHandler(Map<String, Object> config) {
         long failingIndexTimeoutSeconds = PropertiesUtil.toLong(config.get(PROP_FAILING_INDEX_TIMEOUT),
                 PROP_FAILING_INDEX_TIMEOUT_DEFAULT);
+        long errorWarnIntervalSeconds = PropertiesUtil.toLong(config.get(PROP_ERROR_WARN_INTERVAL),
+                PROP_ERROR_WARN_INTERVAL_DEFAULT);
 
         TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
         corruptIndexHandler.setCorruptInterval(failingIndexTimeoutSeconds, TimeUnit.SECONDS);
+        corruptIndexHandler.setErrorWarnInterval(errorWarnIntervalSeconds, TimeUnit.SECONDS);
 
         if (failingIndexTimeoutSeconds <= 0){
-            log.info("[{}] is set to {}. Auto corrupt index isolation handling is disabled,",
-                    PROP_FAILING_INDEX_TIMEOUT, failingIndexTimeoutSeconds);
+            log.info("[{}] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be " +
+                            "logged every {} s",
+                    PROP_FAILING_INDEX_TIMEOUT, failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
         } else {
             log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for [{}]s would " +
                     "be marked as corrupted and would be skipped from further indexing", failingIndexTimeoutSeconds);
