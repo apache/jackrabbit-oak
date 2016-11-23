@@ -1665,8 +1665,9 @@ public class AsyncIndexUpdateTest {
         //5. Let async run again
         async.run();
 
-        //Indexing should be ok now
-        assertFalse(async.getIndexStats().isFailing());
+        //Indexing would be considered as failing
+        assertTrue(async.getIndexStats().isFailing());
+        assertEquals(IndexStatsMBean.STATUS_FAILING, async.getIndexStats().getStatus());
 
         //barIndex should be considered corrupt now
         assertTrue(async.getCorruptIndexHandler().getCorruptIndexData("async").containsKey("/oak:index/barIndex"));
@@ -1685,7 +1686,7 @@ public class AsyncIndexUpdateTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         async.run();
-        assertFalse(async.getIndexStats().isFailing());
+        assertTrue(async.getIndexStats().isFailing());
 
         //barIndex should be skipped
         assertEquals(2, barIndexInfo.getSkippedCount());

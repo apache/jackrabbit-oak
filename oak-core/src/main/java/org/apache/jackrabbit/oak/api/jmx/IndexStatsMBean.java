@@ -35,6 +35,8 @@ public interface IndexStatsMBean {
 
     String STATUS_DONE = "done";
 
+    String STATUS_FAILING = "failing";
+
     String STATUS_INTERRUPTED = "interrupted";
 
     /**

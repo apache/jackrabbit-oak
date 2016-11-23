@@ -896,7 +896,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void done(String now) {
-            status = STATUS_DONE;
+            if (corruptIndexHandler.isFailing(name)){
+                status = STATUS_FAILING;
+            } else {
+                status = STATUS_DONE;
+            }
             done = now;
             if (watch.isRunning()) {
                 watch.stop();
