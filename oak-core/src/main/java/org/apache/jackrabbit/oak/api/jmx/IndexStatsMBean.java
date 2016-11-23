@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
 
 import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.oak.commons.jmx.Description;
@@ -208,5 +209,7 @@ public interface IndexStatsMBean {
      *         be reset once the job starts working again
      */
     String getLatestErrorTime();
+
+    TabularData getFailingIndexStats();
 
 }
