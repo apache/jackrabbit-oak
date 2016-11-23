@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
@@ -62,6 +63,19 @@ public class TrackingCorruptIndexHandlerTest {
 
         //With timeout set to zero no corrupt index should be reported
         assertFalse(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+    }
+
+    @Test
+    public void warningLoggedAfterSomeTime() throws Exception{
+        handler.setClock(clock);
+        handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
+
+        assertFalse(handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
+
+        clock.waitUntil(clock.getTime() + handler.getErrorWarnIntervalMillis() + 1);
+
+        assertTrue(handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
+        assertFalse(handler.skippingCorruptIndex("async", "/oak:index/foo", Calendar.getInstance()));
     }
 
 }

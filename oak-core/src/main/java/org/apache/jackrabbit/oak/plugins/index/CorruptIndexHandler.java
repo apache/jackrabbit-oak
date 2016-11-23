@@ -24,8 +24,8 @@ import java.util.Calendar;
 public interface CorruptIndexHandler {
     CorruptIndexHandler NOOP = new CorruptIndexHandler() {
         @Override
-        public void skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
-
+        public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
+            return false;
         }
 
         @Override
@@ -34,7 +34,15 @@ public interface CorruptIndexHandler {
         }
     };
 
-    void skippingCorruptIndex(String async, String indexPath, Calendar corruptSince);
+    /**
+     * Callback method to inform handler that a corrupt index has been skipped
+     *
+     * @param async async name
+     * @param indexPath corrupt index path
+     * @param corruptSince time since index is corrupt
+     * @return true if warning is logged for skipped indexing
+     */
+    boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince);
 
     void indexUpdateFailed(String async, String indexPath, Exception e);
 }

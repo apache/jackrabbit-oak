@@ -222,9 +222,6 @@ public class IndexUpdate implements Editor {
                 String indexPath = getIndexPath(getPath(), name);
                 if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME) && !shouldReindex){
                     String corruptSince = definition.getProperty(IndexConstants.CORRUPT_PROPERTY_NAME).getValue(Type.DATE);
-                    log.warn("Ignoring corrupt index [{}] which has been marked as corrupt since [{}]. This index " +
-                                    "MUST be reindexed for indexing to work properly", indexPath,
-                            corruptSince);
                     rootState.corruptIndexHandler.skippingCorruptIndex(rootState.async, indexPath, ISO8601.parse(corruptSince));
                     continue;
                 }
