@@ -34,7 +34,9 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
+import com.google.common.base.Ticker;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
@@ -45,6 +47,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Clock clock = Clock.SIMPLE;
+    private long errorWarnIntervalMillis = TimeUnit.MINUTES.toMillis(15);
     private long indexerCycleCount;
     private long corruptIntervalMillis = TimeUnit.MINUTES.toMillis(30);
     private final Map<String, CorruptIndexInfo> indexes = Maps.newConcurrentMap();
@@ -90,8 +93,15 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     //~--------------------------------< CorruptIndexHandler >
 
     @Override
-    public void skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
-        getOrCreateInfo(async, indexPath).skippedIndexing(checkNotNull(corruptSince));
+    public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
+        CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
+        if (info.skippedIndexing(checkNotNull(corruptSince))) {
+            log.warn("Ignoring corrupt index [{}] which has been marked as corrupt [{}]. This index " +
+                            "MUST be reindexed for indexing to work properly", indexPath,
+                    info.getStats());
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -105,12 +115,20 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         this.corruptIntervalMillis = unit.toMillis(interval);
     }
 
+    public void setErrorWarnInterval(long errorWarnInterval, TimeUnit unit) {
+        this.errorWarnIntervalMillis = unit.toMillis(errorWarnInterval);
+    }
+
     void setClock(Clock clock) {
         this.clock = clock;
     }
 
     long getCorruptIntervalMillis() {
         return corruptIntervalMillis;
+    }
+
+    long getErrorWarnIntervalMillis() {
+        return errorWarnIntervalMillis;
     }
 
     private long getTime(){
@@ -130,6 +148,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         private final String asyncName;
         private final String path;
         private final long lastIndexerCycleCount = indexerCycleCount;
+        private final Stopwatch watch = Stopwatch.createStarted(new ClockTicker(clock));
         private String exception = "";
         private int failureCount;
         private int skippedCount;
@@ -146,9 +165,14 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             failureCount++;
         }
 
-        void skippedIndexing(Calendar corruptSince){
+        boolean skippedIndexing(Calendar corruptSince){
             skippedCount++;
             this.corruptSince = corruptSince.getTimeInMillis();
+            if (watch.elapsed(TimeUnit.MILLISECONDS) > errorWarnIntervalMillis) {
+                watch.reset().start();
+                return true;
+            }
+            return false;
         }
 
         public boolean isFailingSinceLongTime() {
@@ -266,6 +290,19 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
+        }
+    }
+
+    private static class ClockTicker extends Ticker {
+        private final Clock clock;
+
+        public ClockTicker(Clock clock) {
+            this.clock = clock;
+        }
+
+        @Override
+        public long read() {
+            return TimeUnit.MILLISECONDS.toNanos(clock.getTime());
         }
     }
 }
