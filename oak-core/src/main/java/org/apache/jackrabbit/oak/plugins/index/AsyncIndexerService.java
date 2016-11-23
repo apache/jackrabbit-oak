@@ -160,8 +160,9 @@ public class AsyncIndexerService {
                             "logged every {} s",
                     PROP_FAILING_INDEX_TIMEOUT, failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
         } else {
-            log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for [{}]s would " +
-                    "be marked as corrupted and would be skipped from further indexing", failingIndexTimeoutSeconds);
+            log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for {}s would " +
+                    "be marked as corrupted and would be skipped from further indexing. A warning log would be " +
+                    "logged every {} s", failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
         }
         return corruptIndexHandler;
     }

@@ -536,7 +536,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     afterCheckpoint, afterTime, callback);
 
             // the update succeeded, i.e. it no longer fails
-            if (indexStats.isFailing()) {
+            if (indexStats.didLastIndexingCycleFailed()) {
                 indexStats.fixed();
             }
 
@@ -941,7 +941,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void fixed() {
-            log.info("[{}] Index update no longer fails", name);
+            if (corruptIndexHandler.isFailing(name)){
+                log.info("[{}] Index update no longer fails but some corrupt indexes have been skipped {}", name,
+                        corruptIndexHandler.getCorruptIndexData(name).keySet());
+            } else {
+                log.info("[{}] Index update no longer fails", name);
+            }
+
             failing = false;
             failingSince = "";
             consecutiveFailures = 0;
@@ -952,6 +958,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         public boolean isFailing() {
             return failing || corruptIndexHandler.isFailing(name);
+        }
+
+        public boolean didLastIndexingCycleFailed(){
+            return failing;
         }
 
         @Override
