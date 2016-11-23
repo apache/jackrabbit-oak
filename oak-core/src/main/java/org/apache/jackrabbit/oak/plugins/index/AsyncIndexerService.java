@@ -148,7 +148,7 @@ public class AsyncIndexerService {
                     PROP_FAILING_INDEX_TIMEOUT, failingIndexTimeoutSeconds);
         } else {
             log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for [{}]s would " +
-                    "be marked as corrupted and would be skipped from further indexing");
+                    "be marked as corrupted and would be skipped from further indexing", failingIndexTimeoutSeconds);
         }
         return corruptIndexHandler;
     }

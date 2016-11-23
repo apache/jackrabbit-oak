@@ -394,7 +394,7 @@ public class IndexUpdate implements Editor {
         if (corrupt != null) {
             definition.removeProperty(IndexConstants.CORRUPT_PROPERTY_NAME);
             log.info("Removing corrupt flag from index [{}] which has been marked " +
-                    "as corrupt since [{}]", indexPath, corrupt);
+                    "as corrupt since [{}]", indexPath, corrupt.getValue(Type.DATE));
         }
     }
 
