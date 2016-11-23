@@ -1126,7 +1126,8 @@ public final class DocumentNodeStore
                             readRevision, p, cachedDocStr, uncachedDocStr);
                     throw new DocumentStoreException(exceptionMsg);
                 }
-                return result;
+                return result.withRootRevision(parent.getRootRevision(),
+                        parent.isFromExternalChange());
             }
         });
     }
