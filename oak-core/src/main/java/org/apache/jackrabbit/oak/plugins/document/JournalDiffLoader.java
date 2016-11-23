@@ -18,17 +18,22 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Stopwatch;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.asId;
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.fillExternalChanges;
 
@@ -45,6 +50,8 @@ class JournalDiffLoader implements DiffCache.Loader {
 
     private final DocumentNodeStore ns;
 
+    private Stats stats;
+
     JournalDiffLoader(@Nonnull AbstractDocumentNodeState base,
                       @Nonnull AbstractDocumentNodeState node,
                       @Nonnull DocumentNodeStore ns) {
@@ -55,6 +62,7 @@ class JournalDiffLoader implements DiffCache.Loader {
 
     @Override
     public String call() {
+        stats = new Stats();
         RevisionVector afterRev = node.getRootRevision();
         RevisionVector beforeRev = base.getRootRevision();
 
@@ -78,7 +86,7 @@ class JournalDiffLoader implements DiffCache.Loader {
 
             changes.sort();
             DiffCache df = ns.getDiffCache();
-            WrappedDiffCache wrappedCache = new WrappedDiffCache(node.getPath(), df);
+            WrappedDiffCache wrappedCache = new WrappedDiffCache(node.getPath(), df, stats);
             JournalEntry.applyTo(changes, wrappedCache, beforeRev, afterRev);
 
             return wrappedCache.changes;
@@ -86,6 +94,7 @@ class JournalDiffLoader implements DiffCache.Loader {
             throw DocumentStoreException.convert(e);
         } finally {
             Utils.closeIfCloseable(changes);
+            logStats();
         }
     }
 
@@ -108,6 +117,7 @@ class JournalDiffLoader implements DiffCache.Loader {
                 JournalEntry entry = store.find(Collection.JOURNAL, asId(br));
                 if (entry != null) {
                     entry.addTo(changes);
+                    stats.numJournalEntries++;
                 } else {
                     LOG.warn("Missing journal entry for {}", asId(br));
                 }
@@ -141,13 +151,14 @@ class JournalDiffLoader implements DiffCache.Loader {
                 // use revision with a timestamp of zero
                 from = new Revision(0, 0, to.getClusterId());
             }
-            fillExternalChanges(changes, from, to, ns.getDocumentStore());
+            stats.numJournalEntries += fillExternalChanges(changes, from, to, ns.getDocumentStore());
         }
         // do we need to include changes from pending local changes?
         if (!max.isRevisionNewer(localLastRev)
                 && !localLastRev.equals(max.getRevision(clusterId))) {
             // journal does not contain all local changes
             localPending.addTo(changes);
+            stats.numJournalEntries++;
         }
     }
 
@@ -171,15 +182,50 @@ class JournalDiffLoader implements DiffCache.Loader {
         throw new IllegalStateException("Missing branch for revision " + rv);
     }
 
+    private void logStats() {
+        stats.sw.stop();
+        long timeInSec = stats.sw.elapsed(TimeUnit.SECONDS);
+        if (timeInSec > 60) {
+            LOG.warn(stats.toString());
+        } else if (timeInSec > 10) {
+            LOG.info(stats.toString());
+        } else {
+            LOG.debug(stats.toString());
+        }
+    }
+
+    private static class Stats {
+
+        private final Stopwatch sw = Stopwatch.createStarted();
+        private long numJournalEntries;
+        private long numDiffEntries;
+        private long keyMemory;
+        private long valueMemory;
+
+        @Override
+        public String toString() {
+            String msg = "%d diffs loaded from %d journal entries in %s. " +
+                    "Keys: %s, values: %s, total: %s";
+            return String.format(msg, numDiffEntries, numJournalEntries, sw,
+                    byteCountToDisplaySize(keyMemory),
+                    byteCountToDisplaySize(valueMemory),
+                    byteCountToDisplaySize(keyMemory + valueMemory));
+        }
+    }
+
     private static class WrappedDiffCache extends DiffCache {
 
         private final String path;
         private String changes = "";
         private final DiffCache cache;
+        private Stats stats;
 
-        WrappedDiffCache(String path, DiffCache cache) {
+        WrappedDiffCache(String path,
+                         DiffCache cache,
+                         Stats stats) {
             this.path = path;
             this.cache = cache;
+            this.stats = stats;
         }
 
         @CheckForNull
@@ -197,14 +243,15 @@ class JournalDiffLoader implements DiffCache.Loader {
 
         @Nonnull
         @Override
-        Entry newEntry(@Nonnull RevisionVector from,
-                       @Nonnull RevisionVector to,
+        Entry newEntry(@Nonnull final RevisionVector from,
+                       @Nonnull final RevisionVector to,
                        boolean local) {
             final Entry entry = cache.newEntry(from, to, local);
             return new Entry() {
                 @Override
                 public void append(@Nonnull String path,
                                    @Nonnull String changes) {
+                    trackStats(path, from, to, changes);
                     entry.append(path, changes);
                     if (path.equals(WrappedDiffCache.this.path)) {
                         WrappedDiffCache.this.changes = changes;
@@ -216,6 +263,17 @@ class JournalDiffLoader implements DiffCache.Loader {
                     return entry.done();
                 }
             };
+        }
+
+        private void trackStats(String path,
+                                RevisionVector from,
+                                RevisionVector to,
+                                String changes) {
+            stats.numDiffEntries++;
+            stats.keyMemory += new StringValue(path).getMemory();
+            stats.keyMemory += from.getMemory();
+            stats.keyMemory += to.getMemory();
+            stats.valueMemory += new StringValue(changes).getMemory();
         }
 
         @Nonnull
