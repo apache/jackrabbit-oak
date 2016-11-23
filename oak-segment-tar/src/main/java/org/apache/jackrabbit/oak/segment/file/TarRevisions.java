@@ -65,14 +65,22 @@ public class TarRevisions implements Revisions, Closeable {
 
     public static final String JOURNAL_FILE_NAME = "journal.log";
 
+    /**
+     * The lock protecting {@link #journalFile}.
+     */
+    private final Lock journalFileLock = new ReentrantLock();
+
     @Nonnull
     private final AtomicReference<RecordId> head;
 
     @Nonnull
     private final File directory;
 
-    @Nonnull
-    private final RandomAccessFile journalFile;
+    /**
+     * The journal file. It is protected by {@link #journalFileLock}. It becomes
+     * {@code null} after it's closed.
+     */
+    private RandomAccessFile journalFile;
 
     /**
      * The persisted head of the root journal, used to determine whether the
@@ -183,8 +191,6 @@ public class TarRevisions implements Revisions, Closeable {
         checkState(head.get() != null, "Revisions not bound to a store");
     }
 
-    private final Lock flushLock = new ReentrantLock();
-
     /**
      * Flush the id of the current head to the journal after a call to
      * {@code persisted}. This method does nothing and returns immediately if
@@ -198,24 +204,32 @@ public class TarRevisions implements Revisions, Closeable {
         if (head.get() == null) {
             return;
         }
-        if (flushLock.tryLock()) {
-            try {
-                RecordId before = persistedHead.get();
-                RecordId after = getHead();
-                if (!after.equals(before)) {
-                    persisted.call();
-
-                    LOG.debug("TarMK journal update {} -> {}", before, after);
-                    journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
-                    journalFile.getChannel().force(false);
-                    persistedHead.set(after);
-                }
-            } catch (Exception e) {
-                propagateIfInstanceOf(e, IOException.class);
-                propagate(e);
-            } finally {
-                flushLock.unlock();
+        if (journalFileLock.tryLock()) {
+            if (journalFile == null) {
+                return;
             }
+            try {
+                doFlush(persisted);
+            } finally {
+                journalFileLock.unlock();
+            }
+        }
+    }
+
+    private void doFlush(Callable<Void> persisted) throws IOException {
+        try {
+            RecordId before = persistedHead.get();
+            RecordId after = getHead();
+            if (!after.equals(before)) {
+                persisted.call();
+                LOG.debug("TarMK journal update {} -> {}", before, after);
+                journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
+                journalFile.getChannel().force(false);
+                persistedHead.set(after);
+            }
+        } catch (Exception e) {
+            propagateIfInstanceOf(e, IOException.class);
+            propagate(e);
         }
     }
 
@@ -321,6 +335,16 @@ public class TarRevisions implements Revisions, Closeable {
      */
     @Override
     public void close() throws IOException {
-        journalFile.close();
+        journalFileLock.lock();
+        try {
+            if (journalFile == null) {
+                return;
+            }
+            journalFile.close();
+            journalFile = null;
+        } finally {
+            journalFileLock.unlock();
+        }
     }
+
 }

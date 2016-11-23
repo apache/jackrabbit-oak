@@ -133,13 +133,7 @@ public class Scheduler implements Closeable {
             if (executor.awaitTermination(60, SECONDS)) {
                 LOG.debug("The scheduler {} was successfully shut down", name);
             } else {
-                LOG.warn("The scheduler {} takes too long to shut down, forcing termination", name);
-                executor.shutdownNow();
-                if (executor.awaitTermination(60, SECONDS)) {
-                    LOG.debug("The scheduler {} was successfully shut down", name);
-                } else {
-                    LOG.error("The scheduler {} takes too long to shutdown", name);
-                }
+                LOG.warn("The scheduler {} takes too long to shut down", name);
             }
         } catch (InterruptedException e) {
             LOG.warn("Interrupt while shutting down he scheduler {}", name, e);
