@@ -45,7 +45,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Clock clock = Clock.SIMPLE;
-    private int indexerCycleCount;
+    private long indexerCycleCount;
     private long corruptIntervalMillis = TimeUnit.MINUTES.toMillis(30);
     private final Map<String, CorruptIndexInfo> indexes = Maps.newConcurrentMap();
 
@@ -129,7 +129,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     public class CorruptIndexInfo {
         private final String asyncName;
         private final String path;
-        private final int lastIndexerCycleCount = indexerCycleCount;
+        private final long lastIndexerCycleCount = indexerCycleCount;
         private String exception = "";
         private int failureCount;
         private int skippedCount;
@@ -182,7 +182,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             return path;
         }
 
-        private int getCycleCount() {
+        private long getCycleCount() {
             return indexerCycleCount - lastIndexerCycleCount;
         }
     }

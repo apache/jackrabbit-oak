@@ -577,14 +577,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     private void markFailingIndexesAsCorrupt(NodeBuilder builder) {
         for (Map.Entry<String, CorruptIndexInfo> index : corruptIndexHandler.getCorruptIndexData(name).entrySet()){
             NodeBuilder indexBuilder = childBuilder(builder, index.getKey());
+            CorruptIndexInfo info = index.getValue();
             if (!indexBuilder.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME)){
-                CorruptIndexInfo info = index.getValue();
                 String corruptSince = ISO8601.format(info.getCorruptSinceAsCal());
                 indexBuilder.setProperty(
                         PropertyStates.createProperty(IndexConstants.CORRUPT_PROPERTY_NAME, corruptSince, Type.DATE));
                 log.info("Marking [{}] as corrupt. The index is failing {}", info.getPath(), info.getStats());
             } else {
-                log.debug("Failing index at [{}] is already marked as corrupt. The index is failing {}");
+                log.debug("Failing index at [{}] is already marked as corrupt. The index is failing {}",
+                        info.getPath(), info.getStats());
             }
         }
     }
