@@ -25,6 +25,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
+import javax.management.openmbean.TabularData;
+import javax.management.openmbean.TabularDataSupport;
+import javax.management.openmbean.TabularType;
+
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -74,6 +83,9 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         }
     }
 
+    public boolean isFailing(String asyncName) {
+        return !getFailingIndexData(asyncName).isEmpty();
+    }
 
     //~--------------------------------< CorruptIndexHandler >
 
@@ -158,6 +170,10 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             return exception;
         }
 
+        public boolean isMarkedAsCorrupt(){
+            return skippedCount > 0;
+        }
+
         public int getSkippedCount() {
             return skippedCount;
         }
@@ -168,6 +184,88 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
         private int getCycleCount() {
             return indexerCycleCount - lastIndexerCycleCount;
+        }
+    }
+
+    //~-----------------------------------------------------< MBean Support >
+
+    public TabularData getFailingIndexStats(String asyncName) {
+        TabularDataSupport tds;
+        try {
+            TabularType tt = new TabularType(TrackingCorruptIndexHandler.class.getName(),
+                    "Failing Index Stats", FailingIndexStats.TYPE, new String[]{"path"});
+            tds = new TabularDataSupport(tt);
+            Map<String, CorruptIndexInfo> infos = getFailingIndexData(asyncName);
+            for (Map.Entry<String, CorruptIndexInfo> e : infos.entrySet()) {
+                FailingIndexStats stats = new FailingIndexStats(e.getValue());
+                tds.put(stats.toCompositeData());
+            }
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    private static class FailingIndexStats {
+        static final String[] FIELD_NAMES = new String[]{
+                "path",
+                "stats",
+                "markedCorrupt",
+                "failingSince",
+                "exception"
+        };
+
+        static final String[] FIELD_DESCRIPTIONS = new String[]{
+                "Path",
+                "Failure stats",
+                "Marked as corrupt",
+                "Failure start time",
+                "Exception"
+        };
+
+        @SuppressWarnings("rawtypes")
+        static final OpenType[] FIELD_TYPES = new OpenType[]{
+                SimpleType.STRING,
+                SimpleType.STRING,
+                SimpleType.BOOLEAN,
+                SimpleType.STRING,
+                SimpleType.STRING,
+        };
+
+        static final CompositeType TYPE = createCompositeType();
+
+        static CompositeType createCompositeType() {
+            try {
+                return new CompositeType(
+                        FailingIndexStats.class.getName(),
+                        "Composite data type for Failing Index statistics",
+                        FailingIndexStats.FIELD_NAMES,
+                        FailingIndexStats.FIELD_DESCRIPTIONS,
+                        FailingIndexStats.FIELD_TYPES);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private final CorruptIndexInfo info;
+
+        public FailingIndexStats(CorruptIndexInfo info){
+            this.info = info;
+        }
+
+        CompositeDataSupport toCompositeData() {
+            Object[] values = new Object[]{
+                    info.path,
+                    info.getStats(),
+                    info.isMarkedAsCorrupt(),
+                    String.format("%tc", info.getCorruptSinceAsCal().getTimeInMillis()),
+                    info.getLastException(),
+            };
+            try {
+                return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
         }
     }
 }

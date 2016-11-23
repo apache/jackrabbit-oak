@@ -46,6 +46,7 @@ import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
+import javax.management.openmbean.TabularData;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.stats.TimeSeries;
@@ -945,7 +946,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public boolean isFailing() {
-            return failing;
+            return failing || corruptIndexHandler.isFailing(name);
         }
 
         @Override
@@ -1200,6 +1201,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         @Override
         public String getLatestErrorTime() {
             return latestErrorTime;
+        }
+
+        @Override
+        public TabularData getFailingIndexStats() {
+            return corruptIndexHandler.getFailingIndexStats(name);
         }
     }
 
