@@ -43,6 +43,13 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
     private final Set<String> parentNodeNames;
     private final Set<String> parentNodeTypes;
     private final Set<String> propertyNames;
+    
+    @Override
+    public String toString() {
+        return "ChangeSetFilterImpl[rootIncludePaths="+rootIncludePaths+", includePathPatterns="+includePathPatterns+
+                ", excludePathPatterns="+excludePathPatterns+", parentNodeNames="+parentNodeNames+", parentNodeTypes="+
+                parentNodeTypes+", propertyNames="+propertyNames+"]";
+    }
 
     public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep, Set<String> excludedParentPaths,
             Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
@@ -101,8 +108,15 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
     }
     
     private boolean doExcludes(ChangeSet changeSet) {
-        final Set<String> cpp = changeSet.getParentPaths();
-        final Set<String> parentPaths = cpp != null ? new HashSet<String>(cpp) : new HashSet<String>();
+        if (changeSet.anyOverflow()) {
+            // in case of an overflow we could
+            // either try to still determine include/exclude based on non-overflown
+            // sets - or we can do a fail-stop and determine this as too complex
+            // to try-to-exclude, and just include
+            //TODO: optimize this later
+            return false;
+        }
+        final Set<String> parentPaths = new HashSet<String>(changeSet.getParentPaths());
 
         // first go through excludes to remove those that are explicitly
         // excluded

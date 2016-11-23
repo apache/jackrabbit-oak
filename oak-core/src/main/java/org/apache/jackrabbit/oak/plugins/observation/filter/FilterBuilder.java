@@ -397,6 +397,11 @@ public final class FilterBuilder {
             final ChangeSetFilter changeSetFilter = FilterBuilder.this.changeSetFilter;
 
             @Override
+            public String toString() {
+                return super.toString() + " [changeSetFilter="+changeSetFilter+"]";
+            }
+            
+            @Override
             public boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info) {
                 return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
                     && (includeClusterExternal || !isExternal(info))
