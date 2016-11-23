@@ -34,8 +34,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
@@ -129,11 +127,38 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     }
     
     private V readIfPresent(K key) {
+        return async ? asyncReadIfPresent(key) : syncReadIfPresent(key);
+    }
+
+    private V syncReadIfPresent(K key) {
         cache.switchGenerationIfNeeded();
         TimerStats.Context ctx = stats.startReadTimer();
         V v = map.get(key);
         ctx.stop();
+        if (v != null) {
+            memCacheMetadata.putFromPersistenceAndIncrement(key);
+        }
         return v;
+    }
+
+    private V asyncReadIfPresent(K key) {
+        TimerStats.Context ctx = stats.startReadTimer();
+        try {
+            MultiGenerationMap.ValueWithGenerationInfo<V> v = map.readValue(key);
+            if (v == null) {
+                return null;
+            }
+            if (v.isCurrentGeneration() && !cache.needSwitch()) {
+                // don't persist again on eviction
+                memCacheMetadata.putFromPersistenceAndIncrement(key);
+            } else {
+                // persist again during eviction
+                memCacheMetadata.increment(key);
+            }
+            return v.getValue();
+        } finally {
+            ctx.stop();
+        }
     }
 
     private void broadcast(final K key, final V value) {
@@ -184,9 +209,9 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         }
         stats.markRequest();
 
+        // it takes care of updating memCacheMetadata
         value = readIfPresent((K) key);
         if (value != null) {
-            memCacheMetadata.putFromPersistenceAndIncrement((K) key);
             memCache.put((K) key, value);
             stats.markHit();
         }
