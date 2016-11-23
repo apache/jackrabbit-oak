@@ -122,7 +122,7 @@ public class DefaultSyncConfig {
         /**
          * Set to true if new AuthorizableIDs shall be normalized according to
          * the UsernameCaseMapped profile defined in RFC7613.
-         * @param true if the UsernameCaseMapped profile shall be used for normalization.
+         * @param applyRFC7613UsernameCaseMapped true if the UsernameCaseMapped profile shall be used for normalization.
          * @return {@code this}
          * @see #isApplyRFC7613UsernameCaseMapped()
          */
