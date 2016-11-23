@@ -184,8 +184,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             try {
                 context.closeWriter();
             } catch (IOException e) {
-                throw new CommitFailedException("Lucene", 4,
-                        "Failed to close the Lucene index", e);
+                CommitFailedException ce = new CommitFailedException("Lucene", 4,
+                        "Failed to close the Lucene index " + context.getIndexingContext().getIndexPath(), e);
+                context.getIndexingContext().indexUpdateFailed(ce);
+                throw ce;
             }
             if (context.getIndexedNodes() > 0) {
                 log.debug("[{}] => Indexed {} nodes, done.", getIndexName(), context.getIndexedNodes());
@@ -249,9 +251,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 writer.deleteDocuments(path);
                 this.context.indexUpdate();
             } catch (IOException e) {
-                throw new CommitFailedException("Lucene", 5,
-                        "Failed to remove the index entries of"
-                                + " the removed subtree " + path, e);
+                CommitFailedException ce = new CommitFailedException("Lucene", 5, "Failed to remove the index entries of"
+                                + " the removed subtree " + path + "for index " + context.getIndexingContext().getIndexPath(), e);
+                context.getIndexingContext().indexUpdateFailed(ce);
+                throw ce;
             }
         }
 
@@ -279,8 +282,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 return true;
             }
         } catch (IOException e) {
-            throw new CommitFailedException("Lucene", 3,
+            CommitFailedException ce = new CommitFailedException("Lucene", 3,
                     "Failed to index the node " + path, e);
+            context.getIndexingContext().indexUpdateFailed(ce);
+            throw ce;
         } catch (IllegalArgumentException ie) {
             log.warn("Failed to index the node [{}]", path, ie);
         }

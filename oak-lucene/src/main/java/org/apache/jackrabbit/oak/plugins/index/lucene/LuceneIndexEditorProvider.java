@@ -151,7 +151,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
-                    writerFactory, extractedTextCache, augmentorFactory, asyncIndexing);
+                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing);
             return new LuceneIndexEditor(context);
         }
         return null;
