@@ -487,7 +487,7 @@ public class PersistentCache implements Broadcaster.Listener {
         }
     }
     
-    private boolean needSwitch() {
+    boolean needSwitch() {
         long size = writeStore.getFileSize();
         if (size / 1024 / 1024 <= maxSizeMB) {
             return false;
