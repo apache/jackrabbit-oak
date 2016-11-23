@@ -26,7 +26,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
-import static java.nio.ByteBuffer.wrap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -603,6 +602,7 @@ public class FileStore extends AbstractFileStore {
         // access some internal information stored in the segment and to store
         // in an in-memory cache for later use.
 
+        int generation = 0;
         if (id.isDataSegmentId()) {
             ByteBuffer data;
 
@@ -615,12 +615,11 @@ public class FileStore extends AbstractFileStore {
             }
 
             segment = new Segment(this, segmentReader, id, data);
+            generation = segment.getGcGeneration();
         }
 
         fileStoreLock.writeLock().lock();
         try {
-            int generation = Segment.getGcGeneration(wrap(buffer, offset, length), id.asUUID());
-
             // Flush the segment to disk
 
             long size = tarWriter.writeEntry(
