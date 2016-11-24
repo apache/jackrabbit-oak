@@ -738,8 +738,6 @@ public class DefaultSyncContext implements SyncContext {
      * Checks if the given authorizable was synced from the same IDP by comparing the IDP name of the
      * {@value #REP_EXTERNAL_ID} property.
      *
-     * todo: allow multiple IDPs on 1 authorizable
-     *
      * @param auth the authorizable.
      * @return {@code true} if same IDP.
      */
