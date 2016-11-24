@@ -383,7 +383,7 @@ public class AsyncIndexUpdateTest {
             @Nonnull
             @Override
             public NodeState merge(@Nonnull NodeBuilder builder,
-                    @Nonnull CommitHook commitHook, @Nullable CommitInfo info)
+                    @Nonnull CommitHook commitHook, @Nonnull CommitInfo info)
                     throws CommitFailedException {
                 Semaphore s = locks.get(Thread.currentThread());
                 if (s != null) {
