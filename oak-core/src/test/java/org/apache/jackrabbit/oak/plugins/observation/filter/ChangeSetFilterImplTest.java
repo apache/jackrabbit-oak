@@ -56,6 +56,56 @@ public class ChangeSetFilterImplTest {
         changeSetBuilder.getAllNodeTypes().addAll(allNodeTypes);
         return changeSetBuilder.build();
     }
+    
+    private ChangeSetBuilder newBuilder(int maxItems, int maxPathDepth) {
+        ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(maxItems, maxPathDepth);
+        return changeSetBuilder;
+    }
+
+    private ChangeSetBuilder overflowAllNodeTypes(ChangeSetBuilder builder) {
+        int i = 0;
+        while (!builder.getAllNodeTypeOverflown()) {
+            builder.getAllNodeTypes().add("foo" + i++);
+            builder.getAllNodeTypes();
+        }
+        return builder;
+    }
+
+    private ChangeSetBuilder overflowParentNodeTypes(ChangeSetBuilder builder) {
+        int i = 0;
+        while (!builder.getParentNodeTypeOverflown()) {
+            builder.getParentNodeTypes().add("foo" + i++);
+            builder.getParentNodeTypes();
+        }
+        return builder;
+    }
+
+    private ChangeSetBuilder overflowParentNodeNames(ChangeSetBuilder builder) {
+        int i = 0;
+        while (!builder.getParentNodeNameOverflown()) {
+            builder.getParentNodeNames().add("foo" + i++);
+            builder.getParentNodeNames();
+        }
+        return builder;
+    }
+
+    private ChangeSetBuilder overflowParentPaths(ChangeSetBuilder builder) {
+        int i = 0;
+        while (!builder.getParentPathOverflown()) {
+            builder.getParentPaths().add("foo" + i++);
+            builder.getParentPaths();
+        }
+        return builder;
+    }
+
+    private ChangeSetBuilder overflowPropertyNames(ChangeSetBuilder builder) {
+        int i = 0;
+        while (!builder.getPropertyNameOverflown()) {
+            builder.getPropertyNames().add("foo" + i++);
+            builder.getPropertyNames();
+        }
+        return builder;
+    }
 
     @Test
     public void testIsDeepFalse() throws Exception {
@@ -124,4 +174,69 @@ public class ChangeSetFilterImplTest {
         assertFalse(prefilter.excludes(newChangeSet(5, s("/a"), s("a"), s(), s("jcr:data"))));
     }
 
+    @Test
+    public void testOverflowing() throws Exception {
+        ChangeSetBuilder builder = newBuilder(5, 5);
+        assertTrue(overflowAllNodeTypes(builder).getAllNodeTypeOverflown());
+        assertTrue(overflowParentNodeTypes(builder).getParentNodeTypeOverflown());
+        assertTrue(overflowParentNodeNames(builder).getParentNodeNameOverflown());
+        assertTrue(overflowParentPaths(builder).getParentPathOverflown());
+        assertTrue(overflowPropertyNames(builder).getPropertyNameOverflown());
+    }
+    
+    private ChangeSetBuilder sampleBuilder() {
+        ChangeSetBuilder builder = newBuilder(5, 5);
+        builder.getAllNodeTypes().add("nt:file");
+        builder.getParentNodeTypes().add("nt:file");
+        builder.getParentPaths().add("/bar");
+        builder.getParentNodeNames().add("bar");
+        builder.getPropertyNames().add("a");
+        builder.getPropertyNames().add("b");
+        return builder;
+    }
+
+    @Test
+    public void testIncludeOnAllNodeTypeOverflow() throws Exception {
+        ChangeSetBuilder builder = sampleBuilder();
+        ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, s("/excluded"), s("foo", "bars"), s("nt:file"), s());
+        assertTrue(prefilter.excludes(builder.build()));
+        overflowAllNodeTypes(builder);
+        assertFalse(prefilter.excludes(builder.build()));
+    }
+
+    @Test
+    public void testIncludeOnParentNodeNameOverflow() throws Exception {
+        ChangeSetBuilder builder = sampleBuilder();
+        ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, s("/excluded"), s("foo", "bars"), s("nt:file"), s());
+        assertTrue(prefilter.excludes(builder.build()));
+        overflowParentNodeNames(builder);
+        assertFalse(prefilter.excludes(builder.build()));
+    }
+
+    @Test
+    public void testIncludeOnPropertyNamesOverflow() throws Exception {
+        ChangeSetBuilder builder = sampleBuilder();
+        ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, s("/excluded"), s("foo", "bars"), s("nt:file"), s());
+        assertTrue(prefilter.excludes(builder.build()));
+        overflowPropertyNames(builder);
+        assertFalse(prefilter.excludes(builder.build()));
+    }
+
+    @Test
+    public void testIncludeOnParentNodeTypeOverflow() throws Exception {
+        ChangeSetBuilder builder = sampleBuilder();
+        ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, s("/excluded"), s("foo", "bars"), s("nt:file"), s());
+        assertTrue(prefilter.excludes(builder.build()));
+        overflowParentNodeTypes(builder);
+        assertFalse(prefilter.excludes(builder.build()));
+    }
+
+    @Test
+    public void testIncludeOnParentPathsOverflow() throws Exception {
+        ChangeSetBuilder builder = sampleBuilder();
+        ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, s("/excluded"), s("foo", "bars"), s("nt:file"), s());
+        assertTrue(prefilter.excludes(builder.build()));
+        overflowParentPaths(builder);
+        assertFalse(prefilter.excludes(builder.build()));
+    }
 }
