@@ -155,7 +155,7 @@ public class SegmentCompactionIT {
     private volatile int nodeAddRatio = 40;
     private volatile int addStringRatio = 20;
     private volatile int addBinaryRatio = 0;
-    private volatile int compactionInterval = 60;
+    private volatile int compactionInterval = 2;
     private volatile boolean stopping;
     private volatile Reference rootReference;
     private volatile long fileStoreSize;
