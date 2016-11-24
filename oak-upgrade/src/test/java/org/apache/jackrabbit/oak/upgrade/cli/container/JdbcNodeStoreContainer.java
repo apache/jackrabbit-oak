@@ -53,7 +53,7 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
         this.blob = blob;
         this.h2Dir = Files.createTempDirectory(Paths.get("target"), "repo-h2").toFile();
         this.jdbcUri = String.format("jdbc:h2:%s", h2Dir.getAbsolutePath() + "/JdbcNodeStoreContainer");
-        this.jdbcFactory = new JdbcFactory(jdbcUri, 2, "sa", "sa");
+        this.jdbcFactory = new JdbcFactory(jdbcUri, 2, "sa", "sa", false);
     }
 
     @Override

@@ -39,9 +39,12 @@ public class MongoFactory implements NodeStoreFactory {
 
     private final int cacheSize;
 
-    public MongoFactory(String repoDesc, int cacheSize) {
+    private final boolean readOnly;
+
+    public MongoFactory(String repoDesc, int cacheSize, boolean readOnly) {
         this.uri = new MongoClientURI(repoDesc);
         this.cacheSize = cacheSize;
+        this.readOnly = readOnly;
     }
 
     @Override
@@ -50,6 +53,9 @@ public class MongoFactory implements NodeStoreFactory {
         builder.setMongoDB(getDB(closer));
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
+        }
+        if (readOnly) {
+            builder.setReadOnlyMode();
         }
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         closer.register(asCloseable(documentNodeStore));

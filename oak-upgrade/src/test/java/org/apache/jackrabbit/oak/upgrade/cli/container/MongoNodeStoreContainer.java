@@ -56,7 +56,7 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     public MongoNodeStoreContainer(BlobStoreContainer blob) throws IOException {
         Assume.assumeTrue(isMongoAvailable());
         this.mongoUri = String.format("%s-%d", MONGO_URI, DATABASE_SUFFIX.getAndIncrement());
-        this.mongoFactory = new MongoFactory(mongoUri, 2);
+        this.mongoFactory = new MongoFactory(mongoUri, 2, false);
         this.blob = blob;
         clean();
     }

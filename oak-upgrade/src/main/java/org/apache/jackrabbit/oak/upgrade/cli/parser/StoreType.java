@@ -95,7 +95,7 @@ public enum StoreType {
                 password = migrationOptions.getDstPassword();
             }
             return new StoreFactory(
-                    new JdbcFactory(paths[0], migrationOptions.getCacheSizeInMB(), username, password));
+                    new JdbcFactory(paths[0], migrationOptions.getCacheSizeInMB(), username, password, direction == MigrationDirection.SRC));
         }
 
         @Override
@@ -111,7 +111,7 @@ public enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new MongoFactory(paths[0], migrationOptions.getCacheSizeInMB()));
+            return new StoreFactory(new MongoFactory(paths[0], migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC));
         }
 
         @Override
@@ -128,7 +128,7 @@ public enum StoreType {
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             String path = removeStart(paths[0], SEGMENT_OLD_PREFIX);
-            return new StoreFactory(new SegmentFactory(path, migrationOptions.isDisableMmap()));
+            return new StoreFactory(new SegmentFactory(path, migrationOptions.isDisableMmap(), direction == MigrationDirection.SRC));
         }
 
         @Override
@@ -144,7 +144,7 @@ public enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap()));
+            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap(), direction == MigrationDirection.SRC));
         }
 
         @Override

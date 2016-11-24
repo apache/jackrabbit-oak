@@ -24,7 +24,9 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.segment.RecordType;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -37,17 +39,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import javax.annotation.Nullable;
-
 public class SegmentTarFactory implements NodeStoreFactory {
 
     private final File dir;
 
     private final boolean disableMmap;
 
-    public SegmentTarFactory(String directory, boolean disableMmap) {
+    private final boolean readOnly;
+
+    public SegmentTarFactory(String directory, boolean disableMmap, boolean readOnly) {
         this.dir = new File(directory);
         this.disableMmap = disableMmap;
+        this.readOnly = readOnly;
         createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + dir.getPath());
@@ -72,56 +75,51 @@ public class SegmentTarFactory implements NodeStoreFactory {
         } else {
             builder.withDefaultMemoryMapping();
         }
-        final FileStore fs;
+
         try {
-            fs = builder.build();
+            if (readOnly) {
+                final ReadOnlyFileStore fs;
+                fs = builder.buildReadOnly();
+                closer.register(asCloseable(fs));
+                return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new SegmentTarSuperRootProvider(fs));
+            } else {
+                final FileStore fs;
+                fs = builder.build();
+                closer.register(asCloseable(fs));
+                return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new SegmentTarSuperRootProvider(fs));
+            }
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
         }
-        closer.register(asCloseable(fs));
-
-        return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new TarNodeStore.SuperRootProvider() {
-            @Override
-            public void setSuperRoot(NodeBuilder builder) {
-                checkArgument(builder instanceof SegmentNodeBuilder);
-                SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
-                SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
-
-                if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
-                    throw new IllegalArgumentException("The new head is out of date");
-                }
-
-                fs.getRevisions().setHead(lastRoot.getRecordId(), segmentBuilder.getNodeState().getRecordId());
-            }
-
-            @Override
-            public NodeState getSuperRoot() {
-                return fs.getHead();
-            }
-        });
     }
-
 
     @Override
     public boolean hasExternalBlobReferences() throws IOException {
         final FileStoreBuilder builder = fileStoreBuilder(new File(dir, "segmentstore"));
         builder.withMaxFileSize(256);
         builder.withMemoryMapping(false);
-        final FileStore fs;
+        ReadOnlyFileStore fs;
         try {
-            fs = builder.build();
+            fs = builder.buildReadOnly();
         } catch (InvalidFileStoreVersionException e) {
             throw new IOException(e);
         }
         try {
-            fs.collectBlobReferences(new ReferenceCollector() {
-                @Override
-                public void addReference(String reference, @Nullable String nodeId) {
-                    // FIXME the collector should allow to stop processing
-                    // see java.nio.file.FileVisitor
-                    throw new ExternalBlobFound();
+            for (SegmentId id : fs.getSegmentIds()) {
+                if (!id.isDataSegmentId()) {
+                    continue;
                 }
-            });
+                id.getSegment().forEachRecord(new Segment.RecordConsumer() {
+                    @Override
+                    public void consume(int number, RecordType type, int offset) {
+                        // FIXME the consumer should allow to stop processing
+                        // see java.nio.file.FileVisitor
+                        if (type == RecordType.BLOB_ID) {
+                            throw new ExternalBlobFound();
+                        }
+                    }
+                });
+            }
             return false;
         } catch (ExternalBlobFound e) {
             return true;
@@ -132,6 +130,15 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
     public File getRepositoryDir() {
         return dir;
+    }
+
+    private static Closeable asCloseable(final ReadOnlyFileStore fs) {
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                fs.close();
+            }
+        };
     }
 
     private static Closeable asCloseable(final FileStore fs) {
@@ -149,5 +156,42 @@ public class SegmentTarFactory implements NodeStoreFactory {
     }
 
     private static class ExternalBlobFound extends RuntimeException {
+    }
+
+    private static class SegmentTarSuperRootProvider implements TarNodeStore.SuperRootProvider {
+
+        private final ReadOnlyFileStore readOnlyFileStore;
+
+        private final FileStore fileStore;
+
+        public SegmentTarSuperRootProvider(ReadOnlyFileStore readOnlyFileStore) {
+            this.readOnlyFileStore = readOnlyFileStore;
+            this.fileStore = null;
+        }
+
+        public SegmentTarSuperRootProvider(FileStore fileStore) {
+            this.readOnlyFileStore = null;
+            this.fileStore = fileStore;
+        }
+
+        @Override
+        public void setSuperRoot(NodeBuilder builder) {
+            if (fileStore == null) {
+                throw new IllegalStateException("setSuperRoot is not supported for read-only segment-tar");
+            }
+            checkArgument(builder instanceof SegmentNodeBuilder);
+            SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
+            SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
+
+            if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
+                throw new IllegalArgumentException("The new head is out of date");
+            }
+            fileStore.getRevisions().setHead(lastRoot.getRecordId(), segmentBuilder.getNodeState().getRecordId());
+        }
+
+        @Override
+        public NodeState getSuperRoot() {
+            return fileStore == null ? readOnlyFileStore.getHead() : fileStore.getHead();
+        }
     }
 }
