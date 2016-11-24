@@ -52,8 +52,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
 
     private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
 
-    private static Class JR2_S3 = SharedS3DataStore.class;
-    private static Class S3 = S3DataStore.class;
+    protected static Class JR2_S3 = SharedS3DataStore.class;
+    protected static Class S3 = S3DataStore.class;
 
     public static List<String> getFixtures() {
         return ImmutableList.of(
