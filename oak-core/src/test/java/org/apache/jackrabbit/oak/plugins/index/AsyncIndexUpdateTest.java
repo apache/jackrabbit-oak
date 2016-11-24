@@ -1773,8 +1773,8 @@ public class AsyncIndexUpdateTest {
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
-        public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
-            if (info != null){
+        public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+            if (info != CommitInfo.EMPTY_EXTERNAL){
                 infos.add(info);
             }
         }
