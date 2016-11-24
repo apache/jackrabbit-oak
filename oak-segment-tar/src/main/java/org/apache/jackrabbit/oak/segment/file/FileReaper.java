@@ -17,12 +17,16 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,15 +67,18 @@ class FileReaper {
         }
 
         Set<File> redo = new HashSet<>();
-
+        List<File> removed = newArrayList();
         for (File file : reap) {
             try {
                 Files.deleteIfExists(file.toPath());
-                logger.info("Removed file {}", file);
+                removed.add(file);
             } catch (IOException e) {
                 logger.warn(String.format("Unable to remove file %s", file), e);
                 redo.add(file);
             }
+        }
+        if (!removed.isEmpty()) {
+            logger.info("Removed files {}", Joiner.on(",").join(removed));
         }
 
         if (redo.isEmpty()) {

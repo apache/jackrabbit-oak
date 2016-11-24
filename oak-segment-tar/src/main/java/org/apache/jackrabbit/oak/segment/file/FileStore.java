@@ -67,6 +67,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
@@ -819,8 +820,8 @@ public class FileStore extends AbstractFileStore {
                     return -newGeneration;
                 }
 
-                gcListener.info("TarMK GC #{}: compacted {} to {}",
-                        GC_COUNT, before.getRecordId(), after.getRecordId());
+                gcListener.info("TarMK GC #{}: compaction cycle 0 completed in {} ({} ms). Compacted {} to {}",
+                        GC_COUNT, watch, watch.elapsed(MILLISECONDS), before.getRecordId(), after.getRecordId());
 
                 int cycles = 0;
                 boolean success = false;
@@ -834,6 +835,7 @@ public class FileStore extends AbstractFileStore {
                                     "Compacting these commits. Cycle {} of {}",
                             GC_COUNT, cycles, gcOptions.getRetryCount());
                     gcListener.updateStatus(COMPACTION_RETRY.message() + cycles);
+                    Stopwatch cycleWatch = Stopwatch.createStarted();
                     
                     SegmentNodeState head = getHead();
                     after = compact(head, writer, cancel);
@@ -842,8 +844,9 @@ public class FileStore extends AbstractFileStore {
                         return -newGeneration;
                     }
 
-                    gcListener.info("TarMK GC #{}: compacted {} against {} to {}",
-                            GC_COUNT, head.getRecordId(), before.getRecordId(), after.getRecordId());
+                    gcListener.info("TarMK GC #{}: compaction cycle {} completed in {} ({} ms). Compacted {} against {} to {}",
+                            GC_COUNT, cycles, cycleWatch, cycleWatch.elapsed(MILLISECONDS),
+                            head.getRecordId(), before.getRecordId(), after.getRecordId());
                     before = head;
                 }
 
@@ -852,19 +855,27 @@ public class FileStore extends AbstractFileStore {
                             GC_COUNT, cycles);
                     int forceTimeout = gcOptions.getForceTimeout();
                     if (forceTimeout > 0) {
-                        gcListener.info("TarMK GC #{}: trying to force compact remaining commits for {} seconds",
+                        gcListener.info("TarMK GC #{}: trying to force compact remaining commits for {} seconds. " +
+                                "Concurrent commits to the store will be blocked.",
                                 GC_COUNT, forceTimeout);
                         gcListener.updateStatus(COMPACTION_FORCE_COMPACT.message());
+                        Stopwatch forceWatch = Stopwatch.createStarted();
                         
                         cycles++;
                         success = forceCompact(writer, or(cancel, timeOut(forceTimeout, SECONDS)));
-                        if (!success) {
+                        if (success) {
+                            gcListener.info("TarMK GC #{}: compaction succeeded to force compact remaining commits " +
+                                            "after {} ({} ms).",
+                                            GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS));
+                        } else {
                             if (cancel.get()) {
-                                gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                                        "Compaction was cancelled: {}.", GC_COUNT, cancel);
+                                gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits " +
+                                        "after {} ({} ms). Compaction was cancelled: {}.",
+                                        GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS), cancel);
                             } else {
                                 gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                                        "Most likely compaction didn't get exclusive access to the store.", GC_COUNT);
+                                        "after {} ({} ms). Most likely compaction didn't get exclusive access to the store.",
+                                        GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS));
                             }
                         }
                     }
@@ -1085,9 +1096,9 @@ public class FileStore extends AbstractFileStore {
             for (TarReader oldReader : oldReaders) {
                 closeAndLogOnFail(oldReader);
                 File file = oldReader.getFile();
-                gcListener.info("TarMK GC #{}: cleanup marking file for deletion: {}", GC_COUNT, file.getName());
                 toRemove.addLast(file);
             }
+            gcListener.info("TarMK GC #{}: cleanup marking files for deletion: {}", GC_COUNT, toFileNames(toRemove));
 
             long finalSize = size();
             long reclaimedSize = initialSize - afterCleanupSize;
@@ -1100,6 +1111,14 @@ public class FileStore extends AbstractFileStore {
                     humanReadableByteCount(finalSize), finalSize,
                     humanReadableByteCount(reclaimedSize), reclaimedSize);
             return toRemove;
+        }
+
+        private String toFileNames(@Nonnull List<File> files) {
+            if (files.isEmpty()) {
+                return "none";
+            } else {
+                return Joiner.on(",").join(files);
+            }
         }
 
         private void collectBulkReferences(Set<UUID> bulkRefs) {
