@@ -33,9 +33,14 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION_FORCE_COMPACT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION_RETRY;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.ESTIMATION;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.IDLE;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,8 +48,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -69,7 +72,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.Compactor;
@@ -760,7 +762,6 @@ public class FileStore extends AbstractFileStore {
     
                 if (sufficientEstimatedGain) {
                     if (!gcOptions.isPaused()) {
-                        logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                         log(segmentWriter.getNodeCacheOccupancyInfo());
                         int gen = compact();
                         if (gen > 0) {
@@ -769,7 +770,6 @@ public class FileStore extends AbstractFileStore {
                             gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
                             fileReaper.add(cleanupGeneration(-gen));
                         }
-                        logAndClear(segmentWriter.getNodeWriteTimeStats(), segmentWriter.getNodeCompactTimeStats());
                         log(segmentWriter.getNodeCacheOccupancyInfo());
                     } else {
                         gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
@@ -792,35 +792,10 @@ public class FileStore extends AbstractFileStore {
                     stats.getApproximateSize());
         }
 
-        private void logAndClear(
-                @Nonnull DescriptiveStatistics nodeWriteTimeStats,
-                @Nonnull DescriptiveStatistics nodeCompactTimeStats) {
-            log.info("Node write time statistics (ns) {}", toString(nodeWriteTimeStats));
-            log.info("Node compact time statistics (ns) {}", toString(nodeCompactTimeStats));
-            nodeWriteTimeStats.clear();
-            nodeCompactTimeStats.clear();
-        }
-
         private void log(@CheckForNull String nodeCacheOccupancyInfo) {
             if (nodeCacheOccupancyInfo != null) {
                 log.info("NodeCache occupancy: {}", nodeCacheOccupancyInfo);
             }
-        }
-
-        private String toString(DescriptiveStatistics statistics) {
-            DecimalFormat sci = new DecimalFormat("##0.0E0");
-            DecimalFormatSymbols symbols = sci.getDecimalFormatSymbols();
-            symbols.setNaN("NaN");
-            symbols.setInfinity("Inf");
-            sci.setDecimalFormatSymbols(symbols);
-            return "min=" + sci.format(statistics.getMin()) +
-                    ", 10%=" + sci.format(statistics.getPercentile(10.0)) +
-                    ", 50%=" + sci.format(statistics.getPercentile(50.0)) +
-                    ", 90%=" + sci.format(statistics.getPercentile(90.0)) +
-                    ", max=" + sci.format(statistics.getMax()) +
-                    ", mean=" + sci.format(statistics.getMean()) +
-                    ", stdev=" + sci.format(statistics.getStandardDeviation()) +
-                    ", N=" + sci.format(statistics.getN());
         }
 
         synchronized int compact() throws IOException {

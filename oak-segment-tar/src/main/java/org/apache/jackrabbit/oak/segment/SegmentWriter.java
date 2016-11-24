@@ -32,10 +32,8 @@ import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.io.ByteStreams.read;
-import static java.lang.Integer.getInteger;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.min;
-import static java.lang.System.nanoTime;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -64,8 +62,6 @@ import javax.jcr.PropertyType;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closeables;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -88,14 +84,6 @@ import org.slf4j.LoggerFactory;
 public class SegmentWriter {
     private static final Logger LOG = LoggerFactory.getLogger(SegmentWriter.class);
 
-    /**
-     * Size of the window for collecting statistics about the time it takes to
-     * write / compact nodes.
-     * @see DescriptiveStatistics#setWindowSize(int)
-     */
-    private static final int NODE_WRITER_STATS_WINDOW = getInteger(
-            "oak.tar.nodeWriterStatsWindow", 10000);
-
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
     @Nonnull
@@ -112,14 +100,6 @@ public class SegmentWriter {
 
     @Nonnull
     private final WriteOperationHandler writeOperationHandler;
-
-    @Nonnull
-    private final SynchronizedDescriptiveStatistics nodeCompactTimeStats =
-            new SynchronizedDescriptiveStatistics(NODE_WRITER_STATS_WINDOW);
-
-    @Nonnull
-    private final SynchronizedDescriptiveStatistics nodeWriteTimeStats =
-            new SynchronizedDescriptiveStatistics(NODE_WRITER_STATS_WINDOW);
 
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
@@ -146,18 +126,6 @@ public class SegmentWriter {
     }
 
     /**
-     * @return  Statistics for node compaction times (in ns). These statistics
-     * include explicit compactions triggered by the file store and implicit
-     * compactions triggered by references to older generations.
-     * The statistics are collected with a window size defined by {@link #NODE_WRITER_STATS_WINDOW}
-     * @see #getNodeWriteTimeStats()
-     */
-    @Nonnull
-    public DescriptiveStatistics getNodeCompactTimeStats() {
-        return nodeCompactTimeStats;
-    }
-
-    /**
      * Get occupancy information for the node deduplication cache indicating occupancy and
      * evictions per priority.
      * @return  occupancy information for the node deduplication cache.
@@ -165,16 +133,6 @@ public class SegmentWriter {
     @CheckForNull
     public String getNodeCacheOccupancyInfo() {
         return cacheManager.getNodeCacheOccupancyInfo();
-    }
-
-    /**
-     * @return  Statistics for node write times (in ns).
-     * The statistics are collected with a window size defined by {@link #NODE_WRITER_STATS_WINDOW}
-     * @see #getNodeCompactTimeStats()
-     */
-    @Nonnull
-    public DescriptiveStatistics getNodeWriteTimeStats() {
-        return nodeWriteTimeStats;
     }
 
     public void flush() throws IOException {
@@ -393,8 +351,6 @@ public class SegmentWriter {
      */
     private abstract class SegmentWriteOperation implements WriteOperation {
         private class NodeWriteStats {
-            private final long startTime = nanoTime();
-
             /*
              * Total number of nodes in the subtree rooted at the node passed
              * to {@link #writeNode(SegmentWriteOperation, SegmentBufferWriter, NodeState)}
@@ -801,7 +757,6 @@ public class SegmentWriter {
 
             RecordId recordId;
 
-            String binaryReference;
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
                 recordId = RecordWriters.newBlobIdWriter(data).write(writer);
             } else {
@@ -1000,13 +955,7 @@ public class SegmentWriter {
             try {
                 return writeNode(state, 0);
             } finally {
-                if (nodeWriteStats.isCompactOp) {
-                    nodeCompactTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
-                    LOG.info("{}", nodeWriteStats);
-                } else {
-                    nodeWriteTimeStats.addValue(nanoTime() - nodeWriteStats.startTime);
-                    LOG.debug("{}", nodeWriteStats);
-                }
+                LOG.debug("{}", nodeWriteStats);
             }
         }
 
