@@ -119,7 +119,7 @@ public class BackgroundObserverTest {
             volatile NodeState previous;
 
             @Override
-            public void contentChanged(@Nonnull final NodeState root, @Nullable CommitInfo info) {
+            public void contentChanged(@Nonnull final NodeState root, @Nonnull CommitInfo info) {
                 if (root.hasProperty("done")) {
                     done(assertions);
                 } else if (previous != null) {

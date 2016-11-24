@@ -122,7 +122,7 @@ public abstract class NodeObserver implements Observer {
             @Nonnull CommitInfo commitInfo);
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         if (previousRoot != null) {
             try {
                 long start = PERF_LOGGER.start();
@@ -187,7 +187,7 @@ public abstract class NodeObserver implements Observer {
         public NodeEventHandler(String path, CommitInfo commitInfo, NamePathMapper namePathMapper,
                 Set<String> propertyNames) {
             this.path = path;
-            this.commitInfo = commitInfo == null ? CommitInfo.EMPTY : commitInfo;
+            this.commitInfo = commitInfo;
             this.namePathMapper = namePathMapper;
             this.propertyNames = propertyNames;
             this.eventType = EventType.CHANGED;

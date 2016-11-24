@@ -59,7 +59,7 @@ public class PrefilteringBackgroundObserverTest {
                     return false;
                 } else if (info == excludingCommitInfo) {
                     return true;
-                } else if (info == null) {
+                } else if (info.isExternal()) {
                     return false;
                 }
                 throw new IllegalStateException("only supporting include or exclude");
@@ -147,7 +147,7 @@ public class PrefilteringBackgroundObserverTest {
         // initialize observer with an initial contentChanged
         // (see ChangeDispatcher#addObserver)
         {
-            compositeObserver.contentChanged(p(-1), null);
+            compositeObserver.contentChanged(p(-1), CommitInfo.EMPTY_EXTERNAL);
         }
         // Part 1 : first run with filtersEvaluatedMapWithEmptyObservers - empty or null shouldn't matter, it's excluded in both cases
         for (int k = 0; k < 1000; k++) {
@@ -322,7 +322,7 @@ public class PrefilteringBackgroundObserverTest {
         // initialize observer with an initial contentChanged
         // (see ChangeDispatcher#addObserver)
         {
-            compositeObserver.contentChanged(p(-1), null);
+            compositeObserver.contentChanged(p(-1), CommitInfo.EMPTY_EXTERNAL);
         }
         // remove above first event right away
         executeRunnables(runnableQ, 5);

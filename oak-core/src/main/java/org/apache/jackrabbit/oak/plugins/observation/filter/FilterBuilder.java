@@ -430,7 +430,7 @@ public final class FilterBuilder {
             }
 
             private boolean isExternal(CommitInfo info) {
-                return info == null;
+                return info.isExternal();
             }
             
             @Override

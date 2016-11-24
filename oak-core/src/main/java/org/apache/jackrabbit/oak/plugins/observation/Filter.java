@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,6 +40,6 @@ public interface Filter {
      * @return true to exclude this content change (not forward), false to
      *         include it (forward)
      */
-    public boolean excludes(@Nonnull NodeState root, @Nullable CommitInfo info);
+    boolean excludes(@Nonnull NodeState root, @Nonnull CommitInfo info);
 
 }

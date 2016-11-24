@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
@@ -33,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
@@ -472,8 +472,9 @@ class ChangeProcessor implements FilteringAwareObserver {
 
     @Override
     public void contentChanged(@Nonnull NodeState before, 
-                               @Nonnull NodeState after, 
-                               @Nullable CommitInfo info) {
+                               @Nonnull NodeState after,
+                               @Nonnull CommitInfo info) {
+        checkNotNull(info);
         FilterResult prefilterTestResult = null;
         if (PREFILTERING_TESTMODE) {
             // OAK-4908 test mode: when the ChangeCollectorProvider is enabled

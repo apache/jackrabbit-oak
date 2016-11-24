@@ -63,7 +63,7 @@ public class ChangeDispatcher implements Observable, Observer {
     @Override
     @Nonnull
     public synchronized Closeable addObserver(final Observer observer) {
-        observer.contentChanged(root, null);
+        observer.contentChanged(root, CommitInfo.EMPTY_EXTERNAL);
         observers.addObserver(observer);
         return new Closeable() {
             @Override
@@ -74,8 +74,9 @@ public class ChangeDispatcher implements Observable, Observer {
     }
 
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public synchronized void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         checkNotNull(root);
+        checkNotNull(info);
         observers.contentChanged(root, info);
         this.root = root;
     }
