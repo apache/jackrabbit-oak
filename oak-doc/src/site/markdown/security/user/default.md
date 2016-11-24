@@ -88,9 +88,11 @@ group membership related methods. See also [Principal Management](../principal.h
 #### Reading Authorizables
 
 ##### Handling of the Authorizable ID
-* As of Oak the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
+* As of Oak 1.0 the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
+* This property is protected and system maintained and cannot be changed after creation through user management API calls.
 * The default implementation comes with a dedicated property index for `rep:authorizableId` which asserts the uniqueness of that ID.
-* `Authorizable#getID` returns the string value contained in `rep:authorizableID` and for backwards compatibility falls back on the node name in case the ID property is missing.
+* For backwards compatibility with Jackrabbit 2.x the ID specified during creation is also reflected in the `jcr:uuid` (protected and mandatory), which is used for the lookup. 
+* `Authorizable#getID` returns the string value contained in `rep:authorizableID` and for backwards compatibility falls back on the node name in case the `rep:authorizableId` property is missing.
 * The name of the authorizable node is generated based on a configurable implementation of the `AuthorizableNodeName` interface (see configuration section below). By default it uses the ID as name hint and includes a conversion to a valid JCR node name.
 
 ##### equals() and hashCode()
