@@ -45,6 +45,13 @@ public final class CommitInfo {
     public static final CommitInfo EMPTY =
             new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN);
 
+    /**
+     * Empty commit information object to be used for <b>external changes</b>. Used as a dummy object when no
+     * metadata is known (or needed) about a commit.
+     */
+    public static final CommitInfo EMPTY_EXTERNAL =
+            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, Collections.<String, Object>emptyMap(), true);
+
     private final String sessionId;
 
     private final String userId;
@@ -52,6 +59,8 @@ public final class CommitInfo {
     private final long date = System.currentTimeMillis();
 
     private final Map<String, Object> info;
+
+    private final boolean external;
 
     /**
      * Creates a commit info for the given session and user.
@@ -72,9 +81,21 @@ public final class CommitInfo {
      * @param info info map
      */
     public CommitInfo(@Nonnull String sessionId, @Nullable String userId, Map<String, Object> info) {
+        this(sessionId, userId, info, false);
+    }
+
+    /**
+     * Creates a commit info for the given session and user and info map.
+     *  @param sessionId session identifier
+     * @param userId The user id.
+     * @param info info map
+     * @param external indicates if the commit info is from external change
+     */
+    public CommitInfo(@Nonnull String sessionId, @Nullable String userId, Map<String, Object> info, boolean external) {
         this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
         this.info = checkNotNull(info);
+        this.external = external;
     }
 
     /**
@@ -99,6 +120,18 @@ public final class CommitInfo {
     public long getDate() {
         return date;
     }
+
+    /**
+     * Return a flag indicating whether this is commit info is
+     * for an external change
+     *
+     * @return true if commit info is for an external change
+     */
+    public boolean isExternal() {
+        return external;
+    }
+
+    /**
 
     /**
      * Returns the base path of this commit. All changes within this commit
@@ -135,6 +168,7 @@ public final class CommitInfo {
             return sessionId.equals(that.sessionId)
                     && userId.equals(that.userId)
                     && this.date == that.date
+                    && this.external == that.external
                     && info.equals(that.info);
         } else {
             return false;
@@ -143,7 +177,7 @@ public final class CommitInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(sessionId, userId, date, info);
+        return Objects.hashCode(sessionId, userId, date, info, external);
     }
 
     @Override
@@ -151,6 +185,7 @@ public final class CommitInfo {
         return toStringHelper(this).omitNullValues()
                 .add("sessionId", sessionId)
                 .add("userId", userId)
+                .add("external", external)
                 .add("date", date)
                 .add("info", info)
                 .toString();

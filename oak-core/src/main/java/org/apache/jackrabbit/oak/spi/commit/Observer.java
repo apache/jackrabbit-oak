@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -37,13 +36,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * is expected to keep track of the previously observed state if it wants to
  * use a content diff to determine what exactly changed between two states.
  * <p>
- * A repository may capture the optional {@link CommitInfo} instance passed
- * to a commit and make it available to observers along with the committed
- * content changes. In such cases, i.e. when the commit info argument is
+ * For local changes repository passes in a  {@link CommitInfo} instance which
+ * was used as part of commit and make it available to observers along with the
+ * committed content changes. In such cases, i.e. when the commit info argument is
  * non-{@code null}, the reported content change is guaranteed to contain
  * <em>only</em> changes from that specific commit (and the applied commit
  * hooks). Note that it is possible for a repository to report commit
  * information for only some commits but not others.
+ * <p>
+ * For external changes repository would construct a {@link CommitInfo} instance
+ * which might include some metadata which can be used by observers. Such
+ * {@link CommitInfo} instances would <code>external</code> flag set to true
  * <p>
  * It should also be noted that two observers may not necessarily see the
  * same sequence of content changes. It is also possible for an observer to
@@ -64,8 +67,8 @@ public interface Observer {
      * information on when and how this method gets called.
      *
      * @param root root state of the repository
-     * @param info local commit information, or {@code null}
+     * @param info commit information
      */
-    void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info);
+    void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info);
 
 }
