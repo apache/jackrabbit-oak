@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * Caches files locally and stages files locally for async uploads.
+ * Cache files locally and stage files locally for async uploads.
  * Configuration:
  *
  * <pre>
@@ -64,7 +64,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  *
  *     &lt;param name="{@link #setPath(String) path}"/>
  *     &lt;param name="{@link #setCacheSize(long) cacheSize}" value="68719476736"/>
- *     &lt;param name="{@link #setStagingSplitPercentage(int) staginSplitPercentage}" value="10"/>
+ *     &lt;param name="{@link #setStagingSplitPercentage(int) stagingSplitPercentage}" value="10"/>
  *     &lt;param name="{@link #setUploadThreads(int) uploadThreads}" value="10"/>
  *     &lt;param name="{@link #setStagingPurgeInterval(int) stagingPurgeInterval}" value="300"/>
  *     &lt;param name="{@link #setStagingRetryInterval(int) stagingRetryInterval} " value="600"/>
@@ -280,10 +280,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     /**
-     * Need a DataRecord implementation that
-     * * decorates the data record of the backend if available
-     * * creates a record from the parameters of the file in cache
-     *
+     * DataRecord implementation fetching the stream from the cache.
      */
     static class FileCacheDataRecord extends AbstractDataRecord {
         private final long length;
