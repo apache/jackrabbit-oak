@@ -17,18 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DiffObserver;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +37,7 @@ public class NodeStateSolrServersObserver extends DiffObserver {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Override
-    protected NodeStateDiff getRootDiff(@Nonnull NodeState before, @Nonnull NodeState after, @Nullable CommitInfo info) {
+    protected NodeStateDiff getRootDiff(@Nonnull NodeState before, @Nonnull NodeState after, @Nonnull CommitInfo info) {
         return new ChangingSolrServersNodeStateDiff(after);
     }
 
