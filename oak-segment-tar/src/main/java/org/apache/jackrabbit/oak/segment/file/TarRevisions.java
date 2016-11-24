@@ -205,10 +205,10 @@ public class TarRevisions implements Revisions, Closeable {
             return;
         }
         if (journalFileLock.tryLock()) {
-            if (journalFile == null) {
-                return;
-            }
             try {
+                if (journalFile == null) {
+                    return;
+                }
                 doFlush(persisted);
             } finally {
                 journalFileLock.unlock();
