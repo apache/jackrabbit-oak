@@ -277,7 +277,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     @Override
     public Closeable addObserver(final Observer observer) {
-        observer.contentChanged(getRoot(), null);
+        observer.contentChanged(getRoot(), CommitInfo.EMPTY_EXTERNAL);
         observers.add(observer);
         return new Closeable() {
             @Override

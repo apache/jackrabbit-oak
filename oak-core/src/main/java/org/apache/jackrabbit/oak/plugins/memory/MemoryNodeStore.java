@@ -84,7 +84,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     @Override
     public synchronized Closeable addObserver(Observer observer) {
-        observer.contentChanged(getRoot(), null);
+        observer.contentChanged(getRoot(), CommitInfo.EMPTY_EXTERNAL);
 
         Closeable closeable = new Closeable() {
             @Override
@@ -124,7 +124,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @Override
     public synchronized NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nullable CommitInfo info) throws CommitFailedException {
+            @Nonnull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
         MemoryNodeBuilder mnb = (MemoryNodeBuilder) builder;
         checkArgument(mnb.isRoot());
