@@ -188,9 +188,10 @@ public final class JournalEntry extends Document {
      * @param from   the lower bound of the revision range (exclusive).
      * @param to     the upper bound of the revision range (inclusive).
      * @param store  the document store to query.
+     * @return the number of journal entries read from the store.
      * @throws IOException
      */
-    static void fillExternalChanges(@Nonnull StringSort sorter,
+    static int fillExternalChanges(@Nonnull StringSort sorter,
                                     @Nonnull Revision from,
                                     @Nonnull Revision to,
                                     @Nonnull DocumentStore store)
@@ -198,7 +199,7 @@ public final class JournalEntry extends Document {
         checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
 
         if (from.compareRevisionTime(to) >= 0) {
-            return;
+            return 0;
         }
 
         // to is inclusive, but DocumentStore.query() toKey is exclusive
@@ -248,8 +249,10 @@ public final class JournalEntry extends Document {
             String maxId = asId(new Revision(Long.MAX_VALUE, 0, to.getClusterId()));
             for (JournalEntry d : store.query(JOURNAL, inclusiveToId, maxId, 1)) {
                 d.addTo(sorter);
+                numEntries++;
             }
         }
+        return numEntries;
     }
 
     long getRevisionTimestamp() {
