@@ -66,7 +66,7 @@ public class CommitTest {
             op.setMapEntry("p", c.getRevision(), "v");
             try {
                 c.apply();
-                ns.done(c, false, null);
+                ns.done(c, false, CommitInfo.EMPTY);
             } catch (DocumentStoreException e) {
                 // expected
             }
@@ -99,7 +99,7 @@ public class CommitTest {
                     new RevisionVector(c.getRevision())));
             try {
                 c.apply();
-                ns.done(c, false, null);
+                ns.done(c, false, CommitInfo.EMPTY);
                 fail("commit must fail");
             } catch (DocumentStoreException e) {
                 // expected

@@ -2712,7 +2712,7 @@ public class DocumentNodeStoreTest {
         final AtomicBoolean failCommit = new AtomicBoolean();
         ns.addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+            public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
                 if (failCommit.get()){
                     throw testException;
                 }
