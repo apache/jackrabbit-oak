@@ -45,7 +45,6 @@
                     <instructions>
                         <Export-Package />
                         <Embed-Dependency>
-                            commons-math3,
                             netty-*
                         </Embed-Dependency>
                         <Import-Package>
@@ -180,11 +179,6 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <scope>compile</scope> <!-- it is embedded in the bundle -->
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
