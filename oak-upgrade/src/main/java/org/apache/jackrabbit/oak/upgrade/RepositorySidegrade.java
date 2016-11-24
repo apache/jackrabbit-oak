@@ -29,7 +29,6 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Function;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -300,12 +299,15 @@ public class RepositorySidegrade {
         }
 
         boolean isRemoveCheckpointReferences = false;
-        if (!copyCheckpoints(targetRoot)) {
-            LOG.info("Copying checkpoints is not supported for this combination of node stores");
+        if (!isCompleteMigration()) {
+            LOG.info("Custom paths have been specified, checkpoints won't be migrated");
             isRemoveCheckpointReferences = true;
-        }
-        if (!DEFAULT_INCLUDE_PATHS.equals(includePaths)) {
-            isRemoveCheckpointReferences = true;
+        } else {
+            boolean checkpointsCopied = copyCheckpoints(targetRoot);
+            if (!checkpointsCopied) {
+                LOG.info("Copying checkpoints is not supported for this combination of node stores");
+                isRemoveCheckpointReferences = true;
+            }
         }
         if (isRemoveCheckpointReferences) {
             removeCheckpointReferences(targetRoot);
