@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -85,7 +86,7 @@ public class ChangeCollectorProviderTest {
         List<ContentChange> changes = new LinkedList<ContentChange>();
 
         @Override
-        public void contentChanged(NodeState root, CommitInfo info) {
+        public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
             changes.add(new ContentChange(root, info));
         }
 

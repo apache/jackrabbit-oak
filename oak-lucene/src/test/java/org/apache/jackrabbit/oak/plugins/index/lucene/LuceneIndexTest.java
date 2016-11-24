@@ -713,7 +713,7 @@ public class LuceneIndexTest {
         tracker = new IndexTracker();
         ((Observable)nodeStore).addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+            public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
                 tracker.update(root);
             }
         });

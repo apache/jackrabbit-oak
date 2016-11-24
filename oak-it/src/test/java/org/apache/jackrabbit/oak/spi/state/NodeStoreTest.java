@@ -230,7 +230,7 @@ public class NodeStoreTest extends OakBaseTest {
         ((Observable) store).addObserver(new Observer() {
             @Override
             public void contentChanged(
-                    @Nonnull NodeState root, @Nullable CommitInfo info) {
+                    @Nonnull NodeState root, @Nonnull CommitInfo info) {
                 if (root.getChildNode("test").hasChildNode("newNode")) {
                     observedRoot.set(checkNotNull(root));
                     latch.countDown();

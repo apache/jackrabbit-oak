@@ -96,7 +96,7 @@ public class CheckpointTest extends OakBaseTest {
         final AtomicInteger invocationCount = new AtomicInteger();
         ((Observable)store).addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+            public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
                 invocationCount.incrementAndGet();
             }
         });

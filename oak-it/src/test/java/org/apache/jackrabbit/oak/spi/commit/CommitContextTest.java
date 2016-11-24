@@ -191,7 +191,7 @@ public class CommitContextTest extends OakBaseTest {
         CommitInfo info;
 
         @Override
-        public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+        public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
             this.info = info;
         }
     }
