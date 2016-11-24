@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -35,7 +34,7 @@ public class EmptyObserver implements Observer {
 
     @Override
     public void contentChanged(
-            @Nonnull NodeState root, @Nullable CommitInfo info) {
+            @Nonnull NodeState root, @Nonnull CommitInfo info) {
         // do nothing
     }
 
