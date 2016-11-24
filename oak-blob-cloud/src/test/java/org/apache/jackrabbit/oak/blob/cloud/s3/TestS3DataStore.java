@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -37,9 +39,12 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assume.assumeTrue;
 
@@ -90,14 +95,54 @@ public class TestS3DataStore {
     @Test
     public void testNoSecretDefined() throws Exception {
         assumeTrue(isS3Configured());
-        Random randomGen = new Random();
+        assumeTrue(s3Class.equals(S3DataStoreUtils.JR2_S3.getName()));
 
+        Random randomGen = new Random();
         props = S3DataStoreUtils.getS3Config();
         ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
         byte[] data = new byte[4096];
         randomGen.nextBytes(data);
         DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
-        Assert.assertEquals(data.length, rec.getLength());
+        assertEquals(data.length, rec.getLength());
         assertNull(rec.getReference());
+    }
+
+    @Test
+    public void testNoSecretDefinedUseDefault() throws Exception {
+        assumeTrue(isS3Configured());
+        assumeTrue(s3Class.equals(S3DataStoreUtils.S3.getName()));
+
+        Random randomGen = new Random();
+        props = S3DataStoreUtils.getS3Config();
+        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
+        byte[] data = new byte[4096];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        assertEquals(data.length, rec.getLength());
+        assertNotNull(rec.getReference());
+    }
+
+    @Test
+    public void testSecretDefined() throws Exception {
+        assumeTrue(isS3Configured());
+
+        Random randomGen = new Random();
+        props = S3DataStoreUtils.getS3Config();
+        props.setProperty("secret", "123456");
+        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
+        byte[] data = new byte[4096];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        assertEquals(data.length, rec.getLength());
+        String ref = rec.getReference();
+        assertNotNull(ref);
+
+        String id = rec.getIdentifier().toString();
+        Mac mac = Mac.getInstance("HmacSHA1");
+        mac.init(new SecretKeySpec("123456".getBytes("UTF-8"), "HmacSHA1"));
+        byte[] hash = mac.doFinal(id.getBytes("UTF-8"));
+        id = id + ':' + encodeHexString(hash);
+
+        assertEquals(id, ref);
     }
 }

@@ -527,7 +527,7 @@ public class S3Backend extends AbstractSharedBackend {
                 return secret.getBytes("UTF-8");
             }
             LOG.warn("secret not defined");
-            throw new DataStoreException("secret not defined");
+            return super.getOrCreateReferenceKey();
         } catch (UnsupportedEncodingException e) {
             throw new DataStoreException(e);
         }
