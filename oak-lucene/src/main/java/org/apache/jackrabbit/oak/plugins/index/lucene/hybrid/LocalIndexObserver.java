@@ -39,9 +39,8 @@ public class LocalIndexObserver implements Observer{
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
-        //TODO [hybrid] Do external diff?
-        if (info == null){
+    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+        if (info.isExternal()){
            return;
         }
 

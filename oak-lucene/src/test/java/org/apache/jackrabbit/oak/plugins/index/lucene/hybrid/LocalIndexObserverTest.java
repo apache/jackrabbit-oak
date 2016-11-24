@@ -53,8 +53,8 @@ public class LocalIndexObserverTest {
     }
 
     @Test
-    public void nullCommitInfo() throws Exception{
-        observer.contentChanged(EMPTY_NODE, null);
+    public void externalCommitInfo() throws Exception{
+        observer.contentChanged(EMPTY_NODE, CommitInfo.EMPTY_EXTERNAL);
     }
 
     @Test

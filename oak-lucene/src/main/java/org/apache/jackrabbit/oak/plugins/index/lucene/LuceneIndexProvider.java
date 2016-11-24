@@ -72,7 +72,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     //----------------------------------------------------------< Observer >--
 
     @Override
-    public void contentChanged(NodeState root, CommitInfo info) {
+    public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
         tracker.update(root);
     }
 
