@@ -44,9 +44,12 @@ public class SegmentFactory implements NodeStoreFactory {
 
     private final boolean disableMmap;
 
-    public SegmentFactory(String directory, boolean disableMmap) {
+    private final boolean readOnly;
+
+    public SegmentFactory(String directory, boolean disableMmap, boolean readOnly) {
         this.dir = new File(directory);
         this.disableMmap = disableMmap;
+        this.readOnly = readOnly;
         createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + dir.getPath());
@@ -71,15 +74,19 @@ public class SegmentFactory implements NodeStoreFactory {
         } else {
             builder.withDefaultMemoryMapping();
         }
-        final FileStore fs;
 
+        final FileStore fs;
         try {
-            fs = builder.build();
+            if (readOnly) {
+                fs = builder.buildReadOnly();
+            } else {
+                fs = builder.build();
+            }
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
         }
-
         closer.register(asCloseable(fs));
+
         return new TarNodeStore(SegmentNodeStore.builder(fs).build(), new TarNodeStore.SuperRootProvider() {
             @Override
             public void setSuperRoot(NodeBuilder builder) {

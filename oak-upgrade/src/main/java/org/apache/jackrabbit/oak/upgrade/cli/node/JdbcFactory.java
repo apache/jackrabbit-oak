@@ -43,7 +43,9 @@ public class JdbcFactory implements NodeStoreFactory {
 
     private final String password;
 
-    public JdbcFactory(String jdbcUri, int cacheSize, String user, String password) {
+    private final boolean readOnly;
+
+    public JdbcFactory(String jdbcUri, int cacheSize, String user, String password, boolean readOnly) {
         this.jdbcUri = jdbcUri;
         this.cacheSize = cacheSize;
         if (user == null || password == null) {
@@ -51,6 +53,7 @@ public class JdbcFactory implements NodeStoreFactory {
         }
         this.user = user;
         this.password = password;
+        this.readOnly = readOnly;
     }
 
     @Override
@@ -60,6 +63,9 @@ public class JdbcFactory implements NodeStoreFactory {
             builder.setBlobStore(blobStore);
         }
         builder.setRDBConnection(getDataSource(closer));
+        if (readOnly) {
+            builder.setReadOnlyMode();
+        }
         log.info("Initialized DocumentNodeStore on RDB with Cache size : {} MB, Fast migration : {}", cacheSize,
                 builder.isDisableBranches());
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
