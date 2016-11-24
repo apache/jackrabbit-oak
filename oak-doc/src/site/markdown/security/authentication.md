@@ -200,7 +200,7 @@ eases the support for different `Credentials` in the package space
 
 A description of the various requirements covered by Oak by default as well
 as the characteristics of the corresponding implementations can be found in
-section [Authentication: Implementation Details].
+section [Authentication: Implementation Details](authentication/default.html).
 
 See section [differences](authentication/differences.html) for comprehensive list 
 of differences wrt authentication between Jackrabbit 2.x and Oak.

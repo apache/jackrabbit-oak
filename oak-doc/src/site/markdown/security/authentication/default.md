@@ -136,7 +136,7 @@ expected to provides an `Authentication` implementation if the given
 `UserConfiguration` is accepted.
 
 In case multiple implementations of the `UserAuthenticationFactory` are available, 
-the precendece depends on its OSGi service ranking property. The default factory 
+the precedence depends on its OSGi service ranking property. The default factory 
 implementation has a ranking of 0 (OSGi default). Services with the highest ranking 
 will take precedence.
 
