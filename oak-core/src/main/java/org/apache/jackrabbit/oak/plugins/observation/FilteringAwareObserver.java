@@ -44,6 +44,6 @@ public interface FilteringAwareObserver {
      * @param after the after NodeState
      * @param info the associated CommitInfo
      */
-    public void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after, @Nullable CommitInfo info);
+    void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after, @Nonnull CommitInfo info);
     
 }

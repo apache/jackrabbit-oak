@@ -91,7 +91,7 @@ public class FilteringObserver implements Observer, Closeable {
     }
 
     @Override
-    public final void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public final void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         if (filter.excludes(root, info)) {
             lastNoop = root;
             return;

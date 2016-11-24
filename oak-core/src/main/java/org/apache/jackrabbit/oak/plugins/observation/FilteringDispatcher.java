@@ -46,7 +46,7 @@ public class FilteringDispatcher implements Observer {
 
     @Override
     public void contentChanged(@Nonnull NodeState root,
-                               @Nullable CommitInfo info) {
+                               @Nonnull CommitInfo info) {
         if (info != FilteringObserver.NOOP_CHANGE) {
             observer.contentChanged(before, root, info);
         }

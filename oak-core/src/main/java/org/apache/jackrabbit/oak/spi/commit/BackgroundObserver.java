@@ -33,7 +33,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
@@ -246,7 +245,7 @@ public class BackgroundObserver implements Observer, Closeable {
                 return size(filter(queue, new Predicate<ContentChange>() {
                     @Override
                     public boolean apply(ContentChange input) {
-                        return input.info != null;
+                        return !input.info.isExternal();
                     }
                 }));
             }
@@ -256,7 +255,7 @@ public class BackgroundObserver implements Observer, Closeable {
                 return size(filter(queue, new Predicate<ContentChange>() {
                     @Override
                     public boolean apply(ContentChange input) {
-                        return input.info == null;
+                        return input.info.isExternal();
                     }
                 }));
             }
@@ -269,15 +268,18 @@ public class BackgroundObserver implements Observer, Closeable {
      * @throws IllegalStateException  if {@link #close()} has already been called.
      */
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public synchronized void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         checkState(!stopped);
         checkNotNull(root);
+        checkNotNull(info);
 
-        if (alwaysCollapseExternalEvents && info == null && last != null && last.info == null) {
+        if (alwaysCollapseExternalEvents && info.isExternal() && last != null && last.info.isExternal()) {
             // This is an external change. If the previous change was
             // also external, we can drop it from the queue (since external
             // changes in any case can cover multiple commits) to help
             // prevent the queue from filling up too fast.
+
+            //TODO - Support for merging ChangeSet for external changes
             queue.remove(last);
             full = false;
         }
@@ -287,7 +289,7 @@ public class BackgroundObserver implements Observer, Closeable {
             // If the queue is full, some commits have already been skipped
             // so we need to drop the possible local commit information as
             // only external changes can be merged together to larger chunks.
-            change = new ContentChange(root, null);
+            change = new ContentChange(root, CommitInfo.EMPTY_EXTERNAL);
         } else {
             change = new ContentChange(root, info);
         }
