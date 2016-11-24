@@ -75,7 +75,7 @@ public class PrefetchDispatcherTest {
         PrefetchDispatcher dispatcher = new PrefetchDispatcher(
                 before, MoreExecutors.sameThreadExecutor());
         numQueries.set(0);
-        dispatcher.contentChanged(after, null);
+        dispatcher.contentChanged(after, CommitInfo.EMPTY_EXTERNAL);
         // expect two queries for children: below /foo and /foo/bar
         assertEquals(2, numQueries.get());
     }

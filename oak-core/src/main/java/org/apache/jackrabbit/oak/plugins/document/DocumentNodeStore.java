@@ -767,7 +767,7 @@ public final class DocumentNodeStore
         return c;
     }
 
-    RevisionVector done(final @Nonnull Commit c, boolean isBranch, final @Nullable CommitInfo info) {
+    RevisionVector done(final @Nonnull Commit c, boolean isBranch, final @Nonnull CommitInfo info) {
         if (commitQueue.contains(c.getRevision())) {
             try {
                 final RevisionVector[] newHead = new RevisionVector[1];
@@ -2002,7 +2002,7 @@ public final class DocumentNodeStore
                     stats.populateDiffCache = clock.getTime() - time;
                     time = clock.getTime();
 
-                    dispatcher.contentChanged(getRoot().fromExternalChange(), null);
+                    dispatcher.contentChanged(getRoot().fromExternalChange(), CommitInfo.EMPTY_EXTERNAL);
                 } finally {
                     backgroundOperationLock.writeLock().unlock();
                 }

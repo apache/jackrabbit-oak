@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -70,7 +69,7 @@ public class SecondaryStoreObserver implements Observer {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         //Diff here would also be traversing non visible areas and there
         //diffManyChildren might pose problem for e.g. data under uuid index
         if (!firstEventProcessed){
@@ -93,7 +92,7 @@ public class SecondaryStoreObserver implements Observer {
             NodeState updatedSecondaryRoot = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             secondaryObserver.contentChanged(DelegatingDocumentNodeState.wrap(updatedSecondaryRoot, differ));
 
-            TimerStats timer = info == null ? external : local;
+            TimerStats timer = info.isExternal() ? external : local;
             timer.update(w.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
 
             if (!firstEventProcessed){

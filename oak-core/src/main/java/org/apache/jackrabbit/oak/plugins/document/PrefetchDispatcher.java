@@ -50,7 +50,7 @@ class PrefetchDispatcher extends ChangeDispatcher {
 
     @Override
     public synchronized void contentChanged(@Nonnull NodeState root,
-                                            @Nullable CommitInfo info) {
+                                            @Nonnull CommitInfo info) {
         if (root instanceof DocumentNodeState) {
             final DocumentNodeState state = (DocumentNodeState) root;
             if (state.isFromExternalChange()) {

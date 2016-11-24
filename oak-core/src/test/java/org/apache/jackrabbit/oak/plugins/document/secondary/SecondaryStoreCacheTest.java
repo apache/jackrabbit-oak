@@ -193,7 +193,7 @@ public class SecondaryStoreCacheTest {
         AbstractDocumentNodeState r0 = merge(nb);
         AbstractDocumentNodeState a_c_0 = documentState(primary.getRoot(), "/a/c");
 
-        observer.contentChanged(r0, null);
+        observer.contentChanged(r0, CommitInfo.EMPTY);
 
         AbstractDocumentNodeState result = cache.getDocumentNodeState("/a/c", r0.getRootRevision(), a_c_0
                 .getLastRevision());

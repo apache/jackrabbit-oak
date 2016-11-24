@@ -66,7 +66,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
     }, Iterables.toArray(PathUtils.elements(CONFIG_PATH), String.class));
 
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public synchronized void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         EditorDiff.process(changeDetector, this.root, root);
         this.root = root;
     }
