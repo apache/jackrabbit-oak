@@ -254,7 +254,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
             if (dispatchChanges) {
-                changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
+                changeDispatcher.contentChanged(state.getChildNode(ROOT), CommitInfo.EMPTY_EXTERNAL);
             }
         }
     }
