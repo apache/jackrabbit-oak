@@ -40,6 +40,14 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
  * An in-memory diff cache implementation.
  */
 public class MemoryDiffCache extends DiffCache {
+
+    /**
+     * Cache entry Strings with a length more than this limit are not put into
+     * the cache.
+     */
+    static final int CACHE_VALUE_LIMIT = Integer.getInteger(
+            "oak.memoryDiffCache.limit", 8 * 1024 * 1024);
+
     private static final Logger LOG = LoggerFactory.getLogger(MemoryDiffCache.class);
 
     /**
@@ -117,8 +125,13 @@ public class MemoryDiffCache extends DiffCache {
         @Override
         public void append(@Nonnull String path, @Nonnull String changes) {
             PathRev key = diffCacheKey(path, from, to);
-            LOG.debug("Adding cache entry for {} from {} to {}", path, from, to);
-            diffCache.put(key, new StringValue(changes));
+            if (changes.length() > CACHE_VALUE_LIMIT) {
+                LOG.warn("Not caching entry for {} from {} to {}. Length of changes is {}.",
+                        path, from, to, changes.length());
+            } else {
+                LOG.debug("Adding cache entry for {} from {} to {}", path, from, to);
+                diffCache.put(key, new StringValue(changes));
+            }
         }
 
         @Override
