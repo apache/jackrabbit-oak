@@ -127,12 +127,6 @@ public class DocumentMK {
             System.getProperty("oak.documentMK.fastDiff", "true"));
 
     /**
-     * The guava cache concurrency level.
-     */
-    static final int CACHE_CONCURRENCY = Integer.getInteger(
-            "oak.documentMK.cacheConcurrency", 16);
-
-    /**
      * The node store.
      */
     protected final DocumentNodeStore nodeStore;
@@ -1220,7 +1214,7 @@ public class DocumentMK {
                         build();
             }
             return CacheBuilder.newBuilder().
-                    concurrencyLevel(CACHE_CONCURRENCY).
+                    concurrencyLevel(cacheSegmentCount).
                     weigher(weigher).
                     maximumWeight(maxWeight).
                     recordStats().
