@@ -669,7 +669,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
             // probably still process it - but we have a 5sec fallback
             // in the BackgroundWorker to handle that case too,
             // so:
-            logger.trace("contentChanged: ignoring content change due to commit info being null");
+            logger.trace("contentChanged: ignoring content change due to commit info belonging to external change");
             return;
         }
         logger.trace("contentChanged: handling content changed by waking up worker if necessary");
