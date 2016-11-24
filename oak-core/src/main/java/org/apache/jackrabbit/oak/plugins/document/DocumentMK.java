@@ -85,6 +85,7 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
@@ -281,7 +282,7 @@ public class DocumentMK {
             isBranch = baseRev != null && baseRev.isBranch();
             parseJsonDiff(commit, jsonDiff, rootPath);
             commit.apply();
-            rev = nodeStore.done(commit, isBranch, null);
+            rev = nodeStore.done(commit, isBranch, CommitInfo.EMPTY);
             success = true;
         } catch (DocumentStoreException e) {
             throw new DocumentStoreException(e);
@@ -308,7 +309,7 @@ public class DocumentMK {
             throw new DocumentStoreException("Not a branch: " + branchRevisionId);
         }
         try {
-            return nodeStore.merge(revision, null).toString();
+            return nodeStore.merge(revision, CommitInfo.EMPTY).toString();
         } catch (DocumentStoreException e) {
             throw new DocumentStoreException(e);
         } catch (CommitFailedException e) {

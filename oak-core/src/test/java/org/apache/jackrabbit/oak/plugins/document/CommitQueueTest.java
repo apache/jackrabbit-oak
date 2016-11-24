@@ -107,7 +107,7 @@ public class CommitQueueTest {
                                 store.canceled(commit);
                             } else {
                                 boolean isBranch = random.nextInt(5) == 0;
-                                store.done(commit, isBranch, null);
+                                store.done(commit, isBranch, CommitInfo.EMPTY);
                             }
                         }
                     } catch (Exception e) {

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -83,7 +85,7 @@ public class JournalTest extends AbstractJournalTest {
         }
         
         @Override
-        public void contentChanged(NodeState root, CommitInfo info) {
+        public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
             synchronized(incomingRootStates1) {
                 incomingRootStates1.add((DocumentNodeState) root);
                 incomingRootStates1.notifyAll();

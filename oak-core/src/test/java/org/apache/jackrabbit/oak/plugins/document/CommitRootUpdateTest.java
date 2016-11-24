@@ -88,7 +88,7 @@ public class CommitRootUpdateTest {
             success = true;
         } finally {
             if (success) {
-                ns.done(c, false, null);
+                ns.done(c, false, CommitInfo.EMPTY);
             } else {
                 ns.canceled(c);
             }

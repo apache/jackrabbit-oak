@@ -348,7 +348,7 @@ public class ClusterTest {
         ns1.addObserver(new Observer() {
             @Override
             public void contentChanged(@Nonnull NodeState root,
-                                       @Nullable CommitInfo info) {
+                                       @Nonnull CommitInfo info) {
                 rootStates1.add((DocumentNodeState) root);
             }
         });
@@ -357,7 +357,7 @@ public class ClusterTest {
         ns2.addObserver(new Observer() {
             @Override
             public void contentChanged(@Nonnull NodeState root,
-                                       @Nullable CommitInfo info) {
+                                       @Nonnull CommitInfo info) {
                 rootStates2.add((DocumentNodeState) root);
             }
         });
