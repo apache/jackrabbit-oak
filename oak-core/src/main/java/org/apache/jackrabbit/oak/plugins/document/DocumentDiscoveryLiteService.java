@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -649,7 +650,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
      * that's why this approach has been chosen).
      */
     @Override
-    public void contentChanged(NodeState root, CommitInfo info) {
+    public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
         // contentChanged is only used to react as quickly as possible
         // when we have instances that have a 'backlog' - ie when instances
         // crashed
@@ -662,7 +663,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         // Now from the above it also results that this only wakes up the
         // backgroundWorker if we have any pending 'backlogy instances'
         // otherwise this is a no-op
-        if (info == null) {
+        if (info.isExternal()) {
             // then ignore this as this is likely an external change
             // note: it could be a compacted change, in which case we should
             // probably still process it - but we have a 5sec fallback
