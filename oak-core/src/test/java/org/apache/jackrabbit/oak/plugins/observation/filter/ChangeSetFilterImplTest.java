@@ -49,60 +49,64 @@ public class ChangeSetFilterImplTest {
             Set<String> propertyNames,
             Set<String> allNodeTypes) {
         ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(Integer.MAX_VALUE, maxPathDepth);
-        changeSetBuilder.getParentPaths().addAll(parentPaths);
-        changeSetBuilder.getParentNodeNames().addAll(parentNodeNames);
-        changeSetBuilder.getParentNodeTypes().addAll(parentNodeTypes);
-        changeSetBuilder.getPropertyNames().addAll(propertyNames);
-        changeSetBuilder.getAllNodeTypes().addAll(allNodeTypes);
+        for (String path : parentPaths){
+            changeSetBuilder.addParentPath(path);
+        }
+        for (String nodeName : parentNodeNames){
+            changeSetBuilder.addParentNodeName(nodeName);
+        }
+        for (String parentNodeType : parentNodeTypes){
+            changeSetBuilder.addParentNodeType(parentNodeType);
+        }
+        for (String propertyName : propertyNames){
+            changeSetBuilder.addPropertyName(propertyName);
+        }
+        for (String nodeType : allNodeTypes){
+            changeSetBuilder.addNodeType(nodeType);
+        }
         return changeSetBuilder.build();
     }
     
     private ChangeSetBuilder newBuilder(int maxItems, int maxPathDepth) {
-        ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(maxItems, maxPathDepth);
-        return changeSetBuilder;
+        return new ChangeSetBuilder(maxItems, maxPathDepth);
     }
 
     private ChangeSetBuilder overflowAllNodeTypes(ChangeSetBuilder builder) {
         int i = 0;
-        while (!builder.getAllNodeTypeOverflown()) {
-            builder.getAllNodeTypes().add("foo" + i++);
-            builder.getAllNodeTypes();
+        while (!builder.isAllNodeTypeOverflown()) {
+            builder.addNodeType("foo" + i++);
         }
         return builder;
     }
 
     private ChangeSetBuilder overflowParentNodeTypes(ChangeSetBuilder builder) {
         int i = 0;
-        while (!builder.getParentNodeTypeOverflown()) {
-            builder.getParentNodeTypes().add("foo" + i++);
-            builder.getParentNodeTypes();
+        while (!builder.isParentNodeTypeOverflown()) {
+            builder.addParentNodeType("foo" + i++);
         }
         return builder;
     }
 
     private ChangeSetBuilder overflowParentNodeNames(ChangeSetBuilder builder) {
         int i = 0;
-        while (!builder.getParentNodeNameOverflown()) {
-            builder.getParentNodeNames().add("foo" + i++);
-            builder.getParentNodeNames();
+        while (!builder.isParentNodeNameOverflown()) {
+            builder.addParentNodeName("foo" + i++);
         }
         return builder;
     }
 
     private ChangeSetBuilder overflowParentPaths(ChangeSetBuilder builder) {
         int i = 0;
-        while (!builder.getParentPathOverflown()) {
-            builder.getParentPaths().add("foo" + i++);
-            builder.getParentPaths();
+        while (!builder.isParentPathOverflown()) {
+            builder.addParentPath("foo" + i++);
         }
         return builder;
     }
 
     private ChangeSetBuilder overflowPropertyNames(ChangeSetBuilder builder) {
         int i = 0;
-        while (!builder.getPropertyNameOverflown()) {
-            builder.getPropertyNames().add("foo" + i++);
-            builder.getPropertyNames();
+        while (!builder.isPropertyNameOverflown()) {
+            builder.addPropertyName("foo" + i++);
         }
         return builder;
     }
@@ -177,21 +181,21 @@ public class ChangeSetFilterImplTest {
     @Test
     public void testOverflowing() throws Exception {
         ChangeSetBuilder builder = newBuilder(5, 5);
-        assertTrue(overflowAllNodeTypes(builder).getAllNodeTypeOverflown());
-        assertTrue(overflowParentNodeTypes(builder).getParentNodeTypeOverflown());
-        assertTrue(overflowParentNodeNames(builder).getParentNodeNameOverflown());
-        assertTrue(overflowParentPaths(builder).getParentPathOverflown());
-        assertTrue(overflowPropertyNames(builder).getPropertyNameOverflown());
+        assertTrue(overflowAllNodeTypes(builder).isAllNodeTypeOverflown());
+        assertTrue(overflowParentNodeTypes(builder).isParentNodeTypeOverflown());
+        assertTrue(overflowParentNodeNames(builder).isParentNodeNameOverflown());
+        assertTrue(overflowParentPaths(builder).isParentPathOverflown());
+        assertTrue(overflowPropertyNames(builder).isPropertyNameOverflown());
     }
     
     private ChangeSetBuilder sampleBuilder() {
         ChangeSetBuilder builder = newBuilder(5, 5);
-        builder.getAllNodeTypes().add("nt:file");
-        builder.getParentNodeTypes().add("nt:file");
-        builder.getParentPaths().add("/bar");
-        builder.getParentNodeNames().add("bar");
-        builder.getPropertyNames().add("a");
-        builder.getPropertyNames().add("b");
+        builder.addNodeType("nt:file");
+        builder.addParentNodeType("nt:file");
+        builder.addParentPath("/bar");
+        builder.addParentNodeName("bar");
+        builder.addPropertyName("a");
+        builder.addPropertyName("b");
         return builder;
     }
 

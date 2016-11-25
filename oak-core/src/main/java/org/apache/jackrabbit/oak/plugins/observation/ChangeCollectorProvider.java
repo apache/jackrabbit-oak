@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 /**
  * A ChangeCollectorProvider can be hooked into Oak thus enabling the collection
@@ -99,11 +96,11 @@ public class ChangeCollectorProvider extends ValidatorProvider {
      * can remain unsynchronized as validators are executed single-threaded.
      */
     private static class CollectorSupport {
-        private final CommitInfo info;
-        private final int maxPathDepth;
-        private final ChangeSetBuilder changeSetBuilder;
+        final CommitInfo info;
+        final int maxPathDepth;
+        final ChangeSetBuilder changeSetBuilder;
 
-        private CollectorSupport(@Nonnull CommitInfo info, @Nonnull ChangeSetBuilder changeSetBuilder,
+        public CollectorSupport(@Nonnull CommitInfo info, @Nonnull ChangeSetBuilder changeSetBuilder,
                 int maxPathDepth) {
             this.info = info;
             this.changeSetBuilder = changeSetBuilder;
@@ -114,39 +111,6 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         public String toString() {
             return "CollectorSupport with " + changeSetBuilder;
         }
-
-        private CommitInfo getInfo() {
-            return info;
-        }
-
-        private int getMaxPathDepth() {
-            return maxPathDepth;
-        }
-
-        private ChangeSetBuilder getChangeSetBuilder() {
-            return changeSetBuilder;
-        }
-
-        private Set<String> getParentPaths() {
-            return changeSetBuilder.getParentPaths();
-        }
-
-        private Set<String> getParentNodeNames() {
-            return changeSetBuilder.getParentNodeNames();
-        }
-
-        private Set<String> getParentNodeTypes() {
-            return changeSetBuilder.getParentNodeTypes();
-        }
-
-        private Set<String> getPropertyNames() {
-            return changeSetBuilder.getPropertyNames();
-        }
-
-        private Set<String> getAllNodeTypes() {
-            return changeSetBuilder.getAllNodeTypes();
-        }
-
     }
 
     /**
@@ -206,25 +170,16 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         @Override
         public void leave(NodeState before, NodeState after) throws CommitFailedException {
             // first check if we have to add anything to paths and/or nodeNames
-            if (changed && level <= support.getMaxPathDepth()) {
-                support.getParentPaths().add(path);
+            if (changed && level <= support.maxPathDepth) {
+                support.changeSetBuilder.addParentPath(path);
             }
             if (changed && childName != null) {
-                support.getParentNodeNames().add(childName);
+                support.changeSetBuilder.addParentNodeName(childName);
             }
-            if (changed && beforeParentNodeOrNull != null) {
-                String primaryType = beforeParentNodeOrNull.getName(JcrConstants.JCR_PRIMARYTYPE);
-                if (primaryType != null) {
-                    support.getParentNodeTypes().add(primaryType);
-                }
-                Iterables.addAll(support.getParentNodeTypes(), beforeParentNodeOrNull.getNames(JcrConstants.JCR_MIXINTYPES));
-            }
-            if (changed && afterParentNodeOrNull != null) {
-                String primaryType = afterParentNodeOrNull.getName(JcrConstants.JCR_PRIMARYTYPE);
-                if (primaryType != null) {
-                    support.getParentNodeTypes().add(primaryType);
-                }
-                Iterables.addAll(support.getParentNodeTypes(), afterParentNodeOrNull.getNames(JcrConstants.JCR_MIXINTYPES));
+
+            if (changed){
+                addParentNodeType(beforeParentNodeOrNull);
+                addParentNodeType(afterParentNodeOrNull);
             }
 
             // then if we're not at the root, we're done
@@ -234,28 +189,25 @@ public class ChangeCollectorProvider extends ValidatorProvider {
 
             // but if we're at the root, then we add the ChangeSet to the
             // CommitContext of the CommitInfo
-            CommitContext commitContext = (CommitContext) support.getInfo().getInfo().get(CommitContext.NAME);
-            ChangeSet changeSet = support.getChangeSetBuilder().build();
+            CommitContext commitContext = (CommitContext) support.info.getInfo().get(CommitContext.NAME);
+            ChangeSet changeSet = support.changeSetBuilder.build();
             commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
-            LOG.debug("Collected changeSet for commit {} is {}", support.getInfo(), changeSet);
+            LOG.debug("Collected changeSet for commit {} is {}", support.info, changeSet);
         }
 
         @Override
         public void propertyAdded(PropertyState after) throws CommitFailedException {
-            changed = true;
-            support.getPropertyNames().add(after.getName());
+            addPropertyName(after);
         }
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-            changed = true;
-            support.getPropertyNames().add(before.getName());
+            addPropertyName(before);
         }
 
         @Override
         public void propertyDeleted(PropertyState before) throws CommitFailedException {
-            changed = true;
-            support.getPropertyNames().add(before.getName());
+            addPropertyName(before);
         }
 
         @Override
@@ -268,10 +220,10 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         @Override
         public Validator childNodeChanged(String childName, NodeState before, NodeState after)
                 throws CommitFailedException {
-            if (level == support.getMaxPathDepth()) {
+            if (level == support.maxPathDepth) {
                 // then we'll cut off further paths below.
                 // to compensate, add the current path at this level
-                support.getParentPaths().add(path);
+                support.changeSetBuilder.addParentPath(path);
 
                 // however, continue normally to handle names/types/properties
                 // below
@@ -294,9 +246,25 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         private void addToAllNodeType(NodeState state) {
             String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
             if (primaryType != null) {
-                support.getAllNodeTypes().add(primaryType);
+                support.changeSetBuilder.addNodeType(primaryType);
             }
-            Iterables.addAll(support.getAllNodeTypes(), state.getNames(JcrConstants.JCR_MIXINTYPES));
+            support.changeSetBuilder.addNodeTypes(state.getNames(JcrConstants.JCR_MIXINTYPES));
+        }
+
+        private void addParentNodeType(@Nullable NodeState state) {
+            if (state == null){
+                return;
+            }
+            String primaryType = state.getName(JcrConstants.JCR_PRIMARYTYPE);
+            if (primaryType != null) {
+                support.changeSetBuilder.addParentNodeType(primaryType);
+            }
+            support.changeSetBuilder.addParentNodeTypes(state.getNames(JcrConstants.JCR_MIXINTYPES));
+        }
+
+        private void addPropertyName(PropertyState after) {
+            changed = true;
+            support.changeSetBuilder.addPropertyName(after.getName());
         }
 
     }

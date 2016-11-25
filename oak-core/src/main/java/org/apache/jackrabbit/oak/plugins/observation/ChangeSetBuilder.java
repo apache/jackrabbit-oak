@@ -53,69 +53,62 @@ public class ChangeSetBuilder {
                 + ", allNodeTypes=" + allNodeTypes + "}";
     }
 
-    public boolean getParentPathOverflown() {
+    public boolean isParentPathOverflown() {
         return parentPathOverflow;
     }
 
-    public Set<String> getParentPaths() {
-        if (parentPathOverflow || parentPaths.size() > maxItems) {
-            // if already overflown, reset the buffers anyway
-            parentPathOverflow = true;
-            parentPaths.clear();
-        }
-        return parentPaths;
+    public ChangeSetBuilder addParentPath(String path){
+        parentPathOverflow = addAndCheckOverflow(parentPaths, path, maxItems, parentPathOverflow);
+        return this;
     }
 
-    public boolean getParentNodeNameOverflown() {
+    public boolean isParentNodeNameOverflown() {
         return parentNodeNameOverflow;
     }
 
-    public Set<String> getParentNodeNames() {
-        if (parentNodeNameOverflow || parentNodeNames.size() > maxItems) {
-            // if already overflown, reset the buffers anyway
-            parentNodeNameOverflow = true;
-            parentNodeNames.clear();
-        }
-        return parentNodeNames;
+    public ChangeSetBuilder addParentNodeName(String parentNodeName) {
+        parentNodeNameOverflow = addAndCheckOverflow(parentNodeNames, parentNodeName, maxItems, parentNodeNameOverflow);
+        return this;
     }
 
-    public boolean getParentNodeTypeOverflown() {
+    public boolean isParentNodeTypeOverflown() {
         return parentNodeTypeOverflow;
     }
 
-    public Set<String> getParentNodeTypes() {
-        if (parentNodeTypeOverflow || parentNodeTypes.size() > maxItems) {
-            // if already overflown, reset the buffers anyway
-            parentNodeTypeOverflow = true;
-            parentNodeTypes.clear();
+    public ChangeSetBuilder addParentNodeTypes(Iterable<String> nodeTypes){
+        for (String nodeType : nodeTypes){
+            addParentNodeType(nodeType);
         }
-        return parentNodeTypes;
+        return this;
     }
 
-    public boolean getPropertyNameOverflown() {
+    public ChangeSetBuilder addParentNodeType(String parentNodeType) {
+        parentNodeTypeOverflow = addAndCheckOverflow(parentNodeTypes, parentNodeType, maxItems, parentNodeTypeOverflow);
+        return this;
+    }
+
+    public boolean isPropertyNameOverflown() {
         return propertyNameOverflow;
     }
 
-    public Set<String> getPropertyNames() {
-        if (propertyNameOverflow || propertyNames.size() > maxItems) {
-            // if already overflown, reset the buffers anyway
-            propertyNameOverflow = true;
-            propertyNames.clear();
-        }
-        return propertyNames;
+    public ChangeSetBuilder addPropertyName(String propertyName) {
+        propertyNameOverflow = addAndCheckOverflow(propertyNames, propertyName, maxItems, propertyNameOverflow);
+        return this;
     }
-
-    public boolean getAllNodeTypeOverflown() {
+    public boolean isAllNodeTypeOverflown() {
         return allNodeTypeOverflow;
     }
 
-    public Set<String> getAllNodeTypes() {
-        if (allNodeTypeOverflow || allNodeTypes.size() > maxItems) {
-            // if already overflown, reset the buffers anyway
-            allNodeTypeOverflow = true;
-            allNodeTypes.clear();
+    public ChangeSetBuilder addNodeTypes(Iterable<String> nodeTypes){
+        for (String nodeType : nodeTypes){
+            addNodeType(nodeType);
         }
-        return allNodeTypes;
+        return this;
+    }
+
+    public ChangeSetBuilder addNodeType(String nodeType) {
+        allNodeTypeOverflow = addAndCheckOverflow(allNodeTypes, nodeType, maxItems, allNodeTypeOverflow);
+        return this;
     }
 
     public int getMaxPrefilterPathDepth() {
@@ -123,17 +116,29 @@ public class ChangeSetBuilder {
     }
 
     public ChangeSet build() {
-        // invoke accessors to get overflow evaluated one last time
-        getParentPaths();
-        getParentNodeNames();
-        getParentNodeTypes();
-        getPropertyNames();
-        getAllNodeTypes();
         return new ChangeSet(maxPathDepth, parentPathOverflow ? null : parentPaths,
                 parentNodeNameOverflow ? null : parentNodeNames,
                 parentNodeTypeOverflow ? null : parentNodeTypes,
                 propertyNameOverflow ? null : propertyNames,
                 allNodeTypeOverflow ? null : allNodeTypes);
+    }
+
+    /**
+     * Add data to dataSet if dataSet size is less than maxSize.
+     *
+     * @return true if dataSet size is at maxSize i.e. overflow condition reached
+     */
+    private static boolean addAndCheckOverflow(Set<String> dataSet, String data, int maxSize, boolean overflow) {
+        if (overflow) {
+            return true;
+        } else {
+            dataSet.add(data);
+            if (dataSet.size() > maxSize){
+                dataSet.clear();
+                return true;
+            }
+            return false;
+        }
     }
 
 }
