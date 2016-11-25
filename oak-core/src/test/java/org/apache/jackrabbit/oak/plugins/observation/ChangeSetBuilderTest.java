@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -135,13 +136,64 @@ public class ChangeSetBuilderTest {
 
     @Test
     public void pathDepth() throws Exception{
-        ChangeSetBuilder cb = new ChangeSetBuilder(2, 2);
+        ChangeSetBuilder cb = new ChangeSetBuilder(10, 2);
         cb.addParentPath("/a/b");
         cb.addParentPath("/x");
         cb.addParentPath("/p/q/r");
 
         ChangeSet cs = cb.build();
         assertThat(cs.getParentPaths(), containsInAnyOrder("/a/b", "/x"));
+    }
+
+    @Test
+    public void changeSetDepthMoreThanBuilder() throws Exception{
+        ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 3);
+        cb1.addParentPath("/x");
+        cb1.addParentPath("/x/y");
+        cb1.addParentPath("/x/y/z");
+
+        ChangeSetBuilder cb2 = new ChangeSetBuilder(10, 8);
+        cb2.addParentPath("/p");
+        cb2.addParentPath("/p/q");
+        cb2.addParentPath("/p/q/r");
+        cb2.addParentPath("/a/b/c/d");
+        cb2.addParentPath("/a/b/x/y/z");
+
+        cb1.add(cb2.build());
+
+        ChangeSet cs = cb1.build();
+        assertThat(cs.getParentPaths(), containsInAnyOrder(
+                "/x", "/x/y", "/x/y/z",
+                "/p", "/p/q", "/p/q/r",
+                "/a/b/c", "/a/b/x" //Chopped paths
+        ));
+
+        assertEquals(cb1.getMaxPrefilterPathDepth(), cs.getMaxPrefilterPathDepth());
+    }
+
+    @Test
+    public void builderDepthMoreThanChangeSet() throws Exception{
+        ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 8);
+        cb1.addParentPath("/p");
+        cb1.addParentPath("/p/q");
+        cb1.addParentPath("/p/q/r");
+        cb1.addParentPath("/a/b/c/d");
+        cb1.addParentPath("/a/b/x/y/z");
+
+        ChangeSetBuilder cb2 = new ChangeSetBuilder(10, 2);
+        cb2.addParentPath("/x");
+        cb2.addParentPath("/x/y");
+
+        cb1.add(cb2.build());
+
+        ChangeSet cs = cb1.build();
+        assertThat(cs.getParentPaths(), containsInAnyOrder(
+                "/x", "/x/y",
+                "/p", "/p/q",
+                "/a/b" //Chopped paths
+        ));
+
+        assertEquals(cb2.getMaxPrefilterPathDepth(), cs.getMaxPrefilterPathDepth());
     }
 
     private static void add(ChangeSetBuilder cb, String suffix){
