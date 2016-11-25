@@ -133,6 +133,17 @@ public class ChangeSetBuilderTest {
         assertThat(cs.getPropertyNames(), containsInAnyOrder("pn-1", "pn-2"));
     }
 
+    @Test
+    public void pathDepth() throws Exception{
+        ChangeSetBuilder cb = new ChangeSetBuilder(2, 2);
+        cb.addParentPath("/a/b");
+        cb.addParentPath("/x");
+        cb.addParentPath("/p/q/r");
+
+        ChangeSet cs = cb.build();
+        assertThat(cs.getParentPaths(), containsInAnyOrder("/a/b", "/x"));
+    }
+
     private static void add(ChangeSetBuilder cb, String suffix){
         cb.addNodeType("nt-"+suffix)
                 .addParentPath("p-"+suffix)
