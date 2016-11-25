@@ -50,7 +50,6 @@ public class ChangeSetBuilderTest {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(5, 2);
         add(cb1, "1");
 
-        ChangeSet csAll = new ChangeSet(2, of("p-2"), of("nn-2"), of("pnt-2"), of("pn-2"), of("nt-2"));
         ChangeSet cs1 = new ChangeSet(2, null, of("nn-2"), of("nt-2"), of("pn-2"), of("nt-2"));
         ChangeSet mcs1 = cb1.add(cs1).build();
         assertNull(mcs1.getParentPaths());

@@ -23,6 +23,11 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
 /**
  * A ChangeSet is a collection of items that have been changed as part of a
@@ -116,6 +121,8 @@ public final class ChangeSet {
                 getPropertyNames() == null;
     }
 
+    //~---------------------------------------------------< equals/hashcode >
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -138,5 +145,80 @@ public final class ChangeSet {
     @Override
     public int hashCode() {
         return 0;
+    }
+
+    //~----------------------------------------------------< json support >
+
+    public String asString(){
+        JsopWriter json = new JsopBuilder();
+        json.object();
+        json.key("maxPathDepth").value(maxPathDepth);
+        addToJson(json, "parentPaths", parentPaths);
+        addToJson(json, "parentNodeNames", parentNodeNames);
+        addToJson(json, "parentNodeTypes", parentNodeTypes);
+        addToJson(json, "propertyNames", propertyNames);
+        addToJson(json, "allNodeTypes", allNodeTypes);
+        json.endObject();
+        return json.toString();
+    }
+
+    public static ChangeSet fromString(String json) {
+        JsopReader reader = new JsopTokenizer(json);
+        int maxPathDepth = 0;
+        Set<String> parentPaths = null;
+        Set<String> parentNodeNames = null;
+        Set<String> parentNodeTypes = null;
+        Set<String> propertyNames = null;
+        Set<String> allNodeTypes = null;
+
+        reader.read('{');
+        if (!reader.matches('}')) {
+            do {
+                String name = reader.readString();
+                reader.read(':');
+                if ("maxPathDepth".equals(name)){
+                    maxPathDepth = Integer.parseInt(reader.read(JsopReader.NUMBER));
+                } else {
+                    Set<String> data = readArrayAsSet(reader);
+                    if ("parentPaths".equals(name)){
+                        parentPaths = data;
+                    } else if ("parentNodeNames".equals(name)){
+                        parentNodeNames = data;
+                    } else if ("parentNodeTypes".equals(name)){
+                        parentNodeTypes = data;
+                    } else if ("propertyNames".equals(name)){
+                        propertyNames = data;
+                    } else if ("allNodeTypes".equals(name)){
+                        allNodeTypes = data;
+                    }
+                }
+            } while (reader.matches(','));
+            reader.read('}');
+        }
+        reader.read(JsopReader.END);
+        return new ChangeSet(maxPathDepth, parentPaths, parentNodeNames, parentNodeTypes, propertyNames, allNodeTypes);
+    }
+
+    private static Set<String> readArrayAsSet(JsopReader reader) {
+        Set<String> values = Sets.newHashSet();
+        reader.read('[');
+        for (boolean first = true; !reader.matches(']'); first = false) {
+            if (!first) {
+                reader.read(',');
+            }
+            values.add(reader.readString());
+        }
+        return values;
+    }
+
+    private static void addToJson(JsopWriter json, String name, Set<String> values){
+        if (values == null){
+            return;
+        }
+        json.key(name).array();
+        for (String v : values){
+            json.value(v);
+        }
+        json.endArray();
     }
 }
