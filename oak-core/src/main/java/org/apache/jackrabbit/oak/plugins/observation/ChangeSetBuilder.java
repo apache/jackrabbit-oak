@@ -59,9 +59,7 @@ public class ChangeSetBuilder {
     }
 
     public ChangeSetBuilder addParentPath(String path){
-        if (PathUtils.getDepth(path) > maxPathDepth){
-            return this;
-        }
+        path = getPathWithMaxDepth(path, maxPathDepth);
         parentPathOverflow = addAndCheckOverflow(parentPaths, path, maxItems, parentPathOverflow);
         return this;
     }

@@ -141,7 +141,7 @@ public class ChangeSetBuilderTest {
         cb.addParentPath("/p/q/r");
 
         ChangeSet cs = cb.build();
-        assertThat(cs.getParentPaths(), containsInAnyOrder("/a/b", "/x"));
+        assertThat(cs.getParentPaths(), containsInAnyOrder("/a/b", "/x", "/p/q"));
     }
 
     @Test
