@@ -53,7 +53,7 @@ import com.google.common.collect.ImmutableSet;
  * Naming: note that path, node name and node types all refer to the *parent* of
  * a change. While properties naturally are leafs.
  */
-public class ChangeSet {
+public final class ChangeSet {
 
     private final int maxPathDepth;
     private final Set<String> parentPaths;
@@ -116,4 +116,27 @@ public class ChangeSet {
                 getPropertyNames() == null;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ChangeSet changeSet = (ChangeSet) o;
+
+        if (maxPathDepth != changeSet.maxPathDepth) return false;
+        if (parentPaths != null ? !parentPaths.equals(changeSet.parentPaths) : changeSet.parentPaths != null)
+            return false;
+        if (parentNodeNames != null ? !parentNodeNames.equals(changeSet.parentNodeNames) : changeSet.parentNodeNames != null)
+            return false;
+        if (parentNodeTypes != null ? !parentNodeTypes.equals(changeSet.parentNodeTypes) : changeSet.parentNodeTypes != null)
+            return false;
+        if (propertyNames != null ? !propertyNames.equals(changeSet.propertyNames) : changeSet.propertyNames != null)
+            return false;
+        return allNodeTypes != null ? allNodeTypes.equals(changeSet.allNodeTypes) : changeSet.allNodeTypes == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
 }
