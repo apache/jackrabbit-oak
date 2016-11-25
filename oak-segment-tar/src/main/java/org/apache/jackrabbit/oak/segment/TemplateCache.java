@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.segment.CacheWeights.ReaderTemplateCacheWeigher;
 
 public class TemplateCache extends ReaderCache<Template> {
 
@@ -32,46 +30,7 @@ public class TemplateCache extends ReaderCache<Template> {
      * @param maxSize the maximum memory in bytes.
      */
     TemplateCache(long maxSize) {
-        super(maxSize, 250, "Template Cache");
-    }
-
-    @Override
-    protected int getEntryWeight(Template template) {
-        int size = 168; // overhead for each cache entry
-        size += 40;     // key
-
-        size += estimateMemoryUsage(template.getPrimaryType());
-        size += estimateMemoryUsage(template.getMixinTypes());
-        size += estimateMemoryUsage(template.getChildName());
-        for (PropertyTemplate property : template.getPropertyTemplates()) {
-            size += estimateMemoryUsage(property);
-        }
-        return size;
-    }
-
-    private static int estimateMemoryUsage(PropertyTemplate propertyTemplate) {
-        return 4 + // index
-            estimateMemoryUsage(propertyTemplate.getName());
-    }
-
-    private static int estimateMemoryUsage(PropertyState propertyState) {
-        if (propertyState == null) {
-            return 0;
-        }
-
-        int size = estimateMemoryUsage(propertyState.getName());
-        for (int k = 0; k < propertyState.count(); k++) {
-            size += estimateMemoryUsage(propertyState.getValue(STRING, k));
-        }
-        return size;
-    }
-
-    private static int estimateMemoryUsage(String string) {
-        if (string == null) {
-            return 0;
-        }
-
-        return StringUtils.estimateMemoryUsage(string);
+        super(maxSize, 250, "Template Cache", new ReaderTemplateCacheWeigher());
     }
 
     @Override

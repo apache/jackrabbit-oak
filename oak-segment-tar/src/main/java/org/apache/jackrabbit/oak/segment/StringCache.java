@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
+import org.apache.jackrabbit.oak.segment.CacheWeights.ReaderStringCacheWeigher;
 
 public class StringCache extends ReaderCache<String> {
     /**
@@ -33,15 +33,7 @@ public class StringCache extends ReaderCache<String> {
      * @param maxSize the maximum memory in bytes.
      */
     StringCache(long maxSize) {
-        super(maxSize, 250, "String Cache");
-    }
-
-    @Override
-    protected int getEntryWeight(String string) {
-        int size = 168; // overhead for each cache entry
-        size += 40; // key
-        size += estimateMemoryUsage(string); // value
-        return size;
+        super(maxSize, 250, "String Cache", new ReaderStringCacheWeigher());
     }
 
     @Override

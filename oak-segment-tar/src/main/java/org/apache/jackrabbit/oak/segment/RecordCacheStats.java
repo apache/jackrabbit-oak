@@ -47,14 +47,19 @@ public class RecordCacheStats extends AnnotatedStandardMBean implements CacheSta
     @Nonnull
     private final Supplier<Long> elementCount;
 
+    @Nonnull
+    private final Supplier<Long> weight;
+
     private CacheStats lastSnapshot;
 
-    public RecordCacheStats(
-            @Nonnull String name, @Nonnull Supplier<CacheStats> stats, @Nonnull Supplier<Long> elementCount) {
+    public RecordCacheStats(@Nonnull String name,
+            @Nonnull Supplier<CacheStats> stats,
+            @Nonnull Supplier<Long> elementCount, @Nonnull Supplier<Long> weight) {
         super(CacheStatsMBean.class);
         this.name = checkNotNull(name);
         this.stats = checkNotNull(stats);
         this.elementCount = checkNotNull(elementCount);
+        this.weight = checkNotNull(weight);
         this.lastSnapshot = stats.get();
     }
 
@@ -145,7 +150,7 @@ public class RecordCacheStats extends AnnotatedStandardMBean implements CacheSta
 
     @Override
     public long estimateCurrentWeight() {
-        return -1;
+        return weight.get();
     }
 
     @Override

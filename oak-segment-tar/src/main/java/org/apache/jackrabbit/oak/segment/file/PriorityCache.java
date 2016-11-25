@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.numberOfTrailingZeros;
 import static java.lang.Long.numberOfLeadingZeros;
@@ -29,9 +30,12 @@ import static java.util.Arrays.fill;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.segment.CacheWeights;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
+import com.google.common.cache.Weigher;
 
 /**
  * {@code PriorityCache} implements a partial mapping from keys of type {@code K} to values
@@ -64,6 +68,26 @@ public class PriorityCache<K, V> {
     private long loadCount;
     private long evictionCount;
     private long size;
+
+    @Nonnull
+    private final Weigher<K, V> weigher;
+    private long weight = 0;
+
+    /**
+     * Static factory for creating new {@code PriorityCache} instances.
+     * @param size  size of the cache. Must be a power of 2.
+     * @return  a new {@code PriorityCache} instance of the given {@code size}.
+     */
+    public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size, @Nonnull final Weigher<K, V> weigher) {
+        checkArgument(bitCount(size) == 1);
+        checkNotNull(weigher);
+        return new Supplier<PriorityCache<K, V>>() {
+            @Override
+            public PriorityCache<K, V> get() {
+                return new PriorityCache<>(size, weigher);
+            }
+        };
+    }
 
     /**
      * Static factory for creating new {@code PriorityCache} instances.
@@ -119,13 +143,26 @@ public class PriorityCache<K, V> {
      * @param rehash    Number of rehashes. Must be greater or equal to {@code 0} and
      *                  smaller than {@code 32 - numberOfTrailingZeros(size)}.
      */
-    public PriorityCache(int size, int rehash) {
+    PriorityCache(int size, int rehash) {
+        this(size, rehash, CacheWeights.<K, V> noopWeigher());
+    }
+
+    /**
+     * Create a new instance of the given {@code size}. {@code rehash} specifies the number
+     * of rehashes to resolve a clash.
+     * @param size      Size of the cache. Must be a power of {@code 2}.
+     * @param rehash    Number of rehashes. Must be greater or equal to {@code 0} and
+     *                  smaller than {@code 32 - numberOfTrailingZeros(size)}.
+     * @param weigher   Needed to provide an estimation of the cache weight in memory
+     */
+    public PriorityCache(int size, int rehash, @Nonnull Weigher<K, V> weigher) {
         checkArgument(bitCount(size) == 1);
         checkArgument(rehash >= 0);
         checkArgument(rehash < 32 - numberOfTrailingZeros(size));
         this.rehash = rehash;
         entries = new Entry<?,?>[size];
         fill(entries, Entry.NULL);
+        this.weigher = checkNotNull(weigher);
     }
 
     /**
@@ -133,6 +170,10 @@ public class PriorityCache<K, V> {
      * the maximum number allowed by the given {@code size}. ({@code 31 - numberOfTrailingZeros(size)}.
      * @param size      Size of the cache. Must be a power of {@code 2}.
      */
+    public PriorityCache(int size, @Nonnull Weigher<K, V> weigher) {
+        this(size, 31 - numberOfTrailingZeros(size), weigher);
+    }
+
     public PriorityCache(int size) {
         this(size, 31 - numberOfTrailingZeros(size));
     }
@@ -190,7 +231,8 @@ public class PriorityCache<K, V> {
 
         if (index >= 0) {
             Entry<?, ?> old = entries[index];
-            entries[index] = new Entry<>(key, value, generation, initialCost);
+            Entry<?, ?> newE = new Entry<>(key, value, generation, initialCost);
+            entries[index] = newE;
             loadCount++;
             costs[initialCost - Byte.MIN_VALUE]++;
             if (old != Entry.NULL) {
@@ -199,9 +241,11 @@ public class PriorityCache<K, V> {
                     evictions[old.cost - Byte.MIN_VALUE]++;
                     evictionCount++;
                 }
+                weight -= weighEntry(old);
             } else {
                 size++;
             }
+            weight += weighEntry(newE);
             return true;
         } else {
             return false;
@@ -247,8 +291,14 @@ public class PriorityCache<K, V> {
             if (entry != Entry.NULL && purge.apply(entry.generation)) {
                 entries[i] = Entry.NULL;
                 size--;
+                weight -= weighEntry(entry);
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private int weighEntry(Entry<?, ?> entry) {
+        return weigher.weigh((K) entry.key, (V) entry.value);
     }
 
     @Override
@@ -276,6 +326,10 @@ public class PriorityCache<K, V> {
     @Nonnull
     public CacheStats getStats() {
         return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
+    }
+
+    public long estimateCurrentWeight() {
+        return weight;
     }
 
 }

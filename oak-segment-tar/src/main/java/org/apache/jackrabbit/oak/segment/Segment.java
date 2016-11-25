@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.RecordNumbers.EMPTY_RECORD_NUMBERS;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
@@ -44,14 +45,16 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+
+import com.google.common.base.Charsets;
+import com.google.common.collect.AbstractIterator;
 
 /**
  * A list of records.
@@ -714,4 +717,28 @@ public class Segment {
         }
     }
 
+    /**
+     * Estimate of how much memory this instance would occupy in the segment
+     * cache.
+     */
+    public int estimateMemoryUsage() {
+        int size = OBJECT_HEADER_SIZE + 76;
+        size += 56; // 7 refs x 8 bytes
+
+        if (id.isDataSegmentId()) {
+            int recordNumberCount = getRecordNumberCount();
+            size += 5 * recordNumberCount;
+
+            int referencedSegmentIdCount = getReferencedSegmentIdCount();
+            size += 8 * referencedSegmentIdCount;
+
+            size += StringUtils.estimateMemoryUsage(info);
+        }
+        if (!data.isDirect()) {
+            // seems to overreport by 100+ bytes
+            size += size();
+        }
+        size += id.estimateMemoryUsage();
+        return size;
+    }
 }

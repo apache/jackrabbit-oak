@@ -296,14 +296,18 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getStringCacheStats() {
             return new RecordCacheStats("String deduplication cache stats",
-                    accumulateRecordCacheStats(stringCaches), accumulateRecordCacheSizes(stringCaches));
+                    accumulateRecordCacheStats(stringCaches),
+                    accumulateRecordCacheSizes(stringCaches),
+                    accumulateRecordCacheWeights(stringCaches));
         }
 
         @CheckForNull
         @Override
         public CacheStatsMBean getTemplateCacheStats() {
             return new RecordCacheStats("Template deduplication cache stats",
-                    accumulateRecordCacheStats(templateCaches), accumulateRecordCacheSizes(templateCaches));
+                    accumulateRecordCacheStats(templateCaches),
+                    accumulateRecordCacheSizes(templateCaches),
+                    accumulateRecordCacheWeights(templateCaches));
         }
 
         @Nonnull
@@ -336,6 +340,21 @@ public abstract class WriterCacheManager {
             };
         }
 
+        @Nonnull
+        public static <T> Supplier<Long> accumulateRecordCacheWeights(
+                final Iterable<RecordCache<T>> caches) {
+            return new Supplier<Long>() {
+                @Override
+                public Long get() {
+                    long size = 0;
+                    for (RecordCache<?> cache : caches) {
+                        size += cache.estimateCurrentWeight();
+                    }
+                    return size;
+                }
+            };
+        }
+
         @CheckForNull
         @Override
         public CacheStatsMBean getNodeCacheStats() {
@@ -350,6 +369,12 @@ public abstract class WriterCacheManager {
                         @Override
                         public Long get() {
                             return nodeCache.get().size();
+                        }
+                    },
+                    new Supplier<Long>() {
+                        @Override
+                        public Long get() {
+                            return nodeCache.get().estimateCurrentWeight();
                         }
                     });
         }

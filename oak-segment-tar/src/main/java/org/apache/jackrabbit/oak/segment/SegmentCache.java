@@ -24,12 +24,14 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.cache.Weigher;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
  * A cache for {@link Segment} instances by their {@link SegmentId}.
@@ -47,12 +49,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 public class SegmentCache {
     public static final int DEFAULT_SEGMENT_CACHE_MB = 256;
 
-    private final Weigher<SegmentId, Segment> weigher = new Weigher<SegmentId, Segment>() {
-        @Override
-        public int weigh(@Nonnull SegmentId id, @Nonnull Segment segment) {
-            return 224 + segment.size();
-        }
-    };
+    private final Weigher<SegmentId, Segment> weigher = new SegmentCacheWeigher();
 
     private final long maximumWeight;
 

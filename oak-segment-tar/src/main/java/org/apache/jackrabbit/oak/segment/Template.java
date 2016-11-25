@@ -21,8 +21,10 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
+import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,6 +38,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -345,6 +348,31 @@ public class Template {
         } else {
             return SINGLE_CHILD_NODE_TYPE;
         }
+    }
+
+    public int estimateMemoryUsage() {
+        int size = OBJECT_HEADER_SIZE;
+        size += 48;
+        size += StringUtils.estimateMemoryUsage(childName);
+        size += estimateMemoryUsage(mixinTypes);
+        size += estimateMemoryUsage(primaryType);
+        for (PropertyTemplate property : properties) {
+            size += property.estimateMemoryUsage();
+        }
+        return size;
+    }
+
+    private static int estimateMemoryUsage(PropertyState propertyState) {
+        if (propertyState == null) {
+            return 0;
+        }
+        int size = OBJECT_HEADER_SIZE;
+        size += StringUtils.estimateMemoryUsage(propertyState.getName());
+        for (int k = 0; k < propertyState.count(); k++) {
+            String s = propertyState.getValue(STRING, k);
+            size += StringUtils.estimateMemoryUsage(s);
+        }
+        return size;
     }
 
 }
