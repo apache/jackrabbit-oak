@@ -115,6 +115,50 @@ public class ChangeSetBuilder {
         return maxPathDepth;
     }
 
+    public ChangeSetBuilder add(ChangeSet cs){
+        if (cs.getParentPaths() == null){
+            parentPathOverflow = true;
+        } else {
+            for (String parentPath : cs.getParentPaths()){
+                addParentPath(parentPath);
+            }
+        }
+
+        if (cs.getParentNodeNames() == null){
+            parentNodeNameOverflow = true;
+        } else {
+            for (String parentNodeName : cs.getParentNodeNames()){
+                addParentNodeName(parentNodeName);
+            }
+        }
+
+        if (cs.getParentNodeTypes() == null){
+            parentNodeTypeOverflow = true;
+        } else {
+            for (String parentNodeType : cs.getParentNodeTypes()){
+                addParentNodeType(parentNodeType);
+            }
+        }
+
+        if (cs.getPropertyNames() == null){
+            propertyNameOverflow = true;
+        } else {
+            for (String propertyName : cs.getPropertyNames()){
+                addPropertyName(propertyName);
+            }
+        }
+
+        if (cs.getAllNodeTypes() == null){
+            allNodeTypeOverflow = true;
+        } else {
+            for (String nodeType : cs.getAllNodeTypes()){
+                addNodeType(nodeType);
+            }
+        }
+
+        return this;
+    }
+
     public ChangeSet build() {
         return new ChangeSet(maxPathDepth, parentPathOverflow ? null : parentPaths,
                 parentNodeNameOverflow ? null : parentNodeNames,
