@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 public class ChangeSetBuilder {
 
     private final int maxItems;
-    private final int maxPathDepth;
+    private int maxPathDepth;
     private final Set<String> parentPaths = Sets.newHashSet();
     private final Set<String> parentNodeNames = Sets.newHashSet();
     private final Set<String> parentNodeTypes = Sets.newHashSet();
@@ -123,9 +123,7 @@ public class ChangeSetBuilder {
         if (cs.getParentPaths() == null){
             parentPathOverflow = true;
         } else {
-            for (String parentPath : cs.getParentPaths()){
-                addParentPath(parentPath);
-            }
+            addPathFromChangeSet(cs);
         }
 
         if (cs.getParentNodeNames() == null){
@@ -169,6 +167,34 @@ public class ChangeSetBuilder {
                 parentNodeTypeOverflow ? null : parentNodeTypes,
                 propertyNameOverflow ? null : propertyNames,
                 allNodeTypeOverflow ? null : allNodeTypes);
+    }
+
+    private void addPathFromChangeSet(ChangeSet cs) {
+        int maxDepthInChangeSet = cs.getMaxPrefilterPathDepth();
+
+        //If maxDepth of ChangeSet being added is less than current
+        //then truncate path in current set to that depth and change
+        //maxPathDepth to one from ChangeSet
+        if (maxDepthInChangeSet < maxPathDepth){
+            Set<String> existingPathSet = Sets.newHashSet(parentPaths);
+            parentPaths.clear();
+            for (String existingPath : existingPathSet){
+               parentPaths.add(getPathWithMaxDepth(existingPath, maxDepthInChangeSet));
+            }
+            maxPathDepth = maxDepthInChangeSet;
+        }
+
+        for (String pathFromChangeSet : cs.getParentPaths()){
+            addParentPath(getPathWithMaxDepth(pathFromChangeSet, maxPathDepth));
+        }
+    }
+
+    private static String getPathWithMaxDepth(String path, int maxDepth){
+        int depth = PathUtils.getDepth(path);
+        if (depth <= maxDepth){
+            return path;
+        }
+        return PathUtils.getAncestorPath(path, depth - maxDepth);
     }
 
     /**
