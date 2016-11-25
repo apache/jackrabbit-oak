@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Builder of a ChangeSet - only used by ChangeCollectorProvider (and tests..)
@@ -58,6 +59,9 @@ public class ChangeSetBuilder {
     }
 
     public ChangeSetBuilder addParentPath(String path){
+        if (PathUtils.getDepth(path) > maxPathDepth){
+            return this;
+        }
         parentPathOverflow = addAndCheckOverflow(parentPaths, path, maxItems, parentPathOverflow);
         return this;
     }
