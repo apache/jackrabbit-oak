@@ -188,12 +188,17 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         // make the secondary up-to-date
         long now = Revision.getCurrentTimestamp();
         primary.addRevision(now, 0, 1, false);
+        primary.addRevision(now, 0, 2, false);
         secondary.addRevision(now, 0, 1, false);
+        secondary.addRevision(now, 0, 2, false);
         replica.updateRevisions();
 
         // local change has been replicated by now, it's fine to use secondary
-        assertEquals(testPref,
-                mongoDS.getMongoReadPreference(NODES, null, "/x/y", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+        for (int i = 0; i < 400; i++) {
+            assertEquals(testPref,
+                    mongoDS.getMongoReadPreference(NODES, null, "/x/y", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+            Thread.sleep(5);
+        }
     }
 
     @Test
