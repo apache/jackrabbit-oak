@@ -18,11 +18,14 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
+
 import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,6 +253,13 @@ public class SegmentId implements Comparable<SegmentId> {
     @Override
     public int hashCode() {
         return (int) lsb;
+    }
+
+    public int estimateMemoryUsage() {
+        int size = OBJECT_HEADER_SIZE;
+        size += 48; // 6 fields x 8, ignoring 'gcInfo'
+        size += StringUtils.estimateMemoryUsage(gcInfo);
+        return size;
     }
 
 }

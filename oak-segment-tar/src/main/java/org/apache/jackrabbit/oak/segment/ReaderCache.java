@@ -20,17 +20,18 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.Arrays;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Function;
-import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
+
+import com.google.common.base.Function;
+import com.google.common.cache.Weigher;
 
 /**
  * A cache consisting of a fast and slow component. The fast cache for small items is based
@@ -39,12 +40,7 @@ import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 public abstract class ReaderCache<T> {
 
     @Nonnull
-    private final Weigher<CacheKey<T>, T> weigher = new Weigher<CacheKey<T>, T>() {
-        @Override
-        public int weigh(CacheKey<T> key, T value) {
-            return getEntryWeight(value);
-        }
-    };
+    private final Weigher<CacheKey, T> weigher;
 
     @Nonnull
     private final String name;
@@ -59,7 +55,7 @@ public abstract class ReaderCache<T> {
      * The slower (LIRS) cache.
      */
     @Nonnull
-    private final CacheLIRS<CacheKey<T>, T> cache;
+    private final CacheLIRS<CacheKey, T> cache;
 
     /**
      * Create a new string cache.
@@ -67,11 +63,14 @@ public abstract class ReaderCache<T> {
      * @param maxWeight the maximum memory in bytes.
      * @param averageWeight  an estimate for the average weight of the elements in the
      *                       cache. See {@link CacheLIRS#setAverageMemory(int)}.
+     * @param weigher   Needed to provide an estimation of the cache weight in memory
      */
-    protected ReaderCache(long maxWeight, int averageWeight, @Nonnull String name) {
+    protected ReaderCache(long maxWeight, int averageWeight,
+            @Nonnull String name, @Nonnull Weigher<CacheKey, T> weigher) {
         this.name = checkNotNull(name);
+        this.weigher = checkNotNull(weigher);
         fastCache = new FastCache<>();
-        cache = CacheLIRS.<CacheKey<T>, T>newBuilder()
+        cache = CacheLIRS.<CacheKey, T>newBuilder()
                 .module(name)
                 .maximumWeight(maxWeight)
                 .averageWeight(averageWeight)
@@ -113,7 +112,7 @@ public abstract class ReaderCache<T> {
         if (value != null) {
             return value;
         }
-        CacheKey<T> key = new CacheKey<>(hash, msb, lsb, offset);
+        CacheKey key = new CacheKey(hash, msb, lsb, offset);
         value = cache.getIfPresent(key);
         if (value == null) {
             value = loader.apply(offset);
@@ -135,12 +134,6 @@ public abstract class ReaderCache<T> {
             fastCache.clear();
         }
     }
-
-    /**
-     * Estimation includes the key's overhead, see {@link EmpiricalWeigher} for
-     * an example
-     */
-    protected abstract int getEntryWeight(T value);
 
     /**
      * Determine whether the entry is small, in which case it can be kept in the fast cache.
@@ -192,7 +185,7 @@ public abstract class ReaderCache<T> {
 
     }
 
-    private static class CacheKey<T> {
+    static class CacheKey {
         private final int hash;
         private final long msb, lsb;
         private final int offset;
@@ -217,7 +210,7 @@ public abstract class ReaderCache<T> {
             if (!(other instanceof ReaderCache.CacheKey)) {
                 return false;
             }
-            CacheKey<?> o = (CacheKey<?>) other;
+            CacheKey o = (CacheKey) other;
             return o.hash == hash && o.msb == msb && o.lsb == lsb &&
                     o.offset == offset;
         }
@@ -229,6 +222,9 @@ public abstract class ReaderCache<T> {
                 '+' + Integer.toHexString(offset);
         }
 
+        public int estimateMemoryUsage() {
+            return OBJECT_HEADER_SIZE + 32;
+        }
     }
 
     private static class FastCacheEntry<T> {

@@ -18,11 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
-import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ALIGN_BITS;
-import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
+import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -148,6 +146,10 @@ public final class RecordId implements Comparable<RecordId> {
         } else {
             return false;
         }
+    }
+
+    public int estimateMemoryUsage() {
+        return OBJECT_HEADER_SIZE + 16 + segmentId.estimateMemoryUsage();
     }
 
 }

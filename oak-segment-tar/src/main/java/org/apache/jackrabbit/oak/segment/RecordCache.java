@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -27,6 +29,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
+import com.google.common.cache.Weigher;
 
 /**
  * Partial mapping of keys of type {@code T} to values of type {@link RecordId}. This is
@@ -56,9 +59,12 @@ public abstract class RecordCache<T> {
      */
     public abstract long size();
 
+    public abstract long estimateCurrentWeight();
+
     /**
      * @return  access statistics for this cache
      */
+    @Nonnull
     public CacheStats getStats() {
         return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
     }
@@ -76,11 +82,28 @@ public abstract class RecordCache<T> {
         if (size <= 0) {
             return new Empty<>();
         } else {
-            return new Default<>(size);
+            return new Default<>(size, CacheWeights.<T, RecordId> noopWeigher());
         }
     }
 
     /**
+     * @param size size of the cache
+     * @param weigher   Needed to provide an estimation of the cache weight in memory
+     * @return  A factory returning {@code RecordCache} instances of the given {@code size}
+     *          when invoked.
+     * @see #newRecordCache(int)
+     */
+    @Nonnull
+    public static <T> Supplier<RecordCache<T>> factory(int size, @Nonnull Weigher<T, RecordId> weigher) {
+        if (size <= 0) {
+            return Empty.emptyFactory();
+        } else {
+            return Default.defaultFactory(size, checkNotNull(weigher));
+        }
+    }
+
+    /**
+     * @param size size of the cache
      * @return  A factory returning {@code RecordCache} instances of the given {@code size}
      *          when invoked.
      * @see #newRecordCache(int)
@@ -90,7 +113,7 @@ public abstract class RecordCache<T> {
         if (size <= 0) {
             return Empty.emptyFactory();
         } else {
-            return Default.defaultFactory(size);
+            return Default.defaultFactory(size, CacheWeights.<T, RecordId> noopWeigher());
         }
     }
 
@@ -117,27 +140,42 @@ public abstract class RecordCache<T> {
         public long size() {
             return 0;
         }
+
+        @Override
+        public long estimateCurrentWeight() {
+            return -1;
+        }
     }
 
     private static class Default<T> extends RecordCache<T> {
+
+        @Nonnull
         private final Map<T, RecordId> records;
 
-        static final <T> Supplier<RecordCache<T>> defaultFactory(final int size) {
+        @Nonnull
+        private final Weigher<T, RecordId> weigher;
+
+        private long weight = -1;
+
+        static final <T> Supplier<RecordCache<T>> defaultFactory(final int size, @Nonnull final Weigher<T, RecordId> weigher) {
             return new Supplier<RecordCache<T>>() {
                 @Override
                 public RecordCache<T> get() {
-                    return new Default<>(size);
+                    return new Default<>(size, checkNotNull(weigher));
                 }
             };
         }
 
-        Default(final int size) {
+        Default(final int size, @Nonnull final Weigher<T, RecordId> weigher) {
+            this.weigher = checkNotNull(weigher);
             records = new LinkedHashMap<T, RecordId>(size * 4 / 3, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<T, RecordId> eldest) {
                     boolean remove = super.size() > size;
                     if (remove) {
                         Default.super.evictionCount++;
+                        weight -= weigher.weigh(eldest.getKey(),
+                                eldest.getValue());
                     }
                     return remove;
                 }
@@ -148,6 +186,9 @@ public abstract class RecordCache<T> {
         public synchronized void put(@Nonnull T key, @Nonnull RecordId value) {
             super.loadCount++;
             records.put(key, value);
+            if (weigher != null) {
+                weight += weigher.weigh(key, value);
+            }
         }
 
         @Override
@@ -164,6 +205,11 @@ public abstract class RecordCache<T> {
         @Override
         public synchronized long size() {
             return records.size();
+        }
+
+        @Override
+        public long estimateCurrentWeight() {
+            return weight;
         }
     }
 }
