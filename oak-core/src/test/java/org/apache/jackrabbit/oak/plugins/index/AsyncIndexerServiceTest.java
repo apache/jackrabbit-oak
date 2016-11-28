@@ -69,8 +69,11 @@ public class AsyncIndexerServiceTest {
         assertNotNull(context.getService(Runnable.class));
         assertEquals(TimeUnit.MINUTES.toMillis(15), getIndexUpdate("async").getLeaseTimeOut());
 
+        AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+
         MockOsgi.deactivate(service);
         assertNull(context.getService(Runnable.class));
+        assertTrue(indexUpdate.isClosed());
     }
 
     @Test
