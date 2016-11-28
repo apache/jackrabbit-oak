@@ -69,6 +69,9 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.observation.Event;
@@ -886,6 +889,56 @@ public class ObservationTest extends AbstractRepositoryTest {
         n.addNode("n1");
         getAdminSession().save();
 
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
+    public void deepNodeTypeMixinHierarchy() throws Exception {
+        NodeTypeManager ntm = getAdminSession().getWorkspace().getNodeTypeManager();
+        NodeTypeTemplate parentMixin = ntm.createNodeTypeTemplate();
+        parentMixin.setName("parentmixin");
+        parentMixin.setMixin(true);
+        ntm.registerNodeType(parentMixin, false);
+        NodeTypeTemplate childMixin = ntm.createNodeTypeTemplate();
+        childMixin.setName("childmixin");
+        childMixin.setMixin(true);
+        childMixin.setDeclaredSuperTypeNames(new String[] {"parentmixin"});
+        ntm.registerNodeType(childMixin, false);
+        NodeTypeTemplate mytype = ntm.createNodeTypeTemplate();
+        mytype.setName("mytype");
+        mytype.setMixin(false);
+        mytype.setDeclaredSuperTypeNames(new String[] {"childmixin"});
+        NodeDefinitionTemplate child = ntm.createNodeDefinitionTemplate();
+        child.setName("*");
+        child.setDefaultPrimaryTypeName("nt:base");
+        child.setRequiredPrimaryTypeNames(new String[] {"nt:base"});
+        List<NodeDefinition> children = mytype.getNodeDefinitionTemplates();
+        children.add(child);
+        ntm.registerNodeType(mytype, false);
+        getAdminSession().save();
+        
+        // create a fresh session here to catch the above new node type definitions
+        observingSession = createAdminSession();
+        observationManager = observingSession.getWorkspace().getObservationManager();
+        JackrabbitObservationManager oManager = (JackrabbitObservationManager) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath("/")
+                .setIsDeep(true)
+                .setNodeTypes(new String[] {"parentmixin"})
+                .setEventTypes(ALL_EVENTS);
+        oManager.addEventListener(listener, filter);
+
+        Node n = getNode(TEST_PATH).addNode("n", "mytype");
+        listener.expect(n.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node m = n.addNode("m", "nt:unstructured");
+        listener.expect(m.getPath(), NODE_ADDED);
+        getAdminSession().save();
+
+        Thread.sleep(1000);
         List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
