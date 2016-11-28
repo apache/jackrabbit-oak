@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -106,6 +108,8 @@ public class AsyncIndexerService {
 
     private IndexMBeanRegistration indexRegistration;
 
+    private final Closer closer = Closer.create();
+
     @Activate
     public void activate(BundleContext bundleContext, Map<String, Object> config) {
         List<AsyncConfig> asyncIndexerConfig = getAsyncConfig(PropertiesUtil.toStringArray(config.get
@@ -131,16 +135,20 @@ public class AsyncIndexerService {
             task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
 
             indexRegistration.registerAsyncIndexer(task, c.timeIntervalInSecs);
+            closer.register(task);
         }
         log.info("Configured async indexers {} ", asyncIndexerConfig);
         log.info("Lease time: {} mins and AsyncIndexUpdate configured with {}", leaseTimeOutMin, validatorProvider.getClass().getName());
     }
 
     @Deactivate
-    public void deactivate() {
+    public void deactivate() throws IOException {
         if (indexRegistration != null) {
             indexRegistration.unregister();
         }
+
+        //Close the task *after* unregistering the jobs
+        closer.close();
     }
 
     //~-------------------------------------------< internal >
