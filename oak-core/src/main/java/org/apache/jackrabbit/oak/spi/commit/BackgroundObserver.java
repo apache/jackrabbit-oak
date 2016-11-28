@@ -55,6 +55,8 @@ import org.slf4j.LoggerFactory;
  */
 public class BackgroundObserver implements Observer, Closeable {
 
+    public final static int DEFAULT_QUEUE_SIZE = 10000;
+
     /**
      * Signal for the background thread to stop processing changes.
      */
@@ -179,7 +181,7 @@ public class BackgroundObserver implements Observer, Closeable {
     public BackgroundObserver(
             @Nonnull Observer observer,
             @Nonnull Executor executor) {
-        this(observer, executor, 1000);
+        this(observer, executor, DEFAULT_QUEUE_SIZE);
     }
 
     /**
