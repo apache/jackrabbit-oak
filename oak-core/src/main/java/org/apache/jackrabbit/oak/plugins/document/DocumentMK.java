@@ -535,10 +535,10 @@ public class DocumentMK {
      */
     public static class Builder {
         public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
-        public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 25;
+        public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 35;
         public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
-        public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
-        public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 5;
+        public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 15;
+        public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 30;
         public static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
         public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
