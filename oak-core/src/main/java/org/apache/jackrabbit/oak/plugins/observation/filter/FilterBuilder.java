@@ -31,7 +31,10 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -499,6 +502,7 @@ public final class FilterBuilder {
 
     private static class PathCondition implements Condition {
         private final String pathGlob;
+        private final Map<String,Pattern> patternMap = new HashMap<String,Pattern>();
 
         public PathCondition(String pathGlob) {
             this.pathGlob = pathGlob;
@@ -506,7 +510,7 @@ public final class FilterBuilder {
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            return new GlobbingPathFilter(pathGlob);
+            return new GlobbingPathFilter(pathGlob, patternMap);
         }
     }
 
