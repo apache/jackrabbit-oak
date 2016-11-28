@@ -59,41 +59,28 @@ final class PrintingDiff implements NodeStateDiff {
 
     private final String path;
 
-    private final boolean skipProps;
-
     PrintingDiff(PrintWriter pw, String path) {
-        this(pw, path, false);
-    }
-
-    private PrintingDiff(PrintWriter pw, String path, boolean skipProps) {
         this.pw = pw;
         this.path = path;
-        this.skipProps = skipProps;
     }
 
     @Override
     public boolean propertyAdded(PropertyState after) {
-        if (!skipProps) {
-            pw.println("    + " + toString(after));
-        }
+        pw.println("    + " + toString(after));
         return true;
     }
 
     @Override
     public boolean propertyChanged(PropertyState before, PropertyState after) {
-        if (!skipProps) {
-            pw.println("    ^ " + before.getName());
-            pw.println("      - " + toString(before));
-            pw.println("      + " + toString(after));
-        }
+        pw.println("    ^ " + before.getName());
+        pw.println("      - " + toString(before));
+        pw.println("      + " + toString(after));
         return true;
     }
 
     @Override
     public boolean propertyDeleted(PropertyState before) {
-        if (!skipProps) {
-            pw.println("    - " + toString(before));
-        }
+        pw.println("    - " + toString(before));
         return true;
     }
 
@@ -101,23 +88,21 @@ final class PrintingDiff implements NodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         String p = concat(path, name);
         pw.println("+ " + p);
-        return after.compareAgainstBaseState(EMPTY_NODE, new PrintingDiff(
-                pw, p));
+        return after.compareAgainstBaseState(EMPTY_NODE, new PrintingDiff(pw, p));
     }
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         String p = concat(path, name);
         pw.println("^ " + p);
-        return after.compareAgainstBaseState(before,
-                new PrintingDiff(pw, p));
+        return after.compareAgainstBaseState(before, new PrintingDiff(pw, p));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
         String p = concat(path, name);
         pw.println("- " + p);
-        return MISSING_NODE.compareAgainstBaseState(before, new PrintingDiff(pw, p, true));
+        return MISSING_NODE.compareAgainstBaseState(before, new PrintingDiff(pw, p));
     }
 
     private static String toString(PropertyState ps) {
