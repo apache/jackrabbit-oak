@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +38,13 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeSetFilterImpl.class);
     
+    private static final int MAX_EXCLUDED_PATHS = 11;
+    private static final int MAX_EXCLUDE_PATH_CUTOFF_LEVEL = 6;
+    
     private final Set<String> rootIncludePaths;
     private final Set<Pattern> includePathPatterns;
     private final Set<Pattern> excludePathPatterns;
+    private final Set<Pattern> unpreciseExcludePathPatterns;
     private final Set<String> parentNodeNames;
     private final Set<String> parentNodeTypes;
     private final Set<String> propertyNames;
@@ -51,14 +56,17 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
                 parentNodeTypes+", propertyNames="+propertyNames+"]";
     }
 
-    public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep, Set<String> excludedParentPaths,
+    public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep,
+            @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
             Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
-        this(includedParentPaths, isDeep, null, excludedParentPaths, parentNodeNames, parentNodeTypes, propertyNames);
+        this(includedParentPaths, isDeep, additionalIncludedParentPaths, excludedParentPaths, parentNodeNames, parentNodeTypes, propertyNames,
+                MAX_EXCLUDED_PATHS);
     }
 
     public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep,
             @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
-            Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
+            Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames,
+            int maxExcludedPaths) {
         this.rootIncludePaths = new HashSet<String>();
         this.includePathPatterns = new HashSet<Pattern>();
         for (String aRawIncludePath : includedParentPaths) {
@@ -78,15 +86,67 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
                 this.includePathPatterns.add(asPattern(path));
             }
         }
+        // OAK-5169:
+        // excludedParentPaths could in theory be a large list, in which case
+        // the excludes() algorithm becomes non-performing. Reason is, that it
+        // iterates through the changeSet and then through the excludePaths.
+        // which means it becomes an O(n*m) operation.
+        // This should be avoided and one way to avoid this is to make an
+        // unprecise exclude filtering, where a smaller number of parent
+        // exclude paths is determined - and if the change is within this
+        // unprecise set, then we have to include it (with the risk of
+        // false negative) - but if the change is outside of this unprecise
+        // set, then we are certain that we are not excluding it.
+        // one way this unprecise filter can be implemented is by 
+        // starting off with eg 6 levels deep paths, and check if that brings
+        // down the number far enough (to eg 11), if it's still too high,
+        // cut off exclude paths at level 5 and repeat until the figure ends
+        // up under 11.
         this.excludePathPatterns = new HashSet<Pattern>();
-        for (String aRawExcludePath : excludedParentPaths) {
-            this.excludePathPatterns.add(asPattern(concat(aRawExcludePath, "**")));
+        this.unpreciseExcludePathPatterns = new HashSet<Pattern>();
+        if (excludedParentPaths.size() < maxExcludedPaths) {
+            for (String aRawExcludePath : excludedParentPaths) {
+                this.excludePathPatterns.add(asPattern(concat(aRawExcludePath, "**")));
+            }
+        } else {
+            final Set<String> unprecisePaths = unprecisePaths(excludedParentPaths);
+            for (String anUnprecisePath : unprecisePaths) {
+                this.unpreciseExcludePathPatterns.add(asPattern(concat(anUnprecisePath, "**")));
+            }
         }
         this.propertyNames = propertyNames == null ? null : new HashSet<String>(propertyNames);
         this.parentNodeTypes = parentNodeTypes == null ? null : new HashSet<String>(parentNodeTypes);
         this.parentNodeNames = parentNodeNames == null ? null : new HashSet<String>(parentNodeNames);
     }
     
+    private Set<String> unprecisePaths(Set<String> paths) {
+        int level = MAX_EXCLUDE_PATH_CUTOFF_LEVEL;
+        while(level > 1) {
+            Set<String> unprecise = unprecisePaths(paths, level);
+            if (unprecise.size() < MAX_EXCLUDED_PATHS) {
+                return unprecise;
+            }
+            level--;
+        }
+        // worst case: we even have too many top-level paths, so 
+        // the only way out here is by returning a set containing only "/"
+        HashSet<String> result = new HashSet<String>();
+        result.add("/");
+        return result;
+    }
+
+    private Set<String> unprecisePaths(Set<String> paths, int level) {
+        Set<String> result = new HashSet<String>();
+        for (String path : paths) {
+            String unprecise = path;
+            while(PathUtils.getDepth(unprecise) > level) {
+                unprecise = PathUtils.getParentPath(unprecise);
+            }
+            result.add(unprecise);
+        }
+        return result;
+    }
+
     /** for testing only **/
     public Set<String> getRootIncludePaths() {
         return rootIncludePaths;
@@ -118,6 +178,22 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         }
         final Set<String> parentPaths = new HashSet<String>(changeSet.getParentPaths());
 
+        // first go through the unprecise excludes. if that has any hit,
+        // we have to let it pass as include
+        boolean unpreciseExclude = false;
+        if (this.unpreciseExcludePathPatterns.size() != 0) {
+            final Iterator<String> it = parentPaths.iterator();
+            while (it.hasNext()) {
+                final String aParentPath = it.next();
+                if (patternsMatch(this.unpreciseExcludePathPatterns, aParentPath)) {
+                    // if there is an unprecise match we keep track of that fact
+                    // for later in this method
+                    unpreciseExclude = true;
+                    break;
+                }
+            }
+        }
+        
         // first go through excludes to remove those that are explicitly
         // excluded
         if (this.excludePathPatterns.size() != 0) {
@@ -155,6 +231,10 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         if (!included) {
             // well then we can definitely say that this commit is excluded
             return true;
+        } else if (unpreciseExclude) {
+            // then it might have been excluded but we are not sure
+            // in which case we return false (as that's safe always)
+            return false;
         }
 
         if (this.propertyNames != null && this.propertyNames.size() != 0) {
