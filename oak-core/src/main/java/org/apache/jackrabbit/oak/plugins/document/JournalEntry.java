@@ -101,9 +101,10 @@ public final class JournalEntry extends Document {
 
     static void applyTo(@Nonnull StringSort externalSort,
                         @Nonnull DiffCache diffCache,
+                        @Nonnull String path,
                         @Nonnull RevisionVector from,
                         @Nonnull RevisionVector to) throws IOException {
-        LOG.debug("applyTo: starting for {} to {}", from, to);
+        LOG.debug("applyTo: starting for {} from {} to {}", path, from, to);
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");
 
@@ -113,8 +114,8 @@ public final class JournalEntry extends Document {
         if (!it.hasNext()) {
             // nothing at all? that's quite unusual..
 
-            // we apply this diff as one '/' to the entry then
-            entry.append("/", "");
+            // we apply this diff as no change at the given path
+            entry.append(path, "");
             entry.done();
             return;
         }
@@ -139,8 +140,10 @@ public final class JournalEntry extends Document {
             // part of that hierarchy anymore and we 'move elsewhere'.
             // eg if 'currentPath' is /a/b/e, then we must flush /a/b/c/d and /a/b/c
             while (node != null && !node.isAncestorOf(currentNode)) {
-                // add parent to the diff entry
-                entry.append(node.getPath(), getChanges(node));
+                // add parent to the diff entry if within scope
+                if (inScope(node, path)) {
+                    entry.append(node.getPath(), getChanges(node));
+                }
                 deDuplicatedCnt++;
                 // clean up the hierarchy when we are done with this
                 // part of the tree to avoid excessive memory usage
@@ -165,7 +168,7 @@ public final class JournalEntry extends Document {
         // once we're done we still have the last hierarchy line contained in 'node',
         // eg /x, /x/y, /x/y/z
         // and that one we must now append to the diff cache entry:
-        while (node != null) {
+        while (node != null && inScope(node, path)) {
             entry.append(node.getPath(), getChanges(node));
             deDuplicatedCnt++;
             node = node.parent;
@@ -174,6 +177,14 @@ public final class JournalEntry extends Document {
         // and finally: mark the diff cache entry as 'done':
         entry.done();
         LOG.debug("applyTo: done. totalCnt: {}, deDuplicatedCnt: {}", totalCnt, deDuplicatedCnt);
+    }
+
+    private static boolean inScope(TreeNode node, String path) {
+        if (PathUtils.denotesRoot(path)) {
+            return true;
+        }
+        String p = node.getPath();
+        return p.startsWith(path) && (p.length() == path.length() || p.charAt(path.length()) == '/');
     }
 
     /**
@@ -192,10 +203,38 @@ public final class JournalEntry extends Document {
      * @throws IOException
      */
     static int fillExternalChanges(@Nonnull StringSort sorter,
-                                    @Nonnull Revision from,
-                                    @Nonnull Revision to,
-                                    @Nonnull DocumentStore store)
+                                   @Nonnull Revision from,
+                                   @Nonnull Revision to,
+                                   @Nonnull DocumentStore store)
             throws IOException {
+        return fillExternalChanges(sorter, PathUtils.ROOT_PATH, from, to, store);
+    }
+
+    /**
+     * Reads external changes between the two given revisions (with the same
+     * clusterId) from the journal and appends the paths therein to the provided
+     * sorter. If there is no exact match of a journal entry for the given
+     * {@code to} revision, this method will fill external changes from the
+     * next higher journal entry that contains the revision. The {@code path}
+     * defines the scope of the external changes that should be read and filled
+     * into the {@code sorter}.
+     *
+     * @param sorter the StringSort to which all externally changed paths
+     *               between the provided revisions will be added
+     * @param path   a path that defines the scope of the changes to read.
+     * @param from   the lower bound of the revision range (exclusive).
+     * @param to     the upper bound of the revision range (inclusive).
+     * @param store  the document store to query.
+     * @return the number of journal entries read from the store.
+     * @throws IOException
+     */
+    static int fillExternalChanges(@Nonnull StringSort sorter,
+                                   @Nonnull String path,
+                                   @Nonnull Revision from,
+                                   @Nonnull Revision to,
+                                   @Nonnull DocumentStore store)
+            throws IOException {
+        checkNotNull(path);
         checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
 
         if (from.compareRevisionTime(to) >= 0) {
@@ -231,7 +270,7 @@ public final class JournalEntry extends Document {
             }
 
             for (JournalEntry d : partialResult) {
-                d.addTo(sorter);
+                d.addTo(sorter, path);
             }
             if (partialResult.size() < READ_CHUNK_SIZE) {
                 break;
@@ -248,7 +287,7 @@ public final class JournalEntry extends Document {
                 || (lastEntry != null && !lastEntry.getId().equals(inclusiveToId))) {
             String maxId = asId(new Revision(Long.MAX_VALUE, 0, to.getClusterId()));
             for (JournalEntry d : store.query(JOURNAL, inclusiveToId, maxId, 1)) {
-                d.addTo(sorter);
+                d.addTo(sorter, path);
                 numEntries++;
             }
         }
@@ -287,14 +326,6 @@ public final class JournalEntry extends Document {
         put(BRANCH_COMMITS, branchCommits);
     }
 
-    String getChanges(String path) {
-        TreeNode node = getNode(path);
-        if (node == null) {
-            return "";
-        }
-        return getChanges(node);
-    }
-
     UpdateOp asUpdateOp(@Nonnull Revision revision) {
         String id = asId(revision);
         UpdateOp op = new UpdateOp(id, true);
@@ -309,18 +340,31 @@ public final class JournalEntry extends Document {
         return op;
     }
 
-    void addTo(final StringSort sort) throws IOException {
-        TreeNode n = getChanges();
+    /**
+     * Add changed paths in this journal entry that are in the scope of
+     * {@code path} to {@code sort}.
+     *
+     * @param sort where changed paths are added to.
+     * @param path the scope for added paths.
+     * @throws IOException if an exception occurs while adding a path to
+     *          {@code sort}. In this case only some paths may have been added.
+     */
+    void addTo(final StringSort sort, String path) throws IOException {
         TraversingVisitor v = new TraversingVisitor() {
-
             @Override
-            public void node(TreeNode node, String path) throws IOException {
-                sort.add(path);
+            public void node(TreeNode node, String p) throws IOException {
+                sort.add(p);
             }
         };
-        n.accept(v, "/");
+        TreeNode n = getNode(path);
+        if (n != null) {
+            n.accept(v, path);
+        }
         for (JournalEntry e : getBranchCommits()) {
-            e.getChanges().accept(v, "/");
+            n = e.getNode(path);
+            if (n != null) {
+                n.accept(v, path);
+            }
         }
     }
 

@@ -56,7 +56,7 @@ public class JournalEntryTest {
         RevisionVector from = new RevisionVector(new Revision(1, 0, 1));
         RevisionVector to = new RevisionVector(new Revision(2, 0, 1));
         sort.sort();
-        JournalEntry.applyTo(sort, cache, from, to);
+        JournalEntry.applyTo(sort, cache, "/", from, to);
 
         for (String p : paths) {
             String changes = cache.getChanges(from, to, p, null);
@@ -66,6 +66,29 @@ public class JournalEntryTest {
             }
         }
         sort.close();
+    }
+
+    @Test
+    public void applyToWithPath() throws Exception {
+        DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
+        StringSort sort = JournalEntry.newSorter();
+        sort.add("/");
+        sort.add("/foo");
+        sort.add("/foo/a");
+        sort.add("/foo/b");
+        sort.add("/bar");
+        sort.add("/bar/a");
+        sort.add("/bar/b");
+        RevisionVector from = new RevisionVector(Revision.newRevision(1));
+        RevisionVector to = new RevisionVector(Revision.newRevision(1));
+        sort.sort();
+        JournalEntry.applyTo(sort, cache, "/foo", from, to);
+        assertNotNull(cache.getChanges(from, to, "/foo", null));
+        assertNotNull(cache.getChanges(from, to, "/foo/a", null));
+        assertNotNull(cache.getChanges(from, to, "/foo/b", null));
+        assertNull(cache.getChanges(from, to, "/bar", null));
+        assertNull(cache.getChanges(from, to, "/bar/a", null));
+        assertNull(cache.getChanges(from, to, "/bar/b", null));
     }
 
     //OAK-3494
@@ -98,7 +121,7 @@ public class JournalEntryTest {
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
         sort.sort();
-        JournalEntry.applyTo(sort, cache, from, to);
+        JournalEntry.applyTo(sort, cache, "/", from, to);
 
         validateCacheUsage(cache, from, to, "/topUnchanged", true);
         validateCacheUsage(cache, from, to, "/content/changed/unchangedLeaf", true);
@@ -206,6 +229,31 @@ public class JournalEntryTest {
     }
 
     @Test
+    public void fillExternalChangesWithPath() throws Exception {
+        Revision r1 = new Revision(1, 0, 1);
+        Revision r2 = new Revision(2, 0, 1);
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+        entry.modified("/");
+        entry.modified("/foo");
+        entry.modified("/foo/a");
+        entry.modified("/foo/b");
+        entry.modified("/foo/c");
+        entry.modified("/bar");
+        entry.modified("/bar/a");
+        entry.modified("/bar/b");
+        entry.modified("/bar/c");
+
+        UpdateOp op = entry.asUpdateOp(r2);
+        assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+
+        StringSort sort = JournalEntry.newSorter();
+        JournalEntry.fillExternalChanges(sort, "/foo", r1, r2, store);
+        assertEquals(4, sort.getSize());
+        sort.close();
+    }
+
+    @Test
     public void getRevisionTimestamp() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry entry = JOURNAL.newDocument(store);
@@ -234,7 +282,7 @@ public class JournalEntryTest {
             t.start();
             StringSort sort = JournalEntry.newSorter();
             try {
-                entry.addTo(sort);
+                entry.addTo(sort, PathUtils.ROOT_PATH);
             } finally {
                 sort.close();
             }
@@ -242,6 +290,25 @@ public class JournalEntryTest {
         } finally {
             store.dispose();
         }
+    }
+
+    @Test
+    public void addToWithPath() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+        entry.modified("/");
+        entry.modified("/foo");
+        entry.modified("/foo/a");
+        entry.modified("/foo/b");
+        entry.modified("/foo/c");
+        entry.modified("/bar");
+        entry.modified("/bar/a");
+        entry.modified("/bar/b");
+        entry.modified("/bar/c");
+        StringSort sort = JournalEntry.newSorter();
+        entry.addTo(sort, "/foo");
+        assertEquals(4, sort.getSize());
+        sort.close();
     }
 
     private static void addRandomPaths(java.util.Collection<String> paths) throws IOException {
