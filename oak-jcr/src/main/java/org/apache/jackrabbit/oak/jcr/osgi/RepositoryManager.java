@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -63,7 +64,7 @@ import org.osgi.framework.ServiceRegistration;
         )
 })
 public class RepositoryManager {
-    private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
+    private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = BackgroundObserver.DEFAULT_QUEUE_SIZE;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
     private static final boolean DEFAULT_FAST_QUERY_RESULT_SIZE = false;
 
