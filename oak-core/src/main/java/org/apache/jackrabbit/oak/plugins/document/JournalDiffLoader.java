@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.asId;
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.fillExternalChanges;
@@ -55,16 +57,20 @@ class JournalDiffLoader implements DiffCache.Loader {
     JournalDiffLoader(@Nonnull AbstractDocumentNodeState base,
                       @Nonnull AbstractDocumentNodeState node,
                       @Nonnull DocumentNodeStore ns) {
-        this.base = base;
-        this.node = node;
-        this.ns = ns;
+        this.base = checkNotNull(base);
+        this.node = checkNotNull(node);
+        this.ns = checkNotNull(ns);
+        checkArgument(base.getPath().equals(node.getPath()),
+                "nodes must have matching paths: {} != {}",
+                base.getPath(), node.getPath());
     }
 
     @Override
     public String call() {
-        stats = new Stats();
+        String path = node.getPath();
         RevisionVector afterRev = node.getRootRevision();
         RevisionVector beforeRev = base.getRootRevision();
+        stats = new Stats(path, beforeRev, afterRev);
 
         JournalEntry localPending = ns.getCurrentJournalEntry();
         DocumentStore store = ns.getDocumentStore();
@@ -79,15 +85,15 @@ class JournalDiffLoader implements DiffCache.Loader {
 
         StringSort changes = JournalEntry.newSorter();
         try {
-            readTrunkChanges(beforeRev, afterRev, localPending, localLastRev, changes);
+            readTrunkChanges(path, beforeRev, afterRev, localPending, localLastRev, changes);
 
-            readBranchChanges(beforeRev, changes);
-            readBranchChanges(afterRev, changes);
+            readBranchChanges(path, beforeRev, changes);
+            readBranchChanges(path, afterRev, changes);
 
             changes.sort();
             DiffCache df = ns.getDiffCache();
             WrappedDiffCache wrappedCache = new WrappedDiffCache(node.getPath(), df, stats);
-            JournalEntry.applyTo(changes, wrappedCache, beforeRev, afterRev);
+            JournalEntry.applyTo(changes, wrappedCache, path, beforeRev, afterRev);
 
             return wrappedCache.changes;
         } catch (IOException e) {
@@ -98,7 +104,8 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
     }
 
-    private void readBranchChanges(RevisionVector rv,
+    private void readBranchChanges(String path,
+                                   RevisionVector rv,
                                    StringSort changes) throws IOException {
         if (!rv.isBranch() || ns.isDisableBranches()) {
             return;
@@ -116,7 +123,7 @@ class JournalDiffLoader implements DiffCache.Loader {
             if (!bc.isRebase()) {
                 JournalEntry entry = store.find(Collection.JOURNAL, asId(br));
                 if (entry != null) {
-                    entry.addTo(changes);
+                    entry.addTo(changes, path);
                     stats.numJournalEntries++;
                 } else {
                     LOG.warn("Missing journal entry for {}", asId(br));
@@ -125,7 +132,8 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
     }
 
-    private void readTrunkChanges(RevisionVector beforeRev,
+    private void readTrunkChanges(String path,
+                                  RevisionVector beforeRev,
                                   RevisionVector afterRev,
                                   JournalEntry localPending,
                                   Revision localLastRev,
@@ -151,13 +159,13 @@ class JournalDiffLoader implements DiffCache.Loader {
                 // use revision with a timestamp of zero
                 from = new Revision(0, 0, to.getClusterId());
             }
-            stats.numJournalEntries += fillExternalChanges(changes, from, to, ns.getDocumentStore());
+            stats.numJournalEntries += fillExternalChanges(changes, path, from, to, ns.getDocumentStore());
         }
         // do we need to include changes from pending local changes?
         if (!max.isRevisionNewer(localLastRev)
                 && !localLastRev.equals(max.getRevision(clusterId))) {
             // journal does not contain all local changes
-            localPending.addTo(changes);
+            localPending.addTo(changes, path);
             stats.numJournalEntries++;
         }
     }
@@ -197,16 +205,25 @@ class JournalDiffLoader implements DiffCache.Loader {
     private static class Stats {
 
         private final Stopwatch sw = Stopwatch.createStarted();
+        private final String path;
+        private final RevisionVector from, to;
         private long numJournalEntries;
         private long numDiffEntries;
         private long keyMemory;
         private long valueMemory;
 
+        Stats(String path, RevisionVector from, RevisionVector to) {
+            this.path = path;
+            this.from = from;
+            this.to = to;
+        }
+
         @Override
         public String toString() {
-            String msg = "%d diffs loaded from %d journal entries in %s. " +
+            String msg = "%d diffs for %s (%s/%s) loaded from %d journal entries in %s. " +
                     "Keys: %s, values: %s, total: %s";
-            return String.format(msg, numDiffEntries, numJournalEntries, sw,
+            return String.format(msg, numDiffEntries, path, from, to,
+                    numJournalEntries, sw,
                     byteCountToDisplaySize(keyMemory),
                     byteCountToDisplaySize(valueMemory),
                     byteCountToDisplaySize(keyMemory + valueMemory));

@@ -1994,7 +1994,8 @@ public final class DocumentNodeStore
                         // then there were external changes and reading them
                         // was successful -> apply them to the diff cache
                         try {
-                            JournalEntry.applyTo(externalSort, diffCache, oldHead, newHead);
+                            JournalEntry.applyTo(externalSort, diffCache,
+                                    PathUtils.ROOT_PATH, oldHead, newHead);
                         } catch (Exception e1) {
                             LOG.error("backgroundRead: Exception while processing external changes from journal: {}", e1, e1);
                         }
