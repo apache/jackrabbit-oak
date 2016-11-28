@@ -109,7 +109,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
                 this.excludePathPatterns.add(asPattern(concat(aRawExcludePath, "**")));
             }
         } else {
-            final Set<String> unprecisePaths = unprecisePaths(excludedParentPaths);
+            final Set<String> unprecisePaths = unprecisePaths(excludedParentPaths, maxExcludedPaths, MAX_EXCLUDE_PATH_CUTOFF_LEVEL);
             for (String anUnprecisePath : unprecisePaths) {
                 this.unpreciseExcludePathPatterns.add(asPattern(concat(anUnprecisePath, "**")));
             }
@@ -119,11 +119,11 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         this.parentNodeNames = parentNodeNames == null ? null : new HashSet<String>(parentNodeNames);
     }
     
-    private Set<String> unprecisePaths(Set<String> paths) {
-        int level = MAX_EXCLUDE_PATH_CUTOFF_LEVEL;
+    private Set<String> unprecisePaths(Set<String> paths, int maxExcludedPaths, int maxExcludePathCutOffLevel) {
+        int level = maxExcludePathCutOffLevel;
         while(level > 1) {
             Set<String> unprecise = unprecisePaths(paths, level);
-            if (unprecise.size() < MAX_EXCLUDED_PATHS) {
+            if (unprecise.size() < maxExcludedPaths) {
                 return unprecise;
             }
             level--;
