@@ -23,8 +23,11 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupFrameworkThenConfiguration;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_MEMORY_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
@@ -114,14 +117,14 @@ import org.slf4j.LoggerFactory;
                 "options are supported"
 )
 public class DocumentNodeStoreService {
+
+    private static final long MB = 1024 * 1024;
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
-    private static final int DEFAULT_CACHE = 256;
+    private static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
     private static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
-    private static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
-    private static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
     private static final String PREFIX = "oak.documentstore.";
     private static final String DESCRIPTION = "oak.nodestore.description";
 
@@ -181,7 +184,7 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_DIFF_CACHE_PERCENTAGE = "diffCachePercentage";
     
-    @Property(intValue = DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT,
+    @Property(intValue = DEFAULT_CACHE_SEGMENT_COUNT,
             label = "LIRS Cache Segment Count",
             description = "The number of segments in the LIRS cache " + 
                     "(default 16, a higher count means higher concurrency " + 
@@ -189,7 +192,7 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_CACHE_SEGMENT_COUNT = "cacheSegmentCount";
 
-    @Property(intValue = DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE,
+    @Property(intValue = DEFAULT_CACHE_STACK_MOVE_DISTANCE,
             label = "LIRS Cache Stack Move Distance",
             description = "The delay to move entries to the head of the queue " + 
                     "in the LIRS cache " +
@@ -249,8 +252,6 @@ public class DocumentNodeStoreService {
                     "be pre-fetched in a background thread."
     )
     public static final String PROP_PREFETCH_EXTERNAL_CHANGES = "prefetchExternalChanges";
-
-    private static final long MB = 1024 * 1024;
 
     private static enum DocumentStoreType {
         MONGO, RDB;
