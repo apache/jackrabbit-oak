@@ -251,7 +251,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     private Tree getExistingBaseVersion(@Nonnull Tree versionableTree) throws RepositoryException {
         Tree baseVersion = getBaseVersion(versionableTree);
         if (baseVersion == null) {
-            throw new IllegalStateException("Base version does not exist.");
+            throw new IllegalStateException("Base version does not exist for " + versionableTree.getPath());
         }
         return baseVersion;
     }
