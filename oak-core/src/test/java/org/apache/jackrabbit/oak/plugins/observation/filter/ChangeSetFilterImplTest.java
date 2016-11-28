@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
 import org.junit.Test;
@@ -282,5 +283,53 @@ public class ChangeSetFilterImplTest {
 
         prefilter = new ChangeSetFilterImpl(s("/"), true, null, largeExcludeSet, s("foo", "bars"), s("nt:file"), s(), 1);
         assertFalse(prefilter.excludes(builder.build()));
+    }
+    
+    @Test
+    public void testDeepPaths() throws Exception {
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 5, false);
+        
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 1, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 2, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 3, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 4, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 5, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 6, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 7, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 8, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 9, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h",10, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h",11, false);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h",12, false);
+
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/x", 15, true);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/x", 15, true);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/x", 15, true);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/x", 15, true);
+    }
+
+    private void doTestDeepPath(String changeSetPath, String includePath, int maxPathDepth, boolean expectExclude) {
+        ChangeSetBuilder builder = newBuilder(5, maxPathDepth);
+        builder.addNodeType("nt:file");
+        builder.addParentNodeType("nt:file");
+        builder.addParentPath("/bar");
+        builder.addParentNodeName("bar");
+        builder.addPropertyName("a");
+        builder.addPropertyName("b");
+        builder.addParentPath(changeSetPath);
+        builder.addParentNodeName(PathUtils.getName(changeSetPath));
+        ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s(includePath), true, null, s("/excluded"), s("foo", "bars", "l"), s("nt:file"), s());
+        if (expectExclude) {
+            assertTrue(prefilter.excludes(builder.build()));
+        } else {
+            assertFalse(prefilter.excludes(builder.build()));
+        }
     }
 }
