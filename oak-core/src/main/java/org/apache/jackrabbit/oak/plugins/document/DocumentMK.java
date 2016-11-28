@@ -534,7 +534,7 @@ public class DocumentMK {
      * A builder for a DocumentMK instance.
      */
     public static class Builder {
-        private static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
+        public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
         public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 25;
         public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
         public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
