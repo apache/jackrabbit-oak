@@ -176,6 +176,12 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
             //TODO: optimize this later
             return false;
         }
+        if (changeSet.doesHitMaxPathDepth()) {
+            // then we might or might not include this - but without
+            // further complicated checks this can't be determined for sure
+            // so for simplicity reason: return false here
+            return false;
+        }
         final Set<String> parentPaths = new HashSet<String>(changeSet.getParentPaths());
 
         // first go through the unprecise excludes. if that has any hit,

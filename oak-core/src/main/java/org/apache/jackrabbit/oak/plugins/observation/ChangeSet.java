@@ -24,6 +24,8 @@ import javax.annotation.CheckForNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -66,6 +68,7 @@ public final class ChangeSet {
     private final Set<String> parentNodeTypes;
     private final Set<String> propertyNames;
     private final Set<String> allNodeTypes;
+    private final boolean hitsMaxPathDepth;
 
     ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames, Set<String> parentNodeTypes,
             Set<String> propertyNames, Set<String> allNodeTypes) {
@@ -75,13 +78,29 @@ public final class ChangeSet {
         this.parentNodeTypes = parentNodeTypes == null ? null : ImmutableSet.copyOf(parentNodeTypes);
         this.propertyNames = propertyNames == null ? null : ImmutableSet.copyOf(propertyNames);
         this.allNodeTypes = allNodeTypes == null ? null : ImmutableSet.copyOf(allNodeTypes);
+        
+        boolean hitsMaxPathDepth = false;
+        if (parentPaths != null) {
+            for (String aPath : parentPaths) {
+                if (PathUtils.getDepth(aPath) >= maxPathDepth) {
+                    hitsMaxPathDepth = true;
+                    break;
+                }
+            }
+        }
+        this.hitsMaxPathDepth = hitsMaxPathDepth;
     }
 
     @Override
     public String toString() {
         return "ChangeSet{paths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames=" + propertyNames
                 + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes 
-                + ", allNodeTypes=" + allNodeTypes + ", any overflow: " + anyOverflow() + "}";
+                + ", allNodeTypes=" + allNodeTypes + ", any overflow: " + anyOverflow()
+                + ", hits max path depth: " + hitsMaxPathDepth + "}";
+    }
+
+    public boolean doesHitMaxPathDepth() {
+        return hitsMaxPathDepth;
     }
 
     @CheckForNull
