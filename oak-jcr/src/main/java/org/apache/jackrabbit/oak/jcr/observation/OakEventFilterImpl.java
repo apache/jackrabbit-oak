@@ -23,10 +23,12 @@ import static com.google.common.collect.Lists.newArrayList;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -48,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathHelper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements OakEventFilter which is an extension to the JackrabbitEventFilter
@@ -57,6 +60,7 @@ public class OakEventFilterImpl extends OakEventFilter {
 
     static class NodeTypeAggregationFilter implements EventFilter, Condition {
 
+        private final Map<String,Pattern> patternMap = new HashMap<String,Pattern>();
         private final String[] nodeTypes;
         private final String[] relativeGlobPaths;
         private final boolean includeThis;
@@ -132,9 +136,9 @@ public class OakEventFilterImpl extends OakEventFilter {
                 List<EventFilter> filters = newArrayList();
                 for (String relativeGlobPath : relativeGlobPaths) {
                     if (relativeGlobPath.endsWith("*")) {
-                        filters.add(new GlobbingPathFilter(relativeGlobPath));
+                        filters.add(new GlobbingPathFilter(relativeGlobPath, patternMap));
                     } else {
-                        filters.add(new GlobbingPathFilter(relativeGlobPath + "/*"));
+                        filters.add(new GlobbingPathFilter(relativeGlobPath + "/*", patternMap));
                     }
                 }
                 return filters.isEmpty() ? ConstantFilter.EXCLUDE_ALL : Filters.any(filters);

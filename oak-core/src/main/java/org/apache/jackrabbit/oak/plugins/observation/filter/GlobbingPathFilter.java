@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.LoggerFactory;
 
 /**
  * This {@code Filter} implementation supports filtering on paths using
@@ -75,6 +76,11 @@ public class GlobbingPathFilter implements EventFilter {
         this.patternMap = checkNotNull(patternMap);
     }
 
+    public GlobbingPathFilter(@Nonnull String pattern, Map<String, Pattern> patternMap) {
+        this(elements(pattern), checkNotNull(patternMap));
+    }
+
+    /** for testing only - use variant which passes the patternMap for productive code **/
     public GlobbingPathFilter(@Nonnull String pattern) {
         this(elements(pattern), new HashMap<String, Pattern>());
     }
