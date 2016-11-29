@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.cache.RemovalCause.COLLECTED;
 import static com.google.common.cache.RemovalCause.EXPIRED;
 import static com.google.common.cache.RemovalCause.SIZE;
+import static com.google.common.collect.Iterables.filter;
 import static java.util.Collections.singleton;
 
 import java.util.Map;
@@ -42,51 +45,54 @@ import com.google.common.cache.CacheStats;
 import com.google.common.cache.RemovalCause;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
 
-    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
+    static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
-    /**
-     * Whether to use the queue to put items into cache. Default: false (cache
-     * will be updated synchronously).
-     */
-    private static final boolean ASYNC_CACHE = Boolean.getBoolean("oak.cache.asynchronous");
+    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
 
     private final PersistentCache cache;
     private final Cache<K, V> memCache;
     private final MultiGenerationMap<K, V> map;
     private final CacheType type;
-    private final DocumentNodeStore docNodeStore;
-    private final DocumentStore docStore;
-    private final CacheWriteQueue<K, V> writerQueue;
+    private final DataType keyType;
+    private final DataType valueType;
+    private final CacheMetadata<K> memCacheMetadata;
+    private final boolean async;
+    CacheWriteQueue<K, V> writeQueue;
 
     NodeCache(
             PersistentCache cache,
             Cache<K, V> memCache,
-            DocumentNodeStore docNodeStore, 
+            DocumentNodeStore docNodeStore,
             DocumentStore docStore,
             CacheType type,
-            CacheActionDispatcher dispatcher) {
+            CacheActionDispatcher dispatcher,
+            boolean async) {
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
-        this.docNodeStore = docNodeStore;
-        this.docStore = docStore;
+        this.async = async;
         PersistentCache.LOG.info("wrapping map " + this.type);
         map = new MultiGenerationMap<K, V>();
-
-        if (ASYNC_CACHE) {
-            this.writerQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
+        keyType = new KeyDataType(type);
+        valueType = new ValueDataType(docNodeStore, docStore, type);
+        this.memCacheMetadata = new CacheMetadata<K>();
+        if (async) {
+            this.writeQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
+            LOG.info("The persistent cache {} writes will be asynchronous", type);
         } else {
-            this.writerQueue = null;
+            this.writeQueue = null;
+            this.memCacheMetadata.disable();
+            LOG.info("The persistent cache {} writes will be synchronous", type);
         }
     }
-    
+
     @Override
     public void addGeneration(int generation, boolean readOnly) {
-        DataType keyType = new KeyDataType(type);
-        DataType valueType = new ValueDataType(docNodeStore, docStore, type);
         MVMap.Builder<K, V> b = new MVMap.Builder<K, V>().
                 keyType(keyType).valueType(valueType);
         String mapName = type.name();
@@ -96,19 +102,38 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
             map.setWriteMap(m);
         }
     }
-    
+
     @Override
     public void removeGeneration(int generation) {
         map.removeReadMap(generation);
     }
-    
+
     private V readIfPresent(K key) {
-        if (ASYNC_CACHE && writerQueue.waitsForInvalidation(key)) {
-            return null;
-        }
+        return async ? asyncReadIfPresent(key) : syncReadIfPresent(key);
+    }
+
+    private V syncReadIfPresent(K key) {
         cache.switchGenerationIfNeeded();
         V v = map.get(key);
+        if (v != null) {
+            memCacheMetadata.putFromPersistenceAndIncrement(key);
+        }
         return v;
+    }
+
+    private V asyncReadIfPresent(K key) {
+            MultiGenerationMap.ValueWithGenerationInfo<V> v = map.readValue(key);
+            if (v == null) {
+                return null;
+            }
+            if (v.isCurrentGeneration() && !cache.needSwitch()) {
+                // don't persist again on eviction
+                memCacheMetadata.putFromPersistenceAndIncrement(key);
+            } else {
+                // persist again during eviction
+                memCacheMetadata.increment(key);
+            }
+            return v.getValue();
     }
 
     private void write(final K key, final V value) {
@@ -124,10 +149,15 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     @Nullable
     public V getIfPresent(Object key) {
+        memCacheMetadata.increment((K) key);
         V value = memCache.getIfPresent(key);
-        if (value != null) {
+        if (value == null) {
+            memCacheMetadata.remove(key);
+        } else {
             return value;
         }
+
+        // it takes care of updating memCacheMetadata
         value = readIfPresent((K) key);
         if (value != null) {
             memCache.put((K) key, value);
@@ -137,15 +167,17 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
 
     @Override
     public V get(K key,
-            Callable<? extends V> valueLoader)
+                 Callable<? extends V> valueLoader)
             throws ExecutionException {
         V value = getIfPresent(key);
         if (value != null) {
             return value;
         }
+
+        memCacheMetadata.increment(key);
         value = memCache.get(key, valueLoader);
-        if (!ASYNC_CACHE) {
-            write(key, value);
+        if (!async) {
+            write((K) key, value);
         }
         return value;
     }
@@ -153,14 +185,19 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     public ImmutableMap<K, V> getAllPresent(
             Iterable<?> keys) {
-        return memCache.getAllPresent(keys);
+        Iterable<K> typedKeys = (Iterable<K>) keys;
+        memCacheMetadata.incrementAll(keys);
+        ImmutableMap<K, V> result = memCache.getAllPresent(keys);
+        memCacheMetadata.removeAll(filter(typedKeys, not(in(result.keySet()))));
+        return result;
     }
 
     @Override
     public void put(K key, V value) {
+        memCacheMetadata.put(key);
         memCache.put(key, value);
-        if (!ASYNC_CACHE) {
-            write(key, value);
+        if (!async) {
+            write((K) key, value);
         }
     }
 
@@ -168,8 +205,9 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     public void invalidate(Object key) {
         memCache.invalidate(key);
-        if (ASYNC_CACHE) {
-            writerQueue.addInvalidate(singleton((K) key));
+        memCacheMetadata.remove(key);
+        if (async) {
+            writeQueue.addInvalidate(singleton((K) key));
         } else {
             write((K) key, null);
         }
@@ -177,17 +215,20 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
+        memCacheMetadata.putAll(m.keySet());
         memCache.putAll(m);
     }
 
     @Override
     public void invalidateAll(Iterable<?> keys) {
         memCache.invalidateAll(keys);
+        memCacheMetadata.removeAll(keys);
     }
 
     @Override
     public void invalidateAll() {
         memCache.invalidateAll();
+        memCacheMetadata.clear();
         map.clear();
     }
 
@@ -209,6 +250,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     @Override
     public void cleanUp() {
         memCache.cleanUp();
+        memCacheMetadata.clear();
     }
 
     /**
@@ -216,9 +258,18 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
      */
     @Override
     public void evicted(K key, V value, RemovalCause cause) {
-        if (ASYNC_CACHE && EVICTION_CAUSES.contains(cause) && value != null) { 
-            // invalidations are handled separately
-            writerQueue.addPut(key, value);
+        if (async && EVICTION_CAUSES.contains(cause) && value != null) {
+            CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
+            boolean qualifiesToPersist = true;
+            if (metadata != null && metadata.isReadFromPersistentCache()) {
+                qualifiesToPersist = false;
+            } else if (metadata != null && metadata.getAccessCount() < 1) {
+                qualifiesToPersist = false;
+            }
+
+            if (qualifiesToPersist) {
+                writeQueue.addPut(key, value);
+            }
         }
     }
 }

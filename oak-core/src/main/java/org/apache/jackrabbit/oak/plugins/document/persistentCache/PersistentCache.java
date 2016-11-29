@@ -42,7 +42,13 @@ import com.google.common.cache.Cache;
 public class PersistentCache {
     
     static final Logger LOG = LoggerFactory.getLogger(PersistentCache.class);
-   
+
+    /**
+     * Whether to use the queue to put items into cache. Default: false (cache
+     * will be updated synchronously).
+     */
+    private static final boolean ASYNC_CACHE = Boolean.parseBoolean(System.getProperty("oak.cache.asynchronous", "false"));
+
     private static final String FILE_PREFIX = "cache-";
     private static final String FILE_SUFFIX = ".data";
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -55,6 +61,8 @@ public class PersistentCache {
     private boolean cacheDocChildren;
     private boolean compactOnClose;
     private boolean compress = true;
+    private boolean asyncCache = ASYNC_CACHE;
+    private boolean asyncDiffCache = false;
     private ArrayList<GenerationCache> caches = 
             new ArrayList<GenerationCache>();
     
@@ -112,6 +120,12 @@ public class PersistentCache {
                 appendOnly = true;
             } else if (p.equals("manualCommit")) {
                 manualCommit = true;
+            } else if (p.equals("+async")) {
+                asyncCache = true;
+            } else if (p.equals("-async")) {
+                asyncCache = false;
+            } else if (p.equals("+asyncDiff")) {
+                asyncDiffCache = true;
             }
         }
         this.directory = dir;
@@ -325,6 +339,7 @@ public class PersistentCache {
             DocumentStore docStore,
             Cache<K, V> base, CacheType type) {
         boolean wrap;
+        boolean async = asyncCache;
         switch (type) {
         case NODE:
             wrap = cacheNodes;
@@ -334,9 +349,11 @@ public class PersistentCache {
             break;
         case DIFF:
             wrap = cacheDiff;
+            async = asyncDiffCache;
             break;
         case LOCAL_DIFF:
             wrap = cacheLocalDiff;
+            async = asyncDiffCache;
             break;
         case DOC_CHILDREN:
             wrap = cacheDocChildren;
@@ -349,7 +366,7 @@ public class PersistentCache {
             break;
         }
         if (wrap) {
-            NodeCache<K, V> c = new NodeCache<K, V>(this, base, docNodeStore, docStore, type, writeDispatcher);
+            NodeCache<K, V> c = new NodeCache<K, V>(this, base, docNodeStore, docStore, type, writeDispatcher, async);
             initGenerationCache(c);
             return c;
         }
@@ -408,7 +425,7 @@ public class PersistentCache {
         }
     }
     
-    private boolean needSwitch() {
+    boolean needSwitch() {
         long size = writeStore.getFileSize();
         if (size / 1024 / 1024 <= maxSizeMB) {
             return false;

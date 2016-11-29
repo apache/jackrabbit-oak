@@ -29,23 +29,4 @@ interface CacheAction<K, V> {
      */
     void execute();
 
-    /**
-     * Cancel the action without executing it
-     */
-    void cancel();
-
-    /**
-     * Return the keys affected by this action
-     *
-     * @return keys affected by this action
-     */
-    Iterable<K> getAffectedKeys();
-
-    /**
-     * Return the owner of this action
-     *
-     * @return {@link CacheWriteQueue} executing this action
-     */
-    CacheWriteQueue<K, V> getOwner();
-
 }
