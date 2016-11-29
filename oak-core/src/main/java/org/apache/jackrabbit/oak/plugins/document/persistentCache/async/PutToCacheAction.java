@@ -20,6 +20,7 @@ import static java.util.Collections.singleton;
 
 import java.util.Map;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 /**
@@ -34,48 +35,27 @@ class PutToCacheAction<K, V> implements CacheAction<K, V> {
 
     private final Map<K, V> map;
 
-    private final CacheWriteQueue<K, V> owner;
-
     private final K key;
 
     private final V value;
 
-    PutToCacheAction(CacheWriteQueue<K, V> cacheWriteQueue, K key, V value) {
-        this.owner = cacheWriteQueue;
+    PutToCacheAction(K key, V value, CacheWriteQueue<K, V> queue) {
         this.key = key;
         this.value = value;
-        this.cache = cacheWriteQueue.getCache();
-        this.map = cacheWriteQueue.getMap();
+        this.cache = queue.getCache();
+        this.map = queue.getMap();
     }
 
     @Override
     public void execute() {
-        try {
-            if (map != null) {
-                cache.switchGenerationIfNeeded();
-                map.put(key, value);
-            }
-        } finally {
-            decrement();
+        if (map != null) {
+            cache.switchGenerationIfNeeded();
+            map.put(key, value);
         }
     }
 
     @Override
-    public void cancel() {
-        decrement();
-    }
-
-    @Override
-    public CacheWriteQueue<K, V> getOwner() {
-        return owner;
-    }
-
-    @Override
-    public Iterable<K> getAffectedKeys() {
-        return singleton(key);
-    }
-
-    private void decrement() {
-        owner.remove(key);
+    public String toString() {
+        return new StringBuilder("PutToCacheAction[").append(key).append(']').toString();
     }
 }
