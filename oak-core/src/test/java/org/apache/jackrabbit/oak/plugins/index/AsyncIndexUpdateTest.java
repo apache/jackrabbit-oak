@@ -85,6 +85,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -833,6 +834,51 @@ public class AsyncIndexUpdateTest {
                 firstCp,
                 store.getRoot().getChildNode(ASYNC)
                         .getString("asyncMissing"));
+    }
+
+    @Test
+    public void testReindexMissingProvider_NonRoot() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child("subNodeIndex").child(INDEX_DEFINITIONS_NAME),
+                "rootIndex2", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "asyncMissing");
+
+        builder.child("subNodeIndex").child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("asyncMissing", store,  provider);
+        //first run, creates a checkpoint and a ref to it as the last indexed state
+        async.run();
+        assertFalse(async.isFailing());
+
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        String firstCp = store.listCheckpoints().iterator().next();
+        assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString("asyncMissing"));
+
+        builder = store.getRoot().builder();
+        builder.child("subNodeIndex").child("testRoot2").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // second run, simulate an index going away
+        provider = CompositeIndexEditorProvider.compose(new ArrayList<IndexEditorProvider>());
+        async = new AsyncIndexUpdate("asyncMissing", store, provider);
+        async.run();
+        assertTrue(async.isFailing());
+        // don't set reindex=true but skip the update
+        NodeState rootIndex2 = NodeStateUtils.getNode(store.getRoot(), "/subNodeIndex/oak:index/rootIndex2");
+        assertTrue(rootIndex2.exists());
+
+        PropertyState reindex2 = rootIndex2.getProperty(REINDEX_PROPERTY_NAME);
+        assertTrue(reindex2 == null || !reindex2.getValue(Type.BOOLEAN));
+
+        assertTrue("Expecting one checkpoint",store.listCheckpoints().size() == 1);
+        String secondCp = store.listCheckpoints().iterator().next();
+        assertTrue("Store should not create a new checkpoint",  secondCp.equals(firstCp));
+        assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString("asyncMissing"));
     }
 
     private static class FaultyIndexEditorProvder implements
