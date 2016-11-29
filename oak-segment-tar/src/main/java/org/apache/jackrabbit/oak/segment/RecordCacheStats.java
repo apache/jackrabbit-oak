@@ -170,6 +170,7 @@ public class RecordCacheStats extends AnnotatedStandardMBean implements CacheSta
             .add("elementCount", getElementCount())
             .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
             .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
+            .add("currentWeights", humanReadableByteCount(estimateCurrentWeight()))
             .toString();
     }
 
