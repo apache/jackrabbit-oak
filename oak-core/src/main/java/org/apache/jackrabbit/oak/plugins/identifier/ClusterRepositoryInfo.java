@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.identifier;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.UUID;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -55,7 +58,9 @@ public class ClusterRepositoryInfo {
      * @return the persistent clusterId
      */
     @CheckForNull
-    public static String getOrCreateId(NodeStore store) {
+    public static String getOrCreateId(@Nonnull NodeStore store) {
+        checkNotNull(store, "store is null");
+
         // first try to read an existing clusterId
         NodeState root = store.getRoot();
         NodeState node = root.getChildNode(CLUSTER_CONFIG_NODE);
