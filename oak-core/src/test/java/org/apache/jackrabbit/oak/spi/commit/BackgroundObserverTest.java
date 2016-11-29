@@ -206,7 +206,7 @@ public class BackgroundObserverTest {
             final long done = System.currentTimeMillis() + unit.toMillis(timeout);
             synchronized (this) {
                 while (!pausing && done > System.currentTimeMillis()) {
-                    this.wait();
+                    this.wait(100);
                 }
                 return pausing;
             }
@@ -216,7 +216,7 @@ public class BackgroundObserverTest {
             final long done = System.currentTimeMillis() + unit.toMillis(timeout);
             synchronized (this) {
                 while (pausing && done > System.currentTimeMillis()) {
-                    this.wait();
+                    this.wait(100);
                 }
                 return !pausing;
             }
@@ -280,7 +280,6 @@ public class BackgroundObserverTest {
         List<Pair> expected = new LinkedList<Pair>();
         NodeStateGenerator generator = new NodeStateGenerator();
         NodeState first = generator.next();
-        expected.add(new Pair(null, first));
         fo.contentChanged(first, CommitInfo.EMPTY);
         for (int i = 0; i < 100000; i++) {
             filter.excludeNext(true);
@@ -300,7 +299,6 @@ public class BackgroundObserverTest {
         List<Pair> expected = new LinkedList<Pair>();
         NodeStateGenerator generator = new NodeStateGenerator();
         NodeState first = generator.next();
-        expected.add(new Pair(null, first));
         fo.contentChanged(first, CommitInfo.EMPTY);
         NodeState previous = first;
         for (int i = 0; i < 10000; i++) {
@@ -326,8 +324,10 @@ public class BackgroundObserverTest {
         recorder.pause();
 
         // the first one will directly go to the recorder
+        NodeState initialHeldBack = generator.next();
+        fo.contentChanged(initialHeldBack, CommitInfo.EMPTY);
         NodeState firstIncluded = generator.next();
-        expected.add(new Pair(null, firstIncluded));
+        expected.add(new Pair(initialHeldBack, firstIncluded));
         fo.contentChanged(firstIncluded, CommitInfo.EMPTY);
 
         assertTrue("observer did not get called (yet?)", recorder.waitForPausing(5, TimeUnit.SECONDS));
@@ -408,7 +408,6 @@ public class BackgroundObserverTest {
         Random r = new Random(2343242); // seed: repeatable tests
         NodeStateGenerator generator = new NodeStateGenerator();
         NodeState first = generator.next();
-        expected.add(new Pair(null, first));
         fo.contentChanged(first, CommitInfo.EMPTY);
         NodeState previous = first;
         for (int i = 0; i < cnt; i++) {
