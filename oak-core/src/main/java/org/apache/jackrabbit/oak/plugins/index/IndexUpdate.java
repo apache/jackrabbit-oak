@@ -122,7 +122,6 @@ public class IndexUpdate implements Editor {
      */
     private final Map<String, Editor> reindex = new HashMap<String, Editor>();
 
-    private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -235,7 +234,7 @@ public class IndexUpdate implements Editor {
                 Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
                         rootState.newCallback(indexPath, shouldReindex));
                 if (editor == null) {
-                    missingProvider.onMissingIndex(type, definition, indexPath);
+                    rootState.missingProvider.onMissingIndex(type, definition, indexPath);
                 } else if (shouldReindex) {
                     if (definition.getBoolean(REINDEX_ASYNC_PROPERTY_NAME)
                             && definition.getString(ASYNC_PROPERTY_NAME) == null) {
@@ -464,7 +463,7 @@ public class IndexUpdate implements Editor {
 
     public IndexUpdate withMissingProviderStrategy(
             MissingIndexProviderStrategy missingProvider) {
-        this.missingProvider = missingProvider;
+        rootState.setMissingProvider(missingProvider);
         return this;
     }
 
@@ -482,6 +481,7 @@ public class IndexUpdate implements Editor {
         final CorruptIndexHandler corruptIndexHandler;
         private int changedNodeCount;
         private int changedPropertyCount;
+        private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
                                      IndexUpdateCallback updateCallback, CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
@@ -556,6 +556,10 @@ public class IndexUpdate implements Editor {
         public String getIndexingStats() {
             return String.format("changedNodeCount %d, changedPropertyCount %d",
                     changedNodeCount, changedPropertyCount);
+        }
+
+        public void setMissingProvider(MissingIndexProviderStrategy missingProvider) {
+            this.missingProvider = missingProvider;
         }
 
         private class CountingCallback implements ContextAwareCallback, IndexingContext {
