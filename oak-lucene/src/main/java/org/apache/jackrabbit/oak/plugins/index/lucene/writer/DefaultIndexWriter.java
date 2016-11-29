@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
@@ -45,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.newIndexDirectory;
@@ -63,15 +63,24 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private final boolean reindex;
     private IndexWriter writer;
     private Directory directory;
+    private GarbageCollectableBlobStore blobStore;
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-                              @Nullable IndexCopier indexCopier, String dirName, String suggestDirName, boolean reindex){
+        @Nullable IndexCopier indexCopier, String dirName, String suggestDirName,
+        boolean reindex, @Nullable GarbageCollectableBlobStore blobStore) {
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.indexCopier = indexCopier;
         this.dirName = dirName;
         this.suggestDirName = suggestDirName;
         this.reindex = reindex;
+        this.blobStore = blobStore;
+    }
+
+    public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
+                              @Nullable IndexCopier indexCopier, String dirName, String suggestDirName,
+                              boolean reindex) {
+        this(definition, definitionBuilder, indexCopier, dirName, suggestDirName, reindex, null);
     }
 
     @Override
@@ -117,7 +126,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             final long start = PERF_LOGGER.start();
 
             if (updateSuggestions) {
-                updateSuggester(writer.getAnalyzer(), currentTime);
+                updateSuggester(writer.getAnalyzer(), currentTime, blobStore);
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
 
@@ -135,7 +144,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder, dirName);
+            directory = newIndexDirectory(definition, definitionBuilder, dirName, blobStore);
             IndexWriterConfig config;
             if (indexCopier != null){
                 directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
@@ -153,11 +162,14 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * eventually update suggest dictionary
      * @throws IOException if suggest dictionary update fails
      * @param analyzer the analyzer used to update the suggester
+     * @param blobStore
      */
-    private void updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
+    private void updateSuggester(Analyzer analyzer, Calendar currentTime,
+        @Nullable GarbageCollectableBlobStore blobStore) throws IOException {
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
         DirectoryReader reader = DirectoryReader.open(writer, false);
-        final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, suggestDirName, definition, false);
+        final OakDirectory suggestDirectory =
+            new OakDirectory(definitionBuilder, suggestDirName, definition, false, blobStore);
         try {
             SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);

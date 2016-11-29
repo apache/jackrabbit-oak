@@ -19,9 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -35,7 +39,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexReader;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexingIndexWriterTest.newDoc;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -43,6 +49,9 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 import static org.junit.Assert.*;
 
 public class DefaultIndexReaderFactoryTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
@@ -58,7 +67,44 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void indexDir() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+
+        writer.updateDocument("/content/en", newDoc("/content/en"));
+        writer.close(0);
+
+        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        assertEquals(1, readers.size());
+
+        LuceneIndexReader reader = readers.get(0);
+        assertNotNull(reader.getReader());
+        assertNull(reader.getSuggestDirectory());
+        assertNull(reader.getLookup());
+
+        assertEquals(1, reader.getReader().numDocs());
+
+        final AtomicBoolean closed = new AtomicBoolean();
+        reader.getReader().addReaderClosedListener(new IndexReader.ReaderClosedListener() {
+            @Override
+            public void onClose(IndexReader reader) {
+                closed.set(true);
+            }
+        });
+
+        reader.close();
+
+        assertTrue(closed.get());
+    }
+
+    @Test
+    public void indexDirWithBlobStore() throws Exception {
+        /* Register a blob store */
+        CachingFileDataStore ds = DataStoreUtils
+            .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                folder.newFolder().getAbsolutePath());
+
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, new DataStoreBlobStore(ds));
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
@@ -90,7 +136,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void suggesterDir() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         enabledSuggestorForSomeProp();
         defn = new IndexDefinition(root, builder.getNodeState());
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
@@ -110,7 +156,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void multipleReaders() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
@@ -124,7 +170,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void multipleReaders_SingleSuggester() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         enabledSuggestorForSomeProp();
         defn = new IndexDefinition(root, builder.getNodeState());
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);

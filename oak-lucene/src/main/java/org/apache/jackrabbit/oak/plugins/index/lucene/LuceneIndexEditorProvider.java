@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexWriterFac
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneDocumentHolder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -55,8 +56,10 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
-    private final LuceneIndexWriterFactory indexWriterFactory;
+    private LuceneIndexWriterFactory indexWriterFactory;
     private final IndexTracker indexTracker;
+    private final MountInfoProvider mountInfoProvider;
+    private GarbageCollectableBlobStore blobStore;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -95,7 +98,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.augmentorFactory = augmentorFactory;
-        this.indexWriterFactory = new DefaultIndexWriterFactory(checkNotNull(mountInfoProvider), indexCopier);
+        this.mountInfoProvider = checkNotNull(mountInfoProvider);
     }
 
     @Override
@@ -107,6 +110,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
                     "ContextAwareCallback [%s]", callback);
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, indexCopier, blobStore);
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
@@ -178,8 +182,15 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return holder;
     }
 
+    public void setBlobStore(@Nullable GarbageCollectableBlobStore blobStore) {
+        this.blobStore = blobStore;
+    }
+
+    GarbageCollectableBlobStore getBlobStore() {
+        return blobStore;
+    }
+
     private static CommitContext getCommitContext(IndexingContext indexingContext) {
         return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
     }
-
 }

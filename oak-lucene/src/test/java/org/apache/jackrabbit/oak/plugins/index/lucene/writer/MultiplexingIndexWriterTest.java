@@ -19,11 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
@@ -37,7 +41,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.store.Directory;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -50,6 +56,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class MultiplexingIndexWriterTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
@@ -66,14 +75,15 @@ public class MultiplexingIndexWriterTest {
 
     @Test
     public void defaultWriterWithNoMounts() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(), null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(), null,
+            null);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
         assertThat(writer, instanceOf(DefaultIndexWriter.class));
     }
 
     @Test
     public void closeWithoutChange() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
         assertFalse(writer.close(0));
         assertEquals(0, Iterables.size(getIndexDirNodes()));
@@ -81,7 +91,33 @@ public class MultiplexingIndexWriterTest {
 
     @Test
     public void writesInDefaultMount() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+
+        //1. Add entry in foo mount
+        writer.updateDocument("/libs/config", newDoc("/libs/config"));
+        writer.close(0);
+        List<String> names = getIndexDirNodes();
+        //Only dirNode for mount foo should be present
+        assertThat(names, contains(indexDirName(fooMount)));
+
+        //2. Add entry in default mount
+        writer = factory.newInstance(defn, builder, true);
+        writer.updateDocument("/content", newDoc("/content"));
+        writer.close(0);
+
+        names = getIndexDirNodes();
+        //Dir names for both mounts should be present
+        assertThat(names, containsInAnyOrder(indexDirName(fooMount), indexDirName(defaultMount)));
+    }
+
+    @Test
+    public void writesInDefaultMountBlobStore() throws Exception {
+        CachingFileDataStore ds = DataStoreUtils
+            .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                folder.newFolder().getAbsolutePath());
+
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, new DataStoreBlobStore(ds));
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         //1. Add entry in foo mount
@@ -103,7 +139,7 @@ public class MultiplexingIndexWriterTest {
 
     @Test
     public void deletes() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/libs/config", newDoc("/libs/config"));
@@ -135,7 +171,7 @@ public class MultiplexingIndexWriterTest {
         mip = SimpleMountInfoProvider.newBuilder()
                 .mount("foo", "/content/remote").build();
         initializeMounts();
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/remote/a", newDoc("/content/remote/a"));

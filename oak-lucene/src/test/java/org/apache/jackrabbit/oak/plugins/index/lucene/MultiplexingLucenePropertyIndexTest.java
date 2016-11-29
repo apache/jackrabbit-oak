@@ -129,7 +129,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         IndexDefinition defn = new IndexDefinition(initialContent, defnBuilder.getNodeState());
 
         //1. Have 2 reader created by writes in 2 diff mounts
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
