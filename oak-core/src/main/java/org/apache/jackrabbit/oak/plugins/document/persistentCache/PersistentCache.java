@@ -417,6 +417,7 @@ public class PersistentCache implements Broadcaster.Listener {
             break;
         case LOCAL_DIFF:
             wrap = cacheLocalDiff;
+            async = asyncDiffCache;
             break;
         case DOC_CHILDREN:
             wrap = cacheDocChildren;
