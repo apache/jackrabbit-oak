@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.blob;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
@@ -33,6 +34,11 @@ public class MissingBlobStore implements BlobStore {
     @Override
     public String writeBlob(InputStream in) throws IOException {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+        return writeBlob(in);
     }
 
     @Override

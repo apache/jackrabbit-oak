@@ -22,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
@@ -35,6 +36,20 @@ public class BasicReadOnlyBlobStore implements BlobStore {
     @Deprecated
     public String writeBlob(InputStream in) throws IOException {
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    @Override
+    @Deprecated
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+        return writeBlob(in);
     }
 
     @Override

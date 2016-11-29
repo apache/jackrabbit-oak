@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileBlob;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -207,6 +208,11 @@ public class ExternalBlobIT {
         @Override
         public String writeBlob(InputStream in) throws IOException {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+            return writeBlob(in);
         }
 
         @Override

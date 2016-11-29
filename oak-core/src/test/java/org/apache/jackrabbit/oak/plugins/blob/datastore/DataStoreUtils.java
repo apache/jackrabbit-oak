@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Properties;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -92,6 +94,20 @@ public class DataStoreUtils {
         fds.setMinRecordLength(minRecordLength);
         fds.init(null);
         return fds;
+    }
+
+    public static CachingFileDataStore createCachingFDS(String path, String cachePath)
+        throws DataStoreException {
+        Properties props = new Properties();
+        props.setProperty("fsBackendPath", path);
+        CachingFileDataStore ds = new CachingFileDataStore();
+        ds.setMinRecordLength(10);
+        Map<String, ?> config = DataStoreUtils.getConfig();
+        props.putAll(config);
+        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        ds.setProperties(props);
+        ds.init(cachePath);
+        return ds;
     }
 
     @Test

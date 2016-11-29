@@ -26,7 +26,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.StreamStore;
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * A persistent blob cache. Only blobs that are smaller than 10% of the maximum
  * cache size are stored.
  */
-public class BlobCache implements BlobStore, GarbageCollectableBlobStore, GenerationCache {
+public class BlobCache implements GarbageCollectableBlobStore, GenerationCache {
 
     static final Logger LOG = LoggerFactory.getLogger(BlobCache.class);
 
@@ -121,6 +121,19 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     public String writeBlob(InputStream in) throws IOException {
         // TODO maybe copy the binary to the cache in a background thread
         return base.writeBlob(in);
+    }
+
+    /**
+     * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+        return writeBlob(in);
     }
 
     @Override
