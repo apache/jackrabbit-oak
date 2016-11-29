@@ -128,7 +128,7 @@ be nested. Note however, that the principal set defined with a given `CugPolicy`
 is not inherited to the nested policies applied in the subtree.
 
 _Note:_ For performance reasons it is recommended to limited the usage of `CugPolicy`s
-to a couple of subtrees in the repository.
+to a single or a couple of subtrees in the repository.
  
 ##### Management by Principal
 
