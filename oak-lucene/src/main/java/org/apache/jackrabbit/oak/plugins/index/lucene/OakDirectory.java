@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -36,6 +38,9 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -61,12 +66,15 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 
 /**
  * Implementation of the Lucene {@link Directory} (a flat list of files)
  * based on an Oak {@link NodeBuilder}.
  */
 public class OakDirectory extends Directory {
+    private static final Boolean ENABLE_AYNC_DS = Boolean.getBoolean("oak.lucene.ds.async");
+
     static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
     static final String PROP_DIR_LISTING = "dirListing";
     static final String PROP_BLOB_SIZE = "blobSize";
@@ -83,12 +91,19 @@ public class OakDirectory extends Directory {
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
     private final boolean activeDeleteEnabled;
     private final String indexName;
+    @Nullable
+    private final GarbageCollectableBlobStore blobStore;
 
     public OakDirectory(NodeBuilder builder, IndexDefinition definition, boolean readOnly) {
-        this(builder, INDEX_DATA_CHILD_NAME, definition, readOnly);
+        this(builder, INDEX_DATA_CHILD_NAME, definition, readOnly, null);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition, boolean readOnly) {
+        this(builder, dataNodeName, definition, readOnly, null);
+    }
+
+    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+        boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.builder = builder;
         this.directoryBuilder = readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
@@ -97,6 +112,7 @@ public class OakDirectory extends Directory {
         this.fileNames.addAll(getListing());
         this.activeDeleteEnabled = definition.getActiveDeleteEnabled();
         this.indexName = definition.getIndexName();
+        this.blobStore =  blobStore;
     }
 
     @Override
@@ -141,7 +157,7 @@ public class OakDirectory extends Directory {
     @Override
     public long fileLength(String name) throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
-        OakIndexInput input = new OakIndexInput(name, file, indexName);
+        OakIndexInput input = new OakIndexInput(name, file, indexName, blobStore);
         try {
             return input.length();
         } finally {
@@ -165,7 +181,7 @@ public class OakDirectory extends Directory {
             file = directoryBuilder.child(name);
         }
         fileNames.add(name);
-        return new OakIndexOutput(name, file, indexName);
+        return new OakIndexOutput(name, file, indexName, blobStore);
     }
 
 
@@ -174,7 +190,7 @@ public class OakDirectory extends Directory {
             throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
         if (file.exists()) {
-            return new OakIndexInput(name, file, indexName);
+            return new OakIndexInput(name, file, indexName, blobStore);
         } else {
             String msg = String.format("[%s] %s", indexName, name);
             throw new FileNotFoundException(msg);
@@ -309,13 +325,17 @@ public class OakDirectory extends Directory {
 
         private final String dirDetails;
 
-        public OakIndexFile(String name, NodeBuilder file, String dirDetails) {
+        private final GarbageCollectableBlobStore blobStore;
+
+        public OakIndexFile(String name, NodeBuilder file, String dirDetails,
+            @Nullable GarbageCollectableBlobStore blobStore) {
             this.name = name;
             this.file = file;
             this.dirDetails = dirDetails;
             this.blobSize = determineBlobSize(file);
             this.uniqueKey = readUniqueKey(file);
             this.blob = new byte[blobSize];
+            this.blobStore = blobStore;
 
             PropertyState property = file.getProperty(JCR_DATA);
             if (property != null && property.getType() == BINARIES) {
@@ -346,6 +366,7 @@ public class OakDirectory extends Directory {
             this.length = that.length;
             this.data = newArrayList(that.data);
             this.dataModified = that.dataModified;
+            this.blobStore = that.blobStore;
         }
 
         private void loadBlob(int i) throws IOException {
@@ -373,7 +394,8 @@ public class OakDirectory extends Directory {
                     in = new SequenceInputStream(in, 
                             new ByteArrayInputStream(uniqueKey));
                 }
-                Blob b = file.createBlob(in);
+
+                Blob b = writeBlob(in);
                 if (index < data.size()) {
                     data.set(index, b);
                 } else {
@@ -383,6 +405,25 @@ public class OakDirectory extends Directory {
                 dataModified = true;
                 blobModified = false;
             }
+        }
+
+        /**
+         * Writes the blob to the blobstore directly if available.
+         *
+         * @param in input stream
+         * @return
+         * @throws IOException
+         */
+        private Blob writeBlob(InputStream in) throws IOException {
+            if (blobStore != null) {
+                if (!ENABLE_AYNC_DS) {
+                    return new BlobStoreBlob(blobStore,
+                        blobStore.writeBlob(in, new BlobOptions().setUpload(SYNCHRONOUS)));
+                } else {
+                    return new BlobStoreBlob(blobStore, blobStore.writeBlob(in));
+                }
+            }
+            return file.createBlob(in);
         }
 
         public void seek(long pos) throws IOException {
@@ -501,10 +542,11 @@ public class OakDirectory extends Directory {
         private final WeakIdentityMap<OakIndexInput, Boolean> clones;
         private final String dirDetails;
 
-        public OakIndexInput(String name, NodeBuilder file, String dirDetails) {
+        public OakIndexInput(String name, NodeBuilder file, String dirDetails,
+            @Nullable GarbageCollectableBlobStore blobStore) {
             super(name);
             this.dirDetails = dirDetails;
-            this.file = new OakIndexFile(name, file, dirDetails);
+            this.file = new OakIndexFile(name, file, dirDetails, blobStore);
             clones = WeakIdentityMap.newConcurrentHashMap();
         }
 
@@ -584,9 +626,9 @@ public class OakDirectory extends Directory {
         private final String dirDetails;
         private final OakIndexFile file;
 
-        public OakIndexOutput(String name, NodeBuilder file, String dirDetails) throws IOException {
+        public OakIndexOutput(String name, NodeBuilder file, String dirDetails, GarbageCollectableBlobStore blobStore) throws IOException {
             this.dirDetails = dirDetails;
-            this.file = new OakIndexFile(name, file, dirDetails);
+            this.file = new OakIndexFile(name, file, dirDetails, blobStore);
         }
 
         @Override

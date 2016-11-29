@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
@@ -234,6 +235,12 @@ public class LuceneIndexProviderService {
     @Reference
     private MountInfoProvider mountInfoProvider;
 
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+        policyOption = ReferencePolicyOption.GREEDY,
+        policy = ReferencePolicy.DYNAMIC
+    )
+    private GarbageCollectableBlobStore blobStore;
+
     private IndexCopier indexCopier;
 
     private File indexDir;
@@ -249,6 +256,8 @@ public class LuceneIndexProviderService {
     private NRTIndexFactory nrtIndexFactory;
 
     private DocumentQueue documentQueue;
+
+    private LuceneIndexEditorProvider editorProvider;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
@@ -356,7 +365,6 @@ public class LuceneIndexProviderService {
 
     private void registerIndexEditor(BundleContext bundleContext, IndexTracker tracker, Map<String, ?> config) throws IOException {
         boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_WRITE), PROP_COPY_ON_WRITE_DEFAULT);
-        LuceneIndexEditorProvider editorProvider;
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
@@ -366,6 +374,8 @@ public class LuceneIndexProviderService {
             editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
                     mountInfoProvider);
         }
+        editorProvider.setBlobStore(blobStore);
+
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, null));
         oakRegs.add(registerMBean(whiteboard,
                 TextExtractionStatsMBean.class,
@@ -576,6 +586,17 @@ public class LuceneIndexProviderService {
         oakRegs.add(whiteboard.register(GCMonitor.class, gcMonitor, emptyMap()));
     }
 
+    private void registerBlobStore(GarbageCollectableBlobStore blobStore) {
+        if (editorProvider != null){
+            if (blobStore != null){
+                log.info("Registering blobStore {} with editorProvider. ", blobStore);
+            } else {
+                log.info("Unregistering blobStore");
+            }
+            editorProvider.setBlobStore(blobStore);
+        }
+    }
+
     protected void bindNodeAggregator(NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
         initialize();
@@ -594,5 +615,15 @@ public class LuceneIndexProviderService {
     protected void unbindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
         this.extractedTextProvider = null;
         registerExtractedTextProvider(null);
+    }
+
+    protected void bindBlobStore(GarbageCollectableBlobStore blobStore) {
+        this.blobStore = blobStore;
+        registerBlobStore(blobStore);
+    }
+
+    protected void unbindBlobStore(GarbageCollectableBlobStore blobStore) {
+        this.blobStore = null;
+        registerBlobStore(blobStore);
     }
 }

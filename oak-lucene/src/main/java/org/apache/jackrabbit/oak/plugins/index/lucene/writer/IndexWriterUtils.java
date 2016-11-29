@@ -24,11 +24,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
@@ -38,8 +41,6 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
@@ -72,7 +73,8 @@ public class IndexWriterUtils {
         }
     }
 
-    public static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition, String dirName)
+    public static Directory newIndexDirectory(IndexDefinition indexDefinition,
+            NodeBuilder definition, String dirName, @Nullable GarbageCollectableBlobStore blobStore)
             throws IOException {
         String path = null;
         if (LuceneIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
@@ -80,7 +82,7 @@ public class IndexWriterUtils {
             path = definition.getString(PERSISTENCE_PATH);
         }
         if (path == null) {
-            return new OakDirectory(definition, dirName, indexDefinition, false);
+            return new OakDirectory(definition, dirName, indexDefinition, false, blobStore);
         } else {
             // try {
             File file = new File(path);

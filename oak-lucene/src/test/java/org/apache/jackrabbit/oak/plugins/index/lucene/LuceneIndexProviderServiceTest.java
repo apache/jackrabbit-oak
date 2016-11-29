@@ -35,6 +35,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -213,6 +216,23 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
 
         assertEquals(4000, BooleanQuery.getMaxClauseCount());
+    }
+
+    @Test
+    public void blobStoreRegistered() throws Exception{
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+        LuceneIndexEditorProvider editorProvider =
+            (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+        assertNull(editorProvider.getBlobStore());
+
+        /* Register a blob store */
+        CachingFileDataStore ds = DataStoreUtils
+            .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                folder.newFolder().getAbsolutePath());
+
+        service.bindBlobStore(new DataStoreBlobStore(ds));
+
+        assertNotNull(editorProvider.getBlobStore());
     }
 
     private Map<String,Object> getDefaultConfig(){
