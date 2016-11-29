@@ -17,6 +17,29 @@
 
 package org.apache.jackrabbit.oak.remote.http.handler;
 
+import static com.mashape.unirest.http.Unirest.get;
+import static com.mashape.unirest.http.Unirest.head;
+import static com.mashape.unirest.http.Unirest.patch;
+import static com.mashape.unirest.http.Unirest.post;
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.net.ServerSocket;
+import java.util.Calendar;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.jcr.SimpleCredentials;
+
 import com.google.common.base.Charsets;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
@@ -33,42 +56,17 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.remote.RemoteRepository;
 import org.apache.jackrabbit.oak.remote.content.ContentRemoteRepository;
 import org.apache.jackrabbit.util.ISO8601;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.jcr.SimpleCredentials;
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.net.ServerSocket;
-import java.util.Calendar;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static com.mashape.unirest.http.Unirest.get;
-import static com.mashape.unirest.http.Unirest.head;
-import static com.mashape.unirest.http.Unirest.patch;
-import static com.mashape.unirest.http.Unirest.post;
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
+@Ignore("OAK-5171")
 public class RemoteServerIT extends OakBaseTest {
 
     private ContentRepository contentRepository;
 
     private ContentSession contentSession;
-
-    private RemoteRepository remoteRepository;
 
     private RemoteServer remoteServer;
 
@@ -134,7 +132,7 @@ public class RemoteServerIT extends OakBaseTest {
         port = getRandomPort();
         contentRepository = getContentRepository();
         contentSession = getContentSession(contentRepository);
-        remoteRepository = getRemoteRepository(contentRepository);
+        RemoteRepository remoteRepository = getRemoteRepository(contentRepository);
         remoteServer = getRemoteServer(remoteRepository, "localhost", port);
         remoteServer.start();
     }
@@ -152,9 +150,7 @@ public class RemoteServerIT extends OakBaseTest {
     public void testReadLastRevision() throws Exception {
         HttpResponse<JsonNode> response = get(resource("/revisions/last")).basicAuth("admin", "admin").asJson();
         assertEquals(200, response.getStatus());
-
-        JSONObject payload = response.getBody().getObject();
-        assertNotNull(payload.getString("revision"));
+        assertNotNull(getRevision(response));
     }
 
     @Test
@@ -215,8 +211,8 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertFalse(body.getBoolean("hasMoreChildren"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertFalse(getHasMoreChildren(response));
     }
 
     @Test
@@ -231,8 +227,8 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
     }
 
     @Test
@@ -245,12 +241,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("string", property.getString("type"));
-        assertEquals("a", property.getString("value"));
+        assertEquals("string", getPropertyType(response, "property"));
+        assertEquals("a", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -263,13 +258,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("strings", property.getString("type"));
-        assertEquals("a", property.getJSONArray("value").getString(0));
-        assertEquals("b", property.getJSONArray("value").getString(1));
+        assertEquals("strings", getPropertyType(response, "property"));
+        assertEquals("a", getStringPropertyValue(response, "property", 0));
+        assertEquals("b", getStringPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -282,13 +276,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("binaryIds", property.getString("type"));
-        assertFalse(property.getJSONArray("value").getString(0).isEmpty());
-        assertFalse(property.getJSONArray("value").getString(1).isEmpty());
+        assertEquals("binaryIds", getPropertyType(response, "property"));
+        assertFalse(getStringPropertyValue(response, "property", 0).isEmpty());
+        assertFalse(getStringPropertyValue(response, "property", 1).isEmpty());
     }
 
     @Test
@@ -301,12 +294,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("binaryId", property.getString("type"));
-        assertFalse(property.getString("value").isEmpty());
+        assertEquals("binaryId", getPropertyType(response, "property"));
+        assertFalse(getStringPropertyValue(response, "property").isEmpty());
     }
 
     @Test
@@ -319,12 +311,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("long", property.getString("type"));
-        assertEquals(42L, property.getLong("value"));
+        assertEquals("long", getPropertyType(response, "property"));
+        assertEquals(42L, getLongPropertyValue(response, "property"));
     }
 
     @Test
@@ -337,13 +328,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("longs", property.getString("type"));
-        assertEquals(4L, property.getJSONArray("value").getLong(0));
-        assertEquals(2L, property.getJSONArray("value").getLong(1));
+        assertEquals("longs", getPropertyType(response, "property"));
+        assertEquals(4L, getLongPropertyValue(response, "property", 0));
+        assertEquals(2L, getLongPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -356,12 +346,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("double", property.getString("type"));
-        assertEquals(4.2, property.getDouble("value"), 1e-10);
+        assertEquals("double", getPropertyType(response, "property"));
+        assertEquals(4.2, getDoublePropertyValue(response, "property"), 1e-10);
     }
 
     @Test
@@ -374,13 +363,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("doubles", property.getString("type"));
-        assertEquals(4.2, property.getJSONArray("value").getDouble(0), 1e-10);
-        assertEquals(2.4, property.getJSONArray("value").getDouble(1), 1e-10);
+        assertEquals("doubles", getPropertyType(response, "property"));
+        assertEquals(4.2, getDoublePropertyValue(response, "property", 0), 1e-10);
+        assertEquals(2.4, getDoublePropertyValue(response, "property", 1), 1e-10);
     }
 
     @Test
@@ -395,12 +383,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("date", property.getString("type"));
-        assertEquals(calendar.getTimeInMillis(), property.getLong("value"));
+        assertEquals("date", getPropertyType(response, "property"));
+        assertEquals(calendar.getTimeInMillis(), getLongPropertyValue(response, "property"));
     }
 
     @Test
@@ -415,13 +402,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("dates", property.getString("type"));
-        assertEquals(calendar.getTimeInMillis(), property.getJSONArray("value").getLong(0));
-        assertEquals(calendar.getTimeInMillis(), property.getJSONArray("value").getLong(1));
+        assertEquals("dates", getPropertyType(response, "property"));
+        assertEquals(calendar.getTimeInMillis(), getLongPropertyValue(response, "property", 0));
+        assertEquals(calendar.getTimeInMillis(), getLongPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -434,12 +420,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("boolean", property.getString("type"));
-        assertEquals(true, property.getBoolean("value"));
+        assertEquals("boolean", getPropertyType(response, "property"));
+        assertEquals(true, getBooleanPropertyValue(response, "property"));
     }
 
     @Test
@@ -452,13 +437,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("booleans", property.getString("type"));
-        assertEquals(true, property.getJSONArray("value").getBoolean(0));
-        assertEquals(false, property.getJSONArray("value").getBoolean(1));
+        assertEquals("booleans", getPropertyType(response, "property"));
+        assertEquals(true, getBooleanPropertyValue(response, "property", 0));
+        assertEquals(false, getBooleanPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -471,12 +455,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("name", property.getString("type"));
-        assertEquals("value", property.getString("value"));
+        assertEquals("name", getPropertyType(response, "property"));
+        assertEquals("value", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -489,13 +472,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("names", property.getString("type"));
-        assertEquals("first", property.getJSONArray("value").getString(0));
-        assertEquals("second", property.getJSONArray("value").getString(1));
+        assertEquals("names", getPropertyType(response, "property"));
+        assertEquals("first", getStringPropertyValue(response, "property", 0));
+        assertEquals("second", getStringPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -508,12 +490,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("path", property.getString("type"));
-        assertEquals("/value", property.getString("value"));
+        assertEquals("path", getPropertyType(response, "property"));
+        assertEquals("/value", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -526,13 +507,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("paths", property.getString("type"));
-        assertEquals("/first", property.getJSONArray("value").getString(0));
-        assertEquals("/second", property.getJSONArray("value").getString(1));
+        assertEquals("paths", getPropertyType(response, "property"));
+        assertEquals("/first", getStringPropertyValue(response, "property", 0));
+        assertEquals("/second", getStringPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -545,12 +525,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("reference", property.getString("type"));
-        assertEquals("value", property.getString("value"));
+        assertEquals("reference", getPropertyType(response, "property"));
+        assertEquals("value", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -563,13 +542,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("references", property.getString("type"));
-        assertEquals("first", property.getJSONArray("value").getString(0));
-        assertEquals("second", property.getJSONArray("value").getString(1));
+        assertEquals("references", getPropertyType(response, "property"));
+        assertEquals("first", getStringPropertyValue(response, "property", 0));
+        assertEquals("second", getStringPropertyValue(response, "property", 0));
     }
 
     @Test
@@ -582,12 +560,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("weakReference", property.getString("type"));
-        assertEquals("value", property.getString("value"));
+        assertEquals("weakReference", getPropertyType(response, "property"));
+        assertEquals("value", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -600,13 +577,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("weakReferences", property.getString("type"));
-        assertEquals("first", property.getJSONArray("value").getString(0));
-        assertEquals("second", property.getJSONArray("value").getString(1));
+        assertEquals("weakReferences", getPropertyType(response, "property"));
+        assertEquals("first", getStringPropertyValue(response, "property", 0));
+        assertEquals("second", getStringPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -619,12 +595,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("uri", property.getString("type"));
-        assertEquals("http://acme.org", property.getString("value"));
+        assertEquals("uri", getPropertyType(response, "property"));
+        assertEquals("http://acme.org", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -637,13 +612,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("uris", property.getString("type"));
-        assertEquals("http://acme.org", property.getJSONArray("value").getString(0));
-        assertEquals("http://acme.com", property.getJSONArray("value").getString(1));
+        assertEquals("uris", getPropertyType(response, "property"));
+        assertEquals("http://acme.org", getStringPropertyValue(response, "property", 0));
+        assertEquals("http://acme.com", getStringPropertyValue(response, "property", 1));
     }
 
     @Test
@@ -656,12 +630,11 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("decimal", property.getString("type"));
-        assertEquals("0", property.getString("value"));
+        assertEquals("decimal", getPropertyType(response, "property"));
+        assertEquals("0", getStringPropertyValue(response, "property"));
     }
 
     @Test
@@ -674,13 +647,12 @@ public class RemoteServerIT extends OakBaseTest {
 
         root.commit();
 
-        JSONObject body = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson().getBody().getObject();
-        assertTrue(body.getJSONObject("children").isNull("child"));
+        HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
+        assertTrue(hasNullChild(response, "child"));
 
-        JSONObject property = body.getJSONObject("properties").getJSONObject("property");
-        assertEquals("decimals", property.getString("type"));
-        assertEquals("0", property.getJSONArray("value").getString(0));
-        assertEquals("1", property.getJSONArray("value").getString(1));
+        assertEquals("decimals", getPropertyType(response, "property"));
+        assertEquals("0", getStringPropertyValue(response, "property", 0));
+        assertEquals("1", getStringPropertyValue(response, "property", 0));
     }
 
     @Test
@@ -701,9 +673,8 @@ public class RemoteServerIT extends OakBaseTest {
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").queryString("depth", 1).asJson();
         assertEquals(200, response.getStatus());
 
-        JSONObject body = response.getBody().getObject();
-        assertFalse(body.getJSONObject("children").isNull("child"));
-        assertTrue(body.getJSONObject("children").getJSONObject("child").getJSONObject("children").isNull("grandChild"));
+        assertFalse(hasNullChild(response, "child"));
+        assertTrue(hasNullGrandChild(response, "child", "grandChild"));
     }
 
     @Test
@@ -721,10 +692,9 @@ public class RemoteServerIT extends OakBaseTest {
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").queryString("properties", "ba*").queryString("properties", "-baz").asJson();
         assertEquals(200, response.getStatus());
 
-        JSONObject body = response.getBody().getObject();
-        assertFalse(body.getJSONObject("properties").has("foo"));
-        assertTrue(body.getJSONObject("properties").has("bar"));
-        assertFalse(body.getJSONObject("properties").has("baz"));
+        assertFalse(hasProperty(response, "foo"));
+        assertTrue(hasProperty(response, "bar"));
+        assertFalse(hasProperty(response, "baz"));
     }
 
     @Test
@@ -748,10 +718,9 @@ public class RemoteServerIT extends OakBaseTest {
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").queryString("children", "ba*").queryString("children", "-baz").asJson();
         assertEquals(200, response.getStatus());
 
-        JSONObject body = response.getBody().getObject();
-        assertFalse(body.getJSONObject("children").has("foo"));
-        assertTrue(body.getJSONObject("children").has("bar"));
-        assertFalse(body.getJSONObject("children").has("baz"));
+        assertFalse(hasChild(response, "foo"));
+        assertTrue(hasChild(response, "bar"));
+        assertFalse(hasChild(response, "baz"));
     }
 
     @Test
@@ -786,7 +755,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}")).basicAuth("admin", "admin").routeParam("binaryId", binaryId).asString();
         assertEquals(200, binaryResponse.getStatus());
@@ -817,7 +786,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         // Offset = 0
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}"))
@@ -867,7 +836,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         // Last 10 bytes (full body)
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}"))
@@ -917,7 +886,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         // Range 0-9 (full body)
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}"))
@@ -979,7 +948,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}"))
                 .basicAuth("admin", "admin")
@@ -1009,7 +978,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         // Unknown range unit = elephant
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}"))
@@ -1077,7 +1046,7 @@ public class RemoteServerIT extends OakBaseTest {
         root.commit();
 
         HttpResponse<JsonNode> response = get(resource("/revisions/last/tree/node")).basicAuth("admin", "admin").asJson();
-        String binaryId = response.getBody().getObject().getJSONObject("properties").getJSONObject("binary").getString("value");
+        String binaryId = getStringPropertyValue(response, "binary");
 
         // Offset = 0
         HttpResponse<String> binaryResponse = head(resource("/binaries/{binaryId}"))
@@ -1105,7 +1074,7 @@ public class RemoteServerIT extends OakBaseTest {
         HttpResponse<JsonNode> response = post(resource("/binaries")).basicAuth("admin", "admin").body("body").asJson();
         assertEquals(201, response.getStatus());
 
-        String binaryId = response.getBody().getObject().getString("binaryId");
+        String binaryId = getBinaryId(response);
         assertFalse(binaryId.isEmpty());
 
         HttpResponse<String> binaryResponse = get(resource("/binaries/{binaryId}")).basicAuth("admin", "admin").routeParam("binaryId", binaryId).asString();
@@ -1289,27 +1258,14 @@ public class RemoteServerIT extends OakBaseTest {
 
         assertEquals(200, response.getStatus());
 
-        JSONObject results = response.getBody().getObject();
-        assertNotNull(results.getLong("total"));
+        assertTrue(getTotal(response) > 0);
 
-        List<String> columns = getStringArray(results, "columns");
+        List<String> columns = getStringArray(response, "columns");
         assertTrue(columns.contains("name"));
         assertTrue(columns.contains("jcr:path"));
 
-        List<String> selectors = getStringArray(results, "selectors");
+        List<String> selectors = getStringArray(response, "selectors");
         assertTrue(selectors.contains("node"));
-    }
-
-    private List<String> getStringArray(JSONObject parent, String name) {
-        List<String> result = newArrayList();
-
-        JSONArray array = parent.getJSONArray(name);
-
-        for (int i = 0; i < array.length(); i++) {
-            result.add(array.getString(i));
-        }
-
-        return result;
     }
 
     @Test
@@ -1371,5 +1327,96 @@ public class RemoteServerIT extends OakBaseTest {
 
         assertEquals(400, response.getStatus());
     }
+
+    private String getRevision(HttpResponse<JsonNode> response) {
+        // return response.revision
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean getHasMoreChildren(HttpResponse<JsonNode> response) {
+        // return response.hasMoreChildren
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean hasChild(HttpResponse<JsonNode> response, String name) {
+        // return name in response.children
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean hasNullChild(HttpResponse<JsonNode> response, String name) {
+        // return response.children[name] === null
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean hasNullGrandChild(HttpResponse<JsonNode> response, String child, String grandChild) {
+        // return response.children[child].children[grandChild] == null
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean hasProperty(HttpResponse<JsonNode> response, String name) {
+        // return name in response.properties
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private String getPropertyType(HttpResponse<JsonNode> response, String name) {
+        // return response.properties[name].type
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private String getStringPropertyValue(HttpResponse<JsonNode> response, String name) {
+        // return response.properties[name].value
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private String getStringPropertyValue(HttpResponse<JsonNode> response, String name, int index) {
+        // return response.properties[name].value[index]
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private long getLongPropertyValue(HttpResponse<JsonNode> response, String name) {
+        // return response.properties[name].type
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private long getLongPropertyValue(HttpResponse<JsonNode> response, String name, int index) {
+        // return response.properties[name].value[index]
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private double getDoublePropertyValue(HttpResponse<JsonNode> response, String name) {
+        // return response.properties[name].type
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private double getDoublePropertyValue(HttpResponse<JsonNode> response, String name, int index) {
+        // return response.properties[name].value[index]
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean getBooleanPropertyValue(HttpResponse<JsonNode> response, String name) {
+        // return response.properties[name].type
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private boolean getBooleanPropertyValue(HttpResponse<JsonNode> response, String name, int index) {
+        // return response.properties[name].value[index]
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private String getBinaryId(HttpResponse<JsonNode> response) {
+        // return response.binaryId
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private long getTotal(HttpResponse<JsonNode> response) {
+        // return response.total
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    private List<String> getStringArray(HttpResponse<JsonNode> response, String name) {
+        // return response[name]
+        throw new UnsupportedOperationException("not implemented");
+    }
+
 
 }
