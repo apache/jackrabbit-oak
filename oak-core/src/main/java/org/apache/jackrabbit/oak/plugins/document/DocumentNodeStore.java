@@ -1471,7 +1471,7 @@ public final class DocumentNodeStore
 
     @Nonnull
     RevisionVector merge(@Nonnull RevisionVector branchHead,
-                         @Nullable CommitInfo info)
+                         @Nonnull CommitInfo info)
             throws CommitFailedException {
         Branch b = getBranches().getBranch(branchHead);
         RevisionVector base = branchHead;

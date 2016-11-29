@@ -259,12 +259,12 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      *
      * @param toPersist the state with the changes on top of {@code base}.
      * @param base the base state.
-     * @param info the commit info or {@code null} if there is none.
+     * @param info the commit info.
      * @return the state with the persisted changes.
      */
-    private DocumentNodeState persist(final NodeState toPersist,
-            final DocumentNodeState base,
-            final CommitInfo info) {
+    private DocumentNodeState persist(final @Nonnull NodeState toPersist,
+                                      final @Nonnull DocumentNodeState base,
+                                      final @Nonnull CommitInfo info) {
         return persist(new Changes() {
             @Override
             public void with(Commit c) {
@@ -282,9 +282,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @param info the commit info.
      * @return the result state.
      */
-    private DocumentNodeState persist(Changes op,
-            DocumentNodeState base,
-            CommitInfo info) {
+    private DocumentNodeState persist(@Nonnull Changes op,
+                                      @Nonnull DocumentNodeState base,
+                                      @Nonnull CommitInfo info) {
         boolean success = false;
         Commit c = store.newCommit(base.getRootRevision(), this);
         RevisionVector rev;
@@ -627,7 +627,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         private void persistTransientHead(NodeState newHead) {
-            head = DocumentNodeStoreBranch.this.persist(newHead, head, null);
+            head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY);
         }
 
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {
