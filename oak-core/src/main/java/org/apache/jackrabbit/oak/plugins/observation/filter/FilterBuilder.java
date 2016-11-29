@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -34,6 +35,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
@@ -62,6 +64,7 @@ public final class FilterBuilder {
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
     private final List<String> subTrees = newArrayList();
+    private final Set<String> pathsForMBean = newHashSet();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
         
@@ -106,6 +109,16 @@ public final class FilterBuilder {
             }
         }
         subTrees.add(checkNotNull(absPath));
+        return this;
+    }
+    
+    /**
+     * Adds paths to the FilterConfigMBean's getPaths set
+     * @param paths
+     * @return
+     */
+    public FilterBuilder addPathsForMBean(@Nonnull Set<String> paths) {
+        pathsForMBean.addAll(paths);
         return this;
     }
 
@@ -452,8 +465,8 @@ public final class FilterBuilder {
     private FilterConfigMBean getConfigMBean(){
         return new FilterConfigMBean() {
             @Override
-            public String[] getSubTrees() {
-                return Iterables.toArray(subTrees, String.class);
+            public String[] getPaths() {
+                return Iterables.toArray(pathsForMBean, String.class);
             }
 
             @Override

@@ -253,6 +253,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         FilterBuilder filterBuilder = new FilterBuilder();
         String depthPattern = isDeep ? STAR + '/' + STAR_STAR : STAR;
         List<Condition> includeConditions = newArrayList();
+        filterBuilder.addPathsForMBean(includePaths);
         for (String path : includePaths) {
             final String deepenedPath;
             if (path.endsWith(STAR)) {
