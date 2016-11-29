@@ -208,6 +208,20 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
         }
     }
 
+    /**
+     * Default implementation ignores options and delegates to the {@link #writeBlob(InputStream)}
+     * method.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+       return writeBlob(in);
+    }
+
     @Override
     public InputStream getInputStream(String blobId) throws IOException {
         //Marking would handled by next call to store.readBlob

@@ -37,6 +37,17 @@ public interface BlobStore {
     String writeBlob(InputStream in) throws IOException;
 
     /**
+     * Write a blob from an input stream with specified options.
+     * This method closes the input stream.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    String writeBlob(InputStream in, BlobOptions options) throws IOException;
+
+    /**
      * Read a number of bytes from a blob.
      * 
      * @param blobId the blob id

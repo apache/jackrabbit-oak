@@ -33,6 +33,7 @@ import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
@@ -53,6 +54,11 @@ public class BlobIdRecordTest {
             String out = generateId();
             ids.put(out, in);
             return out;
+        }
+
+        @Override
+        public String writeBlob(InputStream inputStream, BlobOptions options) throws IOException {
+            return writeBlob(inputStream);
         }
 
         @Override

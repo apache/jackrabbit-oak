@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.spi.blob.split;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +56,19 @@ public class DefaultSplitBlobStore implements SplitBlobStore {
         String blobId = newBlobStore.writeBlob(in);
         migratedBlobs.add(blobId);
         return blobId;
+    }
+
+    /**
+     * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+        return writeBlob(in);
     }
 
     @Override
