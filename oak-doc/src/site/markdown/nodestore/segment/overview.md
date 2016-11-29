@@ -22,6 +22,21 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
 * [Garbage Collection](#garbage-collection)
     * [Generational Garbage Collection](#generational-garbage-collection)
     * [Estimation, Compaction and Cleanup](#estimation-compaction-cleanup)
+    * [Online Garbage Collection](#online-garbage-collection)
+        * [When did garbage collection start?](#when-did-garbage-collection-start)
+        * [When did estimation start?](#when-did-estimation-start)
+        * [Is estimation disabled?](#is-estimation-disabled)
+        * [Was estimation cancelled?](#was-estimation-cancelled)
+        * [When did estimation complete?](#when-did-estimation-complete)
+        * [When did compaction start?](#when-did-compaction-start)
+        * [Is compaction disabled?](#is-compaction-disabled)
+        * [Was compaction cancelled?](#was-compaction-cancelled)
+        * [When did compaction complete?](#when-did-compaction-complete)
+        * [How does compaction work with concurrent writes?](#how-does-compaction-works-with-concurrent-writes)
+        * [When did clean-up start?](#when-did-cleanup-start)
+        * [Was cleanup cancelled?](#was-cleanup-cancelled)
+        * [When did cleanup complete?](#when-did-cleanup-complete)
+        * [What happened during cleanup?](#what-happened-during-cleanup)
 * [Design](#design)
 
 ## <a name="garbage-collection"/> Garbage Collection
@@ -69,6 +84,292 @@ Cleanup is the last phase of garbage collection and kicks in as soon as compacti
 Once relevant data is safe in the new generation, old and unused data from a previous generation can be removed.
 This phase locates outdated pieces of data from one of the oldest generations and removes it from the system.
 This is the only phase where data is actually deleted and disk space is finally freed.
+
+### <a name="online-garbage-collection"/> Online Garbage Collection
+
+Online garbage collection is the procedure followed by Oak Segment Tar to execute garbage collection on a running system.
+The online garbage collection procedure aims at removing garbage with minimal interruption on the system.
+Online garbage collection runs as a background process at regular intervals of time, potentially removing unused data at each iteration.
+The main benefit of online garbage collection is that it runs concurrently with other system activities: it does not require the user to shut down the system for it to work.
+
+#### Monitoring the log
+
+Online garbage collection prints lots of useful information to the system log.
+This section groups those log messages by function, so to provide a useful reference to understand the different activities performed by online garbage collection.
+
+Please note that the following messages are to be used as an example only.
+To make the examples clear, some information like the date and time, the name of the thread, and the name of the logger are removed.
+These information depend on the configuration of your logging framework.
+Moreover, some of those messages contain data that can and will change from one execution to the other.
+
+Every log message generated during the garbage collection process always print the number of the new generation that is being created as part of garbage collection.
+The generation is always printed at the beginning of the message like in the following example.
+
+```
+TarMK GC #2: ...
+```
+
+##### <a name="when-did-garbage-collection-start"/> When did garbage collection start?
+
+As soon as garbage collection is triggered, the following message is printed.
+
+```
+TarMK GC #2: started
+```
+
+##### <a name="when-did-estimation-start"/> When did estimation start?
+
+As soon as the estimation phase of garbage collection starts, the following message is printed.
+
+```
+TarMK GC #2: estimation started
+```
+
+##### <a name="is-estimation-disabled"/> Is estimation disabled?
+
+The estimation phase can be disabled by configuration. If this is the case, the system prints the following message.
+
+```
+TarMK GC #2: estimation skipped because it was explicitly disabled
+```
+
+Estimation can also be disabled because garbage collection is disabled as a whole. In this case, the following message is printed instead.
+
+```
+TarMK GC #2: estimation skipped because compaction is paused
+```
+
+##### <a name="was-estimation-cancelled"/> Was estimation cancelled?
+
+The execution of the estimation phase can be cancelled manually by the user or automatically if certain events occur.
+If estimation is cancelled, the following message is printed.
+
+```
+TarMK GC #2: estimation interrupted: ${REASON}. Skipping compaction.
+```
+
+The placeholder `${REASON}` is not actually printed in the message, but will be substituted by a more specific description of the reason that brought estimation to a premature halt.
+As stated before, some external events can terminate estimation, e.g. not enough memory or disk space on the host system.
+Moreover, estimation can also be cancelled by shutting down the system or by explicitly cancelling it via administrative interfaces.
+In each of these cases, the reason why estimation is cancelled will be printed in the log.
+
+##### <a name="when-did-estimation-complete"/> When did estimation complete?
+
+When estimation terminates, either because of external cancellation or after a successful execution, the following messge is printed.
+
+```
+TarMK GC #2: estimation completed in 961.8 μs (0 ms). ${RESULT}
+```
+
+Moreover, the duration of the estimation phase is printed both in a readable format and in milliseconds.
+The placeholder `${RESULT}` stands for a message that depends on the estimation strategy.
+
+##### <a name="when-did-compaction-start"/> When did compaction start?
+
+When the compaction phase of the garbage collection process starts, the following message is printed.
+
+```
+TarMK GC #2: compaction started, gc options=SegmentGCOptions{paused=false, estimationDisabled=false, gcSizeDeltaEstimation=1, retryCount=5, forceTimeout=3600, retainedGenerations=2, gcSizeDeltaEstimation=1}
+```
+
+The message includes a dump of the garbage collection options that are used during the compaction phase.
+
+##### <a name="is-compaction-disabled"/> Is compaction disabled?
+
+The compaction phase can be skipped by pausing the garbage collection process. If compaction is paused, the following message is printed.
+
+```
+TarMK GC #2: compaction paused
+```
+
+As long as compaction is paused, neither the estimation phase nor the compaction phase will be executed.
+
+##### <a name="was-compaction-cancelled"/> Was compaction cancelled?
+
+The compaction phase can be cancelled manually by the user or automatically because of external events. If compaction is cancelled, the following message is printed.
+
+```
+TarMK GC #2: compaction cancelled: ${REASON}.
+```
+
+The placeholder `${REASON}` is not actually printed in the message, but will be substituted by a more specific description of the reason that brought compaction to a premature halt.
+As stated before, some external events can terminate compaction, e.g. not enough memory or disk space on the host system.
+Moreover, compaction can also be cancelled by shutting down the system or by explicitly cancelling it via administrative interfaces.
+In each of these cases, the reason why compaction is cancelled will be printed in the log.
+
+##### <a name="when-did-compaction-complete"/> When did compaction complete?
+
+When compaction complete successfully, the following message is printed.
+
+```
+TarMK GC #2: compaction succeeded in 6.580 min (394828 ms), after 2 cycles
+```
+
+The time showed my the log message is relative to the compaction phase only.
+The reference to the amount of cycles spent for the compaction phase is explained in more detail below.
+If compaction did not complete successfully, the following message is printed instead.
+
+```
+TarMK GC #2: compaction failed in 32.902 min (1974140 ms), after 5 cycles
+```
+
+This message doesn't mean that there was an unrecoverable error, but only that compaction gave up after a certain amount of attempts.
+In case an error occurs, the following message is printed instead.
+
+```
+TarMK GC #2: compaction encountered an error
+```
+
+This message is followed by the stack trace of the exception that was caught during the compaction phase.
+There is also a special message that is printed if the thread running the compaction phase is interrupted.
+
+```
+TarMK GC #2: compaction interrupted
+```
+
+##### <a name="how-does-compaction-works-with-concurrent-writes"/> How does compaction work with concurrent writes?
+
+When compaction runs as part of online garbage collection, it has to work concurrently with the rest of the system.
+This means that, while compaction tries to copy useful data to the new generation, concurrent commits to the repository are writing data to the old generation.
+To cope with this, compaction tries to catch up with concurrent writes by incorporating their changes into the new generation.
+
+When compaction first tries to setup the new generation, the following message is printed.
+
+```
+TarMK GC #2: compaction cycle 0 completed in 6.580 min (394828 ms). Compacted 3e3b35d3-2a15-43bc-a422-7bd4741d97a5.0000002a to 348b9500-0d67-46c5-a683-3ea8b0e6c21c.000012c0
+```
+
+The message shows how long did it take to compact the data to the new generation.
+It also prints the record identifiers of the two head states.
+The head state on the left belongs to the previous generation, the one on the right to the new.
+
+If concurrent commits are detected, compaction tries to incorporate those changes in the new generation.
+In this case, the following message is printed.
+
+```
+TarMK GC #2: compaction detected concurrent commits while compacting. Compacting these commits. Cycle 1 of 5
+```
+
+This message means that a new compaction cycle is automatically started.
+Compaction will try to incorporate new changes for a certain amount of cycles, where the exact amount of cycles is a configuration option.
+After every compaction cycle, the following message is printed.
+
+```
+TarMK GC #2: compaction cycle 1 completed in 6.580 min (394828 ms). Compacted 4d22b170-f8b7-406b-a2fc-45bf782440ac.00000065 against 3e3b35d3-2a15-43bc-a422-7bd4741d97a5.0000002a to 72e60037-f917-499b-a476-607ea6f2735c.00000d0d
+```
+
+This message contains three record identifiers instead of two.
+This is because the initial state that was being compacted evolved into a different one due to the concurrent commits.
+The message makes clear that the concurrent changes referenced from the first record identifier, up to the changes referenced from the second identifier, where moved to the new generation and are now referenced from third identifier.
+
+If the system is under heavy load and too many concurrent commits are generated, compaction might fail to catch up. In this case, a message like the following is printed.
+
+```
+TarMK GC #2: compaction gave up compacting concurrent commits after 5 cycles.
+```
+
+The message means that compaction tried to compact the repository data to the new generation for five times, but every time there were concurrent changes that prevented compaction from completion.
+To prevent the system from being too overloaded with background activity, compaction stopped itself after the configured amount of cycles.
+
+The system can also be configured to obtain exclusive control of the system and force compaction to complete.
+This means that if compaction would give up after the configured amount of cycles, it would instead take full control of the repository and block concurrent writes.
+If the system is configured to behave this way, the following message is printed.
+
+```
+TarMK GC #2: trying to force compact remaining commits for 60 seconds. Concurrent commits to the store will be blocked.
+```
+
+If, after taking exclusive control of the repository for the specified amount of time, compaction completes successfully, the following message will be printed.
+
+```
+TarMK GC #2: compaction succeeded to force compact remaining commits after 6.580 min (394828 ms).
+```
+
+Sometimes the amount of time allocated to the compaction phase in exclusive mode is not enough.
+It might happen that compaction is not able to complete its work in the allocated time.
+If this happens, the following message is printed.
+
+```
+TarMK GC #2: compaction failed to force compact remaining commits after 6.580 min (394828 ms). Most likely compaction didn't get exclusive access to the store.
+```
+
+Even if compaction takes exclusive access to the repository, it can still be interrupted.
+In this case, the following message is printed.
+
+```
+TarMK GC #2: compaction failed to force compact remaining commits after 6.580 min (394828 ms). Compaction was cancelled: ${REASON}.
+```
+
+The placeholder `${REASON}` will be substituted with a more detailed description of the reason why compaction was stopped.
+
+##### <a name="when-did-cleanup-start"/> When did clean-up start?
+
+When the cleanup phase of the garbage collection process starts, the following message is printed.
+
+```
+TarMK GC #2: cleanup started.
+```
+
+##### <a name="was-cleanup-cancelled"/> Was cleanup cancelled?
+
+If cleanup is cancelled, the following message is printed.
+
+```
+TarMK GC #2: cleanup interrupted
+```
+
+There is no way to cancel cleanup manually.
+The only time cleanup can be cancel is when shutting down the repository.
+
+##### <a name="when-did-cleanup-complete"/> When did cleanup complete?
+
+When cleanup completes, the following message is printed.
+
+```
+TarMK GC #2: cleanup completed in 16.23 min (974079 ms). Post cleanup size is 10.4 GB (10392082944 bytes) and space reclaimed 84.5 GB (84457663488 bytes).
+```
+
+The message includes the time the cleanup phase took to complete, both in a human readable format and in milliseconds.
+Next the final size of the repository is shown, followed by the amount of space that was reclaimed during the cleanup phase.
+Both the final size and the reclaimed space are shown in human readable form and in bytes.
+
+##### <a name="what-happened-during-cleanup"/> What happened during cleanup?
+
+The first thing cleanup does is printing out the current size of the repository with a message similar to the following.
+
+```
+TarMK GC #1: current repository size is 89.3 GB (89260786688 bytes)
+```
+
+After that, the cleanup phase will iterate through every TAR file and figure out which segments are still in use and which ones can be reclaimed.
+Cleanup will print a sequence of messages like the following.
+
+```
+data00000a.tar: size of bulk references/reclaim set 0/6
+```
+
+The first part of the message is the TAR file analyzed last.
+The two numbers at the end give an idea of how many references to segments are being (transitively) followed and how many of them point to bulk segments that can be removed.
+
+After the cleanup phase scanned the repository, TAR files are purged of unused segments.
+In some cases, a TAR file would end up containing no segments at all.
+In this case, the TAR file is marked for deletion and the following message is printed.
+
+```
+TarMK GC #2: cleanup marking files for deletion: data00000a.tar
+```
+
+Please note that this message doesn't mean that cleanup will physically remove the file right now.
+The file is only being marked as deletable.
+Another background task will periodically kick in and remove unused files from disk.
+When this happens, the following message is printed.
+
+```
+Removed files data00000a.tar,data00001a.tar,data00002a.tar
+```
+
+The output of this message can vary.
+It depends on the amount of segments that were cleaned up, on how many TAR files were emptied and on how often the background activity removes unused files.
 
 ## <a name="design"/> Design
 
