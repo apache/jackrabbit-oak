@@ -411,7 +411,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                     mbeans.observerMBean.getQueueSize(),
                     mbeans.observerMBean.getLocalEventCount(),
                     mbeans.observerMBean.getExternalEventCount(),
-                    Arrays.toString(mbeans.filterConfigMBean.getSubTrees()),
+                    Arrays.toString(mbeans.filterConfigMBean.getPaths()),
                     mbeans.filterConfigMBean.isIncludeClusterExternal(),
                     mbeans.filterConfigMBean.isIncludeClusterLocal(),
                     mbeans.observerMBean.getMaxQueueSize(),

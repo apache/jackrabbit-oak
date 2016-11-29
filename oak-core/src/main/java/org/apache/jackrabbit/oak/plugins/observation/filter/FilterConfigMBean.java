@@ -23,11 +23,11 @@ public interface FilterConfigMBean {
     String TYPE = "FilterConfig";
 
     /**
-     * A set of paths whose subtrees include all events of this filter.
+     * A set of paths, potentially containing globs, that include all events of this filter.
      * @return  list of paths
      * @see org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder#addSubTree(String)
      */
-    String[] getSubTrees();
+    String[] getPaths();
 
     /**
      * Whether to include cluster local changes.
