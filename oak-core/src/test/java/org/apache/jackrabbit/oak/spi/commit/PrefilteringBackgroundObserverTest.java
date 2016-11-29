@@ -165,8 +165,8 @@ public class PrefilteringBackgroundObserverTest {
         }
         executeRunnables(runnableQ, 10);
         
-        assertEquals(501, received.size());
-        assertEquals(500, resetCallCnt);
+        assertEquals(500, received.size()); // changed from 501 with OAK-5121
+        assertEquals(499, resetCallCnt); // changed from 500 with OAK-5121
         
         // Part 2 : run with filtersEvaluatedMapWithNullObservers - empty or null shouldn't matter, it's excluded in both cases
         received.clear();
@@ -233,7 +233,7 @@ public class PrefilteringBackgroundObserverTest {
                 // still 5 in the queue
                 new TestPattern(INCLUDED, 5, false, 0, 0),
                 // now we added 2, queue still not full
-                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 10, 2)
+                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 10, 1)
                 );
     }
     
@@ -249,7 +249,7 @@ public class PrefilteringBackgroundObserverTest {
                 // still 6 in the queue, of 7
                 new TestPattern(INCLUDED, 5, false, 0, 0, 6, 7),
                 // now we added 2 (one NOOP and one of those 5), so the queue got full (==7)
-                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 5, 1, 7, 0)
+                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 5, 0, 7, 0)
                 );
     }
     
@@ -283,7 +283,7 @@ public class PrefilteringBackgroundObserverTest {
                 // still full but it's ignored, so doesn't have any queue length effect
                 new TestPattern(INCLUDED, 3, false, 0, 0, 4, 4),
                 // adding 3 will not work, it will result in an overflow entry
-                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 3, 1, 4, 0),
+                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 3, 0, 4, 0),
                 new TestPattern(INCLUDED, 1, false, 0, 0, 0, 1),
                 new TestPattern(EXCLUDED, 0 /* only flush*/, true, 1, 0, 1, 0)
                 );

@@ -474,6 +474,8 @@ class ChangeProcessor implements FilteringAwareObserver {
     public void contentChanged(@Nonnull NodeState before, 
                                @Nonnull NodeState after,
                                @Nonnull CommitInfo info) {
+        checkNotNull(before); // OAK-5160 before is now guaranteed to be non-null
+        checkNotNull(after);
         checkNotNull(info);
         FilterResult prefilterTestResult = null;
         if (PREFILTERING_TESTMODE) {
@@ -490,64 +492,62 @@ class ChangeProcessor implements FilteringAwareObserver {
                 LOG.warn("contentChanged: exception in wouldBeExcludedCommit: " + e, e);
             }
         }
-        if (before != null) {
-            try {
-                long start = PERF_LOGGER.start();
-                FilterProvider provider = filterProvider.get();
-                boolean onEventInvoked = false;
-                // FIXME don't rely on toString for session id
-                if (provider.includeCommit(contentSession.toString(), info)) {
-                    EventFilter filter = provider.getFilter(before, after);
-                    EventIterator events = new EventQueue(namePathMapper, info, before, after,
-                            provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
-                            provider.getEventAggregator());
+        try {
+            long start = PERF_LOGGER.start();
+            FilterProvider provider = filterProvider.get();
+            boolean onEventInvoked = false;
+            // FIXME don't rely on toString for session id
+            if (provider.includeCommit(contentSession.toString(), info)) {
+                EventFilter filter = provider.getFilter(before, after);
+                EventIterator events = new EventQueue(namePathMapper, info, before, after,
+                        provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
+                        provider.getEventAggregator());
 
-                    long time = System.nanoTime();
-                    boolean hasEvents = events.hasNext();
-                    tracker.recordProducerTime(System.nanoTime() - time, TimeUnit.NANOSECONDS);
-                    if (hasEvents && runningMonitor.enterIf(running)) {
+                long time = System.nanoTime();
+                boolean hasEvents = events.hasNext();
+                tracker.recordProducerTime(System.nanoTime() - time, TimeUnit.NANOSECONDS);
+                if (hasEvents && runningMonitor.enterIf(running)) {
+                    if (commitRateLimiter != null) {
+                        commitRateLimiter.beforeNonBlocking();
+                    }
+                    try {
+                        CountingIterator countingEvents = new CountingIterator(events);
+                        onEventInvoked = true;
+                        eventListener.onEvent(countingEvents);
+                        countingEvents.updateCounters(eventCount, eventDuration);
+                    } finally {
                         if (commitRateLimiter != null) {
-                            commitRateLimiter.beforeNonBlocking();
+                            commitRateLimiter.afterNonBlocking();
                         }
-                        try {
-                            CountingIterator countingEvents = new CountingIterator(events);
-                            onEventInvoked = true;
-                            eventListener.onEvent(countingEvents);
-                            countingEvents.updateCounters(eventCount, eventDuration);
-                        } finally {
-                            if (commitRateLimiter != null) {
-                                commitRateLimiter.afterNonBlocking();
-                            }
-                            runningMonitor.leave();
-                        }
+                        runningMonitor.leave();
                     }
                 }
-                if (prefilterTestResult != null) {
-                    // OAK-4908 test mode
-                    if (prefilterTestResult == FilterResult.EXCLUDE && onEventInvoked) {
-                        // this is not ok, an event would have gotten
-                        // excluded-by-prefiltering even though
-                        // it actually got an event.
-                        LOG.warn("contentChanged: delivering event which would have been prefiltered, "
-                                + "info={}, this={}, listener={}", info, this, eventListener);
-                    } else if (prefilterTestResult == FilterResult.INCLUDE && !onEventInvoked && info != null
-                            && info != CommitInfo.EMPTY) {
-                        // this can occur arbitrarily frequent. as prefiltering
-                        // is not perfect, it can
-                        // have false negatives - ie it can include even though
-                        // no event is then created
-                        // hence we can only really log at debug here
-                        LOG.debug(
-                                "contentChanged: no event to deliver but not prefiltered, info={}, this={}, listener={}",
-                                info, this, eventListener);
-                    }
-                }
-                PERF_LOGGER.end(start, 100,
-                        "Generated events (before: {}, after: {})",
-                        before, after);
-            } catch (Exception e) {
-                LOG.warn("Error while dispatching observation events for " + tracker, e);
             }
+            if (prefilterTestResult != null) {
+                // OAK-4908 test mode
+                if (prefilterTestResult == FilterResult.EXCLUDE && onEventInvoked) {
+                    // this is not ok, an event would have gotten
+                    // excluded-by-prefiltering even though
+                    // it actually got an event.
+                    LOG.warn("contentChanged: delivering event which would have been prefiltered, "
+                            + "info={}, this={}, listener={}", info, this, eventListener);
+                } else if (prefilterTestResult == FilterResult.INCLUDE && !onEventInvoked && info != null
+                        && info != CommitInfo.EMPTY) {
+                    // this can occur arbitrarily frequent. as prefiltering
+                    // is not perfect, it can
+                    // have false negatives - ie it can include even though
+                    // no event is then created
+                    // hence we can only really log at debug here
+                    LOG.debug(
+                            "contentChanged: no event to deliver but not prefiltered, info={}, this={}, listener={}",
+                            info, this, eventListener);
+                }
+            }
+            PERF_LOGGER.end(start, 100,
+                    "Generated events (before: {}, after: {})",
+                    before, after);
+        } catch (Exception e) {
+            LOG.warn("Error while dispatching observation events for " + tracker, e);
         }
     }
 
