@@ -539,12 +539,12 @@ In a default setup the [DocumentNodeStoreService][osgi-config]
 takes a single config for `cache` which is internally distributed among the 
 various caches above in following way
 
-1. `nodeCache` - 25%
-2. `prevDocCache` - 4% 
-3. `childrenCache` - 10% 
-4. `docChildrenCache` - 3% (removed in 1.5.6)
-5. `diffCache` - 5% 
-6. `documentCache` - Is given the rest i.e. 57%
+1. `nodeCache` - 35% (was 25% until 1.5.14)
+2. `prevDocCache` - 4%
+3. `childrenCache` - 15% (was 10% until 1.5.14)
+4. `diffCache` - 30% (was 4% until 1.5.14)
+5. `documentCache` - Is given the rest i.e. 16%
+6. `docChildrenCache` - 0% (removed in 1.5.6, default was 3%)
 
 Lately [options are provided][OAK-2546] to have a fine grained control over the 
 distribution. See [Cache Allocation][cache-allocation]

@@ -30,14 +30,14 @@ the load on the storage backend.
 The default OSGi configuration of the persistent cache is:
 
     org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
-        persistentCache=cache,binary=0
+        persistentCache="cache,binary\=0"
 
 ### Configuration Options
 
 The persistent cache configuration setting is string with a number of comma separated elements. 
 The first element is the directory where the cache is stored. Example:
 
-    cache
+    "cache"
 
 In this case, the data is stored in the directory "cache", 
 relative to the `repository.home` directory. If no repository home directory is
@@ -83,12 +83,12 @@ To disable this option, use "-compress".
 Those setting can be appended to the persistent cache configuration string.
 An example configuration is:
 
-    cache,size=2048,binary=0,-compact,-compress
+    "cache,size\=2048,binary\=0,-compact,-compress"
 
 To disable the persistent cache entirely, use the following configuration:
 
     org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
-        persistentCache=-
+        persistentCache="-"
 
 ### Journal cache
 
@@ -99,13 +99,13 @@ configured independently if needed. This can be done in the OSGi
 configuration like in the following example:
 
     org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
-        persistentCache=cache,size=2048
-        journalCache=diff-cache,size=1024
+        persistentCache="cache,size\=2048"
+        journalCache="diff-cache,size\=1024"
 
 The configuration options are the same as for the `persistentCache`, but options
 unrelated to the diff cache type are ignored. The default configuration is
-`journalCache=diff-cache` and can be disabled the same way as the
-regular persistent cache with a dash: `journalCache=-`.
+`journalCache="diff-cache"` and can be disabled the same way as the
+regular persistent cache with a dash: `journalCache="-"`.
 
 ### Dependencies
 

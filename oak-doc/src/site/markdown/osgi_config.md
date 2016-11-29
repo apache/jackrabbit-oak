@@ -273,7 +273,7 @@ persistentCache
 
 <a name="cache-allocation"></a>
 nodeCachePercentage
-: Default 25
+: Default 35 (was 25 until 1.5.14)
 : Percentage of `cache` allocated for `nodeCache`. See [Caching][doc-cache]
 
 prevDocCachePercentage
@@ -282,11 +282,11 @@ prevDocCachePercentage
 : Since 1.3.15
 
 childrenCachePercentage
-: Default 10
+: Default 15 (was 10 until 1.5.14)
 : Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache]
 
 diffCachePercentage
-: Default 5
+: Default 30 (was 5 until 1.5.14)
 : Percentage of `cache` allocated for `diffCache`. See [Caching][doc-cache]
 
 docChildrenCachePercentage
