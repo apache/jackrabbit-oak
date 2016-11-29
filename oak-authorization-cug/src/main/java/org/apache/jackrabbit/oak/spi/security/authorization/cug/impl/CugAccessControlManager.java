@@ -33,6 +33,8 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -56,6 +59,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
@@ -151,6 +155,13 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             if (!CugUtil.definesCug(cug)) {
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
+                // remove the rep:CugMixin if it has been explicitly added upon setPolicy
+                Set<String> mixins = Sets.newHashSet(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES));
+                if (mixins.remove(MIX_REP_CUG_MIXIN)) {
+                    tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
+                } else {
+                    log.debug("Cannot remove mixin type " + MIX_REP_CUG_MIXIN);
+                }
                 cug.remove();
             }
         } else {
