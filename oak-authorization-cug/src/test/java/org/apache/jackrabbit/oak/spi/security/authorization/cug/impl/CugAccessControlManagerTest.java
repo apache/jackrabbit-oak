@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
@@ -334,6 +335,22 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
         Tree tree = root.getTree(SUPPORTED_PATH);
         assertFalse(tree.hasChild(CugConstants.REP_CUG_POLICY));
+    }
+
+    @Test
+    public void testRemovePolicyRemovesMixin() throws Exception {
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+
+        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
+        root.commit();
+
+        assertTrue(ntMgr.isNodeType(root.getTree(SUPPORTED_PATH), MIX_REP_CUG_MIXIN));
+
+        cugAccessControlManager.removePolicy(SUPPORTED_PATH, cugAccessControlManager.getPolicies(SUPPORTED_PATH)[0]);
+        root.commit();
+
+        assertFalse(ntMgr.isNodeType(root.getTree(SUPPORTED_PATH), MIX_REP_CUG_MIXIN));
     }
 
     @Test
