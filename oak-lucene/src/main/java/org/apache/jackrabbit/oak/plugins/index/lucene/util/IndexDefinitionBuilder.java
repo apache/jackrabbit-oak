@@ -88,6 +88,10 @@ public final class IndexDefinitionBuilder {
         return this;
     }
 
+    public Tree getBuilderTree(){
+        return tree;
+    }
+
     public NodeState build(){
         return builder.getNodeState();
     }
@@ -129,6 +133,11 @@ public final class IndexDefinitionBuilder {
 
         public IndexRule indexNodeName(){
             indexRule.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+            return this;
+        }
+
+        public IndexRule includePropertyTypes(String ... types){
+            indexRule.setProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES, asList(types), STRINGS);
             return this;
         }
 
