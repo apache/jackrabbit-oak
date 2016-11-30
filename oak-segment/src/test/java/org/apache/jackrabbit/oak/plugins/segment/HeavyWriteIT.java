@@ -37,7 +37,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;

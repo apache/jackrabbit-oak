@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+@Deprecated
 public class SegmentFixture extends NodeStoreFixture {
 
     private final SegmentStore store;

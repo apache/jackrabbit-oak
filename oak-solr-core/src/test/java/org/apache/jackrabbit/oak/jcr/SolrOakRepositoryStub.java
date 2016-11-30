@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.solr.client.solrj.SolrServer;
 
-public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
+public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     public SolrOakRepositoryStub(Properties settings)
             throws RepositoryException {

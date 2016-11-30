@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
 import static org.junit.Assume.assumeTrue;
 
@@ -66,7 +68,7 @@ public class TestBase {
     @BeforeClass
     public static void assumptions() {
         assumeTrue(!CIHelper.travis());
-        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_MK));
+        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_MK) || getFixtures().contains(SEGMENT_TAR));
     }
 
     public void setUpServerAndClient() throws Exception {

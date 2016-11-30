@@ -37,6 +37,7 @@ public class NodeStoreFixtures {
 
     public static final NodeStoreFixture MEMORY_NS = new MemoryFixture();
 
+    @Deprecated
     public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
     public static final NodeStoreFixture SEGMENT_TAR = new SegmentTarFixture();

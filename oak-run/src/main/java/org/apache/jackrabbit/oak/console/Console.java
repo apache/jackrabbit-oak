@@ -185,6 +185,7 @@ public class Console {
         }
     }
 
+    @Deprecated
     private static class SegmentFixture implements NodeStoreFixture {
         private final SegmentStore segmentStore;
         private final SegmentNodeStore nodeStore;

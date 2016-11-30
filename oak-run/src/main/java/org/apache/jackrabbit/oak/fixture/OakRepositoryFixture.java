@@ -94,12 +94,14 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 dropDBAfterTest, cacheSize, true, base, fdsCacheInMB));
     }
 
+    @Deprecated
     public static RepositoryFixture getTar(File base, int maxFileSizeMB, int cacheSizeMB,
         boolean memoryMapping) {
         return new OakRepositoryFixture(OakFixture
             .getTar(OakFixture.OAK_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
     }
 
+    @Deprecated
     public static RepositoryFixture getTarWithBlobStore(File base, int maxFileSizeMB,
         int cacheSizeMB, boolean memoryMapping, int dsCacheInMB) {
         return new OakRepositoryFixture(OakFixture
