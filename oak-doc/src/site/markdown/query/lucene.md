@@ -265,7 +265,7 @@ structure
     propNode (nt:unstructured)
       - name (string)
       - boost (double) = '1.0'
-      - index (boolean) = true
+      - index (boolean) = false
       - useInExcerpt (boolean) = false
       - analyzed (boolean) = false
       - nodeScopeIndex (boolean) = false
@@ -302,6 +302,7 @@ boost
 index
 : Determines if this property should be indexed. Mostly useful for fulltext
   index where some properties need to be _excluded_ from getting indexed.
+  Defaults to `false`.
 
 useInExcerpt
 : Controls whether the value of a property should be used to create an excerpt.
