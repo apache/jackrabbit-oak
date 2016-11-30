@@ -22,6 +22,7 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
 * [Garbage Collection](#garbage-collection)
     * [Generational Garbage Collection](#generational-garbage-collection)
     * [Estimation, Compaction and Cleanup](#estimation-compaction-cleanup)
+    * [Offline Garbage Collection](#offline-garbage-collection)
     * [Online Garbage Collection](#online-garbage-collection)
         * [Monitoring the log](#monitoring-the-log)
             * [When did garbage collection start?](#when-did-garbage-collection-start)
@@ -87,6 +88,25 @@ Cleanup is the last phase of garbage collection and kicks in as soon as compacti
 Once relevant data is safe in the new generation, old and unused data from a previous generation can be removed.
 This phase locates outdated pieces of data from one of the oldest generations and removes it from the system.
 This is the only phase where data is actually deleted and disk space is finally freed.
+
+### <a name="offline-garbage-collection"/> Offline Garbage Collection
+
+Offline garbage collection is the procedure followed by Oak Segment Tar to execute garbage collection by taking exclusive control of the repository.
+
+Offline garbage collection runs as a standalone Java tool manually or semi-automatically started from the command line.
+The way offline garbage collection works is simpler than the online version.
+It is assumed that a human operator is in charge of deciding when offline compaction is needed.
+In such a case, the human operator has to take offline - hence the name - the system using the repository and start the compaction utility from the command line.
+
+Since offline garbage collection requires human intervention to run, the estimation phase is not executed at all.
+The human operator who decides to run offline garbage collection does so because he or she decided that the garbage in the repository is exceeding some arbitrary threshold.
+Since the decision comes from a human operator, offline garbage collection is not in charge of implementing heuristics to decide if and when garbage collection should be run.
+The offline garbage collection process consist of the compaction and cleanup phases only.
+
+The main drawback of offline garbage collection is that the process has to take exclusive control of the repository.
+Nevertheless, this is also a strength.
+Having exclusive access to the repository, offline garbage collection is usually faster and more effective of its online counterpart.
+Because of this, offline garbage collection is (and will always be) an important tool in repository management.
 
 ### <a name="online-garbage-collection"/> Online Garbage Collection
 
