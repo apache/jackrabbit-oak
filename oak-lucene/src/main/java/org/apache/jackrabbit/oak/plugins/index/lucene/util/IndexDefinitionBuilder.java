@@ -222,6 +222,11 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule disable() {
+            propTree.setProperty(LuceneIndexConstants.PROP_INDEX, false);
+            return this;
+        }
+
         public PropertyRule propertyIndex(){
             propTree.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
             return this;

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
@@ -69,6 +70,23 @@ public class IndexDefinitionBuilderTest {
         assertTrue(state.getChildNode("indexRules").exists());
         assertTrue(state.getChildNode("indexRules").getChildNode("nt:base").exists());
         assertEquals(asList("/a", "/b"), state.getProperty(PathFilter.PROP_INCLUDED_PATHS).getValue(Type.STRINGS));
+    }
+
+    @Test
+    public void propertyDefIndexPropertySetIndexFalse() throws Exception {
+        builder.indexRule("nt:base")
+                .property("foo")
+                .disable();
+
+        PropertyState state = builder.build().
+                getChildNode("indexRules").
+                getChildNode("nt:base").
+                getChildNode("properties").
+                getChildNode("foo").
+                getProperty("index");
+
+        assertNotNull("index property must exist", state);
+        assertFalse("Incorrect default value of index property", state.getValue(Type.BOOLEAN));
     }
 
     @Test
