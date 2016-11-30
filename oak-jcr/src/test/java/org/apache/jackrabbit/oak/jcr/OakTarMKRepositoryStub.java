@@ -29,7 +29,9 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * A repository stub implementation for Oak on TarMK
+ * @deprecated Use {@link OakSegmentTarRepositoryStub} instead.
  */
+@Deprecated
 public class OakTarMKRepositoryStub extends OakRepositoryStub {
 
     private final FileStore store;

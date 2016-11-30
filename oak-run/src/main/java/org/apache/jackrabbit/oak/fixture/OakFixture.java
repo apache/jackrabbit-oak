@@ -51,7 +51,10 @@ public abstract class OakFixture {
     public static final String OAK_RDB = "Oak-RDB";
     public static final String OAK_RDB_DS = "Oak-RDB-DS";
 
+    @Deprecated
     public static final String OAK_TAR = "Oak-Tar";
+
+    @Deprecated
     public static final String OAK_TAR_DS = "Oak-Tar-DS";
 
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
@@ -255,6 +258,7 @@ public abstract class OakFixture {
         };
     }
 
+    @Deprecated
     public static OakFixture getTar(
             final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
             final boolean memoryMapping, final boolean useBlobStore) {
@@ -267,6 +271,7 @@ public abstract class OakFixture {
         return getSegmentTar(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, 0);
     }
 
+    @Deprecated
     public static OakFixture getTar(
         final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
         final boolean memoryMapping, final boolean useBlobStore, int dsCacheInMB) {
@@ -387,6 +392,7 @@ public abstract class OakFixture {
 
     }
 
+    @Deprecated
     public static class SegmentFixture extends OakFixture {
         private FileStore[] stores;
         private BlobStoreFixture[] blobStoreFixtures = new BlobStoreFixture[0];

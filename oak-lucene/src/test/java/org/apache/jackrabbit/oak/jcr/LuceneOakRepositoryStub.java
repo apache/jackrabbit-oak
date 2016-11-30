@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
+public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     public LuceneOakRepositoryStub(Properties settings)
             throws RepositoryException {

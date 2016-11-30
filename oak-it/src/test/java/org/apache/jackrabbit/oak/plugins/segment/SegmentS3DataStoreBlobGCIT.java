@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.util.List;
 import java.util.Properties;
@@ -30,10 +35,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
-
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests for SegmentNodeStore on S3DataStore GC
@@ -60,7 +61,7 @@ public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
 
     @BeforeClass
     public static void assumptions() {
-        assumeTrue(getFixtures().contains(SEGMENT_MK));
+        assumeTrue(getFixtures().contains(SEGMENT_MK) || getFixtures().contains(SEGMENT_TAR));
         assumeTrue(S3DataStoreUtils.isS3Configured());
     }
 
