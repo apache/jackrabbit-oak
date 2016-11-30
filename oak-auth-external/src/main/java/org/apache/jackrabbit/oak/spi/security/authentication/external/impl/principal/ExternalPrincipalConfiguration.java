@@ -233,7 +233,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
             Map<String, String[]> autoMembership = new HashMap<String, String[]>();
             for (ServiceReference ref : enablingRefs) {
                 String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
-                String[] membership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
+                String[] membership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
 
                 for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
                     String[] previous = autoMembership.put(idpName, membership);

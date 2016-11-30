@@ -151,7 +151,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTe
         Map props = ImmutableMap.of(
                 DefaultSyncConfigImpl.PARAM_NAME, syncHandlerName,
                 DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, setup.sc.user().getDynamicMembership(),
-                DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, setup.sc.user().getAutoMembership());
+                DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, setup.sc.user().getAutoMembership());
         ctx.registerService(SyncHandler.class, setup.sh, props);
 
         Map mappingProps = ImmutableMap.of(
