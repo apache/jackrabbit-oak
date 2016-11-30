@@ -38,6 +38,8 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
             * [Was cleanup cancelled?](#was-cleanup-cancelled)
             * [When did cleanup complete?](#when-did-cleanup-complete)
             * [What happened during cleanup?](#what-happened-during-cleanup)
+        * [Monitoring via JMX](#monitoring-via-jmx)
+            * [SegmentRevisionGarbageCollection](#SegmentRevisionGarbageCollection)
 * [Design](#design)
 
 ## <a name="garbage-collection"/> Garbage Collection
@@ -371,6 +373,74 @@ Removed files data00000a.tar,data00001a.tar,data00002a.tar
 
 The output of this message can vary.
 It depends on the amount of segments that were cleaned up, on how many TAR files were emptied and on how often the background activity removes unused files.
+
+#### <a name="monitoring-via-jmx"/> Monitoring via JMX
+
+The Segment Store exposes certain pieces of information via JMX.
+This allows clients to easily access some statistics about the Segment Store, and connect the Segment Store to whatever monitoring infrastructure is in place.
+Moreover, JMX can be useful to execute some low-level operations in a manual fashion.
+
+##### <a name="SegmentRevisionGarbageCollection"/> SegmentRevisionGarbageCollection
+
+The `SegmentRevisionGarbageCollection` MBean tracks statistics about garbage collection.
+Some of the statistics are specific to specific phases of the garbage collection process, others are more widely applicable.
+This MBean also exposes management operations to start and cancel garbage collection and options that can influence the outcome of garbage collection.
+You should use this MBean with great care.
+
+The following options are collectively called "garbage collection options", since they are used to tweak the behaviour of the garbage collection process.
+These options are readable and writable, but they take effect only at the start of the next garbage collection process.
+
+* **PausedCompaction (boolean)**
+Determines if garbage collection is paused.
+If this value is set to `true`, garbage collection will not be performed.
+Compaction will be effectively skipped even if invoked manually or by scheduled maintenance tasks.
+* **RetryCount (int)**
+Determines how many completion attempts the compaction phase should try before giving up.
+This parameter influences the behaviour of the compaction phase when concurrent writes are detected.
+* **ForceTimeout (int)**
+The amount of time (in seconds) the compaction phase can take exclusive control of the repository.
+This parameter is used only if compaction is configured to take exclusive control of the repository instead of giving up after too many concurrent writes.
+* **RetainedGenerations (int)**
+How many generations should be preserved when cleaning up the Segment Store.
+When the cleanup phase runs, only the latest `RetainedGenerations` generations are kept intact.
+Older generations will be deleted.
+* **GcSizeDeltaEstimation (long)**
+The size (in bytes) of new content added to the repository since the end of the last garbage collection that would trigger another garbage collection run.
+This parameter influences the behaviour of the estimation phase.
+* **EstimationDisabled (boolean)**
+Determines if the estimation phase is disabled.
+If this parameter is set to `true`, the estimation phase will be skipped and compaction will run unconditionally.
+* **MemoryThreshold (int)**
+A number between `0` and `100` that represents the percentage of heap memory that should always be free during compaction.
+If the amount of free memory falls below the provided percentage, compaction will be interrupted.
+
+The following options are read-only and expose runtime statistics about the garbage collection process.
+
+* **LastCompaction (string)**
+The formatted timestamp of the end of the last successful compaction phase.
+* **LastCleanup (string)**
+The formatted timestamp of the end of the last cleanup phase.
+* **LastRepositorySize (long)**
+The size of the repository (in bytes) after the last cleanup phase.
+* **LastReclaimedSize (long)**
+The amount of data (in bytes) that was reclaimed during the last cleanup phase.
+* **LastError (string)**
+The last error encountered during compaction, in a human readable form.
+* **LastLogMessage (string)**
+The last log message produced during garbage collection.
+* **Status (string)**
+The current status of the garbage collection process.
+This property can assume the values `idle`, `estimation`, `compaction`, `compaction-retry-N` (where `N` is the number of the current retry iteration), `compaction-force-compact` and `cleanup`.
+
+The `SegmentRevisionGarbageCollection` MBean also exposes the following management operations.
+
+* **cancelRevisionGC**
+If garbage collection is currently running, schedule its cancellation.
+The garbage collection process will be interrupted as soon as it's safe to do so without losing data or corrupting the system.
+If garbage collection is not running, this operation has no effect.
+* **startRevisionGC**
+Start garbage collection.
+If garbage collection is already running, this operation has no effect.
 
 ## <a name="design"/> Design
 
