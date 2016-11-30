@@ -21,9 +21,9 @@ import javax.annotation.Nonnull;
 
 public class ExternalGroupRef extends ExternalIdentityRef {
 
-    /**svn st
-     *
+    /**
      * Creates a new external group ref with the given id and provider name
+     *
      * @param id the id of the identity.
      * @param providerName the name of the identity provider
      */
