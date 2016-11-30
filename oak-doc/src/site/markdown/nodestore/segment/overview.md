@@ -23,20 +23,21 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
     * [Generational Garbage Collection](#generational-garbage-collection)
     * [Estimation, Compaction and Cleanup](#estimation-compaction-cleanup)
     * [Online Garbage Collection](#online-garbage-collection)
-        * [When did garbage collection start?](#when-did-garbage-collection-start)
-        * [When did estimation start?](#when-did-estimation-start)
-        * [Is estimation disabled?](#is-estimation-disabled)
-        * [Was estimation cancelled?](#was-estimation-cancelled)
-        * [When did estimation complete?](#when-did-estimation-complete)
-        * [When did compaction start?](#when-did-compaction-start)
-        * [Is compaction disabled?](#is-compaction-disabled)
-        * [Was compaction cancelled?](#was-compaction-cancelled)
-        * [When did compaction complete?](#when-did-compaction-complete)
-        * [How does compaction work with concurrent writes?](#how-does-compaction-works-with-concurrent-writes)
-        * [When did clean-up start?](#when-did-cleanup-start)
-        * [Was cleanup cancelled?](#was-cleanup-cancelled)
-        * [When did cleanup complete?](#when-did-cleanup-complete)
-        * [What happened during cleanup?](#what-happened-during-cleanup)
+        * [Monitoring the log](#monitoring-the-log)
+            * [When did garbage collection start?](#when-did-garbage-collection-start)
+            * [When did estimation start?](#when-did-estimation-start)
+            * [Is estimation disabled?](#is-estimation-disabled)
+            * [Was estimation cancelled?](#was-estimation-cancelled)
+            * [When did estimation complete?](#when-did-estimation-complete)
+            * [When did compaction start?](#when-did-compaction-start)
+            * [Is compaction disabled?](#is-compaction-disabled)
+            * [Was compaction cancelled?](#was-compaction-cancelled)
+            * [When did compaction complete?](#when-did-compaction-complete)
+            * [How does compaction work with concurrent writes?](#how-does-compaction-works-with-concurrent-writes)
+            * [When did clean-up start?](#when-did-cleanup-start)
+            * [Was cleanup cancelled?](#was-cleanup-cancelled)
+            * [When did cleanup complete?](#when-did-cleanup-complete)
+            * [What happened during cleanup?](#what-happened-during-cleanup)
 * [Design](#design)
 
 ## <a name="garbage-collection"/> Garbage Collection
@@ -92,7 +93,7 @@ The online garbage collection procedure aims at removing garbage with minimal in
 Online garbage collection runs as a background process at regular intervals of time, potentially removing unused data at each iteration.
 The main benefit of online garbage collection is that it runs concurrently with other system activities: it does not require the user to shut down the system for it to work.
 
-#### Monitoring the log
+#### <a name="monitoring-the-log"/> Monitoring the log
 
 Online garbage collection prints lots of useful information to the system log.
 This section groups those log messages by function, so to provide a useful reference to understand the different activities performed by online garbage collection.
