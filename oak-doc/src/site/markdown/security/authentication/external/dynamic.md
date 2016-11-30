@@ -67,6 +67,8 @@ effects:
   upon other calls (e.g.  `PrincipalProvider.getPrincipal(String)`.
 - Any changes to the auto-membership configuration will be immediately reflected 
   to new instances of the `PrincipalProvider`.
+- Note, that in the initial version (Oak 1.6) only the `user.autoMembership` 
+  configuration is respected (see also [OAK-5194] and [OAK-5195])
   
 #### Effect of Dynamic Membership on other Security Modules
   
@@ -133,3 +135,5 @@ membership configuration.
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4087]: https://issues.apache.org/jira/browse/OAK-4087
+[OAK-5194]: https://issues.apache.org/jira/browse/OAK-5194
+[OAK-5195]: https://issues.apache.org/jira/browse/OAK-5195
