@@ -20,6 +20,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import static com.google.common.base.Functions.compose;
+import static com.google.common.base.Functions.constant;
 import static org.junit.Assert.fail;
 
 public class TestUtils {
@@ -40,6 +44,8 @@ public class TestUtils {
             return input != null && isLastRevUpdate(input);
         }
     };
+
+    public static final Function<String, Long> NO_BINARY = compose(constant(-1L), Functions.<String>identity());
 
     /**
      * Returns {@code true} if the given {@code update} performs a

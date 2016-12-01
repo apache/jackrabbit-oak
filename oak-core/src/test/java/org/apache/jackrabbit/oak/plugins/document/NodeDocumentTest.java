@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -44,6 +43,7 @@ import org.junit.Test;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -71,7 +71,7 @@ public class NodeDocumentTest {
         }
         UpdateUtils.applyChanges(doc, op);
         RevisionVector head = DummyRevisionContext.INSTANCE.getHeadRevision();
-        doc.split(DummyRevisionContext.INSTANCE, head, Predicates.<String>alwaysFalse());
+        doc.split(DummyRevisionContext.INSTANCE, head, NO_BINARY);
     }
 
     @Test
@@ -205,7 +205,7 @@ public class NodeDocumentTest {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
                         getRootDocument(store), ns, head,
-                        Predicates.<String>alwaysFalse(), 2)) {
+                        NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -321,7 +321,7 @@ public class NodeDocumentTest {
                 NodeDocument doc = ns.getDocumentStore().find(
                         NODES, Utils.getIdFromPath("/test"));
                 for (UpdateOp op : SplitOperations.forDocument(
-                        doc, ns, head, Predicates.<String>alwaysFalse(), 2)) {
+                        doc, ns, head, NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -572,7 +572,7 @@ public class NodeDocumentTest {
         NodeDocument test = ns2.getDocumentStore().find(NODES, testId);
         assertNotNull(test);
         List<UpdateOp> ops = SplitOperations.forDocument(test, ns2,
-                ns2.getHeadRevision(), Predicates.<String>alwaysFalse(), 2);
+                ns2.getHeadRevision(), NO_BINARY, 2);
         assertEquals(2, ops.size());
         for (UpdateOp op : ops) {
             ns2.getDocumentStore().createOrUpdate(NODES, op);
@@ -588,7 +588,7 @@ public class NodeDocumentTest {
             merge(ns1, b1);
             test = ns1.getDocumentStore().find(NODES, testId);
             for (UpdateOp op : SplitOperations.forDocument(test, ns1,
-                    ns1.getHeadRevision(), Predicates.<String>alwaysFalse(), 3)) {
+                    ns1.getHeadRevision(), NO_BINARY, 3)) {
                 ns1.getDocumentStore().createOrUpdate(NODES, op);
             }
             headRevs.add(ns1.getHeadRevision());
@@ -710,7 +710,7 @@ public class NodeDocumentTest {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
                         getRootDocument(store), ns, head,
-                        Predicates.<String>alwaysFalse(), 2)) {
+                        NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -736,7 +736,7 @@ public class NodeDocumentTest {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
                         getRootDocument(store), ns, head,
-                        Predicates.<String>alwaysFalse(), 2)) {
+                        NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
