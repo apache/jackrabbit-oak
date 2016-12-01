@@ -55,7 +55,7 @@ public class QueryShapeTool {
         System.out.println();
     }
 
-    private static void process(LineNumberReader reader) throws IOException {
+    public static void process(LineNumberReader reader) throws IOException {
         TreeSet<String> sortedUnique = new  TreeSet<String>();
         while (true) {
             String line = reader.readLine();
@@ -69,7 +69,7 @@ public class QueryShapeTool {
         }
     }
     
-    private static String shape(String query) {
+    public static String shape(String query) {
         String result = query;
         // replace double quoted string literals with "$s"
         result = result.replaceAll("\"[^\"]*\"", "\\$s");
