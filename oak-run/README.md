@@ -25,7 +25,8 @@ The following runmodes are currently available:
     * tarmkdiff       : Show changes between revisions on TarMk
     * tarmkrecovery   : Lists candidates for head journal entries
     * datastorecheck  : Consistency checker for data store 
-    * resetclusterid  : Resets the cluster id   
+    * resetclusterid  : Resets the cluster id
+    * datastorecacheupgrade : Upgrades the JR2 DataStore cache
     * help            : Print a list of available runmodes
     
 
@@ -1015,6 +1016,17 @@ Resets the cluster id generated internally. Use the following command after stop
             { /path/to/oak/repository | mongodb://host:port/database }
 
 The cluster id will be removed and will be generated on next server start up.
+
+Oak DataStore Cache Upgrade
+---------------------------
+
+Upgrades the JR2 DataStore cache by moving files to the Upload staging and the download cache of the DataStore.
+
+    $ java -classpath oak-run-*.jar datastorecacheupgrade \
+        --homeDir <home_directory> \
+        --path <path> \
+        --moveCache <true|false> \
+        --deleteMapFile <true|false>
 
 License
 -------
