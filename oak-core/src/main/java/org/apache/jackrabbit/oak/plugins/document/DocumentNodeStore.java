@@ -392,14 +392,10 @@ public final class DocumentNodeStore
      * apply method will throw an IllegalArgumentException if the String is
      * malformed.
      */
-    private final Predicate<String> isBinary = new Predicate<String>() {
+    private final Function<String, Long> binarySize = new Function<String, Long>() {
         @Override
-        public boolean apply(@Nullable String input) {
-            if (input == null) {
-                return false;
-            }
-            return new DocumentPropertyState(DocumentNodeStore.this,
-                    "p", input).getType().tag() == PropertyType.BINARY;
+        public Long apply(@Nullable String input) {
+            return getBinarySize(input);
         }
     };
 
@@ -2065,7 +2061,7 @@ public final class DocumentNodeStore
             if (doc == null) {
                 continue;
             }
-            for (UpdateOp op : doc.split(this, head, isBinary)) {
+            for (UpdateOp op : doc.split(this, head, binarySize)) {
                 NodeDocument before = null;
                 if (!op.isNew() ||
                         !store.create(Collection.NODES, Collections.singletonList(op))) {
@@ -2109,6 +2105,33 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    /**
+     * Returns the binary size of a property value represented as a JSON or
+     * {@code -1} if the property is not of type binary.
+     *
+     * @param json the property value.
+     * @return the size of the referenced binary value(s); otherwise {@code -1}.
+     */
+    private long getBinarySize(@Nullable String json) {
+        if (json == null) {
+            return -1;
+        }
+        PropertyState p = new DocumentPropertyState(
+                DocumentNodeStore.this, "p", json);
+        if (p.getType().tag() != PropertyType.BINARY) {
+            return -1;
+        }
+        long size = 0;
+        if (p.isArray()) {
+            for (int i = 0; i < p.count(); i++) {
+                size += p.size(i);
+            }
+        } else {
+            size = p.size();
+        }
+        return size;
+    }
 
     private JournalEntry newJournalEntry() {
         return new JournalEntry(store, true);

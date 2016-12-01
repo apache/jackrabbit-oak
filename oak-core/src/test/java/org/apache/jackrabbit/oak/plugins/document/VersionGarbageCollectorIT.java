@@ -39,10 +39,10 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -54,7 +54,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -548,7 +547,7 @@ public class VersionGarbageCollectorIT {
             RevisionVector head = store.getHeadRevision();
             for (UpdateOp op : SplitOperations.forDocument(
                     ds.find(NODES, Utils.getIdFromPath("/foo")), store, head,
-                    Predicates.<String>alwaysFalse(), 2)) {
+                    NO_BINARY, 2)) {
                 ds.createOrUpdate(NODES, op);
             }
             clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));

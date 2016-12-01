@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.base.Predicates;
 import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,8 +31,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.google.common.base.Predicates.alwaysFalse;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -94,7 +93,7 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
         DocumentStore store = ns1.getDocumentStore();
         NodeDocument doc = Utils.getRootDocument(store);
         List<UpdateOp> ops = SplitOperations.forDocument(doc, ns1,
-                ns1.getHeadRevision(), Predicates.<String>alwaysFalse(), NUM_NODES);
+                ns1.getHeadRevision(), NO_BINARY, NUM_NODES);
         assertFalse(ops.isEmpty());
         for (UpdateOp op : ops) {
             if (!op.isNew() ||
