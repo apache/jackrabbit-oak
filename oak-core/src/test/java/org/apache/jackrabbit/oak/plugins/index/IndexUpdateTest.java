@@ -663,7 +663,44 @@ public class IndexUpdateTest {
         assertNotNull(provider.getContext(indexPath));
     }
 
+    @Test
+    public void ignoreReindexingFlag() throws Exception{
+        String indexPath = "/oak:index/rootIndex";
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
 
+        IndexUpdateProvider indexUpdate = new IndexUpdateProvider(provider);
+        EditorHook hook = new EditorHook(indexUpdate);
+
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+
+        builder.child("a").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertTrue(provider.getContext(indexPath).isReindexing());
+
+        before = indexed;
+        builder = before.builder();
+        builder.child("b").setProperty("foo", "xyz");
+        child(builder, indexPath).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+
+        provider.reset();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertTrue(provider.getContext(indexPath).isReindexing());
+
+        //Now set IndexUpdate to ignore the reindex flag
+        indexUpdate.setIgnoreReindexFlags(true);
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertFalse(provider.getContext(indexPath).isReindexing());
+
+        //Despite reindex flag set to true and reindexing not done new
+        //content should still get picked up
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertFalse(find(lookup, "foo", "xyz").isEmpty());
+    }
 
     private static void markCorrupt(NodeBuilder builder, String indexName) {
         builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)

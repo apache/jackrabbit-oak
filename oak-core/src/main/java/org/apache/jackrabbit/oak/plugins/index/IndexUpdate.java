@@ -90,7 +90,7 @@ public class IndexUpdate implements Editor {
      * used with extreme caution!
      * </p>
      */
-    private static final boolean IGNORE_REINDEX_FLAGS = Boolean
+    static final boolean IGNORE_REINDEX_FLAGS = Boolean
             .getBoolean("oak.indexUpdate.ignoreReindexFlags");
 
     static {
@@ -194,11 +194,15 @@ public class IndexUpdate implements Editor {
         return rootState.getIndexingStats();
     }
 
+    public void setIgnoreReindexFlags(boolean ignoreReindexFlag){
+        rootState.setIgnoreReindexFlags(ignoreReindexFlag);
+    }
+
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
             String name) {
         PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
         if (ps != null && ps.getValue(BOOLEAN)) {
-            return !IGNORE_REINDEX_FLAGS;
+            return !rootState.ignoreReindexFlags;
         }
         // reindex in the case this is a new node, even though the reindex flag
         // might be set to 'false' (possible via content import)
@@ -472,6 +476,7 @@ public class IndexUpdate implements Editor {
         final String async;
         final NodeState root;
         final CommitInfo commitInfo;
+        private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
         /**
          * Callback for the update events of the indexing job
          */
@@ -560,6 +565,10 @@ public class IndexUpdate implements Editor {
 
         public void setMissingProvider(MissingIndexProviderStrategy missingProvider) {
             this.missingProvider = missingProvider;
+        }
+
+        void setIgnoreReindexFlags(boolean ignoreReindexFlags) {
+            this.ignoreReindexFlags = ignoreReindexFlags;
         }
 
         private class CountingCallback implements ContextAwareCallback, IndexingContext {
