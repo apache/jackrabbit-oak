@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * Common utility methods used for DataStore caches.
  */
 public class DataStoreCacheUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(UploadStagingCache.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DataStoreCacheUtils.class);
 
     /**
      * Delete the file from the staged cache and all its empty parent-directories.
