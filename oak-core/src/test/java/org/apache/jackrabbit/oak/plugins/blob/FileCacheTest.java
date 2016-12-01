@@ -64,26 +64,24 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     @Rule
     public TestName testName = new TestName();
 
+    CountDownLatch afterExecuteLatch;
     @Before
     public void setup() throws Exception {
         root = folder.newFolder();
         closer = Closer.create();
-        loader = new TestCacheLoader<String, InputStream>(root);
+        loader = new TestCacheLoader<String, InputStream>(folder.newFolder());
 
-        if (!testName.getMethodName().equals("rebuild")) {
+        CountDownLatch beforeLatch = new CountDownLatch(1);
+        CountDownLatch afterLatch = new CountDownLatch(1);
+        afterExecuteLatch = new CountDownLatch(1);
 
-            CountDownLatch beforeLatch = new CountDownLatch(1);
-            CountDownLatch afterLatch = new CountDownLatch(1);
-            CountDownLatch afterExecuteLatch = new CountDownLatch(1);
+        TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
+        beforeLatch.countDown();
+        afterLatch.countDown();
+        cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
+        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
 
-            TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
-            beforeLatch.countDown();
-            afterLatch.countDown();
-            cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
-            Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
-
-            closer.register(cache);
-        }
+        closer.register(cache);
     }
 
     @After
@@ -354,30 +352,18 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void rebuild() throws Exception {
         LOG.info("Started rebuild");
-
-        root = folder.newFolder();
-        CountDownLatch beforeLatch = new CountDownLatch(1);
-        CountDownLatch afterLatch = new CountDownLatch(1);
-        CountDownLatch afterExecuteLatch = new CountDownLatch(1);
-
-        TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
-        beforeLatch.countDown();
-        afterLatch.countDown();
-        cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
-
         afterExecuteLatch.await();
-        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
         LOG.info("Cache built");
 
         File f = createFile(0, loader, cache, folder);
         assertCache(0, cache, f);
         cache.close();
 
-        beforeLatch = new CountDownLatch(1);
-        afterLatch = new CountDownLatch(1);
+        CountDownLatch beforeLatch = new CountDownLatch(1);
+        CountDownLatch afterLatch = new CountDownLatch(1);
         afterExecuteLatch = new CountDownLatch(1);
 
-        executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
+        TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
         beforeLatch.countDown();
         afterLatch.countDown();
         cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
@@ -390,6 +376,44 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         assertCacheStats(cache, 1, 4 * 1024, 0, 0);
 
         LOG.info("Finished rebuild");
+    }
+
+    /**
+     * Trigger upgrade cache on start.
+     * @throws Exception
+     */
+    @Test
+    public void upgrade() throws Exception {
+        LOG.info("Started upgrade");
+
+        afterExecuteLatch.await();
+
+        File f = createFile(0, loader, cache, folder);
+        assertCache(0, cache, f);
+        cache.close();
+
+        copyToFile(randomStream(1, 4 * 1024), getFile(ID_PREFIX + 1, root));
+
+        CountDownLatch beforeLatch = new CountDownLatch(1);
+        CountDownLatch afterLatch = new CountDownLatch(1);
+        afterExecuteLatch = new CountDownLatch(1);
+
+        TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
+        beforeLatch.countDown();
+        afterLatch.countDown();
+        cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
+        closer.register(cache);
+        afterExecuteLatch.await();
+        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+        LOG.info("Cache rebuilt");
+
+        assertCacheIfPresent(0, cache, f);
+        assertCacheIfPresent(1, cache, copyToFile(randomStream(1, 4 * 1024), folder.newFile()));
+        assertFalse(getFile(ID_PREFIX + 1, root).exists());
+
+        assertCacheStats(cache, 2, 8 * 1024, 0, 0);
+
+        LOG.info("Finished upgrade");
     }
 
     /**------------------------------ Helper methods --------------------------------------------**/

@@ -159,8 +159,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         this.backend = createBackend();
         backend.init();
 
+        String home = FilenameUtils.normalizeNoEndSeparator(new File(homeDir).getAbsolutePath());
         this.cache =
-            new CompositeDataStoreCache(path, cacheSize, stagingSplitPercentage, uploadThreads,
+            new CompositeDataStoreCache(path, new File(home), cacheSize, stagingSplitPercentage,
+                uploadThreads,
                 new CacheLoader<String, InputStream>() {
                     @Override public InputStream load(String key) throws Exception {
                         InputStream is = null;

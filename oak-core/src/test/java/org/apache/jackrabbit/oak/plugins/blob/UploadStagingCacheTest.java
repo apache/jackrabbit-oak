@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.Futures;
@@ -86,11 +88,11 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         init(0);
     }
 
-    private void init(int i) {
-        init(i, new TestStagingUploader(root));
+    private void init(int i) throws IOException {
+        init(i, new TestStagingUploader(folder.newFolder()), null);
     }
 
-    private void init(int i, TestStagingUploader testUploader) {
+    private void init(int i, TestStagingUploader testUploader, File homeDir) {
         // uploader
         uploader = testUploader;
 
@@ -110,7 +112,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         //cache instance
         stagingCache =
-            UploadStagingCache.build(root, 1/*threads*/, 8 * 1024 /* bytes */,
+            UploadStagingCache.build(root, homeDir, 1/*threads*/, 8 * 1024 /* bytes */,
                 uploader, null/*cache*/, statsProvider, executor, null, 3000, 6000);
         closer.register(stagingCache);
     }
@@ -123,7 +125,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testZeroCache() throws IOException {
         stagingCache =
-            UploadStagingCache.build(root, 1/*threads*/, 0 /* bytes */,
+            UploadStagingCache.build(root, null, 1/*threads*/, 0 /* bytes */,
                 uploader, null/*cache*/, statsProvider, executor, null, 3000, 6000);
         closer.register(stagingCache);
 
@@ -160,7 +162,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testAddUploadException() throws Exception {
         final AtomicInteger count = new AtomicInteger(0);
-        TestStagingUploader secondTimeUploader = new TestStagingUploader(root) {
+        TestStagingUploader secondTimeUploader = new TestStagingUploader(folder.newFolder()) {
             @Override
             public void write(String id, File f) throws DataStoreException {
                 if (count.get() == 0) {
@@ -171,7 +173,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         };
 
         // initialize staging cache using the mocked uploader
-        init(2, secondTimeUploader);
+        init(2, secondTimeUploader, null);
 
         // Add load
         List<ListenableFuture<Integer>> futures = put(folder);
@@ -290,7 +292,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     public void testCacheFullAdd() throws Exception {
         // initialize cache to have restricted size
         stagingCache =
-            UploadStagingCache.build(root, 1/*threads*/, 4 * 1024 /* bytes */,
+            UploadStagingCache.build(root, null, 1/*threads*/, 4 * 1024 /* bytes */,
                 uploader, null/*cache*/, statsProvider, executor, null, 3000, 6000);
         closer.register(stagingCache);
 
@@ -578,7 +580,57 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertCacheStats(stagingCache, 0, 0, 3, 4);
     }
 
+    /**
+     * Test upgrade with build on start.
+     * @throws Exception
+     */
+    @Test
+    public void testUpgrade() throws Exception {
+        // Add load
+        List<ListenableFuture<Integer>> futures = put(folder);
+        // Close before uploading finished
+        closer.close();
+
+        // Create pre-upgrade load
+        File home = folder.newFolder();
+        File pendingUploadsFile = new File(home, DataStoreCacheUpgradeUtils.UPLOAD_MAP);
+        createUpgradeLoad(home, pendingUploadsFile);
+
+        // Start again
+        init(1, new TestStagingUploader(folder.newFolder()), home);
+
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        afterExecuteLatch.await();
+
+        waitFinish(futures);
+
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
+        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 0)));
+
+        assertUpgrade(pendingUploadsFile);
+
+        assertCacheStats(stagingCache, 0, 0, 2, 2);
+    }
+
     /** -------------------- Helper methods ----------------------------------------------------**/
+
+    private void createUpgradeLoad(File home, File pendingUploadFile) throws IOException {
+        String id = ID_PREFIX + 1;
+        copyToFile(randomStream(1, 4 * 1024), getFile(id, root));
+        String name = id.substring(0, 2) + "/" + id.substring(2, 4) + "/" + id;
+        Map<String, Long> pendingUploads = Maps.newHashMap();
+        pendingUploads.put(name, System.currentTimeMillis());
+        serializeMap(pendingUploads, pendingUploadFile);
+    }
+
+    private void assertUpgrade(File pendingUploadFile) throws IOException {
+        assertNull(stagingCache.getIfPresent(ID_PREFIX + 1));
+        assertTrue(Files.equal(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
+            uploader.read(ID_PREFIX + 1)));
+        assertFalse(pendingUploadFile.exists());
+    }
 
     private static SettableFuture<File> copyStreamThread(ListeningExecutorService executor,
         final InputStream fStream, final File temp, final CountDownLatch start) {

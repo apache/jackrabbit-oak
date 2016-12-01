@@ -18,12 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +52,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -334,7 +340,7 @@ public class AbstractDataStoreCacheTest {
         return new ByteArrayInputStream(data);
     }
 
-    private static File getFile(String id, File root) {
+    protected static File getFile(String id, File root) {
         File file = root;
         file = new File(file, id.substring(0, 2));
         file = new File(file, id.substring(2, 4));
@@ -344,5 +350,18 @@ public class AbstractDataStoreCacheTest {
     static File copyToFile(InputStream stream, File file) throws IOException {
         FileUtils.copyInputStreamToFile(stream, file);
         return file;
+    }
+
+    static void serializeMap(Map<String,Long> pendingupload, File file) throws IOException {
+        OutputStream fos = new FileOutputStream(file);
+        OutputStream buffer = new BufferedOutputStream(fos);
+        ObjectOutput output = new ObjectOutputStream(buffer);
+        try {
+            output.writeObject(pendingupload);
+            output.flush();
+        } finally {
+            output.close();
+            IOUtils.closeQuietly(buffer);
+        }
     }
 }

@@ -62,6 +62,13 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     private static final Logger LOG = LoggerFactory.getLogger(FileCache.class);
 
+    protected static final String DOWNLOAD_DIR = "download";
+
+    /**
+     * Parent of the cache root directory
+     */
+    private File parent;
+
     /**
      * The cacheRoot directory of the cache.
      */
@@ -91,7 +98,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
 
-        this.cacheRoot = new File(root, "download");
+        this.parent = root;
+        this.cacheRoot = new File(root, DOWNLOAD_DIR);
 
         /* convert to 4 KB block */
         long size = Math.round(maxSize / (1024L * 4));
@@ -286,6 +294,10 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     private int build() {
         int count = 0;
+
+        // Move older generation cache downloaded files to the new folder
+        DataStoreCacheUpgradeUtils.moveDownloadCache(parent);
+
         // Iterate over all files in the cache folder
         Iterator<File> iter = Files.fileTreeTraverser().postOrderTraversal(cacheRoot)
             .filter(new Predicate<File>() {
