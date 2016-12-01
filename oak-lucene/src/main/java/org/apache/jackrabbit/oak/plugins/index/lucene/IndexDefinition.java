@@ -145,9 +145,14 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     static final int TYPES_ALLOW_ALL = -1;
 
     /**
-     * Deafult suggesterUpdateFrequencyMinutes
+     * Default suggesterUpdateFrequencyMinutes
      */
     static final int DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES = 10;
+
+    /**
+     * Default no. of facets retrieved
+     */
+    static final int DEFAULT_FACET_COUNT = 10;
 
     /**
      * native sort order
@@ -227,6 +232,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean secureFacets;
 
+    private final int numberOfTopFacets;
+
     private final boolean suggestEnabled;
 
     private final boolean spellcheckEnabled;
@@ -305,7 +312,16 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.queryPaths = getQueryPaths(defn);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
-        this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
+
+        if (defn.hasChildNode(FACETS)) {
+            NodeState facetsConfig =  defn.getChildNode(FACETS);
+            this.secureFacets = getOptionalValue(facetsConfig, PROP_SECURE_FACETS, true);
+            this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
+        } else {
+            this.secureFacets = true;
+            this.numberOfTopFacets = DEFAULT_FACET_COUNT;
+        }
+
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
         this.nrtIndexMode = supportsNRTIndexing(defn);
@@ -720,6 +736,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean isSecureFacets() {
         return secureFacets;
+    }
+
+    public int getNumberOfTopFacets() {
+        return numberOfTopFacets;
     }
 
     public class IndexingRule {

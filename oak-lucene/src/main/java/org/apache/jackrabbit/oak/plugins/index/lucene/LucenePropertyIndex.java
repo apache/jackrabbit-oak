@@ -1559,6 +1559,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         LuceneResultRow currentRow;
         private final SizeEstimator sizeEstimator;
         private long estimatedSize;
+        private int numberOfFacets;
 
         LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
@@ -1582,7 +1583,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
 
             };
-            pathCursor = new PathCursor(pathIterator, getPlanResult(plan).isUniquePathsRequired(), settings);
+
+            PlanResult planResult = getPlanResult(plan);
+            pathCursor = new PathCursor(pathIterator, planResult.isUniquePathsRequired(), settings);
+            numberOfFacets = planResult.indexDefinition.getNumberOfTopFacets();
         }
 
 
@@ -1640,7 +1644,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         Facets facets = currentRow.facets;
                         try {
                             if (facets != null) {
-                                FacetResult topChildren = facets.getTopChildren(10, facetFieldName);
+                                FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
                                 if (topChildren != null) {
                                     JsopWriter writer = new JsopBuilder();
                                     writer.object();
