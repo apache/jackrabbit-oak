@@ -193,7 +193,9 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
             pb.setName(JCR_PREDECESSORS).setValues(successor.getProperty(JCR_PREDECESSORS).getValue(Type.REFERENCES));
 
             pb.removeValue(versionId);
-            pb.setValues(predecessorIds.getValue(Type.REFERENCES));
+            for (String ref : predecessorIds.getValue(Type.REFERENCES)) {
+                pb.addValue(ref);
+            }
 
             successor.setProperty(pb.getPropertyState());
         }
@@ -204,7 +206,9 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
             pb.setName(JCR_SUCCESSORS).setValues(predecessor.getProperty(JCR_SUCCESSORS).getValue(Type.REFERENCES));
 
             pb.removeValue(versionId);
-            pb.setValues(successorIds.getValue(Type.REFERENCES));
+            for (String ref : successorIds.getValue(Type.REFERENCES)) {
+                pb.addValue(ref);
+            }
 
             predecessor.setProperty(pb.getPropertyState());
         }
