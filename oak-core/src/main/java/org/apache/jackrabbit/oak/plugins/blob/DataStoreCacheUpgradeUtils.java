@@ -48,6 +48,12 @@ public class DataStoreCacheUpgradeUtils {
     static final String UPLOAD_STAGING_DIR = UploadStagingCache.UPLOAD_STAGING_DIR;
     static final String DOWNLOAD_DIR = FileCache.DOWNLOAD_DIR;
 
+    /**
+     * De-serialize the pending uploads map from {@link org.apache.jackrabbit.core.data.AsyncUploadCache}.
+     *
+     * @param homeDir the directory where the serialized file is maintained
+     * @return the de-serialized map
+     */
     private static Map<String, Long> deSerializeUploadMap(File homeDir) {
         Map<String, Long> asyncUploadMap = Maps.newHashMap();
 
@@ -71,6 +77,11 @@ public class DataStoreCacheUpgradeUtils {
         return asyncUploadMap;
     }
 
+    /**
+     * Delete the serialized pending uploads map from the file system.
+     *
+     * @param homeDir the repository home directory
+     */
     private static void deleteSerializedUploadMap(File homeDir) {
         File uploadMap = new File(homeDir, UPLOAD_MAP);
         FileUtils.deleteQuietly(uploadMap);
@@ -87,6 +98,11 @@ public class DataStoreCacheUpgradeUtils {
         return false;
     }
 
+    /**
+     * Move the DataStore downloaded cache files to the appropriate folder used by the new cache
+     * {@link FileCache}
+     * @param path the root of the datastore
+     */
     public static void moveDownloadCache(final File path) {
         final List<String> exceptions = ImmutableList.of("tmp", UPLOAD_STAGING_DIR, DOWNLOAD_DIR);
         File newDownloadDir = new File(path, DOWNLOAD_DIR);
@@ -120,6 +136,14 @@ public class DataStoreCacheUpgradeUtils {
         }
     }
 
+    /**
+     * Move the pending uploads read from the de-serialized map to the appropriate directory
+     * used by the {@link UploadStagingCache}.
+     *
+     * @param homeDir the repository home directory
+     * @param path the root of the datastore
+     * @param deleteMap flag indicating whether to delete the pending upload map after upgrade
+     */
     public static void movePendingUploadsToStaging(File homeDir, File path, boolean deleteMap) {
         File newUploadDir = new File(path, UPLOAD_STAGING_DIR);
 
@@ -155,6 +179,14 @@ public class DataStoreCacheUpgradeUtils {
         }
     }
 
+    /**
+     * Upgrades the {@link org.apache.jackrabbit.core.data.CachingDataStore}.
+     *
+     * @param homeDir the repository home directory
+     * @param path the root of the datastore
+     * @param moveCache flag whether to move the downloaded cache files
+     * @param deleteMap flag indicating whether to delete the pending upload map after upgrade
+     */
     public static void upgrade(File homeDir, File path, boolean moveCache, boolean deleteMap) {
         movePendingUploadsToStaging(homeDir, path, deleteMap);
 
