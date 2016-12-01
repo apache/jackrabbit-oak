@@ -62,7 +62,7 @@ When garbage collection runs, a second generation is started.
 As soon as the second generation is in place, data from the first generation that is still used by the user is copied over to the second generation.
 From this moment on, new data will be assigned to the second generation.
 Now the system contains data from the first and the second generation, but only data from the second generation is used.
-The compaction algorithm can now remove every piece of data from the first generation.
+The garbage collector can now remove every piece of data from the first generation.
 This removal is safe, because every piece of data that is still in use was copied to the second generation when garbage collection started.
 
 The process of creating a new generation, migrating data to the new generation and removing an old generation is usually referred to as a "garbage collection cycle".
@@ -74,8 +74,8 @@ While the previous section describes the idea behind garbage collection, this se
 Oak Segment Tar splits the garbage collection process in three phases: estimation, compaction and cleanup.
 
 Estimation is the first phase of garbage collection.
-In this phase, the system checks how much garbage is actually present in the system.
-If there is not enough garbage to justify the creation of a new generation, this phase is responsible of blocking the rest of the garbage collection process.
+In this phase, the system estimates how much garbage is actually present in the system.
+If there is not enough garbage to justify the creation of a new generation, the rest of the garbage collection process is skipped.
 If the output of this phase reports that the amount of garbage is beyond a certain threshold, the system creates a new generation and goes on with the next phase.
 
 Compaction executes after a new generation is created.
@@ -125,8 +125,9 @@ To make the examples clear, some information like the date and time, the name of
 These information depend on the configuration of your logging framework.
 Moreover, some of those messages contain data that can and will change from one execution to the other.
 
-Every log message generated during the garbage collection process always print the number of the new generation that is being created as part of garbage collection.
-The generation is always printed at the beginning of the message like in the following example.
+Every log message generated during the garbage collection process includes a sequence number 
+indicating how many times garbage collection ran since the system started.
+The sequence number is always printed at the beginning of the message like in the following example.
 
 ```
 TarMK GC #2: ...
@@ -156,7 +157,7 @@ The estimation phase can be disabled by configuration. If this is the case, the 
 TarMK GC #2: estimation skipped because it was explicitly disabled
 ```
 
-Estimation can also be disabled because garbage collection is disabled as a whole. In this case, the following message is printed instead.
+Estimation is also skipped when compaction is disabled on the system. In this case, the following message is printed instead.
 
 ```
 TarMK GC #2: estimation skipped because compaction is paused
@@ -178,7 +179,7 @@ In each of these cases, the reason why estimation is cancelled will be printed i
 
 ##### <a name="when-did-estimation-complete"/> When did estimation complete?
 
-When estimation terminates, either because of external cancellation or after a successful execution, the following messge is printed.
+When estimation terminates, either because of external cancellation or after a successful execution, the following message is printed.
 
 ```
 TarMK GC #2: estimation completed in 961.8 μs (0 ms). ${RESULT}
@@ -228,7 +229,7 @@ When compaction complete successfully, the following message is printed.
 TarMK GC #2: compaction succeeded in 6.580 min (394828 ms), after 2 cycles
 ```
 
-The time showed my the log message is relative to the compaction phase only.
+The time shown in the log message is relative to the compaction phase only.
 The reference to the amount of cycles spent for the compaction phase is explained in more detail below.
 If compaction did not complete successfully, the following message is printed instead.
 
@@ -262,7 +263,7 @@ When compaction first tries to setup the new generation, the following message i
 TarMK GC #2: compaction cycle 0 completed in 6.580 min (394828 ms). Compacted 3e3b35d3-2a15-43bc-a422-7bd4741d97a5.0000002a to 348b9500-0d67-46c5-a683-3ea8b0e6c21c.000012c0
 ```
 
-The message shows how long did it take to compact the data to the new generation.
+The message shows how long it took to compact the data to the new generation.
 It also prints the record identifiers of the two head states.
 The head state on the left belongs to the previous generation, the one on the right to the new.
 
@@ -294,8 +295,8 @@ TarMK GC #2: compaction gave up compacting concurrent commits after 5 cycles.
 The message means that compaction tried to compact the repository data to the new generation for five times, but every time there were concurrent changes that prevented compaction from completion.
 To prevent the system from being too overloaded with background activity, compaction stopped itself after the configured amount of cycles.
 
-The system can also be configured to obtain exclusive control of the system and force compaction to complete.
-This means that if compaction would give up after the configured amount of cycles, it would instead take full control of the repository and block concurrent writes.
+At this point the system can be configured to obtain exclusive access of the system and force compaction to complete.
+This means that if compaction gave up after the configured number of cycles, it would take full control over the repository and block concurrent writes.
 If the system is configured to behave this way, the following message is printed.
 
 ```
@@ -305,7 +306,7 @@ TarMK GC #2: trying to force compact remaining commits for 60 seconds. Concurren
 If, after taking exclusive control of the repository for the specified amount of time, compaction completes successfully, the following message will be printed.
 
 ```
-TarMK GC #2: compaction succeeded to force compact remaining commits after 6.580 min (394828 ms).
+TarMK GC #2: compaction succeeded to force compact remaining commits after 56.7 s (56722 ms).
 ```
 
 Sometimes the amount of time allocated to the compaction phase in exclusive mode is not enough.
