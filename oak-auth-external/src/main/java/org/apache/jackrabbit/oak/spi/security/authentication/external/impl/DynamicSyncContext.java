@@ -152,26 +152,16 @@ public class DynamicSyncContext extends DefaultSyncContext {
      */
     private void collectPrincipalNames(@Nonnull Set<String> principalNames, @Nonnull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
         for (ExternalIdentityRef ref : declaredGroupIdRefs) {
-            if (ref instanceof ExternalGroupRef && depth < 2) {
-                // since the ExternalGroupRef marker already indicates that the
-                // ref points to an external group and we already reached the desired
-                // depth, we can avoid calling idp.getIdentity(), saving a roundtrip
-                // to the external IDP.
-                principalNames.add(ref.getId());
-            } else {
-                // resolve identity from the reference to
-                // - make sure we it is an external group
-                // - recursively collect group-group membership
-                ExternalIdentity extId = idp.getIdentity(ref);
-                if (extId instanceof ExternalGroup) {
-                    principalNames.add(ref.getId());
-                    // recursively apply further membership until the configured depth is reached
-                    if (depth > 1) {
-                        collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
-                    }
-                } else {
-                    log.debug("Not an external group ({}) => ignore.", ref);
+            // get group
+            ExternalIdentity extId = idp.getIdentity(ref);
+            if (extId instanceof ExternalGroup) {
+                principalNames.add(extId.getPrincipalName());
+                // recursively apply further membership until the configured depth is reached
+                if (depth > 1) {
+                    collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
                 }
+            } else {
+                log.debug("Not an external group ({}) => ignore.", extId);
             }
         }
     }
