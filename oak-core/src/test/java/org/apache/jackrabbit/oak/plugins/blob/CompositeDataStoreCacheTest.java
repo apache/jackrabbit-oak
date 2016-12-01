@@ -81,8 +81,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     @Before
     public void setup() throws IOException {
         root = folder.newFolder();
-        loader = new TestCacheLoader<String, InputStream>(root);
-        uploader = new TestStagingUploader(root);
+        loader = new TestCacheLoader<String, InputStream>(folder.newFolder());
+        uploader = new TestStagingUploader(folder.newFolder());
 
         // create executor
         taskLatch = new CountDownLatch(1);
@@ -99,9 +99,10 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
         //cache instance
-        cache = new CompositeDataStoreCache(root.getAbsolutePath(),
-            80 * 1024 /* bytes */, 10, 1/*threads*/, loader,
-            uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
+        cache =
+            new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /* bytes */, 10,
+                1/*threads*/,
+                loader, uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
         closer.register(cache);
     }
 
@@ -112,8 +113,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     @Test
     public void zeroCache() throws IOException {
-        cache = new CompositeDataStoreCache(root.getAbsolutePath(),
-            0 /* bytes */, 10, 1/*threads*/, loader,
+        cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 0 /* bytes
+        */, 10, 1/*threads*/, loader,
             uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
         closer.register(cache);
 
@@ -188,8 +189,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void addCacheFull() throws IOException {
-        cache = new CompositeDataStoreCache(root.getAbsolutePath(),
-            40 * 1024 /* bytes */, 10 /* staging % */,
+        cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 40 * 1024 /*
+        bytes */, 10 /* staging % */,
             1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, 3000,
             6000);
         closer.register(cache);
@@ -224,8 +225,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         callbackLatch = new CountDownLatch(2);
         afterExecuteLatch = new CountDownLatch(2);
         executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
-        cache = new CompositeDataStoreCache(root.getAbsolutePath(),
-            80 * 1024 /* bytes */, 10 /* staging % */,
+        cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /*
+        bytes */, 10 /* staging % */,
             1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, 3000,
             6000);
         closer.register(cache);
@@ -383,9 +384,11 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         loader.write(ID_PREFIX + 0, f);
+        assertTrue(f.exists());
 
         File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
         loader.write(ID_PREFIX + 1, f2);
+        assertTrue(f2.exists());
 
         CountDownLatch thread1Start = new CountDownLatch(1);
         SettableFuture<File> future1 =
@@ -433,6 +436,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         // Add file to backend
         File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
         loader.write(ID_PREFIX + 1, f2);
+        assertTrue(f2.exists());
 
         // stage for upload
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());

@@ -59,7 +59,7 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
      */
     private final File directory;
 
-    public CompositeDataStoreCache(String path, long size, int uploadSplitPercentage,
+    public CompositeDataStoreCache(String path, File home, long size, int uploadSplitPercentage,
         int uploadThreads, CacheLoader<String, InputStream> loader, final StagingUploader uploader,
         StatisticsProvider statsProvider, ListeningExecutorService executor,
         ScheduledExecutorService scheduledExecutor /* purge scheduled executor */,
@@ -73,11 +73,11 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
 
         long uploadSize = (size * uploadSplitPercentage) / 100;
 
-        this.downloadCache = FileCache.build((size - uploadSize), directory, loader, null);
-
         this.stagingCache = UploadStagingCache
-            .build(directory, uploadThreads, uploadSize, uploader, downloadCache, statsProvider,
+            .build(directory, home, uploadThreads, uploadSize, uploader, null, statsProvider,
                 executor, scheduledExecutor, purgeInterval, stagingRetryInterval);
+        this.downloadCache = FileCache.build((size - uploadSize), directory, loader, null);
+        stagingCache.setDownloadCache(downloadCache);
     }
 
     @Nullable

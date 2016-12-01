@@ -63,6 +63,8 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Objects.toStringHelper;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils
+    .movePendingUploadsToStaging;
 
 /**
  * Cache for staging async uploads. This serves as a temporary cache for serving local
@@ -77,6 +79,8 @@ public class UploadStagingCache implements Closeable {
      * Logger instance.
      */
     private static final Logger LOG = LoggerFactory.getLogger(UploadStagingCache.class);
+
+    protected static final String UPLOAD_STAGING_DIR = "upload";
 
     //Rough estimate of the in-memory key, value pair
     private final Weigher<String, File> memWeigher = new Weigher<String, File>() {
@@ -141,7 +145,7 @@ public class UploadStagingCache implements Closeable {
      */
     private LinkedBlockingQueue<String> retryQueue;
 
-    private UploadStagingCache(File dir, int uploadThreads, long size /* bytes */,
+    private UploadStagingCache(File dir, File home, int uploadThreads, long size /* bytes */,
         StagingUploader uploader, @Nullable FileCache cache, StatisticsProvider statisticsProvider,
         @Nullable ListeningExecutorService executor,
         @Nullable ScheduledExecutorService scheduledExecutor,
@@ -169,7 +173,7 @@ public class UploadStagingCache implements Closeable {
         this.cacheStats = new StagingCacheStats(this, statisticsProvider, size);
         this.downloadCache = cache;
 
-        build();
+        build(home, dir);
 
         this.scheduledExecutor
             .scheduleAtFixedRate(new RemoveJob(), purgeInterval, purgeInterval, TimeUnit.SECONDS);
@@ -180,13 +184,13 @@ public class UploadStagingCache implements Closeable {
     private UploadStagingCache() {
     }
 
-    public static UploadStagingCache build(File dir, int uploadThreads, long size
+    public static UploadStagingCache build(File dir, File home, int uploadThreads, long size
         /* bytes */, StagingUploader uploader, @Nullable FileCache cache,
         StatisticsProvider statisticsProvider, @Nullable ListeningExecutorService executor,
         @Nullable ScheduledExecutorService scheduledExecutor, int purgeInterval /* secs */,
         int retryInterval /* secs */) {
         if (size > 0) {
-            return new UploadStagingCache(dir, uploadThreads, size, uploader, cache,
+            return new UploadStagingCache(dir, home, uploadThreads, size, uploader, cache,
                 statisticsProvider, executor, scheduledExecutor, purgeInterval, retryInterval);
         }
         return new UploadStagingCache() {
@@ -216,9 +220,13 @@ public class UploadStagingCache implements Closeable {
 
     /**
      * Retrieves all the files staged in the staging area and schedules them for uploads.
+     * @param home the home of the repo
+     * @param rootPath the parent of the cache
      */
-    private void build() {
+    private void build(File home, File rootPath) {
         LOG.info("Scheduling pending uploads");
+        // Move any older cache pending uploads
+        movePendingUploadsToStaging(home, rootPath, true);
 
         Iterator<File> iter = Files.fileTreeTraverser().postOrderTraversal(uploadCacheSpace)
             .filter(new Predicate<File>() {
@@ -485,6 +493,10 @@ public class UploadStagingCache implements Closeable {
         LOG.info("Staging cache stats on close [{}]", cacheStats.cacheInfoAsString());
         new ExecutorCloser(executor).close();
         new ExecutorCloser(scheduledExecutor).close();
+    }
+
+    protected void setDownloadCache(@Nullable FileCache downloadCache) {
+        this.downloadCache = downloadCache;
     }
 
     /**
