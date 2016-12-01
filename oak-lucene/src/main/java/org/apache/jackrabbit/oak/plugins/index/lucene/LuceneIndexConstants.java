@@ -340,6 +340,13 @@ public interface LuceneIndexConstants {
     String PROP_SECURE_FACETS = "secure";
 
     /**
+     * Optional (index definition) property indicating max number of facets that will be retrieved
+     * in query
+     * Default is {@link IndexDefinition#DEFAULT_FACET_COUNT}
+     */
+    String PROP_FACETS_TOP_CHILDREN = "topChildren";
+
+    /**
      * Optional (property definition) property indicating whether facets should be created
      * for this property
      */
