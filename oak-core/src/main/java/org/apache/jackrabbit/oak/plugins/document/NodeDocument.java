@@ -1545,7 +1545,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         };
         List<Iterable<Map.Entry<Revision, String>>> changes = Lists.newArrayList();
-        changes.add(filter(getLocalMap(property).entrySet(), p));
+        Map<Revision, String> localChanges = getLocalMap(property);
+        if (!localChanges.isEmpty()) {
+            changes.add(filter(localChanges.entrySet(), p));
+        }
 
         boolean overlapping = false;
         List<Range> ranges = Lists.newArrayList();
