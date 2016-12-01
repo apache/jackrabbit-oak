@@ -43,6 +43,7 @@ enum Mode {
     RESETCLUSTERID("resetclusterid", new ResetClusterIdCommand()),
     PERSISTENTCACHE("persistentcache", new PersistentCacheCommand()),
     THREADDUMP("threaddump", new ThreadDumpCommand()),
+    DATASTORECACHEUPGRADE("datastorecacheupgrade", new DataStoreCacheUpgradeCommand()),
     HELP("help", new HelpCommand());
 
     private final String name;
