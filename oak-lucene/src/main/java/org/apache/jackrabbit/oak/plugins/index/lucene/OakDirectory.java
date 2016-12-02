@@ -89,6 +89,7 @@ public class OakDirectory extends Directory {
     private LockFactory lockFactory;
     private final boolean readOnly;
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
+    private final Set<String> fileNamesAtStart;
     private final boolean activeDeleteEnabled;
     private final String indexName;
     @Nullable
@@ -110,6 +111,7 @@ public class OakDirectory extends Directory {
         this.definition = definition;
         this.readOnly = readOnly;
         this.fileNames.addAll(getListing());
+        this.fileNamesAtStart = ImmutableSet.copyOf(this.fileNames);
         this.activeDeleteEnabled = definition.getActiveDeleteEnabled();
         this.indexName = definition.getIndexName();
         this.blobStore =  blobStore;
@@ -215,7 +217,9 @@ public class OakDirectory extends Directory {
     @Override
     public void close() throws IOException {
         if (!readOnly && definition.saveDirListing()) {
-            directoryBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
+            if (!fileNamesAtStart.equals(fileNames)) {
+                directoryBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
+            }
         }
     }
 
