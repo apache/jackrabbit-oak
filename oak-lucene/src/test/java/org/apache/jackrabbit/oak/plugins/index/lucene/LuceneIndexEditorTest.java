@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.test.ISO8601;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -87,6 +88,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -148,6 +150,36 @@ public class LuceneIndexEditorTest {
         assertEquals("/test", query(escape(FieldNames.createAnalyzedFieldName("foo"))+":fox", defn));
         assertNull("Non string properties not indexed by default",
                 getPath(NumericRangeQuery.newLongRange("price", 100L, 100L, true, true)));
+    }
+
+    @Ignore("OAK-5212")
+    @Test
+    public void noChangeIfNonIndexedDelete() throws Exception{
+        NodeState before = builder.getNodeState();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene", of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
+
+
+        builder.child("test").setProperty("foo", "bar");
+        builder.child("test").child("a");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+        assertEquals("/test", getPath(new TermQuery(new Term("foo", "bar"))));
+
+        NodeState luceneIdxState1 = NodeStateUtils.getNode(indexed, "/oak:index/lucene");
+
+        before = indexed;
+        builder = indexed.builder();
+        builder.getChildNode("test").getChildNode("a").remove();
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        NodeState luceneIdxState2 = NodeStateUtils.getNode(indexed, "/oak:index/lucene");
+        assertEquals(luceneIdxState1, luceneIdxState2);
     }
 
     private String escape(String name) {
