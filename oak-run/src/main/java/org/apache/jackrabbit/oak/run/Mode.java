@@ -41,7 +41,7 @@ enum Mode {
     GARBAGE("garbage", new GarbageCommand()),
     TARMKDIFF("tarmkdiff", new FileStoreDiffCommand()),
     TARMKRECOVERY("tarmkrecovery", new FileStoreRevisionRecoveryCommand()),
-    DUMPDATASTOREREFS("dumpdatastorerefs", new DumpDataStoreReferencesCommand()),
+    DUMPDATASTOREREFS("dumpdatastorerefs", new DataStoreCheckCommand()),
     RESETCLUSTERID("resetclusterid", new ResetClusterIdCommand()),
     HELP("help", new HelpCommand());
 
