@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
+import static org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -73,6 +74,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -82,6 +84,7 @@ import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -92,6 +95,8 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -107,6 +112,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrappe
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -216,6 +222,10 @@ public final class DocumentNodeStore
      */
     protected int maxBackOffMillis =
             Integer.getInteger("oak.maxBackOffMS", asyncDelay * 2);
+
+    protected int changeSetMaxItems =  Integer.getInteger("oak.document.changeSet.maxItems", 50);
+
+    protected int changeSetMaxDepth =  Integer.getInteger("oak.document.changeSet.maxDepth", 9);
 
     /**
      * Whether this instance is disposed.
@@ -586,6 +596,7 @@ public final class DocumentNodeStore
         journalCache = builder.getJournalCache();
 
         this.mbean = createMBean();
+        LOG.info("ChangeSetBuilder enabled and size set to maxItems: {}, maxDepth: {}", changeSetMaxItems, changeSetMaxDepth);
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
                 getClusterNodeInfoDisplayString());
 
@@ -776,6 +787,7 @@ public final class DocumentNodeStore
                         c.applyToCache(before, false);
                         // track modified paths
                         changes.modified(c.getModifiedPaths());
+                        changes.addChangeSet(getChangeSet(info));
                         // update head revision
                         newHead[0] = before.update(c.getRevision());
                         setRoot(newHead[0]);
@@ -823,6 +835,22 @@ public final class DocumentNodeStore
 
     public int getMaxBackOffMillis() {
         return maxBackOffMillis;
+    }
+
+    public int getChangeSetMaxItems() {
+        return changeSetMaxItems;
+    }
+
+    public void setChangeSetMaxItems(int changeSetMaxItems) {
+        this.changeSetMaxItems = changeSetMaxItems;
+    }
+
+    public int getChangeSetMaxDepth() {
+        return changeSetMaxDepth;
+    }
+
+    public void setChangeSetMaxDepth(int changeSetMaxDepth) {
+        this.changeSetMaxDepth = changeSetMaxDepth;
     }
 
     void setEnableConcurrentAddRemove(boolean b) {
@@ -1919,6 +1947,7 @@ public final class DocumentNodeStore
 
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         try {
+            ChangeSetBuilder changeSetBuilder = newChangeSetBuilder();
             RevisionVector headRevision = getHeadRevision();
             Set<Revision> externalChanges = Sets.newHashSet();
             for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
@@ -1942,7 +1971,7 @@ public final class DocumentNodeStore
                     if (externalSort != null) {
                         // add changes for this particular clusterId to the externalSort
                         try {
-                            fillExternalChanges(externalSort, last, r, store);
+                            fillExternalChanges(externalSort, PathUtils.ROOT_PATH, last, r, store, changeSetBuilder);
                         } catch (IOException e1) {
                             LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
                             IOUtils.closeQuietly(externalSort);
@@ -1999,7 +2028,9 @@ public final class DocumentNodeStore
                     stats.populateDiffCache = clock.getTime() - time;
                     time = clock.getTime();
 
-                    dispatcher.contentChanged(getRoot().fromExternalChange(), CommitInfo.EMPTY_EXTERNAL);
+                    ChangeSet changeSet = changeSetBuilder.build();
+                    LOG.debug("Dispatching external change with ChangeSet {}", changeSet);
+                    dispatcher.contentChanged(getRoot().fromExternalChange(), newCommitInfo(changeSet));
                 } finally {
                     backgroundOperationLock.writeLock().unlock();
                 }
@@ -2010,6 +2041,25 @@ public final class DocumentNodeStore
         }
 
         return stats;
+    }
+
+    private static CommitInfo newCommitInfo(@Nonnull  ChangeSet changeSet) {
+        CommitContext commitContext = new SimpleCommitContext();
+        commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info, true);
+    }
+
+    private static ChangeSet getChangeSet(CommitInfo info) {
+        CommitContext commitContext = (CommitContext) info.getInfo().get(CommitContext.NAME);
+        if (commitContext == null){
+            return null;
+        }
+        return (ChangeSet) commitContext.get(COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+    }
+
+    private ChangeSetBuilder newChangeSetBuilder() {
+        return new ChangeSetBuilder(changeSetMaxItems, changeSetMaxDepth);
     }
 
     private void cleanOrphanedBranches() {
@@ -2134,7 +2184,7 @@ public final class DocumentNodeStore
     }
 
     private JournalEntry newJournalEntry() {
-        return new JournalEntry(store, true);
+        return new JournalEntry(store, true, newChangeSetBuilder());
     }
 
     /**

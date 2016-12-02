@@ -195,6 +195,20 @@ public class ChangeSetBuilderTest {
         assertEquals(cb2.getMaxPrefilterPathDepth(), cs.getMaxPrefilterPathDepth());
     }
 
+    @Test
+    public void nullChangeSet() throws Exception{
+        ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 8);
+        add(cb1, "1");
+
+        cb1.add(null);
+        ChangeSet cs = cb1.build();
+        assertNull(cs.getParentNodeTypes());
+        assertNull(cs.getParentNodeNames());
+        assertNull(cs.getParentPaths());
+        assertNull(cs.getAllNodeTypes());
+        assertNull(cs.getPropertyNames());
+    }
+
     private static void add(ChangeSetBuilder cb, String suffix){
         cb.addNodeType("nt-"+suffix)
                 .addParentPath("p-"+suffix)

@@ -26,6 +26,7 @@ import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
@@ -37,6 +38,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +66,8 @@ public final class JournalEntry extends Document {
 
     private static final String CHANGES = "_c";
 
+    private static final String CHANGE_SET = "_cs";
+
     private static final String BRANCH_COMMITS = "_bc";
 
     public static final String MODIFIED = "_modified";
@@ -77,17 +82,20 @@ public final class JournalEntry extends Document {
 
     private final DocumentStore store;
 
+    private final ChangeSetBuilder changeSetBuilder;
+
     private volatile TreeNode changes = null;
 
     private boolean concurrent;
 
     JournalEntry(DocumentStore store) {
-        this(store, false);
+        this(store, false, null);
     }
 
-    JournalEntry(DocumentStore store, boolean concurrent) {
+    JournalEntry(DocumentStore store, boolean concurrent, ChangeSetBuilder changeSetBuilder) {
         this.store = store;
         this.concurrent = concurrent;
+        this.changeSetBuilder = changeSetBuilder;
     }
 
     static StringSort newSorter() {
@@ -207,7 +215,7 @@ public final class JournalEntry extends Document {
                                    @Nonnull Revision to,
                                    @Nonnull DocumentStore store)
             throws IOException {
-        return fillExternalChanges(sorter, PathUtils.ROOT_PATH, from, to, store);
+        return fillExternalChanges(sorter, PathUtils.ROOT_PATH, from, to, store, null);
     }
 
     /**
@@ -225,6 +233,8 @@ public final class JournalEntry extends Document {
      * @param from   the lower bound of the revision range (exclusive).
      * @param to     the upper bound of the revision range (inclusive).
      * @param store  the document store to query.
+     * @param changeSetBuilder a nullable ChangeSetBuilder to collect changes from
+     *                         the JournalEntry between given revisions     *
      * @return the number of journal entries read from the store.
      * @throws IOException
      */
@@ -232,7 +242,8 @@ public final class JournalEntry extends Document {
                                    @Nonnull String path,
                                    @Nonnull Revision from,
                                    @Nonnull Revision to,
-                                   @Nonnull DocumentStore store)
+                                   @Nonnull DocumentStore store,
+                                   @Nullable ChangeSetBuilder changeSetBuilder)
             throws IOException {
         checkNotNull(path);
         checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
@@ -271,6 +282,9 @@ public final class JournalEntry extends Document {
 
             for (JournalEntry d : partialResult) {
                 d.addTo(sorter, path);
+                if (changeSetBuilder != null) {
+                    d.addTo(changeSetBuilder);
+                }
             }
             if (partialResult.size() < READ_CHUNK_SIZE) {
                 break;
@@ -312,6 +326,34 @@ public final class JournalEntry extends Document {
         }
     }
 
+    void addChangeSet(@Nullable ChangeSet changeSet){
+        if (changeSet == null){
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Null changeSet found for caller. ChangeSetBuilder would be set to overflow mode",
+                        new Exception());
+            }
+        }
+        changeSetBuilder.add(changeSet);
+    }
+
+    private void addTo(ChangeSetBuilder changeSetBuilder) {
+        String cs = (String) get(CHANGE_SET);
+        ChangeSet set = null;
+
+        if (cs == null && getChanges().keySet().isEmpty()){
+            //Purely a branch commit. So ChangeSet can be empty
+            return;
+        }
+
+        if (cs != null) {
+            set = ChangeSet.fromString(cs);
+        } else {
+            LOG.debug("Null changeSet found for JournalEntry {}. ChangeSetBuilder would be set to overflow mode", getId());
+        }
+
+        changeSetBuilder.add(set);
+    }
+
     void branchCommit(@Nonnull Iterable<Revision> revisions) {
         String branchCommits = (String) get(BRANCH_COMMITS);
         if (branchCommits == null) {
@@ -330,6 +372,12 @@ public final class JournalEntry extends Document {
         String id = asId(revision);
         UpdateOp op = new UpdateOp(id, true);
         op.set(CHANGES, getChanges().serialize());
+
+        //For branch commits builder would be null
+        if (changeSetBuilder != null) {
+            op.set(CHANGE_SET, changeSetBuilder.build().asString());
+        }
+
         // OAK-3085 : introduce a timestamp property
         // for later being used by OAK-3001
         op.set(MODIFIED, revision.getTimestamp());

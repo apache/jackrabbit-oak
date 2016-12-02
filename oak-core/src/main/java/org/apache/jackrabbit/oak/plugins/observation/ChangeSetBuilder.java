@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -117,7 +119,16 @@ public class ChangeSetBuilder {
         return maxPathDepth;
     }
 
-    public ChangeSetBuilder add(ChangeSet cs){
+    public ChangeSetBuilder add(@Nullable ChangeSet cs){
+        if (cs == null){
+            parentPathOverflow = true;
+            parentNodeNameOverflow = true;
+            parentNodeTypeOverflow = true;
+            propertyNameOverflow = true;
+            allNodeTypeOverflow = true;
+            return this;
+        }
+
         if (cs.getParentPaths() == null){
             parentPathOverflow = true;
         } else {

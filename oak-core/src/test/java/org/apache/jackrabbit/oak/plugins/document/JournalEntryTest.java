@@ -248,7 +248,7 @@ public class JournalEntryTest {
         assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
 
         StringSort sort = JournalEntry.newSorter();
-        JournalEntry.fillExternalChanges(sort, "/foo", r1, r2, store);
+        JournalEntry.fillExternalChanges(sort, "/foo", r1, r2, store, null);
         assertEquals(4, sort.getSize());
         sort.close();
     }
