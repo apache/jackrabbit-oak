@@ -28,17 +28,20 @@ import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.FileLineDifferenceIterator;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -105,7 +108,7 @@ public class FileLineDifferenceIteratorTest {
     public void testDiffLineBreakChars() throws IOException {
         List<String> all = getLineBreakStrings();
         List<String> marked = getLineBreakStrings();
-        List<String> diff = remove(marked, 3, 2);
+        remove(marked, 3, 2);
 
         // without escaping, the line breaks will be resolved
         assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all),
@@ -120,6 +123,18 @@ public class FileLineDifferenceIteratorTest {
         List<String> diff = remove(marked, 3, 2);
 
         assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all), diff);
+    }
+
+    @Test
+    public void testDiffTransform() throws IOException {
+        assertTransformed("a:x,b:y", "a:1,b:2,c:3,e:4,h", asList("c:3", "e:4", "h"));
+        assertTransformed("a,b,d,e", "a,b,c", asList("c"));
+        assertTransformed("a:1,b:2,d:3,e:4,f:5", "a:z,b:y,c:x,f:w", asList("c:x"));
+        assertTransformed("a,b,d,e,f", "a,b,c,f,h", asList("c", "h"));
+        assertTransformed("3:1,7:6", "2:0,3:6,5:3,9:1", asList("2:0", "5:3", "9:1"));
+        assertTransformed("", "", Collections.<String> emptyList());
+        assertTransformed("", "a, b", asList("a", "b"));
+        assertTransformed("", "a:4, b:1", asList("a:4", "b:1"));
     }
 
     private static List<String> getLineBreakStrings() {
@@ -149,7 +164,7 @@ public class FileLineDifferenceIteratorTest {
         Iterator<String> itr = createItr(all, marked);
         assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
     }
-    
+
     private static void assertDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(marked, all);
         assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
@@ -165,4 +180,18 @@ public class FileLineDifferenceIteratorTest {
         return new LineIterator(new StringReader(lines));
     }
 
+    private static void assertTransformed(String marked, String all, List<String> diff) throws IOException {
+        Iterator<String> itr = new FileLineDifferenceIterator(lineItr(marked), lineItr(all),
+            new Function<String, String>() {
+                @Nullable @Override
+                public String apply(@Nullable String input) {
+                    if (input != null) {
+                        return input.split(":")[0];
+                    }
+                    return null;
+                }
+            });
+
+        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+    }
 }
