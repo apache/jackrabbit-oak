@@ -148,6 +148,24 @@ public class OakDirectoryTest {
         assertEquals(fileNames, newHashSet(dir.listAll()));
     }
 
+    @Test
+    public void skipSaveListingIfUnchanged() throws Exception{
+        builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
+        Directory dir = createDir(builder, false);
+        Set<String> fileNames = newHashSet();
+        for (int i = 0; i < 10; i++) {
+            String fileName = "foo" + i;
+            createFile(dir, fileName);
+            fileNames.add(fileName);
+        }
+        dir.close();
+
+        dir = createDir(new ReadOnlyBuilder(builder.getNodeState()), false);
+        Set<String> files =  newHashSet(dir.listAll());
+        dir.close();
+        assertEquals(fileNames, files);
+    }
+
     byte[] assertWrites(Directory dir, int blobSize) throws IOException {
         byte[] data = randomBytes(fileSize);
         IndexOutput o = dir.createOutput("test", IOContext.DEFAULT);
