@@ -307,7 +307,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
                 DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
-        this.reindexCount = determineReindexCount(defn, defnb);
+        this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
         this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
         this.queryPaths = getQueryPaths(defn);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
@@ -1587,18 +1587,6 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static boolean hasIndexingRules(NodeState defn) {
         return defn.getChildNode(LuceneIndexConstants.INDEX_RULES).exists();
-    }
-
-    private static long determineReindexCount(NodeState defn, NodeBuilder defnb) {
-        //Give precedence to count from builder as that reflects the latest state
-        //and might be higher than one from nodeState which is the base state
-        if (defnb != null && defnb.hasProperty(REINDEX_COUNT)) {
-            return defnb.getProperty(REINDEX_COUNT).getValue(Type.LONG);
-        }
-        if (defn.hasProperty(REINDEX_COUNT)) {
-            return defn.getProperty(REINDEX_COUNT).getValue(Type.LONG);
-        }
-        return 0;
     }
 
     @CheckForNull
