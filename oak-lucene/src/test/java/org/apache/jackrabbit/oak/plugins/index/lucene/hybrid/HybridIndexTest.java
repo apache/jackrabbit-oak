@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -208,6 +210,22 @@ public class HybridIndexTest extends AbstractQueryTest {
         createPath("/b").setProperty("foo", "bar");
         root.commit();
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+    }
+
+    //@Test
+    public void usageBeforeFirstIndex() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+        idxb.async("sync", "async");
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/oak:index").addChild("hybridtest");
+        idxb.build(idx);
+
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+        setTraversalEnabled(false);
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
     }
 
     private void runAsyncIndex() {
