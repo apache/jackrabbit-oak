@@ -170,4 +170,38 @@ public interface SegmentRevisionGC {
      * @param memoryThreshold
      */
     void setMemoryThreshold(int memoryThreshold);
+
+    /**
+     * @return {@code true} if there is an online compaction cycle running
+     */
+    boolean isRevisionGCRunning();
+
+    /**
+     * @return number of compacted nodes in the current cycle
+     */
+    long getCompactedNodes();
+
+    /**
+     * @return number of estimated nodes to be compacted in the current cycle.
+     *         Can be {@code -1} if the estimation can't be performed
+     */
+    long getEstimatedCompactableNodes();
+
+    /**
+     * @return percentage of progress for the current compaction cycle. Can be
+     *         {@code -1} if the estimation can't be performed.
+     */
+    int getEstimatedRevisionGCCompletion();
+
+    /**
+     * @return Number of nodes the monitor will log a message, {@code -1} means disabled
+     */
+    public long getRevisionGCProgressLog();
+
+    /**
+     * Set the size of the logging interval, {@code -1} means disabled
+     * @param logCycle
+     *            number of nodes
+     */
+    public void setRevisionGCProgressLog(long gcProgressLog);
 }

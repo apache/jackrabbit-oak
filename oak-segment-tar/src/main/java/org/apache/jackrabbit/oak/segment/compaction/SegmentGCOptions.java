@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.segment.compaction;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+
 /**
  * This class holds configuration options for segment store revision gc.
  */
@@ -57,6 +59,11 @@ public class SegmentGCOptions {
     public static final long SIZE_DELTA_ESTIMATION_DEFAULT = 10737418240L;
 
     /**
+     * Default value for the gc progress log
+     */
+    public static final long GC_PROGRESS_LOG_DEFAULT = -1;
+
+    /**
      * Default value for {@link #getMemoryThreshold()}
      */
     public static final int MEMORY_THRESHOLD_DEFAULT = 15;
@@ -88,6 +95,12 @@ public class SegmentGCOptions {
     private long gcSizeDeltaEstimation = Long.getLong(
             "oak.segment.compaction.gcSizeDeltaEstimation",
             SIZE_DELTA_ESTIMATION_DEFAULT);
+
+    /**
+     * Responsible for monitoring progress of the online compaction, and
+     * providing progress tracking.
+     */
+    private GCNodeWriteMonitor gcNodeWriteMonitor = GCNodeWriteMonitor.EMPTY;
 
     public SegmentGCOptions(boolean paused, int retryCount, int forceTimeout) {
         this.paused = paused;
@@ -316,5 +329,21 @@ public class SegmentGCOptions {
     public SegmentGCOptions setEstimationDisabled(boolean disabled) {
         this.estimationDisabled = disabled;
         return this;
+    }
+
+    /**
+     * Enables the GcWriteMonitor with the given params.
+     * @param gcProgressLog
+     *            Enables compaction progress logging at each set of compacted nodes, disabled if set to
+     *            {@code -1}
+     * @return this instance
+     */
+    public SegmentGCOptions withGCNodeWriteMonitor(long gcProgressLog) {
+        this.gcNodeWriteMonitor = new GCNodeWriteMonitor(gcProgressLog);
+        return this;
+    }
+
+    public GCNodeWriteMonitor getGCNodeWriteMonitor() {
+        return gcNodeWriteMonitor;
     }
 }
