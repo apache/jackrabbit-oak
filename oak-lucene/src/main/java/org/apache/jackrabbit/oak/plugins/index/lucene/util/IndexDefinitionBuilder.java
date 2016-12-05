@@ -82,6 +82,11 @@ public final class IndexDefinitionBuilder {
         return this;
     }
 
+    public IndexDefinitionBuilder noAsync(){
+        tree.removeProperty("async");
+        return this;
+    }
+
     public IndexDefinitionBuilder async(String ... asyncVals){
         tree.removeProperty("async");
         tree.setProperty("async", asList(asyncVals), STRINGS);

@@ -108,17 +108,23 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -148,6 +154,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private LuceneIndexEditorProvider editorProvider;
 
+    private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();
+
     private NodeStore nodeStore;
 
     @After
@@ -172,6 +180,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
                 .with(editorProvider)
+                .with(optionalEditorProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
                 .createContentRepository();
@@ -2371,6 +2380,50 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explanation, not(containsString("lucene:test1")));
     }
 
+    @Test
+    public void subNodeTypes() throws Exception{
+        optionalEditorProvider.delegate = new TypeEditorProvider();
+        String testNodeTypes =
+                "[oak:TestMixA]\n" +
+                "  mixin\n" +
+                "\n" +
+                "[oak:TestSuperType] \n" +
+                " - * (UNDEFINED) multiple\n" +
+                "\n" +
+                "[oak:TestTypeA] > oak:TestSuperType\n" +
+                " - * (UNDEFINED) multiple\n" +
+                "\n" +
+                " [oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+                " - * (UNDEFINED) multiple\n" +
+                "\n" +
+                "  [oak:TestTypeC] > oak:TestMixA\n" +
+                " - * (UNDEFINED) multiple";
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(testNodeTypes, "utf-8"), "test nodeType");
+        //Flush the changes to nodetypes
+        root.commit();
+
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("oak:TestSuperType").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
+        idxb.indexRule("oak:TestMixA").property(JcrConstants.JCR_MIXINTYPES).propertyIndex();
+        idxb.indexRule("oak:TestMixA").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.getTree("/oak:index/nodetype").remove();
+
+        Tree rootTree = root.getTree("/");
+        createNodeWithType(rootTree, "a", "oak:TestTypeA");
+        createNodeWithType(rootTree, "b", "oak:TestTypeB");
+        createNodeWithMixinType(rootTree, "c", "oak:TestMixA")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE,  "oak:Unstructured", Type.NAME);
+
+        root.commit();
+
+        assertPlanAndQuery("select * from [oak:TestSuperType]", "lucene:test1(/oak:index/test1)", asList("/a", "/b"));
+        assertPlanAndQuery("select * from [oak:TestMixA]", "lucene:test1(/oak:index/test1)", asList("/b", "/c"));
+    }
+
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
         assertThat(explain(query), containsString(planExpectation));
         assertQuery(query, paths);
@@ -2651,6 +2704,18 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         public void reset(){
             accessCount = 0;
+        }
+    }
+
+    private static class OptionalEditorProvider implements EditorProvider {
+        private EditorProvider delegate;
+
+        @Override
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
+            if (delegate != null){
+                return delegate.getRootEditor(before, after, builder, info);
+            }
+            return null;
         }
     }
 }
