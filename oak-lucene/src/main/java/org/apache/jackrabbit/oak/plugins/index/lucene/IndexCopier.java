@@ -124,7 +124,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition, dirName);
-        String indexPath = definition.getIndexPathFromConfig();
+        String indexPath = definition.getIndexPath();
         checkIntegrity(indexPath, local, remote);
         return new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
     }
@@ -147,7 +147,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     }
 
     protected Directory createLocalDirForIndexWriter(IndexDefinition definition, String dirName) throws IOException {
-        String indexPath = definition.getIndexPathFromConfig();
+        String indexPath = definition.getIndexPath();
         File indexWriterDir = getIndexDir(definition, indexPath, dirName);
 
         //By design indexing in Oak is single threaded so Lucene locking

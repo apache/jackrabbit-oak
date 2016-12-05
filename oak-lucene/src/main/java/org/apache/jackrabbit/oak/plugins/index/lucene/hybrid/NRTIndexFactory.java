@@ -67,7 +67,7 @@ public class NRTIndexFactory implements Closeable{
         if (!(definition.isNRTIndexingEnabled() || definition.isSyncIndexingEnabled())){
             return null;
         }
-        String indexPath = definition.getIndexPathFromConfig();
+        String indexPath = definition.getIndexPath();
         NRTIndex current = new NRTIndex(definition, indexCopier, getRefreshPolicy(definition), getPrevious(indexPath));
         indexes.put(indexPath, current);
         closeLast(indexPath);
