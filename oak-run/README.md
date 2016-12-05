@@ -980,7 +980,7 @@ Note:
 For using S3DataStore the following additional jars have to be downloaded
     - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
     - [httpcore-4.4.4.jar](http://central.maven.org/maven2/org/apache/httpcomponents/httpcore/4.4.4/httpcore-4.4.4.jar)
-    - [aws-java-sdk-1.10.76.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk/1.10.76/aws-java-sdk-1.10.76.jar)
+    - [aws-java-sdk-osgi-1.10.76.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-osgi/1.10.76/aws-java-sdk-osgi-1.10.76.jar)
     
 The command to be executed for S3DataStore
 
