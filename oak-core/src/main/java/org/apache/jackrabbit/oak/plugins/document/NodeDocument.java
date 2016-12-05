@@ -1549,38 +1549,45 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             changes.add(filter(localChanges.entrySet(), p));
         }
 
-        boolean overlapping = false;
-        List<Range> ranges = Lists.newArrayList();
-        long lowStamp = Long.MAX_VALUE;
-        for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
-            Range range = e.getValue();
-            if (!readRevision.isRevisionNewer(range.low)) {
-                ranges.add(range);
-                // check if overlapping
-                if (!overlapping) {
-                    overlapping = range.high.getTimestamp() >= lowStamp;
+        for (Revision r : readRevision) {
+            // collect changes per clusterId
+            boolean overlapping = false;
+            List<Range> ranges = Lists.newArrayList();
+            Revision lowRev = new Revision(Long.MAX_VALUE, 0, r.getClusterId());
+            for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
+                Range range = e.getValue();
+                if (range.low.getClusterId() != r.getClusterId()) {
+                    continue;
                 }
-                lowStamp = Math.min(lowStamp, range.low.getTimestamp());
+                if (r.compareRevisionTime(range.low) >= 0) {
+                    ranges.add(range);
+                    // check if overlapping
+                    if (!overlapping) {
+                        overlapping = range.high.compareRevisionTime(lowRev) >= 0;
+                    }
+                    lowRev = Utils.min(lowRev, range.low);
+                }
             }
-        }
 
-        if (!ranges.isEmpty()) {
-            Iterable<Iterable<Map.Entry<Revision, String>>> revs = transform(filter(transform(ranges,
-                    new Function<Range, NodeDocument>() {
-                @Override
-                public NodeDocument apply(Range input) {
-                    return getPreviousDoc(input.high, input);
+            if (!ranges.isEmpty()) {
+                final RevisionVector readRev = new RevisionVector(r);
+                Iterable<Iterable<Map.Entry<Revision, String>>> revs = transform(filter(transform(ranges,
+                        new Function<Range, NodeDocument>() {
+                            @Override
+                            public NodeDocument apply(Range input) {
+                                return getPreviousDoc(input.high, input);
+                            }
+                        }), Predicates.notNull()), new Function<NodeDocument, Iterable<Map.Entry<Revision, String>>>() {
+                    @Override
+                    public Iterable<Map.Entry<Revision, String>> apply(NodeDocument prev) {
+                        return prev.getVisibleChanges(property, readRev);
+                    }
+                });
+                if (overlapping) {
+                    changes.add(mergeSorted(revs, ValueComparator.REVERSE));
+                } else {
+                    changes.add(concat(revs));
                 }
-            }), Predicates.notNull()), new Function<NodeDocument, Iterable<Map.Entry<Revision, String>>>() {
-                @Override
-                public Iterable<Map.Entry<Revision, String>> apply(NodeDocument prev) {
-                    return prev.getVisibleChanges(property, readRevision);
-                }
-            });
-            if (overlapping) {
-                changes.add(mergeSorted(revs, ValueComparator.REVERSE));
-            } else {
-                changes.add(concat(revs));
             }
         }
 
