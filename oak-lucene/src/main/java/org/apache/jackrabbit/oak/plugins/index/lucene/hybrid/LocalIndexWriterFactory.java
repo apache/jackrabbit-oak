@@ -50,7 +50,7 @@ public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
 
         @Override
         public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
-            addLuceneDoc(LuceneDoc.forUpdate(definition.getIndexPathFromConfig(), path, doc));
+            addLuceneDoc(LuceneDoc.forUpdate(definition.getIndexPath(), path, doc));
         }
 
         @Override

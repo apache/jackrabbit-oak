@@ -907,7 +907,7 @@ public class LuceneIndexTest {
         IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"), indexPath);
 
         assertEquals(indexPath, defn.getIndexName());
-        assertEquals(indexPath, defn.getIndexPathFromConfig());
+        assertEquals(indexPath, defn.getIndexPath());
     }
 
 

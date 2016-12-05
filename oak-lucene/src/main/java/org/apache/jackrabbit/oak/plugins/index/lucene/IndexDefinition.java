@@ -755,7 +755,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return spellcheckEnabled;
     }
 
-    public String getIndexPathFromConfig() {
+    public String getIndexPath() {
         return indexPath;
     }
 

@@ -151,7 +151,7 @@ public class NRTIndex implements Closeable {
 
     @Override
     public String toString() {
-        return definition.getIndexPathFromConfig();
+        return definition.getIndexPath();
     }
 
     //For test
@@ -192,7 +192,7 @@ public class NRTIndex implements Closeable {
 
     private synchronized NRTIndexWriter createWriter() throws IOException {
         String dirName = generateDirName();
-        indexDir = indexCopier.getIndexDir(definition, definition.getIndexPathFromConfig(), dirName);
+        indexDir = indexCopier.getIndexDir(definition, definition.getIndexPath(), dirName);
         Directory fsdir = FSDirectory.open(indexDir);
         //TODO make these configurable
         directory = new NRTCachingDirectory(fsdir, 1, 1);
