@@ -51,6 +51,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
@@ -59,6 +62,7 @@ import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
  */
 public class DocumentNodeState extends AbstractDocumentNodeState implements CacheValue {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentNodeState.class);
     private static final PerfLogger perfLogger = new PerfLogger(
             LoggerFactory.getLogger(DocumentNodeState.class.getName()
                     + ".perf"));
@@ -399,7 +403,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     @Override
     public int getMemory() {
-        int size = 40 // shallow
+        long size = 40 // shallow
                 + readRevision.getMemory()
                 + (lastRevision != null ? lastRevision.getMemory() : 0)
                 + rootRevision.getMemory()
@@ -424,10 +428,14 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 // referencing the binary in the blob store
                 // double the size because the parsed PropertyState
                 // will have a similarly sized blobId as well
-                size += estimateMemoryUsage(getPropertyAsString(entry.getKey())) * 2;
+                size += (long)estimateMemoryUsage(getPropertyAsString(entry.getKey())) * 2;
             }
         }
-        return size;
+        if (size > Integer.MAX_VALUE) {
+            log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     //------------------------------< internal >--------------------------------
@@ -553,22 +561,27 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
          * Ascending sorted list of names of child nodes.
          */
         final ArrayList<String> children = new ArrayList<String>();
-        int cachedMemory;
+        long cachedMemory;
         boolean hasMore;
 
         @Override
         public int getMemory() {
             if (cachedMemory == 0) {
-                int size = 48;
+                long size = 48;
                 if (!children.isEmpty()) {
                     size = 114;
                     for (String c : children) {
-                        size += estimateMemoryUsage(c) + 8;
+                        size += (long)estimateMemoryUsage(c) + 8;
                     }
                 }
                 cachedMemory = size;
             }
-            return cachedMemory;
+            if (cachedMemory > Integer.MAX_VALUE) {
+                log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", cachedMemory);
+                return Integer.MAX_VALUE;
+            } else {
+                return (int)cachedMemory;
+            }
         }
 
         @Override

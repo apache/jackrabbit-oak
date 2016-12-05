@@ -80,7 +80,7 @@ public class LocalDiffCache extends DiffCache {
                           boolean local /*ignored*/) {
         return new Entry() {
             private final Map<String, String> changesPerPath = Maps.newHashMap();
-            private int size;
+            private long size;
             @Override
             public void append(@Nonnull String path, @Nonnull String changes) {
                 if (exceedsSize()){
@@ -119,9 +119,9 @@ public class LocalDiffCache extends DiffCache {
     public static final class Diff implements CacheValue {
 
         private final Map<String, String> changes;
-        private int memory;
+        private long memory;
 
-        public Diff(Map<String, String> changes, int memory) {
+        public Diff(Map<String, String> changes, long memory) {
             this.changes = changes;
             this.memory = memory;
         }
@@ -161,13 +161,18 @@ public class LocalDiffCache extends DiffCache {
         @Override
         public int getMemory() {
             if (memory == 0) {
-                int m = 0;
+                long m = 0;
                 for (Map.Entry<String, String> e : changes.entrySet()){
                     m += size(e.getKey()) + size(e.getValue());
                 }
                 memory = m;
             }
-            return memory;
+            if (memory > Integer.MAX_VALUE) {
+                LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", memory);
+                return Integer.MAX_VALUE;
+            } else {
+                return (int) memory;
+            }
         }
 
         String get(String path) {
@@ -192,7 +197,7 @@ public class LocalDiffCache extends DiffCache {
         }
     }
 
-    private static int size(String s){
+    private static long size(String s){
         return StringValue.getMemory(s);
     }
 }

@@ -21,6 +21,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -28,6 +30,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A cache key implementation which consists of two {@link Revision}s.
  */
 public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> {
+
+    private static final Logger log = LoggerFactory.getLogger(RevisionsKey.class);
 
     private final RevisionVector r1, r2;
 
@@ -38,7 +42,12 @@ public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> 
 
     @Override
     public int getMemory() {
-        return 32 + r1.getMemory() + r2.getMemory();
+        long size = 32 + (long)r1.getMemory() + (long)r2.getMemory();
+        if (size > Integer.MAX_VALUE) {
+            log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     @Override
