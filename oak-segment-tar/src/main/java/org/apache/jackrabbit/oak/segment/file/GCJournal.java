@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Persists the repository size and the reclaimed size following a cleanup
  * operation in the {@link #GC_JOURNAL gc journal} file with the format:
- * 'repoSize, reclaimedSize, timestamp, gcGen'.
+ * 'repoSize, reclaimedSize, timestamp, gcGen, nodes compacted'.
  */
 public class GCJournal {
 
@@ -61,11 +61,18 @@ public class GCJournal {
     }
 
     /**
-     * Persists the repository size and the reclaimed size following a cleanup
-     * operation
+     * Persists the repository stats (current size, reclaimed size, gc
+     * generation, number of compacted nodes) following a cleanup operation for
+     * a successful compaction. NOOP if the gcGeneration is the same as the one
+     * persisted previously.
+     *
+     * @param reclaimedSize size reclaimed by cleanup
+     * @param repoSize current repo size
+     * @param gcGeneration gc generation
+     * @param nodes number of compacted nodes
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            int gcGeneration) {
+            int gcGeneration, long nodes) {
         GCJournalEntry current = read();
         if (current.getGcGeneration() == gcGeneration) {
             // failed compaction, only update the journal if the generation
@@ -73,7 +80,7 @@ public class GCJournal {
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
-                System.currentTimeMillis(), gcGeneration);
+                System.currentTimeMillis(), gcGeneration, nodes);
         Path path = new File(directory, GC_JOURNAL).toPath();
         try {
             try (BufferedWriter w = newBufferedWriter(path, UTF_8, WRITE,
@@ -127,43 +134,43 @@ public class GCJournal {
 
     static class GCJournalEntry {
 
-        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1);
+        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1, -1);
 
         private final long repoSize;
         private final long reclaimedSize;
         private final long ts;
         private final int gcGeneration;
+        private final long nodes;
 
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                int gcGeneration) {
+                int gcGeneration, long nodes) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
             this.ts = ts;
             this.gcGeneration = gcGeneration;
+            this.nodes = nodes;
         }
 
         @Override
         public String toString() {
-            return repoSize + "," + reclaimedSize + "," + ts + ","
-                    + gcGeneration;
+            return repoSize + "," + reclaimedSize + "," + ts + "," + gcGeneration + "," + nodes;
         }
 
         static GCJournalEntry fromString(String in) {
             String[] items = in.split(",");
-            if (items.length == 3 || items.length == 4) {
-                long repoSize = safeParse(items[0]);
-                long reclaimedSize = safeParse(items[1]);
-                long ts = safeParse(items[2]);
-                int gcGen = -1;
-                if (items.length == 4) {
-                    gcGen = (int) safeParse(items[3]);
-                }
-                return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen);
-            }
-            return GCJournalEntry.EMPTY;
+            long repoSize = safeParse(items, 0);
+            long reclaimedSize = safeParse(items, 1);
+            long ts = safeParse(items, 2);
+            int gcGen = (int) safeParse(items, 3);
+            long nodes = safeParse(items, 4);
+            return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen, nodes);
         }
 
-        private static long safeParse(String in) {
+        private static long safeParse(String[] items, int index) {
+            if (items.length < index - 1) {
+                return -1;
+            }
+            String in = items[index];
             try {
                 return Long.parseLong(in);
             } catch (NumberFormatException ex) {
@@ -172,20 +179,39 @@ public class GCJournal {
             return -1;
         }
 
+        /**
+         * Returns the repository size
+         */
         public long getRepoSize() {
             return repoSize;
         }
 
+        /**
+         * Returns the reclaimed size
+         */
         public long getReclaimedSize() {
             return reclaimedSize;
         }
 
+        /**
+         * Returns the timestamp
+         */
         public long getTs() {
             return ts;
         }
 
+        /**
+         * Returns the gc generation
+         */
         public int getGcGeneration() {
             return gcGeneration;
+        }
+
+        /**
+         * Returns the number of compacted nodes
+         */
+        public long getNodes() {
+            return nodes;
         }
 
         @Override
@@ -193,8 +219,8 @@ public class GCJournal {
             final int prime = 31;
             int result = 1;
             result = prime * result + gcGeneration;
-            result = prime * result
-                    + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
+            result = prime * result + (int) (nodes ^ (nodes >>> 32));
+            result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
             result = prime * result + (int) (repoSize ^ (repoSize >>> 32));
             result = prime * result + (int) (ts ^ (ts >>> 32));
             return result;
@@ -211,6 +237,8 @@ public class GCJournal {
             GCJournalEntry other = (GCJournalEntry) obj;
             if (gcGeneration != other.gcGeneration)
                 return false;
+            if (nodes != other.nodes)
+                return false;
             if (reclaimedSize != other.reclaimedSize)
                 return false;
             if (repoSize != other.repoSize)
@@ -219,6 +247,5 @@ public class GCJournal {
                 return false;
             return true;
         }
-
     }
 }

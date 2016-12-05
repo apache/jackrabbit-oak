@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener.IGNORE_SNFE;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GC_PROGRESS_LOG_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
@@ -241,6 +242,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     + "Setting this to 0 will disable the check."
     )
     public static final String MEMORY_THRESHOLD = "compaction.memoryThreshold";
+
+    @Property(
+            longValue = GC_PROGRESS_LOG_DEFAULT,
+            label = "Compaction Progress Log",
+            description = "Enables compaction progress logging at each set of compacted nodes. A value of -1 disables the log."
+    )
+    public static final String GC_PROGRESS_LOG = "compaction.progressLog";
 
     @Property(
             boolValue = false,
@@ -657,12 +665,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             log.warn("Deprecated property compaction.gainThreshold was detected. In order to configure compaction please use the new property "
                     + "compaction.sizeDeltaEstimation. For turning off estimation, the new property compaction.disableEstimation should be used.");
         }
+        long gcProgressLog = toLong(property(GC_PROGRESS_LOG), GC_PROGRESS_LOG_DEFAULT);
 
         return new SegmentGCOptions(pauseCompaction, retryCount, forceTimeout)
                 .setRetainedGenerations(retainedGenerations)
                 .setGcSizeDeltaEstimation(sizeDeltaEstimation)
                 .setMemoryThreshold(memoryThreshold)
-                .setEstimationDisabled(disableEstimation);
+                .setEstimationDisabled(disableEstimation)
+                .withGCNodeWriteMonitor(gcProgressLog);
     }
 
     private void unregisterNodeStore() {

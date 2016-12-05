@@ -120,6 +120,9 @@ compaction.memoryThreshold (int) - 15
 : The percentage of heap memory that should always be free while compaction runs.
 If the available heap memory falls below the specified percentage, compaction will not be started or it will be aborted if it is already running.
 
+compaction.progressLog (long) - -1
+: Enables compaction progress logging at each set of compacted nodes. A value of `-1` disables the log.
+
 standby (boolean) - false
 : Determines if this Node Store is supposed to be used in standby mode.
 

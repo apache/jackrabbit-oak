@@ -86,6 +86,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -713,6 +714,9 @@ public class FileStore extends AbstractFileStore {
 
         private volatile boolean cancelled;
 
+        @Nonnull
+        private final GCNodeWriteMonitor compactionMonitor;
+
         GarbageCollector(
                 @Nonnull SegmentGCOptions gcOptions,
                 @Nonnull GCListener gcListener,
@@ -722,6 +726,7 @@ public class FileStore extends AbstractFileStore {
             this.gcListener = gcListener;
             this.gcJournal = gcJournal;
             this.cacheManager = cacheManager;
+            this.compactionMonitor = gcOptions.getGCNodeWriteMonitor();
         }
 
         synchronized void run() throws IOException {
@@ -778,6 +783,7 @@ public class FileStore extends AbstractFileStore {
                 }
                 gcMemoryBarrier.close();
             } finally {
+                compactionMonitor.finished();
                 gcListener.updateStatus(IDLE.message());
             }
         }
@@ -806,6 +812,10 @@ public class FileStore extends AbstractFileStore {
                 gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
                 gcListener.updateStatus(COMPACTION.message());
 
+                GCJournalEntry gcEntry = gcJournal.read();
+                long initialSize = size();
+                compactionMonitor.init(GC_COUNT.get(), gcEntry.getRepoSize(), gcEntry.getNodes(), initialSize);
+
                 SegmentNodeState before = getHead();
                 Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
                 SegmentWriter writer = segmentWriterBuilder("c")
@@ -813,6 +823,7 @@ public class FileStore extends AbstractFileStore {
                         .withGeneration(newGeneration)
                         .withoutWriterPool()
                         .build(FileStore.this);
+                writer.setCompactionMonitor(compactionMonitor);
 
                 SegmentNodeState after = compact(before, writer, cancel);
                 if (after == null) {
@@ -1103,7 +1114,7 @@ public class FileStore extends AbstractFileStore {
             long finalSize = size();
             long reclaimedSize = initialSize - afterCleanupSize;
             stats.reclaimed(reclaimedSize);
-            gcJournal.persist(reclaimedSize, finalSize, getGcGeneration());
+            gcJournal.persist(reclaimedSize, finalSize, getGcGeneration(), compactionMonitor.getCompactedNodes());
             gcListener.cleaned(reclaimedSize, finalSize);
             gcListener.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                             " and space reclaimed {} ({} bytes).",

@@ -171,4 +171,34 @@ public class SegmentRevisionGCMBean
     public void setMemoryThreshold(int memoryThreshold) {
         gcOptions.setMemoryThreshold(memoryThreshold);
     }
+
+    @Override
+    public boolean isRevisionGCRunning() {
+        return gcOptions.getGCNodeWriteMonitor().isCompactionRunning();
+    }
+
+    @Override
+    public long getCompactedNodes() {
+        return gcOptions.getGCNodeWriteMonitor().getCompactedNodes();
+    }
+
+    @Override
+    public long getEstimatedCompactableNodes() {
+        return gcOptions.getGCNodeWriteMonitor().getEstimatedTotal();
+    }
+
+    @Override
+    public int getEstimatedRevisionGCCompletion() {
+        return gcOptions.getGCNodeWriteMonitor().getEstimatedPercentage();
+    }
+
+    @Override
+    public long getRevisionGCProgressLog() {
+        return gcOptions.getGCNodeWriteMonitor().getGcProgressLog();
+    }
+
+    @Override
+    public void setRevisionGCProgressLog(long gcProgressLog) {
+        gcOptions.getGCNodeWriteMonitor().setGcProgressLog(gcProgressLog);
+    }
 }

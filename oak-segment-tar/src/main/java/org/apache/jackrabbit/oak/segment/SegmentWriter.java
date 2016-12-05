@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -100,6 +101,9 @@ public class SegmentWriter {
 
     @Nonnull
     private final WriteOperationHandler writeOperationHandler;
+
+    @Nonnull
+    private GCNodeWriteMonitor compactionMonitor = GCNodeWriteMonitor.EMPTY;
 
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties
@@ -982,6 +986,7 @@ public class SegmentWriter {
                 SegmentNodeState sns = (SegmentNodeState) state;
                 nodeCache.put(sns.getStableId(), recordId, cost(sns));
                 nodeWriteStats.isCompactOp = true;
+                compactionMonitor.compacted();
             }
             return recordId;
         }
@@ -1232,6 +1237,10 @@ public class SegmentWriter {
                 return true;
             }
         }
+    }
+
+    public void setCompactionMonitor(GCNodeWriteMonitor compactionMonitor) {
+        this.compactionMonitor = compactionMonitor;
     }
 
 }
