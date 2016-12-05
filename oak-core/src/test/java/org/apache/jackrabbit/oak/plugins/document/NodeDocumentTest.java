@@ -651,6 +651,42 @@ public class NodeDocumentTest {
         ns.dispose();
     }
 
+    // OAK-5207
+    @Test
+    public void tooManyReadsOnGetVisibleChanges() throws Exception {
+        final int numChanges = 500;
+        final Set<String> prevDocCalls = newHashSet();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (Utils.getPathFromId(key).startsWith("p")) {
+                    prevDocCalls.add(key);
+                }
+                return super.find(collection, key);
+            }
+        };
+        Random random = new Random(42);
+        DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 2, 0);
+        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<RevisionVector> headRevisions = Lists.reverse(
+                createTestData(nodeStores, random, numChanges));
+
+        NodeDocument doc = getRootDocument(store);
+
+        for (int i = 0; i < 20; i++) {
+            prevDocCalls.clear();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            assertEquals(String.valueOf(numChanges - (i + 1)), value);
+            assertTrue("too many calls for previous documents: " + prevDocCalls,
+                    prevDocCalls.size() <= 3);
+        }
+
+        ns1.dispose();
+        ns2.dispose();
+    }
+
     @Test
     public void getVisibleChanges() throws Exception {
         final int numChanges = 200;
