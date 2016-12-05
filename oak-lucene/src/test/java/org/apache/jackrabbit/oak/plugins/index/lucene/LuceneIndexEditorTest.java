@@ -473,7 +473,7 @@ public class LuceneIndexEditorTest {
     private int numDocs(Mount m) throws IOException {
         String indexDirName = MultiplexersLucene.getIndexDirName(m);
         NodeBuilder defnBuilder = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
-        Directory d = new OakDirectory(defnBuilder, indexDirName, new IndexDefinition(root, defnBuilder), true);
+        Directory d = new OakDirectory(defnBuilder, indexDirName, new IndexDefinition(root, defnBuilder.getNodeState()), true);
         IndexReader r = DirectoryReader.open(d);
         return r.numDocs();
     }

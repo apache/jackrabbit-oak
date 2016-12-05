@@ -350,8 +350,8 @@ public class LuceneIndexTest {
 
         //Ensure that Lucene actually removes deleted docs
         NodeBuilder idx = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
-        purgeDeletedDocs(idx, new IndexDefinition(root, idx));
-        int numDeletes = getDeletedDocCount(idx, new IndexDefinition(root, idx));
+        purgeDeletedDocs(idx, new IndexDefinition(root, idx.getNodeState()));
+        int numDeletes = getDeletedDocCount(idx, new IndexDefinition(root, idx.getNodeState()));
         Assert.assertEquals(0, numDeletes);
 
         //Update the IndexSearcher
