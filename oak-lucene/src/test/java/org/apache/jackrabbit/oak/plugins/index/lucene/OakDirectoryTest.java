@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.PROP_B
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -201,7 +202,7 @@ public class OakDirectoryTest {
         return size;
     }
 
-    private Directory createDir(NodeBuilder builder, boolean readOnly, String indexPath){
+    private OakDirectory createDir(NodeBuilder builder, boolean readOnly, String indexPath){
         return new OakDirectory(builder,
                 new IndexDefinition(root, builder.getNodeState(), indexPath), readOnly);
     }
@@ -436,6 +437,23 @@ public class OakDirectoryTest {
         Directory dir = new OakDirectory(new ReadOnlyBuilder(builder.getNodeState()),
                 new IndexDefinition(root, builder.getNodeState(), "/foo"), true);
         assertEquals(0, dir.listAll().length);
+    }
+
+    @Test
+    public void testDirty() throws Exception{
+        OakDirectory dir = createDir(builder, false, "/foo");
+        assertFalse(dir.isDirty());
+        createFile(dir, "a");
+        assertTrue(dir.isDirty());
+        dir.close();
+
+        dir = createDir(builder, false, "/foo");
+        assertFalse(dir.isDirty());
+        dir.openInput("a", IOContext.DEFAULT);
+        assertFalse(dir.isDirty());
+        dir.deleteFile("a");
+        assertTrue(dir.isDirty());
+        dir.close();
     }
 
     private static void readInputToEnd(long expectedSize, IndexInput input) throws IOException {

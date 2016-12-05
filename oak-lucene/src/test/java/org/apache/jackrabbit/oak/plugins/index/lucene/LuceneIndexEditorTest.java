@@ -88,7 +88,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -152,7 +151,6 @@ public class LuceneIndexEditorTest {
                 getPath(NumericRangeQuery.newLongRange("price", 100L, 100L, true, true)));
     }
 
-    @Ignore("OAK-5212")
     @Test
     public void noChangeIfNonIndexedDelete() throws Exception{
         NodeState before = builder.getNodeState();
@@ -445,6 +443,7 @@ public class LuceneIndexEditorTest {
 
         executorService.shutdown();
     }
+
 
     @Test
     public void multiplexingWriter() throws Exception{
