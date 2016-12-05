@@ -292,7 +292,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             InputStream is = null;
             try {
                 Properties props = new Properties();
-                is = Files.newInputStreamSupplier(configFile).getInput();
+                is = Files.asByteSource(configFile).openStream();
                 props.load(is);
                 PropertiesUtil.populate(delegate, propsToMap(props), false);
                 log.info("Configured the delegating DataStore via {}", configFile.getAbsolutePath());

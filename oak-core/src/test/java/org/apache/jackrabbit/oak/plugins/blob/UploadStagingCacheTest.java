@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
@@ -431,7 +430,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Get a handle to the file and open stream
         File file = stagingCache.getIfPresent(ID_PREFIX + 0);
-        final FileInputStream fStream = Files.newInputStreamSupplier(file).getInput();
+        final InputStream fStream = Files.asByteSource(file).openStream();
 
         // task to copy the steam to a file simulating read from the stream
         File temp = folder.newFile();
