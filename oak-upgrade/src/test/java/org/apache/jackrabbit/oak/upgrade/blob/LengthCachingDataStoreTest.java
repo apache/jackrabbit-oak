@@ -32,7 +32,7 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Random;
 
-import com.google.common.io.ByteStreams;
+import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 import com.google.common.io.InputSupplier;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -106,7 +106,7 @@ public class LengthCachingDataStoreTest {
         assertEquals(dr, dr2);
 
         assertEquals(dr.getLength(), dr2.getLength());
-        assertTrue(ByteStreams.equal(supplier(dr), supplier(dr2)));
+        assertTrue(supplier(dr).contentEquals(supplier(dr2)));
     }
 
     @Test
@@ -181,10 +181,10 @@ public class LengthCachingDataStoreTest {
         return data;
     }
 
-    private static InputSupplier<InputStream> supplier(final DataRecord dr) {
-        return new InputSupplier<InputStream>() {
+    private static ByteSource supplier(final DataRecord dr) {
+        return new ByteSource() {
             @Override
-            public InputStream getInput() throws IOException {
+            public InputStream openStream() throws IOException {
                 try {
                     return dr.getStream();
                 } catch (DataStoreException e) {

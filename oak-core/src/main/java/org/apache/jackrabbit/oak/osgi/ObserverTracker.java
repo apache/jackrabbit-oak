@@ -22,13 +22,13 @@ package org.apache.jackrabbit.oak.osgi;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.Closeable;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.io.Closeables;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.osgi.framework.BundleContext;
@@ -82,7 +82,7 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
     public void removedService(ServiceReference reference, Object service) {
         Closeable subscription = subscriptions.remove(reference);
         if (subscription != null) {
-            Closeables.closeQuietly(subscription);
+            closeQuietly(subscription);
             bundleContext.ungetService(reference);
         }
     }
