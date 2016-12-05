@@ -73,12 +73,6 @@ public interface IndexConstants {
     String QUERY_PATHS = "queryPaths";
 
     /**
-     * Hidden property which stores the indexPath which can be used by
-     * IndexEditors
-     */
-    String INDEX_PATH = ":indexPath";
-
-    /**
      * Property name for indicating that given index is corrupt and should be excluded
      * from further indexing. Its value is the date when this index was marked as
      * corrupt

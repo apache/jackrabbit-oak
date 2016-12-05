@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
@@ -735,20 +734,6 @@ public class PropertyIndexTest {
         f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
         PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
         assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
-    }
-
-    @Test
-    public void indexPath() throws Exception{
-        NodeState root = INITIAL_CONTENT;
-
-        // Add index definition
-        NodeBuilder builder = root.builder();
-        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        NodeState after = builder.getNodeState();
-        NodeState indexed = HOOK.processCommit(root, after, CommitInfo.EMPTY);
-        NodeState idxDefn = NodeStateUtils.getNode(indexed, "/oak:index/foo");
-        assertEquals("/oak:index/foo", idxDefn.getString(INDEX_PATH));
     }
 
     @Test
