@@ -346,7 +346,7 @@ public class AggregateTest {
         child(rules, "nt:folder/properties/p1")
                 .setProperty(LuceneIndexConstants.PROP_NAME, "a/p1");
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
 
         NodeBuilder nb = newNode("nt:folder");
@@ -367,7 +367,7 @@ public class AggregateTest {
                 .setProperty(LuceneIndexConstants.PROP_NAME, "a/foo.*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
 
         NodeBuilder nb = newNode("nt:folder");
@@ -389,7 +389,7 @@ public class AggregateTest {
         NodeBuilder aggFolder = aggregates.child("nt:folder");
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PATH, "*");
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate agg = defn.getAggregate("nt:folder");
         assertNotNull(agg);
         assertEquals(1, agg.getIncludes().size());
@@ -404,7 +404,7 @@ public class AggregateTest {
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PRIMARY_TYPE, "nt:file");
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate agg = defn.getAggregate("nt:folder");
         assertNotNull(agg);
         assertEquals(42, agg.reAggregationLimit);

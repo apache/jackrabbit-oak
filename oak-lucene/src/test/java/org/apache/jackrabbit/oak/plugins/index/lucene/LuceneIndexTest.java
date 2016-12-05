@@ -66,7 +66,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.FileUtils;
@@ -350,8 +349,8 @@ public class LuceneIndexTest {
 
         //Ensure that Lucene actually removes deleted docs
         NodeBuilder idx = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
-        purgeDeletedDocs(idx, new IndexDefinition(root, idx.getNodeState()));
-        int numDeletes = getDeletedDocCount(idx, new IndexDefinition(root, idx.getNodeState()));
+        purgeDeletedDocs(idx, new IndexDefinition(root, idx.getNodeState(), "/foo"));
+        int numDeletes = getDeletedDocCount(idx, new IndexDefinition(root, idx.getNodeState(), "/foo"));
         Assert.assertEquals(0, numDeletes);
 
         //Update the IndexSearcher
@@ -772,7 +771,7 @@ public class LuceneIndexTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defnState =
                 newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2", "foo3"), null);
-        IndexDefinition definition = new IndexDefinition(root, defnState.getNodeState());
+        IndexDefinition definition = new IndexDefinition(root, defnState.getNodeState(), "/foo");
 
         //1. Create index in two increments
         NodeState before = builder.getNodeState();
@@ -802,7 +801,7 @@ public class LuceneIndexTest {
         tracker.update(indexed);
 
         defnState = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
-        definition = new IndexDefinition(root, defnState.getNodeState());
+        definition = new IndexDefinition(root, defnState.getNodeState(), "/foo");
         assertQuery(tracker, indexed, "foo2", "bar2");
         //If reindex case handled properly then invalid count should be zero
         assertEquals(0, copier.getInvalidFileCount());
@@ -904,9 +903,11 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"));
-        assertEquals("/oak:index/lucene", defn.getIndexName());
-        assertEquals("/oak:index/lucene", defn.getIndexPathFromConfig());
+        String indexPath = "/oak:index/lucene";
+        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"), indexPath);
+
+        assertEquals(indexPath, defn.getIndexName());
+        assertEquals(indexPath, defn.getIndexPathFromConfig());
     }
 
 

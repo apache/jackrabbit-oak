@@ -25,7 +25,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
@@ -38,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -90,7 +88,7 @@ public class LuceneIndexEditorProviderTest {
         //from tracker with a marker property
         NodeBuilder testBuilder = createIndexDefinition("fooIndex").builder();
         testBuilder.setProperty("foo", "bar");
-        IndexDefinition defn = new IndexDefinition(root, testBuilder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, testBuilder.getNodeState(), "/foo");
         when(tracker.getIndexDefinition("/oak:index/fooIndex")).thenReturn(defn);
 
         IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);

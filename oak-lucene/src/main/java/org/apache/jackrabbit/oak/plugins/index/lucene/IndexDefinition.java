@@ -246,20 +246,60 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     private final String uid;
 
-    public IndexDefinition(NodeState root, NodeBuilder defn) {
-        this(root, defn.getBaseState(), defn);
+    //~--------------------------------------------------------< Builder >
+
+    public static Builder newBuilder(NodeState root, NodeState defn){
+        return new Builder(root, defn);
     }
 
-    public IndexDefinition(NodeState root, NodeState defn) {
-        this(root, defn, null);
+    public static class Builder {
+        private final NodeState root;
+        private final NodeState defn;
+        private String indexPath;
+        private IndexFormatVersion version;
+        private String uid;
+
+        public Builder(NodeState root, NodeState defn) {
+            this.root = root;
+            this.defn = defn;
+        }
+
+        public Builder indexPath(String indexPath){
+            this.indexPath = indexPath;
+            return this;
+        }
+
+        public Builder version(IndexFormatVersion version){
+            this.version = version;
+            return this;
+        }
+
+        public Builder uid(String uid){
+            this.uid = uid;
+            return this;
+        }
+
+        public IndexDefinition build(){
+            if (version == null){
+                version = determineIndexFormatVersion(defn);
+            }
+            if (uid == null){
+                uid = determineUniqueId(defn);
+            }
+            return new IndexDefinition(root, defn, version, uid, checkNotNull(indexPath));
+        }
     }
 
-    public IndexDefinition(NodeState root, NodeState defn, @Nullable NodeBuilder defnb) {
+    public IndexDefinition(NodeState root, NodeState defn, String indexPath) {
+        this(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
+    }
+
+    private IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
         this.root = root;
-        this.version = determineIndexFormatVersion(defn, defnb);
-        this.uid = determineUniqueId(defn, defnb);
+        this.version = checkNotNull(version);
+        this.uid = uid;
         this.definition = defn;
-        this.indexPath = determineIndexPath(defn, defnb);
+        this.indexPath = checkNotNull(indexPath);
         this.indexName = indexPath;
 
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
@@ -716,7 +756,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public String getIndexPathFromConfig() {
-        return checkNotNull(indexPath, "Index path property [%s] not found", IndexConstants.INDEX_PATH);
+        return indexPath;
     }
 
     private boolean evaluateSuggestAnalyzed(NodeState defn, boolean defaultValue) {
@@ -1221,7 +1261,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         if (!hasIndexingRules(defn)){
             NodeState rulesState = createIndexRules(defn).getNodeState();
             indexDefn.setChildNode(LuceneIndexConstants.INDEX_RULES, rulesState);
-            indexDefn.setProperty(INDEX_VERSION, determineIndexFormatVersion(defn, indexDefn).getVersion());
+            indexDefn.setProperty(INDEX_VERSION, determineIndexFormatVersion(defn).getVersion());
 
             indexDefn.removeProperty(DECLARING_NODE_TYPES);
             indexDefn.removeProperty(INCLUDE_PROPERTY_NAMES);
@@ -1392,14 +1432,6 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return codec;
     }
 
-    private static String determineIndexPath(NodeState defn, @Nullable  NodeBuilder defnb) {
-        String indexPath = defn.getString(IndexConstants.INDEX_PATH);
-        if (indexPath == null && defnb != null){
-            indexPath = defnb.getString(IndexConstants.INDEX_PATH);
-        }
-        return indexPath;
-    }
-
     private static Set<String> getMultiProperty(NodeState definition, String propName){
         PropertyState pse = definition.getProperty(propName);
         return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
@@ -1507,11 +1539,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
     }
 
-    private static IndexFormatVersion determineIndexFormatVersion(NodeState defn, NodeBuilder defnb) {
-        if (defnb != null && !defnb.getChildNode(INDEX_DATA_CHILD_NAME).exists()){
-            return determineVersionForFreshIndex(defnb);
-        }
-
+    private static IndexFormatVersion determineIndexFormatVersion(NodeState defn) {
         //Compat mode version if specified has highest priority
         if (defn.hasProperty(COMPAT_MODE)){
             return versionFrom(defn.getProperty(COMPAT_MODE));
@@ -1590,21 +1618,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     @CheckForNull
-    private static String determineUniqueId(NodeState defn, @Nullable NodeBuilder defnb) {
-        String uid = null;
-
-        //Check in builder first as that would have latest value
-        if (defnb != null){
-            uid = defnb.getChildNode(STATUS_NODE).getString(PROP_UID);
-        }
-
-        //Fallback to NodeState
-        if (uid == null){
-            uid = defn.getChildNode(STATUS_NODE).getString(PROP_UID);
-        }
-
-        //uid can be null if an old format index has not received any update
-        return uid;
+    private static String determineUniqueId(NodeState defn) {
+        return defn.getChildNode(STATUS_NODE).getString(PROP_UID);
     }
 
     public boolean getActiveDeleteEnabled() {

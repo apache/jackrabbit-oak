@@ -40,21 +40,21 @@ public class DefaultIndexWriterTest {
 
     @Test
     public void lazyInit() throws Exception {
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
         assertFalse(writer.close(0));
     }
 
     @Test
     public void writeInitializedUponReindex() throws Exception {
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
         assertTrue(writer.close(0));
     }
 
     @Test
     public void indexUpdated() throws Exception {
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
 
         Document document = new Document();

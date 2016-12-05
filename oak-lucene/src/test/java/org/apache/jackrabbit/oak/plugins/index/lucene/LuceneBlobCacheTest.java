@@ -111,7 +111,7 @@ public class LuceneBlobCacheTest {
 
     private Directory createDir(NodeBuilder builder, boolean readOnly){
         return new OakDirectory(builder,
-                new IndexDefinition(root, builder.getNodeState()), readOnly);
+                new IndexDefinition(root, builder.getNodeState(), "/foo"), readOnly);
     }
 
     byte[] randomBytes(int size) {

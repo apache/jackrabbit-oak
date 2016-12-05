@@ -195,7 +195,7 @@ public class NRTIndexTest {
         builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         TestUtil.enableIndexingMode(builder, IndexingMode.NRT);
 
-        return new IndexDefinition(root, builder.getNodeState());
+        return new IndexDefinition(root, builder.getNodeState(), "/foo");
     }
 
 

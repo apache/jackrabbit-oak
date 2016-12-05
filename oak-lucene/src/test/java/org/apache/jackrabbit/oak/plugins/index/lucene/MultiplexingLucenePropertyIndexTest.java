@@ -126,7 +126,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void numDocsIsSumOfAllReaders() throws Exception{
         NodeBuilder defnBuilder = newLucenePropertyIndexDefinition(builder, "test", ImmutableSet.of("foo"), "async");
-        IndexDefinition defn = new IndexDefinition(initialContent, defnBuilder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(initialContent, defnBuilder.getNodeState(), "/foo");
 
         //1. Have 2 reader created by writes in 2 diff mounts
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
