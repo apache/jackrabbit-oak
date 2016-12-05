@@ -1257,6 +1257,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     //~---------------------------------------------< compatibility >
 
     public static NodeBuilder updateDefinition(NodeBuilder indexDefn){
+        return updateDefinition(indexDefn, "unknown");
+    }
+
+    public static NodeBuilder updateDefinition(NodeBuilder indexDefn, String indexPath){
         NodeState defn = indexDefn.getBaseState();
         if (!hasIndexingRules(defn)){
             NodeState rulesState = createIndexRules(defn).getNodeState();
@@ -1269,7 +1273,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             indexDefn.removeProperty(ORDERED_PROP_NAMES);
             indexDefn.removeProperty(FULL_TEXT_ENABLED);
             indexDefn.child(PROP_NODE).remove();
-            log.info("Updated index definition for {}", indexDefn.getString(INDEX_PATH));
+            log.info("Updated index definition for {}", indexPath);
         }
         return indexDefn;
     }

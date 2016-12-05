@@ -356,7 +356,6 @@ public class OakDirectoryTest {
     @Test
     public void dirNameInExceptionMessage() throws Exception{
         String indexPath = "/foo/bar";
-        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         Directory dir = createDir(builder, false, indexPath);
 
         try {
@@ -402,7 +401,6 @@ public class OakDirectoryTest {
         int blobSize = minFileSize + 1000;
 
         builder = nodeStore.getRoot().builder();
-        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         builder.setProperty(LuceneIndexConstants.BLOB_SIZE, blobSize);
         Directory dir = createDir(builder, false, indexPath);
 

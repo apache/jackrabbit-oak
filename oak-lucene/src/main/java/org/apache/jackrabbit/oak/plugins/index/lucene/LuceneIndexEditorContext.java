@@ -118,7 +118,7 @@ public class LuceneIndexEditorContext {
         this.augmentorFactory = augmentorFactory;
         this.asyncIndexing = asyncIndexing;
         if (this.definition.isOfOldFormat()){
-            IndexDefinition.updateDefinition(definition);
+            IndexDefinition.updateDefinition(definition, indexingContext.getIndexPath());
         }
     }
 
