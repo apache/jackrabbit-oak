@@ -110,9 +110,6 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(1000);
 
-    private static final CommitFailedException CONCURRENT_UPDATE = new CommitFailedException(
-            "Async", 1, "Concurrent update detected");
-
     private static final CommitFailedException INTERRUPTED = new CommitFailedException(
             "Async", 1, "Indexing stopped forcefully");
 
@@ -284,7 +281,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 this.lease = now + 2 * leaseTimeOut;
                 long beforeLease = async.getLong(leaseName);
                 if (beforeLease > now) {
-                    throw CONCURRENT_UPDATE;
+                    throw newConcurrentUpdateException();
                 }
 
                 NodeBuilder builder = root.builder();
@@ -453,7 +450,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 long leaseExpMsg = (leaseEndTime - currentTime) / 1000;
                 String err = String.format("Another copy of the index update is already running; skipping this update. " +
                         "Time left for lease to expire %d s. Indexing can resume by %tT", leaseExpMsg, leaseEndTime);
-                indexStats.failed(new Exception(err, CONCURRENT_UPDATE));
+                indexStats.failed(new Exception(err, newConcurrentUpdateException()));
                 return;
             }
         }
@@ -772,7 +769,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     (lease == null      || lease == async.getLong(leasify(name)))) {
                     return after;
                 } else {
-                    throw CONCURRENT_UPDATE;
+                    throw newConcurrentUpdateException();
                 }
             }
         };
@@ -789,7 +786,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         } catch (CommitFailedException ex) {
             // OAK-2961
             if (ex.isOfType(CommitFailedException.STATE) && ex.getCode() == 1) {
-                throw CONCURRENT_UPDATE;
+                throw newConcurrentUpdateException();
             } else {
                 throw ex;
             }
@@ -1392,4 +1389,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         return name;
     }
 
+    private static CommitFailedException newConcurrentUpdateException() {
+        return new CommitFailedException("Async", 1, "Concurrent update detected");
+    }
 }
