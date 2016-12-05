@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.cache;
 
 import com.google.common.cache.Weigher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Determines the weight of object based on the memory taken by them. The memory estimates
@@ -26,12 +28,18 @@ import com.google.common.cache.Weigher;
  */
 public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
 
+    static final Logger LOG = LoggerFactory.getLogger(EmpiricalWeigher.class);
+
     @Override
     public int weigh(CacheValue key, CacheValue value) {
-        int size = 168;                 // overhead for each cache entry
+        long size = 168;                // overhead for each cache entry
         size += key.getMemory();        // key
         size += value.getMemory();      // value
-        return size;
+        if (size > Integer.MAX_VALUE) {
+            LOG.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
     
 }
