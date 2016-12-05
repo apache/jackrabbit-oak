@@ -192,10 +192,9 @@ public class NRTIndexTest {
     }
 
     private IndexDefinition getSyncIndexDefinition(String indexPath) {
-        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         TestUtil.enableIndexingMode(builder, IndexingMode.NRT);
 
-        return new IndexDefinition(root, builder.getNodeState(), "/foo");
+        return new IndexDefinition(root, builder.getNodeState(), indexPath);
     }
 
 

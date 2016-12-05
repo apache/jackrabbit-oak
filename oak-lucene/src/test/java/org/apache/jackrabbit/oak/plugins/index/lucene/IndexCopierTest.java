@@ -97,7 +97,6 @@ public class IndexCopierTest {
 
     @Before
     public void setUp(){
-        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         LuceneIndexEditorContext.configureUniqueId(builder);
     }
 
@@ -594,7 +593,6 @@ public class IndexCopierTest {
 
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
-        builder.setProperty(IndexConstants.INDEX_PATH, "foo");
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
 
@@ -972,9 +970,7 @@ public class IndexCopierTest {
         executor.setForwardingExecutor(executorService);
 
         Directory baseDir = new CloseSafeDir();
-        String indexPath = "/foo";
-        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), indexPath);
         IndexCopier copier = new RAMIndexCopier(baseDir, executor, getWorkDir(), true);
 
         Directory remote = new CloseSafeDir();

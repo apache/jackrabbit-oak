@@ -130,9 +130,8 @@ public class NRTIndexFactoryTest {
     }
 
     private IndexDefinition getIndexDefinition(String indexPath, IndexingMode indexingMode) {
-        builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         TestUtil.enableIndexingMode(builder, indexingMode);
 
-        return new IndexDefinition(root, builder.getNodeState(), "/foo");
+        return new IndexDefinition(root, builder.getNodeState(), indexPath);
     }
 }

@@ -417,7 +417,6 @@ public class LuceneIndexEditorTest {
 
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene", of(TYPENAME_STRING));
-        nb.setProperty(IndexConstants.INDEX_PATH, "foo");
         IndexUtils.createIndexDefinition(index, "failingIndex", false, false, of("foo"), null);
 
 
