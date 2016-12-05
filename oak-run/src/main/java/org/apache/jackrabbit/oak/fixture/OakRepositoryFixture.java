@@ -123,6 +123,12 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 memoryMapping, true, dsCacheInMB));
     }
 
+    public static RepositoryFixture getMultiplexing(File base, int maxFileSizeMB, int cacheSizeMB,
+                                                    boolean memoryMapping, int mounts) {
+        return new OakRepositoryFixture(OakFixture.getMultiplexing(OakFixture.OAK_MULTIPLEXING,
+                base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts));
+    }
+
     private final OakFixture oakFixture;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private Repository[] cluster;
