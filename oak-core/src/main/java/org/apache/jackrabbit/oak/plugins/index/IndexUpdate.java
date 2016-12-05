@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REIND
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -233,8 +232,6 @@ public class IndexUpdate implements Editor {
                     continue;
                 }
 
-                manageIndexPath(definition, name);
-
                 Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
                         rootState.newCallback(indexPath, shouldReindex));
                 if (editor == null) {
@@ -278,13 +275,6 @@ public class IndexUpdate implements Editor {
             }
         } else {
             return asyncRef == null;
-        }
-    }
-
-    private void manageIndexPath(NodeBuilder definition, String name) {
-        String path = definition.getString(INDEX_PATH);
-        if (path == null){
-            definition.setProperty(INDEX_PATH, PathUtils.concat(getPath(), INDEX_DEFINITIONS_NAME, name));
         }
     }
 
