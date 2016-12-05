@@ -32,6 +32,8 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.toArray;
@@ -50,6 +52,8 @@ import static java.util.Arrays.sort;
  * a given revision vector happened before or after another!
  */
 public final class RevisionVector implements Iterable<Revision>, Comparable<RevisionVector>, CacheValue {
+
+    private static final Logger log = LoggerFactory.getLogger(RevisionVector.class);
 
     private final static RevisionVector EMPTY = new RevisionVector();
 
@@ -423,8 +427,13 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     @Override
     public int getMemory() {
-        return 32 // shallow size
-                + revisions.length * (Revision.SHALLOW_MEMORY_USAGE + 4);
+        long size = 32 // shallow size
+                      + (long)revisions.length * (Revision.SHALLOW_MEMORY_USAGE + 4);
+        if (size > Integer.MAX_VALUE) {
+            log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     //------------------------< Comparable >------------------------------------

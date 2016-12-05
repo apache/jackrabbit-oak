@@ -130,7 +130,7 @@ public class Utils {
         if (map == null) {
             return 0;
         }
-        int size = 0;
+        long size = 0;
 
         for (Entry<?, Object> e : map.entrySet()) {
             if (e.getKey() instanceof Revision) {
@@ -148,7 +148,7 @@ public class Utils {
             } else if (o instanceof Integer) {
                 size += 8;
             } else if (o instanceof Map) {
-                size += 8 + estimateMemoryUsage((Map<String, Object>) o);
+                size += 8 + (long)estimateMemoryUsage((Map<String, Object>) o);
             } else if (o == null) {
                 // zero
             } else {
@@ -160,9 +160,13 @@ public class Utils {
         // TreeMap (80) + unmodifiable wrapper (32)
         size += 112;
         // 64 bytes per entry
-        size += map.size() * 64;
+        size += (long)map.size() * 64;
 
-        return size;
+        if (size > Integer.MAX_VALUE) {
+            LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     public static String escapePropertyName(String propertyName) {

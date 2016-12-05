@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -28,6 +30,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A cache value wrapping a simple string.
  */
 public final class StringValue implements CacheValue {
+
+    private static final Logger log = LoggerFactory.getLogger(StringValue.class);
 
     private final String value;
 
@@ -41,8 +45,13 @@ public final class StringValue implements CacheValue {
     }
 
     public static int getMemory(@Nonnull String s) {
-        return 16                           // shallow size
-                + 40 + s.length() * 2;  // value
+        long size = 16                            // shallow size
+                    + 40 + (long)s.length() * 2;  // value
+        if (size > Integer.MAX_VALUE) {
+            log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     @Override

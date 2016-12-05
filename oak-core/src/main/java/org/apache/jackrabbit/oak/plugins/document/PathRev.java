@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -30,6 +32,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * revision.
  */
 public final class PathRev implements CacheValue {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PathRev.class);
 
     private final String path;
 
@@ -46,9 +50,14 @@ public final class PathRev implements CacheValue {
 
     @Override
     public int getMemory() {
-        return 24                                       // shallow size
-                + StringUtils.estimateMemoryUsage(path) // path
-                + revision.getMemory();                 // revision
+        long size =  24                                               // shallow size
+                       + (long)StringUtils.estimateMemoryUsage(path)  // path
+                       + revision.getMemory();                        // revision
+        if (size > Integer.MAX_VALUE) {
+            LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     //----------------------------< Object >------------------------------------

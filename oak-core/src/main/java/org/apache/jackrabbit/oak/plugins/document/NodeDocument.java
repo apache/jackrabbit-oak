@@ -2217,11 +2217,15 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
         @Override
         public int getMemory() {
-            int size = 114;
+            long size = 114;
             for (String name : childNames) {
-                size += name.length() * 2 + 56;
+                size += (long)name.length() * 2 + 56;
             }
-            return size;
+            if (size > Integer.MAX_VALUE) {
+                LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+                size = Integer.MAX_VALUE;
+            }
+            return (int) size;
         }
 
         @SuppressWarnings("unchecked")

@@ -24,11 +24,15 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 
 import com.google.common.cache.Weigher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A blob store with a cache.
  */
 public abstract class CachingBlobStore extends AbstractBlobStore {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CachingBlobStore.class);
 
     protected static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
@@ -39,7 +43,12 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
         public int weigh(@Nonnull String key, @Nonnull byte[] value) {
-            return StringUtils.estimateMemoryUsage(key) + value.length;
+            long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
+            if (weight > Integer.MAX_VALUE) {
+                LOG.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
+                weight = Integer.MAX_VALUE;
+            }
+            return (int) weight;
         }
     };
 
