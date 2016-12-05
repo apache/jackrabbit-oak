@@ -109,7 +109,12 @@ public class DataStoreBlobStore
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
         public int weigh(@Nonnull String key, @Nonnull byte[] value) {
-            return StringUtils.estimateMemoryUsage(key) + value.length;
+            long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
+            if (weight > Integer.MAX_VALUE) {
+                log.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
+                weight = Integer.MAX_VALUE;
+            }
+            return (int) weight;
         }
     };
 

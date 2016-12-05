@@ -40,7 +40,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 class ExtractedTextCache {
     private static final String EMPTY_STRING = "";
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(ExtractedTextCache.class);
     private volatile PreExtractedTextProvider extractedTextProvider;
     private int textExtractionCount;
     private long totalBytesRead;
@@ -199,17 +199,21 @@ class ExtractedTextCache {
         private EmpiricalWeigher() {
         }
 
-        private static int getMemory(@Nonnull String s) {
-            return 16                           // shallow size
-                    + 40 + s.length() * 2;  // value
+        private static long getMemory(@Nonnull String s) {
+            return 16                              // shallow size
+                    + 40 + (long)s.length() * 2;   // value
         }
 
         @Override
         public int weigh(String key, String value) {
-            int size = 168;                 // overhead for each cache entry
+            long size = 168;               // overhead for each cache entry
             size += getMemory(key);        // key
             size += getMemory(value);      // value
-            return size;
+            if (size > Integer.MAX_VALUE) {
+                log.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", size);
+                size = Integer.MAX_VALUE;
+            }
+            return (int) size;
         }
     }
 }

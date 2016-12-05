@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Some string utility methods.
  */
 public class StringUtils {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StringUtils.class);
 
     private static final char[] HEX = "0123456789abcdef".toCharArray();
 
@@ -87,6 +92,11 @@ public class StringUtils {
      * @return the estimated memory usage.
      */
     public static int estimateMemoryUsage(String s) {
-        return s == null ? 0 : 48 + s.length() * 2;
+        long size = s == null ? 0 : 48 + (long)s.length() * 2;
+        if (size > Integer.MAX_VALUE) {
+            LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 }
