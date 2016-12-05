@@ -54,7 +54,7 @@ public class DefaultIndexReaderFactoryTest {
 
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+    private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
     private MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
             .mount("foo", "/libs", "/apps").build();
 
@@ -138,7 +138,7 @@ public class DefaultIndexReaderFactoryTest {
     public void suggesterDir() throws Exception{
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         enabledSuggestorForSomeProp();
-        defn = new IndexDefinition(root, builder.getNodeState());
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         Document doc = newDoc("/content/en");
@@ -172,7 +172,7 @@ public class DefaultIndexReaderFactoryTest {
     public void multipleReaders_SingleSuggester() throws Exception{
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
         enabledSuggestorForSomeProp();
-        defn = new IndexDefinition(root, builder.getNodeState());
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         //Suggester field is only present for document in default mount

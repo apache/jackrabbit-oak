@@ -110,7 +110,8 @@ public class LuceneIndexEditorContext {
         this.indexingContext = checkNotNull(indexingContext);
         this.definitionBuilder = definition;
         this.indexWriterFactory = indexWriterFactory;
-        this.definition = indexDefinition != null ? indexDefinition : new IndexDefinition(root, definition);
+        this.definition = indexDefinition != null ? indexDefinition :
+                new IndexDefinition(root, definition.getBaseState(),indexingContext.getIndexPath());
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
@@ -181,10 +182,15 @@ public class LuceneIndexEditorContext {
         reindex = true;
         IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
-        configureUniqueId(definitionBuilder);
+        String uid = configureUniqueId(definitionBuilder);
 
         //Refresh the index definition based on update builder state
-        definition = new IndexDefinition(root, definitionBuilder);
+        definition = IndexDefinition
+                .newBuilder(root, definitionBuilder.getBaseState())
+                .indexPath(indexingContext.getIndexPath())
+                .version(version)
+                .uid(uid)
+                .build();
     }
 
     public long incIndexedNodes() {
@@ -244,10 +250,10 @@ public class LuceneIndexEditorContext {
         return reindex;
     }
 
-    public static void configureUniqueId(NodeBuilder definition) {
+    public static String configureUniqueId(NodeBuilder definition) {
         NodeBuilder status = definition.child(IndexDefinition.STATUS_NODE);
-        if (!status.hasProperty(IndexDefinition.PROP_UID)) {
-            String uid;
+        String uid = status.getString(IndexDefinition.PROP_UID);
+        if (uid == null) {
             try {
                 uid = String.valueOf(Clock.SIMPLE.getTimeIncreasing());
             } catch (InterruptedException e) {
@@ -256,6 +262,7 @@ public class LuceneIndexEditorContext {
             }
             status.setProperty(IndexDefinition.PROP_UID, uid);
         }
+        return uid;
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {

@@ -53,7 +53,7 @@ public class IndexNode {
     static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState,
                           LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
             throws IOException {
-        IndexDefinition definition = new IndexDefinition(root, defnNodeState);
+        IndexDefinition definition = new IndexDefinition(root, defnNodeState, indexPath);
         List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState, indexPath);
         NRTIndex nrtIndex = nrtFactory != null ? nrtFactory.createIndex(definition) : null;
         if (!readers.isEmpty()){

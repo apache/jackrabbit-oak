@@ -60,7 +60,7 @@ public class NRTIndexFactoryTest {
 
     @Test
     public void noIndexForAsync() throws Exception{
-        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertNull(indexFactory.createIndex(idxDefn));
     }
 
@@ -133,6 +133,6 @@ public class NRTIndexFactoryTest {
         builder.setProperty(IndexConstants.INDEX_PATH, indexPath);
         TestUtil.enableIndexingMode(builder, indexingMode);
 
-        return new IndexDefinition(root, builder.getNodeState());
+        return new IndexDefinition(root, builder.getNodeState(), "/foo");
     }
 }

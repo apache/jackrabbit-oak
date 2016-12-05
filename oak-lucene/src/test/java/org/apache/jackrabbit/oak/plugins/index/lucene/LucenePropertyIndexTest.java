@@ -2240,7 +2240,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
-        IndexDefinition defn = new IndexDefinition(INITIAL_CONTENT, idxState);
+        IndexDefinition defn = new IndexDefinition(INITIAL_CONTENT, idxState, "/foo");
 
         //Check that with normal indexing uid gets initialized
         String uid = defn.getUniqueId();
@@ -2252,7 +2252,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //Refetch the NodeState
         idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
-        defn = new IndexDefinition(INITIAL_CONTENT, idxState);
+        defn = new IndexDefinition(INITIAL_CONTENT, idxState, "/foo");
 
         //Check that uid is also initialized in reindexing
         String uid2 = defn.getUniqueId();

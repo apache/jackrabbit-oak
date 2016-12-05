@@ -137,7 +137,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder idxnb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        IndexDefinition defn = new IndexDefinition(root, idxnb.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, idxnb.getNodeState(), "/foo");
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
         builder.child("test").setProperty("price", 100);
@@ -193,7 +193,7 @@ public class LuceneIndexEditorTest {
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "price", "weight", "bool", "creationTime"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(root, nb.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, nb.getNodeState(), "/foo");
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
         builder.child("test").setProperty("bar", "kite is flying");
@@ -376,7 +376,7 @@ public class LuceneIndexEditorTest {
 
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         assertEquals(IndexFormatVersion.V1, new IndexDefinition(root,
-                indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene")).getVersion());
+                indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene"), "/foo").getVersion());
 
         //3. Trigger a reindex and version should switch to current
         builder = indexed.builder();
@@ -385,7 +385,7 @@ public class LuceneIndexEditorTest {
         after = builder.getNodeState();
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         assertEquals(IndexFormatVersion.getDefault(), new IndexDefinition(root,
-                indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene")).getVersion());
+                indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene"), "/foo").getVersion());
 
     }
 
@@ -398,7 +398,7 @@ public class LuceneIndexEditorTest {
         //1. Trigger a index so that next index step does not see it as a fresh index
         NodeState indexed = HOOK.processCommit(EMPTY_NODE, builder.getNodeState(), CommitInfo.EMPTY);
 
-        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene"));
+        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene"), "/foo");
         assertFalse(defn.isOfOldFormat());
     }
 
@@ -473,7 +473,7 @@ public class LuceneIndexEditorTest {
     private int numDocs(Mount m) throws IOException {
         String indexDirName = MultiplexersLucene.getIndexDirName(m);
         NodeBuilder defnBuilder = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
-        Directory d = new OakDirectory(defnBuilder, indexDirName, new IndexDefinition(root, defnBuilder.getNodeState()), true);
+        Directory d = new OakDirectory(defnBuilder, indexDirName, new IndexDefinition(root, defnBuilder.getNodeState(), "/foo"), true);
         IndexReader r = DirectoryReader.open(d);
         return r.numDocs();
     }

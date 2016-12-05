@@ -61,7 +61,7 @@ public class MultiplexingIndexWriterTest {
 
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+    private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
     private MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
             .mount("foo", "/libs", "/apps").build();
 

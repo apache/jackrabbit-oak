@@ -221,7 +221,7 @@ public class IndexRootDirectoryTest {
     }
 
     private IndexDefinition getDefn(){
-        return new IndexDefinition(root, builder.getNodeState());
+        return new IndexDefinition(root, builder.getNodeState(), "/foo");
     }
 
     private static LocalIndexDir getDir(String jcrPath, List<LocalIndexDir> dirs){

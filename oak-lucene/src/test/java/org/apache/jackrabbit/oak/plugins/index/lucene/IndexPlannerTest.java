@@ -94,7 +94,7 @@ public class IndexPlannerTest {
     public void planForSortField() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", createFilter("nt:base"),
                 ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
@@ -104,7 +104,7 @@ public class IndexPlannerTest {
     @Test
     public void noPlanForSortOnlyByScore() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", createFilter("nt:file"),
                 ImmutableList.of(new OrderEntry("jcr:score", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNull(planner.getPlan());
@@ -113,7 +113,7 @@ public class IndexPlannerTest {
     @Test
     public void fullTextQueryNonFulltextIndex() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -124,7 +124,7 @@ public class IndexPlannerTest {
     public void noApplicableRule() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:folder"), STRINGS));
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -142,7 +142,7 @@ public class IndexPlannerTest {
         //as nt:folder extends nt:hierarchyNode we should get a plan
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:folder");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -152,7 +152,7 @@ public class IndexPlannerTest {
     @Test
     public void noMatchingProperty() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -161,7 +161,7 @@ public class IndexPlannerTest {
     @Test
     public void matchingProperty() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -175,7 +175,7 @@ public class IndexPlannerTest {
     public void purePropertyIndexAndPathRestriction() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -191,7 +191,7 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -211,7 +211,7 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
         foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(),"/foo"));
         FilterImpl filter = createFilter("nt:file");
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
 
@@ -231,7 +231,7 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:file");
         filter.restrictPath("/", Filter.PathRestriction.ALL_CHILDREN);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
 
         // /jcr:root//element(*, nt:file)
@@ -245,7 +245,7 @@ public class IndexPlannerTest {
         defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
 
@@ -261,7 +261,7 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
 
@@ -279,7 +279,7 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
         foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
 
@@ -298,7 +298,7 @@ public class IndexPlannerTest {
         //as a fresh indexing case
         nb.child(INDEX_DATA_CHILD_NAME);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, nb.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, nb.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -310,7 +310,7 @@ public class IndexPlannerTest {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
-        IndexDefinition idxDefn = new IndexDefinition(root, defn.getNodeState());
+        IndexDefinition idxDefn = new IndexDefinition(root, defn.getNodeState(), "/foo");
         IndexNode node = createIndexNode(idxDefn, numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -331,7 +331,7 @@ public class IndexPlannerTest {
         defn.setProperty(LuceneIndexConstants.COST_PER_EXECUTION, 3.0);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()), numofDocs);
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -351,7 +351,7 @@ public class IndexPlannerTest {
         TestUtil.useV2(defn);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()), numofDocs);
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -365,7 +365,7 @@ public class IndexPlannerTest {
     public void nullPropertyCheck() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, null);
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -383,7 +383,7 @@ public class IndexPlannerTest {
                 .setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true)
                 .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
 
-        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState().getChildNode("test"));
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState().getChildNode("test"), "/foo");
         IndexNode node = createIndexNode(idxDefn);
 
         FilterImpl filter = createFilter(NT_TEST);
@@ -401,7 +401,7 @@ public class IndexPlannerTest {
     public void noPathRestHasQueryPath() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a"), Type.STRINGS));
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -414,7 +414,7 @@ public class IndexPlannerTest {
     public void hasPathRestHasMatchingQueryPaths() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a", "/test/b"), Type.STRINGS));
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/test/a", Filter.PathRestriction.ALL_CHILDREN);
@@ -426,7 +426,7 @@ public class IndexPlannerTest {
     @Test
     public void hasPathRestHasNoExplicitQueryPaths() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
@@ -444,7 +444,7 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -463,7 +463,7 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
         foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
 
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
         filter.restrictPath("/foo", Filter.PathRestriction.ALL_CHILDREN);
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -731,7 +731,7 @@ public class IndexPlannerTest {
     }
 
     private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
-        IndexNode node = createIndexNode(new IndexDefinition(root, defn));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn, "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(exp);
         return new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
@@ -752,7 +752,7 @@ public class IndexPlannerTest {
             foob.setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true);
         }
 
-        IndexDefinition indexDefinition = new IndexDefinition(root, defn.getNodeState());
+        IndexDefinition indexDefinition = new IndexDefinition(root, defn.getNodeState(), "/foo");
         return createIndexNode(indexDefinition);
     }
 
