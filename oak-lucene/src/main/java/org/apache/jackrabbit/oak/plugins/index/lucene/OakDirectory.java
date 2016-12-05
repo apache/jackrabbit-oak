@@ -94,6 +94,7 @@ public class OakDirectory extends Directory {
     private final String indexName;
     @Nullable
     private final GarbageCollectableBlobStore blobStore;
+    private volatile boolean dirty;
 
     public OakDirectory(NodeBuilder builder, IndexDefinition definition, boolean readOnly) {
         this(builder, INDEX_DATA_CHILD_NAME, definition, readOnly, null);
@@ -154,6 +155,7 @@ public class OakDirectory extends Directory {
             trashEntry.setProperty(JCR_DATA, data, BINARIES);
         }
         f.remove();
+        markDirty();
     }
 
     @Override
@@ -183,6 +185,7 @@ public class OakDirectory extends Directory {
             file = directoryBuilder.child(name);
         }
         fileNames.add(name);
+        markDirty();
         return new OakIndexOutput(name, file, indexName, blobStore);
     }
 
@@ -236,6 +239,14 @@ public class OakDirectory extends Directory {
     @Override
     public String toString() {
         return "Directory for " + definition.getIndexName();
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    private void markDirty() {
+        dirty = true;
     }
 
     private Set<String> getListing(){
