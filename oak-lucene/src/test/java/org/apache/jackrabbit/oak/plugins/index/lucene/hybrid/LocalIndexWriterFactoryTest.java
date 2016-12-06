@@ -22,13 +22,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.IOException;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -39,7 +39,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.*;
@@ -190,9 +189,10 @@ public class LocalIndexWriterFactoryTest {
     }
 
     private void createIndexDefinition(String idxName, IndexingMode indexingMode) {
-        NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
-                idxName, ImmutableSet.of("foo"), "async");
-        TestUtil.enableIndexingMode(idx, indexingMode);
+        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        TestUtil.enableIndexingMode(idx.getBuilderTree(), indexingMode);
+        idx.indexRule("nt:base").property("foo").propertyIndex();
+        builder.child("oak:index").setChildNode(idxName, idx.build());
     }
 
 }
