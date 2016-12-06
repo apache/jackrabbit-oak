@@ -199,6 +199,11 @@ public class IndexUpdate implements Editor {
 
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
             String name) {
+        //Async indexes are not considered for reindexing for sync indexing
+        if (!isMatchingIndexMode(definition)){
+            return false;
+        }
+
         PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
         if (ps != null && ps.getValue(BOOLEAN)) {
             return !rootState.ignoreReindexFlags;
@@ -276,6 +281,27 @@ public class IndexUpdate implements Editor {
         } else {
             return asyncRef == null;
         }
+    }
+
+    /**
+     * Determines if the current indexing mode matches with the IndexUpdate mode.
+     * For this match it only considers indexes either as
+     * <ul>
+     *     <li>sync - Index definition does not have async property defined</li>
+     *     <li>async - Index definition has async property defined. It does not matter what its value is</li>
+     * </ul>
+     *
+     * <p>Same applies for IndexUpdate also.
+     *
+     * <p>Note that this differs from #isIncluded which also considers the value of <code>async</code>
+     * property to determine if the index should be selected for current IndexUpdate run.
+     */
+    private boolean isMatchingIndexMode(NodeBuilder definition){
+        boolean async = definition.hasProperty(ASYNC_PROPERTY_NAME);
+        //Either
+        // 1. async index and async index update
+        // 2. non async i.e. sync index and sync index update
+        return async == rootState.isAsync();
     }
 
     private void incrementReIndexCount(NodeBuilder definition) {
@@ -536,6 +562,10 @@ public class IndexUpdate implements Editor {
             return false;
         }
 
+        public boolean isAsync(){
+            return async != null;
+        }
+
         public boolean isReindexingPerformed(){
             return !reindexedIndexes.isEmpty();
         }
@@ -614,7 +644,7 @@ public class IndexUpdate implements Editor {
 
             @Override
             public boolean isAsync() {
-                return async != null;
+                return IndexUpdateRootState.this.isAsync();
             }
 
             @Override

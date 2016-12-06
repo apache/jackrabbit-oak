@@ -702,6 +702,26 @@ public class IndexUpdateTest {
         assertFalse(find(lookup, "foo", "xyz").isEmpty());
     }
 
+    @Test
+    public void shouldNotReindexAsyncIndexInSyncMode() throws Exception{
+        String indexPath = "/oak:index/rootIndex";
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+
+        IndexUpdateProvider indexUpdate = new IndexUpdateProvider(provider);
+        EditorHook hook = new EditorHook(indexUpdate);
+
+        NodeState before = builder.getNodeState();
+        NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        idx.setProperty("async", asList("async", "sync"), Type.STRINGS);
+
+        builder.child("a").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertFalse(provider.getContext(indexPath).isReindexing());
+    }
+
     private static void markCorrupt(NodeBuilder builder, String indexName) {
         builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
                 .setProperty(IndexConstants.CORRUPT_PROPERTY_NAME, ISO8601.format(Calendar.getInstance()));
