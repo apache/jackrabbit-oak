@@ -2349,7 +2349,8 @@ public final class DocumentNodeStore
         RevisionVector fromRev = from.getLastRevision();
         RevisionVector toRev = to.getLastRevision();
         long minTimestamp = Utils.getMinTimestampForDiff(
-                fromRev, toRev, getMinExternalRevisions());
+                from.getRootRevision(), to.getRootRevision(),
+                getMinExternalRevisions());
 
         // use journal if possible
         Revision tailRev = journalGarbageCollector.getTailRevision();
