@@ -24,6 +24,8 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
@@ -80,10 +82,9 @@ public class SuggestHelper {
         }
     }
 
-    public static List<Lookup.LookupResult> getSuggestions(AnalyzingInfixSuggester suggester, SuggestQuery suggestQuery) {
+    public static List<Lookup.LookupResult> getSuggestions(AnalyzingInfixSuggester suggester, @Nullable SuggestQuery suggestQuery) {
         try {
-            long count = suggester.getCount();
-            if (count > 0) {
+            if (suggester != null && suggester.getCount() > 0) {
                 return suggester.lookup(suggestQuery.getText(), 10, true, false);
             } else {
                 return Collections.emptyList();

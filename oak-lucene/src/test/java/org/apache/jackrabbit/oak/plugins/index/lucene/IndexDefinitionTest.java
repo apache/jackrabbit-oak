@@ -876,6 +876,23 @@ public class IndexDefinitionTest {
         assertTrue(idxDefn.isSyncIndexingEnabled());
     }
 
+    @Test
+    public void hasPersistedIndex() throws Exception{
+        assertFalse(IndexDefinition.hasPersistedIndex(builder.getNodeState()));
+        builder.child(":status");
+        assertTrue(IndexDefinition.hasPersistedIndex(builder.getNodeState()));
+    }
+
+    @Test
+    public void uniqueIdForFreshIndex() throws Exception{
+        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState()).indexPath("/foo").build();
+        assertEquals("0", defn.getUniqueId());
+
+        builder.child(":status");
+        defn = IndexDefinition.newBuilder(root, builder.getNodeState()).indexPath("/foo").build();
+        assertNull(defn.getUniqueId());
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){

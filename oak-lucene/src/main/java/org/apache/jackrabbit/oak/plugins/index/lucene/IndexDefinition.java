@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.analysis.Analyzer;
@@ -252,6 +253,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public static class Builder {
+        /**
+         * Default unique id used when no existing uid is defined
+         * and index is not populated
+         */
+        private static final String DEFAULT_UID = "0";
         private final NodeState root;
         private final NodeState defn;
         private String indexPath;
@@ -284,6 +290,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             }
             if (uid == null){
                 uid = determineUniqueId(defn);
+                if (uid == null && !IndexDefinition.hasPersistedIndex(defn)){
+                    uid = DEFAULT_UID;
+                }
             }
             return new IndexDefinition(root, defn, version, uid, checkNotNull(indexPath));
         }
@@ -504,6 +513,20 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return syncIndexMode;
     }
 
+    /**
+     * Check if the index definition is fresh of some index has happened
+     *
+     * @param definition nodestate for Index Definition
+     * @return true if index has some indexed content
+     */
+    public static boolean hasPersistedIndex(NodeState definition){
+        for (String rm : definition.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(rm)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     public String toString() {
