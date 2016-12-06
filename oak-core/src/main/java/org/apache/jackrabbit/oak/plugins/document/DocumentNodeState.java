@@ -429,7 +429,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 + rootRevision.getMemory()
                 + estimateMemoryUsage(path);
         // rough approximation for properties
-        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+        for (Map.Entry<String, PropertyState> entry : bundlingContext.getAllProperties().entrySet()) {
             // name
             size += estimateMemoryUsage(entry.getKey());
             PropertyState propState = entry.getValue();
