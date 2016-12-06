@@ -56,7 +56,7 @@ public class IndexNode {
         IndexDefinition definition = new IndexDefinition(root, defnNodeState, indexPath);
         List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState, indexPath);
         NRTIndex nrtIndex = nrtFactory != null ? nrtFactory.createIndex(definition) : null;
-        if (!readers.isEmpty()){
+        if (!readers.isEmpty() || (nrtIndex != null && !IndexDefinition.hasPersistedIndex(defnNodeState))){
             return new IndexNode(PathUtils.getName(indexPath), definition, readers, nrtIndex);
         }
         return null;
@@ -93,7 +93,7 @@ public class IndexNode {
 
     IndexNode(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
             throws IOException {
-        checkArgument(!readers.isEmpty());
+        checkArgument(!readers.isEmpty() || nrtIndex != null);
         this.name = name;
         this.definition = definition;
         this.readers = readers;
@@ -115,12 +115,14 @@ public class IndexNode {
         return indexSearcher;
     }
 
+    @CheckForNull
     Directory getSuggestDirectory() {
-        return getDefaultReader().getSuggestDirectory();
+        return readers.isEmpty() ? null : getDefaultReader().getSuggestDirectory();
     }
 
+    @CheckForNull
     AnalyzingInfixSuggester getLookup() {
-        return getDefaultReader().getLookup();
+        return readers.isEmpty() ? null : getDefaultReader().getLookup();
     }
 
     boolean acquire() {
@@ -187,6 +189,9 @@ public class IndexNode {
     private IndexReader createReader(List<LuceneIndexReader> nrtReaders) {
         if (readers.size() == 1 && nrtReaders.isEmpty()){
             return readers.get(0).getReader();
+        }
+        if (nrtReaders.size() == 1 && readers.isEmpty()){
+            return nrtReaders.get(0).getReader();
         }
         IndexReader[] readerArr = new IndexReader[readers.size() + nrtReaders.size()];
         int i = 0;

@@ -213,20 +213,29 @@ public class HybridIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
     }
 
-    //@Test
+    @Test
     public void usageBeforeFirstIndex() throws Exception{
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
-        idxb.async("sync", "async");
-        idxb.indexRule("nt:base").property("foo").propertyIndex();
-        Tree idx = root.getTree("/oak:index").addChild("hybridtest");
-        idxb.build(idx);
-
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
         root.commit();
 
         createPath("/a").setProperty("foo", "bar");
         root.commit();
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+
+        //Add new node. This should get immediately reelected as its a sync index
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+
+        runAsyncIndex();
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+
+        createPath("/c").setProperty("foo", "bar");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
     }
 
     private void runAsyncIndex() {
