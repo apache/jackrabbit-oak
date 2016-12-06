@@ -105,7 +105,6 @@ public class LuceneIndexEditorContext {
                              ExtractedTextCache extractedTextCache,
                              IndexAugmentorFactory augmentorFactory,
                              IndexingContext indexingContext, boolean asyncIndexing) {
-        configureUniqueId(definition);
         this.root = root;
         this.indexingContext = checkNotNull(indexingContext);
         this.definitionBuilder = definition;

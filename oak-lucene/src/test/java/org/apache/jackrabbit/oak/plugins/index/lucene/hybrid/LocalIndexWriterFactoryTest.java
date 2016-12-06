@@ -79,8 +79,8 @@ public class LocalIndexWriterFactoryTest {
 
         //This is reindex case so nothing would be indexed
         //So now holder should be present in context
-        assertNull(getHolder());
-        assertNull(getCommitAttribute(LuceneDocumentHolder.NAME));
+        assertNotNull(getHolder());
+        assertNotNull(getCommitAttribute(LuceneDocumentHolder.NAME));
     }
 
     @Test
