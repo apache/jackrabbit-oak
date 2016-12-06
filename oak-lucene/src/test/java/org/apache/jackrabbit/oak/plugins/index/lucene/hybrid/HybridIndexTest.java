@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +32,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder.IndexRule;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -68,7 +70,6 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.createIndex;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -167,7 +168,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     @Test
     public void noTextExtractionForSyncCommit() throws Exception{
         String idxName = "hybridtest";
-        Tree idx = TestUtil.createFulltextIndex(root.getTree("/"), idxName);
+        Tree idx = createFulltextIndex(root.getTree("/"), idxName);
         TestUtil.enableIndexingMode(idx, IndexingMode.NRT);
         root.commit();
 
@@ -246,6 +247,30 @@ public class HybridIndexTest extends AbstractQueryTest {
             base = base.addChild(e);
         }
         return base;
+    }
+
+    private static Tree createIndex(Tree index, String name, Set<String> propNames){
+        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        IndexRule rule = idx.indexRule("nt:base");
+        for (String propName : propNames){
+            rule.property(propName).propertyIndex();
+        }
+        Tree idxTree = index.getChild("oak:index").addChild(name);
+        idx.build(idxTree);
+        return idxTree;
+    }
+
+    private static Tree createFulltextIndex(Tree index, String name){
+        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        idx.evaluatePathRestrictions();
+        idx.indexRule("nt:base")
+                .property(LuceneIndexConstants.REGEX_ALL_PROPS, true)
+                .analyzed()
+                .nodeScopeIndex()
+                .useInExcerpt();
+        Tree idxTree = index.getChild("oak:index").addChild(name);
+        idx.build(idxTree);
+        return idxTree;
     }
 
     private static class AccessRecordingBlob extends ArrayBasedBlob {
