@@ -163,6 +163,11 @@ public class MultiplexingNodeStoreService {
         NodeStoreWithProps newNs = new NodeStoreWithProps(ns, config);
         nodeStores.add(newNs);
 
+        if (context == null) {
+            LOG.info("bindNodeStore: context is null, delaying reconfiguration");
+            return;
+        }
+
         unregisterMultiplexingNodeStore();
         registerMultiplexingNodeStore();
     }
@@ -173,6 +178,11 @@ public class MultiplexingNodeStoreService {
             if (it.next().getNodeStoreProvider() == ns) {
                 it.remove();
             }
+        }
+
+        if (context == null) {
+            LOG.info("unbindNodeStore: context is null, delaying reconfiguration");
+            return;
         }
 
         unregisterMultiplexingNodeStore();

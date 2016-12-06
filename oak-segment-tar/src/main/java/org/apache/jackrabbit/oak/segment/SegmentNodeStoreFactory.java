@@ -35,8 +35,11 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
@@ -48,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.util.GenericDescriptors;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -111,6 +115,11 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
+    @Property(boolValue = false,
+            label = "Register JCR descriptors as OSGi services",
+            description="Should only be done for one factory instance")
+    public static final String REGISTER_DESCRIPTORS = "registerDescriptors";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private String name;
@@ -136,6 +145,12 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
 
     private String role;
 
+    private boolean registerRepositoryDescriptors;
+
+    private ServiceRegistration clusterIdDescriptorRegistration;
+
+    private ServiceRegistration discoveryLiteDescriptorRegistration;
+
     @Override
     protected SegmentNodeStore getNodeStore() {
         checkState(segmentNodeStore != null, "service must be activated when used");
@@ -149,6 +164,7 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
         this.role = property(ROLE);
         //In secondaryNodeStore mode customBlobStore is always enabled
         this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE)) || isSecondaryStoreMode();
+        this.registerRepositoryDescriptors = Boolean.parseBoolean(property(REGISTER_DESCRIPTORS));
         log.info("activate: SegmentNodeStore '"+role+"' starting.");
 
         if (blobStore == null && customBlobStore) {
@@ -205,6 +221,32 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
                 },
                 props);
         log.info("Registered NodeStoreProvider backed by SegmentNodeStore of type '{}'", role);
+
+        if (registerRepositoryDescriptors) {
+
+            log.info("Registering JCR descriptors");
+
+            // TODO - copied from SegmentNodeStoreService
+            // ensure a clusterId is initialized
+            // and expose it as 'oak.clusterid' repository descriptor
+            GenericDescriptors clusterIdDesc = new GenericDescriptors();
+            clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
+                    new SimpleValueFactory().createValue(
+                            ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
+            clusterIdDescriptorRegistration = context.getBundleContext().registerService(
+                    Descriptors.class.getName(),
+                    clusterIdDesc,
+                    new Hashtable<>()
+            );
+
+            // Register "discovery lite" descriptors
+            discoveryLiteDescriptorRegistration = context.getBundleContext().registerService(
+                    Descriptors.class.getName(),
+                    new SegmentDiscoveryLiteDescriptors(segmentNodeStore),
+                    new Hashtable<>()
+            );
+        }
+
     }
 
     private boolean registerSegmentStore() throws IOException {
@@ -265,6 +307,14 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
         if (executor != null) {
             executor.stop();
             executor = null;
+        }
+        if (clusterIdDescriptorRegistration != null) {
+            clusterIdDescriptorRegistration.unregister();
+            clusterIdDescriptorRegistration = null;
+        }
+        if (discoveryLiteDescriptorRegistration != null) {
+            discoveryLiteDescriptorRegistration.unregister();
+            discoveryLiteDescriptorRegistration = null;
         }
     }
 
