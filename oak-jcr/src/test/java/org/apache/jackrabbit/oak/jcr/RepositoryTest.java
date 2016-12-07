@@ -1872,6 +1872,35 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore("OAK-5229")
+    public void setPrimaryTypeShouldFail() throws RepositoryException {
+        Node testNode = getNode(TEST_PATH);
+        assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
+        assertEquals("nt:unstructured", testNode.getProperty("jcr:primaryType").getString());
+
+        // create subnode that would not be allowed with nt:folder
+        testNode.addNode("unstructured_child", NodeType.NT_UNSTRUCTURED);
+        getAdminSession().save();
+
+        testNode.setPrimaryType("nt:folder");
+        try {
+            getAdminSession().save();
+            fail("Changing the primary type to nt:folder should fail.");
+        } catch (RepositoryException e) {
+            // ok
+        }
+
+        Session session2 = createAnonymousSession();
+        try {
+            testNode = session2.getNode(TEST_PATH);
+            assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
+            assertEquals("nt:unstructured", testNode.getProperty("jcr:primaryType").getString());
+        } finally {
+            session2.logout();
+        }
+    }
+
+    @Test
     public void nodeTypeRegistry() throws RepositoryException {
         NodeTypeManager ntMgr = getAdminSession().getWorkspace().getNodeTypeManager();
         assertFalse(ntMgr.hasNodeType("foo"));
