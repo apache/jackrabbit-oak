@@ -54,7 +54,7 @@ public class StoreArguments {
 
     public StoreArguments(MigrationOptions options, List<String> arguments) throws CliArgumentException {
         this.options = options;
-        List<StoreDescriptor> descriptors = createStoreDescriptors(arguments);
+        List<StoreDescriptor> descriptors = createStoreDescriptors(arguments, options);
 
         src = descriptors.get(0);
         dst = descriptors.get(1);
@@ -115,11 +115,11 @@ public class StoreArguments {
         return !srcHasExternalBlobRefs;
     }
 
-    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments) throws CliArgumentException {
+    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments, MigrationOptions options) throws CliArgumentException {
         List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
         mergeCrx2Descriptors(descriptors);
         addSegmentAsDestination(descriptors);
-        validateDescriptors(descriptors);
+        validateDescriptors(descriptors, options);
         return descriptors;
     }
 
@@ -195,7 +195,7 @@ public class StoreArguments {
         }
     }
 
-    private static void validateDescriptors(List<StoreDescriptor> descriptors) throws CliArgumentException {
+    private static void validateDescriptors(List<StoreDescriptor> descriptors, MigrationOptions options) throws CliArgumentException {
         if (descriptors.size() < 2) {
             throw new CliArgumentException("Not enough node store arguments: " + descriptors.toString(), 1);
         } else if (descriptors.size() > 2) {
@@ -207,6 +207,9 @@ public class StoreArguments {
         StoreDescriptor dst = descriptors.get(1);
         if (src.getType() == dst.getType() && src.getPath().equals(dst.getPath())) {
             throw new CliArgumentException("The source and the destination is the same repository.", 1);
+        }
+        if (src.getType() == StoreType.JCR2_DIR_XML && options.isSrcBlobStoreDefined()) {
+            throw new CliArgumentException("The --src-datastore can't be used for the repository upgrade. Source datastore configuration is placed in the repository.xml file.", 1);
         }
     }
 
