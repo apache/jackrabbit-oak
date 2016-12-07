@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -63,8 +65,6 @@ import org.osgi.framework.SynchronousBundleListener;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * RepositoryFactory which constructs an instance of Oak repository. Thi factory supports following
@@ -133,12 +133,15 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     public static final String REPOSITORY_ENV_SPRING_BOOT =
             "org.apache.jackrabbit.oak.repository.springBootMode";
 
-    public static final String REPOSITORY_BUNDLE_FILTER_DEFAULT = "(|" +
+    public static final String REPOSITORY_BUNDLE_FILTER_DEFAULT = "(&" +
+            "(|" +
             "(Bundle-SymbolicName=org.apache.jackrabbit*)" +
             "(Bundle-SymbolicName=org.apache.sling*)" +
             "(Bundle-SymbolicName=org.apache.felix*)" +
             "(Bundle-SymbolicName=org.apache.aries*)" +
             "(Bundle-SymbolicName=groovy-all)" +
+            ")" +
+            "(!(Bundle-SymbolicName=org.apache.jackrabbit.oak-segment-tar))" +
             ")";
 
     /**
