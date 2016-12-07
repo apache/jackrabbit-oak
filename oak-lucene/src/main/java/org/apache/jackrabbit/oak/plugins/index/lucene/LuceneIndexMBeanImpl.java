@@ -19,16 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.management.NotCompliantMBeanException;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -38,15 +42,14 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -61,15 +64,15 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.collect.TreeTraverser;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker) throws NotCompliantMBeanException {
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker) {
         super(LuceneIndexMBean.class);
         this.indexTracker = indexTracker;
     }
@@ -177,6 +180,44 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return new String[0];
     }
+    
+    @Override
+    public String[] getFieldInfo(String indexPath) throws IOException {
+        TreeSet<String> indexes = new TreeSet<String>();
+        if (indexPath == null || indexPath.isEmpty()) {
+            indexes.addAll(indexTracker.getIndexNodePaths());
+        } else {
+            indexes.add(indexPath);
+        }
+        ArrayList<String> list = new ArrayList<String>();
+        for (String path : indexes) {
+            IndexNode indexNode = null;
+            try {
+                indexNode = indexTracker.acquireIndexNode(path);
+                if (indexNode != null) {
+                    IndexSearcher searcher = indexNode.getSearcher();
+                    list.addAll(getFieldInfo(path, searcher));
+                }
+            } finally {
+                if (indexNode != null) {
+                    indexNode.release();
+                }
+            }
+        }
+        return list.toArray(new String[0]);
+    }
+
+    private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher) throws IOException {
+        ArrayList<String> list = new ArrayList<String>();
+        IndexReader reader = searcher.getIndexReader();
+        Fields fields = MultiFields.getFields(reader);
+        if (fields != null) {
+            for(String f : fields) {
+                list.add(path + " " + f + " " + reader.getDocCount(f));
+            }
+        }
+        return list;
+    }
 
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {
         IndexNode indexNode = null;
@@ -202,7 +243,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
     }
 
-    private String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
+    private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
             throws IOException {
         Set<String> paths = Sets.newHashSet();
         int startDepth = getStartDepth(searcher, maxLevel);
@@ -210,7 +251,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             return createMsg("startDepth cannot be determined after search for upto maxLevel ["+maxLevel+"]");
         }
 
-        SearchContext sc = new SearchContext(searcher, maxLevel, maxPathCount);
+        SearchContext sc = new SearchContext(searcher);
         List<LuceneDoc> docs = getDocsAtLevel(startDepth, sc);
         int maxPathLimitBreachedAtLevel = -1;
         topLevel:
@@ -260,7 +301,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
      * to determine the start depth which needs to be used for query we need to find
      * out depth at which we start getting any entry
      */
-    private int getStartDepth(IndexSearcher searcher, int maxLevel) throws IOException {
+    private static int getStartDepth(IndexSearcher searcher, int maxLevel) throws IOException {
         int depth = 0;
         while(depth < maxLevel){
             //Confirm if we have any hit at current depth
@@ -280,11 +321,9 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     private static class SearchContext{
         final IndexSearcher searcher;
-        final int maxLevel;
 
-        private SearchContext(IndexSearcher searcher, int maxLevel, int maxPathCount) {
+        SearchContext(IndexSearcher searcher) {
             this.searcher = searcher;
-            this.maxLevel = maxLevel;
         }
     }
 
