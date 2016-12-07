@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -65,6 +66,7 @@ public class BlobIdTrackerTest {
     File root;
     SharedDataStore dataStore;
     BlobIdTracker tracker;
+    Closer closer = Closer.create();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -89,13 +91,13 @@ public class BlobIdTrackerTest {
         this.repoId = randomUUID().toString();
         this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
         this.scheduler = newSingleThreadScheduledExecutor();
+        closer.register(tracker);
+        closer.register(new ExecutorCloser(scheduler));
     }
 
     @After
     public void tearDown() throws IOException {
-        tracker.close();
-        new ExecutorCloser(scheduler).close();
-        folder.delete();
+        closer.close();
     }
 
     @Test
@@ -127,8 +129,13 @@ public class BlobIdTrackerTest {
     @Test
     public void snapshotRetrieveIgnored() throws Exception {
         System.setProperty("oak.datastore.skipTracker", "true");
+
+        // Close and open a new object to use the system property
+        closer.close();
         this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
         this.scheduler = newSingleThreadScheduledExecutor();
+        closer.register(tracker);
+        closer.register(new ExecutorCloser(scheduler));
 
         try {
             Set<String> initAdd = add(tracker, range(0, 10000));
@@ -145,8 +152,6 @@ public class BlobIdTrackerTest {
         } finally {
             //reset the skip tracker system prop
             System.clearProperty("oak.datastore.skipTracker");
-            this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
-            this.scheduler = newSingleThreadScheduledExecutor();
         }
     }
 
