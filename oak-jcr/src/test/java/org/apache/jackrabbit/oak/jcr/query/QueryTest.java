@@ -842,9 +842,24 @@ public class QueryTest extends AbstractRepositoryTest {
 
         assertPlan(getPlan(session, xpath), "[rep:User] as [a] /* traverse ");
 
-        xpath = "/jcr:root//element(*,oak:Unstructured)[xyz/@jcr:primaryType]";
-        assertPlan(getPlan(session, xpath), "[oak:Unstructured] as [a] /* nodeType ");
+        xpath = "/jcr:root//element(*,oak:Unstructured)[xyz/@jcr:primaryType] option(traversal fail)";
+        // the plan might still use traversal, so we can't just check the plan;
+        // but using "option(traversal fail)" we have ensured that there is an index
+        // (the nodetype index) that can serve this query
+        getPlan(session, xpath);
 
+        // and without the node type index, it is supposed to fail
+        Node nodeTypeIndex = session.getRootNode().getNode("oak:index").getNode("nodetype");
+        nodeTypeIndex.setProperty("declaringNodeTypes", new String[] {
+            }, PropertyType.NAME);
+        session.save();
+        try {
+            getPlan(session, xpath);
+            fail();
+        } catch (InvalidQueryException e) {
+            // expected
+        }
+        
         session.logout();
     }
 
