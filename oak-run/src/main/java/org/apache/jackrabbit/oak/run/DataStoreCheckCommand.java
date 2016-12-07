@@ -43,6 +43,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -92,6 +94,10 @@ public class DataStoreCheckCommand implements Command {
             ArgumentAcceptingOptionSpec<String> dump = parser.accepts("dump", "Dump Path")
                 .withRequiredArg().ofType(String.class);
             OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
+
+            // Optional argument to specify tracking
+            ArgumentAcceptingOptionSpec<String> track = parser.accepts("track", "Local repository home folder")
+                .withRequiredArg().ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -158,8 +164,17 @@ public class DataStoreCheckCommand implements Command {
             closer.register(register);
 
             if (options.has(idOp) || options.has(consistencyOp)) {
-                retrieveBlobIds(blobStore,
-                    register.createFile(idOp, dumpPath));
+                File dumpFile = register.createFile(idOp, dumpPath);
+                retrieveBlobIds(blobStore, dumpFile);
+
+                // If track path specified copy the file to the location
+                if (options.has(track)) {
+                    String trackPath = options.valueOf(track);
+                    File trackingFileParent = new File(FilenameUtils.concat(trackPath, "blobids"));
+                    File trackingFile = new File(trackingFileParent,
+                        "blob-" + String.valueOf(System.currentTimeMillis()) + ".gen");
+                    FileUtils.copyFile(dumpFile, trackingFile);
+                }
             }
 
             if (options.has(refOp) || options.has(consistencyOp)) {

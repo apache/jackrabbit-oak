@@ -962,19 +962,21 @@ Use the following command:
     $ java -jar oak-run-*.jar datastorecheck [--id] [--ref] [--consistency] \
             [--store <path>|<mongo_uri>] \
             [--s3ds <s3ds_config>|--fds <fds_config>] \
-            [--dump <path>]
+            [--dump <path>] \
+            [--track <DataStore local tracking path>]
 
 The following options are available:
 
     --id             - List all the ids in the data store
     --ref            - List all the blob references in the node store
-    --consistency    - Lists all the missing blobs by doind a consistency check
+    --consistency    - List all the missing blobs by doing a consistency check
     Atleast one of the above should be specified
     
     --store          - Path to the segment store of mongo uri (Required for --ref & --consistency option above)
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
+    --track          - Path of the local reposity home folder (Optional). This will place a copy of the downloaded blob ids to be tracked.
 
 Note:
 For using S3DataStore the following additional jars have to be downloaded
