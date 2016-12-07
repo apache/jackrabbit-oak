@@ -24,20 +24,25 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.AGGREGATES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.*;
 
 public class IndexDefinitionBuilderTest {
     private IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+    private NodeBuilder nodeBuilder = EMPTY_NODE.builder();
 
     @After
     public void dumpState(){
@@ -142,5 +147,82 @@ public class IndexDefinitionBuilderTest {
         NodeState state = builder.build();
         assertTrue(NodeStateUtils.getNode(state, "indexRules/nt:base/properties/prop")
                 .getBoolean(LuceneIndexConstants.PROP_IS_REGEX));
+    }
+
+    @Test
+    public void mergeExisting() throws Exception{
+        nodeBuilder.setProperty("foo", "bar");
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        NodeState state = builder.build();
+        assertEquals("bar", state.getString("foo"));
+        assertEquals("async", state.getString("async"));
+    }
+
+    @Test
+    public void mergeExisting_IndexRule() throws Exception{
+        builder.indexRule("nt:unstructured").property("foo").propertyIndex();
+
+        nodeBuilder = builder.build().builder();
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        assertTrue(builder.hasIndexRule("nt:unstructured"));
+        assertFalse(builder.hasIndexRule("nt:base"));
+
+        builder.indexRule("nt:unstructured").property("bar").propertyIndex();
+        builder.indexRule("nt:base");
+
+        assertTrue(builder.indexRule("nt:unstructured").hasPropertyRule("foo"));
+        assertTrue(builder.indexRule("nt:unstructured").hasPropertyRule("bar"));
+    }
+
+    @Test
+    public void mergeExisting_Aggregates() throws Exception{
+        builder.aggregateRule("foo").include("/path1");
+        builder.aggregateRule("foo").include("/path2");
+
+        nodeBuilder = builder.build().builder();
+
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        builder.aggregateRule("foo").include("/path1");
+        builder.aggregateRule("foo").include("/path3");
+
+        NodeState state = builder.build();
+        assertEquals(3, state.getChildNode(AGGREGATES).getChildNode("foo").getChildNodeCount(100));
+    }
+
+    @Test
+    public void noReindexIfNoChange() throws Exception{
+        builder.includedPaths("/a", "/b");
+        builder.indexRule("nt:base")
+                .property("foo")
+                .ordered();
+
+        nodeBuilder = builder.build().builder();
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder.includedPaths("/a", "/b");
+
+        assertFalse(builder.isReindexRequired());
+        NodeState state = builder.build();
+        assertFalse(state.getBoolean(REINDEX_PROPERTY_NAME));
+
+
+        NodeState baseState = builder.build();
+        nodeBuilder = baseState.builder();
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder.indexRule("nt:file");
+
+        assertTrue(builder.isReindexRequired());
+        state = builder.build();
+        assertTrue(state.getBoolean(REINDEX_PROPERTY_NAME));
+
+        builder = new IndexDefinitionBuilder(baseState.builder(), false);
+        builder.indexRule("nt:file");
+        assertTrue(builder.isReindexRequired());
+        state = builder.build();
+        assertTrue(builder.isReindexRequired());
+        assertFalse(state.getBoolean(REINDEX_PROPERTY_NAME));
     }
 }
