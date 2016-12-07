@@ -54,4 +54,12 @@ public interface LuceneIndexMBean {
             int maxPathCount
             ) throws IOException;
 
+    @Description("Retrieves the fields, and number of documents for each field, for an index. " +
+            "This allows to investigate what is stored in the index.")
+    String[] getFieldInfo(
+            @Name("indexPath")
+            @Description("The index path (empty for all indexes)")
+            String indexPath
+            ) throws IOException;
+
 }
