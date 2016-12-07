@@ -105,41 +105,6 @@ public class SegmentNodeStoreServiceTest {
         unregisterBlobStore();
     }
 
-    /**
-     * A NodeStore service should be registered when the "customBlobStore"
-     * configuration property is true and a BlobStore service becomes
-     * dynamically available.
-     */
-    @Test
-    public void testUseCustomBlobStoreWithDynamicBlobStoreActivation() {
-        registerSegmentNodeStoreService(true);
-        assertServiceNotActivated();
-
-        registerBlobStore();
-        assertServiceActivated();
-
-        unregisterSegmentNodeStoreService();
-        unregisterBlobStore();
-    }
-
-    /**
-     * A NodeStore service should be unregistered when the "customBlobStore"
-     * configuration property is true and a BlobStore service becomes
-     * dynamically unavailable.
-     */
-    @Test
-    public void testUseCustomBlobStoreWithDynamicBlobStoreDeactivation() {
-        registerBlobStore();
-
-        registerSegmentNodeStoreService(true);
-        assertServiceActivated();
-
-        unregisterBlobStore();
-        assertServiceNotActivated();
-
-        unregisterSegmentNodeStoreService();
-    }
-
     private SegmentNodeStoreService segmentNodeStoreService;
 
     protected void registerSegmentNodeStoreService(boolean customBlobStore) {

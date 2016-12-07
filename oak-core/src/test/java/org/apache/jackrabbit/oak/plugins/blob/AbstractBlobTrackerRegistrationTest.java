@@ -19,6 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 
 import javax.annotation.Nullable;
@@ -39,12 +45,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests OSGi registration for {@link BlobTrackingStore}.
@@ -72,9 +72,8 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     @Test
     public void registerBlobTrackingStore() throws Exception {
-        registerNodeStoreService();
-        assertServiceNotActivated();
         registerTrackingBlobStore();
+        registerNodeStoreService();
         assertServiceActivated();
 
         BlobStore blobStore = context.getService(BlobStore.class);
@@ -86,9 +85,8 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     @Test
     public void reRegisterBlobTrackingStore() throws Exception {
-        registerNodeStoreService();
-        assertServiceNotActivated();
         registerTrackingBlobStore();
+        registerNodeStoreService();
         assertServiceActivated();
 
         BlobStore blobStore = context.getService(BlobStore.class);

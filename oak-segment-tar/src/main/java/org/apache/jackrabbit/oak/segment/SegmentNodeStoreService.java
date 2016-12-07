@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener.IGNORE_SNFE;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DISABLE_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GC_PROGRESS_LOG_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.MEMORY_THRESHOLD_DEFAULT;
@@ -32,13 +32,11 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUS
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DISABLE_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,6 +46,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -56,6 +56,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -85,12 +86,9 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
@@ -105,9 +103,6 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-
 /**
  * An OSGi wrapper for the segment node store.
  */
@@ -120,10 +115,7 @@ import com.google.common.base.Supplier;
                 "should be done via file system based config file and this view should ONLY be used to determine which " +
                 "options are supported"
 )
-public class SegmentNodeStoreService extends ProxyNodeStore
-        implements Observable, SegmentStoreProvider {
-
-    public static final String NAME = "name";
+public class SegmentNodeStoreService {
 
     @Property(
             label = "Directory",
@@ -273,11 +265,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private String name;
-
     private FileStore store;
-
-    private volatile SegmentNodeStore segmentNodeStore;
 
     private ObserverTracker observerTracker;
 
@@ -285,8 +273,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private ComponentContext context;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY,
+            target = ONLY_STANDALONE_TARGET
+    )
     private volatile BlobStore blobStore;
 
     @Reference
@@ -325,12 +317,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     )
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
-    @Override
-    protected SegmentNodeStore getNodeStore() {
-        checkState(segmentNodeStore != null, "service must be activated when used");
-        return segmentNodeStore;
-    }
-
     @Activate
     public void activate(ComponentContext context) throws IOException {
         this.context = context;
@@ -338,58 +324,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
-        } else {
-            registerNodeStore();
-        }
-    }
-
-    protected void bindBlobStore(BlobStore blobStore) throws IOException {
-        this.blobStore = blobStore;
-        registerNodeStore();
-    }
-
-    protected void unbindBlobStore(BlobStore blobStore){
-        this.blobStore = null;
-        unregisterNodeStore();
-    }
-
-    @Deactivate
-    public void deactivate() {
-        unregisterNodeStore();
-
-        synchronized (this) {
-            if (observerTracker != null) {
-                observerTracker.stop();
-            }
-            if (gcMonitor != null) {
-                gcMonitor.stop();
-            }
-            segmentNodeStore = null;
-
-            if (store != null) {
-                store.close();
-                store = null;
-            }
-        }
-    }
-
-    private synchronized void registerNodeStore() throws IOException {
-        if (!registerSegmentStore()) {
             return;
-        }
-        if (toBoolean(property(STANDBY), false)) {
-            return;
-        }
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-        props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
-        storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
-    }
-
-    private boolean registerSegmentStore() throws IOException {
-        if (context == null) {
-            log.info("Component still not activated. Ignoring the initialization call");
-            return false;
         }
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
@@ -420,7 +355,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
             builder.withBlobStore(blobStore);
         }
-        
+
         if (toBoolean(property(STANDBY), true)) {
             builder.withSnfeListener(IGNORE_SNFE);
         }
@@ -429,7 +364,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             store = builder.build();
         } catch (InvalidFileStoreVersionException e) {
             log.error("The segment store data is not compatible with the current version. Please use oak-segment or a different version of oak-segment-tar.");
-            return false;
+            return;
         }
 
         // Expose stats about the segment cache
@@ -449,7 +384,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         registrations.add(registerMBean(
                 whiteboard,
                 CacheStatsMBean.class,
-                stringCacheStats,CacheStats.TYPE,
+                stringCacheStats, CacheStats.TYPE,
                 stringCacheStats.getName()
         ));
 
@@ -457,35 +392,35 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         registrations.add(registerMBean(
                 whiteboard,
                 CacheStatsMBean.class,
-                templateCacheStats,CacheStats.TYPE,
+                templateCacheStats, CacheStats.TYPE,
                 templateCacheStats.getName()
         ));
 
         CacheStatsMBean stringDeduplicationCacheStats = store.getStringDeduplicationCacheStats();
         if (stringDeduplicationCacheStats != null) {
             registrations.add(registerMBean(
-            whiteboard,
-            CacheStatsMBean.class,
-            stringDeduplicationCacheStats,CacheStats.TYPE,
-            stringDeduplicationCacheStats.getName()));
+                    whiteboard,
+                    CacheStatsMBean.class,
+                    stringDeduplicationCacheStats, CacheStats.TYPE,
+                    stringDeduplicationCacheStats.getName()));
         }
 
         CacheStatsMBean templateDeduplicationCacheStats = store.getTemplateDeduplicationCacheStats();
         if (templateDeduplicationCacheStats != null) {
             registrations.add(registerMBean(
-            whiteboard,
-            CacheStatsMBean.class,
-            templateDeduplicationCacheStats,CacheStats.TYPE,
-            templateDeduplicationCacheStats.getName()));
+                    whiteboard,
+                    CacheStatsMBean.class,
+                    templateDeduplicationCacheStats, CacheStats.TYPE,
+                    templateDeduplicationCacheStats.getName()));
         }
 
         CacheStatsMBean nodeDeduplicationCacheStats = store.getNodeDeduplicationCacheStats();
         if (nodeDeduplicationCacheStats != null) {
             registrations.add(registerMBean(
-            whiteboard,
-            CacheStatsMBean.class,
-            nodeDeduplicationCacheStats,CacheStats.TYPE,
-            nodeDeduplicationCacheStats.getName()));
+                    whiteboard,
+                    CacheStatsMBean.class,
+                    nodeDeduplicationCacheStats, CacheStats.TYPE,
+                    nodeDeduplicationCacheStats.getName()));
         }
 
         // Listen for Executor services on the whiteboard
@@ -497,22 +432,24 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         final FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
         registrations.add(new CompositeRegistration(
-            whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
-            registerMBean(
-                whiteboard,
-                SegmentRevisionGC.class,
-                new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
-                SegmentRevisionGC.TYPE,
-                "Segment node store revision garbage collection"
-            )));
+                whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
+                registerMBean(
+                        whiteboard,
+                        SegmentRevisionGC.class,
+                        new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
+                        SegmentRevisionGC.TYPE,
+                        "Segment node store revision garbage collection"
+                )));
 
         Runnable cancelGC = new Runnable() {
+
             @Override
             public void run() {
                 store.cancelGC();
             }
         };
         Supplier<String> statusMessage = new Supplier<String>() {
+
             @Override
             public String get() {
                 return fsgcm.getStatus();
@@ -538,18 +475,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         // register segment node store
 
-        Dictionary<?, ?> properties = context.getProperties();
-        name = String.valueOf(properties.get(NAME));
-
         final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder =
                 SegmentNodeStoreBuilders.builder(store)
-                .withStatisticsProvider(statisticsProvider);
+                        .withStatisticsProvider(statisticsProvider);
         if (toBoolean(property(STANDBY), false)) {
             segmentNodeStoreBuilder.dispatchChanges(false);
         }
-        segmentNodeStore = segmentNodeStoreBuilder.build();
+        SegmentNodeStore segmentNodeStore = segmentNodeStoreBuilder.build();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());
@@ -622,18 +556,18 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     "Segment node store blob garbage collection"
             ));
         }
-        
+
         // Expose an MBean for backup/restore operations
-        
+
         registrations.add(registerMBean(
                 whiteboard,
                 FileStoreBackupRestoreMBean.class,
-                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(), getBackupDirectory(), executor), 
+                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(), getBackupDirectory(), executor),
                 FileStoreBackupRestoreMBean.TYPE, "Segment node store backup/restore"
         ));
 
         // Expose statistics about the SegmentNodeStore
-        
+
         registrations.add(registerMBean(
                 whiteboard,
                 SegmentNodeStoreStatsMBean.class,
@@ -641,14 +575,55 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 SegmentNodeStoreStatsMBean.TYPE,
                 "SegmentNodeStore statistics"
         ));
-        
+
         log.info("SegmentNodeStore initialized");
 
         // Register a factory service to expose the FileStore
 
-        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
+        providerRegistration = context.getBundleContext().registerService(
+                SegmentStoreProvider.class.getName(),
+                new DefaultSegmentStoreProvider(store),
+                null
+        );
 
-        return true;
+        if (toBoolean(property(STANDBY), false)) {
+            return;
+        }
+
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+        props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
+        storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), segmentNodeStore, props);
+    }
+
+    @Deactivate
+    public void deactivate() {
+        new CompositeRegistration(registrations).unregister();
+        registrations.clear();
+        if (providerRegistration != null) {
+            providerRegistration.unregister();
+            providerRegistration = null;
+        }
+        if (storeRegistration != null) {
+            storeRegistration.unregister();
+            storeRegistration = null;
+        }
+        if (executor != null) {
+            executor.stop();
+            executor = null;
+        }
+        if (observerTracker != null) {
+            observerTracker.stop();
+            observerTracker = null;
+        }
+        if (gcMonitor != null) {
+            gcMonitor.stop();
+            gcMonitor = null;
+        }
+        if (store != null) {
+            store.close();
+            store = null;
+        }
     }
 
     private SegmentGCOptions newGCOptions() {
@@ -673,22 +648,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .setMemoryThreshold(memoryThreshold)
                 .setEstimationDisabled(disableEstimation)
                 .withGCNodeWriteMonitor(gcProgressLog);
-    }
-
-    private void unregisterNodeStore() {
-        new CompositeRegistration(registrations).unregister();
-        if (providerRegistration != null) {
-            providerRegistration.unregister();
-            providerRegistration = null;
-        }
-        if (storeRegistration != null) {
-            storeRegistration.unregister();
-            storeRegistration = null;
-        }
-        if (executor != null) {
-            executor.stop();
-            executor = null;
-        }
     }
 
     private File getBaseDirectory() {
@@ -779,26 +738,4 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         return lookupConfigurationThenFramework(context, name);
     }
 
-    /**
-     * needed for situations where you have to unwrap the
-     * SegmentNodeStoreService, to get the SegmentStore, like the failover
-     */
-    @Override
-    public SegmentStore getSegmentStore() {
-        return store;
-    }
-
-    //------------------------------------------------------------< Observable >---
-
-    @Override
-    public Closeable addObserver(Observer observer) {
-        return getNodeStore().addObserver(observer);
-    }
-
-    //------------------------------------------------------------< Object >--
-
-    @Override
-    public String toString() {
-        return name + ": " + segmentNodeStore;
-    }
 }
