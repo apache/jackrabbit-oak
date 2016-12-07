@@ -29,11 +29,13 @@ import javax.jcr.RepositoryException;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -46,20 +48,35 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public final class IndexDefinitionBuilder {
-    private final NodeBuilder builder = EMPTY_NODE.builder();
-    private final Tree tree = TreeFactory.createTree(builder);
+    private final NodeBuilder builder;
+    private final Tree tree;
     private final Map<String, IndexRule> rules = Maps.newHashMap();
     private final Map<String, AggregateRule> aggRules = Maps.newHashMap();
     private final Tree indexRule;
+    private final boolean autoManageReindexFlag;
     private Tree aggregatesTree;
+    private final NodeState initial;
+    private boolean reindexRequired;
+
 
     public IndexDefinitionBuilder(){
+        this(EMPTY_NODE.builder());
+    }
+
+    public IndexDefinitionBuilder(NodeBuilder nodeBuilder){
+        this(nodeBuilder, true);
+    }
+
+    public IndexDefinitionBuilder(NodeBuilder nodeBuilder, boolean autoManageReindexFlag){
+        this.autoManageReindexFlag = autoManageReindexFlag;
+        this.builder = nodeBuilder;
+        this.initial = nodeBuilder.getNodeState();
+        this.tree = TreeFactory.createTree(builder);
         tree.setProperty(LuceneIndexConstants.COMPAT_MODE, 2);
         tree.setProperty("async", "async");
-        tree.setProperty("reindex", true);
         tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
         tree.setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition", NAME);
-        indexRule = createChild(tree, LuceneIndexConstants.INDEX_RULES);
+        indexRule = getOrCreateChild(tree, LuceneIndexConstants.INDEX_RULES);
     }
 
     public IndexDefinitionBuilder evaluatePathRestrictions(){
@@ -98,29 +115,47 @@ public final class IndexDefinitionBuilder {
     }
 
     public NodeState build(){
+        setReindexFlagIfRequired();
         return builder.getNodeState();
     }
 
     public Tree build(Tree tree){
-        NodeStateCopyUtils.copyToTree(builder.getNodeState(), tree);
+        NodeStateCopyUtils.copyToTree(build(), tree);
         return tree;
     }
 
     public Node build(Node node) throws RepositoryException {
-        NodeStateCopyUtils.copyToNode(builder.getNodeState(), node);
+        NodeStateCopyUtils.copyToNode(build(), node);
         return node;
     }
 
+    public boolean isReindexRequired() {
+        if (reindexRequired){
+            return true;
+        }
+        return !EqualsDiff.equals(initial, builder.getNodeState());
+    }
+
+    private void setReindexFlagIfRequired(){
+        if (!reindexRequired && !EqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
+            tree.setProperty("reindex", true);
+            reindexRequired = true;
+        }
+    }
 
     //~--------------------------------------< IndexRule >
 
     public IndexRule indexRule(String type){
         IndexRule rule = rules.get(type);
         if (rule == null){
-            rule = new IndexRule(createChild(indexRule, type), type);
+            rule = new IndexRule(getOrCreateChild(indexRule, type), type);
             rules.put(type, rule);
         }
         return rule;
+    }
+
+    public boolean hasIndexRule(String type){
+        return indexRule.hasChild(type);
     }
 
     public static class IndexRule {
@@ -132,8 +167,9 @@ public final class IndexDefinitionBuilder {
 
         private IndexRule(Tree indexRule, String type) {
             this.indexRule = indexRule;
-            this.propsTree = createChild(indexRule, LuceneIndexConstants.PROP_NODE);
+            this.propsTree = getOrCreateChild(indexRule, LuceneIndexConstants.PROP_NODE);
             this.ruleName = type;
+            loadExisting();
         }
 
         public IndexRule indexNodeName(){
@@ -153,10 +189,38 @@ public final class IndexDefinitionBuilder {
         public PropertyRule property(String name, boolean regex){
             PropertyRule propRule = props.get(name);
             if (propRule == null){
-                propRule = new PropertyRule(this, createChild(propsTree, createPropNodeName(name, regex)), name, regex);
+                Tree propTree = findExisting(name);
+                if (propTree == null){
+                    propTree = getOrCreateChild(propsTree, createPropNodeName(name, regex));
+                }
+                propRule = new PropertyRule(this, propTree, name, regex);
                 props.put(name, propRule);
             }
             return propRule;
+        }
+
+        private void loadExisting() {
+            for (Tree tree : propsTree.getChildren()){
+                if (!tree.hasProperty(LuceneIndexConstants.PROP_NAME)){
+                    continue;
+                }
+                String name = tree.getProperty(LuceneIndexConstants.PROP_NAME).getValue(Type.STRING);
+                boolean regex = false;
+                if (tree.hasProperty(LuceneIndexConstants.PROP_IS_REGEX)) {
+                    regex = tree.getProperty(LuceneIndexConstants.PROP_IS_REGEX).getValue(Type.BOOLEAN);
+                }
+                PropertyRule pr = new PropertyRule(this, tree, name, regex);
+                props.put(name, pr);
+            }
+        }
+
+        private Tree findExisting(String name) {
+            for (Tree tree : propsTree.getChildren()){
+                if (name.equals(tree.getProperty(LuceneIndexConstants.PROP_NAME).getValue(Type.STRING))){
+                    return tree;
+                }
+            }
+            return null;
         }
 
         private String createPropNodeName(String name, boolean regex) {
@@ -173,6 +237,10 @@ public final class IndexDefinitionBuilder {
 
         public String getRuleName() {
             return ruleName;
+        }
+
+        public boolean hasPropertyRule(String propName){
+            return findExisting(propName) != null;
         }
     }
 
@@ -256,11 +324,11 @@ public final class IndexDefinitionBuilder {
 
     public AggregateRule aggregateRule(String type){
         if (aggregatesTree == null){
-            aggregatesTree = createChild(tree, LuceneIndexConstants.AGGREGATES);
+            aggregatesTree = getOrCreateChild(tree, LuceneIndexConstants.AGGREGATES);
         }
         AggregateRule rule = aggRules.get(type);
         if (rule == null){
-            rule = new AggregateRule(createChild(aggregatesTree, type));
+            rule = new AggregateRule(getOrCreateChild(aggregatesTree, type));
             aggRules.put(type, rule);
         }
         return rule;
@@ -280,16 +348,39 @@ public final class IndexDefinitionBuilder {
 
         private AggregateRule(Tree aggregate) {
             this.aggregate = aggregate;
+            loadExisting(aggregate);
         }
 
         public Include include(String includePath) {
             Include include = includes.get(includePath);
             if (include == null){
-                include = new Include(createChild(aggregate, "include" + includes.size()));
+                Tree includeTree = findExisting(includePath);
+                if (includeTree == null){
+                    includeTree = getOrCreateChild(aggregate, "include" + includes.size());
+                }
+                include = new Include(includeTree);
                 includes.put(includePath, include);
             }
             include.path(includePath);
             return include;
+        }
+
+        private Tree findExisting(String includePath) {
+            for (Tree tree : aggregate.getChildren()){
+                if (includePath.equals(tree.getProperty(LuceneIndexConstants.AGG_PATH).getValue(Type.STRING))){
+                    return tree;
+                }
+            }
+            return null;
+        }
+
+        private void loadExisting(Tree aggregate) {
+            for (Tree tree : aggregate.getChildren()){
+                if (tree.hasProperty(LuceneIndexConstants.AGG_PATH)) {
+                    Include include = new Include(tree);
+                    includes.put(include.getPath(), include);
+                }
+            }
         }
 
         public static class Include {
@@ -308,10 +399,17 @@ public final class IndexDefinitionBuilder {
                 include.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
                 return this;
             }
+
+            public String getPath(){
+                return include.getProperty(LuceneIndexConstants.AGG_PATH).getValue(Type.STRING);
+            }
         }
     }
 
-    private static Tree createChild(Tree tree, String name){
+    private static Tree getOrCreateChild(Tree tree, String name){
+        if (tree.hasChild(name)){
+            return tree.getChild(name);
+        }
         Tree child = tree.addChild(name);
         child.setOrderableChildren(true);
         child.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
