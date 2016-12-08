@@ -278,6 +278,13 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule type(String type){
+            //This would throw an IAE if type is invalid
+            PropertyType.valueFromName(type);
+            propTree.setProperty(LuceneIndexConstants.PROP_TYPE, type);
+            return this;
+        }
+
         public PropertyRule useInSuggest(){
             propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
             return this;
@@ -299,10 +306,8 @@ public final class IndexDefinitionBuilder {
         }
 
         public PropertyRule ordered(String type){
-            //This would throw an IAE if type is invalid
-            PropertyType.valueFromName(type);
+            type(type);
             propTree.setProperty(LuceneIndexConstants.PROP_ORDERED, true);
-            propTree.setProperty(LuceneIndexConstants.PROP_TYPE, type);
             return this;
         }
 
