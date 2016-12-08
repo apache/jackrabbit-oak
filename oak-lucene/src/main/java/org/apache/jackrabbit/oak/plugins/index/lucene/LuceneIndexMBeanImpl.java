@@ -44,6 +44,8 @@ import com.google.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.jmx.Name;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -224,6 +226,19 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             return NodeStateUtils.toString(state);
         }
         return "No index found at given path";
+    }
+
+    @Override
+    public String diffStoredIndexDefinition(@Name("indexPath") String indexPath) {
+        NodeState stored = NodeStateUtils.getNode(indexTracker.getRoot(), indexPath + "/" + INDEX_DEFINITION_NODE);
+        NodeState current = NodeStateUtils.getNode(indexTracker.getRoot(), indexPath);
+        if (stored.exists()){
+            current = NodeStateCloner.cloneVisibleState(current);
+            JsopDiff diff = new JsopDiff();
+            current.compareAgainstBaseState(stored, diff);
+            return JsopBuilder.prettyPrint(diff.toString());
+        }
+        return "No stored index definition found at given path";
     }
 
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {

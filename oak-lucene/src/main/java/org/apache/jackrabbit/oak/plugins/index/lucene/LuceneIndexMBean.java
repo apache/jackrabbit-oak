@@ -65,4 +65,8 @@ public interface LuceneIndexMBean {
     @Description("Returns the stored index definition for index at given path in string form")
     String getStoredIndexDefinition(@Name("indexPath") String indexPath);
 
+    @Description("Returns the diff of index definition for index at given path from the stored index definition in " +
+            "string form")
+    String diffStoredIndexDefinition(@Name("indexPath") String indexPath);
+
 }
