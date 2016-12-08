@@ -194,7 +194,7 @@ public class LuceneIndexEditorContext {
         //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
         //For case where index definition is rewritten there we get fresh state
         NodeState defnState = indexDefnRewritten ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
-        if (!IndexDefinition.DISABLE_STORED_INDEX_DEFINITION) {
+        if (!IndexDefinition.isDisableStoredIndexDefinition()) {
             definitionBuilder.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
         }
         String uid = configureUniqueId(definitionBuilder);
@@ -283,7 +283,7 @@ public class LuceneIndexEditorContext {
     private static IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
             indexingContext, boolean asyncIndexing) {
         NodeState defnState = definition.getBaseState();
-        if (asyncIndexing){
+        if (asyncIndexing && !IndexDefinition.isDisableStoredIndexDefinition()){
             if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN)){
                 definition.removeProperty(LuceneIndexConstants.PROP_REFRESH_DEFN);
                 NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);

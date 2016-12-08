@@ -52,6 +52,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,6 +82,11 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.injectServices(service, context.bundleContext());
     }
 
+    @After
+    public void after(){
+        IndexDefinition.setDisableStoredIndexDefinition(false);
+    }
+
     @Test
     public void defaultSetup() throws Exception{
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
@@ -96,6 +102,7 @@ public class LuceneIndexProviderServiceTest {
         IndexCopier indexCopier = service.getIndexCopier();
         assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
         assertTrue(indexCopier.isPrefetchEnabled());
+        assertFalse(IndexDefinition.isDisableStoredIndexDefinition());
 
         assertNotNull("CopyOnRead should be enabled by default", context.getService(CopyOnReadStatsMBean.class));
         assertNotNull(context.getService(CacheStatsMBean.class));
@@ -217,6 +224,16 @@ public class LuceneIndexProviderServiceTest {
 
         assertEquals(4000, BooleanQuery.getMaxClauseCount());
     }
+
+    @Test
+    public void indexDefnStorafe() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("disableStoredIndexDefinition", true);
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        assertTrue(IndexDefinition.isDisableStoredIndexDefinition());
+    }
+
 
     @Test
     public void blobStoreRegistered() throws Exception{
