@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ReaderRefreshPolicy;
@@ -48,6 +49,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IndexNode {
+    /**
+     * Name of the hidden node under which information about the checkpoints
+     * seen and indexed by each async indexer is kept.
+     */
+    static final String ASYNC = ":async";
+
     private static final AtomicInteger INDEX_NODE_COUNTER = new AtomicInteger();
 
     static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState,
@@ -56,10 +63,14 @@ public class IndexNode {
         IndexDefinition definition = new IndexDefinition(root, defnNodeState, indexPath);
         List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState, indexPath);
         NRTIndex nrtIndex = nrtFactory != null ? nrtFactory.createIndex(definition) : null;
-        if (!readers.isEmpty() || (nrtIndex != null && !IndexDefinition.hasPersistedIndex(defnNodeState))){
+        if (!readers.isEmpty() || (nrtIndex != null && !hasAsyncIndexerRun(root))){
             return new IndexNode(PathUtils.getName(indexPath), definition, readers, nrtIndex);
         }
         return null;
+    }
+
+    static boolean hasAsyncIndexerRun(NodeState root) {
+        return root.hasChildNode(ASYNC);
     }
 
     private static final Logger log = LoggerFactory.getLogger(IndexNode.class);

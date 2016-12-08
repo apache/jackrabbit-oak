@@ -92,9 +92,9 @@ public class IndexNodeTest {
     @Test
     public void nullIndex_NonFreshIndex() throws Exception{
         NodeBuilder builder = createNRTIndex().builder();
-        //Create a hidden node to indicate that its not a fresh index
-        builder.child(":status");
-        assertNull(IndexNode.open("/foo", root, builder.getNodeState(), readerFactory, nrtFactory));
+        NodeBuilder rootBuilder = root.builder();
+        rootBuilder.child(IndexNode.ASYNC);
+        assertNull(IndexNode.open("/foo", rootBuilder.getNodeState(), builder.getNodeState(), readerFactory, nrtFactory));
     }
 
     private static NodeState createNRTIndex(){
