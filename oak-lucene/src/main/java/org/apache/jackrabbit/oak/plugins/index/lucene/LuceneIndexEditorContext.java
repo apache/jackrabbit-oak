@@ -201,8 +201,7 @@ public class LuceneIndexEditorContext {
 
         //Refresh the index definition based on update builder state
         definition = IndexDefinition
-                .newBuilder(root, defnState)
-                .indexPath(indexingContext.getIndexPath())
+                .newBuilder(root, defnState, indexingContext.getIndexPath())
                 .version(version)
                 .uid(uid)
                 .build();

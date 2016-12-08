@@ -885,11 +885,11 @@ public class IndexDefinitionTest {
 
     @Test
     public void uniqueIdForFreshIndex() throws Exception{
-        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState()).indexPath("/foo").build();
+        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
         assertEquals("0", defn.getUniqueId());
 
         builder.child(":status");
-        defn = IndexDefinition.newBuilder(root, builder.getNodeState()).indexPath("/foo").build();
+        defn = IndexDefinition.newBuilder(root, builder.getNodeState(),"/foo").build();
         assertNull(defn.getUniqueId());
     }
 

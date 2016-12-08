@@ -256,8 +256,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~--------------------------------------------------------< Builder >
 
-    public static Builder newBuilder(NodeState root, NodeState defn){
-        return new Builder(root, defn);
+    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
+        return new Builder(root, defn, indexPath);
     }
 
     public static class Builder {
@@ -268,18 +268,14 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private static final String DEFAULT_UID = "0";
         private final NodeState root;
         private final NodeState defn;
-        private String indexPath;
+        private final String indexPath;
         private IndexFormatVersion version;
         private String uid;
 
-        public Builder(NodeState root, NodeState defn) {
-            this.root = root;
-            this.defn = defn;
-        }
-
-        public Builder indexPath(String indexPath){
-            this.indexPath = indexPath;
-            return this;
+        public Builder(NodeState root, NodeState defn, String indexPath) {
+            this.root = checkNotNull(root);
+            this.defn = checkNotNull(defn);
+            this.indexPath = checkNotNull(indexPath);
         }
 
         public Builder version(IndexFormatVersion version){
