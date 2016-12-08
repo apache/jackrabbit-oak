@@ -186,12 +186,23 @@ public final class IndexDefinitionBuilder {
             return property(name, false);
         }
 
-        public PropertyRule property(String name, boolean regex){
+        public PropertyRule property(String name, boolean regex) {
+            return property(null, name, regex);
+        }
+
+        public PropertyRule property(String propDefnNodeName, String name) {
+            return property(propDefnNodeName, name, false);
+        }
+
+        public PropertyRule property(String propDefnNodeName, String name, boolean regex){
             PropertyRule propRule = props.get(name);
             if (propRule == null){
                 Tree propTree = findExisting(name);
                 if (propTree == null){
-                    propTree = getOrCreateChild(propsTree, createPropNodeName(name, regex));
+                    if (propDefnNodeName == null){
+                        propDefnNodeName = createPropNodeName(name, regex);
+                    }
+                    propTree = getOrCreateChild(propsTree, propDefnNodeName);
                 }
                 propRule = new PropertyRule(this, propTree, name, regex);
                 props.put(name, propRule);
@@ -317,6 +328,22 @@ public final class IndexDefinitionBuilder {
 
         public IndexRule enclosingRule(){
             return indexRule;
+        }
+
+        public Tree getBuilderTree(){
+            return propTree;
+        }
+
+        public PropertyRule property(String name){
+            return indexRule.property(name, false);
+        }
+
+        public PropertyRule property(String name, boolean regex) {
+            return indexRule.property(null, name, regex);
+        }
+
+        public PropertyRule property(String propDefnNodeName, String name) {
+            return indexRule.property(propDefnNodeName, name, false);
         }
     }
 

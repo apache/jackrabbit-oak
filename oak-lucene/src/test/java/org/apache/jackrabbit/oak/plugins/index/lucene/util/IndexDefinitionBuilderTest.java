@@ -22,8 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -224,5 +226,17 @@ public class IndexDefinitionBuilderTest {
         state = builder.build();
         assertTrue(builder.isReindexRequired());
         assertFalse(state.getBoolean(REINDEX_PROPERTY_NAME));
+    }
+
+    @Test
+    public void propRuleCustomName() throws Exception{
+        builder.indexRule("nt:base").property("foo").property("bar");
+        builder.indexRule("nt:base").property("fooProp", "foo2");
+        builder.indexRule("nt:base").property("fooProp", "foo2");
+
+        Root idx = new ImmutableRoot(builder.build());
+        assertTrue(idx.getTree("/indexRules/nt:base/properties/fooProp").exists());
+        assertTrue(idx.getTree("/indexRules/nt:base/properties/bar").exists());
+        assertTrue(idx.getTree("/indexRules/nt:base/properties/foo").exists());
     }
 }
