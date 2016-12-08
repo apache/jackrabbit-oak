@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
@@ -282,10 +283,20 @@ public class LuceneIndexEditorContext {
     private static IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
             indexingContext, boolean asyncIndexing) {
         NodeState defnState = definition.getBaseState();
-        if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN) && asyncIndexing){
-            definition.removeProperty(LuceneIndexConstants.PROP_REFRESH_DEFN);
-            definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
-            log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
+        if (asyncIndexing){
+            if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN)){
+                definition.removeProperty(LuceneIndexConstants.PROP_REFRESH_DEFN);
+                NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);
+                definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, clonedState);
+                log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
+                if (log.isDebugEnabled()){
+                    log.debug("Updated index definition is {}", NodeStateUtils.toString(clonedState));
+                }
+            } else if (!definition.hasChildNode(IndexDefinition.INDEX_DEFINITION_NODE)){
+                definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+                log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
+                                "effective post reindexing", indexingContext.getIndexPath());
+            }
         }
         return new IndexDefinition(root, defnState,indexingContext.getIndexPath());
     }
