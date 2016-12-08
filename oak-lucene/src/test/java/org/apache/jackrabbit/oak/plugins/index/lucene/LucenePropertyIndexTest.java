@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
@@ -54,6 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
@@ -121,6 +123,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -2490,6 +2493,36 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //However as reindex was not done query would result in empty set
         assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", Collections.<String>emptyList());
+    }
+
+    @Test
+    public void updateOldIndexDefinition() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").setProperty("foo", "bar");
+        rootTree.addChild("b").setProperty("bar", "bar");
+        root.commit();
+
+        //Cannot use Tree api as it cannot read hidden tree
+        String clonedDefnPath = "/oak:index/test1/" + INDEX_DEFINITION_NODE;
+        assertTrue(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        child(builder, clonedDefnPath).remove();
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        root.rebase();
+        rootTree = root.getTree("/");
+        rootTree.addChild("c").setProperty("foo", "bar");
+        root.commit();
+
+        //Definition state should be recreated
+        assertTrue(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
