@@ -59,7 +59,10 @@ public interface LuceneIndexMBean {
     String[] getFieldInfo(
             @Name("indexPath")
             @Description("The index path (empty for all indexes)")
-            String indexPath
-            ) throws IOException;
+                    String indexPath
+    ) throws IOException;
+
+    @Description("Returns the stored index definition for index at given path in string form")
+    String getStoredIndexDefinition(@Name("indexPath") String indexPath);
 
 }
