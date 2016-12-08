@@ -112,7 +112,7 @@ public class LuceneIndexEditorContext {
         this.definitionBuilder = definition;
         this.indexWriterFactory = indexWriterFactory;
         this.definition = indexDefinition != null ? indexDefinition :
-                new IndexDefinition(root, definition.getBaseState(),indexingContext.getIndexPath());
+                createIndexDefinition(root, definition, indexingContext);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
@@ -191,8 +191,7 @@ public class LuceneIndexEditorContext {
         //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
         //For case where index definition is rewritten there we get fresh state
         NodeState defnState = indexDefnRewritten ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
-        definitionBuilder.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE,
-                NodeStateCloner.cloneVisibleState(defnState));
+        definitionBuilder.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
         String uid = configureUniqueId(definitionBuilder);
 
         //Refresh the index definition based on update builder state
@@ -274,6 +273,17 @@ public class LuceneIndexEditorContext {
             status.setProperty(IndexDefinition.PROP_UID, uid);
         }
         return uid;
+    }
+
+    private static IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
+            indexingContext) {
+        NodeState defnState = definition.getBaseState();
+        if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN)){
+            definition.removeProperty(LuceneIndexConstants.PROP_REFRESH_DEFN);
+            definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+            log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
+        }
+        return new IndexDefinition(root, defnState,indexingContext.getIndexPath());
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {
