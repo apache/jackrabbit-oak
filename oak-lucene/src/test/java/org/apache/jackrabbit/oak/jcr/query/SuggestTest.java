@@ -33,6 +33,7 @@ import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.junit.After;
 import org.junit.Before;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGESTION_CONFIG;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES;
 
@@ -48,6 +49,7 @@ public class SuggestTest extends AbstractQueryTest {
         // change suggester update frequency
         superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
                 .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 0);
+        superuser.getNode("/oak:index/luceneGlobal").setProperty(REINDEX_PROPERTY_NAME, true);
     }
 
     @After
