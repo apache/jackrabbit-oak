@@ -18,7 +18,7 @@
 <configuration>
 
   <appender name="file" class="ch.qos.logback.core.FileAppender">
-    <file>target/jcr.log</file>
+    <file>target/unit-tests.log</file>
     <encoder>
       <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
     </encoder>
