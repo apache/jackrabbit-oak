@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -158,6 +159,7 @@ public class BlobIdTrackerTest {
         }
     }
 
+    @Ignore("OAK-5251")
     @Test
     public void externalAddOffline() throws Exception {
         // Close and open a new object to use the system property
