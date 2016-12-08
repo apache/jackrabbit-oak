@@ -58,15 +58,7 @@ public class LuceneIndexEditorContext {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
-    private static final boolean disableStoredIndexDefinition =
-            Boolean.getBoolean("oak.lucene.disableStoredIndexDefinition");
 
-    static {
-        if (disableStoredIndexDefinition){
-            log.info("Feature to ensure that index definition match the index state is set to be disabled. Change in " +
-                    "index definition would now effect query plans and might lead to inconsistent results");
-        }
-    }
 
     private FacetsConfig facetsConfig;
 
@@ -201,7 +193,7 @@ public class LuceneIndexEditorContext {
         //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
         //For case where index definition is rewritten there we get fresh state
         NodeState defnState = indexDefnRewritten ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
-        if (!disableStoredIndexDefinition) {
+        if (!IndexDefinition.DISABLE_STORED_INDEX_DEFINITION) {
             definitionBuilder.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
         }
         String uid = configureUniqueId(definitionBuilder);
