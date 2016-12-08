@@ -129,6 +129,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     static final String INDEX_VERSION = ":version";
 
     /**
+     * Hidden node under index definition which is used to store the index definition
+     * nodestate as it was at time of reindexing
+     */
+    static final String INDEX_DEFINITION_NODE = ":index-definition";
+
+    /**
      * Hidden node under index definition which is used to store meta info
      */
     static final String STATUS_NODE = ":status";
@@ -299,7 +305,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public IndexDefinition(NodeState root, NodeState defn, String indexPath) {
-        this(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
+        this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
     }
 
     private IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
@@ -1676,6 +1682,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return false;
         }
         return Iterables.contains(async.getValue(Type.STRINGS), mode);
+    }
+
+    private static NodeState getIndexDefinitionState(NodeState defn) {
+        NodeState storedState = defn.getChildNode(INDEX_DEFINITION_NODE);
+        return storedState.exists() ? storedState : defn;
     }
 
 }

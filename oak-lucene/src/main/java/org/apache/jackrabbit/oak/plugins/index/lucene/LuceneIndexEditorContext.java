@@ -98,6 +98,8 @@ public class LuceneIndexEditorContext {
     //Set for testing ONLY
     private static Clock clock = Clock.SIMPLE;
 
+    private final boolean indexDefnRewritten;
+
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
                              @Nullable IndexDefinition indexDefinition,
                              IndexUpdateCallback updateCallback,
@@ -117,7 +119,10 @@ public class LuceneIndexEditorContext {
         this.augmentorFactory = augmentorFactory;
         this.asyncIndexing = asyncIndexing;
         if (this.definition.isOfOldFormat()){
+            indexDefnRewritten = true;
             IndexDefinition.updateDefinition(definition, indexingContext.getIndexPath());
+        } else {
+            indexDefnRewritten = false;
         }
     }
 
@@ -181,11 +186,18 @@ public class LuceneIndexEditorContext {
         reindex = true;
         IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
+
+        //Avoid obtaining the latest NodeState from builder as that would force purge of current transient state
+        //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
+        //For case where index definition is rewritten there we get fresh state
+        NodeState defnState = indexDefnRewritten ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
+        definitionBuilder.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE,
+                NodeStateCloner.cloneVisibleState(defnState));
         String uid = configureUniqueId(definitionBuilder);
 
         //Refresh the index definition based on update builder state
         definition = IndexDefinition
-                .newBuilder(root, definitionBuilder.getBaseState())
+                .newBuilder(root, defnState)
                 .indexPath(indexingContext.getIndexPath())
                 .version(version)
                 .uid(uid)

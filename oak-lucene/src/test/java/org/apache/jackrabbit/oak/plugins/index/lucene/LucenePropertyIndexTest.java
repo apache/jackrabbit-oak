@@ -138,6 +138,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+@SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public class LucenePropertyIndexTest extends AbstractQueryTest {
     /**
      * Set the size to twice the batch size to test the pagination with sorting
@@ -158,6 +159,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private NodeStore nodeStore;
 
+    private LuceneIndexProvider provider;
+
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
@@ -172,7 +175,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
-        LuceneIndexProvider provider = new LuceneIndexProvider(copier);
+        provider = new LuceneIndexProvider(copier);
         nodeStore = new MemoryNodeStore();
         return new Oak(nodeStore)
                 .with(new InitialContent())
@@ -804,6 +807,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         //set propb def to be node scope indexed
         propTree = root.getTree(idx.getPath() + "/indexRules/nt:base/properties/propb");
         propTree.setProperty(PROP_NODE_SCOPE_INDEX, true);
+        root.getTree(idx.getPath()).setProperty(REINDEX_PROPERTY_NAME, true);
         root.commit();
 
         Tree rootTree = root.getTree("/");
@@ -2422,6 +2426,35 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertPlanAndQuery("select * from [oak:TestSuperType]", "lucene:test1(/oak:index/test1)", asList("/a", "/b"));
         assertPlanAndQuery("select * from [oak:TestMixA]", "lucene:test1(/oak:index/test1)", asList("/b", "/c"));
+    }
+
+    @Test
+    public void indexDefinitionModifiedPostReindex() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").setProperty("foo", "bar");
+        rootTree.addChild("b").setProperty("bar", "bar");
+        root.commit();
+
+        String query = "select * from [nt:base] where [foo] = 'bar'";
+        assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", asList("/a"));
+
+        Tree barProp = root.getTree("/oak:index/test1/indexRules/nt:base/properties").addChild("bar");
+        barProp.setProperty("name", "bar");
+        barProp.setProperty("propertyIndex", true);
+        root.commit();
+
+        query = "select * from [nt:base] where [bar] = 'bar'";
+        assertThat(explain(query), not(containsString("lucene:test1(/oak:index/test1)")));
+
+        root.getTree("/oak:index/test1").setProperty(REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", asList("/b"));
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
