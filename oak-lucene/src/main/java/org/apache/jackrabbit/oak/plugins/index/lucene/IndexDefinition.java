@@ -99,6 +99,16 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
 
+    public static final boolean DISABLE_STORED_INDEX_DEFINITION =
+            Boolean.getBoolean("oak.lucene.disableStoredIndexDefinition");
+
+    static {
+        if (DISABLE_STORED_INDEX_DEFINITION){
+            log.info("Feature to ensure that index definition match the index state is set to be disabled. Change in " +
+                    "index definition would now effect query plans and might lead to inconsistent results");
+        }
+    }
+
     /**
      * Default number of seconds after which to delete actively. Default is -1, meaning disabled.
      * The plan is to use 3600 (1 hour) in the future.
@@ -1685,6 +1695,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static NodeState getIndexDefinitionState(NodeState defn) {
+        if (DISABLE_STORED_INDEX_DEFINITION){
+            return defn;
+        }
         NodeState storedState = defn.getChildNode(INDEX_DEFINITION_NODE);
         return storedState.exists() ? storedState : defn;
     }
