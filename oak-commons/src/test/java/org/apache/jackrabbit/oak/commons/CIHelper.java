@@ -61,4 +61,17 @@ public final class CIHelper {
         return equal(getenv("PROFILE"), "integrationTesting");
     }
 
+    public static boolean jenkinsNodeLabel(String label) {
+        String labels = getenv("NODE_LABELS");
+        if (labels == null) {
+            return false;
+        }
+        for (String l: labels.trim().split("\\s+")) {
+            if (l.equals(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

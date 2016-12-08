@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
+import static org.apache.jackrabbit.oak.commons.CIHelper.jenkinsNodeLabel;
 import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.File;
 
@@ -56,89 +58,89 @@ public class FailoverIPRangeIT extends TestBase {
 
     @Test
     public void testFailoverLocalClient() throws Exception {
-        createTestWithConfig(new String[]{"127.0.0.1"}, true);
+        createTestWithConfig(new String[] {"127.0.0.1"}, true);
     }
 
     @Test
     public void testFailoverLocalClientUseIPv6() throws Exception {
-        if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"::1"}, true);
-        }
+        assumeFalse(jenkinsNodeLabel("beam"));
+        assumeFalse(noDualStackSupport);
+        createTestWithConfig("::1", new String[] {"::1"}, true);
     }
 
     @Test
     public void testFailoverWrongClient() throws Exception {
-        createTestWithConfig(new String[]{"127.0.0.2"}, false);
+        createTestWithConfig(new String[] {"127.0.0.2"}, false);
     }
 
     @Test
     public void testFailoverWrongClientIPv6() throws Exception {
-        if (!noDualStackSupport) {
-            createTestWithConfig(new String[]{"::2"}, false);
-        }
+        assumeFalse(jenkinsNodeLabel("beam"));
+        assumeFalse(noDualStackSupport);
+        createTestWithConfig(new String[] {"::2"}, false);
     }
 
     @Test
     public void testFailoverLocalhost() throws Exception {
-        createTestWithConfig(new String[]{"localhost"}, true);
+        createTestWithConfig(new String[] {"localhost"}, true);
     }
 
     @Test
     public void testFailoverValidIPRangeStart() throws Exception {
-        createTestWithConfig(new String[]{"127.0.0.1-127.0.0.2"}, true);
+        createTestWithConfig(new String[] {"127.0.0.1-127.0.0.2"}, true);
     }
 
     @Test
     public void testFailoverValidIPRangeEnd() throws Exception {
-        createTestWithConfig(new String[]{"127.0.0.0-127.0.0.1"}, true);
+        createTestWithConfig(new String[] {"127.0.0.0-127.0.0.1"}, true);
     }
 
     @Test
     public void testFailoverValidIPRange() throws Exception {
-        createTestWithConfig(new String[]{"127.0.0.0-127.0.0.2"}, true);
+        createTestWithConfig(new String[] {"127.0.0.0-127.0.0.2"}, true);
     }
 
     @Test
     public void testFailoverInvalidRange() throws Exception {
-        createTestWithConfig(new String[]{"127.0.0.2-127.0.0.1"}, false);
+        createTestWithConfig(new String[] {"127.0.0.2-127.0.0.1"}, false);
     }
 
     @Test
     public void testFailoverCorrectList() throws Exception {
-        createTestWithConfig(new String[]{"127-128","126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+        createTestWithConfig(new String[] {"127-128", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
     }
 
     @Test
     public void testFailoverCorrectListIPv6() throws Exception {
-        if (!noDualStackSupport) {
-            createTestWithConfig(new String[]{"122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
-        }
+        assumeFalse(jenkinsNodeLabel("beam"));
+        assumeFalse(noDualStackSupport);
+        createTestWithConfig(new String[] {"122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
     }
 
     @Test
     public void testFailoverWrongList() throws Exception {
-        createTestWithConfig(new String[]{"126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
+        createTestWithConfig(new String[] {"126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
     }
 
     @Test
     public void testFailoverCorrectListUseIPv6() throws Exception {
-        if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"127-128", "0:0:0:0:0:0:0:1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
-        }
+        assumeFalse(jenkinsNodeLabel("beam"));
+        assumeFalse(noDualStackSupport);
+        createTestWithConfig("::1", new String[] {"127-128", "0:0:0:0:0:0:0:1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
     }
 
     @Test
     public void testFailoverCorrectListIPv6UseIPv6() throws Exception {
-        if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
-        }
+        assumeFalse(jenkinsNodeLabel("beam"));
+        assumeFalse(noDualStackSupport);
+        createTestWithConfig("::1", new String[] {"122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
     }
 
     @Test
     public void testFailoverWrongListUseIPv6() throws Exception {
-        if (!noDualStackSupport) {
-            createTestWithConfig("::1", new String[]{"126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
-        }
+        assumeFalse(jenkinsNodeLabel("beam"));
+        assumeFalse(noDualStackSupport);
+        createTestWithConfig("::1", new String[] {"126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
     }
 
     private void createTestWithConfig(String[] ipRanges, boolean expectedToWork) throws Exception {
