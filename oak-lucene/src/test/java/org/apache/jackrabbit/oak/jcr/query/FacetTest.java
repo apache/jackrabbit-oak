@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+
 /**
  * Test for faceting capabilities via JCR API
  */
@@ -48,6 +50,7 @@ public class FacetTest extends AbstractQueryTest {
         if (!superuser.itemExists(FACET_CONFING_PROP_PATH)) {
             Node node = superuser.getNode("/oak:index/luceneGlobal/indexRules/nt:base/properties/allProps");
             node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+            markIndexForReindex();
             superuser.save();
             superuser.refresh(true);
         }
@@ -55,6 +58,7 @@ public class FacetTest extends AbstractQueryTest {
         if (!superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
             Node node = superuser.getNode(INDEX_CONFING_NODE_PATH);
             node.addNode(LuceneIndexConstants.FACETS);
+            markIndexForReindex();
             superuser.save();
             superuser.refresh(true);
         }
@@ -80,6 +84,8 @@ public class FacetTest extends AbstractQueryTest {
     public void testFacetsNA() throws Exception {
         if (superuser.itemExists(FACET_CONFING_PROP_PATH)) {
             superuser.getItem(FACET_CONFING_PROP_PATH).remove();
+            markIndexForReindex();
+            superuser.save();
         }
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
@@ -364,6 +370,7 @@ public class FacetTest extends AbstractQueryTest {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
         facetsConfig.setProperty(LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN, 11);
+        markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
 
@@ -414,6 +421,7 @@ public class FacetTest extends AbstractQueryTest {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
         facetsConfig.setProperty(LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN, 7);
+        markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
 
@@ -458,5 +466,9 @@ public class FacetTest extends AbstractQueryTest {
         List<FacetResult.Facet> facets = facetResult.getFacets(pn);
         assertNotNull(facets);
         assertEquals(7, facets.size());
+    }
+
+    private void markIndexForReindex() throws RepositoryException {
+        superuser.getNode("/oak:index/luceneGlobal").setProperty(REINDEX_PROPERTY_NAME, true);
     }
 }
