@@ -361,4 +361,9 @@ public interface LuceneIndexConstants {
      * String property: the function to index, for function-based index
      */
     String PROP_FUNCTION = "function";
+
+    /**
+     * Boolean property which signal LuceneIndexEditor to refresh the stored index definition
+     */
+    String PROP_REFRESH_DEFN = "refresh";
 }

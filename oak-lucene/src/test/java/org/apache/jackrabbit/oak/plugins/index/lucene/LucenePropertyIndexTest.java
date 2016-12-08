@@ -2457,6 +2457,41 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", asList("/b"));
     }
 
+    @Test
+    public void refreshIndexDefinition() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").setProperty("foo", "bar");
+        rootTree.addChild("b").setProperty("bar", "bar");
+        root.commit();
+
+        String query = "select * from [nt:base] where [foo] = 'bar'";
+        assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", asList("/a"));
+
+        Tree barProp = root.getTree("/oak:index/test1/indexRules/nt:base/properties").addChild("bar");
+        barProp.setProperty("name", "bar");
+        barProp.setProperty("propertyIndex", true);
+        root.commit();
+
+        query = "select * from [nt:base] where [bar] = 'bar'";
+        assertThat(explain(query), not(containsString("lucene:test1(/oak:index/test1)")));
+
+        //Instead of reindex just refresh the index definition so that new index definition gets picked up
+        root.getTree("/oak:index/test1").setProperty(LuceneIndexConstants.PROP_REFRESH_DEFN, true);
+        root.commit();
+
+        //Plan would reflect new defintion
+        assertThat(explain(query), containsString("lucene:test1(/oak:index/test1)"));
+        assertFalse(root.getTree("/oak:index/test1").hasProperty(LuceneIndexConstants.PROP_REFRESH_DEFN));
+
+        //However as reindex was not done query would result in empty set
+        assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", Collections.<String>emptyList());
+    }
+
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
         assertThat(explain(query), containsString(planExpectation));
         assertQuery(query, paths);
