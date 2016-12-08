@@ -199,6 +199,10 @@ public class IndexTracker {
         return badIndexTracker;
     }
 
+    NodeState getRoot() {
+        return root;
+    }
+
     private synchronized IndexNode findIndexNode(String path) {
         // Retry the lookup from acquireIndexNode now that we're
         // synchronized. The acquire() call is guaranteed to succeed

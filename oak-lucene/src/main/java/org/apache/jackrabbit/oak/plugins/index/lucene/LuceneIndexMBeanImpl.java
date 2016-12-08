@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,10 +38,16 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.jmx.Name;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -64,9 +66,10 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.collect.TreeTraverser;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -180,7 +183,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return new String[0];
     }
-    
+
     @Override
     public String[] getFieldInfo(String indexPath) throws IOException {
         TreeSet<String> indexes = new TreeSet<String>();
@@ -207,16 +210,20 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return list.toArray(new String[0]);
     }
 
-    private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher) throws IOException {
-        ArrayList<String> list = new ArrayList<String>();
-        IndexReader reader = searcher.getIndexReader();
-        Fields fields = MultiFields.getFields(reader);
-        if (fields != null) {
-            for(String f : fields) {
-                list.add(path + " " + f + " " + reader.getDocCount(f));
-            }
+    @Override
+    public String getStoredIndexDefinition(@Name("indexPath") String indexPath) {
+        IndexDefinition defn = indexTracker.getIndexDefinition(indexPath);
+        NodeState state;
+        if (defn != null){
+            state = defn.getDefinitionNodeState();
+        } else {
+            state = NodeStateUtils.getNode(indexTracker.getRoot(), indexPath + "/" + INDEX_DEFINITION_NODE);
         }
-        return list;
+
+        if (state.exists()){
+            return NodeStateUtils.toString(state);
+        }
+        return "No index found at given path";
     }
 
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {
@@ -241,6 +248,18 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 indexNode.release();
             }
         }
+    }
+
+    private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher) throws IOException {
+        ArrayList<String> list = new ArrayList<String>();
+        IndexReader reader = searcher.getIndexReader();
+        Fields fields = MultiFields.getFields(reader);
+        if (fields != null) {
+            for(String f : fields) {
+                list.add(path + " " + f + " " + reader.getDocCount(f));
+            }
+        }
+        return list;
     }
 
     private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
