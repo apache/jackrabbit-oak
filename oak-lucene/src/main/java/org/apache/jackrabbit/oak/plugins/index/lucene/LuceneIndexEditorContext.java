@@ -122,7 +122,7 @@ public class LuceneIndexEditorContext {
         this.definitionBuilder = definition;
         this.indexWriterFactory = indexWriterFactory;
         this.definition = indexDefinition != null ? indexDefinition :
-                createIndexDefinition(root, definition, indexingContext);
+                createIndexDefinition(root, definition, indexingContext, asyncIndexing);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
@@ -288,9 +288,9 @@ public class LuceneIndexEditorContext {
     }
 
     private static IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
-            indexingContext) {
+            indexingContext, boolean asyncIndexing) {
         NodeState defnState = definition.getBaseState();
-        if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN)){
+        if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN) && asyncIndexing){
             definition.removeProperty(LuceneIndexConstants.PROP_REFRESH_DEFN);
             definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
             log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
