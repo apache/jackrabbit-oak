@@ -503,18 +503,20 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture       | Description                                                    |
-|---------------|----------------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM          |
-| Oak-Memory    | Oak with default in-memory storage                             |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                           |
-| Oak-Mongo     | Oak with the default Mongo backend                             |
-| Oak-Mongo-DS  | Oak with the default Mongo backend and DataStore               |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                                   |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)               |
-| Oak-Tar-DS    | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
-| Oak-RDB       | Oak with the DocumentMK/RDB persistence                        |
-| Oak-RDB-DS    | Oak with the DocumentMK/RDB persistence and DataStore          |
+| Fixture             | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| Jackrabbit          | Jackrabbit with the default embedded Derby  bundle PM          |
+| Oak-Memory          | Oak with default in-memory storage                             |
+| Oak-MemoryNS        | Oak with default in-memory NodeStore                           |
+| Oak-Mongo           | Oak with the default Mongo backend                             |
+| Oak-Mongo-DS        | Oak with the default Mongo backend and DataStore               |
+| Oak-MongoNS         | Oak with the Mongo NodeStore                                   |
+| Oak-Segment-Tar     | Oak with the Segment Tar backend                               |
+| Oak-Segment-Tar-DS  | Oak with the Segment Tar backend and DataStore                 |
+| Oak-Tar             | Oak with the Tar backend (deprecated)                          |
+| Oak-Tar-DS          | Oak with the Tar backend (deprecated) and DataStore            |
+| Oak-RDB             | Oak with the DocumentMK/RDB persistence                        |
+| Oak-RDB-DS          | Oak with the DocumentMK/RDB persistence and DataStore          |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path. Furthermode, 
