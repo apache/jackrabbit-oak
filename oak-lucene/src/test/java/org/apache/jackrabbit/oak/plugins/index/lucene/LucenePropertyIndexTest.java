@@ -167,6 +167,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
+        IndexDefinition.setDisableStoredIndexDefinition(false);
     }
 
     @Override
@@ -2522,7 +2523,24 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //Definition state should be recreated
         assertTrue(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+    }
 
+    @Test
+    public void disableIndexDefnStorage() throws Exception{
+        IndexDefinition.setDisableStoredIndexDefinition(true);
+
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").setProperty("foo", "bar");
+        rootTree.addChild("b").setProperty("bar", "bar");
+        root.commit();
+
+        String clonedDefnPath = "/oak:index/test1/" + INDEX_DEFINITION_NODE;
+        assertFalse(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){

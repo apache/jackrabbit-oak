@@ -213,6 +213,16 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_HYBRID_QUEUE_SIZE = "hybridQueueSize";
 
+    private static final boolean PROP_DISABLE_DEFN_STORAGE_DEFAULT = false;
+    @Property(
+            boolValue = PROP_DISABLE_DEFN_STORAGE_DEFAULT,
+            label = "Disable index definition storage",
+            description = "By default index definitions would be stored at time of reindexing to ensure that future " +
+                    "modifications to it are not effective untill index is reindex. Set this to true would disable " +
+                    "this feature"
+    )
+    private static final String PROP_DISABLE_STORED_INDEX_DEFINITION = "disableStoredIndexDefinition";
+
     private Whiteboard whiteboard;
 
     private BackgroundObserver backgroundObserver;
@@ -270,6 +280,7 @@ public class LuceneIndexProviderService {
             return;
         }
 
+        configureIndexDefinitionStorage(config);
         configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
 
@@ -572,6 +583,16 @@ public class LuceneIndexProviderService {
         if (booleanClauseLimit != BooleanQuery.getMaxClauseCount()){
             BooleanQuery.setMaxClauseCount(booleanClauseLimit);
             log.info("Changed the Max boolean clause limit to {}", booleanClauseLimit);
+        }
+    }
+
+    private void configureIndexDefinitionStorage(Map<String, ?> config) {
+        boolean disableStorage = PropertiesUtil.toBoolean(config.get(PROP_DISABLE_STORED_INDEX_DEFINITION),
+                PROP_DISABLE_DEFN_STORAGE_DEFAULT);
+        if (disableStorage){
+            log.info("Feature to ensure that index definition matches the index state is disabled. Change in " +
+                    "index definition would now affect query plans and might lead to inconsistent results.");
+            IndexDefinition.setDisableStoredIndexDefinition(disableStorage);
         }
     }
 
