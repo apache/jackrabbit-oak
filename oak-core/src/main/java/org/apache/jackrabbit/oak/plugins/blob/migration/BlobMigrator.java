@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -176,7 +177,7 @@ public class BlobMigrator {
 
     private PropertyState migrateProperty(PropertyState propertyState) throws IOException {
         Blob oldBlob = propertyState.getValue(Type.BINARY);
-        String blobId = oldBlob.getContentIdentity();
+        String blobId = getIdentity(oldBlob);
         if (blobStore.isMigrated(blobId)) {
             return null;
         }
@@ -196,7 +197,7 @@ public class BlobMigrator {
         builder.assignFrom(propertyState);
         boolean blobUpdated = false;
         for (Blob oldBlob : oldBlobs) {
-            String blobId = oldBlob.getContentIdentity();
+            String blobId = getIdentity(oldBlob);
             if (blobStore.isMigrated(blobId)) {
                 newBlobs.add(new BlobStoreBlob(blobStore, blobId));
             } else {
@@ -212,5 +213,13 @@ public class BlobMigrator {
         } else {
             return null;
         }
+    }
+
+    private String getIdentity(Blob blob) throws IOException {
+        String id = blob.getContentIdentity();
+        if (id == null) {
+            id = DigestUtils.shaHex(blob.getNewStream());
+        }
+        return id;
     }
 }
