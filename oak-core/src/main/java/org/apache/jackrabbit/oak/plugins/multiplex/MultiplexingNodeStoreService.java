@@ -24,6 +24,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -66,6 +67,8 @@ public class MultiplexingNodeStoreService {
     private ComponentContext context;
 
     private ServiceRegistration nsReg;
+
+    private ObserverTracker observerTracker;
 
     @Activate
     protected void activate(ComponentContext context) {
@@ -125,13 +128,18 @@ public class MultiplexingNodeStoreService {
         props.put(Constants.SERVICE_PID, MultiplexingNodeStore.class.getName());
         props.put("oak.nodestore.description", new String[] { "nodeStoreType=multiplexing" } );
 
+        MultiplexingNodeStore store = builder.build();
+
+        observerTracker = new ObserverTracker(store);
+        observerTracker.start(context.getBundleContext());
+
         LOG.info("Registering the multiplexing node store");
 
         nsReg = context.getBundleContext().registerService(
                 new String[]{
                         NodeStore.class.getName()
                 },
-                builder.build(),
+                store,
                 props);
     }
 
@@ -156,6 +164,10 @@ public class MultiplexingNodeStoreService {
             LOG.info("Unregistering the multiplexing node store");
             nsReg.unregister();
             nsReg = null;
+        }
+        if (observerTracker != null) {
+            observerTracker.stop();
+            observerTracker = null;
         }
     }
 
