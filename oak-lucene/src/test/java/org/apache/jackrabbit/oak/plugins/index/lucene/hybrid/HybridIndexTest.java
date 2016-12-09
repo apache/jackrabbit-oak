@@ -32,9 +32,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -45,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.Index
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.OptionalEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
@@ -53,7 +58,9 @@ import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -79,6 +86,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();
     private NodeStore nodeStore;
     private DocumentQueue queue;
     private Clock clock = new Clock.Virtual();
@@ -120,6 +128,7 @@ public class HybridIndexTest extends AbstractQueryTest {
                 .with(editorProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
+                .with(optionalEditorProvider)
                 .with(new NodeCounterEditorProvider())
                 //Effectively disable async indexing auto run
                 //such that we can control run timing as per test requirement
@@ -236,6 +245,30 @@ public class HybridIndexTest extends AbstractQueryTest {
         createPath("/c").setProperty("foo", "bar");
         root.commit();
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
+    }
+
+    @Test
+    public void newNodeTypesFoundLater() throws Exception{
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, ImmutableSet.of("foo", "bar"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        root.commit();
+
+        setTraversalEnabled(false);
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+
+        optionalEditorProvider.delegate = new TypeEditorProvider(false);
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        root.refresh();
+
+        Tree b = createPath("/b");
+        b.setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:TestNode", Type.NAME);
+        b.setProperty("bar", "foo");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [bar] = 'foo'", of("/b"));
     }
 
     private void runAsyncIndex() {

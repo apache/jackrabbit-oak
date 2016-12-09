@@ -76,6 +76,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -88,6 +89,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 public final class IndexDefinition implements Aggregate.AggregateMapper {
@@ -622,6 +624,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     //~---------------------------------------------------< IndexRule >
+
+    public boolean hasMatchingNodeTypeReg(NodeState root){
+        return this.root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES)
+                .equals(root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
+    }
 
 
     public List<IndexingRule> getDefinedRules() {

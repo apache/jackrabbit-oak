@@ -121,8 +121,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -158,7 +156,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private LuceneIndexEditorProvider editorProvider;
 
-    private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();
+    private TestUtil.OptionalEditorProvider optionalEditorProvider = new TestUtil.OptionalEditorProvider();
 
     private NodeStore nodeStore;
 
@@ -2826,15 +2824,4 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
     }
 
-    private static class OptionalEditorProvider implements EditorProvider {
-        private EditorProvider delegate;
-
-        @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
-            if (delegate != null){
-                return delegate.getRootEditor(before, after, builder, info);
-            }
-            return null;
-        }
-    }
 }

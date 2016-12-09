@@ -893,6 +893,22 @@ public class IndexDefinitionTest {
         assertNull(defn.getUniqueId());
     }
 
+    @Test
+    public void nodeTypeChange() throws Exception{
+        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
+        NodeBuilder b2 = root.builder();
+        TestUtil.registerNodeType(b2, TestUtil.TEST_NODE_TYPE);
+        NodeState root2 = b2.getNodeState();
+
+
+        NodeBuilder b3 = root.builder();
+        b3.child("x");
+        NodeState root3 = b3.getNodeState();
+
+        assertFalse(defn.hasMatchingNodeTypeReg(root2));
+        assertTrue(defn.hasMatchingNodeTypeReg(root3));
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){

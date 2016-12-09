@@ -142,6 +142,11 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 //creating definition instance for each commit as this gets executed for each commit
                 if (indexTracker != null){
                     indexDefinition = indexTracker.getIndexDefinition(indexingContext.getIndexPath());
+                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)){
+                        log.debug("Detected change in NodeType registry for index {}. Would not use " +
+                                "existing index definition", indexDefinition.getIndexPath());
+                        indexDefinition = null;
+                    }
                 }
 
                 //Pass on a read only builder to ensure that nothing gets written
