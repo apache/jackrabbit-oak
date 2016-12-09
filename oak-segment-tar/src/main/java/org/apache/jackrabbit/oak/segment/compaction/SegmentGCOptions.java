@@ -54,9 +54,9 @@ public class SegmentGCOptions {
     public static final int RETAINED_GENERATIONS_DEFAULT = 2;
 
     /**
-     * Default value for {@link #getGcSizeDeltaEstimation()} set to 10GB
+     * Default value for {@link #getGcSizeDeltaEstimation()}.
      */
-    public static final long SIZE_DELTA_ESTIMATION_DEFAULT = 10737418240L;
+    public static final long SIZE_DELTA_ESTIMATION_DEFAULT = 1024L * 1024L * 1024L;
 
     /**
      * Default value for the gc progress log
