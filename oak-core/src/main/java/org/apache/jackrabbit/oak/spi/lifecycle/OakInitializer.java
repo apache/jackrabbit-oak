@@ -18,18 +18,27 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.core.ResetCommitAttributeHook;
+import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public final class OakInitializer {
+
+    public static final String SESSION_ID = "OakInitializer";
 
     private OakInitializer() {
     }
@@ -40,9 +49,7 @@ public final class OakInitializer {
         try {
             NodeBuilder builder = store.getRoot().builder();
             initializer.initialize(builder);
-            CommitHook hook = new EditorHook(new IndexUpdateProvider(indexEditor));
-            CommitInfo info = new CommitInfo("OakInitializer", null);
-            store.merge(builder, hook, info);
+            store.merge(builder, createHook(indexEditor), createCommitInfo());
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
@@ -57,11 +64,20 @@ public final class OakInitializer {
             wspInit.initialize(builder, workspaceName);
         }
         try {
-            CommitHook hook = new EditorHook(new IndexUpdateProvider(indexEditor));
-            CommitInfo info = new CommitInfo("OakInitializer", null);
-            store.merge(builder, hook, info);
+            store.merge(builder, createHook(indexEditor), createCommitInfo());
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static CommitHook createHook(@Nonnull IndexEditorProvider indexEditor) {
+        return new CompositeHook(
+                        ResetCommitAttributeHook.INSTANCE,
+                        new EditorHook(new IndexUpdateProvider(indexEditor)));
+    }
+
+    private static CommitInfo createCommitInfo(){
+        Map<String, Object> infoMap = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        return new CommitInfo(SESSION_ID, null, infoMap);
     }
 }
