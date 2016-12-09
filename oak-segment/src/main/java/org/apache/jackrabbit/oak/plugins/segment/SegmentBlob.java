@@ -140,7 +140,7 @@ public class SegmentBlob extends Record implements Blob {
         if (blobId != null){
             return blobId;
         }
-        return getRecordId().toString();
+        return null;
     }
 
     public boolean isExternal() {
