@@ -37,35 +37,13 @@ public class AbstractBlobTest {
     @Test
     public void blobComparisonBasedOnContentIdentity() throws Exception {
         byte[] data = bytes(100);
-        // Same data same id
         Blob a = new TestBlob(data, "id1", false);
         Blob b = new TestBlob(data, "id1", false);
         assertTrue(AbstractBlob.equal(a, b));
 
-        // Same data diff ids (assumes that id is content hashed so takes a short cut)
-        a = new TestBlob(data, "id1", false);
-        b = new TestBlob(data, "id2", false);
-        assertFalse("Blob with diff id but same content should not match",
-            AbstractBlob.equal(a, b));
-
-        // Diff data diff ids
-        byte data2[] = bytes(100);
-        Blob a2 = new TestBlob(data, "id1", false);
-        Blob b2 = new TestBlob(data2, "id2", false);
-        assertFalse("Blobs with different id and diff content should not match",
-            AbstractBlob.equal(a2, b2));
-
-        // 2nd id null
-        Blob a3 = new TestBlob(data, "id1", true);
-        Blob b3 = new TestBlob(data, null, true);
-        assertTrue("Blobs with a null id but same content should match",
-            AbstractBlob.equal(a3, b3));
-
-        // 1st id null
-        Blob a4 = new TestBlob(data, null, true);
-        Blob b4 = new TestBlob(data, "id2", true);
-        assertTrue("Blobs with a null id but same content should match",
-            AbstractBlob.equal(a4, b4));
+        Blob a2 = new TestBlob(data, "id1", true);
+        Blob b2 = new TestBlob(data, "id2", true);
+        assertTrue("Blobs with different id but same content should match", AbstractBlob.equal(a2, b2));
     }
 
     @Test
