@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -387,7 +389,9 @@ public class LuceneIndexProviderService {
         }
         editorProvider.setBlobStore(blobStore);
 
-        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, null));
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put("type", "lucene");
+        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
         oakRegs.add(registerMBean(whiteboard,
                 TextExtractionStatsMBean.class,
                 editorProvider.getExtractedTextCache().getStatsMBean(),

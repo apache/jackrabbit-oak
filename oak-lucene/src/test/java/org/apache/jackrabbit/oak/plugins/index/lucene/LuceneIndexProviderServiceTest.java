@@ -57,6 +57,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.osgi.framework.ServiceReference;
 
 public class LuceneIndexProviderServiceTest {
     /*
@@ -115,6 +116,13 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue", true));
 
         MockOsgi.deactivate(service);
+    }
+
+    @Test
+    public void typeProperty() throws Exception{
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+        ServiceReference sr = context.bundleContext().getServiceReference(IndexEditorProvider.class.getName());
+        assertEquals("lucene", sr.getProperty("type"));
     }
 
     @Test
