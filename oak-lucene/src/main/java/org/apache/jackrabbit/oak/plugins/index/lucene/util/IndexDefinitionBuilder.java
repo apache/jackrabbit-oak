@@ -28,6 +28,7 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -133,11 +134,11 @@ public final class IndexDefinitionBuilder {
         if (reindexRequired){
             return true;
         }
-        return !EqualsDiff.equals(initial, builder.getNodeState());
+        return !SelectiveEqualsDiff.equals(initial, builder.getNodeState());
     }
 
     private void setReindexFlagIfRequired(){
-        if (!reindexRequired && !EqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
+        if (!reindexRequired && !SelectiveEqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
             tree.setProperty("reindex", true);
             reindexRequired = true;
         }
@@ -446,6 +447,30 @@ public final class IndexDefinitionBuilder {
         child.setOrderableChildren(true);
         child.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
         return child;
+    }
+
+    static class SelectiveEqualsDiff extends EqualsDiff {
+        public static boolean equals(NodeState before, NodeState after) {
+            return before.exists() == after.exists()
+                    && after.compareAgainstBaseState(before, new SelectiveEqualsDiff());
+        }
+
+        @Override
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            if (IndexConstants.ASYNC_PROPERTY_NAME.equals(before.getName())){
+                Set<String> asyncBefore = getAsyncValuesWithoutNRT(before);
+                Set<String> asyncAfter = getAsyncValuesWithoutNRT(after);
+                return asyncBefore.equals(asyncAfter);
+            }
+            return false;
+        }
+
+        private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
+            Set<String> async = Sets.newHashSet(state.getValue(Type.STRINGS));
+            async.remove(IndexConstants.INDEXING_MODE_NRT);
+            async.remove(IndexConstants.INDEXING_MODE_SYNC);
+            return async;
+        }
     }
 
     static String getSafePropName(String relativePropName) {

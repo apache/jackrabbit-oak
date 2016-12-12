@@ -229,6 +229,24 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
+    public void reindexAndAsyncFlagChange() throws Exception{
+        builder.async("async", IndexConstants.INDEXING_MODE_NRT);
+
+        nodeBuilder = builder.build().builder();
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+
+        NodeState oldState = nodeBuilder.getNodeState();
+
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder.async("async", IndexConstants.INDEXING_MODE_SYNC);
+        assertFalse(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
+
+        builder = new IndexDefinitionBuilder(oldState.builder());
+        builder.async("fulltext-async", IndexConstants.INDEXING_MODE_SYNC);
+        assertTrue(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
+    }
+
+    @Test
     public void propRuleCustomName() throws Exception{
         builder.indexRule("nt:base").property("foo").property("bar");
         builder.indexRule("nt:base").property("fooProp", "foo2");
