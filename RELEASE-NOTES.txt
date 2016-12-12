@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.10
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.11
 
 Introduction
 ------------
@@ -7,52 +7,60 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.10 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.11 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.10
+Changes in Oak 1.4.11
 ---------------------
-
-Sub-task
-
-    [OAK-5038] - Extend PersistentCacheStats with async queue-related
-    stats
-
-Technical task
-
-    [OAK-4986] - RDBDocumentStore: potential NPE in document read
 
 Bug
 
-    [OAK-4125] - Test failure: testUpdateAndDelete [MyFixture:
-    RDB-Derby(embedded)]
-    [OAK-4770] - Missing exception handling in
-    ClusterNodeInfo.renewLease()
-    [OAK-4779] - ClusterNodeInfo may renew lease while recovery is
-    running
-    [OAK-4882] - Bottleneck in the asynchronous persistent cache
-    [OAK-4969] - ColdStandby does not fetch missing blobs
-    [OAK-4980] - occasional test failure of JournalGCIT
-    [OAK-4997] - RevisionGCTest.teardown() may fail with NPE when
-    store == null
-    [OAK-5005] - S3 async upload fails to catch and log exceptions
-    other than DataStoreException
+    [OAK-4544] - Fix failing test
+    DataStoreCheckTest.testMissingOpParams()
+    [OAK-5009] - ExternalToExternalMigrationTest failures on Windows
+    [OAK-5125] - Some implementations of CacheValue.getMemory() don't
+    care about integer overflow.
+    [OAK-5138] - NodeCache.getIfPresent() may result in writing to
+    persistent cache
+    [OAK-5139] - Asynchronous puts to persistent cache doesn't update
+    stats
+    [OAK-5148] - Misleading diffJournalChildren debug message
+    [OAK-5178] - Default mode for local_diff cache must be synchronous
+    [OAK-5180] - Fix and enable RemoteServerIT
+    [OAK-5193] - Version tree may become inconsistent after removing a
+    version
+    [OAK-5200] - OAK-4930 introduced critical bug confusing id and
+    principal name
+    [OAK-5203] - [oak-run] Rename dumdatastorerefs comand to
+    datastorecheck command
 
 Improvement
 
-    [OAK-4757] - Adjust default timeout values for MongoDocumentStore
-    [OAK-4792] - Replace usage of AssertionError in ClusterNodeInfo
+    [OAK-4789] - SegmentBlob should return null contentIdentity for
+    inlined blobs
+    [OAK-5132] - Limit diff cache entries in size
+    [OAK-5142] - Make sure that metadata entries are eventually
+    removed
+    [OAK-5150] - Log stats for JournalDiffLoader
+    [OAK-5155] - Remove oak.documentMK.cacheConcurrency system
+    property
+    [OAK-5163] - ReadWriteVersionManager#getExistingBaseVersion throws
+    an opaque exception if baseVersion doesn't exist
+
+New Feature
+
+    [OAK-4476] - Option to check datastore consistency in oak-run
 
 Task
 
-    [OAK-4988] - JournalGarbageCollector: re-order method signature
-    [OAK-5037] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.5
     [OAK-5071] - Persistent cache: use the asynchronous mode by
     default
+    [OAK-5171] - Get rid of test dependency to json.org JSON parser
+    [OAK-5227] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.6
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
