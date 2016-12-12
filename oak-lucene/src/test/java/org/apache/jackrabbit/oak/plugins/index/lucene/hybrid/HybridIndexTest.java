@@ -32,6 +32,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -78,8 +80,10 @@ import org.junit.rules.TemporaryFolder;
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 public class HybridIndexTest extends AbstractQueryTest {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -269,6 +273,56 @@ public class HybridIndexTest extends AbstractQueryTest {
         b.setProperty("bar", "foo");
         root.commit();
         assertQuery("select [jcr:path] from [nt:base] where [bar] = 'foo'", of("/b"));
+    }
+
+    @Test
+    public void newNodeTypesFoundLater2() throws Exception{
+        String idxName = "hybridtest";
+        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        idx.indexRule("oak:TestNode")
+                .property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
+        idx.indexRule("nt:base")
+                .property("foo").propertyIndex()
+                .property("bar").propertyIndex();
+        idx.async("async","sync");
+        idx.build(root.getTree("/").getChild("oak:index").addChild(idxName));
+
+        //By default nodetype index indexes every nodetype. Declare a specific list
+        //such that it does not indexes test nodetype
+        Tree nodeType = root.getTree("/oak:index/nodetype");
+        if (!nodeType.hasProperty(IndexConstants.DECLARING_NODE_TYPES)){
+            nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, ImmutableList.of("nt:file"), Type.NAMES);
+            nodeType.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        }
+
+        root.commit();
+
+        setTraversalEnabled(false);
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+
+        optionalEditorProvider.delegate = new TypeEditorProvider(false);
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        root.refresh();
+
+        Tree b = createPath("/b");
+        b.setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:TestNode", Type.NAME);
+        b.setProperty("bar", "foo");
+
+        Tree c = createPath("/c");
+        c.setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:TestNode", Type.NAME);
+        root.commit();
+
+        String query = "select [jcr:path] from [oak:TestNode] ";
+        assertThat(explain(query), containsString("/oak:index/hybridtest"));
+        assertQuery(query, of("/b", "/c"));
+    }
+
+    private String explain(String query){
+        String explain = "explain " + query;
+        return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
     private void runAsyncIndex() {

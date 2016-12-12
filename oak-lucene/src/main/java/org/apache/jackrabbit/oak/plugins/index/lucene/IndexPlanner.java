@@ -538,6 +538,19 @@ class IndexPlanner {
                     //Theoretically there may be multiple rules for same nodeType with
                     //some condition defined. So again find a rule which applies
                     IndexingRule matchingRule = definition.getApplicableIndexingRule(rule.getNodeTypeName());
+
+                    if (matchingRule == null && rule.getNodeTypeName().equals(filter.getNodeType())){
+                        //In case nodetype registry in IndexDefinition is stale then it would not populate
+                        //rules for new nodetype even though at indexing time it was able to index (due to
+                        //use of latest nodetype reg nodestate)
+                        //In such a case if the rule name and nodetype name for query matches then it is
+                        //considered a match.
+                        //This would though not work for the case where rule is related to nodetype as used
+                        //in query matched via some inheritance chain
+                        //TODO Need a way to check if nodetype reg as seen by IndexDefinition is old then
+                        //IndexNode is reopened
+                        matchingRule = rule;
+                    }
                     if (matchingRule != null){
                         log.debug("Applicable IndexingRule found {}", matchingRule);
                         return rule;
