@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.21
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.22
 
 Introduction
 ------------
@@ -7,43 +7,34 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.21 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.22 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.21
+Changes in Oak 1.2.22
 ---------------------
-
-Technical task
-  
-  [OAK-4964] - UpdateOp.set("_id", ...) should do a sanity check on the id
-  [OAK-4986] - RDBDocumentStore: potential NPE in document read
-
 
 Bug
 
- [OAK-3474] - NodeDocument.getNodeAtRevision can go into property history traversal when latest rev on current doc isn't committed
- [OAK-4125] - Test failure: testUpdateAndDelete [MyFixture: RDB-Derby(embedded)]
- [OAK-4969] - ColdStandby does not fetch missing blobs
- [OAK-4997] - RevisionGCTest.teardown() may fail with NPE when store == null
- [OAK-5005] - S3 async upload fails to catch and log exceptions other than DataStoreException
+    [OAK-5193] - Version tree may become inconsistent after removing a version
+
+
+Improvement
+
+    [OAK-5163] - ReadWriteVersionManager#getExistingBaseVersion throws an opaque exception if baseVersion doesn't exist
 
 
 Task
- 
- [OAK-5037] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.5
 
-
-Test
- 
- [OAK-4976] - AcquireRecoveryLockTest fails occasionally
+    [OAK-5147] - Backport asynchronous queue improvements to 1.2
+    [OAK-5227] - Update Oak 1.2 and Oak 1.4 to Jackrabbit 2.12.6
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.20 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.21 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
