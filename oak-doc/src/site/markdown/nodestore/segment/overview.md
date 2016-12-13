@@ -41,6 +41,14 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
             * [What happened during cleanup?](#what-happened-during-cleanup)
         * [Monitoring via JMX](#monitoring-via-jmx)
             * [SegmentRevisionGarbageCollection](#SegmentRevisionGarbageCollection)
+* [Tools](#tools)
+    * [Backup](#backup)
+    * [Restore](#restore)
+    * [Check](#check)
+    * [Compact](#compact)
+    * [Debug](#debug)
+    * [Diff](#diff)
+    * [History](#history)
 * [Design](#design)
 
 ## <a name="garbage-collection"/> Garbage Collection
@@ -462,6 +470,164 @@ If garbage collection is not running, this operation has no effect.
 * **startRevisionGC**
 Start garbage collection.
 If garbage collection is already running, this operation has no effect.
+
+## <a name="tools"/> Tools
+
+Oak Segment Tar exposes a number of command line tools that can be used to perform different tasks on the repository.
+
+The tools are exposed as sub-commands of [Oak Run](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run).
+The following sections assume that you have built this module or that you have a compiled version of it.
+
+### <a name="backup"/> Backup
+
+```
+java -jar oak-run.jar backup ORIGINAL BACKUP 
+```
+
+The `backup` tool performs a backup of a Segment Store `ORIGINAL` and saves it to the folder `BACKUP`. 
+`ORIGINAL` must be the path to an existing, valid Segment Store.
+`BACKUP` must be a valid path to a folder on the file system.
+If `BACKUP` doesn't exist, it will be created.
+If `BACKUP` exists, it must be a path to an existing, valid Segment Store.
+
+The tool assumes that the `ORIGINAL` Segment Store doesn't use an external Blob Store.
+If this is the case, it's necessary to set the `oak.backup.UseFakeBlobStore` system property to `true` on the command line as shown below.
+
+```
+java -Doak.backup.UseFakeBlobStore=true -jar oak-run.jar backup ...
+```
+
+When a backup is performed, if `BACKUP` points to an existing Segment Store, only the content that is different from `ORIGINAL` is copied.
+This is similar to an incremental backup performed at the level of the content.
+When an incremental backup is performed, the tool will automatically try to cleanup eventual garbage from the `BACKUP` Segment Store.
+
+### <a name="restore"/> Restore
+
+```
+java -jar oak-run.jar restore ORIGINAL BACKUP
+```
+
+The `restore` tool restores the state of the `ORIGINAL` Node Store from a previous backup `BACKUP`. 
+This tool is the counterpart of `backup`.
+
+### <a name="check"/> Check
+
+```
+java -jar oak-run.jar check --path PATH [--journal JOURNAL] [--deep [SECS]] [--bin [LENGTH]]
+```
+
+The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
+The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest.
+For every revision, the actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged.
+  
+If the `--journal` option is specified, the tool will use the journal file at `JOURNAL` instead of picking up the one contained in `PATH`. 
+`JOURNAL` must be a path to a valid journal file for the Segment Store. 
+
+If the `--deep` option is specified, the tool will perform a deep scan of the content tree, traversing every node.
+The optional argument `SECS` is the number of seconds between progress information messages.
+If not specified, `SECS` defaults to positive infinity, effectively disabling progress information messages.
+If `SECS` is specified to be `0`, every progress information message is printed.
+
+If the `--bin` option is specified, the tool will scan the content of binary properties, up to the specified length `LENGTH`.
+The default value for `LENGTH` is `0`, effectively disabling the traversal of binary properties.
+If `LENGTH` is set to a value greater than `0`, only the initial `LENGTH` bytes of binary properties are traversed.
+If `LENGTH` is set to `-1`, binary properties are fully traversed.
+The `--bin` property has no effect on binary properties stored in an external Blob Store.
+
+### <a name="compact"/> Compact
+
+```
+java -jar oak-run.jar compact PATH
+```
+
+The `compact` command performs offline compaction on the Segment Store at `PATH`. 
+`PATH` must be a valid path to an existing Segment Store. 
+
+### <a name="debug"/> Debug
+
+```
+java -jar oak-run.jar debug PATH
+java -jar oak-run.jar debug PATH ITEMS...
+```
+
+The `debug` command prints diagnostic information about a Segment Store or individual Segment Store items.
+
+`PATH` is mandatory and must be a valid path to an existing Segment Store. 
+If only the path is specified - as in the first example above - only general debugging information about the Segment Store are printed.
+ 
+`ITEMS` is a sequence of one or more TAR file name, segment ID, node record ID or range of node record ID.
+If one or more items are specified - as in the second example above - general debugging information about the segment store are not printed.
+Instead, detailed information about the specified items are shown.
+
+A TAR file is specified by its name.
+Every string in `ITEMS` ending in`.tar` is assumed to be a name of a TAR file.
+
+A segment ID is specified by its UUID representation, e.g. `333dc24d-438f-4cca-8b21-3ebf67c05856`.
+
+A node record ID is specified by a concatenation of a UUID and a record number, e.g. `333dc24d-438f-4cca-8b21-3ebf67c05856:12345`.
+The record ID must point to a valid node record.
+A node record ID can be optionally followed by path, like `333dc24d-438f-4cca-8b21-3ebf67c05856:12345/path/to/child`. 
+When a node record ID is provided, the tool will print information about the node record pointed by it.
+If a path is specified, the tool will additionally print information about every child node identified by that path.
+
+A node record ID range is specified by a pair of record IDs separated by a hyphen (`-`), e.g. `333dc24d-438f-4cca-8b21-3ebf67c05856:12345-46116fda-7a72-4dbc-af88-a09322a7753a:67890`.
+Both record IDs must point to valid node records.
+The pair of record IDs can be followed by a path, like `333dc24d-438f-4cca-8b21-3ebf67c05856:12345-46116fda-7a72-4dbc-af88-a09322a7753a:67890/path/to/child`.
+When a node record ID range is specified, the tool will perform a diff between the two nodes pointed by the record IDs, optionally following the provided path.
+The result of the diff will be printed in JSOP format.
+
+### <a name="diff"/> Diff
+
+```
+java -jar oak-run.jar tarmkdiff [--output OUTPUT] --list PATH
+java -jar oak-run.jar tarmkdiff [--output OUTPUT] [--incremental] [--path NODE] [--ignore-snfes] --diff REVS PATH
+```
+
+The `diff` command prints content diffs between revisions in the Segment Store at `PATH`.
+
+The `--output` option instructs the command to print its output to the file `OUTPUT`.
+If this option is not specified, the tool will print to a `.log` file augmented with the current timestamp.
+The default file will be saved in the current directory.
+
+If the `--list` option is specified, the command just prints a list of revisions available in the Segment Store.
+This is equivalent to the first command line specification in the example above.
+
+If the `--list` option is not specified, `tarmkdiff` prints one or more content diff between a pair of revisions.
+In this case, the command line specification is the second in the example above.
+
+The `--diff` option specifies an interval of revisions `REVS`.
+The interval is specified by a couple of revisions separated by two dots, e.g. `333dc24d-438f-4cca-8b21-3ebf67c05856:12345..46116fda-7a72-4dbc-af88-a09322a7753a:67890`.
+In place of any of the two revisions, the placeholder `head` can be used.
+The `head` placeholder is substituted (in a case-insensitive way) to the most recent revision in the Segment Store.
+ 
+The `--path` option can be used to restrict the diff to a portion of the content tree.
+The value `NODE` must be a valid path in the content tree.
+
+If the flag `--incremental` is specified, the output will contain an incremental diff between every pair of successive revisions occurring in the interval specified with `--diff`.
+This parameter is useful if you are interested in every change in content between every commit that happened in a specified range. 
+
+The `--ignore-snfes` flag can be used in combination with `--incremental` to ignore errors that might occur while generating the incremental diff because of damaged or too old content.
+If this flag is not specified and an error occurs while generating the incremental diff, the tool stops immediately and reports the error.
+
+### <a name="history"/> History
+
+```
+java -jar oak-run.jar history [--journal JOURNAL] [--path NODE] [--depth DEPTH] PATH
+```
+
+The `history` command shows how the content of a node or of a sub-tree changed over time in the Segment Store at `PATH`.
+
+The history of the node is computed based on the revisions reported by the journal in the Segment Store.
+If a different set of revisions needs to be used, it is possible to specify a custom journal file by using the `--journal` option.
+If this option is used, `JOURNAL` must be a path to a valid journal file.
+
+The `--path` parameter specifies the node whose history will be printed. 
+If not specified, the history of the root node will be printed.
+`NODE` must be a valid path to a node in the Segment Store.
+
+The `--depth` parameter determines if the content of a single node should be printed, or if the content of the sub-tree rooted at that node should be printed instead.
+`DEPTH` must be a positive integer specifying how deep the printed content should be.
+If this option is not specified, the depth is assumed to be `0`, i.e. only information about the node will be printed.
 
 ## <a name="design"/> Design
 
