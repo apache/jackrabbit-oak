@@ -391,7 +391,7 @@ public final class IndexDefinitionBuilder {
                 if (includeTree == null){
                     includeTree = getOrCreateChild(aggregate, "include" + includes.size());
                 }
-                include = new Include(includeTree);
+                include = new Include(this, includeTree);
                 includes.put(includePath, include);
             }
             include.path(includePath);
@@ -410,16 +410,18 @@ public final class IndexDefinitionBuilder {
         private void loadExisting(Tree aggregate) {
             for (Tree tree : aggregate.getChildren()){
                 if (tree.hasProperty(LuceneIndexConstants.AGG_PATH)) {
-                    Include include = new Include(tree);
+                    Include include = new Include(this, tree);
                     includes.put(include.getPath(), include);
                 }
             }
         }
 
         public static class Include {
+            private final AggregateRule aggregateRule;
             private final Tree include;
 
-            private Include(Tree include) {
+            private Include(AggregateRule aggregateRule, Tree include) {
+                this.aggregateRule = aggregateRule;
                 this.include = include;
             }
 
@@ -431,6 +433,10 @@ public final class IndexDefinitionBuilder {
             public Include relativeNode(){
                 include.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
                 return this;
+            }
+
+            public Include include(String path){
+                return aggregateRule.include(path);
             }
 
             public String getPath(){
