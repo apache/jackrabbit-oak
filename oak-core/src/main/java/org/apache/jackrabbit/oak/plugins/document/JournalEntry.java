@@ -86,6 +86,17 @@ public final class JournalEntry extends Document {
 
     private volatile TreeNode changes = null;
 
+    /**
+     * Counts number of paths changed due to {@code modified()} calls.
+     * Applicable for entries being prepared to be persisted.
+     */
+    private volatile int numChangedNodes = 0;
+    /**
+     * Tracks if this entry has branch commits or not
+     * Applicable for entries being prepared to be persisted.
+     */
+    private boolean hasBranchCommits = false;
+
     private boolean concurrent;
 
     JournalEntry(DocumentStore store) {
@@ -316,6 +327,9 @@ public final class JournalEntry extends Document {
     void modified(String path) {
         TreeNode node = getChanges();
         for (String name : PathUtils.elements(path)) {
+            if (node.get(name) == null) {
+                numChangedNodes++;
+            }
             node = node.getOrCreate(name);
         }
     }
@@ -364,6 +378,7 @@ public final class JournalEntry extends Document {
                 branchCommits += ",";
             }
             branchCommits += asId(r.asBranchRevision());
+            hasBranchCommits = true;
         }
         put(BRANCH_COMMITS, branchCommits);
     }
@@ -453,6 +468,20 @@ public final class JournalEntry extends Document {
                 };
             }
         };
+    }
+
+    /**
+     * @return number of changed nodes being tracked by this journal entry.
+     */
+    int getNumChangedNodes() {
+        return numChangedNodes;
+    }
+
+    /**
+     * @return if this entry has some changes to be pushed
+     */
+    boolean hasChanges() {
+        return numChangedNodes > 0 || hasBranchCommits;
     }
 
     //-----------------------------< internal >---------------------------------

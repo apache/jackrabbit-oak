@@ -337,11 +337,9 @@ public class JournalTest extends AbstractJournalTest {
         DocumentNodeStore ds2 = mk2.getNodeStore();
         final int c2Id = ds2.getClusterId();
         
-        // should have 1 each with just the root changed
-        assertJournalEntries(ds1, "{}");
-        assertJournalEntries(ds2, "{}");
-        assertEquals(1, countJournalEntries(ds1, 10)); 
-        assertEquals(1, countJournalEntries(ds2, 10));
+        // should have none yet
+        assertEquals(0, countJournalEntries(ds1, 10));
+        assertEquals(0, countJournalEntries(ds2, 10));
         
         //1. Create base structure /x/y
         NodeBuilder b1 = ds1.getRoot().builder();
@@ -381,11 +379,11 @@ public class JournalTest extends AbstractJournalTest {
 
         final LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ds1);
 
-        // besides the former root change, now 1 also has 
+        // now 1 also has
         final String change1 = "{\"x\":{\"y\":{}}}";
-        assertJournalEntries(ds1, "{}", change1);
+        assertJournalEntries(ds1, change1);
         final String change2 = "{\"x\":{}}";
-        assertJournalEntries(ds2, "{}", change2);
+        assertJournalEntries(ds2, change2);
 
 
         String change2b = "{\"x\":{\"y\":{\"z\":{}}}}";
@@ -400,14 +398,14 @@ public class JournalTest extends AbstractJournalTest {
             assertEquals(head2, getDocument(ds1, "/").getLastRev().get(c2Id));
     
             // now 1 is unchanged, but 2 was recovered now, so has one more:
-            assertJournalEntries(ds1, "{}", change1); // unchanged
-            assertJournalEntries(ds2, "{}", change2, change2b);
+            assertJournalEntries(ds1, change1); // unchanged
+            assertJournalEntries(ds2, change2, change2b);
             
             // just some no-ops:
             recovery.recover(c2Id);
             recovery.recover(Iterators.<NodeDocument>emptyIterator(), c2Id);
-            assertJournalEntries(ds1, "{}", change1); // unchanged
-            assertJournalEntries(ds2, "{}", change2, change2b);
+            assertJournalEntries(ds1, change1); // unchanged
+            assertJournalEntries(ds2, change2, change2b);
 
         } else {
         
@@ -439,8 +437,8 @@ public class JournalTest extends AbstractJournalTest {
             ready.await(5, TimeUnit.SECONDS);
             start.countDown();
             assertTrue(end.await(20, TimeUnit.SECONDS));
-            assertJournalEntries(ds1, "{}", change1); // unchanged
-            assertJournalEntries(ds2, "{}", change2, change2b);
+            assertJournalEntries(ds1, change1); // unchanged
+            assertJournalEntries(ds2, change2, change2b);
             for (Exception ex : exceptions) {
                 throw ex;
             }
