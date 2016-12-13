@@ -38,33 +38,17 @@ See the subsections below for more details on how to use these modes.
 Backup
 ------
 
-The 'backup' mode creates a backup from an existing oak repository. The most efficient 
-way to backup the TarMK repository is to use a file system copy of the repository folder.
-The current backup implementation acts like a compaction to an enternal folder, on top of 
-copying the state, it will also try to compress it, so it will significantly slower than 
-what one might expect from a simple copy backup. Incremental backups (backup over an existing
-backup will still need to perform a full content diff) and will attempt to compact the diff.
-All optimisation flags used for offline compaction very much apply for this case as well.
-The FileStore backup doesn't need access to the DataStore, but if one is usually configured with
-the repository, it will need the following system property set to true in order to be able to
-perform the diffing `-Doak.backup.UseFakeBlobStore=true`. To start this mode, use:
-
-    $ java -jar oak-run-*.jar backup /path/to/oak/repository /path/to/backup
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#backup).
 
 Restore
 -------
 
-The 'restore' mode imports a backup of an existing oak repository. To start this mode, use:
-
-    $ java -jar oak-run-*.jar restore /path/to/oak/repository /path/to/backup
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#restore).
 
 Debug
 -----
 
-The 'debug' mode allows to obtain information about the status of the specified
-store. Currently this is only supported for the TarMK. To start this mode, use:
-
-    $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#debug).
 
 Console
 -------
@@ -147,74 +131,17 @@ a negative offset translating all timestamps into a valid int range.
 History
 -------
 
-Trace the history of a node backward through the revision history.
-
-    $ java -jar oak-run-*.jar history [File] <options>
-
-    [File] -- Path to segment store (required)
-
-    Option             Description
-    ------             -----------
-    --depth <Integer>  Depth up to which to dump node states
-                         (default: 0)
-    --journal          journal file (default: journal.log)
-    --path             Path for which to trace the history
-                         (default: /)
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#history).
 
 Check
 -----
 
-The 'check' mode checks the storage of the FileStore for inconsistencies.
-
-    $ java -jar oak-run-*.jar check <options>
-
-    --bin [Long]   read the n first bytes from binary  
-                     properties. -1 for all bytes.     
-                     (default: 0)                      
-    --deep [Long]  enable deep consistency checking. An
-                     optional long specifies the number
-                     of seconds between progress
-                     notifications (default:
-                     9223372036854775807)
-    --journal      journal file (default: journal.log)
-    --path         path to the segment store (required)
-
-For example
-
-    $ java -jar oak-run-*.jar check -p repository/segmentstore -d
-
-Checks the files in the `repository/segmentstore` directory for inconsistencies.
-It will start with the latest revision in the `journal.log` file going back revision
-by revision until a full traversal succeeds. During the traversal the current path
-will is output to the console every 1 second. When done the latest good revision is
-output.
-
-    Searching for last good revision in journal.log
-    Checking revision b82167c3-1ceb-4404-a67f-9c542e854086:240872
-    Traversing /
-    Error while traversing /home/users/foo: Segment 476e1abd-0ea0-44a8-ac3c-3a3bd
-    Traversed 50048 nodes and 303846 properties
-    Broken revision b82167c3-1ceb-4404-a67f-9c542e854086:240872
-    Checking revision 84d693cb-f214-4d19-a1cd-8b5766d50fdb:250028
-    Checking /home/users/foo
-    Traversed 11612889 nodes and 27511640 properties
-    Found latest good revision 84d693cb-f214-4d19-a1cd-8b5766d50fdb:250028
-    Searched through 2 of 390523 revisions
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#check).
 
 Compact
 -------
 
-The 'compact' mode runs the segment compaction operation on the provided TarMK
-repository. To start this mode, use:
-
-    $ java -jar oak-run-*.jar compact [path] <options>
-
-    [File] -- Path to segment store (required)
-
-    Option   Description
-    ------   -----------
-    --force  Force compaction and ignore non
-               matching segment version
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#compact).
 
 Checkpoints
 -----------
@@ -887,60 +814,10 @@ can be dumped to a file
 
 [1]: http://jackrabbit.apache.org/oak/docs/oak-mongo-js/oak.html
 
-<a name="tarmkdiff"></a>
 Oak TarMK Revision Diff
------------------------
+=======================
 
-Show changes between revisions on TarMk. It uses a read-only store, so it can also be used on a running system without the need to shut down.
-
-    $ java -jar oak-run-*.jar tarmkdiff path/to/repository [--list] [--diff=R0..R1] [--incremental] [--ignore-snfes] [--output=/path/to/output/file]
-
-The following options are available:
-
-    --list           - Lists the existing revisions. will ignore other params if this is provided
-    --diff           - Revision diff interval. Ex '--diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '--diff=R0..HEAD'
-    --incremental    - Runs diffs between each subsequent revisions in the provided interval (false by default)
-    --ignore-snfes   - Ignores SegmentNotFoundExceptions and continues running the diff (experimental) (false by default)
-    --path           - Filter diff by given path
-    --output         - Output file name (generated randomly if not provided)
-
-Output sample
-
-    rev 7583946d-1817-4716-a05c-660ee52ddce0.ff94..c238cd7d-87a0-4cca-aa14-80b75e8ab81d.fb3e
-    ^ /oak:index
-    ^ /oak:index/lucene
-    ^ /oak:index/lucene/:data
-    - /oak:index/lucene/:data/_3729.cfs
-    + /oak:index/lucene/:data/_372d.si
-        + blobSize<LONG> = 1047552
-        + jcr:lastModified<LONG> = 1447948037017
-        + jcr:data<BINARIES>[1] = [252 bytes]
-    - /oak:index/lucene/:data/segments_37bv
-    + /oak:index/lucene/:data/_372d.cfe
-        + blobSize<LONG> = 1047552
-        + jcr:lastModified<LONG> = 1447948037017
-        + jcr:data<BINARIES>[1] = [224 bytes]
-    - /oak:index/lucene/:data/_3729.si
-    - /oak:index/lucene/:data/_3729.cfe
-    + /oak:index/lucene/:data/_372d.cfs
-        + blobSize<LONG> = 1047552
-        + jcr:lastModified<LONG> = 1447948037017
-        + jcr:data<BINARIES>[1] = [907 bytes]
-    + /oak:index/lucene/:data/segments_37bz
-        + blobSize<LONG> = 1047552
-        + jcr:lastModified<LONG> = 1447948045167
-        + jcr:data<BINARIES>[1] = [863 bytes]
-    ^ /oak:index/lucene/:data/segments.gen
-        ^ jcr:lastModified
-          - jcr:lastModified<LONG> = 1447947918027
-          + jcr:lastModified<LONG> = 1447948045167
-        ^ jcr:data
-          - jcr:data<BINARIES>[1] = [20 bytes]
-          + jcr:data<BINARIES>[1] = [20 bytes]
-    ^ /oak:index/lucene/:status
-        ^ lastUpdated
-          - lastUpdated<DATE> = 2015-11-19T10:45:18.027-05:00
-          + lastUpdated<DATE> = 2015-11-19T10:47:25.167-05:00
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#diff).
 
 <a name="tarmkrecovery"></a>
 Oak TarMK Revision Recovery
