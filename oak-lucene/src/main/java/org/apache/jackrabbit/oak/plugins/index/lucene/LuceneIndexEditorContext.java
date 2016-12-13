@@ -50,6 +50,8 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_REFRESH_DEFN;
 
 public class LuceneIndexEditorContext {
 
@@ -195,7 +197,7 @@ public class LuceneIndexEditorContext {
         //For case where index definition is rewritten there we get fresh state
         NodeState defnState = indexDefnRewritten ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
         if (!IndexDefinition.isDisableStoredIndexDefinition()) {
-            definitionBuilder.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
         }
         String uid = configureUniqueId(definitionBuilder);
 
@@ -204,6 +206,7 @@ public class LuceneIndexEditorContext {
                 .newBuilder(root, defnState, indexingContext.getIndexPath())
                 .version(version)
                 .uid(uid)
+                .reindex()
                 .build();
     }
 
@@ -283,16 +286,16 @@ public class LuceneIndexEditorContext {
             indexingContext, boolean asyncIndexing) {
         NodeState defnState = definition.getBaseState();
         if (asyncIndexing && !IndexDefinition.isDisableStoredIndexDefinition()){
-            if (definition.getBoolean(LuceneIndexConstants.PROP_REFRESH_DEFN)){
-                definition.removeProperty(LuceneIndexConstants.PROP_REFRESH_DEFN);
+            if (definition.getBoolean(PROP_REFRESH_DEFN)){
+                definition.removeProperty(PROP_REFRESH_DEFN);
                 NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);
-                definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, clonedState);
+                definition.setChildNode(INDEX_DEFINITION_NODE, clonedState);
                 log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
                 if (log.isDebugEnabled()){
                     log.debug("Updated index definition is {}", NodeStateUtils.toString(clonedState));
                 }
-            } else if (!definition.hasChildNode(IndexDefinition.INDEX_DEFINITION_NODE)){
-                definition.setChildNode(IndexDefinition.INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+            } else if (!definition.hasChildNode(INDEX_DEFINITION_NODE)){
+                definition.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
                 log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
                                 "effective post reindexing", indexingContext.getIndexPath());
             }

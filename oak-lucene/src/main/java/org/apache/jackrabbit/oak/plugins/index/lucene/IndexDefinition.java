@@ -273,6 +273,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final String indexPath;
         private IndexFormatVersion version;
         private String uid;
+        private boolean reindexMode;
 
         public Builder(NodeState root, NodeState defn, String indexPath) {
             this.root = checkNotNull(root);
@@ -290,6 +291,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return this;
         }
 
+        public Builder reindex(){
+            this.reindexMode = true;
+            return this;
+        }
+
         public IndexDefinition build(){
             if (version == null){
                 version = determineIndexFormatVersion(defn);
@@ -300,7 +306,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                     uid = DEFAULT_UID;
                 }
             }
-            return new IndexDefinition(root, defn, version, uid, checkNotNull(indexPath));
+
+            NodeState indexDefnStateToUse = defn;
+            if (!reindexMode){
+                indexDefnStateToUse = getIndexDefinitionState(defn);
+            }
+            return new IndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
         }
     }
 
