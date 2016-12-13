@@ -65,7 +65,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -2866,6 +2865,25 @@ public class DocumentNodeStoreTest {
         for (DocumentNodeState c : nodes) {
             assertEquals(headRev, c.getRootRevision());
         }
+    }
+
+    @Test
+    public void forceJournalFlush() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        ns.setJournalPushThreshold(2);
+        int numChangedPaths;
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        numChangedPaths = ns.getCurrentJournalEntry().getNumChangedNodes();
+        assertTrue("Single path change shouldn't flush", numChangedPaths > 0);
+
+        builder = ns.getRoot().builder();
+        builder.child("bar");
+        merge(ns, builder);
+        numChangedPaths = ns.getCurrentJournalEntry().getNumChangedNodes();
+        assertTrue("Two added paths should have forced flush", numChangedPaths == 0);
     }
 
     private static class TestException extends RuntimeException {

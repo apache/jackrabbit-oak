@@ -102,10 +102,8 @@ public class JournalGCTest {
 
         c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(1));
 
-        // must collect all journal entries. the first created when
-        // DocumentNodeStore was initialized and the second created
-        // by the background update
-        assertEquals(2, jgc.gc(1, TimeUnit.HOURS));
+        // must collect the journal entry created by the background update
+        assertEquals(1, jgc.gc(1, TimeUnit.HOURS));
 
         // current time, but without the increment done by getTime()
         now = c.getTime() - 1;

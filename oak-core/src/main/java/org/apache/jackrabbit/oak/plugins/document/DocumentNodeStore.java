@@ -186,6 +186,12 @@ public final class DocumentNodeStore
             Boolean.getBoolean(SYS_PROP_DISABLE_JOURNAL);
 
     /**
+     * Threshold for number of paths in journal entry to require a force push during commit
+     * (instead of at background write)
+     */
+    private int journalPushThreshold = Integer.getInteger("oak.journalPushThreshold", 100000);
+
+    /**
      * The document store (might be used by multiple node stores).
      */
     protected final DocumentStore store;
@@ -789,7 +795,13 @@ public final class DocumentNodeStore
                         changes.modified(c.getModifiedPaths());
                         changes.addChangeSet(getChangeSet(info));
                         // update head revision
-                        newHead[0] = before.update(c.getRevision());
+                        Revision r = c.getRevision();
+                        newHead[0] = before.update(r);
+                        if (changes.getNumChangedNodes() >= journalPushThreshold) {
+                            LOG.info("Pushing journal entry at {} as number of changes ({}) have reached {}",
+                                    r, changes.getNumChangedNodes(), journalPushThreshold);
+                            pushJournalEntry(r);
+                        }
                         setRoot(newHead[0]);
                         commitQueue.headRevisionChanged();
                         dispatcher.contentChanged(getRoot(), info);
@@ -859,6 +871,14 @@ public final class DocumentNodeStore
 
     boolean getEnableConcurrentAddRemove() {
         return enableConcurrentAddRemove;
+    }
+
+    int getJournalPushThreshold() {
+        return journalPushThreshold;
+    }
+
+    void setJournalPushThreshold(int journalPushThreshold) {
+        this.journalPushThreshold = journalPushThreshold;
     }
 
     @Nonnull
@@ -2142,19 +2162,25 @@ public final class DocumentNodeStore
         return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
             @Override
             public void acquiring(Revision mostRecent) {
-                if (store.create(JOURNAL, singletonList(changes.asUpdateOp(mostRecent)))) {
-                    // success: start with a new document
-                    changes = newJournalEntry();
-                } else {
-                    // fail: log and keep the changes
-                    LOG.error("Failed to write to journal, accumulating changes for future write (~" + changes.getMemory()
-                            + " bytes).");
-                }
+                pushJournalEntry(mostRecent);
             }
         }, backgroundOperationLock.writeLock());
     }
 
     //-----------------------------< internal >---------------------------------
+
+    void pushJournalEntry(Revision r) {
+        if (!changes.hasChanges()) {
+            LOG.debug("Not pushing journal as there are no changes");
+        } else if (store.create(JOURNAL, singletonList(changes.asUpdateOp(r)))) {
+            // success: start with a new document
+            changes = newJournalEntry();
+        } else {
+            // fail: log and keep the changes
+            LOG.error("Failed to write to journal({}), accumulating changes for future write (~{} bytes, {} paths)",
+                    r, changes.getMemory(), changes.getNumChangedNodes());
+        }
+    }
 
     /**
      * Returns the binary size of a property value represented as a JSON or

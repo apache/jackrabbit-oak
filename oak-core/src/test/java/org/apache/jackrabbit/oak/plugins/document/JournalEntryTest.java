@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -309,6 +310,50 @@ public class JournalEntryTest {
         entry.addTo(sort, "/foo");
         assertEquals(4, sort.getSize());
         sort.close();
+    }
+
+    @Test
+    public void countUpdatedPaths() {
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+
+        assertEquals("Incorrect number of initial paths", 0, entry.getNumChangedNodes());
+        assertFalse("Incorrect hasChanges", entry.hasChanges());
+
+        entry.modified("/foo");
+        entry.modified("/bar");
+        assertEquals("Incorrect number of paths", 2, entry.getNumChangedNodes());
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
+
+        entry.modified(Arrays.asList("/foo1", "/bar1"));
+        assertEquals("Incorrect number of paths", 4, entry.getNumChangedNodes());
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
+
+        entry.modified("/foo/bar2");
+        assertEquals("Incorrect number of paths", 5, entry.getNumChangedNodes());
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
+
+        entry.modified("/foo3/bar3");
+        assertEquals("Incorrect number of paths", 7, entry.getNumChangedNodes());
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
+
+        entry.modified(Arrays.asList("/foo/bar4", "/foo5/bar5"));
+        assertEquals("Incorrect number of paths", 10, entry.getNumChangedNodes());
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
+    }
+
+    @Test
+    public void branchAdditionMarksChanges() {
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+
+        assertFalse("Incorrect hasChanges", entry.hasChanges());
+
+        entry.branchCommit(Collections.<Revision>emptyList());
+        assertFalse("Incorrect hasChanges", entry.hasChanges());
+
+        entry.branchCommit(Collections.singleton(Revision.fromString("r123-0-1")));
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
     }
 
     private static void addRandomPaths(java.util.Collection<String> paths) throws IOException {
