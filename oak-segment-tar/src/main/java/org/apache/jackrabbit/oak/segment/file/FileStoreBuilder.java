@@ -63,13 +63,15 @@ public class FileStoreBuilder {
     private static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
+    public static final int DEFAULT_MAX_FILE_SIZE = 256;
+
     @Nonnull
     private final File directory;
 
     @CheckForNull
     private BlobStore blobStore;   // null ->  store blobs inline
 
-    private int maxFileSize = 256;
+    private int maxFileSize = DEFAULT_MAX_FILE_SIZE;
 
     private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
 

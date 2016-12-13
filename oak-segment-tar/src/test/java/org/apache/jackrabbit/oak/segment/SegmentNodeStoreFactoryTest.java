@@ -18,16 +18,16 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.util.Map;
-
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+
+import java.util.Map;
+
+import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
@@ -44,7 +44,7 @@ public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
         properties.put(SegmentNodeStoreFactory.ROLE, "some-role");
         properties.put(SegmentNodeStoreFactory.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreFactory.DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put(SegmentNodeStoreService.DIRECTORY, folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreFactory = context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties);
     }
@@ -63,4 +63,5 @@ public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
     protected void assertServiceNotActivated() {
         assertNull(context.getService(NodeStoreProvider.class));
     }
+
 }

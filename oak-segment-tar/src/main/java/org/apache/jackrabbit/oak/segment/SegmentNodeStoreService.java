@@ -23,7 +23,13 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener.IGNORE_SNFE;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_NODE_CACHE_SIZE_OSGi;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_STRING_CACHE_SIZE_OSGi;
+import static org.apache.jackrabbit.oak.segment.WriterCacheManager.DEFAULT_TEMPLATE_CACHE_SIZE_OSGi;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.DISABLE_ESTIMATION_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.FORCE_TIMEOUT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GC_PROGRESS_LOG_DEFAULT;
@@ -32,22 +38,28 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.PAUS
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE_DELTA_ESTIMATION_DEFAULT;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.DEFAULT_MAX_FILE_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Lists;
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -64,6 +76,7 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupRestoreImpl;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
@@ -91,6 +104,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
@@ -98,7 +112,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.util.GenericDescriptors;
 import org.osgi.framework.Constants;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,6 +130,8 @@ import org.slf4j.LoggerFactory;
 )
 public class SegmentNodeStoreService {
 
+    private static final Logger log = LoggerFactory.getLogger(SegmentNodeStoreService.class);
+
     @Property(
             label = "Directory",
             description="Directory location used to store the segment tar files. If not specified then looks " +
@@ -131,49 +146,49 @@ public class SegmentNodeStoreService {
     public static final String MODE = "tarmk.mode";
 
     @Property(
-            intValue = 256,
+            intValue = DEFAULT_MAX_FILE_SIZE,
             label = "Maximum Tar File Size (MB)",
             description = "TarMK maximum file size (MB)"
     )
     public static final String SIZE = "tarmk.size";
 
     @Property(
-            intValue = 256,
+            intValue = DEFAULT_SEGMENT_CACHE_MB,
             label = "Segment cache size (MB)",
             description = "Cache size for storing most recently used segments"
     )
     public static final String SEGMENT_CACHE_SIZE = "segmentCache.size";
 
     @Property(
-            intValue = 256,
+            intValue = DEFAULT_STRING_CACHE_MB,
             label = "String cache size (MB)",
             description = "Cache size for storing most recently used strings"
     )
     public static final String STRING_CACHE_SIZE = "stringCache.size";
 
     @Property(
-            intValue = 64,
+            intValue = DEFAULT_TEMPLATE_CACHE_MB,
             label = "Template cache size (MB)",
             description = "Cache size for storing most recently used templates"
     )
     public static final String TEMPLATE_CACHE_SIZE = "templateCache.size";
 
     @Property(
-            intValue = 15000,
+            intValue = DEFAULT_STRING_CACHE_SIZE_OSGi,
             label = "String deduplication cache size (#items)",
             description = "Maximum number of strings to keep in the deduplication cache"
     )
     public static final String STRING_DEDUPLICATION_CACHE_SIZE = "stringDeduplicationCache.size";
 
     @Property(
-            intValue = 3000,
+            intValue = DEFAULT_TEMPLATE_CACHE_SIZE_OSGi,
             label = "Template deduplication cache size (#items)",
             description = "Maximum number of templates to keep in the deduplication cache"
     )
     public static final String TEMPLATE_DEDUPLICATION_CACHE_SIZE = "templateDeduplicationCache.size";
 
     @Property(
-            intValue = 1048576,
+            intValue = DEFAULT_NODE_CACHE_SIZE_OSGi,
             label = "Node deduplication cache size (#items)",
             description = "Maximum number of node to keep in the deduplication cache. If the supplied" +
                     " value is not a power of 2, it will be rounded up to the next power of 2."
@@ -255,23 +270,13 @@ public class SegmentNodeStoreService {
                     "By default large binary content would be stored within segment tar files"
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
-    
+
     @Property(
             label = "Backup Directory",
             description="Directory location for storing repository backups. If not set, defaults to" +
                     " 'segmentstore-backup' subdirectory under 'repository.home'."
     )
     public static final String BACKUP_DIRECTORY = "repository.backup.dir";
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
-    private FileStore store;
-
-    private ObserverTracker observerTracker;
-
-    private GCMonitorTracker gcMonitor;
-
-    private ComponentContext context;
 
     @Reference(
             cardinality = ReferenceCardinality.OPTIONAL_UNARY,
@@ -284,23 +289,19 @@ public class SegmentNodeStoreService {
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
-    private ServiceRegistration storeRegistration;
-    private ServiceRegistration providerRegistration;
-
-    private final List<Registration> registrations = new ArrayList<>();
-    private WhiteboardExecutor executor;
-    private boolean customBlobStore;
+    private Closer registrations = Closer.create();
 
     /**
      * Blob modified before this time duration would be considered for Blob GC
      */
     private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
+
     @Property (longValue = DEFAULT_BLOB_GC_MAX_AGE,
-        label = "Blob GC Max Age (in secs)",
-        description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
-            "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
-            "example as per default only those blobs which have been created 24 hrs ago will be " +
-            "considered for GC"
+            label = "Blob GC Max Age (in secs)",
+            description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
+                    "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
+                    "example as per default only those blobs which have been created 24 hrs ago will be " +
+                    "considered for GC"
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
@@ -308,137 +309,176 @@ public class SegmentNodeStoreService {
      * Default interval for taking snapshots of locally tracked blob ids.
      */
     private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+
     @Property (longValue = DEFAULT_BLOB_SNAPSHOT_INTERVAL,
-        label = "Blob tracking snapshot interval (in secs)",
-        description = "This is the default interval in which the snapshots of locally tracked blob ids will"
-            + "be taken and synchronized with the blob store. This should be configured to be less than the "
-            + "frequency of blob GC so that deletions during blob GC can be accounted for "
-            + "in the next GC execution."
+            label = "Blob tracking snapshot interval (in secs)",
+            description = "This is the default interval in which the snapshots of locally tracked blob ids will"
+                    + "be taken and synchronized with the blob store. This should be configured to be less than the "
+                    + "frequency of blob GC so that deletions during blob GC can be accounted for "
+                    + "in the next GC execution."
     )
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
     @Activate
     public void activate(ComponentContext context) throws IOException {
-        this.context = context;
-        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE));
-
-        if (blobStore == null && customBlobStore) {
+        if (blobStore == null && hasCustomBlobStore(context)) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
             return;
         }
-
+        registrations = Closer.create();
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        registerSegmentStore(context, blobStore, statisticsProvider, registrations, whiteboard, null, true);
+    }
 
+    /**
+     * Configures and registers a new SegmentNodeStore instance together will
+     * all required components. Anything that must be disposed of (like
+     * registered services or MBeans) will be registered via the
+     * {@code registration} parameter.
+     *
+     * @param context            An instance of {@link ComponentContext}.
+     * @param blobStore          An instance of {@link BlobStore}. It can be
+     *                           {@code null}.
+     * @param statisticsProvider An instance of {@link StatisticsProvider}.
+     * @param registrations      An instance of {@link Closer}. It will be used
+     *                           to track every registered service or
+     *                           component.
+     * @param whiteboard         An instance of {@link OsgiWhiteboard}. It will
+     *                           be used to register services in the OSGi
+     *                           framework.
+     * @param role               The role of this component. It can be {@code
+     *                           null}.
+     * @param descriptors        Determines if repository descriptors related to
+     *                           discovery services should be registered.
+     * @return A configured {@link SegmentNodeStore}, or {@code null} if the
+     * setup failed.
+     * @throws IOException In case an unrecoverable error occurs.
+     */
+    static SegmentNodeStore registerSegmentStore(
+            @Nonnull ComponentContext context,
+            @Nullable BlobStore blobStore,
+            @Nonnull StatisticsProvider statisticsProvider,
+            @Nonnull Closer registrations,
+            @Nonnull OsgiWhiteboard whiteboard,
+            @Nullable String role,
+            boolean descriptors
+    ) throws IOException {
         // Listen for GCMonitor services
-
-        gcMonitor = new GCMonitorTracker();
+        GCMonitorTracker gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
 
         // Create the gc options
-        SegmentGCOptions gcOptions = newGCOptions();
+        SegmentGCOptions gcOptions = newGCOptions(context);
 
         // Build the FileStore
-        FileStoreBuilder builder = fileStoreBuilder(getDirectory())
-                .withSegmentCacheSize(getSegmentCacheSize())
-                .withStringCacheSize(getStringCacheSize())
-                .withTemplateCacheSize(getTemplateCacheSize())
-                .withStringDeduplicationCacheSize(getStringDeduplicationCacheSize())
-                .withTemplateDeduplicationCacheSize(getTemplateDeduplicationCacheSize())
-                .withNodeDeduplicationCacheSize(getNodeDeduplicationCacheSize())
-                .withMaxFileSize(getMaxFileSize())
-                .withMemoryMapping(getMode().equals("64"))
+        FileStoreBuilder builder = fileStoreBuilder(getDirectory(context, role))
+                .withSegmentCacheSize(getSegmentCacheSize(context))
+                .withStringCacheSize(getStringCacheSize(context))
+                .withTemplateCacheSize(getTemplateCacheSize(context))
+                .withStringDeduplicationCacheSize(getStringDeduplicationCacheSize(context))
+                .withTemplateDeduplicationCacheSize(getTemplateDeduplicationCacheSize(context))
+                .withNodeDeduplicationCacheSize(getNodeDeduplicationCacheSize(context))
+                .withMaxFileSize(getMaxFileSize(context))
+                .withMemoryMapping(getMode(context).equals("64"))
                 .withGCMonitor(gcMonitor)
                 .withStatisticsProvider(statisticsProvider)
                 .withGCOptions(gcOptions);
 
-        if (customBlobStore) {
+        if (hasCustomBlobStore(context) && blobStore != null) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
             builder.withBlobStore(blobStore);
         }
 
-        if (toBoolean(property(STANDBY), true)) {
+        if (!isStandbyInstance(context)) {
             builder.withSnfeListener(IGNORE_SNFE);
         }
 
+        final FileStore store;
         try {
             store = builder.build();
         } catch (InvalidFileStoreVersionException e) {
             log.error("The segment store data is not compatible with the current version. Please use oak-segment or a different version of oak-segment-tar.");
-            return;
+            return null;
         }
+        // store should be closed last
+        registrations.register(store);
+        registrations.register(asCloseable(gcMonitor));
+
+        // Listen for Executor services on the whiteboard
+
+        WhiteboardExecutor executor = new WhiteboardExecutor();
+        executor.start(whiteboard);
+        registrations.register(asCloseable(executor));
+
+        List<Registration> mbeans = Lists.newArrayList();
 
         // Expose stats about the segment cache
 
         CacheStatsMBean segmentCacheStats = store.getSegmentCacheStats();
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 CacheStatsMBean.class,
                 segmentCacheStats,
                 CacheStats.TYPE,
-                segmentCacheStats.getName()
+                appendRole(segmentCacheStats.getName(), role)
         ));
 
         // Expose stats about the string and template caches
 
         CacheStatsMBean stringCacheStats = store.getStringCacheStats();
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 CacheStatsMBean.class,
                 stringCacheStats, CacheStats.TYPE,
-                stringCacheStats.getName()
+                appendRole(stringCacheStats.getName(), role)
         ));
 
         CacheStatsMBean templateCacheStats = store.getTemplateCacheStats();
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 CacheStatsMBean.class,
                 templateCacheStats, CacheStats.TYPE,
-                templateCacheStats.getName()
+                appendRole(templateCacheStats.getName(), role)
         ));
 
         CacheStatsMBean stringDeduplicationCacheStats = store.getStringDeduplicationCacheStats();
         if (stringDeduplicationCacheStats != null) {
-            registrations.add(registerMBean(
+            mbeans.add(registerMBean(
                     whiteboard,
                     CacheStatsMBean.class,
                     stringDeduplicationCacheStats, CacheStats.TYPE,
-                    stringDeduplicationCacheStats.getName()));
+                    appendRole(stringDeduplicationCacheStats.getName(), role)));
         }
 
         CacheStatsMBean templateDeduplicationCacheStats = store.getTemplateDeduplicationCacheStats();
         if (templateDeduplicationCacheStats != null) {
-            registrations.add(registerMBean(
+            mbeans.add(registerMBean(
                     whiteboard,
                     CacheStatsMBean.class,
                     templateDeduplicationCacheStats, CacheStats.TYPE,
-                    templateDeduplicationCacheStats.getName()));
+                    appendRole(templateDeduplicationCacheStats.getName(), role)));
         }
 
         CacheStatsMBean nodeDeduplicationCacheStats = store.getNodeDeduplicationCacheStats();
         if (nodeDeduplicationCacheStats != null) {
-            registrations.add(registerMBean(
+            mbeans.add(registerMBean(
                     whiteboard,
                     CacheStatsMBean.class,
                     nodeDeduplicationCacheStats, CacheStats.TYPE,
-                    nodeDeduplicationCacheStats.getName()));
+                    appendRole(nodeDeduplicationCacheStats.getName(), role)));
         }
-
-        // Listen for Executor services on the whiteboard
-
-        executor = new WhiteboardExecutor();
-        executor.start(whiteboard);
 
         // Expose an MBean to managing and monitoring garbage collection
 
         final FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
-        registrations.add(new CompositeRegistration(
+        mbeans.add(new CompositeRegistration(
                 whiteboard.register(GCMonitor.class, fsgcm, emptyMap()),
                 registerMBean(
                         whiteboard,
                         SegmentRevisionGC.class,
                         new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
                         SegmentRevisionGC.TYPE,
-                        "Segment node store revision garbage collection"
+                        appendRole("Segment node store revision garbage collection", role)
                 )));
 
         Runnable cancelGC = new Runnable() {
@@ -455,60 +495,64 @@ public class SegmentNodeStoreService {
                 return fsgcm.getStatus();
             }
         };
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 RevisionGCMBean.class,
                 new RevisionGC(store.getGCRunner(), cancelGC, statusMessage, executor),
                 RevisionGCMBean.TYPE,
-                "Revision garbage collection"
+                appendRole("Revision garbage collection", role)
         ));
 
         // Expose statistics about the FileStore
 
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 FileStoreStatsMBean.class,
                 store.getStats(),
                 FileStoreStatsMBean.TYPE,
-                "FileStore statistics"
+                appendRole("FileStore statistics", role)
         ));
 
         // register segment node store
 
-        final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
-
         SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder =
                 SegmentNodeStoreBuilders.builder(store)
                         .withStatisticsProvider(statisticsProvider);
-        if (toBoolean(property(STANDBY), false)) {
+        if (isStandbyInstance(context)) {
             segmentNodeStoreBuilder.dispatchChanges(false);
         }
         SegmentNodeStore segmentNodeStore = segmentNodeStoreBuilder.build();
 
-        observerTracker = new ObserverTracker(segmentNodeStore);
+        ObserverTracker observerTracker = new ObserverTracker(segmentNodeStore);
         observerTracker.start(context.getBundleContext());
+        registrations.register(asCloseable(observerTracker));
 
-        registrations.add(registerMBean(whiteboard, CheckpointMBean.class, new SegmentCheckpointMBean(segmentNodeStore),
-                CheckpointMBean.TYPE, "Segment node store checkpoint management"));
+        mbeans.add(registerMBean(
+                whiteboard,
+                CheckpointMBean.class,
+                new SegmentCheckpointMBean(segmentNodeStore), CheckpointMBean.TYPE,
+                appendRole("Segment node store checkpoint management", role)));
 
-        // ensure a clusterId is initialized
-        // and expose it as 'oak.clusterid' repository descriptor
-        GenericDescriptors clusterIdDesc = new GenericDescriptors();
-        clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
-                new SimpleValueFactory().createValue(
-                        ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
-        registrations.add(whiteboard.register(
-                Descriptors.class,
-                clusterIdDesc,
-                Collections.emptyMap()
-        ));
+        if (descriptors) {
+            // ensure a clusterId is initialized
+            // and expose it as 'oak.clusterid' repository descriptor
+            GenericDescriptors clusterIdDesc = new GenericDescriptors();
+            clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
+                    new SimpleValueFactory().createValue(
+                            ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
+            mbeans.add(whiteboard.register(
+                    Descriptors.class,
+                    clusterIdDesc,
+                    Collections.emptyMap()
+            ));
 
-        // Register "discovery lite" descriptors
-        registrations.add(whiteboard.register(
-                Descriptors.class,
-                new SegmentDiscoveryLiteDescriptors(segmentNodeStore),
-                Collections.emptyMap()
-        ));
+            // Register "discovery lite" descriptors
+            mbeans.add(whiteboard.register(
+                    Descriptors.class,
+                    new SegmentDiscoveryLiteDescriptors(segmentNodeStore),
+                    Collections.emptyMap()
+            ));
+        }
 
         // If a shared data store register the repo id in the data store
         String repoId = "";
@@ -522,9 +566,9 @@ public class SegmentNodeStoreService {
             }
 
             if (blobStore instanceof BlobTrackingStore) {
-                final long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL),
+                final long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL, context),
                         DEFAULT_BLOB_SNAPSHOT_INTERVAL);
-                String root = property(DIRECTORY);
+                String root = property(DIRECTORY, context);
                 if (Strings.isNullOrEmpty(root)) {
                     root = "repository";
                 }
@@ -540,6 +584,7 @@ public class SegmentNodeStoreService {
         }
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
+            final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE, context), DEFAULT_BLOB_GC_MAX_AGE);
             BlobGarbageCollector gc = new MarkSweepGarbageCollector(
                     new SegmentBlobReferenceRetriever(store),
                     (GarbageCollectableBlobStore) store.getBlobStore(),
@@ -548,99 +593,83 @@ public class SegmentNodeStoreService {
                     repoId
             );
 
-            registrations.add(registerMBean(
+            mbeans.add(registerMBean(
                     whiteboard,
                     BlobGCMBean.class,
                     new BlobGC(gc, executor),
                     BlobGCMBean.TYPE,
-                    "Segment node store blob garbage collection"
+                    appendRole("Segment node store blob garbage collection", role)
             ));
         }
 
         // Expose an MBean for backup/restore operations
 
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 FileStoreBackupRestoreMBean.class,
-                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(), getBackupDirectory(), executor),
-                FileStoreBackupRestoreMBean.TYPE, "Segment node store backup/restore"
+                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(),
+                        getBackupDirectory(context, role), executor),
+                FileStoreBackupRestoreMBean.TYPE,
+                appendRole("Segment node store backup/restore", role)
         ));
 
         // Expose statistics about the SegmentNodeStore
 
-        registrations.add(registerMBean(
+        mbeans.add(registerMBean(
                 whiteboard,
                 SegmentNodeStoreStatsMBean.class,
                 segmentNodeStore.getStats(),
                 SegmentNodeStoreStatsMBean.TYPE,
-                "SegmentNodeStore statistics"
+                appendRole("SegmentNodeStore statistics", role)
         ));
 
         log.info("SegmentNodeStore initialized");
 
         // Register a factory service to expose the FileStore
 
-        providerRegistration = context.getBundleContext().registerService(
-                SegmentStoreProvider.class.getName(),
+        registrations.register(asCloseable(whiteboard.register(
+                SegmentStoreProvider.class,
                 new DefaultSegmentStoreProvider(store),
-                null
-        );
+                Collections.emptyMap()
+        )));
 
-        if (toBoolean(property(STANDBY), false)) {
-            return;
+        registrations.register(asCloseable(new CompositeRegistration(mbeans)));
+
+        if (isStandbyInstance(context)) {
+            return segmentNodeStore;
         }
 
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        Map<String, Object> props = new HashMap<String, Object>();
         props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
         props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
-        storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), segmentNodeStore, props);
+        registrations.register(asCloseable(whiteboard.register(NodeStore.class, segmentNodeStore, props)));
+
+        return segmentNodeStore;
     }
 
     @Deactivate
     public void deactivate() {
-        new CompositeRegistration(registrations).unregister();
-        registrations.clear();
-        if (providerRegistration != null) {
-            providerRegistration.unregister();
-            providerRegistration = null;
-        }
-        if (storeRegistration != null) {
-            storeRegistration.unregister();
-            storeRegistration = null;
-        }
-        if (executor != null) {
-            executor.stop();
-            executor = null;
-        }
-        if (observerTracker != null) {
-            observerTracker.stop();
-            observerTracker = null;
-        }
-        if (gcMonitor != null) {
-            gcMonitor.stop();
-            gcMonitor = null;
-        }
-        if (store != null) {
-            store.close();
-            store = null;
+        if (registrations != null) {
+            IOUtils.closeQuietly(registrations);
+            registrations = null;
         }
     }
 
-    private SegmentGCOptions newGCOptions() {
-        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
-        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
-        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT), FORCE_TIMEOUT_DEFAULT);
-        int retainedGenerations = toInteger(property(RETAINED_GENERATIONS), RETAINED_GENERATIONS_DEFAULT);
+    private static SegmentGCOptions newGCOptions(ComponentContext context) {
+        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION, context), PAUSE_DEFAULT);
+        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT, context), RETRY_COUNT_DEFAULT);
+        int forceTimeout = toInteger(property(COMPACTION_FORCE_TIMEOUT, context), FORCE_TIMEOUT_DEFAULT);
+        int retainedGenerations = toInteger(property(RETAINED_GENERATIONS, context), RETAINED_GENERATIONS_DEFAULT);
 
-        long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION), SIZE_DELTA_ESTIMATION_DEFAULT);
-        int memoryThreshold = toInteger(property(MEMORY_THRESHOLD), MEMORY_THRESHOLD_DEFAULT);
-        boolean disableEstimation = toBoolean(property(COMPACTION_DISABLE_ESTIMATION), DISABLE_ESTIMATION_DEFAULT);
+        long sizeDeltaEstimation = toLong(property(COMPACTION_SIZE_DELTA_ESTIMATION, context), SIZE_DELTA_ESTIMATION_DEFAULT);
+        int memoryThreshold = toInteger(property(MEMORY_THRESHOLD, context), MEMORY_THRESHOLD_DEFAULT);
+        boolean disableEstimation = toBoolean(property(COMPACTION_DISABLE_ESTIMATION, context), DISABLE_ESTIMATION_DEFAULT);
 
-        if (property("compaction.gainThreshold") != null) {
+        if (property("compaction.gainThreshold", context) != null) {
             log.warn("Deprecated property compaction.gainThreshold was detected. In order to configure compaction please use the new property "
                     + "compaction.sizeDeltaEstimation. For turning off estimation, the new property compaction.disableEstimation should be used.");
         }
-        long gcProgressLog = toLong(property(GC_PROGRESS_LOG), GC_PROGRESS_LOG_DEFAULT);
+        long gcProgressLog = toLong(property(GC_PROGRESS_LOG, context), GC_PROGRESS_LOG_DEFAULT);
 
         return new SegmentGCOptions(pauseCompaction, retryCount, forceTimeout)
                 .setRetainedGenerations(retainedGenerations)
@@ -650,8 +679,16 @@ public class SegmentNodeStoreService {
                 .withGCNodeWriteMonitor(gcProgressLog);
     }
 
-    private File getBaseDirectory() {
-        String directory = property(DIRECTORY);
+    private static boolean isStandbyInstance(ComponentContext context) {
+        return Boolean.parseBoolean(property(STANDBY, context));
+    }
+
+    private static boolean hasCustomBlobStore(ComponentContext context) {
+        return Boolean.parseBoolean(property(CUSTOM_BLOB_STORE, context));
+    }
+
+    private static File getBaseDirectory(ComponentContext context) {
+        String directory = property(DIRECTORY, context);
 
         if (directory != null) {
             return new File(directory);
@@ -660,22 +697,20 @@ public class SegmentNodeStoreService {
         return new File("tarmk");
     }
 
-    private File getDirectory() {
-        return new File(getBaseDirectory(), "segmentstore");
+    private static File getDirectory(ComponentContext context, String role) {
+        return new File(getBaseDirectory(context), appendRole("segmentstore", role));
     }
-    
-    private File getBackupDirectory() {
-        String backupDirectory = property(BACKUP_DIRECTORY);
-        
+
+    private static File getBackupDirectory(ComponentContext context, String role) {
+        String backupDirectory = property(BACKUP_DIRECTORY, context);
         if (backupDirectory != null) {
             return new File(backupDirectory);
         }
-        
-        return new File(getBaseDirectory(), "segmentstore-backup");
+        return new File(getBaseDirectory(context), appendRole("segmentstore-backup", role));
     }
 
-    private String getMode() {
-        String mode = property(MODE);
+    private static String getMode(ComponentContext context) {
+        String mode = property(MODE, context);
 
         if (mode != null) {
             return mode;
@@ -684,8 +719,8 @@ public class SegmentNodeStoreService {
         return System.getProperty(MODE, System.getProperty("sun.arch.data.model", "32"));
     }
 
-    private String getCacheSize(String propertyName) {
-        String cacheSize = property(propertyName);
+    private static String getCacheSize(String propertyName, ComponentContext context) {
+        String cacheSize = property(propertyName, context);
 
         if (cacheSize != null) {
             return cacheSize;
@@ -694,48 +729,77 @@ public class SegmentNodeStoreService {
         return System.getProperty(propertyName);
     }
 
-    private int getSegmentCacheSize() {
-        return Integer.parseInt(getCacheSize(SEGMENT_CACHE_SIZE));
+    private static int getSegmentCacheSize(ComponentContext context) {
+        return toInteger(getCacheSize(SEGMENT_CACHE_SIZE, context), DEFAULT_SEGMENT_CACHE_MB);
     }
 
-    private int getStringCacheSize() {
-        return Integer.parseInt(getCacheSize(STRING_CACHE_SIZE));
+    private static int getStringCacheSize(ComponentContext context) {
+        return toInteger(getCacheSize(STRING_CACHE_SIZE, context), DEFAULT_STRING_CACHE_MB);
     }
 
-    private int getTemplateCacheSize() {
-        return Integer.parseInt(getCacheSize(TEMPLATE_CACHE_SIZE));
+    private static int getTemplateCacheSize(ComponentContext context) {
+        return toInteger(getCacheSize(TEMPLATE_CACHE_SIZE, context), DEFAULT_TEMPLATE_CACHE_MB);
     }
 
-    private int getStringDeduplicationCacheSize() {
-        return Integer.parseInt(getCacheSize(STRING_DEDUPLICATION_CACHE_SIZE));
+    private static int getStringDeduplicationCacheSize(ComponentContext context) {
+        return toInteger(getCacheSize(STRING_DEDUPLICATION_CACHE_SIZE, context), DEFAULT_STRING_CACHE_SIZE_OSGi);
     }
 
-    private int getTemplateDeduplicationCacheSize() {
-        return Integer.parseInt(getCacheSize(TEMPLATE_DEDUPLICATION_CACHE_SIZE));
+    private static int getTemplateDeduplicationCacheSize(ComponentContext context) {
+        return toInteger(getCacheSize(TEMPLATE_DEDUPLICATION_CACHE_SIZE, context), DEFAULT_TEMPLATE_CACHE_SIZE_OSGi);
     }
 
-    private int getNodeDeduplicationCacheSize() {
+    private static int getNodeDeduplicationCacheSize(ComponentContext context) {
         // Round to the next power of 2
-        int size = Math.max(1, Integer.parseInt(getCacheSize(NODE_DEDUPLICATION_CACHE_SIZE)));
+        int size = Math.max(1,
+                toInteger(getCacheSize(NODE_DEDUPLICATION_CACHE_SIZE, context), DEFAULT_NODE_CACHE_SIZE_OSGi));
         return 1 << (32 - Integer.numberOfLeadingZeros(size - 1));
     }
 
-    private String getMaxFileSizeProperty() {
-        String size = property(SIZE);
-
-        if (size != null) {
-            return size;
-        }
-
-        return System.getProperty(SIZE, "256");
+    private static int getMaxFileSize(ComponentContext context) {
+        return toInteger(property(SIZE, context), DEFAULT_MAX_FILE_SIZE);
     }
 
-    private int getMaxFileSize() {
-        return Integer.parseInt(getMaxFileSizeProperty());
-    }
-
-    private String property(String name) {
+    static String property(String name, ComponentContext context) {
         return lookupConfigurationThenFramework(context, name);
+    }
+
+    private static String appendRole(@Nonnull String name, @Nullable String role) {
+        if (role == null) {
+            return name;
+        } else {
+            return name + "-" + role;
+        }
+    }
+
+    static Closeable asCloseable(final Registration r) {
+        return new Closeable() {
+
+            @Override
+            public void close() {
+                r.unregister();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final AbstractServiceTracker<?> t) {
+        return new Closeable() {
+
+            @Override
+            public void close() {
+                t.stop();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final ObserverTracker t) {
+        return new Closeable() {
+
+            @Override
+            public void close() {
+                t.stop();
+            }
+        };
     }
 
 }
