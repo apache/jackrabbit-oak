@@ -39,11 +39,11 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     static final String OAK_QUERY_LIMIT_IN_MEMORY = "oak.queryLimitInMemory";
 
     static final int DEFAULT_QUERY_LIMIT_IN_MEMORY =
-            Integer.getInteger(OAK_QUERY_LIMIT_IN_MEMORY, Integer.MAX_VALUE);
+            Integer.getInteger(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
 
     static final String OAK_QUERY_LIMIT_READS = "oak.queryLimitReads";
     static final int DEFAULT_QUERY_LIMIT_READS =
-            Integer.getInteger(OAK_QUERY_LIMIT_READS, Integer.MAX_VALUE);
+            Integer.getInteger(OAK_QUERY_LIMIT_READS, 100000);
 
     static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
     private static final boolean DEFAULT_FAIL_TRAVERSAL =
