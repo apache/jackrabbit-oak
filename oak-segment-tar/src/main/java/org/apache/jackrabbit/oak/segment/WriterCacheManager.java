@@ -50,25 +50,41 @@ import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 public abstract class WriterCacheManager {
 
     /**
+     * Default size of the string cache, used as default for OSGi config.
+     */
+    static final int DEFAULT_STRING_CACHE_SIZE_OSGi = 15000;
+
+    /**
      * Default size of the string cache.
      * @see #getStringCache(int)
      */
     public static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
-            "oak.tar.stringsCacheSize", 15000);
+            "oak.tar.stringsCacheSize", DEFAULT_STRING_CACHE_SIZE_OSGi);
+
+    /**
+     * Default size of the template cache, used as default for OSGi config.
+     */
+    static final int DEFAULT_TEMPLATE_CACHE_SIZE_OSGi = 3000;
 
     /**
      * Default size of the template cache.
      * @see #getTemplateCache(int)
      */
     public static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
-            "oak.tar.templatesCacheSize", 3000);
+            "oak.tar.templatesCacheSize", DEFAULT_TEMPLATE_CACHE_SIZE_OSGi);
+
+    /**
+     * Default size of the node deduplication cache, used as default for OSGi
+     * config.
+     */
+    static final int DEFAULT_NODE_CACHE_SIZE_OSGi = 1048576;
 
     /**
      * Default size of the node deduplication cache.
      * @see #getNodeCache(int)
      */
     public static final int DEFAULT_NODE_CACHE_SIZE = getInteger(
-            "oak.tar.nodeCacheSize", 1048576);
+            "oak.tar.nodeCacheSize", DEFAULT_NODE_CACHE_SIZE_OSGi);
 
     /**
      * @param generation

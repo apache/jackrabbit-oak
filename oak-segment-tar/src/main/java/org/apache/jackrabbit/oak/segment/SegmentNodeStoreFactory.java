@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.asCloseable;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.property;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Dictionary;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -35,24 +33,13 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
-import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
-import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.util.GenericDescriptors;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,9 +57,7 @@ import org.slf4j.LoggerFactory;
         description = "Factory allowing configuration of adjacent instances of " +
                       "NodeStore implementation based on Segment model besides a default SegmentNodeStore in same setup."
 )
-public class SegmentNodeStoreFactory extends ProxyNodeStore {
-
-    public static final String NAME = "name";
+public class SegmentNodeStoreFactory {
 
     @Property(
             label = "Role",
@@ -80,33 +65,6 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
                         "of 'this' SegmentNodeStore."
     )
     public static final String ROLE = "role";
-
-    @Property(
-            label = "Directory",
-            description="Directory location used to store the segment tar files. If not specified then looks " +
-                        "for framework property 'repository.home' otherwise use a subdirectory with name 'tarmk'"
-    )
-    public static final String DIRECTORY = "repository.home";
-
-    @Property(
-            label = "Mode",
-            description="TarMK mode (64 for memory mapping, 32 for normal file access)"
-    )
-    public static final String MODE = "tarmk.mode";
-
-    @Property(
-            intValue = 256,
-            label = "Maximum Tar File Size (MB)",
-            description = "TarMK maximum file size (MB)"
-    )
-    public static final String SIZE = "tarmk.size";
-
-    @Property(
-            intValue = 256,
-            label = "Cache size (MB)",
-            description = "Cache size for storing most recently used Segments"
-    )
-    public static final String CACHE = "cache";
 
     @Property(boolValue = false,
             label = "Custom BlobStore",
@@ -122,267 +80,61 @@ public class SegmentNodeStoreFactory extends ProxyNodeStore {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private String name;
-
-    private FileStore store;
-
-    private volatile SegmentNodeStore segmentNodeStore;
-
-    private ComponentContext context;
-
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY,
+            target = ONLY_STANDALONE_TARGET
+    )
     private volatile BlobStore blobStore;
 
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
-    private ServiceRegistration storeRegistration;
-    private Registration fileStoreStatsMBean;
-    private WhiteboardExecutor executor;
-
-    private boolean customBlobStore;
-
-    private String role;
-
-    private boolean registerRepositoryDescriptors;
-
-    private ServiceRegistration clusterIdDescriptorRegistration;
-
-    private ServiceRegistration discoveryLiteDescriptorRegistration;
-
-    @Override
-    protected SegmentNodeStore getNodeStore() {
-        checkState(segmentNodeStore != null, "service must be activated when used");
-        return segmentNodeStore;
-    }
+    private Closer registrations = Closer.create();
 
     @Activate
     public void activate(ComponentContext context) throws IOException {
-        this.context = context;
-        this.name = PropertiesUtil.toString(context.getProperties().get(NAME), "SegmentNodeStore instance");
-        this.role = property(ROLE);
-        //In secondaryNodeStore mode customBlobStore is always enabled
-        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE)) || isSecondaryStoreMode();
-        this.registerRepositoryDescriptors = Boolean.parseBoolean(property(REGISTER_DESCRIPTORS));
-        log.info("activate: SegmentNodeStore '"+role+"' starting.");
+        String role = property(ROLE, context);
+        // In secondaryNodeStore mode customBlobStore is always enabled
+        boolean isSecondaryStoreMode = "secondary".equals(role);
+        boolean customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE, context)) || isSecondaryStoreMode;
+        boolean registerRepositoryDescriptors = Boolean.parseBoolean(property(REGISTER_DESCRIPTORS, context));
+        log.info("activate: SegmentNodeStore '" + role + "' starting.");
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
-        } else {
-            registerNodeStore();
+            return;
         }
-    }
 
-    protected void bindBlobStore(BlobStore blobStore) throws IOException {
-        this.blobStore = blobStore;
-        registerNodeStore();
-    }
-
-    protected void unbindBlobStore(BlobStore blobStore){
-        this.blobStore = null;
-        unregisterNodeStore();
-    }
-
-    @Deactivate
-    public void deactivate() {
-        unregisterNodeStore();
-
-        synchronized (this) {
-            segmentNodeStore = null;
-
+        if (role != null) {
+            registrations = Closer.create();
+            OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+            final SegmentNodeStore store = SegmentNodeStoreService.registerSegmentStore(context, blobStore,
+                    statisticsProvider, registrations, whiteboard, role, registerRepositoryDescriptors);
             if (store != null) {
-                store.close();
-                store = null;
+                Map<String, Object> props = new HashMap<String, Object>();
+                props.put(NodeStoreProvider.ROLE, role);
+
+                registrations
+                        .register(asCloseable(whiteboard.register(NodeStoreProvider.class, new NodeStoreProvider() {
+
+                            @Override
+                            public NodeStore getNodeStore() {
+                                return store;
+                            }
+                        }, props)));
+                log.info("Registered NodeStoreProvider backed by SegmentNodeStore of type '{}'", role);
             }
         }
     }
 
-    private synchronized void registerNodeStore() throws IOException {
-        if (registerSegmentStore() && role != null) {
-            registerNodeStoreProvider();
+    @Deactivate
+    public void deactivate() {
+        if (registrations != null) {
+            IOUtils.closeQuietly(registrations);
+            registrations = null;
         }
-    }
-
-    private boolean isSecondaryStoreMode() {
-        return "secondary".equals(role);
-    }
-
-    private void registerNodeStoreProvider() {
-        SegmentNodeStore.SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStoreBuilders.builder(store);
-        segmentNodeStore = nodeStoreBuilder.build();
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(NodeStoreProvider.ROLE, role);
-        storeRegistration = context.getBundleContext().registerService(NodeStoreProvider.class.getName(), new NodeStoreProvider() {
-                    @Override
-                    public NodeStore getNodeStore() {
-                        return SegmentNodeStoreFactory.this;
-                    }
-                },
-                props);
-        log.info("Registered NodeStoreProvider backed by SegmentNodeStore of type '{}'", role);
-
-        if (registerRepositoryDescriptors) {
-
-            log.info("Registering JCR descriptors");
-
-            // TODO - copied from SegmentNodeStoreService
-            // ensure a clusterId is initialized
-            // and expose it as 'oak.clusterid' repository descriptor
-            GenericDescriptors clusterIdDesc = new GenericDescriptors();
-            clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
-                    new SimpleValueFactory().createValue(
-                            ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
-            clusterIdDescriptorRegistration = context.getBundleContext().registerService(
-                    Descriptors.class.getName(),
-                    clusterIdDesc,
-                    new Hashtable<>()
-            );
-
-            // Register "discovery lite" descriptors
-            discoveryLiteDescriptorRegistration = context.getBundleContext().registerService(
-                    Descriptors.class.getName(),
-                    new SegmentDiscoveryLiteDescriptors(segmentNodeStore),
-                    new Hashtable<>()
-            );
-        }
-
-    }
-
-    private boolean registerSegmentStore() throws IOException {
-        if (context == null) {
-            log.info("Component still not activated. Ignoring the initialization call");
-            return false;
-        }
-
-        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-
-        // Build the FileStore
-
-        FileStoreBuilder builder = fileStoreBuilder(getDirectory())
-                .withSegmentCacheSize(getCacheSize())
-                .withMaxFileSize(getMaxFileSize())
-                .withMemoryMapping(getMode().equals("64"))
-                .withStatisticsProvider(statisticsProvider);
-
-        if (customBlobStore) {
-            log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
-            builder.withBlobStore(blobStore);
-        }
-
-        try {
-            store = builder.build();
-        } catch (InvalidFileStoreVersionException e) {
-            log.error("The segment store data is not compatible with the current version. Please use oak-segment-tar or a different version of oak-segment.");
-            return false;
-        }
-
-        // Listen for Executor services on the whiteboard
-
-        executor = new WhiteboardExecutor();
-        executor.start(whiteboard);
-
-        // Expose statistics about the FileStore
-
-        fileStoreStatsMBean = registerMBean(
-                whiteboard,
-                FileStoreStatsMBean.class,
-                store.getStats(),
-                FileStoreStatsMBean.TYPE,
-                "FileStore '" + role + "' statistics"
-        );
-
-        return true;
-    }
-
-    private void unregisterNodeStore() {
-        if (storeRegistration != null) {
-            storeRegistration.unregister();
-            storeRegistration = null;
-        }
-        if (fileStoreStatsMBean != null) {
-            fileStoreStatsMBean.unregister();
-            fileStoreStatsMBean = null;
-        }
-        if (executor != null) {
-            executor.stop();
-            executor = null;
-        }
-        if (clusterIdDescriptorRegistration != null) {
-            clusterIdDescriptorRegistration.unregister();
-            clusterIdDescriptorRegistration = null;
-        }
-        if (discoveryLiteDescriptorRegistration != null) {
-            discoveryLiteDescriptorRegistration.unregister();
-            discoveryLiteDescriptorRegistration = null;
-        }
-    }
-
-    private File getBaseDirectory() {
-        String directory = property(DIRECTORY);
-
-        if (directory != null) {
-            return new File(directory);
-        }
-
-        return new File("tarmk");
-    }
-
-    private File getDirectory() {
-        String dirName = "segmentstore";
-        if (role != null){
-            dirName = role + "-" + dirName;
-        }
-        return new File(getBaseDirectory(), dirName);
-    }
-
-    private String getMode() {
-        String mode = property(MODE);
-
-        if (mode != null) {
-            return mode;
-        }
-
-        return System.getProperty(MODE, System.getProperty("sun.arch.data.model", "32"));
-    }
-
-    private String getCacheSizeProperty() {
-        String cache = property(CACHE);
-
-        if (cache != null) {
-            return cache;
-        }
-
-        return System.getProperty(CACHE);
-    }
-
-    private int getCacheSize() {
-        return Integer.parseInt(getCacheSizeProperty());
-    }
-
-    private String getMaxFileSizeProperty() {
-        String size = property(SIZE);
-
-        if (size != null) {
-            return size;
-        }
-
-        return System.getProperty(SIZE, "256");
-    }
-
-    private int getMaxFileSize() {
-        return Integer.parseInt(getMaxFileSizeProperty());
-    }
-
-    private String property(String name) {
-        return lookupConfigurationThenFramework(context, name);
-    }
-
-    //------------------------------------------------------------< Object >--
-
-    @Override
-    public String toString() {
-        return name + ": " + segmentNodeStore + "[role:" + role + "]";
     }
 
 }
