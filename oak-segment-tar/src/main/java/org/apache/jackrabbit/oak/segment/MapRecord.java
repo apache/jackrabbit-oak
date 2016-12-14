@@ -475,13 +475,18 @@ public class MapRecord extends Record {
         while (beforeEntry != null || afterEntry != null) {
             int d = compare(beforeEntry, afterEntry);
             if (d < 0) {
+                assert beforeEntry != null;
                 if (!diff.childNodeDeleted(
                         beforeEntry.getName(), beforeEntry.getNodeState())) {
                     return false;
                 }
                 beforeEntry = nextOrNull(beforeEntries);
             } else if (d == 0) {
-                if (!beforeEntry.getValue().equals(afterEntry.getValue())
+                assert beforeEntry != null;
+                assert afterEntry != null;
+                RecordId beforeValue = beforeEntry.getValue();
+                assert beforeValue != null;
+                if (!beforeValue.equals(afterEntry.getValue())
                         && !diff.childNodeChanged(
                                 beforeEntry.getName(),
                                 beforeEntry.getNodeState(),
@@ -491,6 +496,7 @@ public class MapRecord extends Record {
                 beforeEntry = nextOrNull(beforeEntries);
                 afterEntry = nextOrNull(afterEntries);
             } else {
+                assert afterEntry != null;
                 if (!diff.childNodeAdded(
                         afterEntry.getName(), afterEntry.getNodeState())) {
                     return false;
