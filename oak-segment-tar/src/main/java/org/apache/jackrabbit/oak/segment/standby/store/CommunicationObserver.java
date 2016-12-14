@@ -118,7 +118,7 @@ public class CommunicationObserver {
         this.partnerDetails = new HashMap<String, CommunicationPartnerMBean>();
     }
 
-    private void unregister(CommunicationPartnerMBean m) {
+    private static void unregister(CommunicationPartnerMBean m) {
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
             jmxServer.unregisterMBean(m.getMBeanName());
