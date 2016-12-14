@@ -32,7 +32,7 @@ public class DataStoreCacheUtils {
     private static final Logger LOG = LoggerFactory.getLogger(DataStoreCacheUtils.class);
 
     /**
-     * Delete the file from the staged cache and all its empty parent-directories.
+     * Delete the file from the given root directory all its empty parent-directories.
      *
      * @param f the file to be deleted
      * @throws IOException
@@ -40,7 +40,7 @@ public class DataStoreCacheUtils {
     public static void recursiveDelete(File f, File root) throws IOException {
         if (f.exists()) {
             FileUtils.forceDelete(f);
-            LOG.info("Deleted staged upload file [{}]", f);
+            LOG.info("Deleted file [{}]", f);
         }
 
         // delete empty parent folders (except the main directory)
