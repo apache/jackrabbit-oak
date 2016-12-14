@@ -120,7 +120,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     };
 
-    AbstractFileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
+    AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
         this.tracker = new SegmentTracker();
         this.blobStore = builder.getBlobStore();

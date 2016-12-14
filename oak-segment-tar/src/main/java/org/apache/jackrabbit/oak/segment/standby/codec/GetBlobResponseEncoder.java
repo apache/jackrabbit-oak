@@ -37,7 +37,7 @@ public class GetBlobResponseEncoder extends MessageToByteEncoder<GetBlobResponse
         encode(msg.getBlobId(), msg.getBlobData(), out);
     }
 
-    private void encode(String blobId, byte[] data, ByteBuf out) throws Exception {
+    private void encode(String blobId, byte[] data, ByteBuf out) {
         byte[] blobIdBytes = blobId.getBytes(Charset.forName("UTF-8"));
 
         Hasher hasher = Hashing.murmur3_32().newHasher();

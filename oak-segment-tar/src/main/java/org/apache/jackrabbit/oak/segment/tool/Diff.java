@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.segment.tool.Utils.newBasicReadOnlyBlobS
 import static org.apache.jackrabbit.oak.segment.tool.Utils.readRevisions;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
@@ -281,7 +280,7 @@ public class Diff implements Runnable {
         }
     }
 
-    private boolean diff(ReadOnlyFileStore store, RecordId idL, RecordId idR, PrintWriter pw) throws IOException {
+    private boolean diff(ReadOnlyFileStore store, RecordId idL, RecordId idR, PrintWriter pw) {
         pw.println("rev " + idL + ".." + idR);
         try {
             NodeState before = store.getReader().readNode(idL).getChildNode("root");
