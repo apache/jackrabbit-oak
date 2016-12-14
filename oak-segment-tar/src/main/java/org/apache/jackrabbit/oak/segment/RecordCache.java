@@ -186,9 +186,7 @@ public abstract class RecordCache<T> {
         public synchronized void put(@Nonnull T key, @Nonnull RecordId value) {
             super.loadCount++;
             records.put(key, value);
-            if (weigher != null) {
-                weight += weigher.weigh(key, value);
-            }
+            weight += weigher.weigh(key, value);
         }
 
         @Override
