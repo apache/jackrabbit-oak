@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -170,7 +171,9 @@ class StandbyDiff implements NodeStateDiff {
         }
 
         try {
-            store.getBlobStore().writeBlob(new ByteArrayInputStream(data));
+            BlobStore blobStore = store.getBlobStore();
+            assert blobStore != null : "Blob store must not be null";
+            blobStore.writeBlob(new ByteArrayInputStream(data));
         } catch (IOException f) {
             throw new IllegalStateException("Unable to persist blob " + blobId + " at " + path + "#" + pName, f);
         }
