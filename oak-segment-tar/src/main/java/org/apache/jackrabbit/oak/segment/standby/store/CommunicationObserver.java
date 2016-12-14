@@ -182,7 +182,9 @@ public class CommunicationObserver {
     private void cleanUp() {
         while (this.partnerDetails.size() >= MAX_CLIENT_STATISTICS) {
             CommunicationPartnerMBean oldestEntry = oldestEntry();
-            if (oldestEntry == null) return;
+            if (oldestEntry == null) {
+                return;
+            }
             log.info("housekeeping: removing statistics for " + oldestEntry.getName());
             unregister(oldestEntry);
             this.partnerDetails.remove(oldestEntry.getName());
@@ -192,7 +194,9 @@ public class CommunicationObserver {
     private CommunicationPartnerMBean oldestEntry() {
         CommunicationPartnerMBean ret = null;
         for (CommunicationPartnerMBean m : this.partnerDetails.values()) {
-            if (ret == null || ret.lastSeen.after(m.lastSeen)) ret = m;
+            if (ret == null || ret.lastSeen.after(m.lastSeen)) {
+                ret = m;
+            }
         }
         return ret;
     }
