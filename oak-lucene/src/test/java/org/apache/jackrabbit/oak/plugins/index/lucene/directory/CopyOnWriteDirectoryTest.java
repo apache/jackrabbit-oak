@@ -40,7 +40,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -87,13 +86,12 @@ public class CopyOnWriteDirectoryTest {
     }
 
     // OAK-5238
-    @Ignore
     @Test
     public void copyOnWrite() throws Exception {
         IndexDefinition def = new IndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
         NodeBuilder builder = ns.getRoot().builder();
         Directory remote = IndexWriterUtils.newIndexDirectory(
-                def, builder.child("foo"), INDEX_DATA_CHILD_NAME, null);
+                def, builder.child("foo"), INDEX_DATA_CHILD_NAME, true, null);
         Directory dir = copier.wrapForWrite(def, remote, false, INDEX_DATA_CHILD_NAME);
         addFiles(dir);
         writeTree(builder);
