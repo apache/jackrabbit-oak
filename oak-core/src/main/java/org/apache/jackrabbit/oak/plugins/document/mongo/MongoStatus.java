@@ -106,7 +106,7 @@ public class MongoStatus {
             try {
                 cursor.hasNext();
                 majorityReadConcernEnabled = true;
-            } catch (MongoQueryException e) {
+            } catch (MongoQueryException | IllegalArgumentException e) {
                 majorityReadConcernEnabled = false;
             } finally {
                 cursor.close();
