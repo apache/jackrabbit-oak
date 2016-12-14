@@ -323,8 +323,8 @@ public class FileStore extends AbstractFileStore {
      * a very tight loop as it contents with the {@link #fileStoreLock}.
      */
     private long size() {
-        List<TarReader> readersSnapshot = null;
-        long writeFileSnapshotSize = 0;
+        List<TarReader> readersSnapshot;
+        long writeFileSnapshotSize;
 
         fileStoreLock.readLock().lock();
         try {
