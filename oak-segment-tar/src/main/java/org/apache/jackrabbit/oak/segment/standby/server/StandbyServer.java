@@ -221,7 +221,7 @@ class StandbyServer implements AutoCloseable {
         }
     }
 
-    private boolean shutDown(EventLoopGroup group) {
+    private static boolean shutDown(EventLoopGroup group) {
         return group.shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly(10, TimeUnit.SECONDS);
     }
 

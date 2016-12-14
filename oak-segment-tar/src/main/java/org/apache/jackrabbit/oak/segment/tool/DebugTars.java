@@ -239,11 +239,11 @@ public class DebugTars implements Runnable {
         }
     }
 
-    private String getLocalPath(String path, PropertyState ps, String value, RecordId id) {
+    private static String getLocalPath(String path, PropertyState ps, String value, RecordId id) {
         return path + ps.getName() + " = " + value + " [SegmentPropertyState<" + ps.getType() + ">@" + id + "]";
     }
 
-    private String getLocalPath(String path, PropertyState ps, RecordId id) {
+    private static String getLocalPath(String path, PropertyState ps, RecordId id) {
         return path + ps + " [SegmentPropertyState<" + ps.getType() + ">@" + id + "]";
     }
 

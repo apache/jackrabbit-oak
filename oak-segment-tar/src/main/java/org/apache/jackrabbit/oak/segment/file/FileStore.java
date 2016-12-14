@@ -680,7 +680,7 @@ public class FileStore extends AbstractFileStore {
     private void checkDiskSpace(SegmentGCOptions gcOptions) {
         long repositoryDiskSpace = size();
         long availableDiskSpace = directory.getFreeSpace();
-        boolean updated = gcOptions.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
+        boolean updated = SegmentGCOptions.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
         boolean previous = sufficientDiskSpace.getAndSet(updated);
 
         if (previous && !updated) {

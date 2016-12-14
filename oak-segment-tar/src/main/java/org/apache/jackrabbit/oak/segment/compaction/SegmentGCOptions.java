@@ -236,7 +236,7 @@ public class SegmentGCOptions {
      * @return {@code true} if the available disk space is considered enough for
      * normal repository operations.
      */
-    public boolean isDiskSpaceSufficient(long repositoryDiskSpace, long availableDiskSpace) {
+    public static boolean isDiskSpaceSufficient(long repositoryDiskSpace, long availableDiskSpace) {
         return availableDiskSpace > 0.25 * repositoryDiskSpace;
     }
 

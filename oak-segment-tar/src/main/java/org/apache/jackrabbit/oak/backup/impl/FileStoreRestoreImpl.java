@@ -100,7 +100,7 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
         log.warn("Restore not available as an online operation.");
     }
 
-    private boolean validFileStore(File source) {
+    private static boolean validFileStore(File source) {
         if (source == null || !source.isDirectory()) {
             return false;
         }

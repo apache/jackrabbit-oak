@@ -590,7 +590,7 @@ public class Segment {
         return properties;
     }
 
-    long readLength(RecordId id) {
+    static long readLength(RecordId id) {
         return id.getSegment().readLength(id.getRecordNumber());
     }
 

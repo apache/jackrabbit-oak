@@ -165,7 +165,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         }
     }
 
-    private int headGeneration(FileStore fileStore) {
+    private static int headGeneration(FileStore fileStore) {
         return fileStore.getHead().getRecordId().getSegment().getGcGeneration();
     }
 
