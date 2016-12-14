@@ -39,6 +39,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -478,6 +479,22 @@ public class OakDirectoryTest {
         numBlobs.set(0);
         writeFile(dir, "file", fileSize);
         assertEquals(1, numBlobs.get());
+        dir.close();
+    }
+
+    @Test
+    public void fileLength() throws Exception {
+        final int fileSize = 1024;
+        final String fileName = "file";
+        OakDirectory dir = createDir(builder, false, "/foo");
+        writeFile(dir, fileName, fileSize);
+        assertEquals(fileSize, dir.fileLength(fileName));
+        try {
+            dir.fileLength("unknown");
+            fail("must throw FileNotFoundException");
+        } catch (FileNotFoundException expected) {
+            // expected
+        }
         dir.close();
     }
 
