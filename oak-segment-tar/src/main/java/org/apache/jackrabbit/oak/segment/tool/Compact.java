@@ -96,11 +96,8 @@ public class Compact implements Runnable {
 
     private final File path;
 
-    private final boolean force;
-
     private Compact(Builder builder) {
         this.path = builder.path;
-        this.force = builder.force;
     }
 
     @Override
