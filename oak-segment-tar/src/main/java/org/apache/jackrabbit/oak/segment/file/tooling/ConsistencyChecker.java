@@ -213,10 +213,7 @@ public class ConsistencyChecker implements Closeable {
                 }
             }
             return null;
-        } catch (RuntimeException e) {
-            print("Error while traversing {}: {}", path, e.getMessage());
-            return path;
-        } catch (IOException e) {
+        } catch (RuntimeException | IOException e) {
             print("Error while traversing {}: {}", path, e.getMessage());
             return path;
         }
