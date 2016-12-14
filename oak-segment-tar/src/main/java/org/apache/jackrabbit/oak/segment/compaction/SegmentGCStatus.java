@@ -29,7 +29,7 @@ public enum SegmentGCStatus {
     
     private String message;
     
-    private SegmentGCStatus(String message) {
+    SegmentGCStatus(String message) {
         this.message = message;
     }
     

@@ -196,12 +196,12 @@ public interface SegmentRevisionGC {
     /**
      * @return Number of nodes the monitor will log a message, {@code -1} means disabled
      */
-    public long getRevisionGCProgressLog();
+    long getRevisionGCProgressLog();
 
     /**
      * Set the size of the logging interval, {@code -1} means disabled
      * @param logCycle
      *            number of nodes
      */
-    public void setRevisionGCProgressLog(long gcProgressLog);
+    void setRevisionGCProgressLog(long gcProgressLog);
 }

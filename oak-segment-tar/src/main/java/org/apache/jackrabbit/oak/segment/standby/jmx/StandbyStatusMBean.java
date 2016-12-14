@@ -17,17 +17,18 @@
 
 package org.apache.jackrabbit.oak.segment.standby.jmx;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.commons.jmx.Description;
+
 public interface StandbyStatusMBean {
-    public static final String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";
-    public static final String STATUS_INITIALIZING = "initializing";
-    public static final String STATUS_STOPPED = "stopped";
-    public static final String STATUS_STARTING = "starting";
-    public static final String STATUS_RUNNING = "running";
-    public static final String STATUS_CLOSING = "closing";
-    public static final String STATUS_CLOSED = "closed";
+    String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";
+    String STATUS_INITIALIZING = "initializing";
+    String STATUS_STOPPED = "stopped";
+    String STATUS_STARTING = "starting";
+    String STATUS_RUNNING = "running";
+    String STATUS_CLOSING = "closing";
+    String STATUS_CLOSED = "closed";
 
     @Nonnull
     @Description("primary or standby")
