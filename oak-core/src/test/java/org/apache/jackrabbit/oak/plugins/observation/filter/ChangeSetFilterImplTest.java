@@ -25,12 +25,19 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChangeSetFilterImplTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ChangeSetFilterImplTest.class);
 
     /** shortcut for creating a set of strings */
     private Set<String> s(String... entries) {
@@ -330,6 +337,38 @@ public class ChangeSetFilterImplTest {
             assertTrue(prefilter.excludes(builder.build()));
         } else {
             assertFalse(prefilter.excludes(builder.build()));
+        }
+    }
+
+    @Test
+    public void manyIncludePaths() throws Exception {
+        int numPaths = 50;
+        ChangeSetBuilder builder = newBuilder(50, 9);
+        for (int i = 0; i < numPaths; i++) {
+            builder.addParentPath("/a/b/c/d/e/n" + i);
+        }
+        ChangeSet cs = builder.build();
+
+        Set<String> includes = Sets.newHashSet();
+        for (int i = 0; i < 100; i++) {
+            includes.add("/foo/bar/n-" + i + "/*.jsp");
+        }
+        ChangeSetFilter filter = new ChangeSetFilterImpl(s(),true,
+                includes, s(), s(), s(), s());
+
+        // warm up
+        doManyIncludePaths(filter, cs);
+
+        // and measure
+        Stopwatch sw = Stopwatch.createStarted();
+        doManyIncludePaths(filter, cs);
+        LOG.info("manyIncludePaths() took {}", sw.stop());
+    }
+
+    private void doManyIncludePaths(ChangeSetFilter filter, ChangeSet cs)
+            throws Exception {
+        for (int i = 0; i < 20000; i++) {
+            assertTrue(filter.excludes(cs));
         }
     }
 }
