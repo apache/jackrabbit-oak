@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public class CommunicationObserver {
     private static final int MAX_CLIENT_STATISTICS = 10;
 
-    private class CommunicationPartnerMBean implements ObservablePartnerMBean {
+    private static class CommunicationPartnerMBean implements ObservablePartnerMBean {
         private final ObjectName mbeanName;
         private final String clientName;
         public String lastRequest;
