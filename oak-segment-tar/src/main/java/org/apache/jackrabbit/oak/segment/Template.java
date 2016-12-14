@@ -325,8 +325,8 @@ public class Template {
             builder.append(mixinTypes);
             builder.append(", ");
         }
-        for (int i = 0; i < properties.length; i++) {
-            builder.append(properties[i]);
+        for (PropertyTemplate property : properties) {
+            builder.append(property);
             builder.append(" = ?, ");
         }
         if (childName == ZERO_CHILD_NODES) {
