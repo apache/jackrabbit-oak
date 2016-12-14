@@ -86,7 +86,12 @@ final class Utils {
             return false;
         }
 
-        for (String f : store.list()) {
+        String[] fileNames = store.list();
+        if (fileNames == null) {
+            return false;
+        }
+
+        for (String f : fileNames) {
             if ("journal.log".equals(f)) {
                 return true;
             }
