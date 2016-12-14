@@ -493,7 +493,7 @@ public class SegmentNodeState extends Record implements NodeState {
         while (beforeIndex < beforeProperties.length
                 && afterIndex < afterProperties.length) {
             int d = Integer.valueOf(afterProperties[afterIndex].hashCode())
-                    .compareTo(Integer.valueOf(beforeProperties[beforeIndex].hashCode()));
+                    .compareTo(beforeProperties[beforeIndex].hashCode());
             if (d == 0) {
                 d = afterProperties[afterIndex].getName().compareTo(
                         beforeProperties[beforeIndex].getName());

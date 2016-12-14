@@ -212,7 +212,7 @@ public class MapRecord extends Record {
             assert p <= i && i <= q;
 
             long iH = segment.readInt(getRecordNumber(), 4 + i * 4) & HASH_MASK;
-            int diff = Long.valueOf(iH).compareTo(Long.valueOf(h));
+            int diff = Long.valueOf(iH).compareTo(h);
             if (diff == 0) {
                 RecordId keyId = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2);
                 RecordId valueId = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
