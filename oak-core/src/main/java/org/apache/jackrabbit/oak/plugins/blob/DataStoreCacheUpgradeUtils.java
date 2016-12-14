@@ -146,36 +146,38 @@ public class DataStoreCacheUpgradeUtils {
      */
     public static void movePendingUploadsToStaging(File homeDir, File path, boolean deleteMap) {
         File newUploadDir = new File(path, UPLOAD_STAGING_DIR);
+        if (homeDir != null && homeDir.exists()) {
+            Map<String, Long> pendingUploads = deSerializeUploadMap(homeDir);
+            Iterator<String> pendingFileIter = pendingUploads.keySet().iterator();
 
-        Map<String, Long> pendingUploads = deSerializeUploadMap(homeDir);
-        Iterator<String> pendingFileIter = pendingUploads.keySet().iterator();
+            while (pendingFileIter.hasNext()) {
+                String file = pendingFileIter.next();
+                File upload = new File(path, file);
+                LOG.trace("Pending upload absolute path " + upload.getAbsolutePath());
 
-        while(pendingFileIter.hasNext()) {
-            String file = pendingFileIter.next();
-            File upload = new File(path, file);
-            LOG.trace("Pending upload absolute path " + upload.getAbsolutePath());
+                File newUpload = new File(newUploadDir, file);
+                LOG.trace("Pending upload upgrade absolute path " + newUpload.getAbsolutePath());
 
-            File newUpload = new File(newUploadDir, file);
-            LOG.trace("Pending upload upgrade absolute path " + newUpload.getAbsolutePath());
+                newUpload.getParentFile().mkdirs();
 
-            newUpload.getParentFile().mkdirs();
-
-            if (upload.exists()) {
-                LOG.trace(upload + " File exists");
-                try {
-                    FileUtils.moveFile(upload, newUpload);
-                    LOG.info("Pending upload file [{}] moved to [{}]", upload, newUpload);
-                    recursiveDelete(upload, path);
-                } catch (Exception e) {
-                    LOG.warn("Unable to move pending upload file [{}] to [{}]", upload, newUpload);
+                if (upload.exists()) {
+                    LOG.trace(upload + " File exists");
+                    try {
+                        FileUtils.moveFile(upload, newUpload);
+                        LOG.info("Pending upload file [{}] moved to [{}]", upload, newUpload);
+                        recursiveDelete(upload, path);
+                    } catch (Exception e) {
+                        LOG.warn("Unable to move pending upload file [{}] to [{}]", upload,
+                            newUpload);
+                    }
+                } else {
+                    LOG.warn("File [{}] does not exist", upload);
                 }
-            } else {
-                LOG.warn("File [{}] does not exist", upload);
             }
-        }
 
-        if (deleteMap) {
-            deleteSerializedUploadMap(homeDir);
+            if (deleteMap) {
+                deleteSerializedUploadMap(homeDir);
+            }
         }
     }
 
