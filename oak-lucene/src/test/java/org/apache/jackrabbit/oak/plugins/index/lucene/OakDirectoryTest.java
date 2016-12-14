@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.PROP_BLOB_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.UNIQUE_KEY_SIZE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -36,6 +37,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,12 +46,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -188,7 +190,7 @@ public class OakDirectoryTest {
         assertEquals(blobSize, testNode.getProperty(PROP_BLOB_SIZE).getValue(Type.LONG).longValue());
 
         List<Blob> blobs = newArrayList(testNode.getProperty(JCR_DATA).getValue(BINARIES));
-        assertEquals(blobSize + OakDirectory.UNIQUE_KEY_SIZE, blobs.get(0).length());
+        assertEquals(blobSize + UNIQUE_KEY_SIZE, blobs.get(0).length());
 
         return data;
     }
@@ -453,6 +455,29 @@ public class OakDirectoryTest {
         assertFalse(dir.isDirty());
         dir.deleteFile("a");
         assertTrue(dir.isDirty());
+        dir.close();
+    }
+
+    @Test
+    public void blobFactory() throws Exception {
+        final AtomicInteger numBlobs = new AtomicInteger();
+        final int fileSize = 1024;
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        OakDirectory.BlobFactory factory = new OakDirectory.BlobFactory() {
+            @Override
+            public Blob createBlob(InputStream in) throws IOException {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                IOUtils.copy(in, out);
+                byte[] data = out.toByteArray();
+                assertEquals(fileSize + UNIQUE_KEY_SIZE, data.length);
+                numBlobs.incrementAndGet();
+                return new ArrayBasedBlob(data);
+            }
+        };
+        OakDirectory dir = new OakDirectory(builder, INDEX_DATA_CHILD_NAME, def, false, factory);
+        numBlobs.set(0);
+        writeFile(dir, "file", fileSize);
+        assertEquals(1, numBlobs.get());
         dir.close();
     }
 
