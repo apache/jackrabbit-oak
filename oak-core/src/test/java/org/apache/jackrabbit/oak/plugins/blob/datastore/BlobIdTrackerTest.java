@@ -90,7 +90,7 @@ public class BlobIdTrackerTest {
     public void setup() throws Exception {
         this.root = folder.newFolder();
         if (dataStore == null) {
-            dataStore = getBlobStore(root);
+            dataStore = getBlobStore(folder.newFolder());
         }
         this.repoId = randomUUID().toString();
         this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
@@ -159,14 +159,17 @@ public class BlobIdTrackerTest {
         }
     }
 
-    @Ignore("OAK-5251")
     @Test
     public void externalAddOffline() throws Exception {
         // Close and open a new object to use the system property
         closer.close();
 
+        root = folder.newFolder();
+        File blobIdRoot = new File(root, "blobids");
+        blobIdRoot.mkdirs();
+
         //Add file offline
-        File offline = new File(new File(root, "blobids"), "blob-offline123456.gen");
+        File offline = new File(blobIdRoot, "blob-offline123456.gen");
         List<String> offlineLoad = range(0, 1000);
         FileIOUtils.writeStrings(offlineLoad.iterator(), offline, false);
 
