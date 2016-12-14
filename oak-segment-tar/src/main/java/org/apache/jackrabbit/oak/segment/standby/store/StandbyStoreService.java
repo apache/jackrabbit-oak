@@ -20,12 +20,8 @@ import static java.lang.String.valueOf;
 import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
 import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
-import java.io.IOException;
-import java.security.cert.CertificateException;
 import java.util.Dictionary;
 import java.util.Hashtable;
-
-import javax.net.ssl.SSLException;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -101,7 +97,7 @@ public class StandbyStoreService {
     private ServiceRegistration syncReg = null;
 
     @Activate
-    private void activate(ComponentContext context) throws IOException, CertificateException {
+    private void activate(ComponentContext context) {
         if (storeProvider == null) {
             throw new IllegalArgumentException("Missing SegmentStoreProvider service");
         }
@@ -141,7 +137,7 @@ public class StandbyStoreService {
         }
     }
 
-    private void bootstrapMaster(ComponentContext context) throws CertificateException, SSLException {
+    private void bootstrapMaster(ComponentContext context) {
         Dictionary<?, ?> props = context.getProperties();
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         String[] ranges = PropertiesUtil.toStringArray(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
@@ -151,7 +147,7 @@ public class StandbyStoreService {
         log.info("started primary on port {} with allowed ip ranges {}.", port, ranges);
     }
 
-    private void bootstrapSlave(ComponentContext context) throws SSLException {
+    private void bootstrapSlave(ComponentContext context) {
         Dictionary<?, ?> props = context.getProperties();
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         long interval = PropertiesUtil.toInteger(props.get(INTERVAL), INTERVAL_DEFAULT);

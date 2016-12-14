@@ -650,7 +650,7 @@ class TarReader implements Closeable {
     }
 
     @Nonnull
-    private List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) throws IOException {
+    private List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) {
         List<UUID> references = graph.get(id);
 
         if (references == null) {

@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
-import javax.net.ssl.SSLException;
 
 import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -78,7 +77,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final NioEventLoopGroup group;
 
-    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) throws SSLException {
+    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;

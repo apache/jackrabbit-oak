@@ -393,7 +393,7 @@ public class FileStore extends AbstractFileStore {
      * reference to them).
      * @return {@code true} on success, {@code false} otherwise.
      */
-    public boolean compact() throws IOException {
+    public boolean compact() {
         return garbageCollector.compact() > 0;
     }
 
@@ -805,7 +805,7 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
-        synchronized int compact() throws IOException {
+        synchronized int compact() {
             final int newGeneration = getGcGeneration() + 1;
             try {
                 Stopwatch watch = Stopwatch.createStarted();
