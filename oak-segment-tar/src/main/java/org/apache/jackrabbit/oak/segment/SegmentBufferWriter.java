@@ -92,19 +92,11 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         @Override
         public String toString() {
-            StringBuilder builder = new StringBuilder();
-
-            builder.append("id=").append(id);
-            builder.append(",");
-            builder.append("size=").append(size);
-            builder.append(",");
-            builder.append("segmentIdCount=").append(segmentIdCount);
-            builder.append(",");
-            builder.append("recordIdCount=").append(recordIdCount);
-            builder.append(",");
-            builder.append("recordCount=").append(recordCount);
-
-            return builder.toString();
+            return "id=" + id +
+                    ",size=" + size +
+                    ",segmentIdCount=" + segmentIdCount +
+                    ",recordIdCount=" + recordIdCount +
+                    ",recordCount=" + recordCount;
         }
     }
 
