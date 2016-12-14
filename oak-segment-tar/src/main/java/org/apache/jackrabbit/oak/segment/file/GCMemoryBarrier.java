@@ -157,8 +157,9 @@ public class GCMemoryBarrier implements Closeable {
     }
 
     private class MemoryListener implements NotificationListener {
+        @Override
         public void handleNotification(Notification notification,
-                Object handback) {
+                                       Object handback) {
             if (notification
                     .getType()
                     .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
