@@ -98,8 +98,9 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         this.gcGeneration = checkNotNull(gcGeneration);
     }
 
+    @Nonnull
     @Override
-    public RecordId execute(WriteOperation writeOperation) throws IOException {
+    public RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException {
         SegmentBufferWriter writer = borrowWriter(currentThread());
         try {
             return writeOperation.execute(writer);

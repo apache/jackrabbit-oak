@@ -111,15 +111,16 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
     }
 
     @Override
-    public boolean setHead(RecordId expected, RecordId head, Option... options) {
+    public boolean setHead(@Nonnull RecordId expected, @Nonnull RecordId head, @Nonnull Option... options) {
         checkBound();
         RecordId id = this.head.get();
         return id.equals(expected) && this.head.compareAndSet(id, head);
     }
 
     @Override
-    public boolean setHead(Function<RecordId, RecordId> newHead,
-            Option... options) throws InterruptedException {
+    public boolean setHead(
+            @Nonnull Function<RecordId, RecordId> newHead,
+            @Nonnull Option... options) throws InterruptedException {
         throw new UnsupportedOperationException("ReadOnly Revisions");
     }
 

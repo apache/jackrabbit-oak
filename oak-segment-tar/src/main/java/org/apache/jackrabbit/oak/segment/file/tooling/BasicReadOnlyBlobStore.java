@@ -23,6 +23,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -72,12 +74,12 @@ public class BasicReadOnlyBlobStore implements BlobStore {
     }
 
     @Override
-    public String getBlobId(String reference) {
+    public String getBlobId(@Nonnull String reference) {
         return reference;
     }
 
     @Override
-    public String getReference(String blobId) {
+    public String getReference(@Nonnull String blobId) {
         return blobId;
     }
 }

@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
@@ -135,7 +136,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) {
+    public int read(@Nonnull byte[] b, int off, int len) {
         checkNotNull(b);
         checkPositionIndexes(off, off + len, b.length);
 

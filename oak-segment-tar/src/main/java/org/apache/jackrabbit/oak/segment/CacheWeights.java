@@ -53,7 +53,7 @@ public class CacheWeights {
     public static class OneWeigher<K, V> implements Weigher<K, V> {
 
         @Override
-        public int weigh(Object key, Object value) {
+        public int weigh(@Nonnull Object key, @Nonnull Object value) {
             return 1;
         }
     }
@@ -79,7 +79,7 @@ public class CacheWeights {
     public static class NodeCacheWeigher implements Weigher<String, RecordId> {
 
         @Override
-        public int weigh(String key, RecordId value) {
+        public int weigh(@Nonnull String key, @Nonnull RecordId value) {
             int size = PRIORITY_CACHE_OVERHEAD;
             size += estimateMemoryUsage(key);
             size += value.estimateMemoryUsage();
@@ -90,7 +90,7 @@ public class CacheWeights {
     public static class StringCacheWeigher implements Weigher<String, RecordId> {
 
         @Override
-        public int weigh(String key, RecordId value) {
+        public int weigh(@Nonnull String key, @Nonnull RecordId value) {
             int size = RECORD_CACHE_OVERHEAD;
             size += estimateMemoryUsage(key);
             size += value.estimateMemoryUsage();
@@ -102,7 +102,7 @@ public class CacheWeights {
             Weigher<Template, RecordId> {
 
         @Override
-        public int weigh(Template key, RecordId value) {
+        public int weigh(@Nonnull Template key, @Nonnull RecordId value) {
             int size = RECORD_CACHE_OVERHEAD;
             size += key.estimateMemoryUsage();
             size += value.estimateMemoryUsage();
@@ -114,7 +114,7 @@ public class CacheWeights {
             Weigher<CacheKey, Template> {
 
         @Override
-        public int weigh(CacheKey key, Template value) {
+        public int weigh(@Nonnull CacheKey key, @Nonnull Template value) {
             int size = LIRS_CACHE_OVERHEAD;
             size += key.estimateMemoryUsage();
             size += value.estimateMemoryUsage();
@@ -126,7 +126,7 @@ public class CacheWeights {
             Weigher<CacheKey, String> {
 
         @Override
-        public int weigh(CacheKey key, String value) {
+        public int weigh(@Nonnull CacheKey key, @Nonnull String value) {
             int size = LIRS_CACHE_OVERHEAD;
             size += key.estimateMemoryUsage();
             size += estimateMemoryUsage(value);

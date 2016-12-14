@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -148,6 +149,7 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         state = STATUS_CLOSED;
     }
 
+    @Nonnull
     @Override
     public String getMode() {
         return "primary";

@@ -154,6 +154,7 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testFlushBlocks() throws ExecutionException, InterruptedException {
         Future<RecordId> res = execute(new WriteOperation() {
+            @Nonnull
             @CheckForNull @Override
             public RecordId execute(@Nonnull SegmentBufferWriter writer) {
                 try {

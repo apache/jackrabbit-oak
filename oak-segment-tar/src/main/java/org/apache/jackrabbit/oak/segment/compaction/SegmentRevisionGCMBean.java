@@ -151,6 +151,7 @@ public class SegmentRevisionGCMBean
         return fileStoreGCMonitor.getLastError();
     }
     
+    @Nonnull
     @Override
     public String getLastLogMessage() {
         return fileStoreGCMonitor.getLastLogMessage();

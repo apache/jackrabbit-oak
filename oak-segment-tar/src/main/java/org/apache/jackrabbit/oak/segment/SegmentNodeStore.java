@@ -299,6 +299,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return head.get().getChildNode(ROOT);
     }
 
+    @Nonnull
     @Override
     public NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
@@ -381,6 +382,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return root;
     }
 
+    @Nonnull
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return writer.writeStream(stream);
