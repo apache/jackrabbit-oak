@@ -26,6 +26,8 @@ class DeprecationMessage {
             "  functionality but you need to rename your configuration to target the\n" +
             "  new component using the PID %s.\n";
 
+    private DeprecationMessage() {}
+
     static String movedPid(String oldPid, String newPid) {
         return String.format(MOVED_PID_FORMAT, oldPid, newPid);
     }
