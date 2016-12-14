@@ -121,12 +121,8 @@ public class SegmentId implements Comparable<SegmentId> {
             synchronized (this) {
                 segment = this.segment;
                 if (segment == null) {
-                    try {
-                        log.debug("Loading segment {}", this);
-                        segment = store.readSegment(this);
-                    } catch (SegmentNotFoundException snfe) {
-                        throw snfe;
-                    }
+                    log.debug("Loading segment {}", this);
+                    segment = store.readSegment(this);
                 }
             }
         }
