@@ -169,6 +169,7 @@ public class SegmentStream extends InputStream {
                     id = ids.get(i);
                 }
 
+                assert id == null || first != null;
                 if (id != null
                         && id.getSegmentId().equals(first.getSegmentId())
                         && id.getRecordNumber() == first.getRecordNumber() + count * BLOCK_SIZE) {
