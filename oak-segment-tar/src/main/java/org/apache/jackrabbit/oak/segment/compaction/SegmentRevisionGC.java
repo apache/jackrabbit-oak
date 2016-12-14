@@ -200,7 +200,7 @@ public interface SegmentRevisionGC {
 
     /**
      * Set the size of the logging interval, {@code -1} means disabled
-     * @param logCycle
+     * @param gcProgressLog
      *            number of nodes
      */
     void setRevisionGCProgressLog(long gcProgressLog);
