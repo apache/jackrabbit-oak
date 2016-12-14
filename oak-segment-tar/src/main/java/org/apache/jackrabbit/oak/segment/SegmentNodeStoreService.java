@@ -683,7 +683,7 @@ public class SegmentNodeStoreService {
 
     private static Map<String, String> withRole(Map<String, String> map, String role) {
         if (role != null) {
-            map.put("role", role);
+            map.put("role", sanitizeRole(role));
         }
         return map;
     }
@@ -805,11 +805,15 @@ public class SegmentNodeStoreService {
         return lookupConfigurationThenFramework(context, name);
     }
 
+    private static String sanitizeRole(String role) {
+        return role.replaceAll(":", "-");
+    }
+
     private static String appendRole(@Nonnull String name, @Nullable String role) {
         if (role == null) {
             return name;
         } else {
-            return name + "-" + role;
+            return name + "-" + sanitizeRole(role);
         }
     }
 
