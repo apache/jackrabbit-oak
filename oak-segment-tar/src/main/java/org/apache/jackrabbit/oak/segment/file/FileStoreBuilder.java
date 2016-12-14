@@ -98,12 +98,16 @@ public class FileStoreBuilder {
         @Override
         public void compactionSucceeded(int newGeneration) {
             compacted();
-            cacheManager.evictOldGeneration(newGeneration);
+            if (cacheManager != null) {
+                cacheManager.evictOldGeneration(newGeneration);
+            }
         }
 
         @Override
         public void compactionFailed(int failedGeneration) {
-            cacheManager.evictGeneration(failedGeneration);
+            if (cacheManager != null) {
+                cacheManager.evictGeneration(failedGeneration);
+            }
         }
     };
 
