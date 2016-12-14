@@ -193,7 +193,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         Map<Integer, Map<Character, File>> dataFiles = newHashMap();
         Map<Integer, File> bulkFiles = newHashMap();
 
-        for (File file : directory.listFiles()) {
+        for (File file : listFiles(directory)) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
@@ -258,6 +258,12 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
 
         return dataFiles;
+    }
+
+    @Nonnull
+    private static File[] listFiles(File directory) {
+        File[] files = directory.listFiles();
+        return files == null ? new File[] {} : files;
     }
 
     @Nonnull
