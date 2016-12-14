@@ -153,7 +153,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder, dirName, blobStore);
+            directory = newIndexDirectory(definition, definitionBuilder, dirName, indexCopier != null, blobStore);
             IndexWriterConfig config;
             if (indexCopier != null){
                 directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);

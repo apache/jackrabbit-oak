@@ -26,6 +26,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -74,7 +75,8 @@ public class IndexWriterUtils {
     }
 
     public static Directory newIndexDirectory(IndexDefinition indexDefinition,
-            NodeBuilder definition, String dirName, @Nullable GarbageCollectableBlobStore blobStore)
+            NodeBuilder definition, String dirName, boolean buffered,
+            @Nullable GarbageCollectableBlobStore blobStore)
             throws IOException {
         String path = null;
         if (LuceneIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
@@ -82,7 +84,11 @@ public class IndexWriterUtils {
             path = definition.getString(PERSISTENCE_PATH);
         }
         if (path == null) {
-            return new OakDirectory(definition, dirName, indexDefinition, false, blobStore);
+            if (buffered) {
+                return new BufferedOakDirectory(definition, dirName, indexDefinition, blobStore);
+            } else {
+                return new OakDirectory(definition, dirName, indexDefinition, false, blobStore);
+            }
         } else {
             // try {
             File file = new File(path);
