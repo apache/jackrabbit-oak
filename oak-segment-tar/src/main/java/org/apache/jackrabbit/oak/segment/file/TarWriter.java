@@ -620,8 +620,8 @@ class TarWriter implements Closeable {
 
         // Compute checksum
         int checksum = 0;
-        for (int i = 0; i < header.length; i++) {
-            checksum += header[i] & 0xff;
+        for (byte aHeader : header) {
+            checksum += aHeader & 0xff;
         }
         System.arraycopy(
                 String.format("%06o\0 ", checksum).getBytes(UTF_8), 0,
