@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
@@ -78,7 +80,9 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     private ScheduledExecutorService scheduledExecutor;
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
+        LOG.info("Starting setup");
+
         root = folder.newFolder();
         loader = new TestCacheLoader<String, InputStream>(folder.newFolder());
         uploader = new TestStagingUploader(folder.newFolder());
@@ -102,7 +106,11 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
             new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /* bytes */, 10,
                 1/*threads*/,
                 loader, uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
+        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+
         closer.register(cache);
+
+        LOG.info("Finished setup");
     }
 
     @After
@@ -112,6 +120,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     @Test
     public void zeroCache() throws IOException {
+        LOG.info("Starting zeroCache");
+
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 0 /* bytes
         */, 10, 1/*threads*/, loader,
             uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
@@ -129,6 +139,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(0,cache.getCacheStats().getMaxTotalWeight());
         cache.invalidate(ID_PREFIX + 0);
         cache.close();
+
+        LOG.info("Finished zeroCache");
     }
 
     /**
@@ -136,9 +148,13 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void getIfPresentNoCache() {
+        LOG.info("Starting getIfPresentNoCache");
+
         File file = cache.getIfPresent(ID_PREFIX + 0);
         assertNull(file);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
+
+        LOG.info("Finished getIfPresentNoCache");
     }
 
     /**
@@ -147,8 +163,12 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void getNoCache() throws IOException {
+        LOG.info("Starting getNoCache");
+
         expectedEx.expect(IOException.class);
         cache.get(ID_PREFIX + 0);
+
+        LOG.info("Finished getNoCache");
     }
 
     /**
@@ -156,10 +176,14 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void getIfPresentObjectNoCache() {
+        LOG.info("Starting getIfPresentObjectNoCache");
+
         File file = cache.getIfPresent((Object) (ID_PREFIX + 0));
         assertNull(file);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
         assertCacheStats(cache.getDownloadCache().getStats(), 0, 0, 0, 0);
+
+        LOG.info("Finished getIfPresentObjectNoCache");
     }
 
     /**
@@ -167,6 +191,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void add() throws Exception {
+        LOG.info("Starting add");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         boolean accepted = cache.stage(ID_PREFIX + 0, f);
         assertTrue(accepted);
@@ -181,6 +207,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertNotNull(f);
         assertFile(file, 0, folder);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 1);
+
+        LOG.info("Finished add");
     }
 
     /**
@@ -188,6 +216,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void addCacheFull() throws IOException {
+        LOG.info("Starting addCacheFull");
+
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 40 * 1024 /*
         bytes */, 10 /* staging % */,
             1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, 3000,
@@ -212,6 +242,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertNotNull(f);
         assertFile(file, 0, folder);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 2);
+
+        LOG.info("Finished addCacheFull");
     }
 
     /**
@@ -219,6 +251,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void invalidateStaging() throws IOException {
+        LOG.info("Starting invalidateStaging");
+
         // create executor
         taskLatch = new CountDownLatch(2);
         callbackLatch = new CountDownLatch(2);
@@ -254,26 +288,36 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         file = cache.getIfPresent(ID_PREFIX + 1);
         assertFile(file, 1, folder);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 2, 2);
+
+        LOG.info("Finished invalidateStaging");
     }
 
     /**
      * Test {@link CompositeDataStoreCache#getIfPresent(String)} when file staged
-     * and then download cache when uploaded.
+     * and then put in download cache when uploaded.
      * @throws IOException
      */
     @Test
     public void getIfPresentStaged() throws IOException {
+        LOG.info("Starting getIfPresentStaged");
+
         get(false);
+
+        LOG.info("Finished getIfPresentStaged");
     }
 
     /**
-     * Test {@link CompositeDataStoreCache#get(String)} when file staged and then
+     * Test {@link CompositeDataStoreCache#get(String)} when file staged and then put in
      * download cache when uploaded.
      * @throws IOException
      */
     @Test
     public void getStaged() throws IOException {
+        LOG.info("Starting getStaged");
+
         get(true);
+
+        LOG.info("Finished getStaged");
     }
 
     private void get(boolean get) throws IOException {
@@ -298,13 +342,15 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         waitFinish();
 
-        // Not should hit the download cache
+        // Now should hit the download cache
         if (get) {
             file = cache.get(ID_PREFIX + 0);
         } else {
             file = cache.getIfPresent(ID_PREFIX + 0);
         }
-        assertNotNull(f);
+        LOG.info("File loaded from cache [{}]", file);
+
+        assertNotNull(file);
         assertFile(file, 0, folder);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 1);
         assertCacheStats(cache.getCacheStats(), 1, 4 * 1024, 1, 1);
@@ -316,6 +362,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void getLoad() throws Exception {
+        LOG.info("Starting getLoad");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         loader.write(ID_PREFIX + 0, f);
 
@@ -335,6 +383,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertCacheStats(cache.getCacheStats(), 1, 4 * 1024, 0, 2);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
+
+        LOG.info("Finished getLoad");
     }
 
     /**
@@ -343,6 +393,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void invalidate() throws Exception {
+        LOG.info("Starting invalidate");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         loader.write(ID_PREFIX + 0, f);
 
@@ -367,6 +419,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         /** Check eviction count */
         assertEquals(0, cache.getCacheStats().getEvictionCount());
+
+        LOG.info("Finished invalidate");
     }
 
     /**
@@ -375,6 +429,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void concurrentGetCached() throws Exception {
+        LOG.info("Starting concurrentGetCached");
+
         // Add 2 files to backend
         // Concurrently get both
         ListeningExecutorService executorService =
@@ -414,6 +470,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 4);
         assertEquals(2, cache.getCacheStats().getLoadCount());
         assertEquals(2, cache.getCacheStats().getLoadSuccessCount());
+
+        LOG.info("Finished concurrentGetCached");
     }
 
     /**
@@ -423,6 +481,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void concurrentGetFromStagedAndCached() throws Exception {
+        LOG.info("Starting concurrentGetFromStagedAndCached");
+
         // Add 1 to backend
         // Add 2 to upload area
         // Stop upload execution
@@ -475,6 +535,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 2);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
+
+        LOG.info("Finished concurrentGetFromStagedAndCached");
     }
 
     /**
@@ -484,6 +546,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void concurrentAddGet() throws Exception {
+        LOG.info("Starting concurrentAddGet");
+
         // Add to the upload area
         // stop upload execution
         // Same as above but concurrently
@@ -524,6 +588,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getCacheStats().getLoadCount());
         assertEquals(0, cache.getCacheStats().getLoadSuccessCount());
+
+        LOG.info("Finished concurrentAddGet");
     }
 
     /**--------------------------- Helper Methods -----------------------------------------------**/

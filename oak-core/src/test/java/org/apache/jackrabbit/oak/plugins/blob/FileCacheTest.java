@@ -67,6 +67,8 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     CountDownLatch afterExecuteLatch;
     @Before
     public void setup() throws Exception {
+        LOG.info("Started setup");
+
         root = folder.newFolder();
         closer = Closer.create();
         loader = new TestCacheLoader<String, InputStream>(folder.newFolder());
@@ -82,6 +84,8 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
 
         closer.register(cache);
+
+        LOG.info("Finished setup");
     }
 
     @After
@@ -91,6 +95,8 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     @Test
     public void zeroCache() throws Exception {
+        LOG.info("Started zeroCache");
+
         cache = FileCache.build(0/* KB */, root, loader, null);
         closer.register(cache);
         File f = createFile(0, loader, cache, folder);
@@ -101,6 +107,8 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         cache.invalidate(ID_PREFIX + 0);
         assertFalse(cache.containsKey(ID_PREFIX + 0));
         cache.close();
+
+        LOG.info("Finished zeroCache");
     }
 
     /**
@@ -329,18 +337,17 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         CountDownLatch thread2Start = new CountDownLatch(1);
         SettableFuture<File> future2 =
             retrieveThread(executorService, ID_PREFIX + 4, cache, thread2Start);
-
         thread2Start.countDown();
 
         File f10 = future1.get();
-        future2.get();
+        File f4 = future2.get();
         LOG.info("Async tasks finished");
 
         if (f10.exists()) {
             assertCacheIfPresent(10, cache, f10);
         }
-        if (f.exists()) {
-            assertCacheIfPresent(4, cache, f);
+        if (f4.exists()) {
+            assertCacheIfPresent(4, cache, f4);
         }
         LOG.info("Finished getInvalidateConcurrent");
     }
