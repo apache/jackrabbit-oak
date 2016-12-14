@@ -168,6 +168,10 @@ public class OakDirectory extends Directory {
     @Override
     public long fileLength(String name) throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
+        if (!file.exists()) {
+            String msg = String.format("[%s] %s", indexName, name);
+            throw new FileNotFoundException(msg);
+        }
         OakIndexInput input = new OakIndexInput(name, file, indexName, blobFactory);
         try {
             return input.length();
