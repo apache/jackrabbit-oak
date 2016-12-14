@@ -70,9 +70,7 @@ public class SizeDeltaGcEstimation implements GCEstimation {
         }
         if (delta == 0) {
             gcNeeded = true;
-            gcInfo = format(
-                    "Estimation skipped because the size delta value equals 0",
-                    delta);
+            gcInfo = "Estimation skipped because the size delta value equals 0";
         } else if (getPreviousCleanupSize() < 0) {
             gcNeeded = true;
             gcInfo = "Estimation skipped because of missing gc journal data (expected on first run)";
