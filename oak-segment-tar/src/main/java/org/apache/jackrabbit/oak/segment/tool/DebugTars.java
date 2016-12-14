@@ -109,7 +109,7 @@ public class DebugTars implements Runnable {
          */
         public Runnable build() {
             checkNotNull(path);
-            checkArgument(tars.size() > 0);
+            checkArgument(!tars.isEmpty());
             return new DebugTars(this);
         }
 
