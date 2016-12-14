@@ -61,6 +61,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
@@ -1364,7 +1365,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                if (!isCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
@@ -1400,7 +1401,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                if (!isCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
@@ -1444,7 +1445,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!isCheckedOut()) {
+                PropertyDelegate property = dlg.getPropertyOrNull(oakName);
+                if (!isCheckedOut() && getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot remove property. Node [%s] is checked in.", getNodePath()));
                 }
@@ -1597,6 +1599,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     private String getNodePath(){
         return dlg.getPath();
+    }
+
+    private int getOPV(Tree nodeTree, PropertyState property)
+            throws RepositoryException {
+        return getNodeTypeManager().getDefinition(nodeTree,
+                property, false).getOnParentVersion();
+
     }
 
     private static class PropertyIteratorDelegate {

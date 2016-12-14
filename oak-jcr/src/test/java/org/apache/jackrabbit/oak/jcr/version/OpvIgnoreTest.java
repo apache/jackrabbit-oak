@@ -18,6 +18,13 @@ package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
@@ -31,6 +38,8 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+
+import java.util.List;
 
 /**
  * Test OPV IGNORE
@@ -90,5 +99,148 @@ public class OpvIgnoreTest extends AbstractJCRTest {
         Node frozenChild = frozen.getNode(nodeName1);
         assertTrue(frozenChild.hasNode(nodeName2));
         assertFalse(frozenChild.hasNode(AccessControlConstants.REP_POLICY));
+    }
+
+    //OAK-3328
+    public void testWritePropertyWithIgnoreOPVAfterCheckIn() throws RepositoryException {
+        Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
+        String ignoredPropertyName = "ignoredProperty";
+        NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(ignoredPropertyName);
+
+        Node node = ignoreTestNode.addNode("testNode", testNodeType);
+        node.addMixin(mixinWithIgnoreProperty.getName());
+        node.setProperty(ignoredPropertyName, "initial value");
+        node.addMixin(mixVersionable);
+        superuser.save();
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        if (!node.isCheckedOut()) {
+            vMgr.checkout(node.getPath());
+        }
+        vMgr.checkin(node.getPath());
+        node.setProperty(ignoredPropertyName, "next value");
+        superuser.save();
+        Property ignoreProperty = node.getProperty(ignoredPropertyName);
+        assertEquals("next value", ignoreProperty.getString());
+    }
+
+    //OAK-3328
+    public void testRemovePropertyWithIgnoreOPVAfterCheckIn() throws RepositoryException {
+        Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
+        String ignoredPropertyName = "test:ignoredProperty";
+        NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(ignoredPropertyName);
+
+        Node node = ignoreTestNode.addNode("testNode", testNodeType);
+        node.addMixin(mixinWithIgnoreProperty.getName());
+        node.setProperty(ignoredPropertyName, "initial value");
+        node.addMixin(mixVersionable);
+        superuser.save();
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        if (!node.isCheckedOut()) {
+            vMgr.checkout(node.getPath());
+        }
+        vMgr.checkin(node.getPath());
+        node.getProperty(ignoredPropertyName).remove();
+        superuser.save();
+        assertFalse(node.hasProperty(ignoredPropertyName));
+    }
+
+    //OAK-3328
+    public void testAddChildNodeWithIgnoreOPVAfterCheckIn() throws RepositoryException {
+        Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
+        String nodeTypeName = "testOpvIgnore";
+        NodeDefinitionTemplate nodeDefinition = createNodeDefinitionWithIgnoreOPVNode(nodeTypeName);
+
+        ignoreTestNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        ignoreTestNode.addMixin(nodeTypeName);
+        superuser.save();
+
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        if (!ignoreTestNode.isCheckedOut()) {
+            vMgr.checkout(ignoreTestNode.getPath());
+        }
+        vMgr.checkin(ignoreTestNode.getPath());
+
+        Node expected = ignoreTestNode.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+
+        superuser.save();
+        Node childNode = ignoreTestNode.getNode(nodeDefinition.getName());
+        assertTrue(expected.isSame(childNode));
+    }
+
+    //OAK-3328
+    public void testRemoveChildNodeWithIgnoreOPVAfterCheckIn() throws RepositoryException {
+        Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
+        String nodeTypeName = "testOpvIgnore";
+        NodeDefinitionTemplate nodeDefinition = createNodeDefinitionWithIgnoreOPVNode(nodeTypeName);
+
+        ignoreTestNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        ignoreTestNode.addMixin(nodeTypeName);
+        Node expected = ignoreTestNode.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        superuser.save();
+
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        if (!ignoreTestNode.isCheckedOut()) {
+            vMgr.checkout(ignoreTestNode.getPath());
+        }
+        vMgr.checkin(ignoreTestNode.getPath());
+
+        Node child = ignoreTestNode.getNode(nodeDefinition.getName());
+        child.remove();
+
+        superuser.save();
+        assertFalse(ignoreTestNode.hasNode(nodeDefinition.getName()));
+    }
+
+    //OAK-3328
+    public void testIsCheckedOutOPVIgnore() throws RepositoryException {
+        Node test = testRootNode.addNode("test", JcrConstants.NT_UNSTRUCTURED);
+        String nodeTypeName = "testOpvIgnore";
+        NodeDefinitionTemplate nodeDefinition = createNodeDefinitionWithIgnoreOPVNode(nodeTypeName);
+
+        test.addMixin(JcrConstants.MIX_VERSIONABLE);
+        test.addMixin(nodeTypeName);
+        Node ignored = test.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        superuser.save();
+
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        vMgr.checkin(test.getPath());
+
+        assertTrue(ignored.isCheckedOut());
+        assertTrue(vMgr.isCheckedOut(ignored.getPath()));
+    }
+
+    private NodeTypeTemplate createNodeTypeWithIgnoreOPVProperty(String propertyName) throws RepositoryException {
+        NodeTypeManager manager = superuser.getWorkspace().getNodeTypeManager();
+
+        NodeTypeTemplate nt = manager.createNodeTypeTemplate();
+        nt.setName("testType");
+        nt.setMixin(true);
+        PropertyDefinitionTemplate opt = manager.createPropertyDefinitionTemplate();
+        opt.setMandatory(false);
+        opt.setName(propertyName);
+        opt.setRequiredType(PropertyType.STRING);
+        opt.setOnParentVersion(OnParentVersionAction.IGNORE);
+        List pdt = nt.getPropertyDefinitionTemplates();
+        pdt.add(opt);
+        manager.registerNodeType(nt, true);
+
+        return nt;
+    }
+
+    private NodeDefinitionTemplate createNodeDefinitionWithIgnoreOPVNode(String nodeTypeName) throws RepositoryException {
+        NodeTypeManager manager = superuser.getWorkspace().getNodeTypeManager();
+
+        NodeDefinitionTemplate def = manager.createNodeDefinitionTemplate();
+        def.setOnParentVersion(OnParentVersionAction.IGNORE);
+        def.setName("child");
+        def.setRequiredPrimaryTypeNames(new String[]{JcrConstants.NT_BASE});
+
+        NodeTypeTemplate tmpl = manager.createNodeTypeTemplate();
+        tmpl.setName(nodeTypeName);
+        tmpl.setMixin(true);
+        tmpl.getNodeDefinitionTemplates().add(def);
+        manager.registerNodeType(tmpl, true);
+
+        return def;
     }
 }

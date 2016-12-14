@@ -33,8 +33,10 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.util.TraversingItemVisitor;
+import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 
 public class VersionManagerImpl implements VersionManager {
 
@@ -257,7 +260,20 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                return versionManagerDelegate.isCheckedOut(nodeDelegate);
+                boolean isCheckedOut = versionManagerDelegate.isCheckedOut(nodeDelegate);
+                if (!isCheckedOut) {
+                    // check OPV
+                    ReadWriteNodeTypeManager ntMgr = sessionContext.getWorkspace().getNodeTypeManager();
+                    NodeDelegate parent = nodeDelegate.getParent();
+                    NodeDefinition definition;
+                    if (parent == null) {
+                        definition = ntMgr.getRootDefinition();
+                    } else {
+                        definition = ntMgr.getDefinition(parent.getTree(), nodeDelegate.getTree());
+                    }
+                    isCheckedOut = definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
+                }
+                return isCheckedOut;
             }
         });
     }
