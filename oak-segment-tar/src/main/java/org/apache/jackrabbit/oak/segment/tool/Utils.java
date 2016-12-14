@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-class Utils {
+final class Utils {
 
     private static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 

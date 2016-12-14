@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-class Messages {
+final class Messages {
 
     static final byte HEADER_RECORD = 0x00;
 

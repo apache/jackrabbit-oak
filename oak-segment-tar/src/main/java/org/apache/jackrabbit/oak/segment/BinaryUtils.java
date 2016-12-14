@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-class BinaryUtils {
+final class BinaryUtils {
 
     private BinaryUtils() {
         // Prevent instantiation
