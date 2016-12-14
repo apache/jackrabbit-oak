@@ -64,6 +64,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         commitQueueSize.inc();
     }
     
+    @Override
     public void onCommitDequeued() {
         commitQueueSize.dec();
     }
