@@ -70,7 +70,7 @@ public class CacheWeights {
         @Override
         public int weigh(@Nonnull SegmentId id, @Nonnull Segment segment) {
             int size = SEGMENT_CACHE_OVERHEAD;
-            // segmentid weight estimation is included in segment
+            // segmentId weight estimation is included in segment
             size += segment.estimateMemoryUsage();
             return size;
         }

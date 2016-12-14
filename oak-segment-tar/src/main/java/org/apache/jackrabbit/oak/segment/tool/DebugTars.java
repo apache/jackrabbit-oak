@@ -152,16 +152,16 @@ public class DebugTars implements Runnable {
 
         System.out.println("Debug file " + tar + "(" + tar.length() + ")");
         Set<UUID> uuids = new HashSet<UUID>();
-        boolean hasrefs = false;
+        boolean hasRefs = false;
 
         for (Map.Entry<String, Set<UUID>> e : store.getTarReaderIndex().entrySet()) {
             if (e.getKey().endsWith(t)) {
-                hasrefs = true;
+                hasRefs = true;
                 uuids = e.getValue();
             }
         }
 
-        if (hasrefs) {
+        if (hasRefs) {
             System.out.println("SegmentNodeState references to " + t);
             List<String> paths = new ArrayList<String>();
             filterNodeStates(uuids, paths, store.getHead(), "/");

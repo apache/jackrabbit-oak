@@ -735,7 +735,7 @@ public class Segment {
             size += StringUtils.estimateMemoryUsage(info);
         }
         if (!data.isDirect()) {
-            // seems to overreport by 100+ bytes
+            // seems to over report by 100+ bytes
             size += size();
         }
         size += id.estimateMemoryUsage();

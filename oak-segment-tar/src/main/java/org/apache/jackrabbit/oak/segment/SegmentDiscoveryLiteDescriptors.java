@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 class SegmentDiscoveryLiteDescriptors implements Descriptors {
 
     /**
-     * Name of the repository descriptor via which the clusterView is published - which is the raison d'etre of the
+     * Name of the repository descriptor via which the clusterView is published - which is the reason d'etre of the
      * DocumentDiscoveryLiteService TODO: move this constant to a generic place for both segment and document
      **/
     private static final String OAK_DISCOVERYLITE_CLUSTERVIEW = "oak.discoverylite.clusterview";

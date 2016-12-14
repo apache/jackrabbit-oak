@@ -801,7 +801,7 @@ class TarReader implements Closeable {
         TarEntry[] entries = getEntries();
         for (int i = 0; i < entries.length; i++) {
             TarEntry entry = entries[i];
-            beforeSize += getEntrySize(entry.size());;
+            beforeSize += getEntrySize(entry.size());
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (reclaim.contains(id)) {
                 cleaned.add(id);
