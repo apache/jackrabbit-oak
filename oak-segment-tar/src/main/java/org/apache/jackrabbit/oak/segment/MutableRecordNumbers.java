@@ -57,7 +57,7 @@ class MutableRecordNumbers implements RecordNumbers {
     @Override
     public synchronized Iterator<Entry> iterator() {
         return new AbstractIterator<Entry>() {
-            int[] entries = copyOf(recordEntries, size * 2);
+            final int[] entries = copyOf(recordEntries, size * 2);
             int index = 0;
 
             @Override

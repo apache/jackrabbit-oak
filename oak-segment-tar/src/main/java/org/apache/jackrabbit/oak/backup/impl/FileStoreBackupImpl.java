@@ -48,7 +48,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
 
     private static final Logger log = LoggerFactory.getLogger(FileStoreBackupImpl.class);
 
-    public static boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
+    public static final boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
 
     @Override
     public void backup(@Nonnull SegmentReader reader, @Nonnull Revisions revisions, @Nonnull File destination) throws IOException, InvalidFileStoreVersionException {

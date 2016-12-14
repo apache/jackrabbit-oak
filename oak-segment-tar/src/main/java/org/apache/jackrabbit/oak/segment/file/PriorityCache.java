@@ -105,7 +105,7 @@ public class PriorityCache<K, V> {
     }
 
     private static class Entry<K, V> {
-        static Entry<Void, Void> NULL = new Entry<>(null, null, -1, Byte.MIN_VALUE);
+        static final Entry<Void, Void> NULL = new Entry<>(null, null, -1, Byte.MIN_VALUE);
 
         final K key;
         final V value;

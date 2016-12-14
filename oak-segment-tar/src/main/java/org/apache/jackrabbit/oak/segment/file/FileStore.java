@@ -240,7 +240,7 @@ public class FileStore extends AbstractFileStore {
         fileStoreScheduler.scheduleAtFixedRate(
                 format("TarMK disk space check [%s]", directory), 1, MINUTES,
                 new Runnable() {
-                    SegmentGCOptions gcOptions = builder.getGcOptions();
+                    final SegmentGCOptions gcOptions = builder.getGcOptions();
 
                     @Override
                     public void run() {
@@ -922,7 +922,7 @@ public class FileStore extends AbstractFileStore {
          */
         private Supplier<Boolean> timeOut(final long duration, @Nonnull final TimeUnit unit) {
             return new Supplier<Boolean>() {
-                long deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
+                final long deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
                 @Override
                 public Boolean get() {
                     return currentTimeMillis() > deadline;
