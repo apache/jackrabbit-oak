@@ -41,6 +41,8 @@ class Messages {
 
     private static final String SEPARATOR = ":";
 
+    private Messages() {}
+
     private static String newRequest(String clientId, String body, boolean delimited) {
         StringBuilder builder = new StringBuilder(MAGIC);
 

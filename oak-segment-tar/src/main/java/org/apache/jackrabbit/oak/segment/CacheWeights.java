@@ -50,6 +50,8 @@ public class CacheWeights {
      */
     private static final int SEGMENT_CACHE_OVERHEAD = 32;
 
+    private CacheWeights() {}
+
     public static class OneWeigher<K, V> implements Weigher<K, V> {
 
         @Override

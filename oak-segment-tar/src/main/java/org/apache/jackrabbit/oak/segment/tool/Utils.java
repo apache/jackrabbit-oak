@@ -37,6 +37,8 @@ class Utils {
 
     private static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
 
+    private Utils() {}
+
     static ReadOnlyFileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)

@@ -29,7 +29,7 @@ class FileStoreUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileStoreUtil.class);
 
-    FileStoreUtil() {
+    private FileStoreUtil() {
         // Prevent instantiation
     }
 
