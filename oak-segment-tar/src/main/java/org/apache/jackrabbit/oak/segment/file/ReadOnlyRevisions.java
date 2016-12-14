@@ -66,8 +66,6 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
      * 
      * @param store
      *            store to bind to
-     * @param writeInitialNode
-     *            provider for the initial node in case the journal is empty.
      * @throws IOException
      */
     synchronized void bind(@Nonnull SegmentStore store) throws IOException {
