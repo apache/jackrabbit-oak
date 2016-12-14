@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -184,6 +185,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         };
     }
 
+    @Nonnull
     @Override
     public String getMode() {
         return "client: " + this.observer.getID();

@@ -19,21 +19,22 @@
 package org.apache.jackrabbit.oak.segment.standby.store;
 
 
-import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
-import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import javax.management.StandardMBean;
-
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+
+import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
+import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CommunicationObserver {
     private static final int MAX_CLIENT_STATISTICS = 10;
@@ -59,6 +60,7 @@ public class CommunicationObserver {
             return this.mbeanName;
         }
 
+        @Nonnull
         @Override
         public String getName() {
             return this.clientName;

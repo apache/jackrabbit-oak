@@ -152,7 +152,7 @@ public class Scheduler implements Closeable {
         }
 
         @Override
-        public Thread newThread(Runnable runnable) {
+        public Thread newThread(@Nonnull Runnable runnable) {
             Thread thread = threadFactory.newThread(runnable);
             thread.setName(name);
             thread.setDaemon(true);

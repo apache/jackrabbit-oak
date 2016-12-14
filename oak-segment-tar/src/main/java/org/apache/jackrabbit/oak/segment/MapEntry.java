@@ -96,7 +96,7 @@ class MapEntry extends AbstractChildNodeEntry
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(MapEntry that) {
+    public int compareTo(@Nonnull MapEntry that) {
         return ComparisonChain.start()
                 .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
                 .compare(name, that.name)

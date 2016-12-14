@@ -108,7 +108,7 @@ public final class RecordId implements Comparable<RecordId> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(RecordId that) {
+    public int compareTo(@Nonnull RecordId that) {
         checkNotNull(that);
         int diff = segmentId.compareTo(that.segmentId);
         if (diff == 0) {

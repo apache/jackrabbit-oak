@@ -220,7 +220,7 @@ public class SegmentId implements Comparable<SegmentId> {
     // --------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(SegmentId that) {
+    public int compareTo(@Nonnull SegmentId that) {
         int d = Long.valueOf(this.msb).compareTo(that.msb);
         if (d == 0) {
             d = Long.valueOf(this.lsb).compareTo(that.lsb);

@@ -180,8 +180,9 @@ public class SegmentWriter {
                               @Nonnull final Map<String, RecordId> changes)
     throws IOException {
         RecordId mapId = writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeMap(base, changes);
             }
         });
@@ -197,8 +198,9 @@ public class SegmentWriter {
     @Nonnull
     public RecordId writeList(@Nonnull final List<RecordId> list) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeList(list);
             }
         });
@@ -213,8 +215,9 @@ public class SegmentWriter {
     @Nonnull
     public RecordId writeString(@Nonnull final String string) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeString(string);
             }
         });
@@ -229,8 +232,9 @@ public class SegmentWriter {
     @Nonnull
     public SegmentBlob writeBlob(@Nonnull final Blob blob) throws IOException {
         RecordId blobId = writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeBlob(blob);
             }
         });
@@ -249,8 +253,9 @@ public class SegmentWriter {
     public RecordId writeBlock(@Nonnull final byte[] bytes, final int offset, final int length)
     throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeBlock(bytes, offset, length);
             }
         });
@@ -267,8 +272,9 @@ public class SegmentWriter {
     @Nonnull
     public SegmentBlob writeStream(@Nonnull final InputStream stream) throws IOException {
         RecordId blobId = writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeStream(stream);
             }
         });
@@ -285,8 +291,9 @@ public class SegmentWriter {
     public SegmentPropertyState writeProperty(@Nonnull final PropertyState state)
     throws IOException {
         RecordId id = writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeProperty(state);
             }
         });
@@ -309,8 +316,9 @@ public class SegmentWriter {
     @Nonnull
     public SegmentNodeState writeNode(@Nonnull final NodeState state) throws IOException {
         RecordId nodeId = writeOperationHandler.execute(new SegmentWriteOperation() {
+            @Nonnull
             @Override
-            public RecordId execute(SegmentBufferWriter writer) throws IOException {
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeNode(state);
             }
         });
@@ -336,8 +344,9 @@ public class SegmentWriter {
     throws IOException {
         try {
             RecordId nodeId = writeOperationHandler.execute(new SegmentWriteOperation(cancel) {
+                @Nonnull
                 @Override
-                public RecordId execute(SegmentBufferWriter writer) throws IOException {
+                public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                     return with(writer).writeNode(state);
                 }
             });
@@ -431,8 +440,9 @@ public class SegmentWriter {
             this(Suppliers.ofInstance(false));
         }
 
+        @Nonnull
         @Override
-        public abstract RecordId execute(SegmentBufferWriter writer) throws IOException;
+        public abstract RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException;
 
         @Nonnull
         SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
@@ -1239,7 +1249,7 @@ public class SegmentWriter {
         }
     }
 
-    public void setCompactionMonitor(GCNodeWriteMonitor compactionMonitor) {
+    public void setCompactionMonitor(@Nonnull GCNodeWriteMonitor compactionMonitor) {
         this.compactionMonitor = compactionMonitor;
     }
 

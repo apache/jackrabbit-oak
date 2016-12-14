@@ -159,6 +159,7 @@ public abstract class WriterCacheManager {
         /**
          * @return  empty cache of size 0
          */
+        @Nonnull
         @Override
         public RecordCache<String> getStringCache(int generation) {
             return stringCache;
@@ -167,6 +168,7 @@ public abstract class WriterCacheManager {
         /**
          * @return  empty cache of size 0
          */
+        @Nonnull
         @Override
         public RecordCache<Template> getTemplateCache(int generation) {
             return templateCache;
