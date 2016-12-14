@@ -17,15 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.net.UnknownHostException;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
+import com.mongodb.ReadConcern;
+import com.mongodb.ReadConcernLevel;
 import com.mongodb.WriteConcern;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -37,6 +41,7 @@ public class MongoConnection {
 
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
+    private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
 
@@ -133,6 +138,18 @@ public class MongoConnection {
     }
 
     /**
+     * Returns {@code true} if the given {@code uri} has a read concern set.
+     * @param uri the URI to check.
+     * @return {@code true} if the URI has a read concern set, {@code false}
+     *      otherwise.
+     */
+    public static boolean hasReadConcern(@Nonnull String uri) {
+        ReadConcern rc = new MongoClientURI(checkNotNull(uri))
+                .getOptions().getReadConcern();
+        return readConcernLevel(rc) != null;
+    }
+
+    /**
      * Returns the default write concern depending on MongoDB deployment.
      * <ul>
      *     <li>{@link WriteConcern#MAJORITY}: for a MongoDB replica set</li>
@@ -150,6 +167,36 @@ public class MongoConnection {
             w = WriteConcern.ACKNOWLEDGED;
         }
         return w;
+    }
+
+    /**
+     * Returns the default read concern depending on MongoDB deployment.
+     * <ul>
+     *     <li>{@link ReadConcern#MAJORITY}: for a MongoDB replica set with w=majority</li>
+     *     <li>{@link ReadConcern#LOCAL}: for other cases</li>
+     * </ul>
+     *
+     * @param db the connection to MongoDB.
+     * @return the default write concern to use for Oak.
+     */
+    public static ReadConcern getDefaultReadConcern(@Nonnull DB db) {
+        ReadConcern r;
+        if (checkNotNull(db).getMongo().getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+            r = ReadConcern.MAJORITY;
+        } else {
+            r = ReadConcern.LOCAL;
+        }
+        return r;
+    }
+
+    /**
+     * Returns true if the majority write concern is used for the given DB.
+     *
+     * @param db the connection to MongoDB.
+     * @return true if the majority write concern has been configured; false otherwise
+     */
+    public static boolean isMajorityWriteConcern(@Nonnull DB db) {
+        return "majority".equals(db.getWriteConcern().getWObject());
     }
 
     /**
@@ -179,6 +226,31 @@ public class MongoConnection {
             return w >= 2;
         } else {
             return w >= 1;
+        }
+    }
+
+    /**
+     * Returns {@code true} if the default read concern on the {@code db} is
+     * sufficient for Oak. On a replica set Oak expects majority or linear. For
+     * a single MongoDB node deployment local is sufficient.
+     *
+     * @param db the database.
+     * @return whether the read concern is sufficient.
+     */
+    public static boolean hasSufficientReadConcern(@Nonnull DB db) {
+        ReadConcernLevel r = readConcernLevel(checkNotNull(db).getReadConcern());
+        if (db.getMongo().getReplicaSetStatus() == null) {
+            return true;
+        } else {
+            return REPLICA_RC.contains(r);
+        }
+    }
+
+    public static ReadConcernLevel readConcernLevel(ReadConcern readConcern) {
+        if (readConcern.isServerDefault()) {
+            return null;
+        } else {
+            return ReadConcernLevel.fromString(readConcern.asDocument().getString("level").getValue());
         }
     }
 }

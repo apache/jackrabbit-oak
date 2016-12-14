@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
 
 import java.io.InputStream;
 import java.net.UnknownHostException;
@@ -45,6 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
+import com.mongodb.ReadConcernLevel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
@@ -79,6 +81,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoStatus;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
@@ -544,6 +547,7 @@ public class DocumentMK {
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private String mongoUri;
+        private MongoStatus mongoStatus;
         private DiffCache diffCache;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
@@ -606,10 +610,14 @@ public class DocumentMK {
             this.mongoUri = uri;
 
             DB db = new MongoConnection(uri).getDB(name);
+            MongoStatus status = new MongoStatus(db);
             if (!MongoConnection.hasWriteConcern(uri)) {
                 db.setWriteConcern(MongoConnection.getDefaultWriteConcern(db));
             }
-            setMongoDB(db, blobCacheSizeMB);
+            if (status.isMajorityReadConcernSupported() && status.isMajorityReadConcernEnabled() && !MongoConnection.hasReadConcern(uri)) {
+                db.setReadConcern(MongoConnection.getDefaultReadConcern(db));
+            }
+            setMongoDB(db, status, blobCacheSizeMB);
             return this;
         }
 
@@ -621,10 +629,29 @@ public class DocumentMK {
          */
         public Builder setMongoDB(@Nonnull DB db,
                                   int blobCacheSizeMB) {
+            return setMongoDB(db, new MongoStatus(db), blobCacheSizeMB);
+        }
+
+        private Builder setMongoDB(@Nonnull DB db,
+                                   MongoStatus status,
+                                   int blobCacheSizeMB) {
             if (!MongoConnection.hasSufficientWriteConcern(db)) {
                 LOG.warn("Insufficient write concern: " + db.getWriteConcern()
                         + " At least " + MongoConnection.getDefaultWriteConcern(db) + " is recommended.");
             }
+            if (status.isMajorityReadConcernSupported() && !status.isMajorityReadConcernEnabled()) {
+                LOG.warn("The read concern should be enabled on mongod using --enableMajorityReadConcern");
+            } else if (status.isMajorityReadConcernSupported() && !MongoConnection.hasSufficientReadConcern(db)) {
+                ReadConcernLevel currentLevel = readConcernLevel(db.getReadConcern());
+                ReadConcernLevel recommendedLevel = readConcernLevel(MongoConnection.getDefaultReadConcern(db));
+                if (currentLevel == null) {
+                    LOG.warn("Read concern hasn't been set. At least " + recommendedLevel + " is recommended.");
+                } else {
+                    LOG.warn("Insufficient read concern: " + currentLevel + ". At least " + recommendedLevel + " is recommended.");
+                }
+            }
+
+            this.mongoStatus = status;
             if (this.documentStore == null) {
                 this.documentStore = new MongoDocumentStore(db, this);
             }
@@ -659,6 +686,16 @@ public class DocumentMK {
          */
         public String getMongoUri() {
             return mongoUri;
+        }
+
+        /**
+         * Returns the status of the Mongo server configured in the {@link #setMongoDB(String, String, int)} method.
+         *
+         * @return the status or null if the {@link #setMongoDB(String, String, int)} method hasn't
+         * been called.
+         */
+        public MongoStatus getMongoStatus() {
+            return mongoStatus;
         }
 
         /**

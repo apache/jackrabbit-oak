@@ -34,8 +34,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -43,7 +41,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -134,11 +131,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     public static final int IN_CLAUSE_BATCH_SIZE = 500;
-
-    private static final ImmutableSet<String> SERVER_DETAIL_FIELD_NAMES
-            = ImmutableSet.<String>builder()
-            .add("host", "process", "connections", "repl", "storageEngine", "mem")
-            .build();
 
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
@@ -233,11 +225,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     private boolean hasModifiedIdCompoundIndex = true;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
-        CommandResult serverStatus = db.command("serverStatus");
-        String version = checkVersion(db, serverStatus);
+        MongoStatus mongoStatus = builder.getMongoStatus();
+        if (mongoStatus == null) {
+            mongoStatus = new MongoStatus(db);
+        }
+        mongoStatus.checkVersion();
         metadata = ImmutableMap.<String,String>builder()
                 .put("type", "mongo")
-                .put("version", version)
+                .put("version", mongoStatus.getVersion())
                 .build();
 
         this.db = db;
@@ -295,47 +290,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
                 "{}, serverStatus {}",
-                version, maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
+                mongoStatus.getVersion(), maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
                 disableIndexHint, db.getWriteConcern(),
-                serverDetails(serverStatus));
-    }
-
-    @Nonnull
-    private static String checkVersion(DB db, CommandResult serverStatus) {
-        String version = serverStatus.getString("version");
-        if (version == null) {
-            // OAK-4841: serverStatus was probably unauthorized,
-            // use buildInfo command to get version
-            version = db.command("buildInfo").getString("version");
-        }
-        Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(version);
-        if (!m.matches()) {
-            throw new IllegalArgumentException("Malformed MongoDB version: " + version);
-        }
-        int major = Integer.parseInt(m.group(1));
-        int minor = Integer.parseInt(m.group(2));
-        if (major > 2) {
-            return version;
-        }
-        if (minor < 6) {
-            String msg = "MongoDB version 2.6.0 or higher required. " +
-                    "Currently connected to a MongoDB with version: " + version;
-            throw new RuntimeException(msg);
-        }
-
-        return version;
-    }
-
-    @Nonnull
-    private static String serverDetails(CommandResult serverStatus) {
-        Map<String, Object> details = Maps.newHashMap();
-        for (String key : SERVER_DETAIL_FIELD_NAMES) {
-            Object value = serverStatus.get(key);
-            if (value != null) {
-                details.put(key, value);
-            }
-        }
-        return details.toString();
+                mongoStatus.getServerDetails());
     }
 
     @Override

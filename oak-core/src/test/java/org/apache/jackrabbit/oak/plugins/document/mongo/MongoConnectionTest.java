@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.DB;
 import com.mongodb.Mongo;
+import com.mongodb.ReadConcern;
 import com.mongodb.ReplicaSetStatus;
 import com.mongodb.WriteConcern;
 
@@ -36,6 +37,12 @@ public class MongoConnectionTest {
     public void hasWriteConcern() throws Exception {
         assertFalse(MongoConnection.hasWriteConcern("mongodb://localhost:27017/foo"));
         assertTrue(MongoConnection.hasWriteConcern("mongodb://localhost:27017/foo?w=1"));
+    }
+
+    @Test
+    public void hasReadConcern() throws Exception {
+        assertFalse(MongoConnection.hasReadConcern("mongodb://localhost:27017/foo"));
+        assertTrue(MongoConnection.hasReadConcern("mongodb://localhost:27017/foo?readconcernlevel=majority"));
     }
 
     @Test
@@ -65,6 +72,17 @@ public class MongoConnectionTest {
         sufficientWriteConcernSingleNode(WriteConcern.UNACKNOWLEDGED, false);
     }
 
+    @Test
+    public void sufficientReadConcern() throws Exception {
+        sufficientReadConcernReplicaSet(ReadConcern.DEFAULT, false);
+        sufficientReadConcernReplicaSet(ReadConcern.LOCAL, false);
+        sufficientReadConcernReplicaSet(ReadConcern.MAJORITY, true);
+
+        sufficientReadConcernSingleNode(ReadConcern.DEFAULT, true);
+        sufficientReadConcernSingleNode(ReadConcern.LOCAL, true);
+        sufficientReadConcernSingleNode(ReadConcern.MAJORITY, true);
+    }
+
     private void sufficientWriteConcernReplicaSet(WriteConcern w,
                                                   boolean sufficient) {
         sufficientWriteConcern(w, true, sufficient);
@@ -78,6 +96,29 @@ public class MongoConnectionTest {
     private void sufficientWriteConcern(WriteConcern w,
                                         boolean replicaSet,
                                         boolean sufficient) {
+        DB db = mockDB(ReadConcern.DEFAULT, w, replicaSet);
+        assertEquals(sufficient, MongoConnection.hasSufficientWriteConcern(db));
+    }
+
+    private void sufficientReadConcernReplicaSet(ReadConcern r,
+                                                 boolean sufficient) {
+        sufficientReadConcern(r, true, sufficient);
+    }
+
+    private void sufficientReadConcernSingleNode(ReadConcern r,
+                                                 boolean sufficient) {
+        sufficientReadConcern(r, false, sufficient);
+    }
+    private void sufficientReadConcern(ReadConcern r,
+                                       boolean replicaSet,
+                                       boolean sufficient) {
+        DB db = mockDB(r, replicaSet ? WriteConcern.MAJORITY : WriteConcern.W1, replicaSet);
+        assertEquals(sufficient, MongoConnection.hasSufficientReadConcern(db));
+    }
+
+    private DB mockDB(ReadConcern r,
+                      WriteConcern w,
+                      boolean replicaSet) {
         ReplicaSetStatus status;
         if (replicaSet) {
             status = mock(ReplicaSetStatus.class);
@@ -88,7 +129,8 @@ public class MongoConnectionTest {
         Mongo mongo = mock(Mongo.class);
         when(db.getMongo()).thenReturn(mongo);
         when(db.getWriteConcern()).thenReturn(w);
+        when(db.getReadConcern()).thenReturn(r);
         when(mongo.getReplicaSetStatus()).thenReturn(status);
-        assertEquals(sufficient, MongoConnection.hasSufficientWriteConcern(db));
+        return db;
     }
 }
