@@ -36,13 +36,12 @@ import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
 import org.apache.jackrabbit.oak.segment.RecordCache;
-import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
-import org.apache.jackrabbit.oak.segment.Template;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -51,8 +50,6 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 /**
  * Builder for creating {@link FileStore} instances.
@@ -415,9 +412,9 @@ public class FileStoreBuilder {
 
     private static class EvictingWriteCacheManager extends WriterCacheManager.Default {
         public EvictingWriteCacheManager(int stringCacheSize, int templateCacheSize, int nodeCacheSize) {
-            super(RecordCache.<String>factory(stringCacheSize, new StringCacheWeigher()),
-                RecordCache.<Template>factory(templateCacheSize, new TemplateCacheWeigher()),
-                PriorityCache.<String, RecordId>factory(nodeCacheSize, new NodeCacheWeigher()));
+            super(RecordCache.factory(stringCacheSize, new StringCacheWeigher()),
+                RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
+                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
         }
 
         void evictOldGeneration(final int newGeneration) {
