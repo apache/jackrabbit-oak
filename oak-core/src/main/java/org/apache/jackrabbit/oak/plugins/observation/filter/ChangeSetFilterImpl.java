@@ -42,6 +42,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
     private static final int MAX_EXCLUDE_PATH_CUTOFF_LEVEL = 6;
     
     private final Set<String> rootIncludePaths;
+    private final Set<String> firstLevelIncludeNames;
     private final Set<Pattern> includePathPatterns;
     private final Set<Pattern> excludePathPatterns;
     private final Set<Pattern> unpreciseExcludePathPatterns;
@@ -69,6 +70,7 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
             int maxExcludedPaths) {
         this.rootIncludePaths = new HashSet<String>();
         this.includePathPatterns = new HashSet<Pattern>();
+        Set<String> firstLevelIncludePaths = new HashSet<String>();
         for (String aRawIncludePath : includedParentPaths) {
             final String aGlobbingIncludePath;
             if (aRawIncludePath.contains("*")) {
@@ -79,13 +81,31 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
             }
             this.rootIncludePaths.add(aRawIncludePath);
             this.includePathPatterns.add(asPattern(aGlobbingIncludePath));
+            if (firstLevelIncludePaths != null) {
+                final String firstLevelName = firstLevelName(aRawIncludePath);
+                if (firstLevelName != null && !firstLevelName.contains("*")) {
+                    firstLevelIncludePaths.add(firstLevelName);
+                } else {
+                    firstLevelIncludePaths = null;
+                }
+            }
         }
         if (additionalIncludedParentPaths != null) {
             for (String path : additionalIncludedParentPaths) {
                 this.rootIncludePaths.add(path);
                 this.includePathPatterns.add(asPattern(path));
+                if (firstLevelIncludePaths != null) {
+                    final String firstLevelName = firstLevelName(path);
+                    if (firstLevelName != null && !firstLevelName.contains("*")) {
+                        firstLevelIncludePaths.add(firstLevelName);
+                    } else {
+                        firstLevelIncludePaths = null;
+                    }
+                }
             }
         }
+        this.firstLevelIncludeNames = firstLevelIncludePaths;
+        
         // OAK-5169:
         // excludedParentPaths could in theory be a large list, in which case
         // the excludes() algorithm becomes non-performing. Reason is, that it
@@ -119,6 +139,18 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         this.parentNodeNames = parentNodeNames == null ? null : new HashSet<String>(parentNodeNames);
     }
     
+    private String firstLevelName(String path) {
+        if (path.isEmpty() || path.equals("/")) {
+            return null;
+        }
+        int secondSlash = path.indexOf("/", 1);
+        if (secondSlash != -1) {
+            return path.substring(1, secondSlash);
+        } else {
+            return path.substring(1);
+        }
+    }
+
     private Set<String> unprecisePaths(Set<String> paths, int maxExcludedPaths, int maxExcludePathCutOffLevel) {
         int level = maxExcludePathCutOffLevel;
         while(level > 1) {
@@ -227,6 +259,15 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
             if (this.rootIncludePaths.contains(aPath)) {
                 included = true;
                 break;
+            }
+            if (firstLevelIncludeNames != null) {
+                final String firstLevelName = firstLevelName(aPath);
+                if (firstLevelName != null && !firstLevelIncludeNames.contains(firstLevelName)) {
+                    // then the 'first level name check' concluded that
+                    // it's not in any include path - hence we can skip
+                    // the (more expensive) pattern check
+                    continue;
+                }
             }
             if (patternsMatch(this.includePathPatterns, aPath)) {
                 included = true;
