@@ -71,9 +71,9 @@ class StandbyClient implements AutoCloseable {
 
     private final int readTimeoutMs;
 
-    private String clientId;
+    private final String clientId;
 
-    private NioEventLoopGroup group;
+    private final NioEventLoopGroup group;
 
     private Channel channel;
 

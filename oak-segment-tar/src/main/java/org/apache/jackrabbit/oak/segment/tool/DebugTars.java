@@ -69,9 +69,9 @@ public class DebugTars implements Runnable {
 
         private File path;
 
-        private List<String> tars = new ArrayList<>();
+        private final List<String> tars = new ArrayList<>();
 
-        private int maxCharDisplay = Integer.getInteger("max.char.display", 60);
+        private final int maxCharDisplay = Integer.getInteger("max.char.display", 60);
 
         private Builder() {
             // Prevent external instantiation.

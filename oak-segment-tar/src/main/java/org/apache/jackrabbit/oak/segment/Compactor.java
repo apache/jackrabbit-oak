@@ -57,7 +57,7 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
-    private static boolean eagerFlush = Boolean.getBoolean("oak.compaction.eagerFlush");
+    private static final boolean eagerFlush = Boolean.getBoolean("oak.compaction.eagerFlush");
 
     static {
         if (eagerFlush) {

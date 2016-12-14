@@ -27,7 +27,7 @@ public enum SegmentGCStatus {
     COMPACTION_FORCE_COMPACT("compaction-force-compact"),
     CLEANUP("cleanup");
     
-    private String message;
+    private final String message;
     
     SegmentGCStatus(String message) {
         this.message = message;

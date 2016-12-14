@@ -62,7 +62,7 @@ public class DebugSegments implements Runnable {
 
         private File path;
 
-        private List<String> segments = new ArrayList<>();
+        private final List<String> segments = new ArrayList<>();
 
         private Builder() {
             // Prevent external instantiation.

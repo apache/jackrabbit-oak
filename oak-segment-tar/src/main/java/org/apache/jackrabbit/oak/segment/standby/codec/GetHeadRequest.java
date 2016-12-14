@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 public class GetHeadRequest {
 
-    private String clientId;
+    private final String clientId;
 
     public GetHeadRequest(String clientId) {
         this.clientId = clientId;

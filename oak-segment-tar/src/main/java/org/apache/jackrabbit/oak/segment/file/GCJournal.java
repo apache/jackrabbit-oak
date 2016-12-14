@@ -134,7 +134,7 @@ public class GCJournal {
 
     static class GCJournalEntry {
 
-        static GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1, -1);
+        static final GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1, -1);
 
         private final long repoSize;
         private final long reclaimedSize;
