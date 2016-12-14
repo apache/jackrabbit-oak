@@ -108,12 +108,12 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     public SegmentNodeState getNodeState() {
         try {
             NodeState state = super.getNodeState();
-            SegmentNodeState sstate = writer.writeNode(state);
-            if (state != sstate) {
-                set(sstate);
+            SegmentNodeState sState = writer.writeNode(state);
+            if (state != sState) {
+                set(sState);
                 updateCount = 0;
             }
-            return sstate;
+            return sState;
         } catch (IOException e) {
             LOG.error("Error flushing changes", e);
             throw new IllegalStateException("Unexpected IOException", e);

@@ -42,9 +42,9 @@ public class SegmentStream extends InputStream {
     public static RecordId getRecordIdIfAvailable(
             InputStream stream, SegmentStore store) {
         if (stream instanceof SegmentStream) {
-            SegmentStream sstream = (SegmentStream) stream;
-            RecordId id = sstream.recordId;
-            if (sstream.position == 0 && id.getSegmentId().sameStore(store)) {
+            SegmentStream sStream = (SegmentStream) stream;
+            RecordId id = sStream.recordId;
+            if (sStream.position == 0 && id.getSegmentId().sameStore(store)) {
                 return id;
             }
         }
@@ -115,7 +115,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
-    public synchronized void mark(int readlimit) {
+    public synchronized void mark(int readLimit) {
         mark = position;
     }
 

@@ -94,8 +94,8 @@ class StandbyServer implements AutoCloseable {
             return this;
         }
 
-        Builder allowIPRanges(String[] alloallowedClientIPRanges) {
-            this.allowedClientIPRanges = alloallowedClientIPRanges;
+        Builder allowIPRanges(String[] allowedClientIPRanges) {
+            this.allowedClientIPRanges = allowedClientIPRanges;
 
             return this;
         }

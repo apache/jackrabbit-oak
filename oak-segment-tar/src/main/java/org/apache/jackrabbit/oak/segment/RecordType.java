@@ -70,7 +70,7 @@ public enum RecordType {
      * is no reference. If the size is 1, then reference points to the value of
      * the list. If the size is larger, then a record id follows, which points
      * to a bucket with the actual record ids. If there are more than 255
-     * entries in the list, then the list is partitioned into sublists of 255
+     * entries in the list, then the list is partitioned into sub-lists of 255
      * entries each, which are stored kind of recursively.
      */
     LIST,
