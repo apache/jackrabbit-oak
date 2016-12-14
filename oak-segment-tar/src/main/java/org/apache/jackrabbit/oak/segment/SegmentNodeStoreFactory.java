@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.asCloseable;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.property;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -136,5 +137,21 @@ public class SegmentNodeStoreFactory {
             registrations = null;
         }
     }
+
+    private static Closeable asCloseable(final Registration r) {
+        return new Closeable() {
+
+            @Override
+            public void close() {
+                r.unregister();
+            }
+
+        };
+    }
+
+    static String property(String name, ComponentContext context) {
+        return lookupConfigurationThenFramework(context, name);
+    }
+
 
 }
