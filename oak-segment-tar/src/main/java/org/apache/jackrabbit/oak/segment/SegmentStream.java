@@ -161,30 +161,37 @@ public class SegmentStream extends InputStream {
 
             int remaining = len;
             List<RecordId> ids = blocks.getEntries(blockIndex, blockCount);
-            RecordId first = ids.get(0); // guaranteed to contain at least one
-            int count = 1;
+            RecordId previousId = ids.get(0); // guaranteed to contain at least one
+            int consecutiveBlocks = 1;
             for (int i = 1; i <= ids.size(); i++) {
-                RecordId id = null;
+                RecordId id = null;           // id is null for the last iteration only
                 if (i < ids.size()) {
                     id = ids.get(i);
                 }
 
-                assert id == null || first != null;
+                // Id can only be null in the last iteration. But then previousId cannot be
+                // null as this would imply id was null in the previous iteration.
+                assert id == null || previousId != null;
                 if (id != null
-                        && id.getSegmentId().equals(first.getSegmentId())
-                        && id.getRecordNumber() == first.getRecordNumber() + count * BLOCK_SIZE) {
-                    count++;
+                        // blocks are in the same segment
+                        && id.getSegmentId().equals(previousId.getSegmentId())
+
+                        // blocks are consecutive
+                        && id.getRecordNumber() == previousId.getRecordNumber() + consecutiveBlocks * BLOCK_SIZE) {
+
+                    consecutiveBlocks++;
                 } else {
+                    // read the current chunk of consecutive blocks
                     int blockSize = Math.min(
-                            blockOffset + remaining, count * BLOCK_SIZE);
-                    BlockRecord block = new BlockRecord(first, blockSize);
+                            blockOffset + remaining, consecutiveBlocks * BLOCK_SIZE);
+                    BlockRecord block = new BlockRecord(previousId, blockSize);
                     int n = blockSize - blockOffset;
                     checkState(block.read(blockOffset, b, off, n) == n);
                     off += n;
                     remaining -= n;
 
-                    first = id;
-                    count = 1;
+                    previousId = id;
+                    consecutiveBlocks = 1;
                     blockOffset = 0;
                 }
             }
