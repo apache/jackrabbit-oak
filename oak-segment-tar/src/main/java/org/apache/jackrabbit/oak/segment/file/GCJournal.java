@@ -132,7 +132,7 @@ public class GCJournal {
         return new ArrayList<String>();
     }
 
-    static class GCJournalEntry {
+    public static class GCJournalEntry {
 
         static final GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1, -1);
 
