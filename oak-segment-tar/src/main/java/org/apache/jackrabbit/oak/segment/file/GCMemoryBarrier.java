@@ -87,7 +87,7 @@ public class GCMemoryBarrier implements Closeable {
             emitter.addNotificationListener(listener, null, null);
             MemoryUsage usage = pool.getCollectionUsage();
             long maxMemory = usage.getMax();
-            long required = (long) (maxMemory * percentage / 100);
+            long required = maxMemory * percentage / 100;
             gcListener
                     .info("TarMK GC #{}: setting up a listener to cancel compaction if available memory on pool '{}' drops below {}%, {} ({} bytes).",
                             gcCount, pool.getName(), percentage,
@@ -129,7 +129,7 @@ public class GCMemoryBarrier implements Closeable {
         long maxMemory = usage.getMax();
         long usedMemory = usage.getUsed();
         long avail = maxMemory - usedMemory;
-        long required = (long) (maxMemory * percentage / 100);
+        long required = maxMemory * percentage / 100;
         if (avail <= required) {
             gcListener
                     .warn("TarMK GC #{}: canceling compaction because available memory level {} ({} bytes) is too low, expecting at least {} ({} bytes)",
