@@ -225,7 +225,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
             return reader.readBlob(entry).length();
         }
 
-        return getSegment().readLength(entry);
+        return Segment.readLength(entry);
     }
 
     //------------------------------------------------------------< Object >--

@@ -650,7 +650,7 @@ class TarReader implements Closeable {
     }
 
     @Nonnull
-    private List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) {
+    private static List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) {
         List<UUID> references = graph.get(id);
 
         if (references == null) {
@@ -1021,7 +1021,7 @@ class TarReader implements Closeable {
         return buffer;
     }
 
-    private Map<Integer, Map<UUID, Set<String>>> parseBinaryReferences(ByteBuffer buffer) {
+    private static Map<Integer, Map<UUID, Set<String>>> parseBinaryReferences(ByteBuffer buffer) {
         int nGenerations = buffer.getInt(buffer.limit() - 12);
 
         Map<Integer, Map<UUID, Set<String>>> binaryReferences = newHashMapWithExpectedSize(nGenerations);

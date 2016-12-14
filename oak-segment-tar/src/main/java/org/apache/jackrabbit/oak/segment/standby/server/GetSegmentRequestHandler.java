@@ -49,7 +49,7 @@ class GetSegmentRequestHandler extends SimpleChannelInboundHandler<GetSegmentReq
         ctx.writeAndFlush(new GetSegmentResponse(msg.getClientId(), msg.getSegmentId(), data));
     }
 
-    private String getId(Segment segment) {
+    private static String getId(Segment segment) {
         return segment.getSegmentId().asUUID().toString();
     }
 

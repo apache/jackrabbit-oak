@@ -144,7 +144,7 @@ public class DebugSegments implements Runnable {
         }
     }
 
-    private void debugSegment(ReadOnlyFileStore store, String segment) {
+    private static void debugSegment(ReadOnlyFileStore store, String segment) {
         Matcher matcher = SEGMENT_REGEX.matcher(segment);
 
         if (!matcher.matches()) {

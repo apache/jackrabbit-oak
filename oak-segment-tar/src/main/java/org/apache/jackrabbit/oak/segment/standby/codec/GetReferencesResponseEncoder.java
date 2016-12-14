@@ -35,14 +35,14 @@ public class GetReferencesResponseEncoder extends MessageToByteEncoder<GetRefere
         encode(msg.getSegmentId(), msg.getReferences(), out);
     }
 
-    private void encode(String segmentId, Iterable<String> references, ByteBuf out) {
+    private static void encode(String segmentId, Iterable<String> references, ByteBuf out) {
         byte[] data = serialize(segmentId, references).getBytes(Charsets.UTF_8);
         out.writeInt(data.length + 1);
         out.writeByte(Messages.HEADER_REFERENCES);
         out.writeBytes(data);
     }
 
-    private String serialize(String segmentId, Iterable<String> references) {
+    private static String serialize(String segmentId, Iterable<String> references) {
         return segmentId + ":" + Joiner.on(",").join(references);
     }
 

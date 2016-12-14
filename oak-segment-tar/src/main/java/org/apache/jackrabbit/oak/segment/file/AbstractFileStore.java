@@ -148,7 +148,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return null;
     }
 
-     Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
+     static Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
         if (manifest == null) {
             throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
         }
@@ -330,14 +330,14 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
     }
 
-    final void populateTarGraph(Segment segment, TarWriter w) {
+    static void populateTarGraph(Segment segment, TarWriter w) {
         UUID from = segment.getSegmentId().asUUID();
         for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
             w.addGraphEdge(from, segment.getReferencedSegmentId(i));
         }
     }
 
-    final void populateTarBinaryReferences(final Segment segment, final TarWriter w) {
+    static void populateTarBinaryReferences(final Segment segment, final TarWriter w) {
         final int generation = segment.getGcGeneration();
         final UUID id = segment.getSegmentId().asUUID();
         segment.forEachRecord(new RecordConsumer() {

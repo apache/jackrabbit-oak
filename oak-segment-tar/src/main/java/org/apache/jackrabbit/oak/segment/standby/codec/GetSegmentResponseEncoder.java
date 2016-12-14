@@ -44,7 +44,7 @@ public class GetSegmentResponseEncoder extends MessageToByteEncoder<GetSegmentRe
         encode(msg.getSegmentId(), msg.getSegmentData(), out);
     }
 
-    private void encode(String segmentId, byte[] data, ByteBuf out) {
+    private static void encode(String segmentId, byte[] data, ByteBuf out) {
         UUID id = UUID.fromString(segmentId);
 
         Hasher hasher = Hashing.murmur3_32().newHasher();

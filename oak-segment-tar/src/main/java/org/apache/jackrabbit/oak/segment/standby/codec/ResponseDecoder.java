@@ -61,14 +61,14 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         }
     }
 
-    private void decodeGetHeadResponse(int length, ByteBuf in, List<Object> out) {
+    private static void decodeGetHeadResponse(int length, ByteBuf in, List<Object> out) {
         byte[] data = new byte[length - 1];
         in.readBytes(data);
         String recordId = new String(data, Charsets.UTF_8);
         out.add(new GetHeadResponse(null, recordId));
     }
 
-    private void decodeGetSegmentResponse(int length, ByteBuf in, List<Object> out) {
+    private static void decodeGetSegmentResponse(int length, ByteBuf in, List<Object> out) {
         long msb = in.readLong();
         long lsb = in.readLong();
 
@@ -87,7 +87,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetSegmentResponse(null, segmentId, data));
     }
 
-    private void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) {
+    private static void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) {
         int blobIdLength = in.readInt();
 
         byte[] blobIdBytes = new byte[blobIdLength];
@@ -108,7 +108,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetBlobResponse(null, blobId, blobData));
     }
 
-    private void decodeGetReferencesResponse(int length, ByteBuf in, List<Object> out) {
+    private static void decodeGetReferencesResponse(int length, ByteBuf in, List<Object> out) {
         byte[] data = new byte[length - 1];
 
         in.readBytes(data);
@@ -135,7 +135,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetReferencesResponse(null, segmentId, references));
     }
 
-    private long hash(byte[] data) {
+    private static long hash(byte[] data) {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
 
