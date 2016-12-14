@@ -228,23 +228,31 @@ public class GCJournal {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             GCJournalEntry other = (GCJournalEntry) obj;
-            if (gcGeneration != other.gcGeneration)
+            if (gcGeneration != other.gcGeneration) {
                 return false;
-            if (nodes != other.nodes)
+            }
+            if (nodes != other.nodes) {
                 return false;
-            if (reclaimedSize != other.reclaimedSize)
+            }
+            if (reclaimedSize != other.reclaimedSize) {
                 return false;
-            if (repoSize != other.repoSize)
+            }
+            if (repoSize != other.repoSize) {
                 return false;
-            if (ts != other.ts)
+            }
+            if (ts != other.ts) {
                 return false;
+            }
             return true;
         }
     }
