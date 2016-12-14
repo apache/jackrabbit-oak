@@ -76,7 +76,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     private static final Closeable NOOP = new Closeable() {
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             // This method was intentionally left blank.
         }
 
