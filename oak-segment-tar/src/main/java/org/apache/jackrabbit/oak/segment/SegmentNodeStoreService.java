@@ -23,6 +23,8 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.isShared;
+import static org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo.getOrCreateId;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
@@ -58,6 +60,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
@@ -86,7 +89,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -107,6 +109,7 @@ import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -420,7 +423,8 @@ public class SegmentNodeStoreService {
                 CacheStatsMBean.class,
                 segmentCacheStats,
                 CacheStats.TYPE,
-                appendRole(segmentCacheStats.getName(), role)
+                appendRole(segmentCacheStats.getName(), role),
+                withRole(properties(), role)
         ));
 
         // Expose stats about the string and template caches
@@ -430,7 +434,8 @@ public class SegmentNodeStoreService {
                 whiteboard,
                 CacheStatsMBean.class,
                 stringCacheStats, CacheStats.TYPE,
-                appendRole(stringCacheStats.getName(), role)
+                appendRole(stringCacheStats.getName(), role),
+                withRole(properties(), role)
         ));
 
         CacheStatsMBean templateCacheStats = store.getTemplateCacheStats();
@@ -438,7 +443,8 @@ public class SegmentNodeStoreService {
                 whiteboard,
                 CacheStatsMBean.class,
                 templateCacheStats, CacheStats.TYPE,
-                appendRole(templateCacheStats.getName(), role)
+                appendRole(templateCacheStats.getName(), role),
+                withRole(properties(), role)
         ));
 
         CacheStatsMBean stringDeduplicationCacheStats = store.getStringDeduplicationCacheStats();
@@ -447,7 +453,9 @@ public class SegmentNodeStoreService {
                     whiteboard,
                     CacheStatsMBean.class,
                     stringDeduplicationCacheStats, CacheStats.TYPE,
-                    appendRole(stringDeduplicationCacheStats.getName(), role)));
+                    appendRole(stringDeduplicationCacheStats.getName(), role),
+                    withRole(properties(), role)
+            ));
         }
 
         CacheStatsMBean templateDeduplicationCacheStats = store.getTemplateDeduplicationCacheStats();
@@ -456,7 +464,9 @@ public class SegmentNodeStoreService {
                     whiteboard,
                     CacheStatsMBean.class,
                     templateDeduplicationCacheStats, CacheStats.TYPE,
-                    appendRole(templateDeduplicationCacheStats.getName(), role)));
+                    appendRole(templateDeduplicationCacheStats.getName(), role),
+                    withRole(properties(), role)
+            ));
         }
 
         CacheStatsMBean nodeDeduplicationCacheStats = store.getNodeDeduplicationCacheStats();
@@ -465,7 +475,9 @@ public class SegmentNodeStoreService {
                     whiteboard,
                     CacheStatsMBean.class,
                     nodeDeduplicationCacheStats, CacheStats.TYPE,
-                    appendRole(nodeDeduplicationCacheStats.getName(), role)));
+                    appendRole(nodeDeduplicationCacheStats.getName(), role),
+                    withRole(properties(), role)
+            ));
         }
 
         // Expose an MBean to managing and monitoring garbage collection
@@ -478,7 +490,8 @@ public class SegmentNodeStoreService {
                         SegmentRevisionGC.class,
                         new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
                         SegmentRevisionGC.TYPE,
-                        appendRole("Segment node store revision garbage collection", role)
+                        appendRole("Segment node store revision garbage collection", role),
+                        withRole(properties(), role)
                 )));
 
         Runnable cancelGC = new Runnable() {
@@ -500,7 +513,8 @@ public class SegmentNodeStoreService {
                 RevisionGCMBean.class,
                 new RevisionGC(store.getGCRunner(), cancelGC, statusMessage, executor),
                 RevisionGCMBean.TYPE,
-                appendRole("Revision garbage collection", role)
+                appendRole("Revision garbage collection", role),
+                withRole(properties(), role)
         ));
 
         // Expose statistics about the FileStore
@@ -510,95 +524,94 @@ public class SegmentNodeStoreService {
                 FileStoreStatsMBean.class,
                 store.getStats(),
                 FileStoreStatsMBean.TYPE,
-                appendRole("FileStore statistics", role)
+                appendRole("FileStore statistics", role),
+                withRole(properties(), role)
         ));
 
         // register segment node store
 
-        SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder =
-                SegmentNodeStoreBuilders.builder(store)
+        SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder = SegmentNodeStoreBuilders.builder(store)
                         .withStatisticsProvider(statisticsProvider);
-        if (isStandbyInstance(context)) {
+        if (isStandbyInstance(context) || !isPrimarySegmentStore(role)) {
             segmentNodeStoreBuilder.dispatchChanges(false);
         }
         SegmentNodeStore segmentNodeStore = segmentNodeStoreBuilder.build();
 
-        ObserverTracker observerTracker = new ObserverTracker(segmentNodeStore);
-        observerTracker.start(context.getBundleContext());
-        registrations.register(asCloseable(observerTracker));
+        if (isPrimarySegmentStore(role)) {
+            ObserverTracker observerTracker = new ObserverTracker(segmentNodeStore);
+            observerTracker.start(context.getBundleContext());
+            registrations.register(asCloseable(observerTracker));
+        }
 
-        mbeans.add(registerMBean(
-                whiteboard,
-                CheckpointMBean.class,
-                new SegmentCheckpointMBean(segmentNodeStore), CheckpointMBean.TYPE,
-                appendRole("Segment node store checkpoint management", role)));
+        if (isPrimarySegmentStore(role)) {
+            mbeans.add(registerMBean(
+                    whiteboard,
+                    CheckpointMBean.class,
+                    new SegmentCheckpointMBean(segmentNodeStore), CheckpointMBean.TYPE,
+                    "Segment node store checkpoint management"
+            ));
+        }
 
         if (descriptors) {
             // ensure a clusterId is initialized
             // and expose it as 'oak.clusterid' repository descriptor
             GenericDescriptors clusterIdDesc = new GenericDescriptors();
-            clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
-                    new SimpleValueFactory().createValue(
-                            ClusterRepositoryInfo.getOrCreateId(segmentNodeStore)), true, false);
+            clusterIdDesc.put(
+                    ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
+                    new SimpleValueFactory().createValue(getOrCreateId(segmentNodeStore)),
+                    true,
+                    false
+            );
             mbeans.add(whiteboard.register(
                     Descriptors.class,
                     clusterIdDesc,
-                    Collections.emptyMap()
+                    withRole(properties(), role)
             ));
 
             // Register "discovery lite" descriptors
             mbeans.add(whiteboard.register(
                     Descriptors.class,
                     new SegmentDiscoveryLiteDescriptors(segmentNodeStore),
-                    Collections.emptyMap()
+                    withRole(properties(), role)
             ));
         }
 
         // If a shared data store register the repo id in the data store
-        String repoId = "";
-        if (SharedDataStoreUtils.isShared(blobStore)) {
+        if (isPrimarySegmentStore(role) && isShared(blobStore)) {
+            SharedDataStore sharedDataStore = (SharedDataStore) blobStore;
             try {
-                repoId = ClusterRepositoryInfo.getOrCreateId(segmentNodeStore);
-                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                        SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+                sharedDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), SharedStoreRecordType.REPOSITORY.getNameFromId(getOrCreateId(segmentNodeStore)));
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }
-
             if (blobStore instanceof BlobTrackingStore) {
-                final long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL, context),
-                        DEFAULT_BLOB_SNAPSHOT_INTERVAL);
+                long trackSnapshotInterval = toLong(property(PROP_BLOB_SNAPSHOT_INTERVAL, context), DEFAULT_BLOB_SNAPSHOT_INTERVAL);
                 String root = property(DIRECTORY, context);
                 if (Strings.isNullOrEmpty(root)) {
                     root = "repository";
                 }
-
                 BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
                 if (trackingStore.getTracker() != null) {
                     trackingStore.getTracker().close();
                 }
-                ((BlobTrackingStore) blobStore).addTracker(
-                        new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
-                                blobStore));
+                trackingStore.addTracker(new BlobIdTracker(root, getOrCreateId(segmentNodeStore), trackSnapshotInterval, sharedDataStore));
             }
         }
 
-        if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE, context), DEFAULT_BLOB_GC_MAX_AGE);
+        if (isPrimarySegmentStore(role) && isGarbageCollectable(blobStore)) {
             BlobGarbageCollector gc = new MarkSweepGarbageCollector(
                     new SegmentBlobReferenceRetriever(store),
-                    (GarbageCollectableBlobStore) store.getBlobStore(),
+                    (GarbageCollectableBlobStore) blobStore,
                     executor,
-                    TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
-                    repoId
+                    TimeUnit.SECONDS.toMillis(getBlobGcMaxAge(context)),
+                    getOrCreateId(segmentNodeStore)
             );
-
             mbeans.add(registerMBean(
                     whiteboard,
                     BlobGCMBean.class,
                     new BlobGC(gc, executor),
                     BlobGCMBean.TYPE,
-                    appendRole("Segment node store blob garbage collection", role)
+                    "Segment node store blob garbage collection"
             ));
         }
 
@@ -607,10 +620,16 @@ public class SegmentNodeStoreService {
         mbeans.add(registerMBean(
                 whiteboard,
                 FileStoreBackupRestoreMBean.class,
-                new FileStoreBackupRestoreImpl(segmentNodeStore, store.getRevisions(), store.getReader(),
-                        getBackupDirectory(context, role), executor),
+                new FileStoreBackupRestoreImpl(
+                        segmentNodeStore,
+                        store.getRevisions(),
+                        store.getReader(),
+                        getBackupDirectory(context, role),
+                        executor
+                ),
                 FileStoreBackupRestoreMBean.TYPE,
-                appendRole("Segment node store backup/restore", role)
+                appendRole("Segment node store backup/restore", role),
+                withRole(properties(), role)
         ));
 
         // Expose statistics about the SegmentNodeStore
@@ -620,17 +639,21 @@ public class SegmentNodeStoreService {
                 SegmentNodeStoreStatsMBean.class,
                 segmentNodeStore.getStats(),
                 SegmentNodeStoreStatsMBean.TYPE,
-                appendRole("SegmentNodeStore statistics", role)
+                appendRole("SegmentNodeStore statistics", role),
+                withRole(properties(), role)
         ));
 
-        log.info("SegmentNodeStore initialized");
+        if (isPrimarySegmentStore(role)) {
+            log.info("Primary SegmentNodeStore initialized");
+        } else {
+            log.info("Secondary SegmentNodeStore initialized, role={}", role);
+        }
 
         // Register a factory service to expose the FileStore
-
         registrations.register(asCloseable(whiteboard.register(
                 SegmentStoreProvider.class,
                 new DefaultSegmentStoreProvider(store),
-                Collections.emptyMap()
+                withRole(properties(), role)
         )));
 
         registrations.register(asCloseable(new CompositeRegistration(mbeans)));
@@ -639,10 +662,12 @@ public class SegmentNodeStoreService {
             return segmentNodeStore;
         }
 
-        Map<String, Object> props = new HashMap<String, Object>();
-        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-        props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
-        registrations.register(asCloseable(whiteboard.register(NodeStore.class, segmentNodeStore, props)));
+        if (isPrimarySegmentStore(role)) {
+            Map<String, Object> props = new HashMap<String, Object>();
+            props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+            props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
+            registrations.register(asCloseable(whiteboard.register(NodeStore.class, segmentNodeStore, props)));
+        }
 
         return segmentNodeStore;
     }
@@ -653,6 +678,21 @@ public class SegmentNodeStoreService {
             IOUtils.closeQuietly(registrations);
             registrations = null;
         }
+    }
+
+    private static Map<String, String> properties() {
+        return new HashMap<>();
+    }
+
+    private static Map<String, String> withRole(Map<String, String> map, String role) {
+        if (role != null) {
+            map.put("role", role);
+        }
+        return map;
+    }
+
+    private static boolean isGarbageCollectable(BlobStore store) {
+        return store instanceof GarbageCollectableBlobStore;
     }
 
     private static SegmentGCOptions newGCOptions(ComponentContext context) {
@@ -729,6 +769,10 @@ public class SegmentNodeStoreService {
         return System.getProperty(propertyName);
     }
 
+    private static long getBlobGcMaxAge(ComponentContext context) {
+        return toLong(property(PROP_BLOB_GC_MAX_AGE, context), DEFAULT_BLOB_GC_MAX_AGE);
+    }
+
     private static int getSegmentCacheSize(ComponentContext context) {
         return toInteger(getCacheSize(SEGMENT_CACHE_SIZE, context), DEFAULT_SEGMENT_CACHE_MB);
     }
@@ -779,6 +823,7 @@ public class SegmentNodeStoreService {
             public void close() {
                 r.unregister();
             }
+
         };
     }
 
@@ -789,6 +834,7 @@ public class SegmentNodeStoreService {
             public void close() {
                 t.stop();
             }
+
         };
     }
 
@@ -799,7 +845,12 @@ public class SegmentNodeStoreService {
             public void close() {
                 t.stop();
             }
+
         };
+    }
+
+    private static boolean isPrimarySegmentStore(String role) {
+        return role == null;
     }
 
 }
