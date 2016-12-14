@@ -144,7 +144,7 @@ public class AbstractDataStoreCacheTest {
             try {
                 LOG.trace("After execution....counting down latch");
                 afterLatch.countDown();
-                LOG.trace("After execution....after counting down latch");
+                LOG.info("After execution....after counting down latch");
                 super.afterExecute(r, t);
                 LOG.trace("Completed afterExecute");
             } catch (Exception e) {
