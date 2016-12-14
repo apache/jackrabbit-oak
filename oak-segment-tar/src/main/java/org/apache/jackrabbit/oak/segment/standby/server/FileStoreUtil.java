@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class FileStoreUtil {
+final class FileStoreUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileStoreUtil.class);
 

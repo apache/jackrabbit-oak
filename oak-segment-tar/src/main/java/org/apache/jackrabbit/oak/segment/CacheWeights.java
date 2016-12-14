@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.segment.ReaderCache.CacheKey;
 
 import com.google.common.cache.Weigher;
 
-public class CacheWeights {
+public final class CacheWeights {
 
     public static final int OBJECT_HEADER_SIZE = 12;
 

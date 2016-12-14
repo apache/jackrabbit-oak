@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.osgi;
 
-class DeprecationMessage {
+final class DeprecationMessage {
 
     private static final String MOVED_PID_FORMAT = "Deprecated configuration detected!\n\n" +
             "  A configuration for %s\n" +

@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-public class SegmentNodeStateHelper {
+public final class SegmentNodeStateHelper {
 
     private SegmentNodeStateHelper() {
         // Prevent instantiation
