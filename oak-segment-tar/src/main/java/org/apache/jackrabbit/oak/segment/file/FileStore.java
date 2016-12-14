@@ -191,7 +191,7 @@ public class FileStore extends AbstractFileStore {
 
         Manifest manifest = Manifest.empty();
 
-        if (map.size() > 0) {
+        if (!map.isEmpty()) {
             manifest = checkManifest(openManifest());
         }
 

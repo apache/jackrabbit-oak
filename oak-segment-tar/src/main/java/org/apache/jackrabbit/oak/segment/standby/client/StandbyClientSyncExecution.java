@@ -119,7 +119,7 @@ class StandbyClientSyncExecution {
         Set<UUID> queued = new HashSet<>();
         Set<UUID> local = new HashSet<>();
 
-        while (batch.size() > 0) {
+        while (!batch.isEmpty()) {
             UUID current = batch.remove();
 
             log.debug("Inspecting segment {}", current);

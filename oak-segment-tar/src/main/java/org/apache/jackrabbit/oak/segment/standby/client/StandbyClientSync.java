@@ -91,7 +91,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.autoClean = autoClean;
         this.fileStore = store;
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
-        this.observer = new CommunicationObserver((s == null || s.length() == 0) ? UUID.randomUUID().toString() : s);
+        this.observer = new CommunicationObserver((s == null || s.isEmpty()) ? UUID.randomUUID().toString() : s);
         group = new NioEventLoopGroup();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();

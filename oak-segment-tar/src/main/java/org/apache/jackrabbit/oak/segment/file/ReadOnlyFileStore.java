@@ -75,7 +75,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
 
-        if (map.size() > 0) {
+        if (!map.isEmpty()) {
             checkManifest(openManifest());
         }
 

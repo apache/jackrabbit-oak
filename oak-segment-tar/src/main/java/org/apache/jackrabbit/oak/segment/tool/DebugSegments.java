@@ -114,7 +114,7 @@ public class DebugSegments implements Runnable {
          */
         public Runnable build() {
             checkNotNull(path);
-            checkArgument(segments.size() > 0);
+            checkArgument(!segments.isEmpty());
             return new DebugSegments(this);
         }
 
