@@ -102,7 +102,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>This is a longevity test for SegmentMK compaction for {@code OAK-2849 Improve revision gc on SegmentMK}</p>
+ * <p>This is a longevity test for revision garbage collection.</p>
  *
  * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
  * All of which can be interactively modified through the accompanying
