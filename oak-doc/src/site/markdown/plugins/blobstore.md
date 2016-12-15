@@ -150,9 +150,21 @@ The garbage collection can be triggered by calling:
  
 #### Shared DataStore Blob Garbage Collection (Since 1.2.0)
 
-On start of a repository configured with a shared DataStore, a unique repository id is registered. 
+##### Registration
+
+On start of a repository configured to use a shared DataStore (same path or S3 bucket), a unique repository id is 
+generated and registered in the NodeStore as well as the DataStore. 
 In the DataStore this repository id is registered as an empty file with the format `repository-[repository-id]` 
-(e.g. repository-988373a0-3efb-451e-ab4c-f7e794189273).
+(e.g. repository-988373a0-3efb-451e-ab4c-f7e794189273). This empty file is created under:
+
+* FileDataStore - Under the root directory configured for the datastore.
+* S3DataStore - Under `META` folder in the S3 bucket configured.
+
+On start/configuration of all the repositories sharing the data store it should be confirmed that the unique 
+repositoryId per repository is registered in the DataStore. Refer the section below on [Checking Shared GC status](#check-shared-datastore-gc).
+
+##### Execution
+
 The high-level process for garbage collection is still the same as described above. 
 But to support blob garbage collection in a shared DataStore the Mark and Sweep phase can be
 run independently.
@@ -164,14 +176,15 @@ The details of the process are as follows:
     * All the references are collected in the DataStore in a file with the format `references-[repository-id]` 
     (e.g. references-988373a0-3efb-451e-ab4c-f7e794189273).
 * One completion of the above process on all repositories, the sweep phase needs to be triggered.
-    * This can be executed by running `MarkSweepGarbageCollector#collectGarbage(false)` on one of the repositories,  
+    * This can be executed by running `MarkSweepGarbageCollector#collectGarbage(false)` on one of the repositories, 
     where false indicates to run sweep also. 
-    * The sweep process checks for availability of the references file from all registered repositories and aborts 
-    otherwise.
+    * The sweep process checks for availability of the references file from all registered repositories (all 
+    repositories corresponding to the `repository-[repositoryId]` files available) and aborts otherwise.
     * All the references available are collected.
     * All the blobs available in the DataStore are collected and deletion candidates identified by calculating all the 
     blobs available not appearing in the blobs referenced. Only blobs older than a specified time interval from the 
-    earliest available references file are deleted. (last modified say 24 hrs (default)).
+    earliest available references file are deleted. (last modified say 24 hrs (default)). The earliest references are
+     identified by means of a timestamp marker file (`markedTimestamp-[repositoryId]`) for each repository.
     
 The shared DataStore garbage collection is applicable for the following DataStore(s):
 
@@ -179,6 +192,7 @@ The shared DataStore garbage collection is applicable for the following DataStor
 * SharedS3DataStore - Extends the S3DataStore to enable sharing of the data store with
                         multiple repositories                        
  
+<a name="check-shared-datastore-gc"></a>  
 ##### Checking GC status for Shared DataStore Garbage Collection
 
 The status of the GC operations on all the repositories connected to the DataStore can be checked by calling:
@@ -186,7 +200,8 @@ The status of the GC operations on all the repositories connected to the DataSto
 * `MarkSweepGarbageCollector#getStats()` which returns a list of `GarbageCollectionRepoStats` objects having the 
 following fields:
     * repositoryId - The repositoryId of the repository
-    * local - Indicates whether the repositoryId is of local instance where the operation ran
+        * local - repositoryId tagged with an asterix(\*) indicates whether the repositoryId is of local instance 
+        where the operation ran.
     * startTime - Start time of the mark operation on the repository
     * endTime - End time of the mark operation on the repository
     * length - Size of the references file created
@@ -265,6 +280,18 @@ public class GetGCStats {
     }
 }
 ```
+
+##### Unregistration
+
+If a repository no longer shares the DataStore then it needs to be unregistered from the shared DataStore by following 
+the steps:
+
+* Identify the repositoryId for the repository using the steps above.
+* Remove the corresponding registered repository file (`repository-[repositoryId]`) from the DataStore
+    * FileDataStore - Remove the file from the data store root directory.
+    * S3DataStore - Remove the file from the `META` folder of the S3 bucket.
+* Remove other files corresponding to the particular repositoryId e.g. `markedTimestamp-[repositoryId]` or 
+`references-[repositoryId]`.
 
 #### Consistency Check
 The data store consistency check will report any data store binaries that are missing but are still referenced. The 
