@@ -72,7 +72,6 @@ import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.commons.DebugTimer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroupRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -425,7 +424,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                 Response response = searchCursor.get();
                 if (response instanceof SearchResultEntry) {
                     Entry resultEntry = ((SearchResultEntry) response).getEntry();
-                    ExternalIdentityRef groupRef = new ExternalGroupRef(resultEntry.getDn().toString(), this.getName());
+                    ExternalIdentityRef groupRef = new ExternalIdentityRef(resultEntry.getDn().toString(), this.getName());
                     groups.put(groupRef.getId(), groupRef);
                 }
             }
