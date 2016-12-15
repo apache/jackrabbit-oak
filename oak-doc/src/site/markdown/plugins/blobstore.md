@@ -147,7 +147,30 @@ The garbage collection can be triggered by calling:
 * If the MBeans are registered in the MBeanServer then the following can also be used to trigger GC:
     * `BlobGC#startBlobGC()` which takes in a `markOnly` boolean parameter to indicate mark only or complete gc
 
- 
+<a name="blobid-tracker"></a>  
+#### Caching of Blob ids locally (Oak 1.6.x)
+
+For the `FileDataStore` and `S3DataStore` the blob ids are cached locally on the disk when they are created which 
+speeds up the 'Mark BlobStore' phase. The locally tracked ids are synchronized with the data store periodically to enable 
+other cluster nodes or different repositories sharing the datastore to get a consolidated list of all blob ids. The 
+interval of synchronization is defined by the OSGi configuration parameter `blobTrackSnapshotIntervalInSecs` for the 
+configured NodeStore services.
+
+If 2 garbage collection cycles are executed within the `blobTrackSnapshotIntervalInSecs` then there may be warnings 
+in the logs of some missing blob ids which is due to the fact that the deletions due to earlier gc has not been 
+synchronized with the data store. It's ok to either ignore these warnings or to adjust the `blobTrackSnapshotIntervalInSecs` 
+ parameter according to the schedule identified for running blob gc.
+
+When upgrading an existing system to take advantage of caching the existing blob ids have to be cached. One of the 
+following should be executed.
+
+* Use `MarkSweepGarbageCollectot#collectGarbage(boolean markOnly, boolean forceBlobRetrieve)` with `true` for 
+`forceBlobRetrieve` parameter to force retrieving blob ids from the datastore and cache locally also.
+* Execute Blob GC before the configured time duration of `blobTrackSnapshotIntervalInSecs`.
+* Execute [consistency check](#consistency-check) from the JMX BlobGCMbean before the configured time duration of 
+`blobTrackSnapshotIntervalInSecs`.
+* Execute `datastorecheck` command offline using oak-run with the `--track` option as defined in [consistency check](#consistency-check).
+
 #### Shared DataStore Blob Garbage Collection (Since 1.2.0)
 
 ##### Registration
@@ -293,6 +316,7 @@ the steps:
 * Remove other files corresponding to the particular repositoryId e.g. `markedTimestamp-[repositoryId]` or 
 `references-[repositoryId]`.
 
+<a name="consistency-check"></a>  
 #### Consistency Check
 The data store consistency check will report any data store binaries that are missing but are still referenced. The 
 consistency check can be triggered by:
