@@ -283,6 +283,9 @@ Below is an example of how the missing binaries are reported in the logs:
 > 11:32:39.673 INFO [main] MarkSweepGarbageCollector.java:600 Consistency check found [1] missing blobs
 > 11:32:39.673 WARN [main] MarkSweepGarbageCollector.java:602 Consistency check failure in the the blob store : DataStore backed BlobStore [org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore], check missing candidates in file /tmp/gcworkdir-1467352959243/gccand-1467352959243 
 
+* `datastorecheck` command of oak-run can also be used to execute a consistency check on the datastore. The details 
+on how to execute the command and the different parameters can be checked in the readme for the oak-run module. 
+
 [1]: http://serverfault.com/questions/52861/how-does-dropbox-version-upload-large-files
 [2]: http://wiki.apache.org/jackrabbit/DataStore
 [3]: http://jclouds.apache.org/start/blobstore/
