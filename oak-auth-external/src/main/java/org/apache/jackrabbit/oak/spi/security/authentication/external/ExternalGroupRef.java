@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+@Deprecated
 public class ExternalGroupRef extends ExternalIdentityRef {
 
     /**
