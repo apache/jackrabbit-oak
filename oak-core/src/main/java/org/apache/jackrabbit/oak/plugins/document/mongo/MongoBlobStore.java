@@ -71,7 +71,6 @@ public class MongoBlobStore extends CachingBlobStore {
         // space allocated for a record to the next power of two
         // (there is an overhead per record, let's assume it is 1 KB at most)
         setBlockSize(2 * 1024 * 1024 - 1024);
-        initBlobCollection();
     }
 
     @Override
@@ -159,18 +158,6 @@ public class MongoBlobStore extends CachingBlobStore {
         DBCollection collection = db.getCollection(COLLECTION_BLOBS);
         collection.setObjectClass(MongoBlob.class);
         return collection;
-    }
-
-    private void initBlobCollection() {
-        if (db.collectionExists(COLLECTION_BLOBS)) {
-            return;
-        }
-        DBCollection collection = getBlobCollection();
-        DBObject index = new BasicDBObject();
-        index.put(MongoBlob.KEY_ID, 1L);
-        DBObject options = new BasicDBObject();
-        options.put("unique", Boolean.TRUE);
-        collection.createIndex(index, options);
     }
 
     private MongoBlob getBlob(String id, long lastMod) {
