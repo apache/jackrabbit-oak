@@ -51,8 +51,11 @@ public class IndexSanityCheckerTest {
     @Test
     public void sizeMismatch() throws Exception{
         byte[] t1L = writeFile(local, "t1", 100);
-        byte[] t1R = writeFile(remote, "t1", 110);
+        // write t1 remote with at least one byte more
+        writeFile(remote, "t1", randomBytes(t1L.length + rnd.nextInt(10) + 1));
+        // write t2 remote only
         byte[] t2R = writeFile(remote, "t2", 120);
+        // write t3 remote and local with same size and data
         byte[] t3R = writeFile(remote, "t3", 140);
         writeFile(local, "t3", t3R);
 
