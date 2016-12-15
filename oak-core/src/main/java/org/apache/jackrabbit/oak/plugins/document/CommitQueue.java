@@ -233,14 +233,17 @@ final class CommitQueue {
             LOG.debug("not head: {}, waiting...", rev);
             commitEntry.await();
         }
-        c.headOfQueue(rev);
-        synchronized (this) {
-            commits.remove(rev);
-            try {
-                LOG.debug("removed {}, head is now {}", rev, commits.isEmpty() ? null : commits.firstKey());
-            } finally {
-                // notify next if there is any
-                notifyHead();
+        try {
+            c.headOfQueue(rev);
+        } finally {
+            synchronized (this) {
+                commits.remove(rev);
+                try {
+                    LOG.debug("removed {}, head is now {}", rev, commits.isEmpty() ? null : commits.firstKey());
+                } finally {
+                    // notify next if there is any
+                    notifyHead();
+                }
             }
         }
     }

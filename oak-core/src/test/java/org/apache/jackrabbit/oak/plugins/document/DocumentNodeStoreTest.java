@@ -2703,7 +2703,6 @@ public class DocumentNodeStoreTest {
         assertTrue(parent.hasChildNode("baz"));
     }
 
-    @Ignore("OAK-4687")
     @Test
     public void exceptionHandlingInCommit() throws Exception{
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
@@ -2717,7 +2716,6 @@ public class DocumentNodeStoreTest {
                 }
             }
         });
-
 
         NodeBuilder b1 = ns.getRoot().builder();
         b1.child("parent");
