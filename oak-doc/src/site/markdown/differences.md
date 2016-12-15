@@ -202,8 +202,8 @@ As a result the `available()` method of the stream would typically return
 the full count of remaining bytes, regardless of whether the next `read()`
 call would block to wait for disk IO.
 
-In Oak binaries are typically stored in an external database or (with the
-TarMK) using a custom data structure in the local file system. The streams
+In Oak binaries are typically stored in an external database or (in case of
+the SegmentNodeStore) using a custom data structure in the local file system. The streams
 returned by Oak are therefore custom `InputStream` subclasses that implement
 the `available()` method based on whether the next `read()` call will return
 immediately or if it needs to block to wait for the underlying IO operations.

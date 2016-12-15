@@ -74,7 +74,7 @@ If that is set to say 4096 then any binary with size less than 4kb would be stor
 as part of node data itself and not in BlobStore.
 
 Its recommended to not set very high value for this as depending on implementation it
-might hit some limit causing the commit to fail. For e.g. SegmentMK enforces a limit of
+might hit some limit causing the commit to fail. For e.g. the SegmentNodeStore enforces a limit of
 8k for any inlined binary value. Further this would also lead to repository growth as
 by default when binaries are stored in BlobStore then they are deduplicated.
 
