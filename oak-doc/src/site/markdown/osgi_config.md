@@ -51,7 +51,7 @@ This implementation has been deprecated, will not receive any further improvemen
 
 ##### org.apache.jackrabbit.oak.segment.SegmentNodeStoreService
 
-repository.home (string) - tarmk
+repository.home (string) - repository
 : A path on the file system where repository data will be stored.
 The Segment Store persists its data in a subdirectory of `repository.home` named `segmentstore`.
 The provided path can be relative or absolute.

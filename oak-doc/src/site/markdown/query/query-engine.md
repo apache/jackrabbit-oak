@@ -379,7 +379,7 @@ Sometimes there is a need to inspect the index content for debugging (or pure cu
 The index content is generally stored as content under the index definition as hidden nodes (this doesn't apply to the solr index).
 In order to be able to browse down into an index content you need a low level repository tool that allows NodeStore level access.
 There are currently 2 options: the oak-console (command line tool, works will all existing NodeStore implementations) and the oak-explorer
-(gui based on java swing, works only on the TarMK), both available as run modes of the [oak-run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md) module
+(gui based on java swing, works only with the SegmentNodeStore), both available as run modes of the [oak-run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md) module
 
 The structure of the index is specific to each implementation and is subject to change. What is worth mentioning is that all the _*PropertyIndex_
 flavors store the content as unstructured nodes (clear readable text), the _Lucene_ index is stored as binaries, so one would need to export the

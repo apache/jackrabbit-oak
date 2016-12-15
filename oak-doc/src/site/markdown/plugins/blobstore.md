@@ -89,9 +89,9 @@ Depending on NodeStore type and usage requirement these can be configured to use
 a particular BlobStore implementation. For OSGi env refer to [Configuring DataStore/BlobStore]
 (../osgi_config.html#config-blobstore)
 
-#### SegmentNodeStore
+#### SegmentNodeStore (TarMK)
 
-By default SegmentNodeStore does not require a BlobStore. Instead the binary content is
+By default SegmentNodeStore (aka TarMK) does not require a BlobStore. Instead the binary content is
 directly stored as part of segment blob itself. Depending on requirements one of the following 
 can be used  
  

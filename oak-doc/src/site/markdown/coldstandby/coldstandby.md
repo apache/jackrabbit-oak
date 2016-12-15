@@ -37,7 +37,7 @@ The clients periodically request the segment id of the current head of the maste
 
 ### Prerequisites
 
-An Oak installation using a SegmentStore using the TarMK.
+An Oak installation using the SegmentNodeStore
 
 ### Setup
 

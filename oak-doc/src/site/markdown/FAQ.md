@@ -29,7 +29,7 @@ You are accessing a `Session` instance concurrently from multiple threads. Sessi
 Enabling `DEBUG` logging for `SessionDelegate` provides stack traces for both sessions involved. 
 *Note*: this should be used for debugging only as it has a major impact on system performance.
 
-#### I have a SegmentMK store and the size is growing beyond control
+#### My repository size on disk is growing beyond control (SegmentNodeStore)
 
 You need to setup a regular job for [compacting the segments](nodestore/segmentmk.html#Segment_Compaction).
 
