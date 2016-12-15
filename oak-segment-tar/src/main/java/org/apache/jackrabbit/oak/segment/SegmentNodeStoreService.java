@@ -163,64 +163,73 @@ public class SegmentNodeStoreService {
 
     @Property(
             label = "Mode",
-            description = "TarMK mode (64 for memory mapped file access, 32 for normal file access)."
+            description = "TarMK mode (64 for memory mapped file access, 32 for normal file access). " +
+                    "Default value is taken from the 'sun.arch.data.model' system property."
     )
     public static final String MODE = "tarmk.mode";
 
     @Property(
             intValue = DEFAULT_MAX_FILE_SIZE,
             label = "Maximum tar file size (MB)",
-            description = "The maximum size of the tar files in megabytes."
+            description = "The maximum size of the tar files in megabytes. " +
+                    "Default value is '" + DEFAULT_MAX_FILE_SIZE + "'."
     )
     public static final String SIZE = "tarmk.size";
 
     @Property(
             intValue = DEFAULT_SEGMENT_CACHE_MB,
             label = "Segment cache size (MB)",
-            description = "Cache size for storing most recently used segments in megabytes."
+            description = "Cache size for storing most recently used segments in megabytes. " +
+                    "Default value is '" + DEFAULT_SEGMENT_CACHE_MB + "'."
     )
     public static final String SEGMENT_CACHE_SIZE = "segmentCache.size";
 
     @Property(
             intValue = DEFAULT_STRING_CACHE_MB,
             label = "String cache size (MB)",
-            description = "Cache size for storing most recently used strings in megabytes."
+            description = "Cache size for storing most recently used strings in megabytes. " +
+                    "Default value is '" + DEFAULT_STRING_CACHE_MB + "'."
     )
     public static final String STRING_CACHE_SIZE = "stringCache.size";
 
     @Property(
             intValue = DEFAULT_TEMPLATE_CACHE_MB,
             label = "Template cache size (MB)",
-            description = "Cache size for storing most recently used templates in megabytes."
+            description = "Cache size for storing most recently used templates in megabytes. " +
+                    "Default value is '" + DEFAULT_TEMPLATE_CACHE_MB + "'."
     )
     public static final String TEMPLATE_CACHE_SIZE = "templateCache.size";
 
     @Property(
             intValue = DEFAULT_STRING_CACHE_SIZE_OSGi,
             label = "String deduplication cache size (#items)",
-            description = "Maximum number of strings to keep in the deduplication cache"
+            description = "Maximum number of strings to keep in the deduplication cache. " +
+                    "Default value is '" + DEFAULT_STRING_CACHE_SIZE_OSGi + "'."
     )
     public static final String STRING_DEDUPLICATION_CACHE_SIZE = "stringDeduplicationCache.size";
 
     @Property(
             intValue = DEFAULT_TEMPLATE_CACHE_SIZE_OSGi,
             label = "Template deduplication cache size (#items)",
-            description = "Maximum number of templates to keep in the deduplication cache"
+            description = "Maximum number of templates to keep in the deduplication cache. " +
+                    "Default value is '" + DEFAULT_TEMPLATE_CACHE_SIZE_OSGi + "'."
     )
     public static final String TEMPLATE_DEDUPLICATION_CACHE_SIZE = "templateDeduplicationCache.size";
 
     @Property(
             intValue = DEFAULT_NODE_CACHE_SIZE_OSGi,
             label = "Node deduplication cache size (#items)",
-            description = "Maximum number of node to keep in the deduplication cache. If the supplied" +
-                    " value is not a power of 2, it will be rounded up to the next power of 2."
+            description = "Maximum number of node to keep in the deduplication cache. If the supplied " +
+                    "value is not a power of 2, it will be rounded up to the next power of 2. " +
+                    "Default value is '" + DEFAULT_NODE_CACHE_SIZE_OSGi + "'."
     )
     public static final String NODE_DEDUPLICATION_CACHE_SIZE = "nodeDeduplicationCache.size";
 
     @Property(
             boolValue = PAUSE_DEFAULT,
             label = "Pause compaction",
-            description = "When set to true the compaction phase is skipped during garbage collection."
+            description = "When set to true the compaction phase is skipped during garbage collection. " +
+                    "Default value is '" + PAUSE_DEFAULT + "'."
     )
     public static final String PAUSE_COMPACTION = "pauseCompaction";
 
@@ -228,7 +237,8 @@ public class SegmentNodeStoreService {
             intValue = RETRY_COUNT_DEFAULT,
             label = "Compaction retries",
             description = "Number of tries to compact concurrent commits on top of already " +
-                    "compacted commits."
+                    "compacted commits. " +
+                    "Default value is '" + RETRY_COUNT_DEFAULT + "'."
     )
     public static final String COMPACTION_RETRY_COUNT = "compaction.retryCount";
 
@@ -238,7 +248,8 @@ public class SegmentNodeStoreService {
             description = "Number of seconds to attempt to force compact concurrent commits on top " +
                     "of already compacted commits after the maximum number of retries has been " +
                     "reached. Forced compaction tries to acquire an exclusive write lock on the " +
-                    "node store, blocking concurrent write access as long as the lock is held."
+                    "node store, blocking concurrent write access as long as the lock is held. " +
+                    "Default value is '" + FORCE_TIMEOUT_DEFAULT + "'."
     )
     public static final String COMPACTION_FORCE_TIMEOUT = "compaction.force.timeout";
 
@@ -246,14 +257,16 @@ public class SegmentNodeStoreService {
             longValue = SIZE_DELTA_ESTIMATION_DEFAULT,
             label = "Garbage collection repository size threshold",
             description = "Garbage collection will be skipped unless the repository grew at least by " +
-                    "the number of bytes specified."
+                    "the number of bytes specified. " +
+                    "Default value is '" + SIZE_DELTA_ESTIMATION_DEFAULT + "'."
     )
     public static final String COMPACTION_SIZE_DELTA_ESTIMATION = "compaction.sizeDeltaEstimation";
 
     @Property(
             boolValue = DISABLE_ESTIMATION_DEFAULT,
             label = "Disable estimation phase",
-            description = "Disables the estimation phase allowing garbage collection to run unconditionally."
+            description = "Disables the estimation phase allowing garbage collection to run unconditionally. " +
+                    "Default value is '" + DISABLE_ESTIMATION_DEFAULT + "'."
     )
     public static final String COMPACTION_DISABLE_ESTIMATION = "compaction.disableEstimation";
 
@@ -261,7 +274,8 @@ public class SegmentNodeStoreService {
             intValue = RETAINED_GENERATIONS_DEFAULT,
             label = "Compaction retained generations",
             description = "Number of segment generations to retain during garbage collection. " +
-                    "Must be set to at least 2."
+                    "Must be set to at least 2. " +
+                    "Default value is '" + RETAINED_GENERATIONS_DEFAULT + "'."
     )
     public static final String RETAINED_GENERATIONS = "compaction.retainedGenerations";
 
@@ -269,7 +283,8 @@ public class SegmentNodeStoreService {
             intValue = MEMORY_THRESHOLD_DEFAULT,
             label = "Compaction memory threshold",
             description = "Threshold of available heap memory in percent of total heap memory below " +
-                    "which the compaction phase is canceled. 0 disables heap memory monitoring."
+                    "which the compaction phase is canceled. 0 disables heap memory monitoring. " +
+                    "Default value is '" + MEMORY_THRESHOLD_DEFAULT + "'."
     )
     public static final String MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
@@ -277,7 +292,8 @@ public class SegmentNodeStoreService {
             longValue = GC_PROGRESS_LOG_DEFAULT,
             label = "Compaction progress log",
             description = "The number of nodes compacted after which a status message is logged. " +
-                    "-1 disables progress logging."
+                    "-1 disables progress logging. " +
+                    "Default value is '" + GC_PROGRESS_LOG_DEFAULT + "'."
     )
     public static final String GC_PROGRESS_LOG = "compaction.progressLog";
 
@@ -285,14 +301,16 @@ public class SegmentNodeStoreService {
             boolValue = false,
             label = "Standby mode",
             description = "Flag indicating this component will not register as a NodeStore but as a " +
-                    "NodeStoreProvider instead."
+                    "NodeStoreProvider instead. "  +
+                    "Default value is 'false'."
     )
     public static final String STANDBY = "standby";
 
     @Property(boolValue = false,
             label = "Custom blob store",
             description = "Boolean value indicating that a custom BlobStore is used for storing " +
-                    "large binary values."
+                    "large binary values. " +
+                    "Default value is 'false'."
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
@@ -326,7 +344,8 @@ public class SegmentNodeStoreService {
             description = "The blob garbage collection logic will only consider those blobs which " +
                     "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). " +
                     "For example with the default setting only those blobs which have been created " +
-                    "at least 24 hours ago will be considered for garbage collection."
+                    "at least 24 hours ago will be considered for garbage collection. " +
+                    "Default value is '" + DEFAULT_BLOB_GC_MAX_AGE + "'."
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
@@ -340,7 +359,8 @@ public class SegmentNodeStoreService {
             description = "Interval in seconds in which snapshots of locally tracked blob ids are " +
                     "taken and synchronized with the blob store. This should be configured to be " +
                     "less than the frequency of blob garbage collection so that deletions during blob " +
-                    "garbage collection can be accounted for in the next garbage collection execution."
+                    "garbage collection can be accounted for in the next garbage collection execution. " +
+                    "Default value is '" + DEFAULT_BLOB_SNAPSHOT_INTERVAL + "'."
     )
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
