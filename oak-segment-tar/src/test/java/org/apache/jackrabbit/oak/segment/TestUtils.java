@@ -29,7 +29,6 @@ import java.util.Random;
 import javax.annotation.Nonnull;
 
 
-// FIXME SegmentTestUtils duplicates this
 public final class TestUtils {
     private TestUtils() {}
 
