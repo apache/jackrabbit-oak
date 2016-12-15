@@ -80,18 +80,18 @@ public class SizeDeltaGcEstimation implements GCEstimation {
             long gainP = 100 * (totalSize - lastGc) / totalSize;
             gcNeeded = gain > delta;
             gcInfo = format(
-                    "Segmentstore size has increased since the last compaction from %s (%s bytes) to %s (%s bytes), " +
+                    "Segmentstore size has increased since the last garbage collection from %s (%s bytes) to %s (%s bytes), " +
                     "an increase of %s (%s bytes) or %s%%. ",
                     humanReadableByteCount(lastGc), lastGc,
                     humanReadableByteCount(totalSize), totalSize,
                     humanReadableByteCount(gain), gain, gainP);
             if (gcNeeded) {
                 gcInfo = gcInfo + format(
-                        "This is greater than sizeDeltaEstimation=%s (%s bytes), so running compaction",
+                        "This is greater than sizeDeltaEstimation=%s (%s bytes), so running garbage collection",
                         humanReadableByteCount(delta), delta);
             } else {
                 gcInfo = gcInfo + format(
-                        "This is less than sizeDeltaEstimation=%s (%s bytes), so skipping compaction",
+                        "This is less than sizeDeltaEstimation=%s (%s bytes), so skipping garbage collection",
                         humanReadableByteCount(delta), delta);
             }
         }

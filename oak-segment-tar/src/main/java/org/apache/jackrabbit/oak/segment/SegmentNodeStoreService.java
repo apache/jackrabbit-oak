@@ -143,12 +143,12 @@ import org.slf4j.LoggerFactory;
  */
 @Component(policy = ConfigurationPolicy.REQUIRE,
         metatype = true,
-        label = "Apache Jackrabbit Oak Segment NodeStore Service",
-        description = "NodeStore implementation based on Segment model. For configuration option refer " +
-                "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#SegmentNodeStore. Note that for system " +
-                "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
-                "should be done via file system based config file and this view should ONLY be used to determine which " +
-                "options are supported"
+        label = "Oak Segment Tar NodeStore service",
+        description = "Apache Jackrabbit Oak NodeStore implementation based on the segment model. " +
+                "For configuration refer to http://jackrabbit.apache.org/oak/docs/osgi_config.html#SegmentNodeStore. " +
+                "Note that for system stability purpose it is advisable to not change these settings " +
+                "at runtime. Instead the config change should be done via file system based config " +
+                "file and this view should ONLY be used to determine which options are supported."
 )
 public class SegmentNodeStoreService {
 
@@ -156,42 +156,42 @@ public class SegmentNodeStoreService {
 
     @Property(
             label = "Directory",
-            description = "Directory location used to store the segment tar files. If not specified then looks " +
-                    "for framework property 'repository.home' otherwise use a subdirectory with name 'tarmk'"
+            description = "Directory for storing the tar files. Defaults to the value of the framework " +
+                    "property 'repository.home' or to 'repository' if that is neither specified."
     )
     public static final String DIRECTORY = "repository.home";
 
     @Property(
             label = "Mode",
-            description = "TarMK mode (64 for memory mapping, 32 for normal file access)"
+            description = "TarMK mode (64 for memory mapped file access, 32 for normal file access)."
     )
     public static final String MODE = "tarmk.mode";
 
     @Property(
             intValue = DEFAULT_MAX_FILE_SIZE,
-            label = "Maximum Tar File Size (MB)",
-            description = "TarMK maximum file size (MB)"
+            label = "Maximum tar file size (MB)",
+            description = "The maximum size of the tar files in megabytes."
     )
     public static final String SIZE = "tarmk.size";
 
     @Property(
             intValue = DEFAULT_SEGMENT_CACHE_MB,
             label = "Segment cache size (MB)",
-            description = "Cache size for storing most recently used segments"
+            description = "Cache size for storing most recently used segments in megabytes."
     )
     public static final String SEGMENT_CACHE_SIZE = "segmentCache.size";
 
     @Property(
             intValue = DEFAULT_STRING_CACHE_MB,
             label = "String cache size (MB)",
-            description = "Cache size for storing most recently used strings"
+            description = "Cache size for storing most recently used strings in megabytes."
     )
     public static final String STRING_CACHE_SIZE = "stringCache.size";
 
     @Property(
             intValue = DEFAULT_TEMPLATE_CACHE_MB,
             label = "Template cache size (MB)",
-            description = "Cache size for storing most recently used templates"
+            description = "Cache size for storing most recently used templates in megabytes."
     )
     public static final String TEMPLATE_CACHE_SIZE = "templateCache.size";
 
@@ -219,84 +219,87 @@ public class SegmentNodeStoreService {
 
     @Property(
             boolValue = PAUSE_DEFAULT,
-            label = "Pause Compaction",
-            description = "When enabled compaction would not be performed"
+            label = "Pause compaction",
+            description = "When set to true the compaction phase is skipped during garbage collection."
     )
     public static final String PAUSE_COMPACTION = "pauseCompaction";
 
     @Property(
             intValue = RETRY_COUNT_DEFAULT,
-            label = "Compaction Retries",
+            label = "Compaction retries",
             description = "Number of tries to compact concurrent commits on top of already " +
-                    "compacted commits"
+                    "compacted commits."
     )
     public static final String COMPACTION_RETRY_COUNT = "compaction.retryCount";
 
     @Property(
             intValue = FORCE_TIMEOUT_DEFAULT,
-            label = "Force Compaction Timeout",
+            label = "Force compaction timeout",
             description = "Number of seconds to attempt to force compact concurrent commits on top " +
                     "of already compacted commits after the maximum number of retries has been " +
                     "reached. Forced compaction tries to acquire an exclusive write lock on the " +
-                    "node store."
+                    "node store, blocking concurrent write access as long as the lock is held."
     )
     public static final String COMPACTION_FORCE_TIMEOUT = "compaction.force.timeout";
 
     @Property(
             longValue = SIZE_DELTA_ESTIMATION_DEFAULT,
-            label = "Compaction Repository Size Delta",
-            description = "Amount of increase in repository size that will trigger compaction (bytes)"
+            label = "Garbage collection repository size threshold",
+            description = "Garbage collection will be skipped unless the repository grew at least by " +
+                    "the number of bytes specified."
     )
     public static final String COMPACTION_SIZE_DELTA_ESTIMATION = "compaction.sizeDeltaEstimation";
 
     @Property(
             boolValue = DISABLE_ESTIMATION_DEFAULT,
-            label = "Disable Compaction Estimation Phase",
-            description = "Disables compaction estimation phase, thus allowing compaction to run every time."
+            label = "Disable estimation phase",
+            description = "Disables the estimation phase allowing garbage collection to run unconditionally."
     )
     public static final String COMPACTION_DISABLE_ESTIMATION = "compaction.disableEstimation";
 
     @Property(
             intValue = RETAINED_GENERATIONS_DEFAULT,
             label = "Compaction retained generations",
-            description = "Number of segment generations to retain."
+            description = "Number of segment generations to retain during garbage collection. " +
+                    "Must be set to at least 2."
     )
     public static final String RETAINED_GENERATIONS = "compaction.retainedGenerations";
 
     @Property(
             intValue = MEMORY_THRESHOLD_DEFAULT,
-            label = "Compaction Memory Threshold",
-            description = "Set the available memory threshold beyond which revision gc will be canceled. "
-                    + "Value represents a percentage so an input between 0 and 100 is expected. "
-                    + "Setting this to 0 will disable the check."
+            label = "Compaction memory threshold",
+            description = "Threshold of available heap memory in percent of total heap memory below " +
+                    "which the compaction phase is canceled. 0 disables heap memory monitoring."
     )
     public static final String MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
     @Property(
             longValue = GC_PROGRESS_LOG_DEFAULT,
-            label = "Compaction Progress Log",
-            description = "Enables compaction progress logging at each set of compacted nodes. A value of -1 disables the log."
+            label = "Compaction progress log",
+            description = "The number of nodes compacted after which a status message is logged. " +
+                    "-1 disables progress logging."
     )
     public static final String GC_PROGRESS_LOG = "compaction.progressLog";
 
     @Property(
             boolValue = false,
-            label = "Standby Mode",
-            description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider"
+            label = "Standby mode",
+            description = "Flag indicating this component will not register as a NodeStore but as a " +
+                    "NodeStoreProvider instead."
     )
     public static final String STANDBY = "standby";
 
     @Property(boolValue = false,
-            label = "Custom BlobStore",
-            description = "Boolean value indicating that a custom BlobStore is to be used. " +
-                    "By default large binary content would be stored within segment tar files"
+            label = "Custom blob store",
+            description = "Boolean value indicating that a custom BlobStore is used for storing " +
+                    "large binary values."
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
     @Property(
-            label = "Backup Directory",
-            description = "Directory location for storing repository backups. If not set, defaults to" +
-                    " 'segmentstore-backup' subdirectory under 'repository.home'."
+            label = "Backup directory",
+            description = "Directory for storing repository backups. Defaults to 'segmentstore-backup' " +
+                    "subdirectory under 'repository.home'."
     )
     public static final String BACKUP_DIRECTORY = "repository.backup.dir";
 
@@ -319,11 +322,11 @@ public class SegmentNodeStoreService {
     static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
 
     @Property(longValue = DEFAULT_BLOB_GC_MAX_AGE,
-            label = "Blob GC Max Age (in secs)",
-            description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
-                    "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
-                    "example as per default only those blobs which have been created 24 hrs ago will be " +
-                    "considered for GC"
+            label = "Blob gc max age (in secs)",
+            description = "The blob garbage collection logic will only consider those blobs which " +
+                    "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). " +
+                    "For example with the default setting only those blobs which have been created " +
+                    "at least 24 hours ago will be considered for garbage collection."
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
@@ -333,11 +336,11 @@ public class SegmentNodeStoreService {
     static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
 
     @Property(longValue = DEFAULT_BLOB_SNAPSHOT_INTERVAL,
-            label = "Blob tracking snapshot interval (in secs)",
-            description = "This is the default interval in which the snapshots of locally tracked blob ids will"
-                    + "be taken and synchronized with the blob store. This should be configured to be less than the "
-                    + "frequency of blob GC so that deletions during blob GC can be accounted for "
-                    + "in the next GC execution."
+            label = "Blob tracking snapshot interval",
+            description = "Interval in seconds in which snapshots of locally tracked blob ids are " +
+                    "taken and synchronized with the blob store. This should be configured to be " +
+                    "less than the frequency of blob garbage collection so that deletions during blob " +
+                    "garbage collection can be accounted for in the next garbage collection execution."
     )
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
 
@@ -345,7 +348,8 @@ public class SegmentNodeStoreService {
     public void activate(ComponentContext context) throws IOException {
         Configuration configuration = new Configuration(context);
         if (blobStore == null && configuration.hasCustomBlobStore()) {
-            log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
+            log.info("BlobStore enabled. SegmentNodeStore will be initialized once the blob " +
+                    "store becomes available");
             return;
         }
         closer = Closer.create();
@@ -397,8 +401,9 @@ public class SegmentNodeStoreService {
 
         // Create the gc options
         if (configuration.getCompactionGainThreshold() != null) {
-            log.warn("Deprecated property compaction.gainThreshold was detected. In order to configure compaction please use the new property "
-                    + "compaction.sizeDeltaEstimation. For turning off estimation, the new property compaction.disableEstimation should be used.");
+            log.warn("Detected deprecated flag 'compaction.gainThreshold'. "
+                    + "Please use 'compaction.sizeDeltaEstimation' instead and "
+                    + "'compaction.disableEstimation' to disable estimation.");
         }
         SegmentGCOptions gcOptions = new SegmentGCOptions(configuration.getPauseCompaction(), configuration.getRetryCount(), configuration.getForceCompactionTimeout())
                 .setRetainedGenerations(configuration.getRetainedGenerations())
@@ -434,7 +439,7 @@ public class SegmentNodeStoreService {
         try {
             store = builder.build();
         } catch (InvalidFileStoreVersionException e) {
-            log.error("The segment store data is not compatible with the current version. Please use oak-segment or a different version of oak-segment-tar.");
+            log.error("The storage format is not compatible with this version of Oak Segment Tar", e);
             return null;
         }
         // store should be closed last
@@ -694,7 +699,7 @@ class Closeables implements Closeable {
         add(new Closeable() {
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 t.stop();
             }
 
@@ -705,7 +710,7 @@ class Closeables implements Closeable {
         add(new Closeable() {
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 r.unregister();
             }
 
@@ -716,7 +721,7 @@ class Closeables implements Closeable {
         add(new Closeable() {
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 t.stop();
             }
 
