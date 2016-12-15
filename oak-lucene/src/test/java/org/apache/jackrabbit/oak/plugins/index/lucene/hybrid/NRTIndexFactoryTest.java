@@ -109,6 +109,13 @@ public class NRTIndexFactoryTest {
         assertEquals(0, idx4.getReaders().size());
         //With 3 generation open the first one should be closed
         assertTrue(idx1.isClosed());
+        assertNull(idx1.getPrevious());
+
+        NRTIndex idx5 = indexFactory.createIndex(idxDefn);
+        assertEquals(3, indexFactory.getIndexes("/foo").size());
+
+        assertTrue(idx2.isClosed());
+        assertNull(idx2.getPrevious());
     }
 
     @Test
