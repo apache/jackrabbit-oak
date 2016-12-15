@@ -2247,9 +2247,16 @@ public final class DocumentNodeStore
                                 "Current _lastRev entries: {}",
                         new Date(localTime), new Date(externalTime), lastRevMap.values());
                 double delay = ((double) externalTime - localTime) / 1000d;
-                String msg = String.format("Background read will be delayed by %.1f seconds. " +
-                        "Please check system time on cluster nodes.", delay);
+                String fmt = "Background read will be delayed by %.1f seconds. " +
+                        "Please check system time on cluster nodes.";
+                String msg = String.format(fmt, delay);
                 LOG.warn(msg);
+                while (localTime + 60000 < externalTime) {
+                    clock.waitUntil(localTime + 60000);
+                    localTime = clock.getTime();
+                    delay = ((double) externalTime - localTime) / 1000d;
+                    LOG.warn(String.format(fmt, delay));
+                }
                 clock.waitUntil(externalTime + 1);
             } else if (localTime == externalTime) {
                 // make sure local time is past external time

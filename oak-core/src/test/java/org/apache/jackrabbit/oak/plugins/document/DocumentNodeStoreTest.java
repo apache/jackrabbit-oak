@@ -1637,6 +1637,7 @@ public class DocumentNodeStoreTest {
     @Test
     public void concurrentChildOperations() throws Exception {
         Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
@@ -1701,6 +1702,7 @@ public class DocumentNodeStoreTest {
     @Test
     public void concurrentChildOperations2() throws Exception {
         Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
