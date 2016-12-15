@@ -221,6 +221,12 @@ blobGcMaxAgeInSecs (long) - 86400
 : BLOB Garbage Collector (GC) logic would only consider those BLOBs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs).
 For example, as per default, only those BLOBs which have been created 24 hours in the past would be considered for GC.
 
+blobTrackSnapshotIntervalInSecs (long) - 43200
+: The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and 
+deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This 
+should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob 
+tracker][blobtracker].
+
 <a name="document-node-store"></a>
 #### DocumentNodeStore
 
@@ -307,9 +313,16 @@ cacheStackMoveDistance
 : The delay to move entries to the head of the queue in the LIRS cache
 : Since 1.0.15, 1.2.3, 1.3.0
 
-sharedDSRepoId (From Oak 1.2.11 & Oak 1.3.15)
+sharedDSRepoId (From Oak 1.2.11)
 : Default ""
 : Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore.
+
+blobTrackSnapshotIntervalInSecs
+: Default 43200 (12 hrs)
+: The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and 
+deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This 
+should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob 
+tracker][blobtracker].
 
 Example config file
 
@@ -478,3 +491,4 @@ need not be specified in config files
 [OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
 [doc-cache]: ./nodestore/documentmk.html#cache
 [persistent-cache]: ./nodestore/persistent-cache.html
+[blobtracker]: ./plugins/blobstore.html#blobid-tracker
