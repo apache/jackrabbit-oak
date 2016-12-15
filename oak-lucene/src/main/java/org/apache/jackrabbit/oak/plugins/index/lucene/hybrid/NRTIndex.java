@@ -64,7 +64,7 @@ public class NRTIndex implements Closeable {
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
     private final IndexUpdateListener refreshPolicy;
-    private final NRTIndex previous;
+    private NRTIndex previous;
 
     private IndexWriter indexWriter;
     private NRTIndexWriter nrtIndexWriter;
@@ -141,12 +141,19 @@ public class NRTIndex implements Closeable {
             FileUtils.deleteQuietly(indexDir);
             log.debug("[{}] Removed directory [{}]", this, indexDir);
         }
+        //Null the reference to previous so as to let it
+        //garbage collect. It would not be accessed post close
+        previous = null;
 
         closed = true;
     }
 
     public boolean isClosed() {
         return closed;
+    }
+
+    NRTIndex getPrevious() {
+        return previous;
     }
 
     @Override
