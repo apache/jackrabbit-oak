@@ -748,7 +748,7 @@ public class FileStore extends AbstractFileStore {
                     Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
                     GCEstimation estimate = estimateCompactionGain(cancel);
                     if (cancel.get()) {
-                        gcListener.info("TarMK GC #{}: estimation interrupted: {}. Skipping compaction.", GC_COUNT, cancel);
+                        gcListener.info("TarMK GC #{}: estimation interrupted: {}. Skipping garbage collection.", GC_COUNT, cancel);
                         gcMemoryBarrier.close();
                         return;
                     }
