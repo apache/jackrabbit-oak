@@ -655,7 +655,7 @@ public class SegmentNodeState extends Record implements NodeState {
             }
         } else {
             return object instanceof NodeState
-                    && AbstractNodeState.equals(this, (NodeState) object); // TODO
+                    && AbstractNodeState.equals(this, (NodeState) object);
         }
     }
 
