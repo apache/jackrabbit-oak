@@ -40,20 +40,25 @@ import org.slf4j.LoggerFactory;
                 "supersedes the one defined via OSGi config"
 )
 public class QueryEngineSettingsService {
-    private static final int DEFAULT_QUERY_LIMIT_IN_MEMORY = Integer.MAX_VALUE;
+
+    // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY
+    private static final int DEFAULT_QUERY_LIMIT_IN_MEMORY = 500000;
     @Property(
             intValue = DEFAULT_QUERY_LIMIT_IN_MEMORY,
             label = "In memory limit",
             description = "Maximum number of entries that can be held in memory while evaluating any query"
     )
     static final String QUERY_LIMIT_IN_MEMORY = "queryLimitInMemory";
-    private static final int DEFAULT_QUERY_LIMIT_READS = Integer.MAX_VALUE;
+
+    // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_READS
+    private static final int DEFAULT_QUERY_LIMIT_READS = 100000;
     @Property(
             intValue = DEFAULT_QUERY_LIMIT_READS,
             label = "In memory read limit",
             description = "Maximum number of results which can be read by any query"
     )
     static final String QUERY_LIMIT_READS = "queryLimitReads";
+
     private static final boolean DEFAULT_QUERY_FAIL_TRAVERSAL = false;
     @Property(
             boolValue = DEFAULT_QUERY_FAIL_TRAVERSAL,
@@ -112,4 +117,5 @@ public class QueryEngineSettingsService {
         log.info("For {} using value {} defined via system property {}", key,
                 System.getProperty(sysPropKey), sysPropKey);
     }
+
 }
