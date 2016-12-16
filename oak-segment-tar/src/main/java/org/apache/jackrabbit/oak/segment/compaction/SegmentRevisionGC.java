@@ -115,16 +115,14 @@ public interface SegmentRevisionGC {
     void cancelRevisionGC();
 
     /**
-     * @return  timestamp of the last compaction or {@code null} if none.
+     * @return  time of the last compaction in milliseconds.
      */
-    @CheckForNull
-    String getLastCompaction();
+    long getLastCompaction();
 
     /**
-     * @return  timestamp of the last cleanup or {@code null} if none.
+     * @return  time of the last cleanup in milliseconds.
      */
-    @CheckForNull
-    String getLastCleanup();
+    long getLastCleanup();
 
     /**
      * @return  repository size after the last cleanup.
