@@ -38,10 +38,13 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
 
     static final String OAK_QUERY_LIMIT_IN_MEMORY = "oak.queryLimitInMemory";
 
+    // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_IN_MEMORY
     static final int DEFAULT_QUERY_LIMIT_IN_MEMORY =
             Integer.getInteger(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
 
     static final String OAK_QUERY_LIMIT_READS = "oak.queryLimitReads";
+
+    // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_READS
     static final int DEFAULT_QUERY_LIMIT_READS =
             Integer.getInteger(OAK_QUERY_LIMIT_READS, 100000);
 
