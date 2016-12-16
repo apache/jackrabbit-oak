@@ -20,12 +20,10 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.text.DateFormat.getDateTimeInstance;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Date;
 
 import javax.annotation.Nonnull;
 
@@ -93,12 +91,12 @@ public class FileStoreGCMonitor implements GCMonitor {
         this.status = status;
     }
 
-    public String getLastCompaction() {
-        return toString(lastCompaction);
+    public long getLastCompaction() {
+        return lastCompaction;
     }
 
-    public String getLastCleanup() {
-        return toString(lastCleanup);
+    public long getLastCleanup() {
+        return lastCleanup;
     }
 
     public long getLastRepositorySize() {
@@ -107,14 +105,6 @@ public class FileStoreGCMonitor implements GCMonitor {
 
     public long getLastReclaimedSize() {
         return lastReclaimedSize;
-    }
-
-    private static String toString(long timestamp) {
-        if (timestamp != 0) {
-            return getDateTimeInstance().format(new Date(timestamp));
-        } else {
-            return null;
-        }
     }
 
     public String getLastError() {

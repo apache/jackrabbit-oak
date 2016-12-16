@@ -123,15 +123,13 @@ public class SegmentRevisionGCMBean
         fileStore.cancelGC();
     }
 
-    @CheckForNull
     @Override
-    public String getLastCompaction() {
+    public long getLastCompaction() {
         return fileStoreGCMonitor.getLastCompaction();
     }
 
-    @CheckForNull
     @Override
-    public String getLastCleanup() {
+    public long getLastCleanup() {
         return fileStoreGCMonitor.getLastCleanup();
     }
 
