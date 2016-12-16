@@ -34,14 +34,15 @@ in-place. Old files will be moved to the repository/crx2 directory.
 
 An descriptor of the Oak node store. Possible options:
 
-  * path to the segment store
+  * path to the segment-tar store
+  * segment-old:/path/to/classic/segment
   * jdbc:... (requires passing username and password as separate parameters)
   * mongodb://host:port/database
 
 # node store options
 
 --cache <int>             Cache size in MB (default: 256)
---mmap                    Enable memory mapped file access for Segment Store
+--disable-mmap            Disable memory mapped file access for Segment Store
 
 --src-password            Source rdb password
 --src-user                Source rdb user
@@ -92,4 +93,7 @@ An descriptor of the Oak node store. Possible options:
 
 # other options
 
--?, -h, --help            show help
+-?, -h, --help            Show help
+--skip-init               Don't initialize the destination repository
+--skip-name-check         Don't look for long-named nodes at the beginning of
+                          the migration

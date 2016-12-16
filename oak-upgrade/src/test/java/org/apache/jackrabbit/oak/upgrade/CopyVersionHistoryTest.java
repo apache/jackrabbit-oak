@@ -16,8 +16,37 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.createLabeledVersions;
+import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.getOrAddNodeWithMixins;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.version.Version;
+import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionManager;
+
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -31,37 +60,6 @@ import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyType;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.version.Version;
-import javax.jcr.version.VersionHistory;
-import javax.jcr.version.VersionManager;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.Lists;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.getOrAddNodeWithMixins;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.createLabeledVersions;
 
 public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
@@ -253,6 +251,8 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
         assertMissingHistories(session,
                 VERSIONABLES_OLD, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG, VERSIONABLES_YOUNG_ORPHANED);
+        assertNotNull(session.getNode("/jcr:system/jcr:versionStorage")
+                .getPrimaryNodeType());
     }
 
     protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {

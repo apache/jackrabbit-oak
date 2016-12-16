@@ -14,42 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.container;
+package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 
-public class FileBlobStoreContainer implements BlobStoreContainer {
+import com.google.common.io.Closer;
 
-    private final File directory;
+public class MissingBlobStoreFactory implements BlobStoreFactory {
 
-    public FileBlobStoreContainer() throws IOException {
-        this.directory = Files.createTempDirectory(Paths.get("target"), "repo-fbs").toFile();
+    @Override
+    public BlobStore create(Closer closer) {
+        return new MissingBlobStore();
     }
 
     @Override
-    public BlobStore open() throws IOException {
-        return new FileBlobStore(directory.getPath());
+    public String toString() {
+        return "MissingBlobStore";
     }
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void clean() throws IOException {
-        FileUtils.deleteQuietly(directory);
-    }
-
-    @Override
-    public String getDescription() {
-        return directory.getPath();
-    }
-
 }

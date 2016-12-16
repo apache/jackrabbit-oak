@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 
+import java.io.IOException;
+
 public class FbsToFdsTest extends AbstractOak2OakTest {
 
     private final BlobStoreContainer sourceBlob;
@@ -33,7 +35,7 @@ public class FbsToFdsTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer destination;
 
-    public FbsToFdsTest() {
+    public FbsToFdsTest() throws IOException {
         sourceBlob = new FileBlobStoreContainer();
         destinationBlob = new FileDataStoreContainer();
         source = new SegmentNodeStoreContainer(sourceBlob);
@@ -54,5 +56,10 @@ public class FbsToFdsTest extends AbstractOak2OakTest {
     protected String[] getArgs() {
         return new String[] { "--copy-binaries", "--src-fileblobstore", sourceBlob.getDescription(), "--datastore",
                 destinationBlob.getDescription(), source.getDescription(), destination.getDescription() };
+    }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
     }
 }

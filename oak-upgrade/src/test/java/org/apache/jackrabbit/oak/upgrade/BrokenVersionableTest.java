@@ -16,9 +16,24 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.jcr.Credentials;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionIterator;
+import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
@@ -34,21 +49,6 @@ import org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.Credentials;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.version.VersionHistory;
-import javax.jcr.version.VersionIterator;
-import javax.jcr.version.VersionManager;
-
-import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class BrokenVersionableTest {
 

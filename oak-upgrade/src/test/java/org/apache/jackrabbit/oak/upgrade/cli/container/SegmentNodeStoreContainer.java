@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.google.common.io.Files;
 
 public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
@@ -34,22 +34,26 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     private FileStore fs;
 
-    public SegmentNodeStoreContainer() {
-        this(Files.createTempDir());
+    public SegmentNodeStoreContainer() throws IOException {
+        this(null, null);
     }
 
-    public SegmentNodeStoreContainer(File directory) {
-        this.blob = null;
-        this.directory = directory;
+    public SegmentNodeStoreContainer(File directory) throws IOException {
+        this(null, directory);
     }
 
-    public SegmentNodeStoreContainer(BlobStoreContainer blob) {
+    public SegmentNodeStoreContainer(BlobStoreContainer blob) throws IOException {
+        this(blob, null);
+    }
+
+    private SegmentNodeStoreContainer(BlobStoreContainer blob, File directory) throws IOException {
         this.blob = blob;
-        this.directory = Files.createTempDir();
+        this.directory = directory == null ? Files.createTempDirectory(Paths.get("target"), "repo-segment").toFile() : directory;
     }
 
     @Override
     public NodeStore open() throws IOException {
+        directory.mkdirs();
         FileStore.Builder builder = FileStore.newFileStore(new File(directory, "segmentstore"));
         if (blob != null) {
             builder.withBlobStore(blob.open());
@@ -60,12 +64,14 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void close() {
-        fs.close();
+        if (fs != null) {
+            fs.close();
+        }
     }
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteDirectory(directory);
+        FileUtils.deleteQuietly(directory);
         if (blob != null) {
             blob.clean();
         }
@@ -76,4 +82,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
         return directory.getPath();
     }
 
+    public File getDirectory() {
+        return directory;
+    }
 }

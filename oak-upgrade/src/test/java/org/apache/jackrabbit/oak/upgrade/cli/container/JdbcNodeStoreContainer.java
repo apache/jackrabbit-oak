@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -26,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
-import com.google.common.io.Files;
 
 public class JdbcNodeStoreContainer implements NodeStoreContainer {
 
@@ -46,11 +47,11 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
         this(new DummyBlobStoreContainer());
     }
 
-    public JdbcNodeStoreContainer(BlobStoreContainer blob) {
+    public JdbcNodeStoreContainer(BlobStoreContainer blob) throws IOException {
         this.blob = blob;
-        this.h2Dir = Files.createTempDir();
-        this.jdbcUri = String.format("jdbc:h2:%s", h2Dir.getPath());
-        this.jdbcFactory = new JdbcFactory(jdbcUri, 2, "sa", "sa");
+        this.h2Dir = Files.createTempDirectory(Paths.get("target"), "repo-h2").toFile();
+        this.jdbcUri = String.format("jdbc:h2:%s", h2Dir.getAbsolutePath() + "/JdbcNodeStoreContainer");
+        this.jdbcFactory = new JdbcFactory(jdbcUri, 2, "sa", "sa", false);
     }
 
     @Override
@@ -62,7 +63,10 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
     @Override
     public void close() {
         try {
-            closer.close();
+            if (closer != null) {
+                closer.close();
+                closer = null;
+            }
         } catch (IOException e) {
             LOG.error("Can't close document node store", e);
         }
@@ -70,7 +74,7 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteDirectory(h2Dir);
+        FileUtils.deleteQuietly(h2Dir);
         blob.clean();
     }
 

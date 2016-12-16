@@ -14,26 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.blob;
+package org.apache.jackrabbit.oak.upgrade.cli;
 
-import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
-import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 
-public class CopyReferencesTest extends AbstractOak2OakTest {
+import java.io.IOException;
 
-    private final BlobStoreContainer sourceBlob;
-
+public class SegmentToSegmentWithMissingDestinationDirectoryTest extends AbstractOak2OakTest {
     private final NodeStoreContainer source;
 
     private final NodeStoreContainer destination;
 
-    public CopyReferencesTest() {
-        sourceBlob = new FileDataStoreContainer();
-        source = new SegmentNodeStoreContainer(sourceBlob);
-        destination = new SegmentNodeStoreContainer(sourceBlob);
+    public SegmentToSegmentWithMissingDestinationDirectoryTest() throws IOException {
+        source = new SegmentNodeStoreContainer();
+        destination = getSegmentNodeStoreContainerWithMissingDirectory();
+    }
+
+    private SegmentNodeStoreContainer getSegmentNodeStoreContainerWithMissingDirectory() throws IOException {
+        SegmentNodeStoreContainer segmentNodeStoreContainer = new SegmentNodeStoreContainer();
+        segmentNodeStoreContainer.getDirectory().delete();
+        return segmentNodeStoreContainer;
     }
 
     @Override
@@ -48,7 +49,12 @@ public class CopyReferencesTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--src-datastore", sourceBlob.getDescription(), source.getDescription(),
-                destination.getDescription() };
+        return new String[] { source.getDescription(), destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
+
 }

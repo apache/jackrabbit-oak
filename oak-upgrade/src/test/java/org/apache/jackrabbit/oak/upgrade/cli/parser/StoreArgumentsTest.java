@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.node;
+package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
-import java.io.IOException;
+import org.junit.Test;
 
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+public class StoreArgumentsTest {
 
-import com.google.common.io.Closer;
-
-public interface NodeStoreFactory {
-
-    NodeStore create(BlobStore blobStore, Closer closer) throws IOException;
-
-    boolean hasExternalBlobReferences() throws IOException;
+    @Test(expected =  CliArgumentException.class)
+    public void testSameRepositoryFails() throws CliArgumentException {
+        MigrationCliArguments parsed = new MigrationCliArguments(OptionParserFactory.create().parse("my/repo", "my/repo"));
+        MigrationOptions options = new MigrationOptions(parsed);
+        new StoreArguments(options, parsed.getArguments());
+    }
 }

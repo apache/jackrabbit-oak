@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SKIP_NAME_CHECK;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.ALL;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NONE;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
@@ -51,7 +52,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.NamespaceException;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -68,6 +71,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.core.IndexAccessor;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
 import org.apache.jackrabbit.core.config.LoginModuleConfig;
@@ -76,6 +80,7 @@ import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
+import org.apache.jackrabbit.core.query.lucene.FieldNames;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -89,7 +94,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
@@ -121,9 +125,11 @@ import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
+import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
 import org.apache.jackrabbit.oak.upgrade.version.VersionablePropertiesEditor;
 import org.apache.jackrabbit.spi.Name;
@@ -135,16 +141,23 @@ import org.apache.jackrabbit.spi.QValueConstraint;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TermDocs;
+import org.apache.lucene.index.TermEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositoryUpgrade {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryUpgrade.class);
 
-    private static final Set<String> INDEXES_TO_REBUILD = ImmutableSet.of("counter");
+    private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+
+    private static final Set<String> INDEXES_TO_REBUILD = ImmutableSet.of("counter", "uuid");
 
     public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
 
@@ -188,7 +201,9 @@ public class RepositoryUpgrade {
 
     private List<CommitHook> customCommitHooks = null;
 
-    private boolean skipLongNames = true;
+    private boolean checkLongNames = false;
+
+    private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
 
@@ -262,12 +277,20 @@ public class RepositoryUpgrade {
         this.earlyShutdown = earlyShutdown;
     }
 
-    public boolean isSkipLongNames() {
-        return skipLongNames;
+    public boolean isCheckLongNames() {
+        return checkLongNames;
     }
 
-    public void setSkipLongNames(boolean skipLongNames) {
-        this.skipLongNames = skipLongNames;
+    public void setCheckLongNames(boolean checkLongNames) {
+        this.checkLongNames = checkLongNames;
+    }
+
+    public boolean isFilterLongNames() {
+        return filterLongNames;
+    }
+
+    public void setFilterLongNames(boolean filterLongNames) {
+        this.filterLongNames = filterLongNames;
     }
 
     public boolean isSkipInitialization() {
@@ -318,7 +341,6 @@ public class RepositoryUpgrade {
         this.excludePaths = copyOf(checkNotNull(excludes));
     }
 
-
     /**
      * Sets the paths that should be merged when the source repository
      * is copied to the target repository.
@@ -348,8 +370,8 @@ public class RepositoryUpgrade {
      * not referenced by the existing nodes). By default all orphaned version
      * histories are copied. One may disable it completely by setting
      * {@code null} here or limit it to a selected date range:
-     * {@code <minDate, now()>}. <br/>
-     * <br/>
+     * {@code <minDate, now()>}. <br>
+     * <br>
      * Please notice, that this option is overriden by the
      * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
      * older than set in {@link #setCopyVersions(Calendar)} and if you set
@@ -378,10 +400,18 @@ public class RepositoryUpgrade {
      * @throws RepositoryException if the copy operation fails
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
+        if (checkLongNames) {
+            assertNoLongNames();
+        }
+
         RepositoryConfig config = source.getRepositoryConfig();
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
             NodeBuilder targetBuilder = target.getRoot().builder();
+            if (VersionHistoryUtil.getVersionStorage(targetBuilder).exists() && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                logger.warn("The version storage on destination already exists. Orphaned version histories will be skipped.");
+                versionCopyConfiguration.setCopyOrphanedVersions(null);
+            }
             final Root upgradeRoot = new UpgradeRoot(targetBuilder);
 
             String workspaceName =
@@ -453,10 +483,10 @@ public class RepositoryUpgrade {
                             source, workspaceName, targetBuilder.getNodeState(), 
                             uriToPrefix, copyBinariesByReference, skipOnError
                     ),
-                    new LoggingReporter(logger, "Migrating", 10000, -1)
+                    new LoggingReporter(logger, "Migrating", LOG_NODE_COPY, -1)
             );
             final NodeState sourceRoot;
-            if (skipLongNames) {
+            if (filterLongNames) {
                 sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
             } else {
                 sourceRoot = reportingSourceRoot;
@@ -472,7 +502,7 @@ public class RepositoryUpgrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration);
+                copyVersionStorage(targetBuilder, getVersionStorage(sourceRoot), getVersionStorage(targetBuilder), versionCopyConfiguration);
                 targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
                 logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             } else {
@@ -489,6 +519,9 @@ public class RepositoryUpgrade {
             String groupsPath = userConf.getParameters().getConfigValue(
                     UserConstants.PARAM_GROUP_PATH,
                     UserConstants.DEFAULT_GROUP_PATH);
+            String usersPath = userConf.getParameters().getConfigValue(
+                    UserConstants.PARAM_USER_PATH,
+                    UserConstants.DEFAULT_USER_PATH);
 
             // hooks specific to the upgrade, need to run first
             hooks.add(new EditorHook(new CompositeEditorProvider(
@@ -496,7 +529,8 @@ public class RepositoryUpgrade {
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
                     new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
-                    new SameNameSiblingsEditor.Provider()
+                    new SameNameSiblingsEditor.Provider(),
+                    AuthorizableFolderEditor.provider(groupsPath, usersPath)
             )));
 
             // this editor works on the VersionableEditor output, so it can't be
@@ -944,6 +978,43 @@ public class RepositoryUpgrade {
             includes.add("/" + childNodeName);
         }
         return includes;
+    }
+
+    void assertNoLongNames() throws RepositoryException {
+        Session session = source.getRepository().login(null, null);
+        boolean longNameFound = false;
+        try {
+            IndexReader reader = IndexAccessor.getReader(source);
+            if (reader == null) {
+                return;
+            }
+            TermEnum terms = reader.terms(new Term(FieldNames.LOCAL_NAME));
+            while (terms.next()) {
+                Term t = terms.term();
+                if (!FieldNames.LOCAL_NAME.equals(t.field())) {
+                    continue;
+                }
+                String name = t.text();
+                if (NameFilteringNodeState.isNameTooLong(name)) {
+                    TermDocs docs = reader.termDocs(t);
+                    if (docs.next()) {
+                        int docId = docs.doc();
+                        String uuid = reader.document(docId).get(FieldNames.UUID);
+                        Node n = session.getNodeByIdentifier(uuid);
+                        logger.warn("Name too long: {}", n.getPath());
+                        longNameFound = true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new RepositoryException(e);
+        } finally {
+            session.logout();
+        }
+        if (longNameFound) {
+            logger.error("Node with a long name has been found. Please fix the content or rerun the migration with {} option.", SKIP_NAME_CHECK);
+            throw new RepositoryException("Node with a long name has been found.");
+        }
     }
 
     static class LoggingCompositeHook implements CommitHook {
