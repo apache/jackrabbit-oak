@@ -73,8 +73,8 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      *
      * @param path The path where the node-state should be assumed to be located.
      * @param delegate The node-state to decorate.
-     * @param includePaths A Set of paths that should be visible. Defaults to ["/"] if {@code null).
-     * @param excludePaths A Set of paths that should be hidden. Empty if {@code null).
+     * @param includePaths A Set of paths that should be visible. Defaults to ["/"] if {@code null}.
+     * @param excludePaths A Set of paths that should be hidden. Empty if {@code null}.
      * @return The decorated node-state if required, the original node-state if decoration is unnecessary.
      * @param excludePaths
      */

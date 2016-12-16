@@ -20,38 +20,112 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
+
+import javax.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 public class SegmentFactory implements NodeStoreFactory {
 
     private final File dir;
 
-    private final boolean mmap;
+    private final boolean disableMmap;
 
-    public SegmentFactory(String directory, boolean mmap) {
+    private final boolean readOnly;
+
+    public SegmentFactory(String directory, boolean disableMmap, boolean readOnly) {
         this.dir = new File(directory);
-        this.mmap = mmap;
+        this.disableMmap = disableMmap;
+        this.readOnly = readOnly;
+        createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Not a directory: " + dir.getPath());
         }
     }
 
+    private void createDirectoryIfMissing(File directory) {
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+    }
+
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
-        Builder builder = FileStore.newFileStore(new File(dir, "segmentstore"));
-        if (blobStore != null) {
-            builder.withBlobStore(blobStore);
+        File directory = new File(dir, "segmentstore");
+
+        final FileStore fs;
+        if (readOnly) {
+            if (disableMmap) {
+                fs = new FileStore.ReadOnlyStore(directory, 0, false, blobStore);
+            } else {
+                fs = new FileStore.ReadOnlyStore(directory, blobStore);
+            }
+        } else {
+            Builder builder = FileStore.newFileStore(directory);
+            if (blobStore != null) {
+                builder.withBlobStore(blobStore);
+            }
+            builder.withMaxFileSize(256);
+            if (disableMmap) {
+                builder.withMemoryMapping(false);
+            } else {
+                builder.withDefaultMemoryMapping();
+            }
+            fs = builder.create();
         }
-        builder.withMaxFileSize(256).withMemoryMapping(mmap);
-        FileStore fs = builder.create();
         closer.register(asCloseable(fs));
-        return SegmentNodeStore.newSegmentNodeStore(fs).create();
+
+        return new TarNodeStore(SegmentNodeStore.newSegmentNodeStore(fs).create(), new TarNodeStore.SuperRootProvider() {
+            @Override
+            public void setSuperRoot(NodeBuilder builder) {
+                checkArgument(builder instanceof SegmentNodeBuilder);
+                SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
+                SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
+
+                if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
+                    throw new IllegalArgumentException("The new head is out of date");
+                }
+
+                fs.setHead(lastRoot, ((SegmentNodeBuilder) builder).getNodeState());
+            }
+
+            @Override
+            public NodeState getSuperRoot() {
+                return fs.getHead();
+            }
+        });
+    }
+
+    @Override
+    public boolean hasExternalBlobReferences() throws IOException {
+        FileStore fs = new FileStore.ReadOnlyStore(new File(dir, "segmentstore"), 0, false);
+        try {
+            fs.getTracker().collectBlobReferences(new ReferenceCollector() {
+                @Override
+                public void addReference(String reference, @Nullable String nodeId) {
+                    // FIXME the collector should allow to stop processing
+                    // see java.nio.file.FileVisitor
+                    throw new ExternalBlobFound();
+                }
+            });
+            return false;
+        } catch (ExternalBlobFound e) {
+            return true;
+        } finally {
+            fs.close();
+        }
     }
 
     public File getRepositoryDir() {
@@ -70,5 +144,8 @@ public class SegmentFactory implements NodeStoreFactory {
     @Override
     public String toString() {
         return String.format("SegmentNodeStore[%s]", dir);
+    }
+
+    private static class ExternalBlobFound extends RuntimeException {
     }
 }

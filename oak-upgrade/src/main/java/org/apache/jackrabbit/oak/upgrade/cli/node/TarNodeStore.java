@@ -16,16 +16,40 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import java.io.IOException;
-
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 
-import com.google.common.io.Closer;
+public class TarNodeStore extends ProxyNodeStore {
 
-public interface NodeStoreFactory {
+    private final NodeStore ns;
 
-    NodeStore create(BlobStore blobStore, Closer closer) throws IOException;
+    private final SuperRootProvider superRootProvider;
 
-    boolean hasExternalBlobReferences() throws IOException;
+    public TarNodeStore(NodeStore ns, SuperRootProvider superRootProvider) {
+        this.ns = ns;
+        this.superRootProvider = superRootProvider;
+    }
+
+    public void setSuperRoot(NodeBuilder builder) {
+        superRootProvider.setSuperRoot(builder);
+    }
+
+    public NodeState getSuperRoot() {
+        return superRootProvider.getSuperRoot();
+    }
+
+    @Override
+    protected NodeStore getNodeStore() {
+        return ns;
+    }
+
+    interface SuperRootProvider {
+
+        void setSuperRoot(NodeBuilder builder);
+
+        NodeState getSuperRoot();
+
+    }
 }

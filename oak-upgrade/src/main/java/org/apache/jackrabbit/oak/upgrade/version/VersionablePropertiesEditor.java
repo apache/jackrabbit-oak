@@ -37,7 +37,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
@@ -51,6 +50,7 @@ import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryNodeState;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
 /**
  * The VersionablePropertiesEditor adds missing versionable properties.
@@ -62,6 +62,8 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     private static final Logger log = LoggerFactory.getLogger(VersionablePropertiesEditor.class);
 
     private final NodeBuilder rootBuilder;
+
+    private final NodeBuilder versionStorage;
 
     private final NodeBuilder builder;
 
@@ -76,6 +78,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     private VersionablePropertiesEditor(NodeBuilder rootBuilder) {
         this.builder = rootBuilder;
         this.rootBuilder = rootBuilder;
+        this.versionStorage = getVersionStorage(rootBuilder);
         this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
         this.isSimpleVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_SIMPLE_VERSIONABLE);
         this.isNtVersion = new TypePredicate(rootBuilder.getNodeState(), NT_VERSION);
@@ -85,6 +88,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     private VersionablePropertiesEditor(VersionablePropertiesEditor parent, NodeBuilder builder) {
         this.builder = builder;
         this.rootBuilder = parent.rootBuilder;
+        this.versionStorage = parent.versionStorage;
         this.isVersionable = parent.isVersionable;
         this.isSimpleVersionable = parent.isSimpleVersionable;
         this.isNtVersion = parent.isNtVersion;
@@ -133,7 +137,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     }
 
     private void fixProperties(NodeBuilder node) {
-        NodeState versionHistory = getVersionHistoryNodeState(rootBuilder.getNodeState(), node.getString(JCR_UUID));
+        NodeState versionHistory = getVersionHistoryNodeState(versionStorage.getNodeState(), node.getString(JCR_UUID));
         if (!versionHistory.exists()) {
             log.warn("No version history for {}", node);
             return;

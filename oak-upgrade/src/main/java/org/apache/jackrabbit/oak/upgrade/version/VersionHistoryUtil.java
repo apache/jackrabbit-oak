@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.upgrade.version;
 
 import static com.google.common.collect.Iterables.concat;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -31,10 +34,10 @@ import com.google.common.base.Joiner;
 
 public class VersionHistoryUtil {
 
-    public static String getVersionHistoryPath(String versionableUuid) {
+    public static String getRelativeVersionHistoryPath(String versionableUuid) {
         return Joiner.on('/').join(concat(
                 singleton(""),
-                getVersionHistoryPathSegments(versionableUuid),
+                getRelativeVersionHistoryPathSegments(versionableUuid),
                 singleton(versionableUuid)));
     }
 
@@ -46,30 +49,44 @@ public class VersionHistoryUtil {
      * @return The NodeState corresponding to the version history, or {@code null}
      *         if it does not exist.
      */
-    static NodeState getVersionHistoryNodeState(NodeState root, String versionableUuid) {
-        NodeState historyParent = root;
-        for (String segment : getVersionHistoryPathSegments(versionableUuid)) {
+    static NodeState getVersionHistoryNodeState(NodeState versionStorage, String versionableUuid) {
+        NodeState historyParent = versionStorage;
+        for (String segment : getRelativeVersionHistoryPathSegments(versionableUuid)) {
             historyParent = historyParent.getChildNode(segment);
         }
         return historyParent.getChildNode(versionableUuid);
     }
 
-    static NodeBuilder getVersionHistoryBuilder(NodeBuilder root, String versionableUuid) {
-        NodeBuilder history = root;
-        for (String segment : getVersionHistoryPathSegments(versionableUuid)) {
+    static NodeBuilder getVersionHistoryBuilder(NodeBuilder versionStorage, String versionableUuid) {
+        NodeBuilder history = versionStorage;
+        for (String segment : getRelativeVersionHistoryPathSegments(versionableUuid)) {
             history = history.getChildNode(segment);
         }
         return history.getChildNode(versionableUuid);
     }
 
-    private static List<String> getVersionHistoryPathSegments(String versionableUuid) {
+    private static List<String> getRelativeVersionHistoryPathSegments(String versionableUuid) {
         final List<String> segments = new ArrayList<String>();
-        segments.add(JCR_SYSTEM);
-        segments.add(JCR_VERSIONSTORAGE);
         for (int i = 0; i < 3; i++) {
             segments.add(versionableUuid.substring(i * 2, i * 2 + 2));
         }
         return segments;
+    }
+
+    public static NodeState getVersionStorage(NodeState root) {
+        return root.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
+    }
+
+    public static NodeBuilder getVersionStorage(NodeBuilder root) {
+        return root.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
+    }
+
+    public static NodeBuilder createVersionStorage(NodeBuilder root) {
+        NodeBuilder vs = root.child(JCR_SYSTEM).child(JCR_VERSIONSTORAGE);
+        if (!vs.hasProperty(JCR_PRIMARYTYPE)) {
+            vs.setProperty(JCR_PRIMARYTYPE, REP_VERSIONSTORAGE, Type.NAME);
+        }
+        return vs;
     }
 
 }

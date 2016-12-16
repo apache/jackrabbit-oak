@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import com.mongodb.DB;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -31,35 +35,60 @@ import java.net.UnknownHostException;
 
 public class MongoFactory implements NodeStoreFactory {
 
+    private static final Logger log = LoggerFactory.getLogger(MongoFactory.class);
+
     private static final long MB = 1024 * 1024;
 
     private final MongoClientURI uri;
 
     private final int cacheSize;
 
-    public MongoFactory(String repoDesc, int cacheSize) {
+    private final boolean readOnly;
+
+    public MongoFactory(String repoDesc, int cacheSize, boolean readOnly) {
         this.uri = new MongoClientURI(repoDesc);
         this.cacheSize = cacheSize;
+        this.readOnly = readOnly;
     }
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws UnknownHostException {
+        DocumentMK.Builder builder = getBuilder(cacheSize);
+        builder.setMongoDB(getDB(closer));
+        if (blobStore != null) {
+            builder.setBlobStore(blobStore);
+        }
+        if (readOnly) {
+            log.warn("Read-only mode for the DocumentMK is not available in 1.4");
+        }
+        DocumentNodeStore documentNodeStore = builder.getNodeStore();
+        closer.register(asCloseable(documentNodeStore));
+        return documentNodeStore;
+    }
+
+    private DB getDB(Closer closer) throws UnknownHostException {
         String db;
         if (uri.getDatabase() == null) {
             db = "aem-author"; // assume an author instance
         } else {
             db = uri.getDatabase();
         }
-        DocumentMK.Builder builder = getBuilder(cacheSize);
         MongoClient client = new MongoClient(uri);
         closer.register(asCloseable(client));
-        builder.setMongoDB(client.getDB(db));
-        if (blobStore != null) {
-            builder.setBlobStore(blobStore);
+        return client.getDB(db);
+    }
+
+    @Override
+    public boolean hasExternalBlobReferences() throws IOException {
+        Closer closer = Closer.create();
+        try {
+            MongoBlobStore mongoBlobStore = new MongoBlobStore(getDB(closer));
+            return !mongoBlobStore.getAllChunkIds(0).hasNext();
+        } catch(Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
         }
-        DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        closer.register(asCloseable(documentNodeStore));
-        return documentNodeStore;
     }
 
     static Closeable asCloseable(final DocumentNodeStore documentNodeStore) {

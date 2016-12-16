@@ -62,4 +62,9 @@ public class S3ToFbsTest extends AbstractOak2OakTest {
                 S3_PROPERTIES, "--fileblobstore", destinationBlob.getDescription(), source.getDescription(),
                 destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
 }

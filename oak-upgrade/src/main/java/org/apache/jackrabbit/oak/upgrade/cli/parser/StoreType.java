@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.MigrationDirection;
 
-enum StoreType {
+public enum StoreType {
     JCR2_XML {
         @Override
         public boolean matches(String argument) {
@@ -34,8 +34,13 @@ enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return true;
         }
     },
     JCR2_DIR {
@@ -45,8 +50,13 @@ enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return true;
         }
     },
     JCR2_DIR_XML {
@@ -56,8 +66,13 @@ enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             return new StoreFactory(new Jackrabbit2Factory(paths[0], paths[1]));
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return true;
         }
     },
     JDBC {
@@ -67,17 +82,22 @@ enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             String username, password;
             if (direction == MigrationDirection.SRC) {
-                username = arguments.getOption(OptionParserFactory.SRC_USER);
-                password = arguments.getOption(OptionParserFactory.SRC_PASSWORD);
+                username = migrationOptions.getSrcUser();
+                password = migrationOptions.getSrcPassword();
             } else {
-                username = arguments.getOption(OptionParserFactory.DST_USER);
-                password = arguments.getOption(OptionParserFactory.DST_PASSWORD);
+                username = migrationOptions.getDstUser();
+                password = migrationOptions.getDstPassword();
             }
             return new StoreFactory(
-                    new JdbcFactory(paths[0], arguments.getOptions().getCacheSizeInMB(), username, password));
+                    new JdbcFactory(paths[0], migrationOptions.getCacheSizeInMB(), username, password, direction == MigrationDirection.SRC));
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return false;
         }
     },
     MONGO {
@@ -87,8 +107,13 @@ enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new MongoFactory(paths[0], arguments.getOptions().getCacheSizeInMB()));
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new StoreFactory(new MongoFactory(paths[0], migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC));
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return false;
         }
     },
     SEGMENT {
@@ -98,8 +123,13 @@ enum StoreType {
         }
 
         @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments) {
-            return new StoreFactory(new SegmentFactory(paths[0], arguments.getOptions().isMmap()));
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
+            return new StoreFactory(new SegmentFactory(paths[0], migrationOptions.isDisableMmap(), direction == MigrationDirection.SRC));
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return true;
         }
     };
 
@@ -114,5 +144,11 @@ enum StoreType {
 
     public abstract boolean matches(String argument);
 
-    public abstract StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationCliArguments arguments);
+    public abstract StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions);
+
+    public abstract boolean isSupportLongNames();
+
+    public boolean isSegment() {
+        return this == SEGMENT;
+    }
 }

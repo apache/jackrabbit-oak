@@ -86,7 +86,6 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
         SegmentNodeStore segmentNodeStore = SegmentNodeStore.newSegmentNodeStore(fileStore).create();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);
-            repositoryUpgrade.setSkipInitialization(skipInit);
             repositoryUpgrade.copy(new RepositoryInitializer() {
                 @Override
                 public void initialize(@Nonnull NodeBuilder builder) {

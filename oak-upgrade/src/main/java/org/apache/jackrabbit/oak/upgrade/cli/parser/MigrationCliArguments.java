@@ -27,15 +27,9 @@ public final class MigrationCliArguments {
 
     private final List<String> arguments;
 
-    private final MigrationOptions migrationOptions;
-
-    private final StoreArguments storeArguments;
-
     public MigrationCliArguments(OptionSet options) throws CliArgumentException {
         this.options = options;
-        arguments = getNonOptionArguments();
-        migrationOptions = new MigrationOptions(this);
-        storeArguments = new StoreArguments(this);
+        this.arguments = getNonOptionArguments();
     }
 
     private List<String> getNonOptionArguments() {
@@ -67,15 +61,7 @@ public final class MigrationCliArguments {
         }
     }
 
-    public MigrationOptions getOptions() {
-        return migrationOptions;
-    }
-
-    public StoreArguments getStoreArguments() {
-        return storeArguments;
-    }
-
-    List<String> getArguments() {
+    public List<String> getArguments() {
         return arguments;
     }
 }

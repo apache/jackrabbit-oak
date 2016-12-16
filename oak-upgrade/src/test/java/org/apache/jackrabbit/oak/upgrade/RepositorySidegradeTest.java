@@ -98,26 +98,10 @@ public class RepositorySidegradeTest {
     public JackrabbitSession createAdminSession() throws RepositoryException {
         return (JackrabbitSession) targetRepository.login(CREDENTIALS);
     }
-    
-    // OAK-2869
-    private static void setAsync(NodeStore source) throws Exception {
-        NodeBuilder builder = source.getRoot().builder();
-        builder.child(":async").setProperty("test", "123");
-        source.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-    
-    // OAK-2869
-    @Test
-    public void verifyAsync() throws Exception {
-        NodeState state = targetNodeStore.getRoot().getChildNode(":async");
-        assertFalse(state.hasProperty("test"));
-    }
 
     @SuppressWarnings("unchecked")
     protected NodeStore createSourceContent() throws Exception {
         NodeStore source = new SegmentNodeStore();
-        setAsync(source);
-        
         Repository repository = new Jcr(new Oak(source)).createRepository();
 
         Session session = repository.login(CREDENTIALS);
