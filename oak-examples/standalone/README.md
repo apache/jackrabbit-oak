@@ -35,7 +35,7 @@ Once done you can run the application by executing
 This would start an Oak based repository which uses filesystem storage. All 
 the content would be by default stored under `oak` folder. The server
 would listen at port 8080 and support remote access via DavEx (at `/server`) 
-and WebDAV (at `/repository`). 
+and WebDAV (at `/repository/default`). 
 
 Now lets write something in the repository
 
