@@ -107,6 +107,13 @@
       <version>${mongo.driver.version}</version>
       <optional>true</optional>
     </dependency>
+    <!-- Required for the persistent cache -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+      <optional>true</optional>
+    </dependency>
 
     <dependency>
       <groupId>javax.jcr</groupId>
@@ -162,6 +169,10 @@
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
     </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
 
     <!-- Required for Felix WebConsole -->
     <dependency>
@@ -196,11 +207,7 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
+
 
     <!--
     Lucene jars are embedded in oak-lucene but IDE does not recognize them
