@@ -19,13 +19,15 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.blob.AbstractBlobTrackerRegistrationTest;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
-
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 
 /**
  * Tests OSGi registration for {@link BlobTrackingStore} in {@link SegmentNodeStoreService}.
@@ -35,15 +37,28 @@ public class SegmentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegis
     private SegmentNodeStoreService service;
 
     @Override
-    protected void registerNodeStoreService() {Map<String, Object> properties = newHashMap();
+    protected void registerNodeStoreService() {
+        Map<String, Object> properties = newHashMap();
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, true);
         properties.put(SegmentNodeStoreService.DIRECTORY, repoHome);
-
         service = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
     }
 
     @Override
     protected void unregisterNodeStoreService() {
-        deactivate(service);
+        ServiceReference[] serviceReferences;
+        try {
+            serviceReferences = context.bundleContext().getServiceReferences(SegmentNodeStoreService.class.getName(), null);
+        } catch (InvalidSyntaxException e) {
+            throw new IllegalStateException("Unable to read references to SegmentNodeStoreService", e);
+        }
+        for (ServiceReference serviceReference : serviceReferences) {
+            Object service = context.bundleContext().getService(serviceReference);
+            if (service == null) {
+                continue;
+            }
+            deactivate(service, serviceReference.getBundle().getBundleContext());
+        }
     }
+
 }

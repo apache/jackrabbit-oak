@@ -271,6 +271,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+            <version>1.9.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
