@@ -234,7 +234,9 @@ public class RepositorySidegrade {
     }
 
     /**
-     * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer. 
+     * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer.
+     *
+     * @throws RepositoryException if the copy operation fails
      */
     public void copy() throws RepositoryException {
         copy(null);
