@@ -19,12 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 
 import javax.annotation.Nullable;
@@ -46,6 +40,12 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Tests OSGi registration for {@link BlobTrackingStore}.
  */
@@ -55,7 +55,7 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     @Rule
     public OsgiContext context = new OsgiContext();
-    
+
     protected String repoHome;
 
     @Before
@@ -72,8 +72,9 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     @Test
     public void registerBlobTrackingStore() throws Exception {
-        registerTrackingBlobStore();
         registerNodeStoreService();
+        assertServiceNotActivated();
+        registerTrackingBlobStore();
         assertServiceActivated();
 
         BlobStore blobStore = context.getService(BlobStore.class);
@@ -85,8 +86,9 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     @Test
     public void reRegisterBlobTrackingStore() throws Exception {
-        registerTrackingBlobStore();
         registerNodeStoreService();
+        assertServiceNotActivated();
+        registerTrackingBlobStore();
         assertServiceActivated();
 
         BlobStore blobStore = context.getService(BlobStore.class);
@@ -111,11 +113,11 @@ public abstract class AbstractBlobTrackerRegistrationTest {
     private void assertTrackerReinitialized() {
         File blobIdFiles = new File(repoHome, "blobids");
         ImmutableList<File> files =
-            Files.fileTreeTraverser().postOrderTraversal(blobIdFiles).filter(new Predicate<File>() {
-                @Override public boolean apply(@Nullable File input) {
-                    return input.getAbsolutePath().endsWith(".process");
-                }
-            }).toList();
+                Files.fileTreeTraverser().postOrderTraversal(blobIdFiles).filter(new Predicate<File>() {
+                    @Override public boolean apply(@Nullable File input) {
+                        return input.getAbsolutePath().endsWith(".process");
+                    }
+                }).toList();
         assertEquals(1, files.size());
     }
 
