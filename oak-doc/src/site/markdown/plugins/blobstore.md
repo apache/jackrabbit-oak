@@ -110,6 +110,48 @@ one of the following can be used
 * S3DataStore - This should be used when binaries are stored in Amazon S3. Typically used when running
   in Amazon AWS
 
+#### Caching DataStore
+
+The DataStore implementations `S3DataStore` and `CachingFileDataStore` support local file system caching for the 
+files/blobs and extend the `AbstractSharedCachingDataStore` class which implements the caching functionality. The 
+`CachingFileDataStore` is useful when the DataStore is on nfs.
+The cache has a size limit and is configured by the `cacheSize` parameter.
+
+#### Downloads
+
+The local cache will be checked for existence of the record corresponding to the requested file/blob before accessing it
+ from the DataStore. When the cache exceeds the limit configured while adding a file into the cache then some of the 
+ file(s) will be evicted to reclaim space. 
+
+#### Asynchronous Uploads
+
+The cache also supports asynchronous uploads to the DataStore. The files are staged locally in the cache on the 
+file system and an asynchronous job started to upload the file. The number of asynchronous uploads are limited by the
+ size of staging cache configured by the `stagingSplitPercentage` parameter and is by default set to 10. This defines
+ the ratio of the `cacheSize` to be dedicated for the staging cache. The percentage of cache available for downloads is
+  calculated as (100 - stagingSplitPerentage) * cacheSize (by default 90). The asynchronous uploads are also 
+  multi-threaded and is governed by the `uploadThreads` configuration parameter. The default value is 10.
+  
+The files are moved to the main download cache after the uploads are complete. When the staging cache exceeds the limit,
+ the files are uploaded synchronously to the DataStore until the previous asynchronous uploads are complete and space
+  available in the staging cache. The uploaded files are removed from the staging area by a periodic job whose interval 
+  is configured by the `stagingPurgeInterval` configuration parameter. The default value is 300 seconds.
+
+Any failed uploads (due to various reasons e.g. network disruption) are put on a retry queue and retried periodically 
+with the configured interval `stagingRetryInterval`. The default value for is 600 seconds.
+
+#### Upgrade (Pre Oak 1.6 caching)
+
+When upgrading from the older cache implementation the process should be seamless and any pending uploads would be 
+scheduled for upload and any previously downloaded files in the cache will be put in the cache on initialization. 
+There is a slight difference in the structure of the local file system cache directory. Whereas in the older cache 
+structure both the downloaded and the upload files were put directly under the cache path. The newer structure 
+segregates the downloads and uploads and stores them under cache path under the directories `download` and `upload`  
+respectively.
+
+There is also an option to upgrade the cache offline by using the `datastorecacheupgrade` command of oak-run. The 
+details on how to execute the command and the different parameters can be checked in the readme for the oak-run module.
+
 ### Blob Garbage Collection
 
 Blob Garbage Collection(GC) is applicable for the following blob stores:
