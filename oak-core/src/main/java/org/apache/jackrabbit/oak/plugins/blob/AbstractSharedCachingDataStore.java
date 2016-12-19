@@ -63,15 +63,15 @@ import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRON
  * Configuration:
  *
  * <pre>
- * &lt;DataStore class="org.apache.jackrabbit.oak.plugins.blob.AbstractCachingDataStore">
- *
- *     &lt;param name="{@link #setPath(String) path}"/>
- *     &lt;param name="{@link #setCacheSize(long) cacheSize}" value="68719476736"/>
- *     &lt;param name="{@link #setStagingSplitPercentage(int) stagingSplitPercentage}" value="10"/>
- *     &lt;param name="{@link #setUploadThreads(int) uploadThreads}" value="10"/>
- *     &lt;param name="{@link #setStagingPurgeInterval(int) stagingPurgeInterval}" value="300"/>
- *     &lt;param name="{@link #setStagingRetryInterval(int) stagingRetryInterval} " value="600"/>
- * &lt;/DataStore>
+ * &lt;DataStore class="org.apache.jackrabbit.oak.plugins.blob.AbstractCachingDataStore"&gt;
+ *     &lt;param name="{@link #setPath(String) path}"/&gt;
+ *     &lt;param name="{@link #setCacheSize(long) cacheSize}" value="68719476736"/&gt;
+ *     &lt;param name="{@link #setStagingSplitPercentage(int) stagingSplitPercentage}" value="10"/&gt;
+ *     &lt;param name="{@link #setUploadThreads(int) uploadThreads}" value="10"/&gt;
+ *     &lt;param name="{@link #setStagingPurgeInterval(int) stagingPurgeInterval}" value="300"/&gt;
+ *     &lt;param name="{@link #setStagingRetryInterval(int) stagingRetryInterval} " value="600"/&gt;
+ * &lt;/DataStore&gt;
+ * </pre>
  */
 public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     implements MultiDataStoreAware, SharedDataStore, TypedDataStore {
