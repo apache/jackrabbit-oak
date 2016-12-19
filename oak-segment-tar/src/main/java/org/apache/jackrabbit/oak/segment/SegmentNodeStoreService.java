@@ -316,8 +316,8 @@ public class SegmentNodeStoreService {
 
     @Property(
             label = "Backup directory",
-            description = "Directory for storing repository backups. Defaults to 'segmentstore-backup' " +
-                    "subdirectory under 'repository.home'."
+            description = "Directory (relative to current working directory) for storing repository backups. " +
+                    "Defaults to 'repository.home/segmentstore-backup'."
     )
     public static final String BACKUP_DIRECTORY = "repository.backup.dir";
 
