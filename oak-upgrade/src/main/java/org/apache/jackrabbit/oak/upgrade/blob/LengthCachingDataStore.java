@@ -71,7 +71,6 @@ import static com.google.common.base.Preconditions.checkState;
  * }</pre>
  * <p>
  * The Configuration:
- * <p>
  * <pre>{@code
  *  <DataStore class="org.apache.jackrabbit.oak.upgrade.blob.LengthCachingDataStore">
  *      <param name="mappingFilePath" value="/path/to/mapping/file" />
