@@ -461,8 +461,8 @@ public class UploadStagingCache implements Closeable {
     /**
      * Returns the File if present or null otherwise.
      * Any usage of the returned file should assert for its existence as the file
-     * could be purged from the file system once uploaded using
-     * {@link org.apache.jackrabbit.core.data.CachingDataStore.FilesUploader}.
+     * could be purged from the file system once uploaded using the internal scheduled remove
+     * mechanism.
      *
      * @param key of the file to check
      * @return a File object if found
