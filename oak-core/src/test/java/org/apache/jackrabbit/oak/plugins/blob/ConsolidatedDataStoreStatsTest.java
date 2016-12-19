@@ -125,9 +125,11 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
 
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
+
+        final File datastoreRoot = folder.newFolder();
         dataStore = new AbstractSharedCachingDataStore() {
             @Override protected AbstractSharedBackend createBackend() {
-                return new TestMemoryBackend();
+                return new TestMemoryBackend(datastoreRoot);
             }
 
             @Override public int getMinRecordLength() {

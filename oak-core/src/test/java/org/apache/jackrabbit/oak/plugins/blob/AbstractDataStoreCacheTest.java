@@ -236,6 +236,11 @@ public class AbstractDataStoreCacheTest {
     // records have been added and removed, for test purposes only.
     static class TestMemoryBackend extends AbstractSharedBackend {
         final Map<DataIdentifier, File> _backend = Maps.newHashMap();
+        private final File root;
+
+        public TestMemoryBackend(File root) {
+            this.root = root;
+        }
 
         @Override public InputStream read(DataIdentifier identifier) throws DataStoreException {
             try {
@@ -248,6 +253,11 @@ public class AbstractDataStoreCacheTest {
         @Override public void write(DataIdentifier identifier, File file)
             throws DataStoreException {
             if (file != null && file.exists()) {
+                try {
+                    FileUtils.copyFile(file, getFile(identifier.toString(), root));
+                } catch (IOException e) {
+                    throw new DataStoreException(e);
+                }
                 _backend.put(identifier, file);
             } else {
                 throw new DataStoreException(

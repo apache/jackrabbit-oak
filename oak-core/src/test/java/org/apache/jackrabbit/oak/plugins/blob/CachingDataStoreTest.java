@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -90,6 +92,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     private void init(int i, int cacheSize, int uploadSplit) throws Exception {
+        LOG.info("Starting init");
+
         // create executor
         taskLatch = new CountDownLatch(1);
         callbackLatch = new CountDownLatch(1);
@@ -103,7 +107,9 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
-        final TestMemoryBackend testBackend = new TestMemoryBackend();
+
+        final File datastoreRoot = folder.newFolder();
+        final TestMemoryBackend testBackend = new TestMemoryBackend(datastoreRoot);
         this.backend = testBackend;
 
         dataStore = new AbstractSharedCachingDataStore() {
@@ -121,6 +127,9 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.listeningExecutor = executor;
         dataStore.schedulerExecutor = scheduledExecutor;
         dataStore.init(root.getAbsolutePath());
+        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+
+        LOG.info("Finished init");
     }
 
     /**
@@ -129,6 +138,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void zeroCacheAddGetDelete() throws Exception {
+        LOG.info("Starting zeroCacheAddGetDelete");
+
         dataStore.close();
         init(1, 0, 0);
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -149,6 +160,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNull(rec);
+
+        LOG.info("Finished zeroCacheAddGetDelete");
     }
 
     /**
@@ -157,6 +170,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void zeroStagingCacheAddGetDelete() throws Exception {
+        LOG.info("Starting zeroStagingCacheAddGetDelete");
+
         dataStore.close();
         init(1, 64 * 1024 * 1024, 0);
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -177,6 +192,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNull(rec);
+
+        LOG.info("Finished zeroStagingCacheAddGetDelete");
     }
 
     /**
@@ -185,6 +202,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void syncAddGetDelete() throws Exception {
+        LOG.info("Starting syncAddGetDelete");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
         FileInputStream fin = new FileInputStream(f);
@@ -203,6 +222,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNull(rec);
+
+        LOG.info("Finished syncAddGetDelete");
     }
 
     /**
@@ -210,8 +231,12 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void getRecordNotAvailable() throws DataStoreException {
+        LOG.info("Starting getRecordNotAvailable");
+
         DataRecord rec = dataStore.getRecordIfStored(new DataIdentifier(ID_PREFIX + 0));
         assertNull(rec);
+
+        LOG.info("Finished getRecordNotAvailable");
     }
 
     /**
@@ -220,7 +245,11 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void exists() throws IOException {
+        LOG.info("Starting exists");
+
         assertFalse(dataStore.exists(new DataIdentifier(ID_PREFIX + 0)));
+
+        LOG.info("Finished exists");
     }
 
     /**
@@ -228,6 +257,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void addDelete() throws Exception {
+        LOG.info("Starting addDelete");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
         FileInputStream fin = new FileInputStream(f);
@@ -248,6 +279,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNull(rec);
+
+        LOG.info("Finished addDelete");
     }
 
     /**
@@ -256,6 +289,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void addStagingAndDelete() throws Exception {
+        LOG.info("Starting addStagingAndDelete");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
         FileInputStream fin = new FileInputStream(f);
@@ -281,6 +316,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNull(rec);
+
+        LOG.info("Finished addStagingAndDelete");
     }
 
     /**
@@ -288,6 +325,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void getAllIdentifiers() throws Exception {
+        LOG.info("Starting getAllIdentifiers");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
         FileInputStream fin = new FileInputStream(f);
@@ -304,10 +343,14 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         waitFinish();
 
         assertTrue(Iterators.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
+
+        LOG.info("Finished getAllIdentifiers");
     }
 
     @Test
     public void reference() throws Exception {
+        LOG.info("Starting reference");
+
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
         FileInputStream fin = new FileInputStream(f);
@@ -337,10 +380,14 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertFile(rec.getStream(), f, folder);
         assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
             rec.getReference());
+
+        LOG.info("Finished reference");
     }
 
     @Test
     public void referenceNoCache() throws Exception {
+        LOG.info("Starting referenceNoCache");
+
         dataStore.close();
         init(1, 0, 0);
 
@@ -361,6 +408,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertFile(rec.getStream(), f, folder);
         assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
             rec.getReference());
+
+        LOG.info("Finished referenceNoCache");
     }
 
     @After
