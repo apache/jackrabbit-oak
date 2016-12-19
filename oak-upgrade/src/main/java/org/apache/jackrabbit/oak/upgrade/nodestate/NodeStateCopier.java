@@ -101,7 +101,8 @@ public class NodeStateCopier {
      *
      * @param source NodeStore to copy from.
      * @param target NodeStore to copy to.
-     * @throws CommitFailedException
+     * @return true if the target has been modified
+     * @throws CommitFailedException if the operation fails
      * @see org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.Builder#copy(NodeStore, NodeStore)
      */
     public static boolean copyNodeStore(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
@@ -409,7 +410,7 @@ public class NodeStateCopier {
          * @param target NodeStore to copy to
          * @return true if there were any changes, false if source and target represent
          *         the same content
-         * @throws CommitFailedException
+         * @throws CommitFailedException if the copy operation fails
          */
         public boolean copy(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
                 throws CommitFailedException {

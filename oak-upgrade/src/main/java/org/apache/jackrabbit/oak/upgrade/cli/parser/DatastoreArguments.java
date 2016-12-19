@@ -52,7 +52,7 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XM
  |   +                    |   *                 |  -                     |  +               |  as in src             |  copy to embedded
  |   +                    |   *                 |  +                     |  *               |  as in src             |  copy to defined blobstore
 
- ¹ - (x) not supported for SegmentMK -> MongoMK migration
+ ¹ - (x) not supported for SegmentMK -&gt; MongoMK migration
 
  For upgrade:
 
