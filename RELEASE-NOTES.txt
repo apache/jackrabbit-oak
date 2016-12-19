@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.15
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.16
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.15 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.16 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,182 +15,63 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.15
+Changes in Oak 1.5.16
 ---------------------
 
-Technical task
+Sub-task
 
-    [OAK-4597] - Improve test coverage of blob GC
-    [OAK-5098] - improve DocumentNodeStoreService robustness for RDB
-    configs
-    [OAK-5126] - Support ChangeSet merging and serialization
-    [OAK-5174] - Introduce API to pass options while writing blobs in
-    BlobStore/DataStore
-    [OAK-5175] - Pass option for synchronized uploads when writing
-    lucene blobs
-    [OAK-5176] - Allow configuring ignoreReindexFlags on per
-    IndexUpdate basis
-    [OAK-5201] - Support upgrade of DataStore cache
-    [OAK-5220] - Remove usage of NodeBuilder in IndexDefinition
-    [OAK-5252] - Disable IPv6 tests on Jenkins nodes labelled "beam"
+    [OAK-5274] - Document CLI tools for oak-segment-tar
+    [OAK-5292] - The README in oak-run should link to the documentation for oak-segment-tar
+    [OAK-5299] - Introduce BlobFactory in OakDirectory
+
 
 Bug
 
-    [OAK-4912] - MongoDB:
-    ReadPreferenceIT.testMongoReadPreferencesForLocalChanges()
-    occasionally fails
-    [OAK-5135] - The flush of written data via TarRevisions is
-    asynchronous in relation to FileStore.close()
-    [OAK-5137] - Standby client and server miss an exception handler
-    [OAK-5138] - NodeCache.getIfPresent() may result in writing to
-    persistent cache
-    [OAK-5148] - Misleading diffJournalChildren debug message
-    [OAK-5151] - Overflown ChangeSets are not handled correctly in
-    ChangeSetFilterImpl
-    [OAK-5153] - explode entire node type/mixin inheritence hierarchy
-    in observation node type filter
-    [OAK-5164] - ChangeSet's maxPathDepth must be taken into account
-    by ChangeSetFilterImpl
-    [OAK-5177] - Non default MissingIndexProviderStrategy is not being
-    passed to child editor
-    [OAK-5178] - Default mode for local_diff cache must be synchronous
-    [OAK-5179] - MultiplexingNodeStoreService does not register an
-    OSGi service for oak.api.Descriptors
-    [OAK-5180] - Fix and enable RemoteServerIT
-    [OAK-5183] - ClusterRepositoryInfo.getOrCreateId should explicitly
-    check for a null argument
-    [OAK-5184] - Inconsistent nullability annotation for CommitInfo in
-    DocumentNodeStore.done()
-    [OAK-5193] - Version tree may become inconsistent after removing a
-    version
-    [OAK-5195] - ExternalPrincipalConfiguration uses
-    'group.autoMembership' instead of 'user.autoMembership'
-    [OAK-5200] - OAK-4930 introduced critical bug confusing id and
-    principal name
-    [OAK-5203] - [oak-run] Rename dumdatastorerefs comand to
-    datastorecheck command
-    [OAK-5204] - Fix logger name for DataStoreCacheUtils class
-    [OAK-5205] - Lucene index causes many split documents
-    [OAK-5215] - remove use of deprecated guava methods
-    [OAK-5223] - SegmentNodeStoreService components don't unregister
-    with the blobstore
-    [OAK-5226] - Incorrect memory calculation for bundled node states
-    [OAK-5228] - Incorrect minTimestamp in
-    DocumentNodeStore.diffImpl()
-    [OAK-5231] - Proper resource cleanup in BlobTrackerTest
-    [OAK-5233] - Parameter --src-datastore is being ignored for JCR2
-    upgrade
-    [OAK-5241] - Test failure: TomcatIT.testTomcat()
+    [OAK-3328] - checked-in state should only affect properties with OPV!=IGNORE
+    [OAK-4687] - Issue with backgroundOperationLock handling in exception case
+    [OAK-5238] - IndexCopier causes concurrent update on NodeBuilder
+    [OAK-5240] - Test failure: IndexSanityCheckerTest.sizeMismatch()
+    [OAK-5254] - MultiplexingNodeStoreService does not pick up Observers registered through the whiteboard
+    [OAK-5258] - LuceneIndexEditor skips indexing for unknown nodetype due to stale NodeType registry state
+    [OAK-5259] - Better default for size delta estimation
+    [OAK-5297] - Check for null homeDir in DataStoreCacheUpgradeUtils
+    [OAK-5300] - OakDirectory.fileLength() must throw FileNotFoundException if file does not exist
+    [OAK-5305] - NRTIndex link to previous index leads to memory leak
+    [OAK-5327] - Change default query limit configuration, take 2
+    [OAK-5333] - Standalone example does not work with mongo
+
+
+Epic
+
+    [OAK-3270] - Improve DocumentMK resilience
+
 
 Improvement
 
-    [OAK-4096] - Limit the number of times a LuceneResultRow based
-    iterator get reset
-    [OAK-4400] - Correlate index with the index definition used to
-    build it
-    [OAK-4561] - Avoid embedding Apache Commons Math in Segment Tar
-    [OAK-4898] - Allow for external changes to have a CommitInfo
-    attached
-    [OAK-4903] - Async uploads in S3 causes issues in a cluster
-    [OAK-4939] - Isolate corrupted index and make async indexer more
-    resilient
-    [OAK-4957] - SegmentRevisionGC MBean should report more detailed
-    gc status information
-    [OAK-5025] - Speed up ACE node name generation
-    [OAK-5092] - Add support for weighing the cache entries in caches
-    [OAK-5101] - Enable prefiltering for external changes
-    [OAK-5116] - GCJournal should persist size only when compaction is
-    successful
-    [OAK-5130] - Prevent FileStore wrapping the segment buffer twice
-    for the generation info
-    [OAK-5132] - Limit diff cache entries in size
-    [OAK-5140] - Collect stats around number of nodes traversed by
-    AsyncIndexer
-    [OAK-5142] - Make sure that metadata entries are eventually
-    removed
-    [OAK-5145] - Warn traversal queries: avoid repeated log entries
-    [OAK-5146] - S3 getOrCreateReferenceKey() should provide a default
-    implementation
-    [OAK-5149] - Set root revision for child nodes in
-    DocumentNodeStore.getChildNodes()
-    [OAK-5150] - Log stats for JournalDiffLoader
-    [OAK-5154] - Checkpoints should only be migrated if no custom
-    paths are defined
-    [OAK-5155] - Remove oak.documentMK.cacheConcurrency system
-    property
-    [OAK-5156] - Limit JournalDiffLoader to subtree
-    [OAK-5157] - Source repository should be opened in read-only mode
-    for sidegrade
-    [OAK-5158] - Online compaction progress monitor
-    [OAK-5160] - guarantee before of
-    FilteringAwareObserver.contentChanged to be Nonnull
-    [OAK-5161] - Improve logging of compaction cycles
-    [OAK-5162] - Increase default size of the observation queue from
-    1000 to 10000
-    [OAK-5163] - ReadWriteVersionManager#getExistingBaseVersion throws
-    an opaque exception if baseVersion doesn't exist
-    [OAK-5166] - Change default cache distribution
-    [OAK-5168] - GlobbingPathFilter recompiles wildcard patterns on
-    each change
-    [OAK-5169] - ChangeSetFilterImpl should support large exclude-path
-    sets
-    [OAK-5170] - Remove duplicate constants in
-    DocumentNodeStoreService
-    [OAK-5172] - TarMK Revision Diff should also print the deleted
-    nodes properties
-    [OAK-5181] - show correct path information for listeners with new
-    filters
-    [OAK-5182] - CugAccessControlManager.removePolicy should remove
-    the mixin
-    [OAK-5185] - Improved JMX descriptions for the query engine
-    [OAK-5188] - Add support for includePropertyTypes to
-    IndexDefinitionBuilder
-    [OAK-5190] - Expose the builder instance used by
-    IndexDefinitionBuilder
-    [OAK-5191] - Deprecate stubs and fixtures related to oak-segment
-    [OAK-5196] - IndexDefinitionBuilder should allow to disable
-    indexing some property definitions
-    [OAK-5206] - Avoid merge sort of changes in intermediate split
-    documents
-    [OAK-5207] - Reduce reads in NodeDocument.getVisibleChanges()
-    [OAK-5211] - OakDirectory should not save dir listing if no change
-    is done
-    [OAK-5212] - Avoid updating the index nodestate if no change is
-    done in index
-    [OAK-5216] - AsyncIndexUpdate: CONCURRENT_UPDATE should contain
-    relevant stacktrace
-    [OAK-5218] - Enable use of hybrid index before first async
-    indexing is done
-    [OAK-5219] - Reindexing for async indexes should only be done when
-    IndexUpdate is running in async mode
-    [OAK-5232] - Add option to datastorecheck command to add blob ids
-    to tracker offline
-    [OAK-5234] - IndexDefinitionBuilder should be able to work with
-    existing NodeBuilder
-    [OAK-5247] - Allow setting property node name in
-    IndexDefinitionBuilder
+    [OAK-3976] - journal should support large(r) entries
+    [OAK-4069] - Use read concern majority when connected to a replica set
+    [OAK-4978] - Expose maintainence related MBeans for Segment NodeStores created via factory
+    [OAK-5060] - Make DocumentNodeStore.alignWithExternalRevisions more chatty
+    [OAK-5186] - ChangeSetFilterImpl: support many includePaths by filtering for 1st path name
+    [OAK-5189] - SegmentRevisionGC should expose unformatted timestamps
+    [OAK-5225] - Online compaction throttling
+    [OAK-5237] - Change default query limit configuration
+    [OAK-5271] - IndexDefinitionBuilder should ignore safe change in "async" for determining reindex flag value
+    [OAK-5295] - Allow chaining of include in building aggregation rule via IndexDefinitionBuilder
+    [OAK-5303] - Improve readability of SegmentNodeStoreService
+    [OAK-5317] - MongoBlobStore creates _id index unnecessarily
 
-New Feature
-
-    [OAK-4922] - Implement number of facets retrieved in query
-    configurable for LucenePropertyIndex
-    [OAK-5236] - LuceneIndexMBean: JMX method to get fields data
 
 Task
 
-    [OAK-5134] - temporarily allow prefiltering test mode to be
-    configured via an osgi config
-    [OAK-5165] - Close AsyncIndexUpdate instance upon deactivate
-    [OAK-5171] - Get rid of test dependency to json.org JSON parser
-    [OAK-5202] - Update Oak trunk to Jackrabbit 2.13.5
-    [OAK-5221] - Do not set :indexPath in index definition node
-    [OAK-5248] - Use segment-tar in webapp example
+    [OAK-4452] - Consistently use the term segment-tar
+    [OAK-5198] - Javadoc and Documentation of ExternalGroupRef
+    [OAK-5199] - Test coverage for ExternalGroupRef
+    [OAK-5256] - Add type property to LuceneIndexEditorProvider
+    [OAK-5257] - Pass CommitContext as part of CommitInfo in OakInitializer
+    [OAK-5294] - Update Oak trunk to Jackrabbit 2.13.6
+    [OAK-5319] - Remove ReversedLinesFileReaderTestParamBlockSize
 
-Test
-
-    [OAK-5063] - Failure in QueryTest.nodeType
-    [OAK-5217] - Test nodetype based query support in
-    LucenePropertyIndex
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.5.x release.
