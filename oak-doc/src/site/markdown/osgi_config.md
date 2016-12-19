@@ -421,6 +421,34 @@ cacheSizeInMB
 : Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
   helps in better performance when lots of small binaries are accessed frequently.
 
+#### Oak - AbstractSharedCachingDataStore (OAK 1.6.x)
+All the above data stores enable local file system caching with the following parameters
+
+* _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.SharedS3DataStore`_
+* _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore`_
+* _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore`_
+
+cacheSize
+: Default - 68719476736
+: Size in bytes of DataStore cache. Cache is disabled when cacheSize <= 0.
+
+stagingSplitPercentage
+: Default - 10
+: Percentage of cache earmarked for asynchronous upload staging. The rest would be used for caching the downloaded 
+  files.
+
+uploadThreads
+: Default - 10
+: The number of background threads used for asynchronous uploads.
+
+stagingPurgeInterval
+: Default - 300
+: Interval in seconds for the background purge job to clean up uploaded entries from the upload staging cache.
+
+stagingRetryInterval
+: Default - 600
+: Interval in seconds for the background retry job for retrying previously failed asynchronous uploads.
+
 ### System properties and Framework properties
 
 Following properties are supported by Oak. They are grouped in two parts _Stable_ and
