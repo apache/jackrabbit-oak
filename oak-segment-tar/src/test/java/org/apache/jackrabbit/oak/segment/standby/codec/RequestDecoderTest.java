@@ -67,4 +67,11 @@ public class RequestDecoderTest {
         assertNull(channel.readInbound());
     }
 
+    @Test
+    public void shouldIgnoreInvalidMessages() throws Exception {
+        EmbeddedChannel channel = new EmbeddedChannel(new RequestDecoder());
+        channel.writeInbound("wrong");
+        assertEquals("wrong", channel.readInbound());
+    }
+
 }
