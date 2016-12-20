@@ -415,9 +415,14 @@ public class SegmentNodeStoreService {
         Registrations registrations = new Registrations(whiteboard, role);
 
         // Listen for GCMonitor services
-        GCMonitorTracker gcMonitor = new GCMonitorTracker();
-        gcMonitor.start(whiteboard);
-        closeables.add(gcMonitor);
+        GCMonitor gcMonitor = GCMonitor.EMPTY;
+
+        if (configuration.isPrimarySegmentStore()) {
+            GCMonitorTracker tracker = new GCMonitorTracker();
+            tracker.start(whiteboard);
+            closeables.add(tracker);
+            gcMonitor = tracker;
+        }
 
         // Create the gc options
         if (configuration.getCompactionGainThreshold() != null) {
@@ -531,35 +536,41 @@ public class SegmentNodeStoreService {
 
         // Expose an MBean to managing and monitoring garbage collection
 
-        final FileStoreGCMonitor fsgcm = new FileStoreGCMonitor(Clock.SIMPLE);
-        closeables.add(registrations.register(GCMonitor.class, fsgcm));
-        closeables.add(registrations.registerMBean(
-                SegmentRevisionGC.class,
-                new SegmentRevisionGCMBean(store, gcOptions, fsgcm),
-                SegmentRevisionGC.TYPE,
-                "Segment node store revision garbage collection"
-        ));
+        if (configuration.isPrimarySegmentStore()) {
+            final FileStoreGCMonitor monitor = new FileStoreGCMonitor(Clock.SIMPLE);
+            closeables.add(registrations.register(
+                    GCMonitor.class,
+                    monitor
+            ));
+            closeables.add(registrations.registerMBean(
+                    SegmentRevisionGC.class,
+                    new SegmentRevisionGCMBean(store, gcOptions, monitor),
+                    SegmentRevisionGC.TYPE,
+                    "Segment node store revision garbage collection"
+            ));
+            Runnable cancelGC = new Runnable() {
 
-        Runnable cancelGC = new Runnable() {
+                @Override
+                public void run() {
+                    store.cancelGC();
+                }
 
-            @Override
-            public void run() {
-                store.cancelGC();
-            }
-        };
-        Supplier<String> statusMessage = new Supplier<String>() {
+            };
+            Supplier<String> statusMessage = new Supplier<String>() {
 
-            @Override
-            public String get() {
-                return fsgcm.getStatus();
-            }
-        };
-        closeables.add(registrations.registerMBean(
-                RevisionGCMBean.class,
-                new RevisionGC(store.getGCRunner(), cancelGC, statusMessage, executor),
-                RevisionGCMBean.TYPE,
-                "Revision garbage collection"
-        ));
+                @Override
+                public String get() {
+                    return monitor.getStatus();
+                }
+
+            };
+            closeables.add(registrations.registerMBean(
+                    RevisionGCMBean.class,
+                    new RevisionGC(store.getGCRunner(), cancelGC, statusMessage, executor),
+                    RevisionGCMBean.TYPE,
+                    "Revision garbage collection"
+            ));
+        }
 
         // Expose statistics about the FileStore
 
