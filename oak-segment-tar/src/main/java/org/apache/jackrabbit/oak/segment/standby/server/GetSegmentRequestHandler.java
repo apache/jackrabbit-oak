@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.slf4j.Logger;
@@ -47,10 +46,6 @@ class GetSegmentRequestHandler extends SimpleChannelInboundHandler<GetSegmentReq
         }
 
         ctx.writeAndFlush(new GetSegmentResponse(msg.getClientId(), msg.getSegmentId(), data));
-    }
-
-    private static String getId(Segment segment) {
-        return segment.getSegmentId().asUUID().toString();
     }
 
 }
