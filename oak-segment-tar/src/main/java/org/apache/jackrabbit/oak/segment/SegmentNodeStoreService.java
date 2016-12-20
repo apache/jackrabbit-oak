@@ -960,7 +960,7 @@ class Registrations {
     }
 
     <T> Registration register(Class<T> clazz, T service) {
-        return whiteboard.register(clazz, service, new HashMap<>());
+        return register(clazz, service, new HashMap<String, Object>());
     }
 
     <T> Registration register(Class<T> clazz, T service, Map<String, Object> properties) {
