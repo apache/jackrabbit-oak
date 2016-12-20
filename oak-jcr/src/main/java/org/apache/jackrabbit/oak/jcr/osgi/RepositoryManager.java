@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -178,6 +179,7 @@ public class RepositoryManager {
     private ServiceRegistration registerRepository(BundleContext bundleContext) {
         Oak oak = new Oak(store)
                 .with(new InitialContent())
+                .with(new VersionHook())
                 .with(JcrConflictHandler.createJcrConflictHandler())
                 .with(whiteboard)
                 .with(securityProvider)
