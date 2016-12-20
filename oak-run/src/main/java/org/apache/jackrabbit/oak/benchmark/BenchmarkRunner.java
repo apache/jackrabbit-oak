@@ -156,7 +156,9 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> transientWrites = parser.accepts("transient", "Do not save data.")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
-        OptionSpec<Integer> numberOfMounts = parser.accepts("mounts", "Number of mounts for multiplexing node store.")
+        OptionSpec<Integer> mounts = parser.accepts("mounts", "Number of mounts for multiplexing node store.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(2);
+        OptionSpec<Integer> pathsPerMount = parser.accepts("pathsPerMount", "Number of paths per one mount.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
@@ -206,7 +208,9 @@ public class BenchmarkRunner {
                         dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
                         fdsCache.value(options)),
                 OakRepositoryFixture.getMultiplexing(base.value(options), 256, cacheSize,
-                        mmap.value(options), numberOfMounts.value(options))};
+                        mmap.value(options), mounts.value(options), pathsPerMount.value(options)),
+                OakRepositoryFixture.getMultiplexingInMemory(mounts.value(options), pathsPerMount.value(options))
+        };
 
         Benchmark[] allBenchmarks = new Benchmark[] {
             new OrderedIndexQueryOrderedIndexTest(),

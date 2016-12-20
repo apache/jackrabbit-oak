@@ -17,16 +17,23 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Range;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
+import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
@@ -42,35 +49,64 @@ class MultiplexingFixture extends OakFixture {
 
     private final int mounts;
 
+    private final int pathsPerMount;
+
+    private final boolean inMemory;
+
     private FileStore fileStore;
 
+    public MultiplexingFixture(String name, int mounts, int pathsPerMount) {
+        super(name);
+        this.inMemory = true;
+        this.mounts = mounts;
+        this.pathsPerMount = pathsPerMount;
+
+        this.base = null;
+        this.maxFileSizeMB = -1;
+        this.cacheSizeMB = -1;
+        this.memoryMapping = false;
+    }
+
     public MultiplexingFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                               boolean memoryMapping, int mounts) {
+                               boolean memoryMapping, int mounts, int pathsPerMount) {
         super(name);
         this.base = base;
         this.maxFileSizeMB = maxFileSizeMB;
         this.cacheSizeMB = cacheSizeMB;
         this.memoryMapping = memoryMapping;
         this.mounts = mounts;
+        this.pathsPerMount = pathsPerMount;
+        this.inMemory = false;
     }
 
     @Override
     public Oak getOak(int clusterId) throws Exception {
+        NodeStore nodeStore = getNodeStore();
+        SimpleMountInfoProvider.Builder mip = new SimpleMountInfoProvider.Builder();
+        for (int i = 0; i < mounts; i++) {
+            String[] paths = new String[pathsPerMount];
+            for (int j = 0; j < pathsPerMount; j++) {
+                paths[j] = String.format("/mount-%d-path-%d", i, j);
+            }
+            mip.readOnlyMount("custom-mount-" + i, paths);
+        }
+        MultiplexingNodeStore.Builder builder = new MultiplexingNodeStore.Builder(mip.build(), nodeStore);
+        for (int i = 0; i < mounts; i++) {
+            builder.addMount("custom-mount-" + i, nodeStore);
+        }
+        return new Oak(builder.build());
+    }
+
+    private NodeStore getNodeStore() throws IOException, InvalidFileStoreVersionException {
+        if (inMemory) {
+            return new MemoryNodeStore();
+        }
         FileStoreBuilder fsBuilder = fileStoreBuilder(new File(base, unique))
                 .withMaxFileSize(maxFileSizeMB)
                 .withSegmentCacheSize(cacheSizeMB)
                 .withMemoryMapping(memoryMapping);
         fileStore = fsBuilder.build();
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-        SimpleMountInfoProvider.Builder mip = new SimpleMountInfoProvider.Builder();
-        for (int i = 0; i < mounts; i++) {
-            mip.readOnlyMount("mount" + i, "/path/" + i);
-        }
-        MultiplexingNodeStore.Builder builder = new MultiplexingNodeStore.Builder(mip.build(), nodeStore);
-        for (int i = 0; i < mounts; i++) {
-            builder.addMount("mount" + i, nodeStore);
-        }
-        return new Oak(builder.build());
+        return SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
     @Override
