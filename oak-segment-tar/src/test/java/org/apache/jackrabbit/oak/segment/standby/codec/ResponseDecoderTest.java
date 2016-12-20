@@ -27,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import com.google.common.base.Charsets;
@@ -140,6 +141,20 @@ public class ResponseDecoderTest {
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
         assertTrue(elementsEqual(asList("b", "c"), response.getReferences()));
+    }
+
+    @Test
+    public void shouldDropGetReferencesResponsesWithoutDelimiter() throws Exception {
+        byte[] data = "a".getBytes(Charsets.UTF_8);
+
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeInt(data.length + 1);
+        buf.writeByte(Messages.HEADER_REFERENCES);
+        buf.writeBytes(data);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        channel.writeInbound(buf);
+        assertNull(channel.readInbound());
     }
 
     @Test
