@@ -173,7 +173,7 @@ class StandbyServer implements AutoCloseable {
 
                 p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
                 p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
-                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store)));
+                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store.getBlobStore())));
                 p.addLast(new GetReferencesRequestHandler(new DefaultStandbyReferencesReader(store)));
 
                 // Exception handler
