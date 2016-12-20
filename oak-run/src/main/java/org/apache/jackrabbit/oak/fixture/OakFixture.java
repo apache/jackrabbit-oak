@@ -59,7 +59,9 @@ public abstract class OakFixture {
 
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
     public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
+
     public static final String OAK_MULTIPLEXING = "Oak-Multiplexing";
+    public static final String OAK_MULTIPLEXING_MEMORY = "Oak-Multiplexing-Memory";
 
 
     private final String name;
@@ -287,8 +289,12 @@ public abstract class OakFixture {
 
     public static OakFixture getMultiplexing(final String name, final File base,
                                              final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
-                                             final int mounts) {
-        return new MultiplexingFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts);
+                                             final int mounts, final int pathsPerMount) {
+        return new MultiplexingFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
+    }
+
+    public static OakFixture getMultiplexingInMemory(final String name, final int mounts, final int pathsPerMount) {
+        return new MultiplexingFixture(name, mounts, pathsPerMount);
     }
 
     public static class MongoFixture extends OakFixture {
