@@ -140,6 +140,34 @@ The files are moved to the main download cache after the uploads are complete. W
 Any failed uploads (due to various reasons e.g. network disruption) are put on a retry queue and retried periodically 
 with the configured interval `stagingRetryInterval`. The default value for is 600 seconds.
 
+#### Caching Stats
+
+The `ConsolidatedDataStoreCacheStats` is registered as an MBean and provides a snapshot of the cache performance for 
+both the download and the upload staging cache.
+
+![datastore cache stats](../img/datastore-cache-stats.png)
+
+The following table explains the different statistics exposed for both type of caches
+
+| Parameters        | DataStore-DownloadCache                     | DataStore-StagingCache |
+|:-----------------:|:-------------------------------------------:|:----------------------:|
+|elementCount       | Number of files cached                      | Pending file uploads in cache| 
+|requestCount       | Number of files requested from cache        | Number of file uploads requested|
+|hitCount           | Number of files served from cache           | Number of files uploaded asynchronously|
+|hitRate            | Ratio of hits to requests                   | Ratio of hits to requests|
+|loadCount          | Number of files loaded when not in cache    | Number of file requests from cache|
+|loadSuccessCount   | Number of files successfully loaded         | Number of file requests served from cache|
+|loadExceptionCount | Number of load file unsuccessful            | Number of file requests not in cache|
+|maxWeight          | Max cache size (bytes)                      | Max cache size (bytes)|
+|totalWeight        | Current size of cache (bytes                | Current size of cache (bytes)bytes|
+|totalMemWeight     | Approximate size of cache in-memory (bytes) | Approximate size of cache in memory (bytes)|
+
+The parameters above can be used to size the cache. For example the hitRate is an important parameter and if much 
+below 1 then indicates that the cache is low based on the load and should be increased.
+
+The MBean also exposed a method `isFileSynced` which takes a node path of a binary and returns whether the associated
+ file/blob has been uploaded to the DataStore.
+
 #### Upgrade (Pre Oak 1.6 caching)
 
 When upgrading from the older cache implementation the process should be seamless and any pending uploads would be 
