@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -439,7 +440,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             throw new ExternalIdentityException("Error during ldap membership search.", e);
         } finally {
             if (searchCursor != null) {
-                searchCursor.close();
+                try {
+                    searchCursor.close();
+                } catch (IOException e) {
+                    log.warn("Failed to close search cursor.", e);
+                }
             }
             disconnect(connection);
         }
@@ -606,7 +611,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             }
         } finally {
             if (searchCursor != null) {
-                searchCursor.close();
+                try {
+                    searchCursor.close();
+                } catch (IOException e) {
+                    log.warn("Failed to close search cursor.", e);
+                }
             }
         }
         if (log.isDebugEnabled()) {
@@ -755,7 +764,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                 return !page.isEmpty();
             } finally {
                 if (searchCursor != null) {
-                    searchCursor.close();
+                    try {
+                        searchCursor.close();
+                    } catch (IOException e) {
+                        log.warn("Failed to close search cursor.", e);
+                    }
                 }
                 disconnect(connection);
             }
