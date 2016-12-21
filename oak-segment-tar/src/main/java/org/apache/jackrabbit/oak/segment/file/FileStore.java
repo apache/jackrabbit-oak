@@ -104,7 +104,7 @@ public class FileStore extends AbstractFileStore {
      * Garbage collection invoked via {@link #gc()} will be skipped unless at least
      * the specified time has passed since its last successful invocation.
      */
-    private static final long GC_BACKOFF = getInteger("gc.backoff", 10*3600*1000);
+    private static final long GC_BACKOFF = getInteger("oak.gc.backoff", 10*3600*1000);
 
     private static final int MB = 1024 * 1024;
 
