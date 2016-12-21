@@ -94,6 +94,8 @@ public abstract class AbstractServer {
 
     protected int port = -1;
 
+    protected CacheService cacheService;
+
     protected DirectoryService directoryService;
 
     protected LdapServer ldapServer;
@@ -192,12 +194,12 @@ public abstract class AbstractServer {
         directoryService.setShutdownHookEnabled(false);
         directoryService.setInstanceLayout(new InstanceLayout(cwd));
 
-        CacheService cache = new CacheService();
-        cache.initialize(directoryService.getInstanceLayout());
+        cacheService = new CacheService();
+        cacheService.initialize(directoryService.getInstanceLayout());
 
         SchemaManager schemaManager = new DefaultSchemaManager();
         directoryService.setSchemaManager(schemaManager);
-        directoryService.setDnFactory(new DefaultDnFactory(directoryService.getSchemaManager(), cache.getCache("dnCache")));
+        directoryService.setDnFactory(new DefaultDnFactory(directoryService.getSchemaManager(), cacheService.getCache("dnCache")));
 
         LdifPartition schLdifPart = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
         schLdifPart.setId("schema");
@@ -218,7 +220,7 @@ public abstract class AbstractServer {
         examplePart.setId("example");
         examplePart.setPartitionPath(new File(directoryService.getInstanceLayout().getPartitionsDirectory(), "example").toURI());
         examplePart.setSuffixDn(directoryService.getDnFactory().create(EXAMPLE_DN));
-        examplePart.setCacheService(cache);
+        examplePart.setCacheService(cacheService);
         directoryService.addPartition(examplePart);
 
         // setup ldap server
@@ -363,11 +365,16 @@ public abstract class AbstractServer {
      * Sets the system context root to null.
      */
     protected void tearDown() throws Exception {
-        ldapServer.stop();
+        if (ldapServer != null) {
+            ldapServer.stop();
+        }
         try {
             directoryService.shutdown();
         } catch (Exception e) {
             // ignore
+        }
+        if (cacheService != null) {
+            cacheService.destroy();
         }
     }
 }
