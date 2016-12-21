@@ -34,6 +34,7 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
@@ -55,19 +56,28 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final Map<MountedNodeStore, NodeBuilder> nodeBuilders;
 
-    private final Map<MountedNodeStore, NodeBuilder> rootBuilders;
-
     private final MountedNodeStore owningStore;
 
-    MultiplexingNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, Map<MountedNodeStore, NodeBuilder> rootBuilders, MultiplexingContext ctx) {
-        checkArgument(nodeBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", nodeBuilders.size(), ctx.getStoresCount());
-        checkArgument(rootBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", rootBuilders.size(), ctx.getStoresCount());
+    private final MultiplexingNodeBuilder parent;
 
+    private final MultiplexingNodeBuilder rootBuilder;
+
+    MultiplexingNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, MultiplexingContext ctx) {
+        this(path, nodeBuilders, ctx, null);
+    }
+
+    private MultiplexingNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, MultiplexingContext ctx, MultiplexingNodeBuilder parent) {
+        checkArgument(nodeBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", nodeBuilders.size(), ctx.getStoresCount());
         this.path = path;
         this.ctx = ctx;
         this.nodeBuilders = newHashMap(nodeBuilders);
-        this.rootBuilders = copyOf(rootBuilders);
         this.owningStore = ctx.getOwningStore(path);
+        this.parent = parent;
+        if (parent == null) {
+            this.rootBuilder = this;
+        } else {
+            this.rootBuilder = parent.rootBuilder;
+        }
     }
 
     Map<MountedNodeStore, NodeBuilder> getBuilders() {
@@ -76,21 +86,23 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        Map<MountedNodeStore, NodeState> rootNodes = buildersToNodeStates(rootBuilders);
-        return new MultiplexingNodeState(path, rootNodes, ctx);
+        return new MultiplexingNodeState(path, buildersToNodeStates(nodeBuilders), ctx);
     }
 
     @Override
     public NodeState getBaseState() {
-        Map<MountedNodeStore, NodeState> rootNodes = buildersToBaseStates(rootBuilders);
-        return new MultiplexingNodeState(path, rootNodes, ctx);
+        return new MultiplexingNodeState(path, buildersToBaseStates(nodeBuilders), ctx);
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToNodeStates(Map<MountedNodeStore, NodeBuilder> builders) {
         return copyOf(transformValues(builders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
-                return input.getNodeState();
+                if (input.exists()) {
+                    return input.getNodeState();
+                } else {
+                    return MISSING_NODE;
+                }
             }
         }));
     }
@@ -242,21 +254,15 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder child(String name) {
-        String childPath = PathUtils.concat(path, name);
-        MountedNodeStore mountedNodeStore = ctx.getOwningStore(childPath);
-        createAncestors(mountedNodeStore);
-        nodeBuilders.get(mountedNodeStore).child(name);
-        return getChildNode(name);
+        if (hasChildNode(name)) {
+            return getChildNode(name);
+        } else {
+            return setChildNode(name);
+        }
     }
 
     private void createAncestors(MountedNodeStore mountedNodeStore) {
-        if (mountedNodeStore == owningStore) {
-            return;
-        }
-        if (nodeBuilders.get(mountedNodeStore).exists()) {
-            return;
-        }
-        NodeBuilder builder = rootBuilders.get(mountedNodeStore);
+        NodeBuilder builder = rootBuilder.nodeBuilders.get(mountedNodeStore);
         for (String element : PathUtils.elements(path)) {
             builder = builder.child(element);
         }
@@ -270,12 +276,11 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         if (!nodeBuilders.get(mountedStore).hasChildNode(name)) {
             return MISSING_NODE.builder();
         }
-
         Map<MountedNodeStore, NodeBuilder> newNodeBuilders = newHashMap();
         for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
             newNodeBuilders.put(mns, nodeBuilders.get(mns).getChildNode(name));
         }
-        return new MultiplexingNodeBuilder(childPath, newNodeBuilders, rootBuilders, ctx);
+        return new MultiplexingNodeBuilder(childPath, newNodeBuilders, ctx, this);
     }
 
     @Override
@@ -285,11 +290,23 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState nodeState) {
+        checkState(exists(), "This builder does not exist: " + PathUtils.getName(path));
+
         String childPath = PathUtils.concat(path, name);
-        MountedNodeStore mountedNodeStore = ctx.getOwningStore(childPath);
-        createAncestors(mountedNodeStore);
-        nodeBuilders.get(mountedNodeStore).setChildNode(name, nodeState);
-        return getChildNode(name);
+        MountedNodeStore childStore = ctx.getOwningStore(childPath);
+        if (childStore != owningStore && !nodeBuilders.get(childStore).exists()) {
+            createAncestors(childStore);
+        }
+        NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
+
+        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = newHashMap();
+        newNodeBuilders.put(childStore, childBuilder);
+        for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
+            if (!newNodeBuilders.containsKey(mns)) {
+                newNodeBuilders.put(mns, nodeBuilders.get(mns).getChildNode(name));
+            }
+        }
+        return new MultiplexingNodeBuilder(childPath, newNodeBuilders, ctx, this);
     }
 
     @Override
@@ -337,22 +354,21 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         // having a source path annotation or until we hit the root
         MultiplexingNodeBuilder builder = this;
         String sourcePath = getSourcePathAnnotation(builder);
-        while (sourcePath == null && !"/".equals(builder.path)) {
-            String parentPath = PathUtils.getParentPath(builder.path);
-            builder = getBuilderByPath(parentPath);
+        while (sourcePath == null && builder.parent != null) {
+            builder = builder.parent;
             sourcePath = getSourcePathAnnotation(builder);
         }
 
         if (sourcePath == null) {
             // Neither self nor any parent has a source path annotation. The source
             // path is just the path of this builder
-            return path;
+            return getPath();
         } else {
             // The source path is the source path of the first parent having a source
             // path annotation with the relative path from this builder up to that
             // parent appended.
             return PathUtils.concat(sourcePath,
-                    PathUtils.relativize(builder.path, path));
+                    PathUtils.relativize(builder.getPath(), getPath()));
         }
     }
 
@@ -368,33 +384,15 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         }
     }
 
-    private boolean isTransientlyAdded(String sourcePath) {
-        NodeState node = rootBuilders.get(owningStore).getBaseState();
-        for (String name : PathUtils.elements(sourcePath)) {
+    private boolean isTransientlyAdded(String path) {
+        NodeState node = rootBuilder.getBaseState();
+        for (String name : PathUtils.elements(path)) {
             node = node.getChildNode(name);
         }
         return !node.exists();
     }
 
-    private MultiplexingNodeBuilder getBuilderByPath(String path) {
-        return new MultiplexingNodeBuilder(path, getBuildersByPath(rootBuilders, path), rootBuilders, ctx);
-    }
-
-    private static Map<MountedNodeStore, NodeBuilder> getBuildersByPath(Map<MountedNodeStore, NodeBuilder> rootNodes, final String path) {
-        return copyOf(transformValues(rootNodes, new Function<NodeBuilder, NodeBuilder>() {
-            @Override
-            public NodeBuilder apply(NodeBuilder input) {
-                NodeBuilder result = input;
-                for (String element : PathUtils.elements(path)) {
-                    if (result.hasChildNode(element)) {
-                        result = result.getChildNode(element);
-                    } else {
-                        result = MISSING_NODE.builder();
-                        break;
-                    }
-                }
-                return result;
-            }
-        }));
+    private String getPath() {
+        return path;
     }
 }

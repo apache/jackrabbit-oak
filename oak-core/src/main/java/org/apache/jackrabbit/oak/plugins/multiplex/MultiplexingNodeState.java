@@ -67,27 +67,12 @@ class MultiplexingNodeState extends AbstractNodeState {
 
     private final MountedNodeStore owningStore;
 
-    private final Map<MountedNodeStore, NodeState> rootStates;
-
     private final Map<MountedNodeStore, NodeState> nodeStates;
 
-    MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
-        checkArgument(rootStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", rootStates.size(), ctx.getStoresCount());
-
-        this.path = path;
-        this.ctx = ctx;
-        this.rootStates = copyOf(rootStates);
-        this.nodeStates = copyOf(getNodesByPath(this.rootStates, path));
-        this.owningStore = ctx.getOwningStore(path);
-    }
-
-    MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, Map<MountedNodeStore, NodeState> rootStates, MultiplexingContext ctx) {
+    MultiplexingNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, MultiplexingContext ctx) {
         checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", nodeStates.size(), ctx.getStoresCount());
-        checkArgument(rootStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", rootStates.size(), ctx.getStoresCount());
-
         this.path = path;
         this.ctx = ctx;
-        this.rootStates = copyOf(rootStates);
         this.nodeStates = copyOf(nodeStates);
         this.owningStore = ctx.getOwningStore(path);
     }
@@ -138,7 +123,7 @@ class MultiplexingNodeState extends AbstractNodeState {
         for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
             newNodeStates.put(mns, nodeStates.get(mns).getChildNode(name));
         }
-        return new MultiplexingNodeState(childPath, newNodeStates, rootStates, ctx);
+        return new MultiplexingNodeState(childPath, newNodeStates, ctx);
     }
 
     @Override
@@ -216,50 +201,17 @@ class MultiplexingNodeState extends AbstractNodeState {
     // write operations
     @Override
     public NodeBuilder builder() {
-        Map<MountedNodeStore, NodeBuilder> rootBuilders = copyOf(transformValues(rootStates, new Function<NodeState, NodeBuilder>() {
+        Map<MountedNodeStore, NodeBuilder> nodeBuilders = copyOf(transformValues(nodeStates, new Function<NodeState, NodeBuilder>() {
             @Override
             public NodeBuilder apply(NodeState input) {
                 return input.builder();
             }
         }));
-        Map<MountedNodeStore, NodeBuilder> nodeBuilders = copyOf(transformValues(rootBuilders, new Function<NodeBuilder, NodeBuilder>() {
-            @Override
-            public NodeBuilder apply(NodeBuilder input) {
-                NodeBuilder result = input;
-                for (String element : PathUtils.elements(path)) {
-                    if (result.hasChildNode(element)) {
-                        result = result.getChildNode(element);
-                    } else {
-                        result = MISSING_NODE.builder();
-                        break;
-                    }
-                }
-                return result;
-            }
-        }));
-        return new MultiplexingNodeBuilder(path, nodeBuilders, rootBuilders, ctx);
+        return new MultiplexingNodeBuilder(path, nodeBuilders, ctx);
     }
 
     private NodeState getWrappedNodeState() {
         return nodeStates.get(owningStore);
-    }
-
-    private static Map<MountedNodeStore, NodeState> getNodesByPath(Map<MountedNodeStore, NodeState> rootNodes, final String path) {
-        return copyOf(transformValues(rootNodes, new Function<NodeState, NodeState>() {
-            @Override
-            public NodeState apply(NodeState input) {
-                NodeState result = input;
-                for (String element : PathUtils.elements(path)) {
-                    if (result.hasChildNode(element)) {
-                        result = result.getChildNode(element);
-                    } else {
-                        result = MISSING_NODE;
-                        break;
-                    }
-                }
-                return result;
-            }
-        }));
     }
 
     private class ChildrenDiffFilter implements NodeStateDiff {
