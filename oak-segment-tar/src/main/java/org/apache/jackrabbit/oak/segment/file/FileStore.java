@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.Integer.getInteger;
 import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
@@ -96,8 +97,14 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore extends AbstractFileStore {
-
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
+
+    /**
+     * Minimal interval in milli seconds between subsequent garbage collection cycles.
+     * Garbage collection invoked via {@link #gc()} will be skipped unless at least
+     * the specified time has passed since its last successful invocation.
+     */
+    private static final long GC_BACKOFF = getInteger("gc.backoff", 10*3600*1000);
 
     private static final int MB = 1024 * 1024;
 
@@ -712,10 +719,13 @@ public class FileStore extends AbstractFileStore {
         @Nonnull
         private final WriterCacheManager cacheManager;
 
-        private volatile boolean cancelled;
-
         @Nonnull
         private final GCNodeWriteMonitor compactionMonitor;
+
+        private volatile boolean cancelled;
+
+        /** Timestamp of the last time {@link #gc()} was successfully invoked. 0 if never. */
+        private long lastSuccessfullGC;
 
         GarbageCollector(
                 @Nonnull SegmentGCOptions gcOptions,
@@ -732,6 +742,14 @@ public class FileStore extends AbstractFileStore {
         synchronized void run() throws IOException {
             try {
                 gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
+
+                long dt = System.currentTimeMillis() - lastSuccessfullGC;
+                if (dt < GC_BACKOFF) {
+                    gcListener.skipped("TarMK GC #{}: skipping garbage collection as it already ran " +
+                            "less than {} hours ago ({} s).", GC_COUNT, GC_BACKOFF/3600000, dt/1000);
+                    return;
+                }
+
                 GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
                         sufficientMemory, gcListener, GC_COUNT.get(), gcOptions);
     
@@ -772,6 +790,7 @@ public class FileStore extends AbstractFileStore {
                         int gen = compact();
                         if (gen > 0) {
                             fileReaper.add(cleanupOldGenerations(gen));
+                            lastSuccessfullGC = System.currentTimeMillis();
                         } else if (gen < 0) {
                             gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
                             fileReaper.add(cleanupGeneration(-gen));
