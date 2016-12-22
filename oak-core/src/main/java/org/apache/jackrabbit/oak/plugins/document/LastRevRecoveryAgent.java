@@ -437,7 +437,9 @@ public class LastRevRecoveryAgent {
 
     /**
      * Gets the _lastRev recovery candidate cluster nodes. This also includes
-     * cluster nodes that are currently being recovered.
+     * cluster nodes that are currently being recovered. The method would not
+     * return self as a candidate for recovery even if it has failed to update
+     * lease in time
      *
      * @return the recovery candidate nodes.
      */
@@ -446,7 +448,7 @@ public class LastRevRecoveryAgent {
                 new Predicate<ClusterNodeInfoDocument>() {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
-                return missingLastRevUtil.isRecoveryNeeded(input);
+                return nodeStore.getClusterId() != input.getClusterId() && missingLastRevUtil.isRecoveryNeeded(input);
             }
         }), new Function<ClusterNodeInfoDocument, Integer>() {
             @Override
