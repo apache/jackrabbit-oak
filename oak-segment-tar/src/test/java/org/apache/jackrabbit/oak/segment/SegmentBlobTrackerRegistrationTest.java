@@ -40,7 +40,7 @@ public class SegmentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegis
     protected void registerNodeStoreService() {
         Map<String, Object> properties = newHashMap();
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, true);
-        properties.put(SegmentNodeStoreService.DIRECTORY, repoHome);
+        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, repoHome);
         service = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
     }
 

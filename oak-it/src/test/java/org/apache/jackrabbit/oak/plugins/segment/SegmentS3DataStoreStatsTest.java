@@ -38,7 +38,7 @@ import org.osgi.framework.ServiceRegistration;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DIRECTORY;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.DIRECTORY;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;

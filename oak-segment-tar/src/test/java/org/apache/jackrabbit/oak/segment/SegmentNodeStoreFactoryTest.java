@@ -44,7 +44,7 @@ public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
         properties.put(SegmentNodeStoreFactory.ROLE, "some-role");
         properties.put(SegmentNodeStoreFactory.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreService.DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreFactory = context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties);
     }
