@@ -324,17 +324,16 @@ public class BackgroundObserver implements Observer, Closeable {
      * @throws InterruptedException **/
     boolean waitUntilStopped(int timeout, TimeUnit unit) throws InterruptedException {
         long done = System.currentTimeMillis() + unit.toMillis(timeout);
-        boolean added;
-        synchronized(this) {
-            added = queue.offer(STOP);
-            currentTask.onComplete(completionHandler);
-        }
+        boolean added = false;
         while(done > System.currentTimeMillis()) {
             synchronized(this) {
                 if (!added) {
                     added = queue.offer(STOP);
+                    if (added) {
+                        currentTask.onComplete(completionHandler);
+                    }
                 }
-                if (queue.size() == 0 || (queue.size() == 1 && queue.peek() == STOP)) {
+                if (added && queue.size() == 0) {
                     return true;
                 }
                 wait(1);

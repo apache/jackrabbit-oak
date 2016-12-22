@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
@@ -161,7 +160,7 @@ public class BackgroundObserverTest {
 
     class Recorder implements FilteringAwareObserver {
 
-        List<Pair> includedChanges = new LinkedList<Pair>();
+        List<Pair> includedChanges = Collections.synchronizedList(new LinkedList<Pair>());
         private boolean pause;
         private boolean pausing;
 
@@ -397,6 +396,7 @@ public class BackgroundObserverTest {
         for (int i = 100; i < 10000; i += 50) {
             doTestExcludeSomeCommits(i, executor);
         }
+        executor.shutdownNow();
     }
 
     private void doTestExcludeSomeCommits(int cnt, Executor executor) throws Exception {
