@@ -27,7 +27,9 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -36,6 +38,9 @@ import static org.junit.Assert.assertTrue;
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.util.NodeTypeIndexingUtils}
  */
 public class NodeTypeIndexingUtilsTest {
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
     private Repository r;
     private Session s;
@@ -58,7 +63,7 @@ public class NodeTypeIndexingUtilsTest {
 
     @Test
     public void testSynonymsFileCreation() throws Exception {
-        File synonymsFile = NodeTypeIndexingUtils.createPrimaryTypeSynonymsFile(getClass().getResource("/").getFile() +
+        File synonymsFile = NodeTypeIndexingUtils.createPrimaryTypeSynonymsFile(tempFolder.newFolder().getPath() +
                 "/pt-synonyms.txt", s);
         assertNotNull(synonymsFile);
         assertTrue(synonymsFile.exists());
