@@ -38,7 +38,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTI
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_SNAPSHOT_INTERVAL;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DIRECTORY;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.GC_PROGRESS_LOG;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.MEMORY_THRESHOLD;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.MODE;
@@ -155,11 +155,12 @@ public class SegmentNodeStoreService {
     private static final Logger log = LoggerFactory.getLogger(SegmentNodeStoreService.class);
 
     @Property(
-            label = "Directory",
-            description = "Directory for storing the tar files. Defaults to the value of the framework " +
-                    "property 'repository.home' or to 'repository' if that is neither specified."
+            label = "Repository Home Directory",
+            description = "Path on the file system where repository data will be stored. "
+                    + "Defaults to the value of the framework property 'repository.home' or to 'repository' "
+                    + "if that is neither specified."
     )
-    public static final String DIRECTORY = "repository.home";
+    public static final String REPOSITORY_HOME_DIRECTORY = "repository.home";
 
     @Property(
             label = "Mode",
@@ -438,7 +439,7 @@ public class SegmentNodeStoreService {
                 .withGCNodeWriteMonitor(configuration.getGCProcessLog());
 
         // Build the FileStore
-        FileStoreBuilder builder = fileStoreBuilder(configuration.getDirectory())
+        FileStoreBuilder builder = fileStoreBuilder(configuration.getSegmentDirectory())
                 .withSegmentCacheSize(configuration.getSegmentCacheSize())
                 .withStringCacheSize(configuration.getStringCacheSize())
                 .withTemplateCacheSize(configuration.getTemplateCacheSize())
@@ -632,7 +633,7 @@ public class SegmentNodeStoreService {
                 if (trackingStore.getTracker() != null) {
                     trackingStore.getTracker().close();
                 }
-                trackingStore.addTracker(new BlobIdTracker(configuration.getRootDirectory(), getOrCreateId(segmentNodeStore), configuration.getBlobSnapshotInterval(), sharedDataStore));
+                trackingStore.addTracker(new BlobIdTracker(configuration.getRepositoryHome(), getOrCreateId(segmentNodeStore), configuration.getBlobSnapshotInterval(), sharedDataStore));
             }
         }
 
@@ -793,24 +794,42 @@ class Configuration {
         return lookupConfigurationThenFramework(context, name);
     }
 
-    String getRootDirectory() {
-        String root = property(DIRECTORY);
+    /**
+     * Chooses repository home directory name based on <b>repository.home</b>
+     * property, defaulting to <b>repository</b> if property is not set.
+     * 
+     * @return repository home directory name.
+     */
+    String getRepositoryHome() {
+        String root = property(REPOSITORY_HOME_DIRECTORY);
         if (isNullOrEmpty(root)) {
             return "repository";
         }
         return root;
     }
 
-    File getDirectory() {
-        return new File(getBaseDirectory(), appendRole("segmentstore"));
+    /**
+     * Creates a new sub-directory relative to {@link #getRepositoryHome()} for
+     * storing segments.
+     * 
+     * @return directory for storing segments.
+     */
+    File getSegmentDirectory() {
+        return new File(getRepositoryHome(), appendRole("segmentstore"));
     }
 
+    /**
+     * Creates a new sub-directory relative to {@link #getRepositoryHome()} for 
+     * storing repository backups.
+     * 
+     * @return directory for storing repository backups.
+     */
     File getBackupDirectory() {
         String backupDirectory = property(BACKUP_DIRECTORY);
         if (backupDirectory != null) {
             return new File(backupDirectory);
         }
-        return new File(getBaseDirectory(), appendRole("segmentstore-backup"));
+        return new File(getRepositoryHome(), appendRole("segmentstore-backup"));
     }
 
     int getSegmentCacheSize() {
@@ -915,14 +934,6 @@ class Configuration {
         } else {
             return name + "-" + role;
         }
-    }
-
-    private File getBaseDirectory() {
-        String directory = property(DIRECTORY);
-        if (directory != null) {
-            return new File(directory);
-        }
-        return new File("tarmk");
     }
 
     private String getCacheSize(String propertyName) {

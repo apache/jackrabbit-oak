@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DIRECTORY;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -108,7 +108,7 @@ public class SegmentS3DataStoreStatsTest {
         Map<String, Object> properties = newHashMap();
 
         properties.put(CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put(REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreService = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
     }

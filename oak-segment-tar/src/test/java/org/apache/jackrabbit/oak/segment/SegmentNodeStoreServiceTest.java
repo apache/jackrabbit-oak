@@ -146,7 +146,7 @@ public class SegmentNodeStoreServiceTest {
         Map<String, Object> properties = newHashMap();
 
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreService.DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreService = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
     }
