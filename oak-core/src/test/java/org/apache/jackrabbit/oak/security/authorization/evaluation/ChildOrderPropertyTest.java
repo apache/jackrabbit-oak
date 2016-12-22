@@ -91,6 +91,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testChildOrderWithoutPropertyReadAccess() throws Exception {
+        root.getTree("/a").setOrderableChildren(true);        
         root.getTree("/a/bb").orderBefore("b");
         root.commit();
         setupPermission("/", testPrincipal, true, PrivilegeConstants.REP_READ_NODES);
