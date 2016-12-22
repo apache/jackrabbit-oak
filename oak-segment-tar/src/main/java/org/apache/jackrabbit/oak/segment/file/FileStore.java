@@ -766,7 +766,7 @@ public class FileStore extends AbstractFileStore {
                     Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
                     GCEstimation estimate = estimateCompactionGain(cancel);
                     if (cancel.get()) {
-                        gcListener.info("TarMK GC #{}: estimation interrupted: {}. Skipping garbage collection.", GC_COUNT, cancel);
+                        gcListener.skipped("TarMK GC #{}: estimation interrupted: {}. Skipping garbage collection.", GC_COUNT, cancel);
                         gcMemoryBarrier.close();
                         return;
                     }
@@ -846,7 +846,7 @@ public class FileStore extends AbstractFileStore {
 
                 SegmentNodeState after = compact(before, writer, cancel);
                 if (after == null) {
-                    gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
+                    gcListener.skipped("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
                     return -newGeneration;
                 }
 
@@ -870,7 +870,7 @@ public class FileStore extends AbstractFileStore {
                     SegmentNodeState head = getHead();
                     after = compact(head, writer, cancel);
                     if (after == null) {
-                        gcListener.info("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
+                        gcListener.skipped("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
                         return -newGeneration;
                     }
 
@@ -899,7 +899,7 @@ public class FileStore extends AbstractFileStore {
                                             GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS));
                         } else {
                             if (cancel.get()) {
-                                gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits " +
+                                gcListener.skipped("TarMK GC #{}: compaction failed to force compact remaining commits " +
                                         "after {} ({} ms). Compaction was cancelled: {}.",
                                         GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS), cancel);
                             } else {
