@@ -211,8 +211,20 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
         if (changeSet.doesHitMaxPathDepth()) {
             // then we might or might not include this - but without
             // further complicated checks this can't be determined for sure
-            // so for simplicity reason: return false here
-            return false;
+            // so for simplicity reason just check first level include names
+            // if available
+            if (firstLevelIncludeNames == null) {
+                return false;
+            }
+            for (String parentPath : changeSet.getParentPaths()) {
+                String firstLevelName = firstLevelName(parentPath);
+                if (firstLevelName != null && firstLevelIncludeNames.contains(firstLevelName)) {
+                    return false;
+                }
+            }
+            // none of the first level include names matched any parentPath
+            // we can safely exclude this change set
+            return true;
         }
         final Set<String> parentPaths = new HashSet<String>(changeSet.getParentPaths());
 
