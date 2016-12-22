@@ -658,14 +658,18 @@ public class DocumentMK {
 
             if (this.blobStore == null) {
                 GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
-                configureBlobStore(s);
-                PersistentCache p = getPersistentCache();
-                if (p != null) {
-                    s = p.wrapBlobStore(s);
-                }
-                this.blobStore = s;
+                setBlobStore(s);
             }
             return this;
+        }
+
+        private void setBlobStore(GarbageCollectableBlobStore s) {
+            configureBlobStore(s);
+            PersistentCache p = getPersistentCache();
+            if (p != null) {
+                s = p.wrapBlobStore(s);
+            }
+            this.blobStore = s;
         }
 
         /**
@@ -717,9 +721,9 @@ public class DocumentMK {
          */
         public Builder setRDBConnection(DataSource ds, RDBOptions options) {
             this.documentStore = new RDBDocumentStore(ds, this, options);
-            if(this.blobStore == null) {
-                this.blobStore = new RDBBlobStore(ds, options);
-                configureBlobStore(blobStore);
+            if(blobStore == null) {
+                GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
+                setBlobStore(s);
             }
             return this;
         }
@@ -732,8 +736,10 @@ public class DocumentMK {
          */
         public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
             this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
-            this.blobStore = new RDBBlobStore(blobStoreDataSource);
-            configureBlobStore(blobStore);
+            if(blobStore == null) {
+                GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
+                setBlobStore(s);
+            }
             return this;
         }
 
