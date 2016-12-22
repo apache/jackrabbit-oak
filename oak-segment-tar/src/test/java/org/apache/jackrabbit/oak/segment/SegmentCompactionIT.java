@@ -66,6 +66,7 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -89,6 +90,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -230,12 +232,26 @@ public class SegmentCompactionIT {
                 .withStatisticsProvider(new DefaultStatisticsProvider(executor))
                 .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        Runnable cancelGC = new Runnable() {
+            @Override
+            public void run() {
+                fileStore.cancelGC();
+            }
+        };
+        Supplier<String> status = new Supplier<String>() {
+            @Override
+            public String get() {
+                return fileStoreGCMonitor.getStatus();
+            }
+        };
 
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
         registrations.add(registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions, fileStoreGCMonitor),
                 new ObjectName("IT:TYPE=Segment Revision GC")));
+        registrations.add(registerMBean(new RevisionGC(fileStore.getGCRunner(), cancelGC, status, executor),
+                new ObjectName("IT:TYPE=Revision GC")));
         CacheStatsMBean segmentCacheStats = fileStore.getSegmentCacheStats();
         registrations.add(registerMBean(segmentCacheStats,
                 new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
