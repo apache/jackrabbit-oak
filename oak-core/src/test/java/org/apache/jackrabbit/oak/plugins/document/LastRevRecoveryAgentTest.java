@@ -115,10 +115,11 @@ public class LastRevRecoveryAgentTest {
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() throws Exception {
         ds1.dispose();
         ds2.dispose();
         sharedStore.dispose();
+        fixture.dispose();
         ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
     }
@@ -161,6 +162,48 @@ public class LastRevRecoveryAgentTest {
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/x").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/").getLastRev().get(c2Id));
+    }
+
+    //OAK-5337
+    @Test
+    public void testSelfRecovery() throws Exception{
+        //1. Create base structure /x/y
+        NodeBuilder b1 = ds1.getRoot().builder();
+        b1.child("x").child("y");
+        merge(ds1, b1);
+        ds1.runBackgroundOperations();
+
+        //2. Add a new node /x/y/z in C1
+        b1 = ds1.getRoot().builder();
+        b1.child("x").child("y").child("z");
+        merge(ds1, b1);
+
+        long leaseTime = ds1.getClusterInfo().getLeaseTime();
+
+        clock.waitUntil(clock.getTime() + leaseTime + 10);
+
+        //Renew the lease for C2
+        ds2.getClusterInfo().renewLease();
+        //C1 needs recovery from lease timeout pov
+        assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
+
+        Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        //.. but, it won't be returned while we iterate candidate nodes from self
+        assertEquals(0, Iterables.size(cids));
+
+        cids = ds2.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        //... checking that from other node still reports
+        assertEquals(1, Iterables.size(cids));
+        assertEquals(c1Id, Iterables.get(cids, 0).intValue());
+
+        ds2.runBackgroundOperations();
+        assertFalse(ds2.getRoot().getChildNode("x").getChildNode("y").hasChildNode("z"));
+
+        // yet, calling recover with self-cluster-id still works (useful for startup LRRA)
+        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+
+        ds2.runBackgroundOperations();
+        assertTrue(ds2.getRoot().getChildNode("x").getChildNode("y").hasChildNode("z"));
     }
 
     @Test
