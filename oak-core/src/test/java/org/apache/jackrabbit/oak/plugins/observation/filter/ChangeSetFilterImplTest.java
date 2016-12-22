@@ -303,23 +303,17 @@ public class ChangeSetFilterImplTest {
         doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g", 5, false);
         doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 5, false);
         
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 1, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 2, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 3, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 4, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 5, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 6, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 7, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 8, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", 9, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h",10, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h",11, false);
-        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h",12, false);
+        for (int maxPathDepth = 1; maxPathDepth < 13; maxPathDepth++) {
+            doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/d/e/f/g/h", maxPathDepth, false);
+        }
 
         doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/x", 15, true);
         doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/x", 15, true);
         doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/x", 15, true);
         doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/b/c/x", 15, true);
+
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/x", 9, true);
+        doTestDeepPath("/a/b/c/d/e/f/g/h/i/j/k/l", "/a/x", 9, false);
     }
 
     private void doTestDeepPath(String changeSetPath, String includePath, int maxPathDepth, boolean expectExclude) {
