@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -171,10 +172,12 @@ public class LastRevSingleNodeRecoveryTest {
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
 
         LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
+        // Post OAK-5337, a cluster node won't report itself as a candidate for recovery
+        // Recovery agent would still detect that recovery is required and calling
+        // recover on self would recover too (testLastRevRestore)
+        assertTrue(recoveryAgent.isRecoveryNeeded());
         List<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
-
-        assertEquals(1, cids.size());
-        assertEquals(Integer.valueOf(1), cids.get(0));
+        assertEquals(0, cids.size());
     }
     
     private void setupScenario() throws InterruptedException {
