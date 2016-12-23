@@ -219,7 +219,10 @@ If this property is `false`, binaries will be stored in the Segment Store.
 
 blobGcMaxAgeInSecs (long) - 86400
 : BLOB Garbage Collector (GC) logic would only consider those BLOBs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs).
-For example, as per default, only those BLOBs which have been created 24 hours in the past would be considered for GC.
+For example, as per default, only those BLOBs which have been created 24 hours in the past would be considered for GC. 
+ It is strongly advised to not set this property to a very low value of say a few minutes but only set it to a hour at a
+  minimum. This is to ensure that the NodeStore(s) have had the time to flush out its internal data structures to 
+  persistence and the references to recently added blobs are accounted.
 
 blobTrackSnapshotIntervalInSecs (long) - 43200
 : The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and 
@@ -261,7 +264,10 @@ blobGcMaxAgeInSecs
 : Default 86400 (24 hrs)
 : Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently 
   (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have
-  been created 24 hrs ago would be considered for GC
+  been created 24 hrs ago would be considered for GC. It is strongly advised to not set this property to a very low 
+  value of say a few minutes but only set it to a hour at a minimum. This is to ensure that the NodeStore(s) have had the 
+  time to flush out its internal data structures to persistence and the references to recently added blobs are 
+  accounted.
   
 versionGcMaxAgeInSecs
 : Default 86400 (24 hrs)
