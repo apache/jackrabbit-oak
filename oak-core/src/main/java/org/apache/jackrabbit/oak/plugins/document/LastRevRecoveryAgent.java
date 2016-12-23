@@ -362,7 +362,8 @@ public class LastRevRecoveryAgent {
     }
 
     /**
-     * Gets the _lastRev recovery candidate cluster nodes.
+     * Gets the _lastRev recovery candidate cluster nodes. The method would not return
+     * self as a candidate for recovery even if it has failed to update lease in time
      *
      * @return the recovery candidate nodes
      */
@@ -377,7 +378,7 @@ public class LastRevRecoveryAgent {
             if (nodeInfo.isBeingRecovered()) {
                 Long recoveredBy = (Long) nodeInfo.get(ClusterNodeInfo.REV_RECOVERY_BY);
                 beingRecoveredRightNow.add(nodeInfo == null ? id : String.format("%s (by %d)", id, recoveredBy));
-            } else if (isRecoveryNeeded(nodeInfo)) {
+            } else if (nodeStore.getClusterId() != nodeInfo.getClusterId() && isRecoveryNeeded(nodeInfo)) {
                 candidateClusterNodes.add(Integer.valueOf(id));
             }
         }
