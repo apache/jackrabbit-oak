@@ -162,10 +162,14 @@ The following table explains the different statistics exposed for both type of c
 |totalWeight        | Current size of cache (bytes                | Current size of cache (bytes)bytes|
 |totalMemWeight     | Approximate size of cache in-memory (bytes) | Approximate size of cache in memory (bytes)|
 
-The parameters above can be used to size the cache. For example the hitRate is an important parameter and if much 
-below 1 then indicates that the cache is low based on the load and should be increased.
+The parameters above can be used to size the cache. For example:
 
-The MBean also exposed a method `isFileSynced` which takes a node path of a binary and returns whether the associated
+* The hitRate is an important parameter and if much 
+below 1 then indicates that the cache is low based on the load and should be increased.
+* If the staging cache has a low hit ratio, download cache has a high hit ratio and also its current size is much less 
+than the maxSize then its better to increase the `stagingSplitPercentage` parameter.
+
+The MBean also exposes a method `isFileSynced` which takes a node path of a binary and returns whether the associated
  file/blob has been uploaded to the DataStore.
 
 #### Upgrade (Pre Oak 1.6 caching)
