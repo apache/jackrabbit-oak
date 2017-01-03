@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.35
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.36
 
 Introduction
 ------------
@@ -8,37 +8,30 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.35 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.36 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.35
+Changes in Oak 1.0.36
 ---------------------
 
-Technical task
+Sub-task
 
-    [OAK-4885] - RDB*Store: update mysql JDBC driver reference to 5.1.40
-    [OAK-4905] - RDB*Store: update postgresql JDBC driver reference to 9.4.1211
-    [OAK-4964] - UpdateOp.set("_id", ...) should do a sanity check on the id
-    [OAK-4986] - RDBDocumentStore: potential NPE in document read
+    [OAK-2770] - Configurable mode for backgroundOperationLock
 
 Bug
 
-    [OAK-3474] - NodeDocument.getNodeAtRevision can go into property history traversal when latest rev on current doc isn't committed
-    [OAK-4082] - RDBDocumentStore on MySQL may fail when using useServerPrepStmts=true
-    [OAK-4125] - Test failure: testUpdateAndDelete [MyFixture: RDB-Derby(embedded)]
-    [OAK-4997] - RevisionGCTest.teardown() may fail with NPE when store == null
+    [OAK-2612] - Findbugs plugin version should depend on JDK version
+    [OAK-5193] - Version tree may become inconsistent after removing a version
+    [OAK-5358] - test failures for oak-auth-ldap on Windows
 
-Task
+Improvement
 
-    [OAK-3613] - Backport TarMK revision gc related issues
-
-Test
-
-    [OAK-4976] - AcquireRecoveryLockTest fails occasionally
+    [OAK-5163] - ReadWriteVersionManager#getExistingBaseVersion throws an opaque exception if baseVersion doesn't exist
+    [OAK-5337] - LastRevRecoveryAgent should avoid recovering documents from its own cluster id if the instance is running
 
 
 In addition to the above-mentioned changes, this release contains
