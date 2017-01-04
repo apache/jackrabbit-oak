@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -61,7 +62,7 @@ import org.slf4j.LoggerFactory;
                 "is then used to speed up observation processing"
 )
 @Property(name = "type", value = ChangeCollectorProvider.TYPE, propertyPrivate = true)
-@Service(ValidatorProvider.class)
+@Service({ValidatorProvider.class, EditorProvider.class})
 public class ChangeCollectorProvider extends ValidatorProvider {
     public static final String TYPE = "changeCollectorProvider";
 
