@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.16
+Release Notes -- Apache Jackrabbit Oak -- Version 1.5.17
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.16 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.5.17 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.4.x
 release.
@@ -15,63 +15,57 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.16
+Changes in Oak 1.5.17
 ---------------------
 
 Sub-task
 
-    [OAK-5274] - Document CLI tools for oak-segment-tar
-    [OAK-5292] - The README in oak-run should link to the documentation for oak-segment-tar
-    [OAK-5299] - Introduce BlobFactory in OakDirectory
-
+    [OAK-5167] - Document garbage collection
 
 Bug
 
-    [OAK-3328] - checked-in state should only affect properties with OPV!=IGNORE
-    [OAK-4687] - Issue with backgroundOperationLock handling in exception case
-    [OAK-5238] - IndexCopier causes concurrent update on NodeBuilder
-    [OAK-5240] - Test failure: IndexSanityCheckerTest.sizeMismatch()
-    [OAK-5254] - MultiplexingNodeStoreService does not pick up Observers registered through the whiteboard
-    [OAK-5258] - LuceneIndexEditor skips indexing for unknown nodetype due to stale NodeType registry state
-    [OAK-5259] - Better default for size delta estimation
-    [OAK-5297] - Check for null homeDir in DataStoreCacheUpgradeUtils
-    [OAK-5300] - OakDirectory.fileLength() must throw FileNotFoundException if file does not exist
-    [OAK-5305] - NRTIndex link to previous index leads to memory leak
-    [OAK-5327] - Change default query limit configuration, take 2
-    [OAK-5333] - Standalone example does not work with mongo
+    [OAK-5251] - Test failure:
+    externalAddOffline(org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTrackerTest)
+    [OAK-5260] - Incorrect handling of subpaths with leading left
+    curly bracket
+    [OAK-5262] - Test failure:
+    NodeTypeIndexingUtilsTest.testSynonymsFileCreation
+    [OAK-5285] - Test failures in
+    org.apache.jackrabbit.oak.plugins.blob
+    [OAK-5336] - Update milestone dependency to
+    org.apache.directory.api.api-all
+    [OAK-5339] - Test failure:
+    BackgroundObserverTest.testExcludeSomeCommits()
+    [OAK-5349] - RepositoryManager does not register VersionHook
+    [OAK-5353] - Services registered by SegmentNodeStoreService should
+    consistently expose the role
+    [OAK-5354] - Security: the order of child should be correct if the
+    child nodes are readable.
+    [OAK-5358] - test failures for oak-auth-ldap on Windows
+    [OAK-5359] - Cancelled garbage collection not reported to
+    GCMonitor
 
+Documentation
 
-Epic
-
-    [OAK-3270] - Improve DocumentMK resilience
-
+    [OAK-5235] - Document the new caching datastore
 
 Improvement
 
-    [OAK-3976] - journal should support large(r) entries
-    [OAK-4069] - Use read concern majority when connected to a replica set
-    [OAK-4978] - Expose maintainence related MBeans for Segment NodeStores created via factory
-    [OAK-5060] - Make DocumentNodeStore.alignWithExternalRevisions more chatty
-    [OAK-5186] - ChangeSetFilterImpl: support many includePaths by filtering for 1st path name
-    [OAK-5189] - SegmentRevisionGC should expose unformatted timestamps
-    [OAK-5225] - Online compaction throttling
-    [OAK-5237] - Change default query limit configuration
-    [OAK-5271] - IndexDefinitionBuilder should ignore safe change in "async" for determining reindex flag value
-    [OAK-5295] - Allow chaining of include in building aggregation rule via IndexDefinitionBuilder
-    [OAK-5303] - Improve readability of SegmentNodeStoreService
-    [OAK-5317] - MongoBlobStore creates _id index unnecessarily
-
+    [OAK-2821] - PersistentCache not used for RDBBlobStore
+    [OAK-4873] - Avoid running GC too frequently
+    [OAK-5273] - Reintroduce tests disabled or removed for OAK-5223
+    [OAK-5337] - LastRevRecoveryAgent should avoid recovering
+    documents from its own cluster id if the instance is running
+    [OAK-5366] - Optimize pre-filtering with long paths
 
 Task
 
-    [OAK-4452] - Consistently use the term segment-tar
-    [OAK-5198] - Javadoc and Documentation of ExternalGroupRef
-    [OAK-5199] - Test coverage for ExternalGroupRef
-    [OAK-5256] - Add type property to LuceneIndexEditorProvider
-    [OAK-5257] - Pass CommitContext as part of CommitInfo in OakInitializer
-    [OAK-5294] - Update Oak trunk to Jackrabbit 2.13.6
-    [OAK-5319] - Remove ReversedLinesFileReaderTestParamBlockSize
-
+    [OAK-4309] - Align property labels and descriptions in
+    SegmentNodeStoreService
+    [OAK-5293] - Static code analysis and code cleanup
+    [OAK-5318] - Update Oak trunk to Jackrabbit 2.13.7
+    [OAK-5351] - Disable RevisionGCMBean registration for non primary
+    SegmentNodeStore
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.5.x release.
