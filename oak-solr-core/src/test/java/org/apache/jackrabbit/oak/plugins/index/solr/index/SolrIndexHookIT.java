@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
@@ -74,6 +75,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
     }
 
     @Test
+    @Ignore("OAK-5264")
     public void testPropertyAddition() throws Exception {
         NodeState root = EMPTY_NODE;
 
