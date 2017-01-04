@@ -247,6 +247,7 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore
     public void testNativeMLTQuery() throws Exception {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
@@ -269,6 +270,7 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore
     public void testNativeMLTQueryWithStream() throws Exception {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
