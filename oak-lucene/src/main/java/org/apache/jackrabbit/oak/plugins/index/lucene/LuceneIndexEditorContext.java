@@ -158,10 +158,9 @@ public class LuceneIndexEditorContext {
         Calendar currentTime = getCalendar();
         final long start = PERF_LOGGER.start();
         boolean indexUpdated = getWriter().close(currentTime.getTimeInMillis());
-        PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
-
 
         if (indexUpdated) {
+            PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
             //is stored in file system
