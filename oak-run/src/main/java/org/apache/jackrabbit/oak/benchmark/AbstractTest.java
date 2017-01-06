@@ -89,6 +89,8 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
 
     private PrintStream out;
     
+    private RepositoryFixture currentFixture;
+    
     /**
      * <p>
      * used to signal the {@link #runTest(int)} if stop running future test planned or not. If set
@@ -191,6 +193,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                     toString(), statsNamesJoined(true));
         }
         for (RepositoryFixture fixture : fixtures) {
+            currentFixture = fixture;
             try {
                 Repository[] cluster = createRepository(fixture);
                 try {
@@ -527,6 +530,10 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
 
     protected Credentials getCredentials() {
         return credentials;
+    }
+    
+    protected RepositoryFixture getCurrentFixture() {
+        return currentFixture;
     }
 
     /**

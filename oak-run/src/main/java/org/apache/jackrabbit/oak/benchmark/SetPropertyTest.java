@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeManager;
+
+import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 import com.google.common.collect.Maps;
 
@@ -32,7 +35,12 @@ import com.google.common.collect.Maps;
  */
 public class SetPropertyTest extends AbstractTest {
 
-    private Map<Thread, Node> nodes = Maps.newIdentityHashMap();
+    /**
+     * Map holding node to be tested (below testNodeName) per current running fixture, per thread.
+     * A simpler structure holding nodes on a per thread basis is not enough, as runs with concurrencyLevel==1 
+     * and warm-up in {@link AbstractTest} are done from the same thread (re-using it between fixtures).
+     */
+    private Map<String, Map<Thread,Node>> map = new HashMap<>();
     
     String testNodeName = "test" + TEST_ID;
 
@@ -46,6 +54,8 @@ public class SetPropertyTest extends AbstractTest {
 
     @Override
     public void beforeTest() throws RepositoryException {
+        Map<Thread, Node> nodes = getOrCreateNodesMap();
+        
         Thread t = Thread.currentThread();
         Node node = nodes.get(t);
         if (node == null) {
@@ -54,11 +64,14 @@ public class SetPropertyTest extends AbstractTest {
             node.setProperty("count", -1);
             s.save();
             nodes.put(t, node);
+            map.put(getCurrentFixture().toString(), nodes);
         }
     }
 
     @Override
     public void runTest() throws Exception {
+        Map<Thread, Node> nodes = getOrCreateNodesMap();
+        
         Node node = nodes.get(Thread.currentThread());
         Session session = node.getSession();
         for (int i = 0; i < 1000; i++) {
@@ -84,5 +97,19 @@ public class SetPropertyTest extends AbstractTest {
             return "nt:unstructured";
         }
     }
+    
+    private Map<Thread, Node> getOrCreateNodesMap() {
+        RepositoryFixture currentFixture = getCurrentFixture();
+        if (currentFixture == null) {
+            throw new RuntimeException("Current running fixture was not correctly set!");
+        }
 
+        String currentFixtureName = currentFixture.toString();
+        
+        Map<Thread, Node> nodes = map.get(currentFixtureName);
+        if (nodes == null) {
+            nodes = Maps.newIdentityHashMap();
+        }
+        return nodes;
+    }
 }
