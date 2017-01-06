@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
-class ExtractedTextCache {
+public class ExtractedTextCache {
     private static final String EMPTY_STRING = "";
     private static final Logger log = LoggerFactory.getLogger(ExtractedTextCache.class);
     private volatile PreExtractedTextProvider extractedTextProvider;

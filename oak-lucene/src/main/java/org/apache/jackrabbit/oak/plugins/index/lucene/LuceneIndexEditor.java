@@ -27,18 +27,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.io.CountingInputStream;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
@@ -46,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.BlobByteSource;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoubleField;
@@ -57,13 +50,9 @@ import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 import org.apache.lucene.util.BytesRef;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.*;
@@ -80,9 +69,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private static final Logger log =
             LoggerFactory.getLogger(LuceneIndexEditor.class);
 
-    private static final long SMALL_BINARY = Long.getLong("oak.lucene.smallBinary", 16 * 1024);
-
-    static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
+    public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
 
     private final LuceneIndexEditorContext context;
 
@@ -586,40 +573,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private List<Field> newBinary(
             PropertyState property, NodeState state, String nodePath, String path) {
-        List<Field> fields = new ArrayList<Field>();
-        Metadata metadata = new Metadata();
-
-        //jcr:mimeType is mandatory for a binary to be indexed
-        String type = state.getString(JcrConstants.JCR_MIMETYPE);
-
-        if (type == null || !isSupportedMediaType(type)) {
-            log.trace(
-                    "[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
-                    getIndexName(), path, type);
-            return fields;
+        if (!context.isAsyncIndexing()){
+            //Skip text extraction for sync indexing
+            return Collections.emptyList();
         }
 
-        metadata.set(Metadata.CONTENT_TYPE, type);
-        if (JCR_DATA.equals(property.getName())) {
-            String encoding = state.getString(JcrConstants.JCR_ENCODING);
-            if (encoding != null) { // not mandatory
-                metadata.set(Metadata.CONTENT_ENCODING, encoding);
-            }
-        }
-
-        for (Blob v : property.getValue(Type.BINARIES)) {
-            String value = parseStringValue(v, metadata, path, property.getName());
-            if (value == null){
-                continue;
-            }
-
-            if (nodePath != null){
-                fields.add(newFulltextField(nodePath, value, true));
-            } else {
-                fields.add(newFulltextField(value, true));
-            }
-        }
-        return fields;
+        return context.getTextExtractor().newBinary(property, state, nodePath, path);
     }
 
     private boolean augmentCustomFields(final String path, final List<Field> fields,
@@ -939,81 +898,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private PathFilter.Result getPathFilterResult(String childNodeName) {
         return context.getDefinition().getPathFilter().filter(concat(getPath(), childNodeName));
-    }
-
-    private boolean isSupportedMediaType(String type) {
-        return context.isSupportedMediaType(type);
-    }
-
-    private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
-        if (!context.isAsyncIndexing()){
-            //Skip text extraction for sync indexing
-            return null;
-        }
-        String text = context.getExtractedTextCache().get(path, propertyName, v, context.isReindex());
-        if (text == null){
-            text = parseStringValue0(v, metadata, path);
-        }
-        return text;
-    }
-
-    private String parseStringValue0(Blob v, Metadata metadata, String path) {
-        WriteOutContentHandler handler = new WriteOutContentHandler(context.getDefinition().getMaxExtractLength());
-        long start = System.currentTimeMillis();
-        long bytesRead = 0;
-        long length = v.length();
-        if (log.isDebugEnabled()) {
-            log.debug("Extracting {}, {} bytes, id {}", path, length, v.getContentIdentity());
-        }
-        String oldThreadName = null;
-        if (length > SMALL_BINARY) {
-            Thread t = Thread.currentThread();
-            oldThreadName = t.getName();
-            t.setName(oldThreadName + ": Extracting " + path + ", " + length + " bytes");
-        }
-        try {
-            CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
-            try {
-                context.getParser().parse(stream, handler, metadata, new ParseContext());
-            } finally {
-                bytesRead = stream.getCount();
-                stream.close();
-            }
-        } catch (LinkageError e) {
-            // Capture and ignore errors caused by extraction libraries
-            // not being present. This is equivalent to disabling
-            // selected media types in configuration, so we can simply
-            // ignore these errors.
-        } catch (Throwable t) {
-            // Capture and report any other full text extraction problems.
-            // The special STOP exception is used for normal termination.
-            if (!handler.isWriteLimitReached(t)) {
-                log.debug(
-                        "[{}] Failed to extract text from a binary property: {}."
-                        + " This is a fairly common case, and nothing to"
-                        + " worry about. The stack trace is included to"
-                        + " help improve the text extraction feature.",
-                        getIndexName(), path, t);
-                context.getExtractedTextCache().put(v, ExtractedText.ERROR);
-                return TEXT_EXTRACTION_ERROR;
-            }
-        } finally {
-            if (oldThreadName != null) {
-                Thread.currentThread().setName(oldThreadName);
-            }
-        }
-        String result = handler.toString();
-        if (bytesRead > 0) {
-            long time = System.currentTimeMillis() - start;
-            int len = result.length();
-            context.recordTextExtractionStats(time, bytesRead, len);
-            if (log.isDebugEnabled()) {
-                log.debug("Extracting {} took {} ms, {} bytes read, {} text size", 
-                        path, time, bytesRead, len);
-            }
-        }
-        context.getExtractedTextCache().put(v,  new ExtractedText(ExtractionResult.SUCCESS, result));
-        return result;
     }
 
     private String getIndexName() {
