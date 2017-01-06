@@ -17,19 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.Calendar;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.binary.BinaryTextExtractor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
@@ -40,16 +36,10 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.facet.FacetsConfig;
-import org.apache.tika.config.TikaConfig;
-import org.apache.tika.mime.MediaType;
-import org.apache.tika.parser.AutoDetectParser;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_REFRESH_DEFN;
 
@@ -61,11 +51,7 @@ public class LuceneIndexEditorContext {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
-
-
     private FacetsConfig facetsConfig;
-
-    private static final Parser defaultParser = createDefaultParser();
 
     private IndexDefinition definition;
 
@@ -81,10 +67,6 @@ public class LuceneIndexEditorContext {
 
     private boolean reindex;
 
-    private Parser parser;
-
-    private final TextExtractionStats textExtractionStats = new TextExtractionStats();
-
     private final ExtractedTextCache extractedTextCache;
 
     private final IndexAugmentorFactory augmentorFactory;
@@ -94,16 +76,14 @@ public class LuceneIndexEditorContext {
     private final IndexingContext indexingContext;
 
     private final boolean asyncIndexing;
-    /**
-     * The media types supported by the parser used.
-     */
-    private Set<MediaType> supportedMediaTypes;
 
     //Intentionally static, so that it can be set without passing around clock objects
     //Set for testing ONLY
     private static Clock clock = Clock.SIMPLE;
 
     private final boolean indexDefnRewritten;
+
+    private BinaryTextExtractor textExtractor;
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
                              @Nullable IndexDefinition indexDefinition,
@@ -129,13 +109,6 @@ public class LuceneIndexEditorContext {
         } else {
             indexDefnRewritten = false;
         }
-    }
-
-    Parser getParser() {
-        if (parser == null){
-            parser = initializeTikaParser(definition);
-        }
-        return parser;
     }
 
     LuceneIndexWriter getWriter() throws IOException {
@@ -170,8 +143,9 @@ public class LuceneIndexEditorContext {
 
             PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
 
-            textExtractionStats.log(reindex);
-            textExtractionStats.collectStats(extractedTextCache);
+            if (textExtractor != null){
+                textExtractor.done(reindex);
+            }
         }
     }
     /** Only set for testing */
@@ -222,13 +196,6 @@ public class LuceneIndexEditorContext {
         return indexedNodes;
     }
 
-    public boolean isSupportedMediaType(String type) {
-        if (supportedMediaTypes == null) {
-            supportedMediaTypes = getParser().getSupportedTypes(new ParseContext());
-        }
-        return supportedMediaTypes.contains(MediaType.parse(type));
-    }
-
     void indexUpdate() throws CommitFailedException {
         updateCallback.indexUpdate();
     }
@@ -244,18 +211,12 @@ public class LuceneIndexEditorContext {
         return facetsConfig;
     }
 
-    @Deprecated
-    public void recordTextExtractionStats(long timeInMillis, long bytesRead) {
-        //Keeping deprecated method to avoid major version change
-        recordTextExtractionStats(timeInMillis, bytesRead, 0);
-    }
-
-    public void recordTextExtractionStats(long timeInMillis, long bytesRead, int textLength) {
-        textExtractionStats.addStats(timeInMillis, bytesRead, textLength);
-    }
-
-    ExtractedTextCache getExtractedTextCache() {
-        return extractedTextCache;
+    BinaryTextExtractor getTextExtractor(){
+        if (textExtractor == null){
+            //Create lazily to ensure that if its reindex case then update definition is picked
+            textExtractor = new BinaryTextExtractor(extractedTextCache, definition, reindex);
+        }
+        return textExtractor;
     }
 
     IndexAugmentorFactory getAugmentorFactory() {
@@ -300,111 +261,5 @@ public class LuceneIndexEditorContext {
             }
         }
         return new IndexDefinition(root, defnState,indexingContext.getIndexPath());
-    }
-
-    private static Parser initializeTikaParser(IndexDefinition definition) {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
-        try {
-            if (definition.hasCustomTikaConfig()) {
-                log.debug("[{}] Using custom tika config", definition.getIndexName());
-                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
-                InputStream is = definition.getTikaConfig();
-                try {
-                    return new AutoDetectParser(getTikaConfig(is, definition));
-                } finally {
-                    IOUtils.closeQuietly(is);
-                }
-            }
-        }finally {
-            Thread.currentThread().setContextClassLoader(current);
-        }
-        return defaultParser;
-    }
-
-    private static AutoDetectParser createDefaultParser() {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
-        URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
-        InputStream is = null;
-        if (configUrl != null) {
-            try {
-                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
-                is = configUrl.openStream();
-                TikaConfig config = new TikaConfig(is);
-                log.info("Loaded default Tika Config from classpath {}", configUrl);
-                return new AutoDetectParser(config);
-            } catch (Exception e) {
-                log.warn("Tika configuration not available : " + configUrl, e);
-            } finally {
-                IOUtils.closeQuietly(is);
-                Thread.currentThread().setContextClassLoader(current);
-            }
-        } else {
-            log.warn("Default Tika configuration not found from {}", configUrl);
-        }
-        return new AutoDetectParser();
-    }
-
-    private static TikaConfig getTikaConfig(InputStream configStream, Object source){
-        try {
-            return new TikaConfig(configStream);
-        } catch (Exception e) {
-            log.warn("Tika configuration not available : "+source, e);
-        }
-        return TikaConfig.getDefaultConfig();
-    }
-
-    static class TextExtractionStats {
-        /**
-         * Log stats only if time spent is more than 2 min
-         */
-        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(1);
-        private int count;
-        private long totalBytesRead;
-        private long totalTime;
-        private long totalTextLength;
-
-        public void addStats(long timeInMillis, long bytesRead, int textLength) {
-            count++;
-            totalBytesRead += bytesRead;
-            totalTime += timeInMillis;
-            totalTextLength += textLength;
-        }
-
-        public void log(boolean reindex) {
-            if (log.isDebugEnabled()) {
-                log.debug("Text extraction stats {}", this);
-            } else if (anyParsingDone() && (reindex || isTakingLotsOfTime())) {
-                log.info("Text extraction stats {}", this);
-            }
-        }
-
-        public void collectStats(ExtractedTextCache cache){
-            cache.addStats(count, totalTime, totalBytesRead, totalTextLength);
-        }
-
-        private boolean isTakingLotsOfTime() {
-            return totalTime > LOGGING_THRESHOLD;
-        }
-
-        private boolean anyParsingDone() {
-            return count > 0;
-        }
-
-        @Override
-        public String toString() {
-            return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
-                    count,
-                    timeInWords(totalTime),
-                    humanReadableByteCount(totalBytesRead),
-                    humanReadableByteCount(totalTextLength));
-        }
-
-        private static String timeInWords(long millis) {
-            return String.format("%d min, %d sec",
-                    TimeUnit.MILLISECONDS.toMinutes(millis),
-                    TimeUnit.MILLISECONDS.toSeconds(millis) -
-                            TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
-            );
-        }
     }
 }
