@@ -105,6 +105,18 @@ public class XPathTest {
     
     @Test
     public void union() throws ParseException {
+        verify("(//*[@a=1 or @b=1] | //*[@c=1])",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [a] = 1 " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [b] = 1 " +
+                "/* xpath: //*[@a=1 or @b=1] */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where [c] = 1 " +
+                "/* xpath: //*[@c=1] */");
         verify("//(a|(b|c))",
                 "select [jcr:path], [jcr:score], * " +
                 "from [nt:base] as a " +

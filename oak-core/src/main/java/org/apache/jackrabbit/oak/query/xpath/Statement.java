@@ -284,6 +284,17 @@ public class Statement {
         }
         
         @Override
+        public Statement optimize() {
+            Statement s1b = s1.optimize();
+            Statement s2b = s2.optimize();
+            if (s1 == s1b && s2 == s2b) {
+                // no change
+                return this;
+            }
+            return new UnionStatement(s1b, s2b);
+        }
+        
+        @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
             // explain | measure ...
