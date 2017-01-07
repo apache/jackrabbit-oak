@@ -63,13 +63,13 @@ import static com.google.common.collect.Maps.newHashMap;
  *   <li>Many JCR subsystems require global state, e.g. the versioning store. This global state
  *   can become corrupt if multiple mounts operate on it or if mounts are added and removed.</li>
  * </ol>
- *
- * As such, the only supported configuration is at most a single write-enabled store.</p>
+ * 
+ * <p>As such, the only supported configuration is at most a single write-enabled store.
  *
  * <p>Because of the limitation described above, right now the only correct way to use
  * MultiplexingNodeStore is to create a normal repository, split it into parts
  * using oak-upgrade {@code --{include,exclude}-paths} and then configure this
- * node store implementation to multiplex split parts together.</p>
+ * node store implementation to multiplex split parts together.
  */
 public class MultiplexingNodeStore implements NodeStore, Observable {
 
