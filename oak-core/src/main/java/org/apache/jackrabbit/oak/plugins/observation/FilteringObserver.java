@@ -68,7 +68,7 @@ public class FilteringObserver implements Observer, Closeable {
      * @param filter the Filter to be used for filtering
      * @param observer the FilteringAwareObserver to which content changes ultimately
      * are delivered after going through a chain of 
-     * FilteringObserver->BackgroundObserver->FilteringDispatcher.
+     * FilteringObserver-&gt;BackgroundObserver-&gt;FilteringDispatcher.
      */
     public FilteringObserver(@Nonnull Executor executor, int queueLength, @Nonnull Filter filter,
             @Nonnull FilteringAwareObserver observer) {
