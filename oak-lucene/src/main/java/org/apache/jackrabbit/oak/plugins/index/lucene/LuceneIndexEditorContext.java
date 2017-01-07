@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.binary.BinaryTextExtractor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -43,7 +44,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_REFRESH_DEFN;
 
-public class LuceneIndexEditorContext {
+public class LuceneIndexEditorContext implements FacetsConfigProvider{
 
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexEditorContext.class);
@@ -188,7 +189,7 @@ public class LuceneIndexEditorContext {
         return indexedNodes;
     }
 
-    public boolean isAsyncIndexing() {
+    private boolean isAsyncIndexing() {
         return asyncIndexing;
     }
 
@@ -204,23 +205,27 @@ public class LuceneIndexEditorContext {
         return definition;
     }
 
-    FacetsConfig getFacetsConfig() {
+    LuceneDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule rule, String path){
+        //Faceting is only enabled for async mode
+        FacetsConfigProvider facetsConfigProvider = isAsyncIndexing() ? this : null;
+        return new LuceneDocumentMaker(getTextExtractor(), facetsConfigProvider, augmentorFactory,
+                definition, rule, path);
+    }
+
+    @Override
+    public FacetsConfig getFacetsConfig() {
         if (facetsConfig == null){
             facetsConfig = FacetHelper.getFacetsConfig(definitionBuilder);
         }
         return facetsConfig;
     }
 
-    BinaryTextExtractor getTextExtractor(){
-        if (textExtractor == null){
+    private BinaryTextExtractor getTextExtractor(){
+        if (textExtractor == null && isAsyncIndexing()){
             //Create lazily to ensure that if its reindex case then update definition is picked
             textExtractor = new BinaryTextExtractor(extractedTextCache, definition, reindex);
         }
         return textExtractor;
-    }
-
-    IndexAugmentorFactory getAugmentorFactory() {
-        return augmentorFactory;
     }
 
     public boolean isReindex() {
