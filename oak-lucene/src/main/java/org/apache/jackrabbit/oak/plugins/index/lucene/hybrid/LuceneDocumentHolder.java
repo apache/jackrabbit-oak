@@ -20,13 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class LuceneDocumentHolder {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
@@ -34,14 +37,16 @@ public class LuceneDocumentHolder {
 
     private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
     private final ListMultimap<String, LuceneDoc> syncIndexedList = ArrayListMultimap.create();
+    private final ListMultimap<String, String> queuedNrtIndexedPath = ArrayListMultimap.create();
+    private final ListMultimap<String, LuceneDoc> queuedSyncIndexedPath = ArrayListMultimap.create();
     private final int inMemoryDocsLimit;
+    private final IndexingQueue documentQueue;
     private boolean limitWarningLogged;
+    private boolean docAddedToQueue;
+    private boolean schedulingDone;
 
-    public LuceneDocumentHolder(){
-        this(500);
-    }
-
-    public LuceneDocumentHolder(int inMemoryDocsLimit) {
+    public LuceneDocumentHolder(IndexingQueue documentQueue, int inMemoryDocsLimit) {
+        this.documentQueue = checkNotNull(documentQueue);
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
@@ -50,29 +55,50 @@ public class LuceneDocumentHolder {
     }
 
     public Map<String, Collection<LuceneDoc>> getSyncIndexedDocs(){
+        for (Map.Entry<String, LuceneDoc> e : queuedSyncIndexedPath.entries()){
+            if (!e.getValue().isProcessed()){
+                syncIndexedList.put(e.getKey(), e.getValue());
+            }
+        }
         return syncIndexedList.asMap();
     }
 
     public void add(boolean sync, LuceneDoc doc) {
-        if (sync){
-            getSyncIndexedDocList(doc.indexPath).add(doc);
+        //First try adding to queue in non blocking manner
+        if (documentQueue.addIfNotFullWithoutWait(doc)){
+            if (sync){
+                queuedSyncIndexedPath.put(doc.indexPath, doc);
+            } else {
+                queuedNrtIndexedPath.put(doc.indexPath, doc.docPath);
+            }
+            docAddedToQueue = true;
         } else {
-            if (queueSizeWithinLimits()) {
-                getNRTIndexedDocList(doc.indexPath).add(doc);
+            //Queue is full so keep it in memory
+            if (sync) {
+                syncIndexedList.put(doc.indexPath, doc);
+            } else {
+                if (queueSizeWithinLimits()) {
+                    nrtIndexedList.put(doc.indexPath, doc);
+                }
             }
         }
     }
 
     public void done(String indexPath) {
-
+        //Hints the queue to process the queued docs in batch
+        if (docAddedToQueue && !schedulingDone) {
+            documentQueue.scheduleQueuedDocsProcessing();
+            schedulingDone = true;
+        }
     }
 
-    List<LuceneDoc> getNRTIndexedDocList(String indexPath) {
-        return nrtIndexedList.get(indexPath);
-    }
-
-    List<LuceneDoc> getSyncIndexedDocList(String indexPath) {
-        return syncIndexedList.get(indexPath);
+    /**
+     * Returns an iterable for all indexed paths handled by this holder instance. The paths
+     * may be directly forwarded to the queue or held in memory for later processing
+     */
+    Iterable<? extends LuceneDocInfo> getAllLuceneDocInfo(){
+        return Iterables.concat(nrtIndexedList.values(), syncIndexedList.values(),
+                asLuceneDocInfo(queuedNrtIndexedPath), queuedSyncIndexedPath.values());
     }
 
     private boolean queueSizeWithinLimits(){
@@ -85,5 +111,24 @@ public class LuceneDocumentHolder {
             return false;
         }
         return true;
+    }
+
+    private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
+        return Iterables.transform(docs.entries(), new Function<Map.Entry<String, String>, LuceneDocInfo>() {
+            @Override
+            public LuceneDocInfo apply(final Map.Entry<String, String> input) {
+                return new LuceneDocInfo() {
+                    @Override
+                    public String getIndexPath() {
+                        return input.getKey();
+                    }
+
+                    @Override
+                    public String getDocPath() {
+                        return input.getValue();
+                    }
+                };
+            }
+        });
     }
 }

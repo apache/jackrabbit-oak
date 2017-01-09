@@ -338,6 +338,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         queue = new DocumentQueue(queueSize, tracker, executorService, statsProvider);
         localIndexObserver = new LocalIndexObserver(queue, statsProvider);
+        luceneEditorProvider.setIndexingQueue(queue);
     }
 
     private void runAsyncIndex() {

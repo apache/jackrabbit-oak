@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -36,10 +37,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -58,6 +57,7 @@ public class LuceneIndexEditorProviderTest {
                 null,
                 null,
                 Mounts.defaultMountInfoProvider());
+        editorProvider.setIndexingQueue(mock(DocumentQueue.class));
 
         IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
         NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
@@ -83,7 +83,7 @@ public class LuceneIndexEditorProviderTest {
                 null,
                 null,
                 Mounts.defaultMountInfoProvider());
-
+        editorProvider.setIndexingQueue(mock(DocumentQueue.class));
         //Set up a different IndexDefinition which needs to be returned
         //from tracker with a marker property
         NodeBuilder testBuilder = createIndexDefinition("fooIndex").builder();
