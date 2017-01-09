@@ -100,9 +100,9 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      * <p>
      * This filter property is added in 'or' mode.
      * 
-     * @param globPath
-     *            glob path that should be added as include path pattern. Note
-     *            that the NamePathMapper is not applied on this globPath.
+     * @param globPaths
+     *            glob paths that should be added as include path pattern. Note
+     *            that the NamePathMapper is not applied on these globPaths.
      * @return this filter with the filter change applied
      */
     public abstract OakEventFilter withIncludeGlobPaths(String... globPaths);
