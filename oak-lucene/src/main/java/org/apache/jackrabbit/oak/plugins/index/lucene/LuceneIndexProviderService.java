@@ -206,7 +206,7 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_HYBRID_INDEXING = "enableHybridIndexing";
 
-    private static final int PROP_HYBRID_QUEUE_SIZE_DEFAULT = 1000;
+    private static final int PROP_HYBRID_QUEUE_SIZE_DEFAULT = 10000;
     @Property(
             intValue = PROP_HYBRID_QUEUE_SIZE_DEFAULT,
             label = "Queue size",
