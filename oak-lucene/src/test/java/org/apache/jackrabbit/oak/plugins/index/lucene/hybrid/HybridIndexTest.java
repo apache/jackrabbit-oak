@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -73,6 +74,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -98,6 +100,11 @@ public class HybridIndexTest extends AbstractQueryTest {
 
     private long refreshDelta = TimeUnit.SECONDS.toMillis(1);
 
+    @After
+    public void tearDown(){
+        new ExecutorCloser(executorService).close();
+    }
+
     @Override
     protected ContentRepository createRepository() {
         IndexCopier copier;
@@ -112,14 +119,14 @@ public class HybridIndexTest extends AbstractQueryTest {
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
-
+        queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
                 null,
                 null,
                 mip);
+        editorProvider.setIndexingQueue(queue);
 
-        queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
 
         nodeStore = new MemoryNodeStore();

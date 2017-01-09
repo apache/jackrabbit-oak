@@ -23,11 +23,12 @@ import javax.annotation.Nullable;
 
 import org.apache.lucene.index.IndexableField;
 
-class LuceneDoc {
+class LuceneDoc implements LuceneDocInfo {
     final String indexPath;
     final String docPath;
     final Iterable<? extends IndexableField> doc;
     final boolean delete;
+    private volatile boolean processed;
 
     public static LuceneDoc forUpdate(String indexPath, String path, Iterable<? extends IndexableField> doc){
         return new LuceneDoc(indexPath, path, doc, false);
@@ -47,5 +48,25 @@ class LuceneDoc {
     @Override
     public String toString() {
         return String.format("%s(%s)", indexPath, docPath);
+    }
+
+    public boolean isProcessed() {
+        return processed;
+    }
+
+    public void markProcessed(){
+        processed = true;
+    }
+
+    //~-------------------------------< LuceneDocInfo >
+
+    @Override
+    public String getIndexPath() {
+        return indexPath;
+    }
+
+    @Override
+    public String getDocPath() {
+        return docPath;
     }
 }

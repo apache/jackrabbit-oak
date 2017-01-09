@@ -389,6 +389,10 @@ public class LuceneIndexProviderService {
         }
         editorProvider.setBlobStore(blobStore);
 
+        if (hybridIndex){
+            editorProvider.setIndexingQueue(checkNotNull(documentQueue));
+        }
+
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put("type", "lucene");
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));

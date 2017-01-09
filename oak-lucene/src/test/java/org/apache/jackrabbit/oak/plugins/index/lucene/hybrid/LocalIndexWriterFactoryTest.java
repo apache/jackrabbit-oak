@@ -20,11 +20,14 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.IOException;
+import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
@@ -39,6 +42,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.*;
@@ -51,16 +55,19 @@ public class LocalIndexWriterFactoryTest {
     private EditorHook asyncHook;
     private CommitInfo info;
     private LuceneIndexEditorProvider editorProvider;
+    private IndexTracker tracker;
 
     @Before
     public void setUp() throws IOException {
+        tracker = new IndexTracker();
+        DocumentQueue queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         editorProvider = new LuceneIndexEditorProvider(
                 null,
                 null,
                 null,
                 Mounts.defaultMountInfoProvider()
         );
-
+        editorProvider.setIndexingQueue(queue);
         syncHook = new EditorHook(new IndexUpdateProvider(editorProvider));
         asyncHook = new EditorHook(new IndexUpdateProvider(editorProvider, "async", false));
     }
@@ -97,7 +104,7 @@ public class LocalIndexWriterFactoryTest {
         assertNotNull(holder);
 
         //2 add none for delete
-        assertEquals(2, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
+        assertEquals(2, getIndexedDocList(holder, "/oak:index/fooIndex").size());
     }
 
     @Test
@@ -114,10 +121,10 @@ public class LocalIndexWriterFactoryTest {
         assertNotNull(holder);
 
         //1 add  - bar
-        assertEquals(1, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
+        assertEquals(1, getIndexedDocList(holder, "/oak:index/fooIndex").size());
 
         //1 add  - bar
-        assertEquals(1, holder.getNRTIndexedDocList("/oak:index/barIndex").size());
+        assertEquals(1, getIndexedDocList(holder, "/oak:index/barIndex").size());
 
     }
 
@@ -134,14 +141,14 @@ public class LocalIndexWriterFactoryTest {
         assertNotNull(holder);
 
         //2 add none for delete
-        assertEquals(2, holder.getSyncIndexedDocList("/oak:index/fooIndex").size());
-        assertEquals(0, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
+        assertEquals(2, getIndexedDocList(holder,"/oak:index/fooIndex").size());
     }
 
     @Test
     public void inMemoryDocLimit() throws Exception{
         NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
         editorProvider.setInMemoryDocsLimit(5);
+        editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, sameThreadExecutor()));
         builder = indexed.builder();
         for (int i = 0; i < 10; i++) {
             builder.child("b" + i).setProperty("foo", "bar");
@@ -150,7 +157,8 @@ public class LocalIndexWriterFactoryTest {
         syncHook.processCommit(indexed, after, newCommitInfo());
 
         LuceneDocumentHolder holder = getHolder();
-        assertEquals(5, holder.getNRTIndexedDocList("/oak:index/fooIndex").size());
+        //5 for in memory list and 1 in queue
+        assertEquals(5 + 1, getIndexedDocList(holder, "/oak:index/fooIndex").size());
     }
 
     private NodeState createAndPopulateAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {
@@ -195,4 +203,13 @@ public class LocalIndexWriterFactoryTest {
         builder.child("oak:index").setChildNode(idxName, idx.build());
     }
 
+    private static List<String> getIndexedDocList(LuceneDocumentHolder holder, String indexPath){
+        List<String> paths = Lists.newArrayList();
+        for (LuceneDocInfo doc : holder.getAllLuceneDocInfo()){
+            if (doc.getIndexPath().equals(indexPath)){
+                paths.add(doc.getDocPath());
+            }
+        }
+        return paths;
+    }
 }
