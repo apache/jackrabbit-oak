@@ -166,7 +166,7 @@ public class VersionGarbageCollector {
             //Check for any registered checkpoint which prevent the GC from running
             Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
             if (checkpoint != null && checkpoint.getTimestamp() < oldestRevTimeStamp) {
-                log.info("Ignoring revision garbage collection because a valid " +
+                log.warn("Ignoring revision garbage collection because a valid " +
                                 "checkpoint [{}] was found, which is older than [{}].",
                         checkpoint.toReadableString(),
                         Utils.timestampToString(oldestRevTimeStamp)
