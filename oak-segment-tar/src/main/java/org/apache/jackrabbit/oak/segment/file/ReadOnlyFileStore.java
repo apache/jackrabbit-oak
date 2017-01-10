@@ -40,6 +40,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
@@ -69,8 +70,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     private RecordId currentHead;
 
-    ReadOnlyFileStore(FileStoreBuilder builder)
-            throws InvalidFileStoreVersionException, IOException {
+    ReadOnlyFileStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
@@ -94,8 +94,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                 memoryMapping);
     }
 
-    ReadOnlyFileStore bind(@Nonnull ReadOnlyRevisions revisions)
-            throws IOException {
+    ReadOnlyFileStore bind(@Nonnull ReadOnlyRevisions revisions) throws IOException {
         this.revisions = revisions;
         this.revisions.bind(this);
         currentHead = revisions.getHead();
@@ -202,15 +201,12 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     @Override
     public void close() {
-        try {
-            revisions.close();
-            for (TarReader reader : readers) {
-                closeAndLogOnFail(reader);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to close the TarMK at "
-                    + directory, e);
+        Closer closer = Closer.create();
+        for (TarReader r : readers) {
+            closer.register(r);
         }
+        closer.register(revisions);
+        closeAndLogOnFail(closer);
         System.gc(); // for any memory-mappings that are no longer used
         log.info("TarMK closed: {}", directory);
     }

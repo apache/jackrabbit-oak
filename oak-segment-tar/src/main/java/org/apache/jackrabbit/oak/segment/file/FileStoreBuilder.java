@@ -308,7 +308,19 @@ public class FileStoreBuilder {
         directory.mkdirs();
         TarRevisions revisions = new TarRevisions(directory);
         LOG.info("Creating file store {}", this);
-        return new FileStore(this).bind(revisions);
+        FileStore store;
+        try {
+            store = new FileStore(this);
+        } catch (InvalidFileStoreVersionException | IOException e) {
+            try {
+                revisions.close();
+            } catch (IOException re) {
+                LOG.warn("Unable to close TarRevisions", re);
+            }
+            throw e;
+        }
+        store.bind(revisions);
+        return store;
     }
 
     /**
@@ -335,7 +347,19 @@ public class FileStoreBuilder {
         built = true;
         ReadOnlyRevisions revisions = new ReadOnlyRevisions(directory);
         LOG.info("Creating file store {}", this);
-        return new ReadOnlyFileStore(this).bind(revisions);
+        ReadOnlyFileStore store;
+        try {
+            store = new ReadOnlyFileStore(this);
+        } catch (InvalidFileStoreVersionException | IOException e) {
+            try {
+                revisions.close();
+            } catch (IOException re) {
+                LOG.warn("Unable to close ReadOnlyRevisions", re);
+            }
+            throw e;
+        }
+        store.bind(revisions);
+        return store;
     }
 
     @Nonnull

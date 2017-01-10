@@ -74,6 +74,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.Compactor;
@@ -462,28 +463,34 @@ public class FileStore extends AbstractFileStore {
 
         try {
             flush();
-            revisions.close();
-            fileStoreLock.writeLock().lock();
-            try {
-                closeAndLogOnFail(tarWriter);
-
-                List<TarReader> list = readers;
-                readers = newArrayList();
-                for (TarReader reader : list) {
-                    closeAndLogOnFail(reader);
-                }
-
-                if (lock != null) {
-                    lock.release();
-                }
-                closeAndLogOnFail(lockFile);
-            } finally {
-                fileStoreLock.writeLock().unlock();
-            }
         } catch (IOException e) {
-            throw new RuntimeException(
-                    "Failed to close the TarMK at " + directory, e);
+            log.warn("Unable to flush the store", e);
         }
+
+        Closer closer = Closer.create();
+        closer.register(revisions);
+        fileStoreLock.writeLock().lock();
+        try {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (IOException e) {
+                    log.warn("Unable to release the file lock", e);
+                }
+            }
+            closer.register(lockFile);
+
+            List<TarReader> list = readers;
+            readers = newArrayList();
+            for (TarReader reader : list) {
+                closer.register(reader);
+            }
+
+            closer.register(tarWriter);
+        } finally {
+            fileStoreLock.writeLock().unlock();
+        }
+        closeAndLogOnFail(closer);
 
         // Try removing pending files in case the scheduler didn't have a chance to run yet
         fileReaper.reap();
