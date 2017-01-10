@@ -44,12 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Component(policy = ConfigurationPolicy.REQUIRE,
-        metatype = true,
-        label = "Apache Jackrabbit Oak Multiplexing NodeStore Service",
-        description = "NodeStore implementation proxying all the operations " +
-                "to other nodestores configured in OSGi"
-)
+@Component(policy = ConfigurationPolicy.REQUIRE)
 public class MultiplexingNodeStoreService {
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiplexingNodeStoreService.class);
