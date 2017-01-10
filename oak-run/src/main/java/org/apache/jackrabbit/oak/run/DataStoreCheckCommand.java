@@ -66,7 +66,8 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 
 /**
- * Command to check data store consistency and also optionally retrieve ids & references
+ * Command to check data store consistency and also optionally retrieve ids
+ * and references.
  */
 public class DataStoreCheckCommand implements Command {
     private static final String DELIM = ",";
