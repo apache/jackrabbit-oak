@@ -428,8 +428,13 @@ public class DefaultSyncContext implements SyncContext {
 
     @Nonnull
     protected DefaultSyncResultImpl syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
+        // make also sure the local user to be synced belongs to the same IDP. Note: 'external' has been verified before.
+        if (!isSameIDP(user)) {
+            return new DefaultSyncResultImpl(new DefaultSyncedIdentity(external.getId(), external.getExternalId(), false, -1), SyncResult.Status.FOREIGN);
+        }
+
         SyncResult.Status status;
-        // first check if user is expired
+        // check if user is expired
         if (!forceUserSync && !isExpired(user)) {
             status = SyncResult.Status.NOP;
         } else {
@@ -452,6 +457,11 @@ public class DefaultSyncContext implements SyncContext {
 
     @Nonnull
     protected DefaultSyncResultImpl syncGroup(@Nonnull ExternalGroup external, @Nonnull Group group) throws RepositoryException {
+        // make also sure the local user to be synced belongs to the same IDP. Note: 'external' has been verified before.
+        if (!isSameIDP(group)) {
+            return new DefaultSyncResultImpl(new DefaultSyncedIdentity(external.getId(), external.getExternalId(), false, -1), SyncResult.Status.FOREIGN);
+        }
+
         SyncResult.Status status;
         // first check if group is expired
         if (!forceGroupSync && !isExpired(group)) {

@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncExcept
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -345,6 +346,66 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(-1, si.lastSynced());
 
         assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testSyncExternalForeignLocalUser() throws Exception {
+        ExternalUser external = idp.listUsers().next();
+        syncCtx.sync(external);
+
+        User u = userManager.getAuthorizable(external.getId(), User.class);
+        setExternalID(u, "differentIDP");
+
+        SyncResult result = syncCtx.sync(external);
+        assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertEquals(external.getExternalId(), si.getExternalIdRef());
+    }
+
+    @Test
+    public void testSyncExternalToForeignLocalGroup() throws Exception {
+        ExternalGroup external = idp.listGroups().next();
+        syncCtx.sync(external);
+
+        Group gr = userManager.getAuthorizable(external.getId(), Group.class);
+        setExternalID(gr, "differentIDP");
+
+        SyncResult result = syncCtx.sync(external);
+        assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertEquals(external.getExternalId(), si.getExternalIdRef());
+    }
+
+    @Test
+    public void testSyncExternalToExistingLocalUser() throws Exception {
+        ExternalUser external = idp.listUsers().next();
+        syncCtx.sync(external);
+
+        User u = userManager.getAuthorizable(external.getId(), User.class);
+        u.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
+
+        SyncResult result = syncCtx.sync(external);
+        assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertEquals(external.getExternalId(), si.getExternalIdRef());
+    }
+
+    @Test
+    public void testSyncExternalToExistingLocalGroup() throws Exception {
+        ExternalGroup external = idp.listGroups().next();
+        syncCtx.sync(external);
+
+        Group gr = userManager.getAuthorizable(external.getId(), Group.class);
+        gr.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
+
+        SyncResult result = syncCtx.sync(external);
+        assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+        SyncedIdentity si = result.getIdentity();
+        assertNotNull(si);
+        assertEquals(external.getExternalId(), si.getExternalIdRef());
     }
 
     @Test
