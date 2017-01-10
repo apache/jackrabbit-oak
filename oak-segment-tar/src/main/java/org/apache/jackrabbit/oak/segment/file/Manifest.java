@@ -36,7 +36,9 @@ class Manifest {
      */
     static Manifest load(File file) throws IOException {
         Properties properties = new Properties();
-        properties.load(new FileReader(file));
+        try (FileReader r = new FileReader(file)) {
+            properties.load(r);
+        }
         return new Manifest(properties);
     }
 
