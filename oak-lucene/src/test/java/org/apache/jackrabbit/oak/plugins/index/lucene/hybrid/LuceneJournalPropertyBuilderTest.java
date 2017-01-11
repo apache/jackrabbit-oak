@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 public class LuceneJournalPropertyBuilderTest {
 
-    private LuceneJournalPropertyBuilder builder = new LuceneJournalPropertyBuilder();
+    private LuceneJournalPropertyBuilder builder = new LuceneJournalPropertyBuilder(1000);
 
     @Test
     public void nullProperty() throws Exception{
@@ -47,7 +47,7 @@ public class LuceneJournalPropertyBuilderTest {
     public void nullOrEmptyJson() throws Exception{
         builder.addProperty(null);
 
-        LuceneJournalPropertyBuilder builder2 = new LuceneJournalPropertyBuilder();
+        LuceneJournalPropertyBuilder builder2 = new LuceneJournalPropertyBuilder(1000);
         builder2.addSerializedProperty(null);
         builder2.addSerializedProperty(builder.buildAsString());
 
@@ -83,13 +83,27 @@ public class LuceneJournalPropertyBuilderTest {
         builder.addProperty(h2);
 
         String json = builder.buildAsString();
-        LuceneJournalPropertyBuilder builder2 = new LuceneJournalPropertyBuilder();
+        LuceneJournalPropertyBuilder builder2 = new LuceneJournalPropertyBuilder(1000);
         builder2.addSerializedProperty(json);
 
         IndexedPaths indexedPaths = (IndexedPaths) builder2.build();
         Multimap<String, String> map = createdIndexPathMap(indexedPaths);
         assertThat(map.keySet(), containsInAnyOrder("/oak:index/foo", "/oak:index/bar"));
         assertThat(map.get("/oak:index/foo"), containsInAnyOrder("/a", "/b"));
+    }
+
+    @Test
+    public void maxLimitReached() throws Exception{
+        int maxSize = 5;
+        builder = new LuceneJournalPropertyBuilder(maxSize);
+        for (int i = 0; i < maxSize*2; i++) {
+            LuceneDocumentHolder h1 = createHolder();
+            h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"+i));
+            builder.addProperty(h1);
+        }
+
+        IndexedPaths indexedPaths = (IndexedPaths) builder.build();
+        assertEquals(maxSize, Iterables.size(indexedPaths));
     }
 
     private Multimap<String, String> createdIndexPathMap(Iterable<IndexedPathInfo> itr){
