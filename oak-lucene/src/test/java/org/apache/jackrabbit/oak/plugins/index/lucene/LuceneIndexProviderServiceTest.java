@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -115,6 +116,8 @@ public class LuceneIndexProviderServiceTest {
         assertEquals(1024, BooleanQuery.getMaxClauseCount());
 
         assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue", true));
+
+        assertNotNull(context.getService(JournalPropertyService.class));
 
         MockOsgi.deactivate(service);
     }

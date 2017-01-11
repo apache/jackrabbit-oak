@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import java.io.IOException;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -60,28 +59,40 @@ public class ExternalIndexObserver implements Observer, Filter {
 
     @Override
     public boolean excludes(@Nonnull NodeState root, @Nonnull CommitInfo info) {
-        return !info.isExternal();
-    }
-
-    @Override
-    public void contentChanged(@Nonnull NodeState after, @Nonnull CommitInfo info) {
         //Only interested in external changes
         if (!info.isExternal()) {
-            return;
+            return true;
         }
 
         CommitContext commitContext = (CommitContext) info.getInfo().get(CommitContext.NAME);
         //Commit done internally i.e. one not using Root/Tree API
         if (commitContext == null) {
-            return;
+            return true;
         }
 
         IndexedPaths indexedPaths = (IndexedPaths) commitContext.get(LuceneDocumentHolder.NAME);
         //Nothing to be indexed
         if (indexedPaths == null) {
             log.debug("IndexPaths not found. Journal support missing");
+            return true;
+        }
+
+        if (indexedPaths.isEmpty()){
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public void contentChanged(@Nonnull NodeState after, @Nonnull CommitInfo info) {
+        //Only interested in external changes
+        if (excludes(after, info)) {
             return;
         }
+
+        CommitContext commitContext = (CommitContext) info.getInfo().get(CommitContext.NAME);
+        IndexedPaths indexedPaths = (IndexedPaths) commitContext.get(LuceneDocumentHolder.NAME);
 
         commitContext.remove(LuceneDocumentHolder.NAME);
 
@@ -131,7 +142,7 @@ public class ExternalIndexObserver implements Observer, Filter {
                             droppedCount++;
                         }
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     log.warn("Ignoring making LuceneDocument for path {} for index {} due to exception", path, indexPath, e);
                 }
             }

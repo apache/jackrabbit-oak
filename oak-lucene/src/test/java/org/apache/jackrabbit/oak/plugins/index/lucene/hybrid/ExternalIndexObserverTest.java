@@ -22,12 +22,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -147,6 +149,10 @@ public class ExternalIndexObserverTest {
 
     @Test
     public void docAddedToQueue() throws Exception {
+        assertIndexing(observer);
+    }
+
+    private void assertIndexing(Observer observer){
         Multimap<String, String> indexedPaths = HashMultimap.create();
         indexedPaths.put("/a", "/oak:index/foo");
 
@@ -164,6 +170,22 @@ public class ExternalIndexObserverTest {
         verify(queue).add(doc.capture());
 
         assertEquals("/oak:index/foo", doc.getValue().getIndexPath());
+    }
+
+    @Test
+    public void builder() throws Exception{
+        ExternalObserverBuilder builder =
+                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.sameThreadExecutor(), 10);
+        Observer o = builder.build();
+        o.contentChanged(INITIAL_CONTENT, CommitInfo.EMPTY_EXTERNAL);
+        verifyZeroInteractions(queue);
+    }
+
+    @Test
+    public void builder_NonFiltered() throws Exception{
+        ExternalObserverBuilder builder =
+                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.sameThreadExecutor(), 10);
+        assertIndexing(builder.build());
     }
 
     private CommitInfo newCommitInfo() {
