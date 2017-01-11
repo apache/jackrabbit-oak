@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 
 import org.apache.lucene.index.IndexableField;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 class LuceneDoc implements LuceneDocInfo {
     final String indexPath;
     final String docPath;
@@ -31,7 +33,7 @@ class LuceneDoc implements LuceneDocInfo {
     private volatile boolean processed;
 
     public static LuceneDoc forUpdate(String indexPath, String path, Iterable<? extends IndexableField> doc){
-        return new LuceneDoc(indexPath, path, doc, false);
+        return new LuceneDoc(indexPath, path, checkNotNull(doc), false);
     }
 
     public static LuceneDoc forDelete(String indexPath, String path){
@@ -39,8 +41,8 @@ class LuceneDoc implements LuceneDocInfo {
     }
 
     private LuceneDoc(String indexPath, String path, @Nullable Iterable<? extends IndexableField> doc, boolean delete) {
-        this.docPath = path;
-        this.indexPath = indexPath;
+        this.docPath = checkNotNull(path);
+        this.indexPath = checkNotNull(indexPath);
         this.doc = doc;
         this.delete = delete;
     }
