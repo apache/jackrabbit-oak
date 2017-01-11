@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-public interface IndexUpdateListener extends ReaderRefreshPolicy {
+interface IndexUpdateListener extends ReaderRefreshPolicy {
 
     void updated();
 }
