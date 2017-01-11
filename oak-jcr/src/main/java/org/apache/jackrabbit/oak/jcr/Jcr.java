@@ -244,10 +244,21 @@ public class Jcr {
         return this;
     }
 
+    /**
+     * @deprecated Use {@link #withAsyncIndexing(String, long)} instead
+     */
     @Nonnull
+    @Deprecated
     public Jcr withAsyncIndexing() {
         ensureRepositoryIsNotCreated();
         oak.withAsyncIndexing();
+        return this;
+    }
+
+    @Nonnull
+    public Jcr withAsyncIndexing(@Nonnull String name, long delayInSeconds) {
+        ensureRepositoryIsNotCreated();
+        oak.withAsyncIndexing(name, delayInSeconds);
         return this;
     }
 
