@@ -449,6 +449,8 @@ public final class DocumentNodeStore
 
     private final BundledDocumentDiffer bundledDocDiffer = new BundledDocumentDiffer(this);
 
+    private final JournalPropertyHandlerFactory journalPropertyHandlerFactory;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         this.statisticsProvider = builder.getStatisticsProvider();
@@ -491,6 +493,7 @@ public final class DocumentNodeStore
             clusterNodeInfo.setLeaseCheckDisabled(true);
         }
 
+        this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
         this.store = s;
         this.changes = newJournalEntry();
         this.clusterId = cid;
@@ -793,6 +796,7 @@ public final class DocumentNodeStore
                         c.applyToCache(before, false);
                         // track modified paths
                         changes.modified(c.getModifiedPaths());
+                        changes.readFrom(info);
                         changes.addChangeSet(getChangeSet(info));
                         // update head revision
                         Revision r = c.getRevision();
@@ -1968,6 +1972,7 @@ public final class DocumentNodeStore
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         try {
             ChangeSetBuilder changeSetBuilder = newChangeSetBuilder();
+            JournalPropertyHandler journalPropertyHandler = journalPropertyHandlerFactory.newHandler();
             RevisionVector headRevision = getHeadRevision();
             Set<Revision> externalChanges = Sets.newHashSet();
             for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
@@ -1991,7 +1996,7 @@ public final class DocumentNodeStore
                     if (externalSort != null) {
                         // add changes for this particular clusterId to the externalSort
                         try {
-                            fillExternalChanges(externalSort, PathUtils.ROOT_PATH, last, r, store, changeSetBuilder);
+                            fillExternalChanges(externalSort, PathUtils.ROOT_PATH, last, r, store, changeSetBuilder, journalPropertyHandler);
                         } catch (IOException e1) {
                             LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
                             IOUtils.closeQuietly(externalSort);
@@ -2050,7 +2055,7 @@ public final class DocumentNodeStore
 
                     ChangeSet changeSet = changeSetBuilder.build();
                     LOG.debug("Dispatching external change with ChangeSet {}", changeSet);
-                    dispatcher.contentChanged(getRoot().fromExternalChange(), newCommitInfo(changeSet));
+                    dispatcher.contentChanged(getRoot().fromExternalChange(), newCommitInfo(changeSet, journalPropertyHandler));
                 } finally {
                     backgroundOperationLock.writeLock().unlock();
                 }
@@ -2063,9 +2068,10 @@ public final class DocumentNodeStore
         return stats;
     }
 
-    private static CommitInfo newCommitInfo(@Nonnull  ChangeSet changeSet) {
+    private static CommitInfo newCommitInfo(@Nonnull ChangeSet changeSet, JournalPropertyHandler journalPropertyHandler) {
         CommitContext commitContext = new SimpleCommitContext();
         commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
+        journalPropertyHandler.addTo(commitContext);
         Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info, true);
     }
@@ -2210,7 +2216,7 @@ public final class DocumentNodeStore
     }
 
     private JournalEntry newJournalEntry() {
-        return new JournalEntry(store, true, newChangeSetBuilder());
+        return new JournalEntry(store, true, newChangeSetBuilder(), journalPropertyHandlerFactory.newHandler());
     }
 
     /**
@@ -2940,5 +2946,9 @@ public final class DocumentNodeStore
 
     public void setNodeStateCache(DocumentNodeStateCache nodeStateCache) {
         this.nodeStateCache = nodeStateCache;
+    }
+
+    public JournalPropertyHandlerFactory getJournalPropertyHandlerFactory() {
+        return journalPropertyHandlerFactory;
     }
 }

@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
@@ -32,10 +34,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 public class DocumentNodeStoreServiceTest {
 
@@ -110,7 +114,16 @@ public class DocumentNodeStoreServiceTest {
     public void disableJournalCacheWithRepositoryHome() {
         String journalCache = FilenameUtils.concat(repoHome, "diff-cache");
         assertNoJournalCachePath(journalCache, "-", repoHome);
+    }
 
+    @Test
+    public void journalPropertyTracker() throws Exception{
+        MockOsgi.activate(service, context.bundleContext(), Collections.<String,Object>emptyMap());
+        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
+        assertEquals(0, store.getJournalPropertyHandlerFactory().getServiceCount());
+
+        context.registerService(JournalPropertyService.class, mock(JournalPropertyService.class));
+        assertEquals(1, store.getJournalPropertyHandlerFactory().getServiceCount());
     }
 
     private void assertPersistentCachePath(String expectedPath,

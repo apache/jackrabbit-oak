@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +85,8 @@ public final class JournalEntry extends Document {
 
     private final ChangeSetBuilder changeSetBuilder;
 
+    private final JournalPropertyHandler journalPropertyHandler;
+
     private volatile TreeNode changes = null;
 
     /**
@@ -100,13 +103,15 @@ public final class JournalEntry extends Document {
     private boolean concurrent;
 
     JournalEntry(DocumentStore store) {
-        this(store, false, null);
+        this(store, false, null, null);
     }
 
-    JournalEntry(DocumentStore store, boolean concurrent, ChangeSetBuilder changeSetBuilder) {
+    JournalEntry(DocumentStore store, boolean concurrent, ChangeSetBuilder changeSetBuilder,
+                 JournalPropertyHandler journalPropertyHandler) {
         this.store = store;
         this.concurrent = concurrent;
         this.changeSetBuilder = changeSetBuilder;
+        this.journalPropertyHandler = journalPropertyHandler;
     }
 
     static StringSort newSorter() {
@@ -226,7 +231,7 @@ public final class JournalEntry extends Document {
                                    @Nonnull Revision to,
                                    @Nonnull DocumentStore store)
             throws IOException {
-        return fillExternalChanges(sorter, PathUtils.ROOT_PATH, from, to, store, null);
+        return fillExternalChanges(sorter, PathUtils.ROOT_PATH, from, to, store, null, null);
     }
 
     /**
@@ -245,7 +250,9 @@ public final class JournalEntry extends Document {
      * @param to     the upper bound of the revision range (inclusive).
      * @param store  the document store to query.
      * @param changeSetBuilder a nullable ChangeSetBuilder to collect changes from
-     *                         the JournalEntry between given revisions     *
+     *                         the JournalEntry between given revisions
+     * @param journalPropertyHandler a nullable JournalPropertyHandler to read
+     *                               stored journal properties for builders from JournalPropertyService
      * @return the number of journal entries read from the store.
      * @throws IOException
      */
@@ -254,7 +261,8 @@ public final class JournalEntry extends Document {
                                    @Nonnull Revision from,
                                    @Nonnull Revision to,
                                    @Nonnull DocumentStore store,
-                                   @Nullable ChangeSetBuilder changeSetBuilder)
+                                   @Nullable ChangeSetBuilder changeSetBuilder,
+                                   @Nullable JournalPropertyHandler journalPropertyHandler)
             throws IOException {
         checkNotNull(path);
         checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
@@ -292,10 +300,7 @@ public final class JournalEntry extends Document {
             }
 
             for (JournalEntry d : partialResult) {
-                d.addTo(sorter, path);
-                if (changeSetBuilder != null) {
-                    d.addTo(changeSetBuilder);
-                }
+                fillFromJournalEntry(sorter, path, changeSetBuilder, journalPropertyHandler, d);
             }
             if (partialResult.size() < READ_CHUNK_SIZE) {
                 break;
@@ -312,11 +317,24 @@ public final class JournalEntry extends Document {
                 || (lastEntry != null && !lastEntry.getId().equals(inclusiveToId))) {
             String maxId = asId(new Revision(Long.MAX_VALUE, 0, to.getClusterId()));
             for (JournalEntry d : store.query(JOURNAL, inclusiveToId, maxId, 1)) {
-                d.addTo(sorter, path);
+                fillFromJournalEntry(sorter, path, changeSetBuilder, journalPropertyHandler, d);
                 numEntries++;
             }
         }
         return numEntries;
+    }
+
+    private static void fillFromJournalEntry(@Nonnull StringSort sorter, @Nonnull String path,
+                                             @Nullable ChangeSetBuilder changeSetBuilder,
+                                             @Nullable JournalPropertyHandler journalPropertyHandler,
+                                             JournalEntry d) throws IOException {
+        d.addTo(sorter, path);
+        if (changeSetBuilder != null) {
+            d.addTo(changeSetBuilder);
+        }
+        if (journalPropertyHandler != null){
+            journalPropertyHandler.readFrom(d);
+        }
     }
 
     long getRevisionTimestamp() {
@@ -348,6 +366,12 @@ public final class JournalEntry extends Document {
             }
         }
         changeSetBuilder.add(changeSet);
+    }
+
+    public void readFrom(CommitInfo info) {
+        if (journalPropertyHandler != null){
+            journalPropertyHandler.readFrom(info);
+        }
     }
 
     private void addTo(ChangeSetBuilder changeSetBuilder) {
@@ -391,6 +415,9 @@ public final class JournalEntry extends Document {
         //For branch commits builder would be null
         if (changeSetBuilder != null) {
             op.set(CHANGE_SET, changeSetBuilder.build().asString());
+        }
+        if (journalPropertyHandler != null){
+            journalPropertyHandler.addTo(op);
         }
 
         // OAK-3085 : introduce a timestamp property
