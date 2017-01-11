@@ -26,6 +26,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
@@ -70,10 +72,18 @@ public class LuceneDocumentMaker {
     private final IndexAugmentorFactory augmentorFactory;
     private final String path;
 
+    public LuceneDocumentMaker(@Nonnull IndexDefinition definition,
+                               @Nonnull IndexingRule indexingRule,
+                               @Nonnull String path) {
+        this(null, null, null, definition, indexingRule, path);
+    }
+
     public LuceneDocumentMaker(@Nullable BinaryTextExtractor textExtractor,
                                @Nullable FacetsConfigProvider facetsConfigProvider,
                                @Nullable IndexAugmentorFactory augmentorFactory,
-                               IndexDefinition definition, IndexingRule indexingRule,  String path) {
+                               @Nonnull  IndexDefinition definition,
+                               @Nonnull IndexingRule indexingRule,
+                               @Nonnull String path) {
         this.textExtractor = textExtractor;
         this.facetsConfigProvider = facetsConfigProvider;
         this.definition = checkNotNull(definition);
@@ -82,6 +92,12 @@ public class LuceneDocumentMaker {
         this.path = checkNotNull(path);
     }
 
+    @CheckForNull
+    public Document makeDocument(NodeState state) throws IOException {
+        return makeDocument(state, false, Collections.<PropertyState>emptyList());
+    }
+
+    @CheckForNull
     public Document makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException {
         boolean facet = false;
 
