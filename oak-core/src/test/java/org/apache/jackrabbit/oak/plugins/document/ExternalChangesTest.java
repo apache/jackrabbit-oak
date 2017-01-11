@@ -24,12 +24,19 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -40,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,9 +70,12 @@ public class ExternalChangesTest {
 
     private CommitInfoCollector c1 = new CommitInfoCollector();
     private CommitInfoCollector c2 = new CommitInfoCollector();
+    private JournalPropertyHandlerFactory tracker = new JournalPropertyHandlerFactory();
+    private Whiteboard wb = new DefaultWhiteboard();
 
     @Before
     public void setUp() {
+        tracker.start(wb);
         MemoryDocumentStore store = new MemoryDocumentStore();
         ns1 = newDocumentNodeStore(store, 1);
         ns2 = newDocumentNodeStore(store, 2);
@@ -163,12 +175,58 @@ public class ExternalChangesTest {
         assertTrue(cs.getPropertyNames().containsAll(propNames));
     }
 
+    @Test
+    public void journalService() throws Exception{
+        wb.register(JournalPropertyService.class, new TestJournalService(), null);
+
+        //Do a dummy write so that journal property handler gets refreshed
+        //and picks our newly registered service
+        NodeBuilder b0 = ns1.getRoot().builder();
+        b0.child("0");
+        ns1.merge(b0, newCollectingHook(), newCommitInfo());
+        ns1.backgroundWrite();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("a");
+        CommitContext cc = new SimpleCommitContext();
+        cc.set(TestProperty.NAME, new TestProperty("foo"));
+        ns1.merge(b1, newCollectingHook(), newCommitInfo(cc));
+
+        NodeBuilder b2 = ns1.getRoot().builder();
+        b2.child("b");
+        cc = new SimpleCommitContext();
+        cc.set(TestProperty.NAME, new TestProperty("bar"));
+        ns1.merge(b2, newCollectingHook(), newCommitInfo(cc));
+
+        //null entry
+        NodeBuilder b3 = ns1.getRoot().builder();
+        b3.child("c");
+        ns1.merge(b3, newCollectingHook(), newCommitInfo());
+
+        ns1.backgroundWrite();
+
+        c2.reset();
+        ns2.backgroundRead();
+
+        CommitInfo ci = c2.getExternalChange();
+        cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
+
+        CumulativeTestProperty ct = (CumulativeTestProperty) cc.get(TestProperty.NAME);
+        assertNotNull(ct);
+
+        assertThat(ct.values, containsInAnyOrder("foo", "bar", "NULL"));
+    }
+
     private CommitHook newCollectingHook(){
         return new EditorHook(new ChangeCollectorProvider());
     }
 
     private CommitInfo newCommitInfo(){
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        return newCommitInfo(new SimpleCommitContext());
+    }
+
+    private CommitInfo newCommitInfo(CommitContext commitContext){
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
@@ -176,6 +234,7 @@ public class ExternalChangesTest {
         return builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(store)
+                .setJournalPropertyHandlerFactory(tracker)
                 .setLeaseCheck(false) // disabled for debugging purposes
                 .setClusterId(clusterId)
                 .getNodeStore();
@@ -202,6 +261,62 @@ public class ExternalChangesTest {
 
         void reset(){
             infos.clear();
+        }
+    }
+
+    private static class TestJournalService implements JournalPropertyService {
+
+        @Override
+        public JournalPropertyBuilder newBuilder() {
+            return new TestJournalBuilder();
+        }
+
+        @Override
+        public String getName() {
+            return TestProperty.NAME;
+        }
+    }
+
+    private static class TestProperty implements JournalProperty {
+        static final String NAME = "test.props";
+        final String value;
+
+        public TestProperty(String value) {
+            this.value = value;
+        }
+    }
+
+    private static class CumulativeTestProperty implements JournalProperty {
+        final Set<String> values = Sets.newHashSet();
+    }
+
+    private static class TestJournalBuilder implements JournalPropertyBuilder<TestProperty>{
+        final CumulativeTestProperty allProps = new CumulativeTestProperty();
+
+        @Override
+        public void addProperty(@Nullable TestProperty journalProperty) {
+            if (journalProperty != null) {
+                allProps.values.add(journalProperty.value);
+            } else {
+                allProps.values.add("NULL");
+            }
+        }
+
+        @Override
+        public String buildAsString() {
+            return Joiner.on(",").join(allProps.values);
+        }
+
+        @Override
+        public void addSerializedProperty(@Nullable String s) {
+            if (s != null){
+                Iterables.addAll(allProps.values, Splitter.on(',').split(s));
+            }
+        }
+
+        @Override
+        public JournalProperty build() {
+            return allProps;
         }
     }
 }

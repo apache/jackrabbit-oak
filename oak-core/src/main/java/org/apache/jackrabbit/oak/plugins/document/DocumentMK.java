@@ -583,6 +583,8 @@ public class DocumentMK {
         private Map<CacheType, PersistentCacheStats> persistentCacheStats =
                 new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
         private boolean bundlingDisabled;
+        private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
+                new JournalPropertyHandlerFactory();
 
         public Builder() {
         }
@@ -1083,6 +1085,15 @@ public class DocumentMK {
 
         public boolean isPrefetchExternalChanges() {
             return prefetchExternalChanges;
+        }
+
+        public Builder setJournalPropertyHandlerFactory(JournalPropertyHandlerFactory factory) {
+            journalPropertyHandlerFactory = factory;
+            return this;
+        }
+
+        public JournalPropertyHandlerFactory getJournalPropertyHandlerFactory() {
+            return journalPropertyHandlerFactory;
         }
 
         VersionGCSupport createVersionGCSupport() {
