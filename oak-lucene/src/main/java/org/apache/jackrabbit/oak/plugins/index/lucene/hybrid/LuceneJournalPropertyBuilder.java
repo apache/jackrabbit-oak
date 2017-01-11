@@ -32,17 +32,28 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder>{
+    private final static Logger log = LoggerFactory.getLogger(LuceneJournalPropertyBuilder.class);
     //Use HashMultimap to ensure that indexPath is not duplicated per node path
     private final Multimap<String, String> indexedNodes = HashMultimap.create();
+    private boolean limitWarningLogged = false;
+    private final int maxSize;
+
+    LuceneJournalPropertyBuilder(int maxSize) {
+        this.maxSize = maxSize;
+    }
 
     //~---------------------------------< serialize >
     @Override
     public void addProperty(@Nullable LuceneDocumentHolder docHolder) {
         if (docHolder != null){
             for (LuceneDocInfo d : docHolder.getAllLuceneDocInfo()){
-                indexedNodes.put(d.getDocPath(), d.getIndexPath());
+                if (sizeWithinLimits()) {
+                    indexedNodes.put(d.getDocPath(), d.getIndexPath());
+                }
             }
         }
     }
@@ -81,7 +92,9 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
                     if (!first) {
                         reader.read(',');
                     }
-                    indexedNodes.put(path, reader.readString());
+                    if (sizeWithinLimits()) {
+                        indexedNodes.put(path, reader.readString());
+                    }
                 }
             } while (reader.matches(','));
             reader.read('}');
@@ -92,5 +105,16 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
     @Override
     public JournalProperty build() {
         return new IndexedPaths(indexedNodes);
+    }
+
+    private boolean sizeWithinLimits() {
+        if (indexedNodes.size() >= maxSize){
+            if (!limitWarningLogged){
+                log.warn("Max size of {} reached. Further addition of index path data would be dropped", maxSize);
+                limitWarningLogged = true;
+            }
+            return false;
+        }
+        return true;
     }
 }

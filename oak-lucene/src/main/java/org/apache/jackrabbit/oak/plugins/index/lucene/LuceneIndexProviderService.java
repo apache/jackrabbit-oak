@@ -520,10 +520,14 @@ public class LuceneIndexProviderService {
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(documentQueue, statisticsProvider);
         regs.add(bundleContext.registerService(Observer.class.getName(), localIndexObserver, null));
 
+        int observerQueueSize = 1000;
+        int builderMaxSize = 5000;
         regs.add(bundleContext.registerService(JournalPropertyService.class.getName(),
-                new LuceneJournalPropertyService(), null));
+                new LuceneJournalPropertyService(builderMaxSize), null));
         ExternalObserverBuilder builder = new ExternalObserverBuilder(documentQueue, tracker, statisticsProvider,
-                getExecutorService(), 1000);
+                getExecutorService(), observerQueueSize);
+        log.info("Configured JournalPropertyBuilder with max size {} and backed by BackgroundObserver " +
+                "with queue size {}", builderMaxSize, observerQueueSize);
 
         Observer observer = builder.build();
         externalIndexObserver = builder.getBackgroundObserver();

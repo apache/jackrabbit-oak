@@ -23,9 +23,15 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 
 public class LuceneJournalPropertyService implements JournalPropertyService {
+    private final int builderMaxSize;
+
+    public LuceneJournalPropertyService(int builderMaxSize) {
+        this.builderMaxSize = builderMaxSize;
+    }
+
     @Override
     public JournalPropertyBuilder newBuilder() {
-        return new LuceneJournalPropertyBuilder();
+        return new LuceneJournalPropertyBuilder(builderMaxSize);
     }
 
     @Override

@@ -146,8 +146,8 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
 
     @Override
     protected void prepareTestData(Session s) throws RepositoryException {
-        nswb1.register(JournalPropertyService.class, new LuceneJournalPropertyService(), null);
-        nswb2.register(JournalPropertyService.class, new LuceneJournalPropertyService(), null);
+        nswb1.register(JournalPropertyService.class, new LuceneJournalPropertyService(1000), null);
+        nswb2.register(JournalPropertyService.class, new LuceneJournalPropertyService(1000), null);
 
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
