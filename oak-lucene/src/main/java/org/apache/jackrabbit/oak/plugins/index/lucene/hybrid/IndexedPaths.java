@@ -63,6 +63,10 @@ class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
         return indexedPaths.toString();
     }
 
+    public boolean isEmpty(){
+        return indexedPaths.isEmpty();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

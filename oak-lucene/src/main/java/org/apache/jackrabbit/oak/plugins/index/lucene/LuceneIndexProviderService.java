@@ -50,11 +50,14 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -229,6 +232,8 @@ public class LuceneIndexProviderService {
 
     private BackgroundObserver backgroundObserver;
 
+    private BackgroundObserver externalIndexObserver;
+
     @Reference
     ScorerProviderFactory scorerFactory;
 
@@ -319,6 +324,10 @@ public class LuceneIndexProviderService {
 
         if (backgroundObserver != null){
             backgroundObserver.close();
+        }
+
+        if (externalIndexObserver != null){
+            externalIndexObserver.close();
         }
 
         if (indexProvider != null) {
@@ -510,6 +519,20 @@ public class LuceneIndexProviderService {
         documentQueue = new DocumentQueue(queueSize, tracker, getExecutorService(), statisticsProvider);
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(documentQueue, statisticsProvider);
         regs.add(bundleContext.registerService(Observer.class.getName(), localIndexObserver, null));
+
+        regs.add(bundleContext.registerService(JournalPropertyService.class.getName(),
+                new LuceneJournalPropertyService(), null));
+        ExternalObserverBuilder builder = new ExternalObserverBuilder(documentQueue, tracker, statisticsProvider,
+                getExecutorService(), 1000);
+
+        Observer observer = builder.build();
+        externalIndexObserver = builder.getBackgroundObserver();
+        regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
+        oakRegs.add(registerMBean(whiteboard,
+                BackgroundObserverMBean.class,
+                externalIndexObserver.getMBean(),
+                BackgroundObserverMBean.TYPE,
+                "LuceneExternalIndexObserver queue stats"));
         log.info("Hybrid indexing enabled for configured indexes with queue size of {}", queueSize);
     }
 
