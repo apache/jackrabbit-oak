@@ -33,7 +33,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
