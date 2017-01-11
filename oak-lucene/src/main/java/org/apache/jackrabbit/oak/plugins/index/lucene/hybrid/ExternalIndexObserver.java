@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ExternalIndexObserver implements Observer, Filter {
+class ExternalIndexObserver implements Observer, Filter {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexingQueue indexingQueue;
     private final IndexTracker indexTracker;
