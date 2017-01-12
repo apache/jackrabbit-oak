@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -56,6 +57,9 @@ public class IndexNode {
     static final String ASYNC = ":async";
 
     private static final AtomicInteger INDEX_NODE_COUNTER = new AtomicInteger();
+
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(IndexNode.class.getName() + ".perf"));
 
     static IndexNode open(String indexPath, NodeState root, NodeState defnNodeState,
                           LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
@@ -182,13 +186,14 @@ public class IndexNode {
     }
 
     private void refreshReaders(){
+        long start = PERF_LOGGER.start();
         List<LuceneIndexReader> newNRTReaders = getNRTReaders();
         //The list reference would differ if index got updated
         //so if they are same no need to reinitialize the searcher
         if (newNRTReaders != nrtReaders) {
             nrtReaders = newNRTReaders;
             indexSearcher = new IndexSearcher(createReader(nrtReaders));
-            log.debug("Refreshed reader for index [{}]", definition);
+            PERF_LOGGER.end(start, 0, "Refreshed reader for index [{}]", definition);
         }
     }
 
