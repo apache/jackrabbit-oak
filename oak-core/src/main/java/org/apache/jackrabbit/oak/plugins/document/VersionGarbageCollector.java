@@ -150,10 +150,12 @@ public class VersionGarbageCollector {
                 return;
             }
 
+            stats.sortDocIds.start();
+            gc.ensureSorted();
+            stats.sortDocIds.stop();
+
             stats.deleteDeletedDocs.start();
-
             gc.removeDocuments(stats);
-
             nodeStore.invalidateDocChildrenCache();
             stats.deleteDeletedDocs.stop();
         } finally {
@@ -169,6 +171,7 @@ public class VersionGarbageCollector {
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
+        final Stopwatch sortDocIds = Stopwatch.createUnstarted();
 
         @Override
         public String toString() {
@@ -178,6 +181,7 @@ public class VersionGarbageCollector {
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
+                    ", timeToSortDocIds=" + sortDocIds +
                     ", timeTakenToDeleteDeletedDocs=" + deleteDeletedDocs +
                     ", timeTakenToCollectAndDeleteSplitDocs=" + collectAndDeleteSplitDocs +
                     '}';
