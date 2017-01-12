@@ -120,16 +120,18 @@ public class VersionGarbageCollector {
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
+        final Stopwatch sortDocIds = Stopwatch.createUnstarted();
 
         @Override
         public String toString() {
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
-                    ", canceled=" + canceled+
+                    ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
+                    ", timeToSortDocIds=" + sortDocIds +
                     ", timeTakenToDeleteDeletedDocs=" + deleteDeletedDocs +
                     ", timeTakenToCollectAndDeleteSplitDocs=" + collectAndDeleteSplitDocs +
                     '}';
@@ -225,10 +227,12 @@ public class VersionGarbageCollector {
                     return;
                 }
 
+                stats.sortDocIds.start();
+                gc.ensureSorted();
+                stats.sortDocIds.stop();
+
                 stats.deleteDeletedDocs.start();
-
                 gc.removeDocuments(stats);
-
                 stats.deleteDeletedDocs.stop();
             } finally {
                 gc.close();
