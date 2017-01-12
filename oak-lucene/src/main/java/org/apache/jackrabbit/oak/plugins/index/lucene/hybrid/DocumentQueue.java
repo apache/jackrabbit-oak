@@ -151,6 +151,9 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         boolean added = docsQueue.offer(doc);
         if (added) {
             queueSizeStats.inc();
+            if (log.isTraceEnabled()){
+                log.trace("Adding {} without wait to queue at size {}", doc, docsQueue.size());
+            }
         }
         return added;
     }
@@ -168,6 +171,9 @@ public class DocumentQueue implements Closeable, IndexingQueue {
 
         if (added) {
             queueSizeStats.inc();
+            if (log.isTraceEnabled()){
+                log.trace("Adding {} to queue at size {}", doc, docsQueue.size());
+            }
         } else {
             dropped.mark();
         }
@@ -208,6 +214,10 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         List<LuceneDoc> docs = Lists.newArrayList();
         docs.addAll(docsQueue);
         return docs;
+    }
+
+    private void addedToQueue(LuceneDoc doc){
+
     }
 
     private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
