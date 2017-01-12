@@ -114,7 +114,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                         docsPerIndex.get(doc.indexPath).add(doc);
                     }
 
-                    addAllSynchronously(docsPerIndex.asMap());
+                    addDocsToIndex(docsPerIndex.asMap(), true);
 
                     scheduleQueuedDocsProcessing();
                 } catch (Throwable t) {
@@ -190,6 +190,10 @@ public class DocumentQueue implements Closeable, IndexingQueue {
 
     @Override
     public void addAllSynchronously(Map<String, Collection<LuceneDoc>> docsPerIndex) {
+        addDocsToIndex(docsPerIndex, false);
+    }
+
+    private void addDocsToIndex(Map<String, Collection<LuceneDoc>> docsPerIndex, boolean docsFromQueue) {
         //If required it can optimized by indexing diff indexes in parallel
         //Something to consider if it becomes a bottleneck
         for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.entrySet()) {
@@ -202,7 +206,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
             Lock indexingLock = locks.get(indexPath);
             indexingLock.lock();
             try {
-                processDocs(indexPath, e.getValue());
+                processDocs(indexPath, e.getValue(), docsFromQueue);
             } finally {
                 indexingLock.unlock();
             }
@@ -216,7 +220,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         return docs;
     }
 
-    private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
+    private void processDocs(String indexPath, Iterable<LuceneDoc> docs, boolean docsFromQueue){
 
         //Drop the write call if stopped
         if (stopped) {
@@ -252,7 +256,8 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                     writer.updateDocument(doc.docPath, doc.doc);
                 }
                 docAdded = true;
-                log.trace("Updated index with doc {}", doc);
+                String prefix = docsFromQueue ? "Queued" : "Direct";
+                log.trace("[{}] Updated index with doc {}", prefix, doc);
             }
             if (docAdded) {
                 indexNode.refreshReadersOnWriteIfRequired();
