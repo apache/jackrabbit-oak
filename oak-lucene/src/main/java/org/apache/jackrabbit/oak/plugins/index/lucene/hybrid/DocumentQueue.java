@@ -216,10 +216,6 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         return docs;
     }
 
-    private void addedToQueue(LuceneDoc doc){
-
-    }
-
     private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
 
         //Drop the write call if stopped
