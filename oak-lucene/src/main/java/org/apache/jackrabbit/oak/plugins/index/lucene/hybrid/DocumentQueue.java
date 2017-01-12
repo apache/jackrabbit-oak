@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,8 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkState;
 
 public class DocumentQueue implements Closeable, IndexingQueue {
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(DocumentQueue.class.getName() + ".perf"));
     private static final LuceneDoc STOP = LuceneDoc.forUpdate("", "", Collections.<IndexableField>emptyList());
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker tracker;
@@ -94,6 +97,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
             @Override
             public Void call() throws Exception {
                 try {
+                    long start = PERF_LOGGER.start();
                     int maxSize = docsQueue.size();
                     List<LuceneDoc> docs = Lists.newArrayListWithCapacity(maxSize);
                     ListMultimap<String, LuceneDoc> docsPerIndex = ArrayListMultimap.create();
@@ -117,6 +121,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                     addDocsToIndex(docsPerIndex.asMap(), true);
 
                     scheduleQueuedDocsProcessing();
+                    PERF_LOGGER.end(start, 1, "Processed {} docs from queue", count);
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
                 }
