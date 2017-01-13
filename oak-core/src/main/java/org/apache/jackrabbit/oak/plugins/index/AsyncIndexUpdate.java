@@ -490,7 +490,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 beforeCheckpoint = null;
                 callback.setCheckpoint(beforeCheckpoint);
                 before = MISSING_NODE;
-            } else if (noVisibleChanges(state, root)) {
+            } else if (noVisibleChanges(state, root) && !switchOnSync) {
                 log.debug(
                         "[{}] No changes since last checkpoint; skipping the index update",
                         name);
@@ -611,11 +611,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     void cleanUpCheckpoints() {
-        log.debug("Cleaning up orphaned checkpoints");
+        log.debug("[{}] Cleaning up orphaned checkpoints", name);
         Set<String> keep = newHashSet();
         String cp = indexStats.getReferenceCheckpoint();
         if (cp == null) {
-            log.warn("No reference checkpoint set in index stats");
+            log.warn("[{}] No reference checkpoint set in index stats", name);
             return;
         }
         keep.add(cp);
@@ -639,8 +639,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                         && AsyncIndexUpdate.class.getSimpleName().equals(creator)
                         && (created == null || ISO8601.parse(created).getTimeInMillis() + leaseTimeOut < current)) {
                     if (store.release(checkpoint)) {
-                        log.info("Removed orphaned checkpoint '{}' {}",
-                                checkpoint, info);
+                        log.info("[{}] Removed orphaned checkpoint '{}' {}",
+                                name, checkpoint, info);
                     }
                 }
             }
@@ -713,6 +713,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                         }
                     }
                     reindexedDefinitions.clear();
+                    if (store.release(afterCheckpoint)) {
+                        builder.child(ASYNC).removeProperty(name);
+                        builder.child(ASYNC).removeProperty(lastIndexedTo);
+                    } else {
+                        log.debug("[{}] Unable to release checkpoint {}", name, afterCheckpoint);
+                    }
                 }
                 updatePostRunStatus = true;
             }
