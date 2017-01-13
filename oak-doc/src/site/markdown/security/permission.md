@@ -231,7 +231,7 @@ Not used in Oak 1.0:
     for nodes and properties. Granting the `jcr:read` privilege will result in a backwards compatible
     read access for nodes and their properties, while specifying `rep:readNodes` or
     `rep:readProperties` privileges allows to grant or deny access to
-    nodes and properties (see also [Privilege Management](../privilege.html) for changes
+    nodes and properties (see also [Privilege Management](privilege.html) for changes
     in the privilege definitions).
     Together with the restrictions this new behavior now allows to individually grant/deny
     access to properties that match a given name/path/nodetype (and as a possible extension even property value).
