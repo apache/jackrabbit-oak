@@ -115,6 +115,10 @@ Example:
         .setProperty("reindex", true);
     }
 
+When recovering a failed async reindex special care needs to be taken wrt. the created checkpoint and the __`async`__ property.
+The checkpoint should be released via the __`CheckpointManager`__ mbean, and the __`async`__ property needs to be manually deleted 
+while also setting the __`reindex`__ flags to __`true`__ to make sure the index returns to a consistent state, in sync with the head revision.
+
 #### Cost Estimation
 
 When running a query, the property index reports its estimated cost to the query engine,
