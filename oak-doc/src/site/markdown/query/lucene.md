@@ -545,7 +545,7 @@ relativeNode
 
   And a query like
 
-        select * from [app:Asset] where contains(renditions/original/*, "pluto")
+        select * from [app:Asset] where contains([renditions/original/*], "pluto")
 
   Following index configuration would be required
 
