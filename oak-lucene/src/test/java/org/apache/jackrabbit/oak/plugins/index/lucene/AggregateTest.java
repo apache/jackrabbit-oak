@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
@@ -41,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.PropertyIncludeR
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -63,7 +61,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.hasItems;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 public class AggregateTest {
 
@@ -98,7 +95,6 @@ public class AggregateTest {
         assertThat(col.getNodePaths(), hasItems("a"));
     }
 
-    @Ignore("OAK-5448")
     @Test
     public void noOfChildNodeRead() throws Exception{
         Aggregate ag = new Aggregate("nt:base", of(ni("a")));

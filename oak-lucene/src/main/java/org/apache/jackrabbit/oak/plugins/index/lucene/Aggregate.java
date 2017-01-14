@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +34,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -125,7 +127,35 @@ class Aggregate {
 
     private static void collectAggregates(NodeState nodeState, List<Matcher> matchers,
                                           ResultCollector collector) {
-        for (ChildNodeEntry cne : nodeState.getChildNodeEntries()) {
+        if (hasPatternMatcher(matchers)){
+            collectAggregatesForPatternMatchers(nodeState, matchers, collector);
+        } else {
+            collectAggregatesForDirectMatchers(nodeState, matchers, collector);
+        }
+    }
+
+    private static void collectAggregatesForDirectMatchers(NodeState nodeState, List<Matcher> matchers,
+                                          ResultCollector collector) {
+        List<ChildNodeEntry> entries = Lists.newArrayList();
+        //Collect potentially matching child nodestates based on matcher name
+        for (Matcher m : matchers){
+            String nodeName = m.getNodeName();
+            NodeState child = nodeState.getChildNode(nodeName);
+            if (child.exists()){
+                entries.add(new MemoryChildNodeEntry(nodeName, child));
+            }
+        }
+        matchChildren(matchers, collector, entries);
+    }
+
+    private static void collectAggregatesForPatternMatchers(NodeState nodeState, List<Matcher> matchers,
+                                          ResultCollector collector) {
+        matchChildren(matchers, collector, nodeState.getChildNodeEntries());
+    }
+
+    private static void matchChildren(List<Matcher> matchers, ResultCollector collector,
+                                      Iterable<? extends ChildNodeEntry> children) {
+        for (ChildNodeEntry cne : children) {
             List<Matcher> nextSet = newArrayListWithCapacity(matchers.size());
             for (Matcher m : matchers) {
                 Matcher result = m.match(cne.getName(), cne.getNodeState());
@@ -141,6 +171,15 @@ class Aggregate {
                 collectAggregates(cne.getNodeState(), nextSet, collector);
             }
         }
+    }
+
+    private static boolean hasPatternMatcher(List<Matcher> matchers){
+        for (Matcher m : matchers){
+            if (m.isPatternBased()){
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<Matcher> createMatchers() {
@@ -216,6 +255,17 @@ class Aggregate {
         @CheckForNull
         public Aggregate getAggregate(NodeState matchedNodeState) {
             return null;
+        }
+
+        public boolean isPattern(int depth){
+            return MATCH_ALL.equals(elements[depth]);
+
+        }
+
+        public String getElementNameIfNotAPattern(int depth) {
+            checkArgument(!isPattern(depth),
+                    "Element at %s is pattern instead of specific name in %s", depth, Arrays.toString(elements));
+            return elements[depth];
         }
     }
 
@@ -410,12 +460,12 @@ class Aggregate {
         }
     }
 
-    public static interface AggregateRoot {
+    public interface AggregateRoot {
         void markDirty();
     }
 
     public static class Matcher {
-        public static enum Status {CONTINUE, MATCH_FOUND, FAIL}
+        public enum Status {CONTINUE, MATCH_FOUND, FAIL}
 
         private static class RootState {
             final AggregateRoot root;
@@ -490,6 +540,18 @@ class Aggregate {
             List<String> paths = newArrayList(m.aggregateStack);
             paths.add(currentPath);
             this.aggregateStack = ImmutableList.copyOf(paths);
+        }
+
+        public boolean isPatternBased() {
+            return currentInclude.isPattern(depth);
+        }
+
+        /**
+         * Returns the nodeName at current depth. This should only be called
+         * if and only if #isPatternBased is false otherwise it would throw exception
+         */
+        public String getNodeName() {
+            return currentInclude.getElementNameIfNotAPattern(depth);
         }
 
         public Matcher match(String name, NodeState nodeState) {
