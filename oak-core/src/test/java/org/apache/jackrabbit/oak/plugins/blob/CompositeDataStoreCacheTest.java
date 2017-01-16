@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -29,8 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
@@ -47,6 +46,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -78,6 +78,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     private TestExecutor executor;
     private StatisticsProvider statsProvider;
     private ScheduledExecutorService scheduledExecutor;
+    private ExecutorService fileCacheExecutor;
 
     @Before
     public void setup() throws Exception {
@@ -101,13 +102,12 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
+        fileCacheExecutor = sameThreadExecutor();
+
         //cache instance
         cache =
-            new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /* bytes */, 10,
-                1/*threads*/,
-                loader, uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
-        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
-
+            new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /* bytes */, 10, 1/*threads*/,
+                loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,3000, 6000);
         closer.register(cache);
 
         LOG.info("Finished setup");
@@ -124,7 +124,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 0 /* bytes
         */, 10, 1/*threads*/, loader,
-            uploader, statsProvider, executor, scheduledExecutor, 3000, 6000);
+            uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
+            3000, 6000);
         closer.register(cache);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -220,8 +221,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 40 * 1024 /*
         bytes */, 10 /* staging % */,
-            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, 3000,
-            6000);
+            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
+            3000,6000);
         closer.register(cache);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -260,8 +261,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /*
         bytes */, 10 /* staging % */,
-            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, 3000,
-            6000);
+            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
+            3000,6000);
         closer.register(cache);
 
 
