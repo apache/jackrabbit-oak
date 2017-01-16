@@ -38,7 +38,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -64,6 +63,7 @@ import com.google.common.collect.Sets;
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
@@ -1551,44 +1551,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
         for (Revision r : readRevision) {
             // collect changes per clusterId
-            boolean overlapping = false;
-            List<Range> ranges = Lists.newArrayList();
-            Revision lowRev = new Revision(Long.MAX_VALUE, 0, r.getClusterId());
-            for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
-                Range range = e.getValue();
-                if (range.low.getClusterId() != r.getClusterId()) {
-                    continue;
-                }
-                if (r.compareRevisionTime(range.low) >= 0) {
-                    ranges.add(range);
-                    // check if overlapping
-                    if (!overlapping) {
-                        overlapping = range.high.compareRevisionTime(lowRev) >= 0;
-                    }
-                    lowRev = Utils.min(lowRev, range.low);
-                }
-            }
-
-            if (!ranges.isEmpty()) {
-                final RevisionVector readRev = new RevisionVector(r);
-                Iterable<Iterable<Map.Entry<Revision, String>>> revs = transform(filter(transform(ranges,
-                        new Function<Range, NodeDocument>() {
-                            @Override
-                            public NodeDocument apply(Range input) {
-                                return getPreviousDoc(input.high, input);
-                            }
-                        }), Predicates.notNull()), new Function<NodeDocument, Iterable<Map.Entry<Revision, String>>>() {
-                    @Override
-                    public Iterable<Map.Entry<Revision, String>> apply(NodeDocument prev) {
-                        return prev.getVisibleChanges(property, readRev);
-                    }
-                });
-                if (overlapping) {
-                    changes.add(mergeSorted(revs, ValueComparator.REVERSE));
-                } else {
-                    changes.add(concat(revs));
-                }
-            }
+            collectVisiblePreviousChanges(property, r, changes);
         }
 
         if (changes.size() == 1) {
@@ -1596,6 +1559,105 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         } else {
             return mergeSorted(changes, ValueComparator.REVERSE);
         }
+    }
+
+    /**
+     * Collect changes in previous documents into {@code changes} visible from
+     * the given {@code readRevision} and for the given {@code property}. The
+     * {@code Iterable} added to the {@code changes} list must be in descending
+     * revision order.
+     *
+     * @param property the name of the property.
+     * @param readRevision collect changes for this part of the readRevision.
+     * @param changes where to add the changes to.
+     */
+    private void collectVisiblePreviousChanges(@Nonnull final String property,
+                                               @Nonnull final Revision readRevision,
+                                               @Nonnull final List<Iterable<Entry<Revision, String>>> changes) {
+        List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
+        Revision lowRev = new Revision(Long.MAX_VALUE, 0, readRevision.getClusterId());
+
+        RevisionVector readRV = new RevisionVector(readRevision);
+        List<Range> ranges = Lists.newArrayList();
+        for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
+            Range range = e.getValue();
+            if (range.low.getClusterId() != readRevision.getClusterId()
+                    || readRevision.compareRevisionTime(range.low) < 0) {
+                // either clusterId does not match
+                // or range is newer than read revision
+                continue;
+            }
+            // check if it overlaps with previous ranges
+            if (range.high.compareRevisionTime(lowRev) < 0) {
+                // does not overlap
+                if (!ranges.isEmpty()) {
+                    // there are previous ranges
+                    // get and merge sort overlapping ranges
+                    revs.add(changesFor(ranges, readRV, property));
+                    ranges.clear();
+                }
+            }
+            ranges.add(range);
+            lowRev = Utils.min(lowRev, range.low);
+        }
+        if (!ranges.isEmpty()) {
+            // get remaining changes
+            revs.add(changesFor(ranges, readRV, property));
+        }
+
+        if (!revs.isEmpty()) {
+            changes.add(concat(revs));
+        }
+    }
+
+    /**
+     * Get changes of {@code property} for the given list of {@code ranges}
+     * visible from {@code readRev}.
+     *
+     * @param ranges a list of ranges of previous document where to read the
+     *               changes from.
+     * @param readRev get changes visible from this read revision.
+     * @param property the name of the property to read changes.
+     * @return iterable over the changes.
+     */
+    private Iterable<Map.Entry<Revision, String>> changesFor(final List<Range> ranges,
+                                                             final RevisionVector readRev,
+                                                             final String property) {
+        if (ranges.isEmpty()) {
+            return Collections.emptyList();
+        }
+        final Function<Range, Iterable<Map.Entry<Revision, String>>> rangeToChanges =
+                new Function<Range, Iterable<Map.Entry<Revision, String>>>() {
+            @Override
+            public Iterable<Map.Entry<Revision, String>> apply(Range input) {
+                NodeDocument doc = getPreviousDoc(input.high, input);
+                if (doc == null) {
+                    return Collections.emptyList();
+                }
+                return doc.getVisibleChanges(property, readRev);
+            }
+        };
+
+        Iterable<Map.Entry<Revision, String>> changes;
+        if (ranges.size() == 1) {
+            final Range range = ranges.get(0);
+            changes = new Iterable<Entry<Revision, String>>() {
+                @SuppressWarnings("ConstantConditions")
+                @Override
+                public Iterator<Entry<Revision, String>> iterator() {
+                    return rangeToChanges.apply(range).iterator();
+                }
+            };
+        } else {
+            changes = mergeSorted(transform(copyOf(ranges), rangeToChanges),
+                    ValueComparator.REVERSE);
+        }
+        return filter(changes, new Predicate<Entry<Revision, String>>() {
+            @Override
+            public boolean apply(Entry<Revision, String> input) {
+                return !readRev.isRevisionNewer(input.getKey());
+            }
+        });
     }
 
     /**

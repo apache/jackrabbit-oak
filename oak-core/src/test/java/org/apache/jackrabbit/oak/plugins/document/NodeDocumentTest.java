@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -689,7 +688,6 @@ public class NodeDocumentTest {
         ns2.dispose();
     }
 
-    @Ignore("OAK-5456")
     @Test
     public void tooManyReadsOnGetVisibleChangesWithLongRunningBranchCommit() throws Exception {
         int numChanges = 843;
