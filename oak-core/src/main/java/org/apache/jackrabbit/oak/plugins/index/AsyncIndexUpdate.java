@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.getStackTraceAsString;
 import static com.google.common.collect.Sets.newHashSet;
@@ -205,7 +206,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
                             @Nonnull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
-        this.name = checkNotNull(name);
+        this.name = checkValidName(name);
         this.lastIndexedTo = name + "-LastIndexedTo";
         this.store = checkNotNull(store);
         this.provider = checkNotNull(provider);
@@ -217,6 +218,16 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider) {
         this(name, store, provider, false);
+    }
+
+    public static String checkValidName(String asyncName){
+        checkNotNull(asyncName, "async name should not be null");
+        if (IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName)){
+            return asyncName;
+        }
+        checkArgument(asyncName.endsWith("async"), "async name [%s] does not confirm to " +
+                "naming pattern of ending with 'async'", asyncName);
+        return asyncName;
     }
 
     /**
