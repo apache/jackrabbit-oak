@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
 
 public class NRTIndex implements Closeable {
@@ -85,7 +86,7 @@ public class NRTIndex implements Closeable {
     @CheckForNull
     LuceneIndexReader getPrimaryReader() {
         DirectoryReader reader = createReader();
-        return reader != null ? new NRTReader(reader) : null;
+        return reader != null ? new NRTReader(reader, directory) : null;
     }
 
     public LuceneIndexWriter getWriter() throws IOException {
@@ -111,7 +112,7 @@ public class NRTIndex implements Closeable {
         }
         List<LuceneIndexReader> newReaders = Lists.newArrayListWithCapacity(2);
         if (latestReader != null) {
-            newReaders.add(new NRTReader(latestReader));
+            newReaders.add(new NRTReader(latestReader, directory));
         }
 
         //Old reader should be added later
@@ -220,9 +221,11 @@ public class NRTIndex implements Closeable {
 
     private static class NRTReader implements LuceneIndexReader {
         private final IndexReader indexReader;
+        private final Directory directory;
 
-        public NRTReader(IndexReader indexReader) {
+        public NRTReader(IndexReader indexReader, Directory directory) {
             this.indexReader = checkNotNull(indexReader);
+            this.directory = directory;
         }
 
         @Override
@@ -238,6 +241,11 @@ public class NRTIndex implements Closeable {
         @Override
         public Directory getSuggestDirectory() {
             return null;
+        }
+
+        @Override
+        public long getIndexSize() throws IOException {
+            return dirSize(directory);
         }
 
         @Override

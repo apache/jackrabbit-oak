@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.IOException;
+
 import org.apache.lucene.store.Directory;
 
 public class DirectoryUtils {
@@ -37,5 +39,20 @@ public class DirectoryUtils {
 
         }
         return -1;
+    }
+
+    public static long dirSize(Directory directory) throws IOException {
+        long totalFileSize = 0L;
+        if (directory == null) {
+            return -1;
+        }
+        String[] files = directory.listAll();
+        if (files == null) {
+            return totalFileSize;
+        }
+        for (String file : files) {
+            totalFileSize += directory.fileLength(file);
+        }
+        return totalFileSize;
     }
 }

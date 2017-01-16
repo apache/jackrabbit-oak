@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
 import java.io.Closeable;
+import java.io.IOException;
 
 import javax.annotation.CheckForNull;
 
@@ -36,4 +37,6 @@ public interface LuceneIndexReader extends Closeable{
 
     @CheckForNull
     Directory getSuggestDirectory();
+
+    long getIndexSize() throws IOException;
 }

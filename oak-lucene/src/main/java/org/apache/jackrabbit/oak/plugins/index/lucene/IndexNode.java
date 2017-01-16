@@ -176,6 +176,10 @@ public class IndexNode {
         }
     }
 
+    List<LuceneIndexReader> getPrimaryReaders() {
+        return readers;
+    }
+
     @CheckForNull
     public LuceneIndexWriter getLocalWriter() throws IOException{
         return nrtIndex != null ? nrtIndex.getWriter() : null;
@@ -217,7 +221,7 @@ public class IndexNode {
         return new MultiReader(readerArr, true);
     }
 
-    private List<LuceneIndexReader> getNRTReaders() {
+    List<LuceneIndexReader> getNRTReaders() {
         return nrtIndex != null ? nrtIndex.getReaders() : Collections.<LuceneIndexReader>emptyList();
     }
 

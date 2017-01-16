@@ -31,6 +31,8 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
+
 public class DefaultIndexReader implements LuceneIndexReader {
     private final Directory directory;
     private final Directory suggestDirectory;
@@ -63,6 +65,11 @@ public class DefaultIndexReader implements LuceneIndexReader {
     @CheckForNull
     public Directory getSuggestDirectory() {
         return suggestDirectory;
+    }
+
+    @Override
+    public long getIndexSize() throws IOException {
+        return dirSize(directory);
     }
 
     @Override
