@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
-class IndexTracker {
+public class IndexTracker {
 
     /** Logger instance. */
     private static final Logger log = LoggerFactory.getLogger(IndexTracker.class);
@@ -63,15 +63,15 @@ class IndexTracker {
 
     private volatile boolean refresh;
 
-    IndexTracker() {
+    public IndexTracker() {
         this(null);
     }
 
-    IndexTracker(IndexCopier cloner){
+    public IndexTracker(IndexCopier cloner){
         this.cloner = cloner;
     }
 
-    synchronized void close() {
+    public synchronized void close() {
         Map<String, IndexNode> indices = this.indices;
         this.indices = emptyMap();
 
