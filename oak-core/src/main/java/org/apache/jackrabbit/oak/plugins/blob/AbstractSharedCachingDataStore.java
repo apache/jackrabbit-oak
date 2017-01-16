@@ -27,6 +27,7 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -144,6 +145,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     protected ScheduledExecutorService schedulerExecutor;
 
+    protected ExecutorService executor;
+
     public void init(String homeDir) throws DataStoreException {
         if (path == null) {
             path = homeDir + "/repository/datastore";
@@ -179,7 +182,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                     @Override public void write(String id, File file) throws DataStoreException {
                         backend.write(new DataIdentifier(id), file);
                     }
-            }, statisticsProvider, listeningExecutor, schedulerExecutor, stagingPurgeInterval,
+            }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
                 stagingRetryInterval);
     }
 

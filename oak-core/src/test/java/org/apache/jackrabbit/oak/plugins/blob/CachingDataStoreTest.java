@@ -32,8 +32,6 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -54,6 +52,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 import static org.junit.Assert.assertEquals;
@@ -98,7 +97,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         taskLatch = new CountDownLatch(1);
         callbackLatch = new CountDownLatch(1);
         afterExecuteLatch = new CountDownLatch(i);
-        TestExecutor executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
+        TestExecutor listeningExecutor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
 
         // stats
         ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -124,10 +123,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.setStatisticsProvider(statsProvider);
         dataStore.setCacheSize(cacheSize);
         dataStore.setStagingSplitPercentage(uploadSplit);
-        dataStore.listeningExecutor = executor;
+        dataStore.listeningExecutor = listeningExecutor;
         dataStore.schedulerExecutor = scheduledExecutor;
+        dataStore.executor = sameThreadExecutor();
         dataStore.init(root.getAbsolutePath());
-        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
 
         LOG.info("Finished init");
     }

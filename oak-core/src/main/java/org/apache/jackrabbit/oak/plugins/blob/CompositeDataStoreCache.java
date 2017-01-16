@@ -22,6 +22,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.Nullable;
@@ -61,8 +62,9 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
 
     public CompositeDataStoreCache(String path, File home, long size, int uploadSplitPercentage,
         int uploadThreads, CacheLoader<String, InputStream> loader, final StagingUploader uploader,
-        StatisticsProvider statsProvider, ListeningExecutorService executor,
+        StatisticsProvider statsProvider, ListeningExecutorService listeningExecutor,
         ScheduledExecutorService scheduledExecutor /* purge scheduled executor */,
+        ExecutorService executor /* File cache executor */,
         int purgeInterval /* async purge interval secs */,
         int stagingRetryInterval /* async retry interval secs */) {
 
@@ -75,8 +77,8 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
 
         this.stagingCache = UploadStagingCache
             .build(directory, home, uploadThreads, uploadSize, uploader, null, statsProvider,
-                executor, scheduledExecutor, purgeInterval, stagingRetryInterval);
-        this.downloadCache = FileCache.build((size - uploadSize), directory, loader, null);
+                listeningExecutor, scheduledExecutor, purgeInterval, stagingRetryInterval);
+        this.downloadCache = FileCache.build((size - uploadSize), directory, loader, executor);
         stagingCache.setDownloadCache(downloadCache);
     }
 
