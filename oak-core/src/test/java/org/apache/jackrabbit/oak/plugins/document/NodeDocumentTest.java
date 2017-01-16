@@ -38,8 +38,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
@@ -687,6 +689,75 @@ public class NodeDocumentTest {
         ns2.dispose();
     }
 
+    @Ignore("OAK-5456")
+    @Test
+    public void tooManyReadsOnGetVisibleChangesWithLongRunningBranchCommit() throws Exception {
+        int numChanges = 843;
+        final Map<String, Document> prevDocCalls = newLinkedHashMap();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                T doc = super.find(collection, key);
+                if (Utils.getPathFromId(key).startsWith("p")) {
+                    prevDocCalls.put(key, doc);
+                }
+                return doc;
+            }
+        };
+        Random random = new Random(42);
+        DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 2, 0);
+        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+        List<RevisionVector> headRevisions = Lists.reverse(
+                createTestData(nodeStores, random, numChanges));
+
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.setProperty("q", 1);
+        int numNodes = 0;
+        while (getRootDocument(store).getValueMap("q").isEmpty()) {
+            // write some other changes until a branch is created
+            NodeBuilder child = builder.child("n-" + numNodes++);
+            for (int i = 0; i < 50; i++) {
+                child.setProperty("p-" + i, i);
+            }
+        }
+        // do not yet merge, but create more test data
+        int numMoreChanges = 50;
+        List<RevisionVector> moreRevs = Lists.reverse(
+                createTestData(nodeStores, random, numMoreChanges, numChanges));
+        headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
+        numChanges += numMoreChanges;
+
+        // now merge the branch and update 'q'. this will split
+        // the old value to a previous document
+        merge(ns1, builder);
+        builder = ns1.getRoot().builder();
+        builder.setProperty("q", 2);
+        merge(ns1, builder);
+
+        // and create yet more test data
+        numMoreChanges = 50;
+        moreRevs = Lists.reverse(
+                createTestData(nodeStores, random, numMoreChanges, numChanges));
+        headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
+        numChanges += numMoreChanges;
+
+        NodeDocument doc = getRootDocument(store);
+
+        for (int i = 0; i < 20; i++) {
+            prevDocCalls.clear();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            assertEquals(String.valueOf(numChanges - (i + 1)), value);
+            assertTrue("too many calls for previous documents ("
+                            + prevDocCalls.size() + "): " + prevDocCalls,
+                    prevDocCalls.size() <= 8);
+        }
+
+        ns1.dispose();
+        ns2.dispose();
+    }
+
     @Test
     public void getVisibleChanges() throws Exception {
         final int numChanges = 200;
@@ -758,8 +829,16 @@ public class NodeDocumentTest {
                                                 Random random,
                                                 int numChanges)
             throws CommitFailedException {
+        return createTestData(nodeStores, random, numChanges, 0);
+    }
+
+    private List<RevisionVector> createTestData(List<DocumentNodeStore> nodeStores,
+                                                Random random,
+                                                int numChanges,
+                                                int startValue)
+            throws CommitFailedException {
         List<RevisionVector> headRevisions = Lists.newArrayList();
-        for (int i = 0; i < numChanges; i++) {
+        for (int i = startValue; i < numChanges + startValue; i++) {
             DocumentNodeStore ns = nodeStores.get(random.nextInt(nodeStores.size()));
             ns.runBackgroundOperations();
             NodeBuilder builder = ns.getRoot().builder();
