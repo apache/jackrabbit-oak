@@ -31,6 +31,7 @@ import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,20 +45,25 @@ public class NRTIndexFactory implements Closeable{
      * IndexNode would keep reference to at max 3 NRT Indexes
      */
     private static final int MAX_INDEX_COUNT = 3;
+    private static final int REFRESH_DELTA_IN_SECS = Integer.getInteger("oak.lucene.refreshDeltaSecs", 1);
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ListMultimap<String, NRTIndex> indexes = LinkedListMultimap.create();
     private final IndexCopier indexCopier;
     private final Clock clock;
     private final long refreshDeltaInSecs;
+    private final StatisticsProvider statisticsProvider;
 
-    public NRTIndexFactory(IndexCopier indexCopier) {
-        this(indexCopier, Clock.SIMPLE, 1);
+    public NRTIndexFactory(IndexCopier indexCopier, StatisticsProvider statisticsProvider) {
+        this(indexCopier, Clock.SIMPLE, REFRESH_DELTA_IN_SECS, statisticsProvider);
     }
 
-    public NRTIndexFactory(IndexCopier indexCopier, Clock clock, long refreshDeltaInSecs) {
+    public NRTIndexFactory(IndexCopier indexCopier, Clock clock, long refreshDeltaInSecs,
+                           StatisticsProvider statisticsProvider) {
         this.indexCopier = checkNotNull(indexCopier);
         this.clock = clock;
         this.refreshDeltaInSecs = refreshDeltaInSecs;
+        this.statisticsProvider = statisticsProvider;
+        log.info("Refresh delta set to {} secs", refreshDeltaInSecs);
     }
 
     //This would not be invoked concurrently
@@ -68,7 +74,8 @@ public class NRTIndexFactory implements Closeable{
             return null;
         }
         String indexPath = definition.getIndexPath();
-        NRTIndex current = new NRTIndex(definition, indexCopier, getRefreshPolicy(definition), getPrevious(indexPath));
+        NRTIndex current = new NRTIndex(definition, indexCopier, getRefreshPolicy(definition),
+                getPrevious(indexPath), statisticsProvider);
         indexes.put(indexPath, current);
         closeLast(indexPath);
         return current;

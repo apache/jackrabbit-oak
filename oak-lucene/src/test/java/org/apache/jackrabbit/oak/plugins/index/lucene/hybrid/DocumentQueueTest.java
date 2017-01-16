@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -248,7 +249,7 @@ public class DocumentQueueTest {
     public void benchMarkIndexWriter() throws Exception{
         Executor executor = Executors.newFixedThreadPool(5);
         IndexCopier indexCopier = new IndexCopier(executor, temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
+        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         tracker = new IndexTracker(
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
                 indexFactory
@@ -323,7 +324,7 @@ public class DocumentQueueTest {
 
     private IndexTracker createTracker() throws IOException {
         IndexCopier indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
+        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         return new IndexTracker(
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
                 indexFactory

@@ -36,6 +36,11 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -65,6 +70,12 @@ public class NRTIndex implements Closeable {
     private final IndexDefinition definition;
     private final IndexCopier indexCopier;
     private final IndexUpdateListener refreshPolicy;
+
+    private final StatisticsProvider statisticsProvider;
+    private final TimerStats refreshTimer;
+    private final HistogramStats sizeHisto;
+    private final TimerStats.Context openTime;
+
     private NRTIndex previous;
 
     private IndexWriter indexWriter;
@@ -76,11 +87,17 @@ public class NRTIndex implements Closeable {
     private List<LuceneIndexReader> readers;
 
     public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
-                    IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous) {
+                    IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous,
+                    StatisticsProvider statisticsProvider) {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;
         this.previous = previous;
+        this.statisticsProvider = statisticsProvider;
+
+        this.refreshTimer = statisticsProvider.getTimer(metricName("REFRESH_TIME"), StatsOptions.METRICS_ONLY);
+        this.sizeHisto = statisticsProvider.getHistogram(metricName("SIZE"), StatsOptions.METRICS_ONLY);
+        this.openTime = statisticsProvider.getTimer(metricName("OPEN_TIME"), StatsOptions.METRICS_ONLY).time();
     }
 
     @CheckForNull
@@ -138,6 +155,7 @@ public class NRTIndex implements Closeable {
             //avoiding merge and dropping stuff in memory. To be explored
             //indexWrite.close(waitForMerges)
             indexWriter.close();
+            sizeHisto.update(dirSize(directory));
             directory.close();
             FileUtils.deleteQuietly(indexDir);
             log.debug("[{}] Removed directory [{}]", this, indexDir);
@@ -147,6 +165,7 @@ public class NRTIndex implements Closeable {
         previous = null;
 
         closed = true;
+        openTime.stop();
     }
 
     public boolean isClosed() {
@@ -181,6 +200,7 @@ public class NRTIndex implements Closeable {
         }
         DirectoryReader result = dirReader;
         try {
+            TimerStats.Context ctx = refreshTimer.time();
             //applyDeletes is false as layers above would take care of
             //stale result
             if (dirReader == null) {
@@ -191,6 +211,7 @@ public class NRTIndex implements Closeable {
                     result = newReader;
                 }
             }
+            ctx.stop();
             return result;
         } catch (IOException e) {
             log.warn("Error opening index [{}]", e);
@@ -256,9 +277,11 @@ public class NRTIndex implements Closeable {
 
     private class NRTIndexWriter implements LuceneIndexWriter {
         private final IndexWriter indexWriter;
+        private final MeterStats updateMeter;
 
         public NRTIndexWriter(IndexWriter indexWriter) {
             this.indexWriter = indexWriter;
+            this.updateMeter = statisticsProvider.getMeter(metricName("UPDATES"), StatsOptions.METRICS_ONLY);
         }
 
         @Override
@@ -268,6 +291,7 @@ public class NRTIndex implements Closeable {
             //That should be taken care at query side via unique cursor
             indexWriter.addDocument(doc);
             refreshPolicy.updated();
+            updateMeter.mark();
         }
 
         @Override
@@ -279,5 +303,9 @@ public class NRTIndex implements Closeable {
         public boolean close(long timestamp) throws IOException {
             throw new IllegalStateException("Close should not be called");
         }
+    }
+
+    private String metricName(String suffix){
+        return String.format("%s_NRT_%s", definition.getIndexPath(), suffix);
     }
 }

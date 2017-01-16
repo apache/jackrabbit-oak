@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
@@ -58,7 +59,7 @@ public class IndexNodeTest {
     @Before
     public void setUp() throws IOException {
         indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
-        nrtFactory = new NRTIndexFactory(indexCopier);
+        nrtFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
         readerFactory = new DefaultIndexReaderFactory(Mounts.defaultMountInfoProvider(), indexCopier);
         LuceneIndexEditorContext.configureUniqueId(builder);
     }
