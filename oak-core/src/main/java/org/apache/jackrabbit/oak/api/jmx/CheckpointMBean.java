@@ -28,7 +28,7 @@ import aQute.bnd.annotation.ProviderType;
  */
 @ProviderType
 public interface CheckpointMBean {
-    String TYPE = "CheckpointManger";
+    String TYPE = "CheckpointManager";
 
     /**
      * List the checkpoints that are currently present along with
