@@ -228,7 +228,7 @@ public class AsyncIndexerService {
         final long timeIntervalInSecs;
 
         private AsyncConfig(String name, long timeIntervalInSecs) {
-            this.name = name;
+            this.name = AsyncIndexUpdate.checkValidName(name);
             this.timeIntervalInSecs = timeIntervalInSecs;
         }
 

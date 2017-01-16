@@ -603,7 +603,7 @@ public class Oak {
             asyncTasks = new HashMap<String, Long>();
         }
         checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
-        asyncTasks.put(checkNotNull(name), delayInSeconds);
+        asyncTasks.put(AsyncIndexUpdate.checkValidName(name), delayInSeconds);
         return this;
     }
 

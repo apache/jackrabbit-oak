@@ -139,9 +139,9 @@ public class AsyncIndexerServiceTest {
         assertEquals("async", configs.get(0).name);
         assertEquals(15, configs.get(0).timeIntervalInSecs);
 
-        configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15", "foo:23"});
+        configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15", "foo-async:23"});
         assertEquals(2, configs.size());
-        assertEquals("foo", configs.get(1).name);
+        assertEquals("foo-async", configs.get(1).name);
         assertEquals(23, configs.get(1).timeIntervalInSecs);
     }
 

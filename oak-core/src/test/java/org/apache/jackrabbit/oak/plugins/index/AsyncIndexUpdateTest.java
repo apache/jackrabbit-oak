@@ -791,16 +791,17 @@ public class AsyncIndexUpdateTest {
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
         NodeBuilder builder = store.getRoot().builder();
+        String missingAsync = "missing-async";
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, "asyncMissing");
+                .setProperty(ASYNC_PROPERTY_NAME, missingAsync);
 
         builder.child("testRoot").setProperty("foo", "abc");
 
         // merge it back in
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate("asyncMissing", store,
+        AsyncIndexUpdate async = new AsyncIndexUpdate(missingAsync, store,
                 provider);
         //first run, creates a checkpoint and a ref to it as the last indexed state
         async.run();
@@ -811,12 +812,12 @@ public class AsyncIndexUpdateTest {
         assertEquals(
                 firstCp,
                 store.getRoot().getChildNode(ASYNC)
-                        .getString("asyncMissing"));
+                        .getString(missingAsync));
 
         // second run, simulate an index going away
         provider = CompositeIndexEditorProvider
                 .compose(new ArrayList<IndexEditorProvider>());
-        async = new AsyncIndexUpdate("asyncMissing", store, provider);
+        async = new AsyncIndexUpdate(missingAsync, store, provider);
         async.run();
         assertTrue(async.isFailing());
         // don't set reindex=true but skip the update
@@ -833,7 +834,7 @@ public class AsyncIndexUpdateTest {
         assertEquals(
                 firstCp,
                 store.getRoot().getChildNode(ASYNC)
-                        .getString("asyncMissing"));
+                        .getString(missingAsync));
     }
 
     @Test
@@ -842,14 +843,15 @@ public class AsyncIndexUpdateTest {
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
         NodeBuilder builder = store.getRoot().builder();
+        String missingAsyncName = "missing-async";
         createIndexDefinition(builder.child("subNodeIndex").child(INDEX_DEFINITIONS_NAME),
                 "rootIndex2", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, "asyncMissing");
+                .setProperty(ASYNC_PROPERTY_NAME, missingAsyncName);
 
         builder.child("subNodeIndex").child("testRoot").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate("asyncMissing", store,  provider);
+        AsyncIndexUpdate async = new AsyncIndexUpdate(missingAsyncName, store,  provider);
         //first run, creates a checkpoint and a ref to it as the last indexed state
         async.run();
         assertFalse(async.isFailing());
@@ -857,7 +859,7 @@ public class AsyncIndexUpdateTest {
         assertTrue("Expecting one checkpoint",
                 store.listCheckpoints().size() == 1);
         String firstCp = store.listCheckpoints().iterator().next();
-        assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString("asyncMissing"));
+        assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString(missingAsyncName));
 
         builder = store.getRoot().builder();
         builder.child("subNodeIndex").child("testRoot2").setProperty("foo", "abc");
@@ -865,7 +867,7 @@ public class AsyncIndexUpdateTest {
 
         // second run, simulate an index going away
         provider = CompositeIndexEditorProvider.compose(new ArrayList<IndexEditorProvider>());
-        async = new AsyncIndexUpdate("asyncMissing", store, provider);
+        async = new AsyncIndexUpdate(missingAsyncName, store, provider);
         async.run();
         assertTrue(async.isFailing());
         // don't set reindex=true but skip the update
@@ -878,7 +880,7 @@ public class AsyncIndexUpdateTest {
         assertTrue("Expecting one checkpoint",store.listCheckpoints().size() == 1);
         String secondCp = store.listCheckpoints().iterator().next();
         assertTrue("Store should not create a new checkpoint",  secondCp.equals(firstCp));
-        assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString("asyncMissing"));
+        assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString(missingAsyncName));
     }
 
     private static class FaultyIndexEditorProvder implements
@@ -1748,6 +1750,27 @@ public class AsyncIndexUpdateTest {
 
         //now barIndex should not be part of failing index
         assertFalse(async.getCorruptIndexHandler().getFailingIndexData("async").containsKey("/oak:index/barIndex"));
+    }
+
+    @Test
+    public void validName() throws Exception{
+        assertNotNull(AsyncIndexUpdate.checkValidName("async"));
+        assertNotNull(AsyncIndexUpdate.checkValidName("foo-async"));
+        assertNotNull(AsyncIndexUpdate.checkValidName(IndexConstants.ASYNC_REINDEX_VALUE));
+
+        try{
+            AsyncIndexUpdate.checkValidName(null);
+            fail();
+        } catch (Exception ignore){
+
+        }
+
+        try{
+            AsyncIndexUpdate.checkValidName("foo");
+            fail();
+        } catch (Exception ignore){
+
+        }
     }
 
     private static class TestIndexEditorProvider extends PropertyIndexEditorProvider {

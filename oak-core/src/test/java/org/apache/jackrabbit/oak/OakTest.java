@@ -165,7 +165,7 @@ public class OakTest {
         Oak oak = new Oak()
                 .with(new OpenSecurityProvider())
                 .with(wb)
-                .withAsyncIndexing("foo", 5);
+                .withAsyncIndexing("foo-async", 5);
         ContentRepository repo = oak.createContentRepository();
 
         ((Closeable)repo).close();
