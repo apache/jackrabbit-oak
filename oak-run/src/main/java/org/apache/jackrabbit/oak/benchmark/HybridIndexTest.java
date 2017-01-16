@@ -325,7 +325,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         }
 
         nrtIndexFactory = new NRTIndexFactory(copier, Clock.SIMPLE,
-                TimeUnit.MILLISECONDS.toSeconds(refreshDeltaMillis));
+                TimeUnit.MILLISECONDS.toSeconds(refreshDeltaMillis), StatisticsProvider.NOOP);
         MountInfoProvider mip = Mounts.defaultMountInfoProvider();
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);

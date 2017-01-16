@@ -418,7 +418,7 @@ public class LuceneIndexProviderService {
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
             if (hybridIndex) {
-                nrtIndexFactory = new NRTIndexFactory(indexCopier);
+                nrtIndexFactory = new NRTIndexFactory(indexCopier, statisticsProvider);
             }
             return new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
         }
