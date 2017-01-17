@@ -82,7 +82,7 @@ repository internal permission evaluation:
 - [RestrictionDefinition]: the static definition of a supported restriction
 - [RestrictionPattern]: the processed restriction ready for permission evaluation
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:

@@ -176,6 +176,6 @@ might otherwise result in severe security issues and heavily impact overall perf
 <!-- hidden references -->
 [PolicyOwner]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/accesscontrol/PolicyOwner.html
 [AggregatedPermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregatedPermissionProvider.html
-[CompositeAuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAuthorizationConfiguration.html
-[CompositeAccessControlManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAccessControlManager.html
-[CompositePermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authorization/composite/CompositePermissionProvider.html
+[CompositeAuthorizationConfiguration]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAuthorizationConfiguration.java
+[CompositeAccessControlManager]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAccessControlManager.java
+[CompositePermissionProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositePermissionProvider.java

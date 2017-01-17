@@ -162,7 +162,7 @@ will fail and the login still throw a [CredentialExpiredException]. In order
 for consumers of the exception to become aware that the credentials are
 still considered expired, and that the password was not changed due to the 
 new password having been found in the password history, the credentials object
-is fitted with an additional attribute with name [PasswordHistoryException].
+is fitted with an additional attribute with name `PasswordHistoryException`.
 
 This attribute may contain the following two values:
 
@@ -195,6 +195,5 @@ data.
 <!-- hidden references -->
 [SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
 [CredentialExpiredException]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/CredentialExpiredException.html
-[PasswordHistoryException]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/user/PasswordHistoryException.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html

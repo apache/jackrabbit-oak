@@ -275,10 +275,10 @@ Within the default user management implementation the following parts can be
 modified or extended at runtime by providing corresponding OSGi services or passing
 appropriate configuration parameters exposing the custom implementations:
 
-- `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](user/authorizableaction.html).
+- `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](authorizableaction.html).
 - `AuthorizableNodeName`: Defines the generation of the authorizable node names
   in case the user management implementation stores user information in the repository.
-  See [Authorizable Node Name Generation](user/authorizablenodename.html).
+  See [Authorizable Node Name Generation](authorizablenodename.html).
 - `UserAuthenticationFactory`: see below
    
 #### UserAuthenticationFactory : Authenticating Users

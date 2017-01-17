@@ -69,7 +69,7 @@ Oak repository:
 #### LDAP Configuration
 
 The LDAP IPDs are configured through the [org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig]
-which is populated either via OSGi or during manual [Repository Construction](../construct.html).
+which is populated either via OSGi or during manual [Repository Construction](../../construct.html).
 
 | Name                         | Property                | Description                              |
 |------------------------------|-------------------------|------------------------------------------|

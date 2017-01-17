@@ -80,7 +80,7 @@ by the system only and cannot be modified by the API consumer.
 #### Annotations
 
 [1] In Oak reading/writing nodes with the following node types provided by the implementations present: `rep:Policy`, `rep:ACL`, `rep:ACE`, `rep:GrantACE`, `rep:DenyACE`, `rep:Restrictions` and `rep:CugPolicy` and all protected items defined therein.
-    See [Default Access Control Management](../accesscontrol/default.html) and [Managing Access Control with CUG](../authorization_cug/cug.html), respectively.
+    See [Default Access Control Management](../accesscontrol/default.html) and [Managing Access Control with CUG](../authorization/cug.html), respectively.
 
 [2] Granting jcr:versionManagement privilege at a given versionable node will allow writing items through JCR version management API which writes below `/jcr:system/jcr:versionStorage`, `/jcr:system/jcr:activities`, `/jcr:system/jcr:configurations` and the following properties both in the storage(s) and with the versionable node: `jcr:activity`, `jcr:activityTitle`, `jcr:baseVersion`, `jcr:childVersionHistory`, `jcr:configuration`, `jcr:copiedFrom`, `jcr:frozenMixinTypes`, `jcr:frozenPrimaryType`, `jcr:frozenUuid`, `jcr:isCheckedOut`, `jcr:mergeFailed`, `jcr:predecessors`,`jcr:successors`,`jcr:root`,`jcr:versionableUuid`, `jcr:versionHistory`
 

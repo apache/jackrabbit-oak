@@ -24,7 +24,7 @@ The default implementation of the `PermissionProvider` interface evaluates permi
 based on the information stored in a dedicated part of the repository content call
 the [permission store](#permissionStore).
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Characteristics of the Permission Evaluation
 
 #### Regular Permission Evaluation
