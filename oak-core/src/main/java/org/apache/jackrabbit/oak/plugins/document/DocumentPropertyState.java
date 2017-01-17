@@ -94,7 +94,14 @@ final class DocumentPropertyState implements PropertyState {
 
     @Override
     public long size(int index) {
-        return parsed().size(index);
+        long size;
+        PropertyState parsed = parsed();
+        if (parsed.getType() == Type.BINARIES) {
+            size = parsed.getValue(Type.BINARY, index).length();
+        } else {
+            size = parsed.size(index);
+        }
+        return size;
     }
 
     @Override
