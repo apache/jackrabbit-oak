@@ -319,7 +319,7 @@ cacheStackMoveDistance
 : The delay to move entries to the head of the queue in the LIRS cache
 : Since 1.0.15, 1.2.3, 1.3.0
 
-sharedDSRepoId (From Oak 1.2.11)
+sharedDSRepoId (From Oak 1.2.11, valid for Oak 1.2.x)
 : Default ""
 : Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore.
 
