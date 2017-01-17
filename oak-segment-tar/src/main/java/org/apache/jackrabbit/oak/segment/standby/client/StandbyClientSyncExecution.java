@@ -17,11 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import static com.google.common.collect.Maps.newHashMap;
-
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,7 +26,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -53,8 +49,6 @@ class StandbyClientSyncExecution {
     private final StandbyClient client;
 
     private final Supplier<Boolean> running;
-
-    private final Map<UUID, Segment> cache = newHashMap();
 
     StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
         this.store = store;
@@ -218,13 +212,6 @@ class StandbyClientSyncExecution {
     }
 
     private void copySegmentFromPrimary(UUID uuid) throws Exception {
-        Segment result = cache.get(uuid);
-
-        if (result != null) {
-            log.debug("Segment {} was found in the local cache", uuid);
-            return;
-        }
-
         byte[] data = client.getSegment(uuid.toString());
 
         if (data == null) {
@@ -235,8 +222,6 @@ class StandbyClientSyncExecution {
         long lsb = uuid.getLeastSignificantBits();
         SegmentId segmentId = store.newSegmentId(msb, lsb);
         store.writeSegment(segmentId, data, 0, data.length);
-        result = segmentId.getSegment();
-        cache.put(uuid, result);
     }
 
 }
