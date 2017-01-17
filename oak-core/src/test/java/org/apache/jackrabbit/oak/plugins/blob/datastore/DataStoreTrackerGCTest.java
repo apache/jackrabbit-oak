@@ -143,13 +143,6 @@ public class DataStoreTrackerGCTest {
         assertEquals(state.blobsPresent, existingAfterGC);
         // Tracked blobs should reflect deletions after gc
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
-
-        // Create a snapshot
-        ScheduledFuture<?> scheduledFuture = newSingleThreadScheduledExecutor()
-            .schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
-        scheduledFuture.get();
-        // Tracked blobs should reflect deletions after gc and the deleted should not get resurrected
-        assertEquals(state.blobsPresent, retrieveTracked(tracker));
     }
 
     private HashSet<String> addNodeSpecialChars(DocumentNodeStore ds) throws Exception {
@@ -212,13 +205,6 @@ public class DataStoreTrackerGCTest {
         // Check the state of the blob store after gc
         assertEquals(state.blobsPresent, existingAfterGC);
         // Tracked blobs should reflect deletions after gc and also the additions after
-        assertEquals(state.blobsPresent, retrieveTracked(tracker));
-
-        // Create a snapshot
-        scheduledFuture = newSingleThreadScheduledExecutor()
-            .schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
-        scheduledFuture.get();
-        // Tracked blobs should reflect deletions after gc and the deleted should not get resurrected
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
     }
 
