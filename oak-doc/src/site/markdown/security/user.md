@@ -18,7 +18,7 @@
 User Management
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"/>
+<a name="jcr_api"/>
 ### JCR API
 
 JCR itself doesn't come with a dedicated user management API. The only method
@@ -54,7 +54,7 @@ interfaces and classes:
 - `UserAuthenticationFactory`: see sections [pluggability](user/default.html#pluggability) 
 and [user authentication](authentication/default.html#user_authentication) for additional details.
 
-<a href="utilities"/>
+<a name="utilities"/>
 ### Utilities
 
 `org.apache.jackrabbit.oak.spi.security.user.*`
@@ -70,7 +70,7 @@ and [user authentication](authentication/default.html#user_authentication) for a
   function for password generation.
 - `UserUtil` : Utilities related to general user management tasks.
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Oak User Management Implementation
 
 The behavior of the default user management implementation is described in section 

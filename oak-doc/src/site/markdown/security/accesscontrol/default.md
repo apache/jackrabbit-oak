@@ -115,7 +115,7 @@ restrictions as mentioned by JSR 283. Details about the restriction management
 in Oak 1.0 as well as a list of built-in restrictions and extensibility can be
 found in section [Restriction Management](../authorization/restriction.html).
 
-<a href="representation"/>
+<a name="representation"/>
 ### Representation in the Repository
 
 All access control policies defined with an Oak repository are stores child of

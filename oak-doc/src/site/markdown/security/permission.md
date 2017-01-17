@@ -18,7 +18,7 @@
 Permissions
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"/>
+<a name="jcr_api"/>
 ### JCR and Jackrabbit API
 
 While access control management is a optional feature, a JCR implementation is
@@ -88,7 +88,7 @@ Important: `absPath` refers to the node to be created
          session.save();
     }
 
-<a href="oak_permissions"/>
+<a name="oak_permissions"/>
 ### Oak Permissions
 
 #### General Notes
@@ -328,7 +328,7 @@ defines the following interfaces and classes:
 - [Permissions]: The permissions defined, respected and evaluated by the repository.
 - [PermissionConstants]: Constants used throughout the permission evaluation.
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Characteristics of the Permission Evaluation
 
 As explained above permission evaluation is completely separated from the access

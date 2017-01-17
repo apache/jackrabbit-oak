@@ -36,7 +36,7 @@ present on the IDP.
 #### JMX Synchronization Tool
 
 In addition to the synchronization API Oak 1.0 defines utilities to manage
-synchronized external identities within JMX ([SynchronizationMBean]) which allows
+synchronized external identities within JMX (`SynchronizationMBean`) which allows
 for the following tasks:
 
 - `syncUsers(String[] userIds, boolean purge)`
@@ -70,7 +70,6 @@ or plug a new implementation of the `SyncHandler`:
 
 
 <!-- references -->
-[SynchronizationMBean]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/jmx/SynchronizationMBean.html
 [SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
 [SyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncContext.html

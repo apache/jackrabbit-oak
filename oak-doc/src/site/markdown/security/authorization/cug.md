@@ -159,7 +159,7 @@ doesn't match any of the two criteria:
 
 This further implies that the `PermissionProvider` will only evaluate regular read 
 permissions (i.e. `READ_NODE` and `READ_PROPERTY`). Evaluation of any other 
-[permissions](../permissions.html#oak_permissions) including reading the cug policy 
+[permissions](../permission.html#oak_permissions) including reading the cug policy 
 node (access control content) is consequently delegated to other 
 authorization modules. In case there was no module dealing with these permissions, 
 access will be denied (see in section _Combining Multiple Authorization Models_ for [details](composite.html#details)). 
