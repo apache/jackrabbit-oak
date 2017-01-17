@@ -133,15 +133,12 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     public static final String REPOSITORY_ENV_SPRING_BOOT =
             "org.apache.jackrabbit.oak.repository.springBootMode";
 
-    public static final String REPOSITORY_BUNDLE_FILTER_DEFAULT = "(&" +
-            "(|" +
+    public static final String REPOSITORY_BUNDLE_FILTER_DEFAULT = "(|" +
             "(Bundle-SymbolicName=org.apache.jackrabbit*)" +
             "(Bundle-SymbolicName=org.apache.sling*)" +
             "(Bundle-SymbolicName=org.apache.felix*)" +
             "(Bundle-SymbolicName=org.apache.aries*)" +
             "(Bundle-SymbolicName=groovy-all)" +
-            ")" +
-            "(!(Bundle-SymbolicName=org.apache.jackrabbit.oak-segment-tar))" +
             ")";
 
     /**
