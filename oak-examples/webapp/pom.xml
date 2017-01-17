@@ -245,6 +245,18 @@
                 </artifacts>
             </configuration>
           </execution>
+          <execution>
+            <id>reserve-network-port</id>
+            <goals>
+              <goal>reserve-network-port</goal>
+            </goals>
+            <phase>process-resources</phase>
+            <configuration>
+              <portNames>
+                <portName>tomcat.http.port</portName>
+              </portNames>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -277,6 +289,7 @@
             <java.util.logging.config.file>
               src/test/resources/logging.properties
             </java.util.logging.config.file>
+            <tomcat.http.port>${tomcat.http.port}</tomcat.http.port>
           </systemPropertyVariables>
         </configuration>
         <executions>
