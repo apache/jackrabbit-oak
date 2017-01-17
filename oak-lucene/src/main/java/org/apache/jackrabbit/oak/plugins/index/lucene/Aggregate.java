@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
@@ -31,6 +32,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
@@ -136,16 +138,16 @@ class Aggregate {
 
     private static void collectAggregatesForDirectMatchers(NodeState nodeState, List<Matcher> matchers,
                                           ResultCollector collector) {
-        List<ChildNodeEntry> entries = Lists.newArrayList();
+        Map<String, ChildNodeEntry> children = Maps.newHashMap();
         //Collect potentially matching child nodestates based on matcher name
         for (Matcher m : matchers){
             String nodeName = m.getNodeName();
             NodeState child = nodeState.getChildNode(nodeName);
             if (child.exists()){
-                entries.add(new MemoryChildNodeEntry(nodeName, child));
+                children.put(nodeName, new MemoryChildNodeEntry(nodeName, child));
             }
         }
-        matchChildren(matchers, collector, entries);
+        matchChildren(matchers, collector, children.values());
     }
 
     private static void collectAggregatesForPatternMatchers(NodeState nodeState, List<Matcher> matchers,

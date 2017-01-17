@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
+import javax.jcr.PropertyType;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
@@ -37,9 +39,14 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeIncludeResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.PropertyIncludeResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -393,6 +400,30 @@ public class AggregateTest {
         ag.collectAggregates(nb.getNodeState(), col);
         assertEquals(1, col.getPropPaths().size());
         assertThat(col.getPropPaths(), hasItems("a/p1"));
+    }
+
+    @Test
+    public void propOneLevelNamedDirect() throws Exception{
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:folder")
+                .property("jcr:content/a").ordered(PropertyType.TYPENAME_LONG).propertyIndex()
+                .property("jcr:content/b").ordered(PropertyType.TYPENAME_LONG).propertyIndex();
+
+
+        IndexDefinition defn = new IndexDefinition(root, builder.build(), "/foo");
+        Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("jcr:content").setProperty("a", 1);
+        nb.child("jcr:content").setProperty("b", 1);
+
+        LuceneDocumentMaker maker = new LuceneDocumentMaker(defn, defn.getApplicableIndexingRule("nt:folder"), "/bar");
+        Document doc = maker.makeDocument(nb.getNodeState());
+
+        DefaultIndexWriterFactory writerFactory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(), null, null);
+        LuceneIndexWriter writer = writerFactory.newInstance(defn, EMPTY_NODE.builder(), false);
+        writer.updateDocument("/bar", doc);
+        writer.close(100);
     }
 
     @Test
