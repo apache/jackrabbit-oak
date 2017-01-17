@@ -443,6 +443,12 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          * @throws IOException
          */
         protected void removeRecords(File recs) throws IOException {
+            // Create a new generation writer.
+            // Merge the generations also before removing so that any id to be removed and also
+            // tracked in the generations are not resurrected
+            nextGeneration();
+            merge(generations, false);
+
             refLock.lock();
             try {
                 sort(getBlobRecordsFile());
