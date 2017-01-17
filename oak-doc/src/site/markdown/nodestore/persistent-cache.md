@@ -32,6 +32,11 @@ The default OSGi configuration of the persistent cache is:
     org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
         persistentCache="cache,binary\=0"
 
+Oak version up to 1.4 have the persistent cache disabled by default, which
+is equivalent with a configuration entry set to an empty String. Starting with
+Oak 1.6, the persistent cache is enabled by default and can be disabled by
+setting the configuration entry to `"-"`.
+
 ### Configuration Options
 
 The persistent cache configuration setting is string with a number of comma separated elements. 
@@ -85,10 +90,14 @@ An example configuration is:
 
     "cache,size\=2048,binary\=0,-compact,-compress"
 
-To disable the persistent cache entirely, use the following configuration:
+To disable the persistent cache entirely in Oak 1.6 and newer, use the following
+configuration:
 
     org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
         persistentCache="-"
+
+Up to Oak version 1.4, either omit the persistentCache entry or set it to an
+empty String to disable the persistent cache.
 
 ### Journal cache
 
