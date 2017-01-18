@@ -114,12 +114,6 @@ class ChangeProcessor implements FilteringAwareObserver {
      */
     public static final int MAX_DELAY;
     
-    /** The test mode can be used to just verify if prefiltering would have
-     * correctly done its job and warn if that's not the case.
-     * @deprecated remove this before 1.6 - see OAK-5136
-     */
-    private static boolean PREFILTERING_TESTMODE;
-    
     // OAK-4533: make DELAY_THRESHOLD and MAX_DELAY adjustable - using System.properties for now
     static {
         final String delayThresholdStr = System.getProperty("oak.commitRateLimiter.delayThreshold");
@@ -144,15 +138,6 @@ class ChangeProcessor implements FilteringAwareObserver {
         }
         DELAY_THRESHOLD = delayThreshold;
         MAX_DELAY = maxDelay;
-    }
-    
-    /**
-     * @deprecated remove this before 1.6 - see OAK-5136
-     * @param testMode
-     */
-    static void setPrefilteringTestMode(boolean testMode) {
-        PREFILTERING_TESTMODE = testMode;
-        LOG.info("setPrefilteringTestMode: PREFILTERING_TESTMODE = " + PREFILTERING_TESTMODE);
     }
     
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -376,11 +361,6 @@ class ChangeProcessor implements FilteringAwareObserver {
             
             @Override
             public boolean excludes(NodeState root, CommitInfo info) {
-                if (PREFILTERING_TESTMODE) {
-                    // then we don't prefilter but only test later
-                    prefilterSkipCount++;
-                    return false;
-                }
                 final FilterResult filterResult = evalPrefilter(root, info, getChangeSet(info));
                 switch (filterResult) {
                 case PREFILTERING_SKIPPED: {
@@ -477,25 +457,9 @@ class ChangeProcessor implements FilteringAwareObserver {
         checkNotNull(before); // OAK-5160 before is now guaranteed to be non-null
         checkNotNull(after);
         checkNotNull(info);
-        FilterResult prefilterTestResult = null;
-        if (PREFILTERING_TESTMODE) {
-            // OAK-4908 test mode: when the ChangeCollectorProvider is enabled
-            // there is the option to have the ChangeProcessors run in so-called
-            // 'test mode'. In this test mode the prefiltering is not applied,
-            // but instead verified if it *would have prefiltered correctly*.
-            // that test is therefore done at dequeue-time, hence in
-            // contentChanged
-            // TODO: remove this testing mechanism after a while
-            try {
-                prefilterTestResult = evalPrefilter(after, info, getChangeSet(info));
-            } catch (Exception e) {
-                LOG.warn("contentChanged: exception in wouldBeExcludedCommit: " + e, e);
-            }
-        }
         try {
             long start = PERF_LOGGER.start();
             FilterProvider provider = filterProvider.get();
-            boolean onEventInvoked = false;
             // FIXME don't rely on toString for session id
             if (provider.includeCommit(contentSession.toString(), info)) {
                 EventFilter filter = provider.getFilter(before, after);
@@ -512,7 +476,6 @@ class ChangeProcessor implements FilteringAwareObserver {
                     }
                     try {
                         CountingIterator countingEvents = new CountingIterator(events);
-                        onEventInvoked = true;
                         eventListener.onEvent(countingEvents);
                         countingEvents.updateCounters(eventCount, eventDuration);
                     } finally {
@@ -521,26 +484,6 @@ class ChangeProcessor implements FilteringAwareObserver {
                         }
                         runningMonitor.leave();
                     }
-                }
-            }
-            if (prefilterTestResult != null) {
-                // OAK-4908 test mode
-                if (prefilterTestResult == FilterResult.EXCLUDE && onEventInvoked) {
-                    // this is not ok, an event would have gotten
-                    // excluded-by-prefiltering even though
-                    // it actually got an event.
-                    LOG.warn("contentChanged: delivering event which would have been prefiltered, "
-                            + "info={}, this={}, listener={}", info, this, eventListener);
-                } else if (prefilterTestResult == FilterResult.INCLUDE && !onEventInvoked && info != null
-                        && info != CommitInfo.EMPTY) {
-                    // this can occur arbitrarily frequent. as prefiltering
-                    // is not perfect, it can
-                    // have false negatives - ie it can include even though
-                    // no event is then created
-                    // hence we can only really log at debug here
-                    LOG.debug(
-                            "contentChanged: no event to deliver but not prefiltered, info={}, this={}, listener={}",
-                            info, this, eventListener);
                 }
             }
             PERF_LOGGER.end(start, 100,
