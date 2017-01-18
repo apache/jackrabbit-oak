@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
@@ -117,8 +116,8 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void journalPropertyTracker() throws Exception{
-        MockOsgi.activate(service, context.bundleContext(), Collections.<String,Object>emptyMap());
+    public void journalPropertyTracker() throws Exception {
+        MockOsgi.activate(service, context.bundleContext(), newConfig(repoHome));
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         assertEquals(0, store.getJournalPropertyHandlerFactory().getServiceCount());
 
