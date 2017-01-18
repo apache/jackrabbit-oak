@@ -312,10 +312,14 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         /* Lock for operations on references file */
         private final ReentrantLock refLock;
 
+        /* Lock for snapshot */
+        private final ReentrantLock snapshotLock;
+
         BlobIdStore(File rootDir, String prefix) throws IOException {
             this.rootDir = rootDir;
             this.prefix = prefix;
             this.refLock = new ReentrantLock();
+            this.snapshotLock = new ReentrantLock();
 
             // Retrieve the process file if it exists
             processFile =
@@ -443,6 +447,9 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          * @throws IOException
          */
         protected void removeRecords(File recs) throws IOException {
+            // do a snapshot
+            snapshot();
+
             refLock.lock();
             try {
                 sort(getBlobRecordsFile());
@@ -520,8 +527,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          * @throws IOException
          */
         protected void snapshot() throws IOException {
-            nextGeneration();
-            merge(generations, false);
+            snapshotLock.lock();
+            try {
+                nextGeneration();
+                merge(generations, false);
+            } finally {
+                snapshotLock.unlock();
+            }
         }
 
         @Override
