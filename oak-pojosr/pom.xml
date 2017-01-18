@@ -77,7 +77,7 @@
             <exclude>**/org.apache.jackrabbit.oak.security.user.UserConfigurationImpl.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.config</exclude>
             <exclude>**/oak-base-config.json</exclude>
             <exclude>**/oak-tar-config.json</exclude>
           </excludes>
