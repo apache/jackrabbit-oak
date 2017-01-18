@@ -29,10 +29,6 @@ import org.junit.BeforeClass;
 
 public class TestBase {
 
-    private static final int port = Integer.getInteger("standby.server.port", 52800);
-
-    private static final int proxyPort = Integer.getInteger("standby.proxy.port", 51913);
-
     private static final int timeout = Integer.getInteger("standby.test.timeout", 500);
 
     // Java 6 on Windows doesn't support dual IP stacks, so we will skip our
@@ -44,24 +40,12 @@ public class TestBase {
         assumeTrue(!CIHelper.travis());
     }
 
-    public static int getServerPort() {
-        return port;
-    }
-
-    public static int getProxyPort() {
-        return proxyPort;
-    }
-
-    public static String getServerHost() {
+    static String getServerHost() {
         return "127.0.0.1";
     }
 
-    public static int getClientTimeout() {
+    static int getClientTimeout() {
         return timeout;
-    }
-
-    public StandbyClientSync newStandbyClientSync(FileStore store) throws Exception {
-        return newStandbyClientSync(store, getServerPort(), false);
     }
 
     public StandbyClientSync newStandbyClientSync(FileStore store, int port) throws Exception {

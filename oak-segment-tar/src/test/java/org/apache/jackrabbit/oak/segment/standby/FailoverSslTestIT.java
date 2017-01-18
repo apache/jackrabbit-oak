@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +46,9 @@ public class FailoverSslTestIT extends TestBase {
     private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, true);
 
     @Rule
+    public TemporaryPort serverPort = new TemporaryPort();
+
+    @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
             .around(clientFileStore);
@@ -54,8 +58,8 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, true);
-                StandbyClientSync clientSync = newStandbyClientSync(storeC, getServerPort(), true);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, true);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, serverPort.getPort(), true);
         ) {
             assertTrue(synchronizeAndCompareHead(serverSync, clientSync));
         }
@@ -66,8 +70,8 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, true);
-                StandbyClientSync clientSync = newStandbyClientSync(storeC);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, true);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, serverPort.getPort());
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }
@@ -78,8 +82,8 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
-                StandbyClientSync clientSync = newStandbyClientSync(storeC, getServerPort(), true);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, serverPort.getPort(), true);
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
         }

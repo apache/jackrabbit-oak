@@ -38,20 +38,28 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
+import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 public abstract class DataStoreTestBase extends TestBase {
 
     private static final int MB = 1024 * 1024;
 
-    private static NetworkErrorProxy proxy;
+    private NetworkErrorProxy proxy;
+
+    @Rule
+    public TemporaryPort serverPort = new TemporaryPort();
+
+    @Rule
+    public TemporaryPort proxyPort = new TemporaryPort();
 
     abstract FileStore getPrimary();
 
@@ -74,13 +82,13 @@ public abstract class DataStoreTestBase extends TestBase {
         return data;
     }
 
-    @BeforeClass
-    public static void beforeClass() {
-        proxy = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
+    @Before
+    public void before() {
+        proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
     }
 
-    @AfterClass
-    public static void afterClass() {
+    @After
+    public void after() {
         proxy.close();
     }
 
@@ -93,8 +101,8 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-                StandbyClientSync cl = newStandbyClientSync(secondary)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
             primary.flush();
@@ -128,8 +136,8 @@ public abstract class DataStoreTestBase extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-                StandbyClientSync clientSync = newStandbyClientSync(secondary)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
 
@@ -188,8 +196,8 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-                StandbyClientSync clientSync = newStandbyClientSync(secondary, getProxyPort())
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary, proxyPort.getPort())
         ) {
             proxy.skipBytes(skipPosition, skipBytes);
             proxy.flipByte(flipPosition);

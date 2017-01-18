@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +46,9 @@ public class RecoverTestIT extends TestBase {
     private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, true);
 
     @Rule
+    public TemporaryPort serverPort = new TemporaryPort();
+
+    @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
             .around(clientFileStore);
@@ -58,8 +62,8 @@ public class RecoverTestIT extends TestBase {
         addTestContent(store, "client");
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
-                StandbyClientSync cl = newStandbyClientSync(storeC)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
+                StandbyClientSync cl = newStandbyClientSync(storeC, serverPort.getPort())
         ) {
             serverSync.start();
             store = SegmentNodeStoreBuilders.builder(storeS).build();

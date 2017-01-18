@@ -30,10 +30,11 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -49,7 +50,7 @@ public class BrokenNetworkIT extends TestBase {
 
     private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder, true);
 
-    private static NetworkErrorProxy proxy;
+    private NetworkErrorProxy proxy;
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
@@ -57,13 +58,19 @@ public class BrokenNetworkIT extends TestBase {
             .around(clientFileStore1)
             .around(clientFileStore2);
 
-    @BeforeClass
-    public static void beforeClass() {
-        proxy = new NetworkErrorProxy(getProxyPort(), getServerHost(), getServerPort());
+    @Rule
+    public TemporaryPort serverPort = new TemporaryPort();
+
+    @Rule
+    public TemporaryPort proxyPort = new TemporaryPort();
+
+    @Before
+    public void beforeClass() {
+        proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
     }
 
-    @AfterClass
-    public static void afterClass() {
+    @After
+    public void afterClass() {
         proxy.close();
     }
 
@@ -147,8 +154,8 @@ public class BrokenNetworkIT extends TestBase {
         storeS.flush();  // this speeds up the test a little bit...
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS, ssl);
-                StandbyClientSync clientSync = newStandbyClientSync(storeC, getProxyPort(), ssl);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, ssl);
+                StandbyClientSync clientSync = newStandbyClientSync(storeC, proxyPort.getPort(), ssl);
         ) {
             proxy.skipBytes(skipPosition, skipBytes);
             proxy.flipByte(flipPosition);

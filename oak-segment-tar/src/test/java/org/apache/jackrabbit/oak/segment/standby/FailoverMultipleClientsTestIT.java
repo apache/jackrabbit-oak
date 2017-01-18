@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +47,9 @@ public class FailoverMultipleClientsTestIT extends TestBase {
     private TemporaryFileStore clientFileStore2 = new TemporaryFileStore(folder, true);
 
     @Rule
+    public TemporaryPort serverPort = new TemporaryPort();
+
+    @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
             .around(clientFileStore1)
@@ -59,9 +63,9 @@ public class FailoverMultipleClientsTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), storeS);
-                StandbyClientSync cl1 = newStandbyClientSync(storeC);
-                StandbyClientSync cl2 = newStandbyClientSync(storeC2)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
+                StandbyClientSync cl1 = newStandbyClientSync(storeC, serverPort.getPort());
+                StandbyClientSync cl2 = newStandbyClientSync(storeC2, serverPort.getPort())
         ) {
             serverSync.start();
             SegmentTestUtils.addTestContent(store, "server");
