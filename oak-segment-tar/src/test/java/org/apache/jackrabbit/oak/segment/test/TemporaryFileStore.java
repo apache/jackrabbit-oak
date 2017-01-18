@@ -65,9 +65,9 @@ public class TemporaryFileStore extends ExternalResource {
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
                 .withStatisticsProvider(new DefaultStatisticsProvider(executor));
-        
-        if (standby) builder.withSnfeListener(SegmentNotFoundExceptionListener.IGNORE_SNFE);
-        
+        if (standby) {
+            builder.withSnfeListener(SegmentNotFoundExceptionListener.IGNORE_SNFE);
+        }
         if (blobStore != null) {
             builder.withBlobStore(blobStore.blobStore());
         }

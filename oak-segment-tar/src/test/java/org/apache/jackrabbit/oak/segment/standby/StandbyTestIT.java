@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -55,6 +56,9 @@ public class StandbyTestIT extends TestBase {
     private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, true);
 
     @Rule
+    public TemporaryPort serverPort = new TemporaryPort();
+
+    @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
             .around(serverFileStore)
             .around(clientFileStore);
@@ -68,8 +72,8 @@ public class StandbyTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-                StandbyClientSync clientSync = newStandbyClientSync(secondary)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, 150);
@@ -108,8 +112,8 @@ public class StandbyTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(getServerPort(), primary);
-                StandbyClientSync clientSync = newStandbyClientSync(secondary)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, dataNodes);
