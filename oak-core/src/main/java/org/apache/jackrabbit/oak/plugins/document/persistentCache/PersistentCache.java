@@ -107,10 +107,14 @@ public class PersistentCache implements Broadcaster.Listener {
         String broadcast = "disabled";
         for (String p : parts) {
             if (p.equals("+docs")) {
+                // enabling this can lead to consistency problems,
+                // specially if multiple cluster nodes are used
                 cacheDocs = true;
             } else if (p.equals("-prevDocs")) {
                 cachePrevDocs = false;
             } else if (p.equals("+docChildren")) {
+                // enabling this can lead to consistency problems,
+                // specially if multiple cluster nodes are used
                 cacheDocChildren = true;
             } else if (p.equals("-nodes")) {
                 cacheNodes = false;
