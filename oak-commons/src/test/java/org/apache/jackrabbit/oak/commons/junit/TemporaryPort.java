@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.test;
+package org.apache.jackrabbit.oak.commons.junit;
 
 import java.net.ServerSocket;
 
