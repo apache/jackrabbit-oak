@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -613,14 +614,19 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testInterestingStrings() {
-        // see OAK-3683
-        assumeFalse(dsf instanceof DocumentStoreFixture.MongoFixture
-                && JAVA_SPECIFICATION_VERSION.value().equals("1.8"));
+        // https://jira.mongodb.org/browse/JAVA-1305
+        boolean repoUsesBadUnicodeAPI = dsf instanceof DocumentStoreFixture.MongoFixture;
 
         String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
                 "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800" };
 
         for (String t : tests) {
+            boolean roundTrips = roundtripsThroughJavaUTF8(t);
+            if (!roundTrips && repoUsesBadUnicodeAPI) {
+                // skip the test because it will fail, see OAK-3683
+                break;
+            }
+
             int pos = t.indexOf(":");
             String testname = t.substring(0, pos);
             String test = t.substring(pos + 1);
@@ -629,13 +635,22 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             UpdateOp up = new UpdateOp(id, true);
             up.set("foo", test);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property value of " + test + " (" + testname + ") in " + super.dsname, success);
+            assertTrue("failed to insert a document with property value of " + test + " (" + testname + ") in " + super.dsname
+                    + " (JDK roundtripping: " + roundTrips + ")", success);
             // re-read from persistence
             super.ds.invalidateCache();
             NodeDocument nd = super.ds.find(Collection.NODES, id);
-            assertEquals("failure to round-trip " + testname + " through " + super.dsname, test, nd.get("foo"));
+            assertEquals(
+                    "failure to round-trip " + testname + " through " + super.dsname + " (JDK roundtripping: " + roundTrips + ")",
+                    test, nd.get("foo"));
             super.ds.remove(Collection.NODES, id);
         }
+    }
+
+    private static boolean roundtripsThroughJavaUTF8(String test) {
+        Charset utf8 = Charset.forName("UTF-8");
+        byte bytes[] = test.getBytes(utf8);
+        return test.equals(new String(bytes, utf8));
     }
 
     @Test
