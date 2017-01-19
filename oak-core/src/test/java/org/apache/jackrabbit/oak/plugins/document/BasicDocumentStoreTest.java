@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.StandardSystemProperty.JAVA_SPECIFICATION_VERSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
