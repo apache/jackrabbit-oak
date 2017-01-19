@@ -29,6 +29,7 @@ import java.util.Map;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
@@ -50,6 +51,7 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
 public class LdapProviderTest {
@@ -406,6 +408,11 @@ public class LdapProviderTest {
         assertEquals("Intermediate path must be the split dn", TEST_USER5_PATH, user.getIntermediatePath());
     }
 
+    @Test
+    public void testRemoveEmptyString() throws Exception {
+        providerConfig.setCustomAttributes(new String[] {"a", Strings.EMPTY_STRING, "b" });
+        assertArrayEquals("Array must not contain empty strings", new String[] {"a", "b" }, providerConfig.getCustomAttributes());
+    }
 
     public static void assertIfEquals(String message, String[] expected, Iterable<ExternalIdentityRef> result) {
         List<String> dns = new LinkedList<String>();

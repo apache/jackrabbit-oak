@@ -17,11 +17,14 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -1003,7 +1006,7 @@ public class LdapProviderConfig {
      */
     @Nonnull
     public LdapProviderConfig setCustomAttributes(@Nonnull String[] customAttributes) {
-        this.customAttributes = customAttributes;
+        this.customAttributes = this.removeEmptyStrings(customAttributes);
         return this;
     }
 
@@ -1126,6 +1129,20 @@ public class LdapProviderConfig {
             }
         }
         return (sb == null ? value : sb.toString());
+    }
+
+    //OAK-5490
+    private String[] removeEmptyStrings(@Nonnull String[] params) {
+        List<String> list = Arrays.asList(params);
+        if (!list.contains(Strings.EMPTY_STRING)) {
+            return params;
+        }
+        List<String> resultList = new LinkedList<>(list);
+        while (resultList.contains(Strings.EMPTY_STRING)) {
+            resultList.remove(Strings.EMPTY_STRING);
+        }
+        String[] result = new String[resultList.size()];
+        return resultList.toArray(result);
     }
 
     @Override
