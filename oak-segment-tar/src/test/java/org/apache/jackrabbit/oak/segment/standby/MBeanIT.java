@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
-import org.apache.jackrabbit.oak.segment.test.TemporaryPort;
+import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
