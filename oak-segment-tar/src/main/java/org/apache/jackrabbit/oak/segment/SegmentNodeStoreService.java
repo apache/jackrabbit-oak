@@ -457,7 +457,7 @@ public class SegmentNodeStoreService {
             builder.withBlobStore(blobStore);
         }
 
-        if (!configuration.isStandbyInstance()) {
+        if (configuration.isStandbyInstance()) {
             builder.withSnfeListener(IGNORE_SNFE);
         }
 
