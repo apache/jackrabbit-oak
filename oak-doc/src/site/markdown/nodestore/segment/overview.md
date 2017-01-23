@@ -50,6 +50,7 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
     * [Diff](#diff)
     * [History](#history)
 * [Design](#design)
+    * [Format changes](#format-changes)
 
 ## <a name="garbage-collection"/> Garbage Collection
 
@@ -642,3 +643,9 @@ You can learn about the internal organization of segments and the different ways
 
 This website also contains an overview of the legacy implementation of the Segment Store and of the design decisions that brought to this implementation.
 The page is old and describes a deprecated implementation, but can still be accessed [here](../segmentmk.html).
+
+### <a name="format-changes"/> Format changes
+
+The Oak Segment Tar module introduces a number of changes in the data format compared to the legacy Oak Segment.
+The changes are described in greater detail [here](changes.html).
+Pointers to actual Jira issues can also be found on that page.
