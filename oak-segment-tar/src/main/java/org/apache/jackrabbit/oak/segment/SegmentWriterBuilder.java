@@ -28,7 +28,6 @@ import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
-import org.apache.jackrabbit.oak.segment.http.HttpStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
 /**
@@ -193,20 +192,6 @@ public final class SegmentWriterBuilder {
         );
     }
 
-    /**
-     * Build a {@code SegmentWriter} for a {@code HttpStore}.
-     */
-    @Nonnull
-    public SegmentWriter build(@Nonnull HttpStore store) {
-        return new SegmentWriter(
-                checkNotNull(store),
-                store.getReader(),
-                store.getBlobStore(),
-                cacheManager,
-                createWriter(store, pooled)
-        );
-    }
-
     @Nonnull
     private WriteOperationHandler createWriter(@Nonnull FileStore store, boolean pooled) {
         if (pooled) {
@@ -230,27 +215,6 @@ public final class SegmentWriterBuilder {
 
     @Nonnull
     private WriteOperationHandler createWriter(@Nonnull MemoryStore store, boolean pooled) {
-        if (pooled) {
-            return new SegmentBufferWriterPool(
-                    store,
-                    store.getTracker(),
-                    store.getReader(),
-                    name,
-                    generation
-            );
-        } else {
-            return new SegmentBufferWriter(
-                    store,
-                    store.getTracker().getSegmentCounter(),
-                    store.getReader(),
-                    name,
-                    generation.get()
-            );
-        }
-    }
-
-    @Nonnull
-    private WriteOperationHandler createWriter(@Nonnull HttpStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(
                     store,
