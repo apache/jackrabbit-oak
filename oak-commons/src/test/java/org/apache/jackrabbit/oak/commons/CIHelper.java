@@ -27,7 +27,20 @@ import static java.lang.System.getenv;
  * Utility class for ITs to determine the environment running in.
  */
 public final class CIHelper {
-    private CIHelper() { }
+
+    private CIHelper() {
+        // Prevent instantiation.
+    }
+
+    /**
+     * Check if this process is running on Jenkins.
+     *
+     * @return {@code true} if this process is running on Jenkins, {@code false}
+     * otherwise.
+     */
+    public static boolean jenkins() {
+        return getenv("JENKINS_URL") != null;
+    }
 
     /**
      * @return  {@code true} iff running on
