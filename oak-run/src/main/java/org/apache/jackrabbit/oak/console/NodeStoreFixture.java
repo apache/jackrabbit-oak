@@ -21,7 +21,7 @@ import java.io.Closeable;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-interface NodeStoreFixture extends Closeable {
+public interface NodeStoreFixture extends Closeable {
 
     NodeStore getStore();
 
