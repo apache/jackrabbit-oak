@@ -25,6 +25,7 @@ import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -75,6 +76,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -88,6 +91,13 @@ public class CompactionAndCleanupIT {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @BeforeClass
+    public static void init() {
+        // Allow running gc without backoff. Needed for testCancelCompactionSNFE.
+        // See FileStore.GC_BACKOFF.
+        System.setProperty("oak.gc.backoff", "0");
+    }
 
     private File getFileStoreFolder() {
         return folder.getRoot();
@@ -520,7 +530,7 @@ public class CompactionAndCleanupIT {
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder builder = nodeStore.getRoot().builder();
-        addNodes(builder, 10);
+        addNodes(builder, 10, "");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         fileStore.flush();
 
@@ -550,12 +560,53 @@ public class CompactionAndCleanupIT {
         }
     }
 
-    private static void addNodes(NodeBuilder builder, int depth) {
+    /**
+     * See OAK-5517: SNFE when running compaction after a cancelled gc
+     */
+    @Ignore("OAK-5517")  // FIXME OAK-5517: SNFE when running compaction after a cancelled gc
+    @Test
+    public void testCancelCompactionSNFE()
+    throws Throwable {
+        final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions()
+                        .setRetainedGenerations(2)
+                        .setEstimationDisabled(true))
+                .withMaxFileSize(1)
+                .build();
+        try {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+            final Callable<Void> cancel = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    // Give the compaction thread a head start
+                    sleepUninterruptibly(1000, MILLISECONDS);
+                    fileStore.cancelGC();
+                    return null;
+                }
+            };
+
+            for (int k = 0; k < 100; k++) {
+                NodeBuilder builder = nodeStore.getRoot().builder();
+                addNodes(builder, 10, k + "-");
+                nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                fileStore.flush();
+
+                // Cancelling gc should not cause a SNFE on subsequent gc runs
+                runAsync(cancel);
+                fileStore.gc();
+            }
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    private static void addNodes(NodeBuilder builder, int depth, String prefix) {
         if (depth > 0) {
-            NodeBuilder child1 = builder.setChildNode("1");
-            addNodes(child1, depth - 1);
-            NodeBuilder child2 = builder.setChildNode("2");
-            addNodes(child2, depth - 1);
+            NodeBuilder child1 = builder.setChildNode(prefix + "1");
+            addNodes(child1, depth - 1, prefix);
+            NodeBuilder child2 = builder.setChildNode(prefix + "2");
+            addNodes(child2, depth - 1, prefix);
         }
     }
 
