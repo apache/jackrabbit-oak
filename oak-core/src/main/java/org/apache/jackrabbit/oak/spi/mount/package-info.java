@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@Version("2.1.0")
+@Version("2.2.0")
 package org.apache.jackrabbit.oak.spi.mount;
 
 import aQute.bnd.annotation.Version;

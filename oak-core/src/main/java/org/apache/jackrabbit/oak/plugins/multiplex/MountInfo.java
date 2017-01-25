@@ -52,15 +52,17 @@ final class MountInfo implements Mount {
     private final boolean readOnly;
     private final boolean defaultMount;
     private final String pathFragmentName;
+    private final boolean supportFragment;
     private final NavigableSet<String> includedPaths;
 
-    public MountInfo(String name, boolean readOnly, boolean defaultMount,
+    public MountInfo(String name, boolean readOnly, boolean defaultMount, boolean supportFragment,
             List<String> includedPaths) {
         this.name = checkNotNull(name, "Mount name must not be null");
         this.readOnly = readOnly;
         this.defaultMount = defaultMount;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
+        this.supportFragment = supportFragment;
     }
 
     @Override
@@ -79,7 +81,7 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isMounted(String path) {
-        if (path.contains(pathFragmentName)){
+        if (supportFragment && path.contains(pathFragmentName)){
             return true;
         }
 
@@ -102,6 +104,11 @@ final class MountInfo implements Mount {
     @Override
     public boolean isDefault() {
         return defaultMount;
+    }
+
+    @Override
+    public boolean isSupportFragment() {
+        return supportFragment;
     }
 
     @Override

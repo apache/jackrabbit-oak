@@ -34,6 +34,7 @@ import java.util.Map;
 
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.tryFind;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.uniqueIndex;
 import static java.util.Collections.singleton;
@@ -114,16 +115,28 @@ class MultiplexingContext {
 
         // query the mounts next
         for (MountedNodeStore mountedNodeStore : nonDefaultStores) {
-            if (mounts.contains(mountedNodeStore.getMount())) {
+            final Mount mount = mountedNodeStore.getMount();
+            if (mounts.contains(mount)) {
                 mountedStores.add(mountedNodeStore);
-            } else {
-                if (mountedNodeStore.hasChildren(childrenProvider.apply(mountedNodeStore))) {
-                    mountedStores.add(mountedNodeStore);
-                }
+            } else if (hasChildrenContainingPathFragmentName(mountedNodeStore, childrenProvider)) {
+                mountedStores.add(mountedNodeStore);
             }
         }
 
         return mountedStores;
+    }
+
+    private boolean hasChildrenContainingPathFragmentName(MountedNodeStore mns, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
+        final Mount mount = mns.getMount();
+        if (!mount.isSupportFragment()) {
+            return false;
+        }
+        return tryFind(childrenProvider.apply(mns), new Predicate<String>() {
+            @Override
+            public boolean apply(String input) {
+                return input.contains(mount.getPathFragmentName());
+            }
+        }).isPresent();
     }
 
     Iterable<MountedNodeStore> getAllMountedNodeStores() {
