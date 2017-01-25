@@ -63,6 +63,14 @@ public class MountInfoProviderService {
     )
     private static final String PROP_MOUNT_READONLY = "readOnlyMount";
 
+    private static final boolean PROP_MOUNT_SUPPORT_FRAGMENT_DEFAULT = true;
+
+    @Property(label = "Support fragment",
+            description = "If enabled then oak:mount-* nodes will be included to this mount",
+            boolValue = PROP_MOUNT_SUPPORT_FRAGMENT_DEFAULT
+    )
+    private static final String PROP_MOUNT_SUPPORT_FRAGMENT = "supportFragment";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private ServiceRegistration reg;
@@ -72,6 +80,7 @@ public class MountInfoProviderService {
         String[] paths = PropertiesUtil.toStringArray(config.get(PROP_MOUNT_PATHS));
         String mountName = PropertiesUtil.toString(config.get(PROP_MOUNT_NAME), PROP_MOUNT_NAME_DEFAULT);
         boolean readOnly = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_READONLY), PROP_MOUNT_READONLY_DEFAULT);
+        boolean supportFragment = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_SUPPORT_FRAGMENT), PROP_MOUNT_SUPPORT_FRAGMENT_DEFAULT);
 
         MountInfoProvider mip = Mounts.defaultMountInfoProvider();
         if (paths != null) {
@@ -79,7 +88,7 @@ public class MountInfoProviderService {
             for (String path : paths) {
                 trimmedPaths.add(path.trim());
             }
-            Mount mi = new MountInfo(mountName.trim(), readOnly, false, trimmedPaths);
+            Mount mi = new MountInfo(mountName.trim(), readOnly, false, supportFragment, trimmedPaths);
             mip = new SimpleMountInfoProvider(Collections.singletonList(mi));
             log.info("Enabling mount for {}", mi);
         } else {

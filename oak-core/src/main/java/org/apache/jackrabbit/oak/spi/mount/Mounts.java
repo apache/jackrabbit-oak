@@ -102,6 +102,11 @@ public final class Mounts {
         }
 
         @Override
+        public boolean isSupportFragment() {
+            return false;
+        }
+
+        @Override
         public boolean isMounted(String path) {
             for (Mount m : mounts) {
                 if (m.isMounted(path)) {
