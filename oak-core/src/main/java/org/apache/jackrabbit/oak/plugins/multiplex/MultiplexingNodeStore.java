@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -31,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,6 +41,8 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -48,6 +53,11 @@ import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Sets.difference;
+import static com.google.common.collect.Sets.filter;
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+import static org.apache.jackrabbit.oak.plugins.multiplex.ModifiedPathDiff.getModifiedPaths;
 
 /**
  * A {@link NodeStore} implementation that multiplexes other {@link NodeStore} instances
@@ -73,7 +83,11 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public class MultiplexingNodeStore implements NodeStore, Observable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MultiplexingNodeStore.class);
+
     private static final String CHECKPOINT_ID_PREFIX = "multiplexing.checkpoint.";
+
+    private final TreeSet<String> ignoreReadOnlyWritePaths;
 
     final MultiplexingContext ctx;
 
@@ -81,7 +95,12 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
 
     // visible for testing only
     MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
+        this(mip, globalStore, nonDefaultStore, Collections.<String>emptyList());
+    }
+
+    MultiplexingNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore, List<String> ignoreReadOnlyWritePaths) {
         this.ctx = new MultiplexingContext(mip, globalStore, nonDefaultStore);
+        this.ignoreReadOnlyWritePaths = new TreeSet<>(ignoreReadOnlyWritePaths);
     }
 
     @Override
@@ -115,7 +134,6 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             resultStates.put(mountedNodeStore, result);
         }
         MultiplexingNodeState newRoot = createRootNodeState(resultStates);
-
         for (Observer observer : observers) {
             observer.contentChanged(newRoot, info);
         }
@@ -128,9 +146,18 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
                 continue;
             }
             NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
-            if (!partialBuilder.getNodeState().equals(partialBuilder.getBaseState())) {
-                // TODO - add proper error code
-                throw new CommitFailedException("Multiplex", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount());
+            NodeState baseState = partialBuilder.getBaseState();
+            NodeState nodeState = partialBuilder.getNodeState();
+            if (!nodeState.equals(baseState)) {
+                Set<String> changedPaths = getModifiedPaths(baseState, nodeState);
+                Set<String> ignoredChangedPaths = getIgnoredPaths(changedPaths);
+                if (!ignoredChangedPaths.isEmpty()) {
+                    LOG.warn("Can't merge following read-only paths (they are configured to be ignored): {}.", ignoredChangedPaths);
+                }
+                Set<String> failingChangedPaths = difference(changedPaths, ignoredChangedPaths);
+                if (!failingChangedPaths.isEmpty()) {
+                    throw new CommitFailedException("Multiplex", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount().getName() + ". Failing paths: " + failingChangedPaths.toString());
+                }
             }
         }
     }
@@ -287,6 +314,16 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         };
     }
 
+    private Set<String> getIgnoredPaths(Set<String> paths) {
+        return newHashSet(filter(paths, new Predicate<String>() {
+            @Override
+            public boolean apply(String path) {
+                String previousPath = ignoreReadOnlyWritePaths.floor(path);
+                return previousPath != null && (previousPath.equals(path) || isAncestor(previousPath, path));
+            }
+        }));
+    }
+
     public static class Builder {
 
         private final MountInfoProvider mip;
@@ -294,6 +331,8 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         private final NodeStore globalStore;
 
         private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+
+        private final List<String> ignoreReadOnlyWritePaths = Lists.newArrayList();
 
         public Builder(MountInfoProvider mip, NodeStore globalStore) {
             this.mip = checkNotNull(mip, "mountInfoProvider");
@@ -309,10 +348,15 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             return this;
         }
 
+        public Builder addIgnoredReadOnlyWritePath(String path) {
+            ignoreReadOnlyWritePaths.add(path);
+            return this;
+        }
+
         public MultiplexingNodeStore build() {
             checkReadWriteMountsNumber();
             checkMountsAreConsistentWithMounts();
-            return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores);
+            return new MultiplexingNodeStore(mip, globalStore, nonDefaultStores, ignoreReadOnlyWritePaths);
         }
 
         private void checkReadWriteMountsNumber() {
