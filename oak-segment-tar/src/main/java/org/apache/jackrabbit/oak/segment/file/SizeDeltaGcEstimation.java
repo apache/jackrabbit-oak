@@ -77,7 +77,7 @@ public class SizeDeltaGcEstimation implements GCEstimation {
         } else {
             long lastGc = getPreviousCleanupSize();
             long gain = totalSize - lastGc;
-            long gainP = 100 * (totalSize - lastGc) / totalSize;
+            long gainP = 100 * (totalSize - lastGc) / lastGc;
             gcNeeded = gain > delta;
             gcInfo = format(
                     "Segmentstore size has increased since the last garbage collection from %s (%s bytes) to %s (%s bytes), " +
