@@ -54,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class Utils {
+    
+    private static final long MB = 1024 * 1024;
 
     public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException, InvalidFileStoreVersionException {
         //TODO add support for other NodeStore flags
@@ -61,7 +63,12 @@ class Utils {
         OptionSpec<Integer> clusterId = parser
                 .accepts("clusterId", "MongoMK clusterId").withRequiredArg()
                 .ofType(Integer.class).defaultsTo(0);
-        OptionSpec segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
+        OptionSpec<Void> disableBranchesSpec = parser.
+                accepts("disableBranches", "disable branches");    
+        OptionSpec<Integer> cacheSizeSpec = parser.
+                accepts("cacheSize", "cache size").withRequiredArg().
+                ofType(Integer.class).defaultsTo(0);         
+        OptionSpec<?> segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
         OptionSpec<String> nonOption = parser
@@ -90,10 +97,19 @@ class Utils {
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
             closer.register(asCloseable(mongo));
-            DocumentNodeStore store = new DocumentMK.Builder()
-                    .setMongoDB(mongo.getDB())
-                    .setLeaseCheck(false)
-                    .setClusterId(clusterId.value(options)).getNodeStore();
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            builder.
+                setMongoDB(mongo.getDB()).
+                setLeaseCheck(false).
+                setClusterId(clusterId.value(options));
+            if (options.has(disableBranchesSpec)) {
+                builder.disableBranches();
+            }
+            int cacheSize = cacheSizeSpec.value(options);
+            if (cacheSize != 0) {
+                builder.memoryCacheSize(cacheSize * MB);
+            }
+            DocumentNodeStore store = builder.getNodeStore();
             closer.register(asCloseable(store));
             return store;
         }

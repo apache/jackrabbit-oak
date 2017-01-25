@@ -44,6 +44,7 @@ enum Mode {
     PERSISTENTCACHE("persistentcache", new PersistentCacheCommand()),
     THREADDUMP("threaddump", new ThreadDumpCommand()),
     DATASTORECACHEUPGRADE("datastorecacheupgrade", new DataStoreCacheUpgradeCommand()),
+    INDEX("index", new IndexCommand()),
     HELP("help", new HelpCommand());
 
     private final String name;
