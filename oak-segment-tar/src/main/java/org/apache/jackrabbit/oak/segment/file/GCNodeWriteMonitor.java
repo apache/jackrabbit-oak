@@ -88,7 +88,7 @@ public class GCNodeWriteMonitor {
                             + "on disk in previous compaction and current size of {} bytes on disk.",
                     this.gcCount, estimated, prevCompactedNodes, prevSize, currentSize);
         } else {
-            log.info("TarMK GC #{}: unable to estimate number of nodes for compaction, missing gc history.");
+            log.info("TarMK GC #{}: unable to estimate number of nodes for compaction, missing gc history.", gcCount);
         }
         nodes = 0;
         start = System.currentTimeMillis();
