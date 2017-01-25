@@ -20,6 +20,8 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -59,15 +61,24 @@ public class MultiplexingNodeStoreService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class)
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
 
+    @Property(label = "Ignore read only writes",
+            unbounded = PropertyUnbounded.ARRAY,
+            description = "Writes to these read-only paths won't fail the commit"
+    )
+    private static final String PROP_IGNORE_READ_ONLY_WRITES = "ignoreReadOnlyWrites";
+
     private ComponentContext context;
 
     private ServiceRegistration nsReg;
 
     private ObserverTracker observerTracker;
 
+    private String[] ignoreReadOnlyWritePaths;
+
     @Activate
-    protected void activate(ComponentContext context) {
+    protected void activate(ComponentContext context, Map<String, ?> config) {
         this.context = context;
+        ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES));
         registerMultiplexingNodeStore();
     }
 
@@ -107,6 +118,9 @@ public class MultiplexingNodeStoreService {
         LOG.info("Node stores for all configured mounts are available");
 
         MultiplexingNodeStore.Builder builder = new MultiplexingNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
+        for (String p : ignoreReadOnlyWritePaths) {
+            builder.addIgnoredReadOnlyWritePath(p);
+        }
 
         for (NodeStoreWithProps ns : nodeStores) {
             if (isGlobalNodeStore(ns)) {
