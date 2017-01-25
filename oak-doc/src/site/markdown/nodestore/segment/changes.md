@@ -30,13 +30,12 @@ Changes are presented in chronological order.
 The GC algorithm implemented by Oak Segment Tar is based on the fundamental idea of grouping records into generations.
 When GC is performed, records belonging to older generations can be removed, while records belonging to newer generations have to be retained.
 
-The fact that a record belongs to a certain generation needs to be persisted across 
-restarts of the system. To not incur the size penalty of persisting the generation 
-per record, it is persisted only once in the header of the respective segment.
+The fact that a record belongs to a certain generation needs to be persisted across restarts of the system. 
+To not incur the size penalty of persisting the generation per record, it is persisted only once in the header of the respective segment.
 Thus, the generation of a record is defined as the generation of the segment containing that record.
 
-The original specification of the data format for the segment header left some space for future 
-extensions. In the new format the generation is saved at offsets 10 to 13 as a 4-byte integer value.
+The original specification of the data format for the segment header left some space for future extensions.
+In the new format the generation is saved at offsets 10 to 13 as a 4-byte integer value.
 
 ## Stable identifiers 
 
@@ -47,19 +46,15 @@ The fastest way to compare two node records is to compare their addresses.
 If their addresses are equal, the two node records are guaranteed to be equal.
 Transitively, given that records are immutable, the subtrees identified by those node records are guaranteed to be equal.
 
-The situation gets more complicated when the generation-based GC algorithm copies 
-a node record over to a new generation to save it from being deleted. In this 
-situation, two copies of the same node record live in two different generations, 
-in two different segments and at two different addresses. To figure out whether 
-such two node records are equal it is not sufficient to compare their addresses.
+The situation gets more complicated when the generation-based GC algorithm copies a node record over to a new generation to save it from being deleted. 
+In this situation, two copies of the same node record live in two different generations, in two different segments and at two different addresses. 
+To figure out whether such two node records are equal it is not sufficient to compare their addresses.
 
-To overcome this problem, a stable identifier has been added to every node record:
-when a new node record is serialized, the address it is serialized to becomes its stable identifier.
+To overcome this problem, a stable identifier has been added to every node record: when a new node record is serialized, the address it is serialized to becomes its stable identifier.
 The stable identifier is included in the node record and becomes part of its serialized format.
 When the node record is copied to a new generation and a new segment, its address will inevitably change.
 The stable identifier instead, being part of the node record itself, will not change.
-This enables fast comparison between different copies of the same node records by
-just comparing their stable identifiers. 
+This enables fast comparison between different copies of the same node records by just comparing their stable identifiers. 
 
 The stable identifier is serialized as a 18-bytes-long string record.
 This record, in turn, is referenced from the node record by adding an additional 3-bytes-long reference field to it.
@@ -90,11 +85,9 @@ This optimization reduces the amount of I/O operations significantly.
 * Jira issue: [OAK-4631](https://issues.apache.org/jira/browse/OAK-4631)
 * Since: Oak Segment Tar 0.0.10
 
-The former data format limited the number of references to other segments a segment 
-could have. This limitation caused sub-optimal segment space utilization when a 
-record referencing data from many different segments was written. In this case  
-records quickly exhausted the hard limit on the number of references to other 
-segments, causing a premature flush of a non-full segment.
+The former data format limited the number of references to other segments a segment could have. 
+This limitation caused sub-optimal segment space utilization when a record referencing data from many different segments was written. 
+In this case records quickly exhausted the hard limit on the number of references to other segments, causing a premature flush of a non-full segment.
 
 Oak Segment Tar relaxed the limit on the number of segments to the point that it can now be considered irrelevant.
 This avoids the problem of non optimal segment space utilization.
@@ -111,9 +104,8 @@ The comments on the issue and the referenced email thread provide a more detaile
 
 To avoid the (old) Oak Segment and the (new) Oak Segment Tar to step on each other's toes, an improved versioning mechanism of the data format was introduced.
    
-First of all, the version field in the segment header has been incremented from 11 in Oak 
-Segment to 12 in Oak Segment Tar. This prevents Oak Segment Tar from accessing segments 
-written by older implementations and Oak Segment accessing segments written by newer implementations. 
+First of all, the version field in the segment header has been incremented from 11 in Oak Segment to 12 in Oak Segment Tar. 
+This prevents Oak Segment Tar from accessing segments written by older implementations and Oak Segment accessing segments written by newer implementations. 
 
 This strategy has been further improved by adding a manifest file in every data folder created by Oak Segment Tar.
 The manifest file is supposed to be a source of metadata for the whole repository.
@@ -134,13 +126,10 @@ Once written, its address consists of the identifier of its segment followed by 
 The offset is the effective position of the record in the segment.
 
 This way of addressing records implies that a record can't be moved within a segment without changing its address.
-Moving a record means changing its segment, its position or both and results in all reference 
-to it being broken. 
+Moving a record means changing its segment, its position or both and results in all reference to it being broken. 
 
-To gain more flexibility for storing records, a new level of indirection was introduced 
-replacing offsets with logic identifiers.
-Instead of referencing a record by a segment identifier and its offset in the segment, a 
-segment identifier and a record number is used.
+To gain more flexibility for storing records, a new level of indirection was introduced replacing offsets with logic identifiers.
+Instead of referencing a record by a segment identifier and its offset in the segment, a segment identifier and a record number is used.
 The record number is a logic address for a record in the segment and is local to the segment.
 
 With this solution the record can be moved within the segment without breaking references to it.
