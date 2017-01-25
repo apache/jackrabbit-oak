@@ -18,9 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
+import static org.apache.jackrabbit.oak.commons.CIHelper.jenkins;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -58,6 +60,11 @@ public class TestBase {
 
     File directoryC2;
     FileStore storeC2;
+
+    @BeforeClass
+    public static void assumeIsNotJenkins() {
+        assumeFalse(jenkins());
+    }
 
     /*
      Java 6 on Windows doesn't support dual IP stacks, so we will skip our IPv6
