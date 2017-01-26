@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -563,7 +562,6 @@ public class CompactionAndCleanupIT {
     /**
      * See OAK-5517: SNFE when running compaction after a cancelled gc
      */
-    @Ignore("OAK-5517")  // FIXME OAK-5517: SNFE when running compaction after a cancelled gc
     @Test
     public void testCancelCompactionSNFE()
     throws Throwable {
