@@ -831,6 +831,16 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
+        private int compactionAborted(int generation) {
+            gcListener.compactionFailed(generation);
+            return -generation;
+        }
+
+        private int compactionSucceeded(int generation) {
+            gcListener.compactionSucceeded(generation);
+            return generation;
+        }
+
         synchronized int compact() {
             final int newGeneration = getGcGeneration() + 1;
             try {
@@ -854,7 +864,7 @@ public class FileStore extends AbstractFileStore {
                 SegmentNodeState after = compact(before, writer, cancel);
                 if (after == null) {
                     gcListener.warn("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
-                    return -newGeneration;
+                    return compactionAborted(newGeneration);
                 }
 
                 gcListener.info("TarMK GC #{}: compaction cycle 0 completed in {} ({} ms). Compacted {} to {}",
@@ -878,7 +888,7 @@ public class FileStore extends AbstractFileStore {
                     after = compact(head, writer, cancel);
                     if (after == null) {
                         gcListener.warn("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
-                        return -newGeneration;
+                        return compactionAborted(newGeneration);
                     }
 
                     gcListener.info("TarMK GC #{}: compaction cycle {} completed in {} ({} ms). Compacted {} against {} to {}",
@@ -920,23 +930,21 @@ public class FileStore extends AbstractFileStore {
 
                 if (success) {
                     writer.flush();
-                    gcListener.compactionSucceeded(newGeneration);
                     gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
                             GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
-                    return newGeneration;
+                    return compactionSucceeded(newGeneration);
                 } else {
-                    gcListener.compactionFailed(newGeneration);
                     gcListener.info("TarMK GC #{}: compaction failed after {} ({} ms), and {} cycles",
                             GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
-                    return -newGeneration;
+                    return compactionAborted(newGeneration);
                 }
             } catch (InterruptedException e) {
                 gcListener.error("TarMK GC #" + GC_COUNT + ": compaction interrupted", e);
                 currentThread().interrupt();
-                return -newGeneration;
-            } catch (Exception e) {
+                return compactionAborted(newGeneration);
+            } catch (IOException e) {
                 gcListener.error("TarMK GC #" + GC_COUNT + ": compaction encountered an error", e);
-                return -newGeneration;
+                return compactionAborted(newGeneration);
             }
         }
 
