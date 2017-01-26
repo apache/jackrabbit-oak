@@ -192,6 +192,11 @@ public final class DocumentNodeStore
     private int journalPushThreshold = Integer.getInteger("oak.journalPushThreshold", 100000);
 
     /**
+     * The document store without potentially lease checking wrapper.
+     */
+    private final DocumentStore nonLeaseCheckingStore;
+
+    /**
      * The document store (might be used by multiple node stores).
      */
     protected final DocumentStore store;
@@ -308,6 +313,12 @@ public final class DocumentNodeStore
      */
     @Nonnull
     private Thread leaseUpdateThread;
+
+    /**
+     * Background thread performing the cluster update
+     */
+    @Nonnull
+    private Thread clusterUpdateThread;
 
     /**
      * Read/Write lock for background operations. Regular commits will acquire
@@ -486,6 +497,8 @@ public final class DocumentNodeStore
         // this cluster id
         cid = clusterNodeInfo.getId();
 
+        this.nonLeaseCheckingStore = s;
+
         if (builder.getLeaseCheck()) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
@@ -596,7 +609,14 @@ public final class DocumentNodeStore
         if (!readOnlyMode) {
             leaseUpdateThread.start();
         }
-        
+
+        clusterUpdateThread = new Thread(new BackgroundClusterUpdate(this, isDisposed),
+                "DocumentNodeStore cluster update thread " + threadNamePostfix);
+        clusterUpdateThread.setDaemon(true);
+        if (!readOnlyMode) {
+            clusterUpdateThread.start();
+        }
+
         persistentCache = builder.getPersistentCache();
         if (!readOnlyMode && persistentCache != null) {
             DynamicBroadcastConfig broadcastConfig = new DocumentBroadcastConfig(this);
@@ -683,6 +703,12 @@ public final class DocumentNodeStore
                 // though - thus catching and logging..
                 LOG.error("dispose: an AssertionError happened during dispose's last background ops: " + ae, ae);
             }
+        }
+
+        try {
+            clusterUpdateThread.join();
+        } catch (InterruptedException e) {
+            // ignore
         }
 
         try {
@@ -1913,7 +1939,7 @@ public final class DocumentNodeStore
     boolean updateClusterState() {
         boolean hasChanged = false;
         Set<Integer> clusterIds = Sets.newHashSet();
-        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {
+        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(nonLeaseCheckingStore)) {
             int cId = doc.getClusterId();
             clusterIds.add(cId);
             ClusterNodeInfoDocument old = clusterNodes.get(cId);
@@ -2851,7 +2877,7 @@ public final class DocumentNodeStore
 
         /** OAK-4859 : log if time between two renewClusterIdLease calls is too long **/
         private long lastRenewClusterIdLeaseCall = -1;
-        
+
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
             super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
@@ -2873,11 +2899,19 @@ public final class DocumentNodeStore
             }
             // first renew the clusterId lease
             nodeStore.renewClusterIdLease();
+        }
+    }
 
-            // then, independently if the lease had to be updated or not, check
-            // the status:
+    static class BackgroundClusterUpdate extends NodeStoreTask {
+
+        BackgroundClusterUpdate(DocumentNodeStore nodeStore,
+                              AtomicBoolean isDisposed) {
+            super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
+        }
+
+        @Override
+        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
             if (nodeStore.updateClusterState()) {
-                // then inform the discovery lite listener - if it is registered
                 nodeStore.signalClusterStateChange();
             }
         }
