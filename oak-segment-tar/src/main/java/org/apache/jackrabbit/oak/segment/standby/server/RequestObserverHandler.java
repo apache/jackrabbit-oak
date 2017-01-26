@@ -54,15 +54,15 @@ class RequestObserverHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void onGetHeadRequest(GetHeadRequest request, InetSocketAddress address) throws Exception {
-        observer.gotMessageFrom(request.getClientId(), "get head", address);
+        observer.gotMessageFrom(request.getClientId(), "get head", address.getAddress().getHostAddress(), address.getPort());
     }
 
     private void onGetSegmentRequest(GetSegmentRequest request, InetSocketAddress address) throws Exception {
-        observer.gotMessageFrom(request.getClientId(), "get segment", address);
+        observer.gotMessageFrom(request.getClientId(), "get segment", address.getAddress().getHostAddress(), address.getPort());
     }
 
     private void onGetBlobRequest(GetBlobRequest request, InetSocketAddress address) throws Exception {
-        observer.gotMessageFrom(request.getClientId(), "get blob id", address);
+        observer.gotMessageFrom(request.getClientId(), "get blob id", address.getAddress().getHostAddress(), address.getPort());
     }
 
 }

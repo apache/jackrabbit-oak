@@ -16,190 +16,119 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.segment.standby.store;
 
-
 import java.lang.management.ManagementFactory;
-import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
 import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
-import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CommunicationObserver {
-    private static final int MAX_CLIENT_STATISTICS = 10;
 
-    private static class CommunicationPartnerMBean implements ObservablePartnerMBean {
-        private final ObjectName mbeanName;
-        private final String clientName;
-        public String lastRequest;
-        public Date lastSeen;
-        public String remoteAddress;
-        public int remotePort;
-        public long segmentsSent;
-        public long segmentBytesSent;
-        public long binariesSent;
-        public long binariesBytesSent;
+    static final int MAX_CLIENT_STATISTICS = 10;
 
-        public CommunicationPartnerMBean(String clientName) throws MalformedObjectNameException {
-            this.clientName = clientName;
-            this.mbeanName = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=\"Client " + clientName + "\"");
-        }
+    private static final Logger log = LoggerFactory.getLogger(CommunicationObserver.class);
 
-        public ObjectName getMBeanName() {
-            return this.mbeanName;
-        }
+    private final Map<String, CommunicationPartnerMBean> partnerDetails = new HashMap<>();
 
-        @Nonnull
-        @Override
-        public String getName() {
-            return this.clientName;
-        }
+    private final String id;
 
-        @Override
-        public String getRemoteAddress() {
-            return this.remoteAddress;
-        }
-
-        @Override
-        public String getLastRequest() {
-            return this.lastRequest;
-        }
-
-        @Override
-        public int getRemotePort() {
-            return this.remotePort;
-        }
-
-        @Override
-        public String getLastSeenTimestamp() {
-            return this.lastSeen == null ? null : this.lastSeen.toString();
-        }
-
-        @Override
-        public long getTransferredSegments() {
-            return this.segmentsSent;
-        }
-
-        @Override
-        public long getTransferredSegmentBytes() {
-            return this.segmentBytesSent;
-        }
-
-        @Override
-        public long getTransferredBinaries() {
-            return this.binariesSent;
-        }
-
-        @Override
-        public long getTransferredBinariesBytes() {
-            return this.binariesBytesSent;
-        }
+    public CommunicationObserver(String id) {
+        this.id = id;
     }
 
-    private static final Logger log = LoggerFactory
-            .getLogger(CommunicationObserver.class);
-
-    private final String identifier;
-    private final Map<String, CommunicationPartnerMBean> partnerDetails;
-
-    public CommunicationObserver(String myID) {
-        this.identifier = myID;
-        this.partnerDetails = new HashMap<String, CommunicationPartnerMBean>();
+    void unregisterCommunicationPartner(CommunicationPartnerMBean m) throws Exception {
+        ManagementFactory.getPlatformMBeanServer().unregisterMBean(m.getMBeanName());
     }
 
-    private static void unregister(CommunicationPartnerMBean m) {
-        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+    void registerCommunicationPartner(CommunicationPartnerMBean m) throws Exception {
+        ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(m, ObservablePartnerMBean.class), m.getMBeanName());
+    }
+
+    private void safeUnregisterCommunicationPartner(CommunicationPartnerMBean m) {
         try {
-            jmxServer.unregisterMBean(m.getMBeanName());
+            unregisterCommunicationPartner(m);
+        } catch (Exception e) {
+            log.error(String.format("Unable to unregister MBean for client %s", m.getName()), e);
         }
-        catch (Exception e) {
-            log.error("error unregistering mbean for client '" + m.getName() + "'", e);
+    }
+
+    private void safeRegisterCommunicationPartner(CommunicationPartnerMBean m) {
+        try {
+            registerCommunicationPartner(m);
+        } catch (Exception e) {
+            log.error(String.format("Unable to register MBean for client %s", m.getName()), e);
         }
     }
 
     public void unregister() {
-        for (CommunicationPartnerMBean m : this.partnerDetails.values()) {
-            unregister(m);
+        for (CommunicationPartnerMBean m : partnerDetails.values()) {
+            safeUnregisterCommunicationPartner(m);
         }
     }
 
-    public void gotMessageFrom(String client, String request, InetSocketAddress remote) throws MalformedObjectNameException {
-        log.debug("got message '" + request + "' from client " + client);
-        CommunicationPartnerMBean m = this.partnerDetails.get(client);
+    public void gotMessageFrom(String client, String request, String address, int port) throws MalformedObjectNameException {
+        log.debug("Message '{}' received from client {}", request, client);
+        CommunicationPartnerMBean m = partnerDetails.get(client);
         boolean register = false;
         if (m == null) {
             cleanUp();
             m = new CommunicationPartnerMBean(client);
-            m.remoteAddress = remote.getAddress().getHostAddress();
-            m.remotePort = remote.getPort();
+            m.setRemoteAddress(address);
+            m.setRemotePort(port);
             register = true;
         }
-        m.lastSeen = new Date();
-        m.lastRequest = request;
-        this.partnerDetails.put(client, m);
+        m.setLastSeen(new Date());
+        m.setLastRequest(request);
+        partnerDetails.put(client, m);
         if (register) {
-            final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
-            try {
-                jmxServer.registerMBean(new StandardMBean(m, ObservablePartnerMBean.class), m.getMBeanName());
-            }
-            catch (Exception e) {
-                log.error("can register mbean for client '" + m.getName() + "'", e);
-            }
+            safeRegisterCommunicationPartner(m);
         }
     }
 
     public void didSendSegmentBytes(String client, int size) {
-        log.debug("did send segment with " + size + " bytes to client " + client);
-        CommunicationPartnerMBean m = this.partnerDetails.get(client);
-        m.segmentsSent++;
-        m.segmentBytesSent += size;
-        this.partnerDetails.put(client, m);
+        log.debug("Segment with size {} sent to client {}", size, client);
+        CommunicationPartnerMBean m = partnerDetails.get(client);
+        m.onSegmentSent(size);
+        partnerDetails.put(client, m);
     }
 
     public void didSendBinariesBytes(String client, int size) {
-        log.debug("did send binary with " + size + " bytes to client " + client);
-        CommunicationPartnerMBean m = this.partnerDetails.get(client);
-        m.binariesSent++;
-        m.binariesBytesSent += size;
-        this.partnerDetails.put(client, m);
+        log.debug("Binary with size {} sent to client {}", size, client);
+        CommunicationPartnerMBean m = partnerDetails.get(client);
+        m.onBinarySent(size);
+        partnerDetails.put(client, m);
     }
 
     public String getID() {
-        return this.identifier;
+        return id;
     }
 
-    // helper
-
     private void cleanUp() {
-        while (this.partnerDetails.size() >= MAX_CLIENT_STATISTICS) {
+        while (partnerDetails.size() >= MAX_CLIENT_STATISTICS) {
             CommunicationPartnerMBean oldestEntry = oldestEntry();
-            if (oldestEntry == null) {
-                return;
-            }
-            log.info("housekeeping: removing statistics for " + oldestEntry.getName());
-            unregister(oldestEntry);
-            this.partnerDetails.remove(oldestEntry.getName());
+            log.info("Housekeeping: Removing statistics for client " + oldestEntry.getName());
+            safeUnregisterCommunicationPartner(oldestEntry);
+            partnerDetails.remove(oldestEntry.getName());
         }
     }
 
     private CommunicationPartnerMBean oldestEntry() {
         CommunicationPartnerMBean ret = null;
-        for (CommunicationPartnerMBean m : this.partnerDetails.values()) {
-            if (ret == null || ret.lastSeen.after(m.lastSeen)) {
+        for (CommunicationPartnerMBean m : partnerDetails.values()) {
+            if (ret == null || ret.getLastSeen().after(m.getLastSeen())) {
                 ret = m;
             }
         }
         return ret;
     }
+
 }
