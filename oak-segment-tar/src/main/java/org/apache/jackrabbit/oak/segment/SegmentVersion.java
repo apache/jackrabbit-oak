@@ -29,24 +29,29 @@ import com.google.common.primitives.UnsignedBytes;
 /**
  * Version of the segment storage format.
  * <ul>
- * <li>10 = all Oak versions previous to 11</li>
- * <li>11 = all Oak versions starting from 1.0.12, 1.1.7 and 1.2</li>
  * <li>12 = all oak-segment-tar versions</li>
  * </ul>
  */
 public enum SegmentVersion {
 
-    /**
-     * @deprecated Use latest version V11
+    /*
+     * ON OLDER VERSIONS
+     *
+     * The legacy Segment Store implemented in oak-segment makes use of version
+     * numbers 10 and 11. These version numbers identify two variations of the
+     * data format that oak-segment can parse and understand.
+     *
+     * For oak-segment-tar 10 and 11 are invalid values for the segment version.
+     * The data format identified by these versions is not understood by
+     * oak-segment-tar. No special handling is needed for versions 10 and 11.
+     * From the perspective of oak-segment-tar, they are just invalid. The first
+     * valid version for oak-segment-tar is 12.
+     *
+     * As a consequence, if you find yourself debugging code from
+     * oak-segment-tar and you detect that version 10 or 11 is used in some
+     * segment, you are probably trying to read the old data format with the new
+     * code.
      */
-    @Deprecated
-    V_10((byte) 10),
-
-    /**
-     * @deprecated Use latest version V11
-     */
-    @Deprecated
-    V_11((byte) 11),
 
     V_12((byte) 12);
 
@@ -54,12 +59,13 @@ public enum SegmentVersion {
      * Latest segment version
      */
     public static final SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
-        new Comparator<SegmentVersion>() {
-            @Override
-            public int compare(SegmentVersion v1, SegmentVersion v2) {
-                return UnsignedBytes.compare(v1.version, v2.version);
-            }
-    });
+            new Comparator<SegmentVersion>() {
+
+                @Override
+                public int compare(SegmentVersion v1, SegmentVersion v2) {
+                    return UnsignedBytes.compare(v1.version, v2.version);
+                }
+            });
 
     private final byte version;
 
@@ -78,10 +84,6 @@ public enum SegmentVersion {
     public static SegmentVersion fromByte(byte v) {
         if (v == V_12.version) {
             return V_12;
-        } else if (v == V_11.version) {
-            return V_11;
-        } else if (v == V_10.version) {
-            return V_10;
         } else {
             throw new IllegalArgumentException("Unknown version " + v);
         }
@@ -94,4 +96,5 @@ public enum SegmentVersion {
     public static boolean isValid(SegmentVersion version) {
         return isValid(version.version);
     }
+
 }
