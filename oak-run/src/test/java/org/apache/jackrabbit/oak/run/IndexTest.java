@@ -21,6 +21,8 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.console.NodeStoreOpener;
@@ -34,33 +36,39 @@ public class IndexTest {
     @Test
     public void simple() throws Exception {
         assertCommand(
-                "hello", 
+                combineLines("hello"), 
                 "{'print':'hello'}");
         assertCommand(
-                "false", 
+                combineLines("false"), 
                 "{'print':false}");
-        assertCommand("1\n2\n3", 
+        assertCommand(
+                combineLines("1", "2", "3"), 
                 "{'$x':[1, 2, 3]}",
                 "{'for':'$x', 'do': [{'print': '$x'}]}");
-        assertCommand("x1\nx2\nx3", 
+        assertCommand(
+                combineLines("x1", "x2", "x3"), 
                 "{'$myFunction':[{'$y': 'x', '+': '$x'}, {'print':'$y'}]}",                
                 "{'$x':[1, 2, 3]}",
                 "{'for':'$x', 'do': '$myFunction'}");
-        assertCommand("2\n4\n8", 
+        assertCommand(
+                combineLines("2", "4", "8"), 
                 "{'$x':1}",
                 "{'loop':[{'$x': '$x', '+':'$x'}, {'print': '$x'}, {'$break': true, 'if': '$x', '=': 8}]}");
-        assertCommand("b\nd", 
+        assertCommand(
+                combineLines("b", "d"), 
                 "{'$x':1}",
                 "{'print':'a', 'if':'$x', '=':null}",
                 "{'print':'b', 'if':'$x', '=':1}",
                 "{'print':'c', 'if':null, '=':1}",
                 "{'print':'d', 'if':null, '=':null}");
-        assertCommand("10\n10", 
+        assertCommand(
+                combineLines("10", "10"), 
                 "{'$x':1}",
                 "{'$$x':10}",
                 "{'print':'$1'}",
                 "{'print':'$$x'}");
-        assertCommand("1\nnull\n1\n2\na1", 
+        assertCommand(
+                combineLines("1", "null", "1", "2", "a1"), 
                 "{'$x':1, '+':null}",
                 "{'print':'$x'}",
                 "{'$x':null, '+':null}",
@@ -100,22 +108,20 @@ public class IndexTest {
                 ) {
             NodeStore store = fixture.getStore();
             index.session = NodeStoreOpener.openSession(store);
-            assertCommand(index, "",
+            assertCommand(index, 
+                    combineLines(""),
                     "{'addNode':'/foo', 'node':{'jcr:primaryType': 'nt:unstructured', 'x': 1, 'y':{}}}", 
                     "{'session': 'save'}");
             assertCommand(index, 
-                    "/foo\n" + 
-                    "/jcr:system\n" +
-                    "/oak:index\n" +
-                    "/rep:security",
+                    combineLines("/foo", "/jcr:system", "/oak:index", "/rep:security"),
                     "{'xpath':'/jcr:root/* order by @jcr:path'}");
             assertCommand(index, 
-                    "/oak:index/counter",
+                    combineLines("/oak:index/counter"),
                     "{'xpath':'/jcr:root//element(*, oak:QueryIndexDefinition)[@type=`counter`] " + 
                         "order by @jcr:path'}");
             assertCommand(index, 
-                    "[nt:unstructured] as [a] /* property test = 1 " + 
-                            "where ([a].[x] = 1) and (isdescendantnode([a], [/])) */",
+                    combineLines("[nt:unstructured] as [a] /* property test = 1 " + 
+                            "where ([a].[x] = 1) and (isdescendantnode([a], [/])) */"),
                     "{'addNode':'/oak:index/test', 'node':{ " + 
                         "'jcr:primaryType':'oak:QueryIndexDefinition', " + 
                         "'type':'property', " + 
@@ -129,7 +135,7 @@ public class IndexTest {
                     "{'xpath':'/jcr:root//element(*, nt:unstructured)[@x=2]'}"
                     );
             assertCommand(index, 
-                    "50",
+                    combineLines("50"),
                     "{'addNode':'/foo/test', 'node':{'jcr:primaryType': 'oak:Unstructured', 'child':{}}}",
                     "{'$x':1}",
                     "{'loop':[" + 
@@ -145,26 +151,26 @@ public class IndexTest {
                     "{'print': '$y'}"
                     );
             assertCommand(index, 
-                    "[nt:unstructured] as [a] /* nodeType Filter(query=" + 
+                    combineLines("[nt:unstructured] as [a] /* nodeType Filter(query=" + 
                             "explain select [jcr:path], [jcr:score], * from [nt:unstructured] as a " + 
                             "where [x] = 1 and isdescendantnode(a, '/') /* xpath: " + 
                             "/jcr:root//element(*, nt:unstructured)[@x=1] */, path=//*, " + 
-                            "property=[x=[1]]) where ([a].[x] = 1) and (isdescendantnode([a], [/])) */",
+                            "property=[x=[1]]) where ([a].[x] = 1) and (isdescendantnode([a], [/])) */"),
                     "{'setProperty': '/oak:index/test/type', 'value': 'disabled'}",
                     "{'session':'save'}",
                     "{'xpath':'explain /jcr:root//element(*, nt:unstructured)[@x=1]'}"
                     );
             assertCommand(index, 
-                    "[nt:unstructured] as [a] /* traverse '*' " + 
-                            "where [a].[x] = 1 */",
+                    combineLines("[nt:unstructured] as [a] /* traverse '*' " + 
+                            "where [a].[x] = 1 */"),
                     "{'removeNode': '/oak:index/nodetype'}",
                     "{'session':'save'}",
                     "{'sql':'explain select * from [nt:unstructured] as [a] where [x]=1'}"
                     );
             assertCommand(index, 
-                    "['/foo': {\n" +
-                    "  'jcr:primaryType': 'nt:unstructured', '{Long}x': '1', 'y': {}, 'test': {}\n" +
-                    "}]",
+                    combineLines("['/foo': {\n" +
+                            "  'jcr:primaryType': 'nt:unstructured', '{Long}x': '1', 'y': {}, 'test': {}\n" +
+                            "}]"),
                     "{'xpath':'/jcr:root/foo', 'depth':2}"
                     );
             index.session.logout();
@@ -183,7 +189,17 @@ public class IndexTest {
             index.execute(c.replace('\'', '"').replace('`', '\''));
         }
         String got = new String(w.toByteArray());
-        assertEquals(expected, got.trim().replace('"', '\''));
+        got = got.trim().replace('"', '\'');
+        assertEquals(expected, got);
+    }
+    
+    static String combineLines(String... lines) {
+        StringWriter w = new StringWriter();
+        PrintWriter p = new PrintWriter(w);
+        for(String l : lines) {
+            p.println(l);
+        }
+        return w.toString().trim();
     }
     
 }
