@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -118,6 +119,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     public NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MultiplexingNodeBuilder);
         MultiplexingNodeBuilder nodeBuilder = (MultiplexingNodeBuilder) builder;
+        if (!PathUtils.denotesRoot(nodeBuilder.getPath())) {
+            throw new IllegalArgumentException();
+        }
 
         // run commit hooks and apply the changes to the builder instance
         NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);

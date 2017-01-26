@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,17 +30,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
@@ -54,7 +54,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     private final MultiplexingContext ctx;
 
-    private final Map<MountedNodeStore, NodeBuilder> nodeBuilders;
+    private Map<MountedNodeStore, NodeBuilder> nodeBuilders;
 
     private final MountedNodeStore owningStore;
 
@@ -70,7 +70,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         checkArgument(nodeBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", nodeBuilders.size(), ctx.getStoresCount());
         this.path = path;
         this.ctx = ctx;
-        this.nodeBuilders = newHashMap(nodeBuilders);
+        this.nodeBuilders = new CopyOnReadIdentityMap<>(nodeBuilders);
         this.owningStore = ctx.getOwningStore(path);
         this.parent = parent;
         if (parent == null) {
@@ -86,7 +86,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        return new MultiplexingNodeState(path, buildersToNodeStates(nodeBuilders), ctx);
+        return new MultiplexingNodeState(path, new IdentityHashMap<>(buildersToNodeStates(nodeBuilders)), ctx);
     }
 
     @Override
@@ -95,7 +95,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToNodeStates(Map<MountedNodeStore, NodeBuilder> builders) {
-        return copyOf(transformValues(builders, new Function<NodeBuilder, NodeState>() {
+        return transformValues(builders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
                 if (input.exists()) {
@@ -104,16 +104,16 @@ class MultiplexingNodeBuilder implements NodeBuilder {
                     return MISSING_NODE;
                 }
             }
-        }));
+        });
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToBaseStates(Map<MountedNodeStore, NodeBuilder> builders) {
-        return copyOf(transformValues(builders, new Function<NodeBuilder, NodeState>() {
+        return transformValues(builders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
                 return input.getBaseState();
             }
-        }));
+        });
     }
 
     // node or property-related methods ; directly delegate to wrapped builder
@@ -247,7 +247,7 @@ class MultiplexingNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean hasChildNode(String name) {
-        String childPath = PathUtils.concat(path, name);
+        String childPath = simpleConcat(path, name);
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
         return nodeBuilders.get(mountedStore).hasChildNode(name);
     }
@@ -266,20 +266,21 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         for (String element : PathUtils.elements(path)) {
             builder = builder.child(element);
         }
+        if (nodeBuilders instanceof CopyOnReadIdentityMap) {
+            nodeBuilders = new IdentityHashMap<>(nodeBuilders);
+        }
         nodeBuilders.put(mountedNodeStore, builder);
     }
 
     @Override
-    public NodeBuilder getChildNode(String name) {
-        String childPath = PathUtils.concat(path, name);
-        MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
-        if (!nodeBuilders.get(mountedStore).hasChildNode(name)) {
-            return MISSING_NODE.builder();
-        }
-        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = newHashMap();
-        for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
-            newNodeBuilders.put(mns, nodeBuilders.get(mns).getChildNode(name));
-        }
+    public NodeBuilder getChildNode(final String name) {
+        String childPath = simpleConcat(path, name);
+        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = Maps.transformValues(nodeBuilders, new Function<NodeBuilder, NodeBuilder>() {
+            @Override
+            public NodeBuilder apply(NodeBuilder input) {
+                return input.getChildNode(name);
+            }
+        });
         return new MultiplexingNodeBuilder(childPath, newNodeBuilders, ctx, this);
     }
 
@@ -289,23 +290,25 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public NodeBuilder setChildNode(String name, NodeState nodeState) {
+    public NodeBuilder setChildNode(final String name, NodeState nodeState) {
         checkState(exists(), "This builder does not exist: " + PathUtils.getName(path));
-
-        String childPath = PathUtils.concat(path, name);
-        MountedNodeStore childStore = ctx.getOwningStore(childPath);
+        String childPath = simpleConcat(path, name);
+        final MountedNodeStore childStore = ctx.getOwningStore(childPath);
         if (childStore != owningStore && !nodeBuilders.get(childStore).exists()) {
             createAncestors(childStore);
         }
-        NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
+        final NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
 
-        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = newHashMap();
-        newNodeBuilders.put(childStore, childBuilder);
-        for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
-            if (!newNodeBuilders.containsKey(mns)) {
-                newNodeBuilders.put(mns, nodeBuilders.get(mns).getChildNode(name));
+        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = Maps.transformEntries(nodeBuilders, new Maps.EntryTransformer<MountedNodeStore, NodeBuilder, NodeBuilder>() {
+            @Override
+            public NodeBuilder transformEntry(MountedNodeStore key, NodeBuilder value) {
+                if (key == childStore) {
+                    return childBuilder;
+                } else {
+                    return value.getChildNode(name);
+                }
             }
-        }
+        });
         return new MultiplexingNodeBuilder(childPath, newNodeBuilders, ctx, this);
     }
 
@@ -392,7 +395,29 @@ class MultiplexingNodeBuilder implements NodeBuilder {
         return !node.exists();
     }
 
-    private String getPath() {
+    String getPath() {
         return path;
+    }
+
+    /**
+     * This simplified version of {@link PathUtils#concat(String, String)} method
+     * assumes that the parentPath is valid and not null, while the second argument
+     * is just a name (not a subpath).
+     *
+     * @param parentPath the parent path
+     * @param name       name to concatenate
+     * @return the parentPath concatenated with name
+     */
+    static String simpleConcat(String parentPath, String name) {
+        checkValidName(name);
+        if (PathUtils.denotesRoot(parentPath)) {
+            return parentPath + name;
+        } else {
+            return new StringBuilder(parentPath.length() + name.length() + 1)
+                    .append(parentPath)
+                    .append('/')
+                    .append(name)
+                    .toString();
+        }
     }
 }
