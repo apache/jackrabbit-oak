@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -33,15 +34,13 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.compose;
-import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeBuilder.simpleConcat;
 import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
 
 class MultiplexingNodeState extends AbstractNodeState {
@@ -73,7 +72,7 @@ class MultiplexingNodeState extends AbstractNodeState {
         checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", nodeStates.size(), ctx.getStoresCount());
         this.path = path;
         this.ctx = ctx;
-        this.nodeStates = copyOf(nodeStates);
+        this.nodeStates = new CopyOnReadIdentityMap<>(nodeStates);
         this.owningStore = ctx.getOwningStore(path);
     }
 
@@ -106,23 +105,20 @@ class MultiplexingNodeState extends AbstractNodeState {
     // child node operations
     @Override
     public boolean hasChildNode(String name) {
-        String childPath = PathUtils.concat(path, name);
+        String childPath = simpleConcat(path, name);
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
         return nodeStates.get(mountedStore).hasChildNode(name);
     }
 
     @Override
-    public NodeState getChildNode(String name) {
-        String childPath = PathUtils.concat(path, name);
-        MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
-        if (!nodeStates.get(mountedStore).hasChildNode(name)) {
-            return MISSING_NODE;
-        }
-
-        Map<MountedNodeStore, NodeState> newNodeStates = newHashMap();
-        for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
-            newNodeStates.put(mns, nodeStates.get(mns).getChildNode(name));
-        }
+    public NodeState getChildNode(final String name) {
+        String childPath = simpleConcat(path, name);
+        Map<MountedNodeStore, NodeState> newNodeStates = Maps.transformValues(nodeStates, new Function<NodeState, NodeState>() {
+            @Override
+            public NodeState apply(NodeState input) {
+                return input.getChildNode(name);
+            }
+        });
         return new MultiplexingNodeState(childPath, newNodeStates, ctx);
     }
 
@@ -201,12 +197,12 @@ class MultiplexingNodeState extends AbstractNodeState {
     // write operations
     @Override
     public NodeBuilder builder() {
-        Map<MountedNodeStore, NodeBuilder> nodeBuilders = copyOf(transformValues(nodeStates, new Function<NodeState, NodeBuilder>() {
+        Map<MountedNodeStore, NodeBuilder> nodeBuilders = transformValues(nodeStates, new Function<NodeState, NodeBuilder>() {
             @Override
             public NodeBuilder apply(NodeState input) {
                 return input.builder();
             }
-        }));
+        });
         return new MultiplexingNodeBuilder(path, nodeBuilders, ctx);
     }
 
