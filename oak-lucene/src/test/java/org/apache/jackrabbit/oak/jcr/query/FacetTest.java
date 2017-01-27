@@ -66,6 +66,8 @@ public class FacetTest extends AbstractQueryTest {
 
     @After
     protected void tearDown() throws Exception {
+        assertTrue(superuser.nodeExists("/oak:index/luceneGlobal/facets"));
+
         if (superuser.nodeExists(FACET_CONFING_PROP_PATH)) {
             superuser.getProperty(LuceneIndexConstants.PROP_FACETS).remove();
             superuser.save();
