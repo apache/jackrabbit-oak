@@ -17,21 +17,23 @@
 
 # Structure of TAR files
 
-Here is described the phisical layout of a TAR file as used by Apache Oak.
+Here is described the physical layout of a TAR file as used by Apache Oak.
 First, a brief introduction of the TAR format is given. Next, more details are
-provided about the low level information that are written in TAR entries.
+provided about the low level information that is written in TAR entries.
 Finally, it's described how Oak saves a graph data structure inside the TAR file
 and how this representation is optimized for fast retrieval.
 
 ## Organization of a TAR file
 
-Phisically speaking, a TAR file is a linear sequence of blocks. A TAR file is
+Physically speaking, a TAR file is a linear sequence of blocks. A TAR file is
 terminated by two blocks containing zero bytes. Every block has a size of 512
 bytes.
 
 Logically speaking, a TAR file is a linear sequence of entries. Every entry is
 represented by two or more blocks. The first block always contains the entry
 header. Subsequent blocks store the content of the file.
+
+![Overview of a TAR file](tar.png)
 
 The entry header is composed of the following fields:
 
@@ -73,26 +75,44 @@ of the entry values are:
 
 - last modification time: the time stamp when the entry was written.
 
-There are three kind of files stored in a TAR file:
+There are four kinds of files stored in a TAR file:
 
 - segments: this type of file contains data about a segment in the segment
   store. This kind of file has a file name in the form `UUID.CRC2`, where `UUID`
-  is a 128 bit UUID represented as an hexadecimal string and `CRC2` is a zer-
+  is a 128 bit UUID represented as an hexadecimal string and `CRC2` is a zero-
   padded numeric string representing the CRC2 checksum of the raw segment data.
 
-- graph: this file has a name ending in `.gph` and contains a representaion of a
+- binary references: this file has a name ending in `.brf` and represents a
+  catalog of blobs (i.e. value records) referenced by segments in this TAR file.
+  This catalog is indexed by the generation of the segments it contains.
+
+- graph: this file has a name ending in `.gph` and contains a representation of a
   graph. The graph is represented as an adjacency list of UUIDs.
 
 - index: this file has a name ending in `.idx` and contains a sorted list of
   every segment contained in the TAR file.
 
-The layout of the TAR file used by Oak is engineered for perfomance of read
+## Oak TAR file layout
+
+Before delving into further details, a few words on how Oak names TAR files. The
+convention is to always start with a `data00000a.tar` file. As stuff is written
+to the repository, new TAR files are added, incrementing their count from right
+to left, thus ending up with `data00001a.tar`, `data00002a.tar` and so on.
+
+Each time a compaction cycle ends, there is a cleanup phase in which segments
+from an old generation are purged. Those tar files that shrink by at least 25%
+are rewritten to a new tar generation, skipping the reclaimed segments. A shrunk
+TAR file increases its tail generation character, e.g. from `data00000a.tar` to
+`data00000b.tar`.
+
+The layout of the TAR file used by Oak is engineered for performance of read
 operations. In particular, the most important information is stored in the
 bottom entries. Reading the entries from the bottom of the file, you encounter
-first the index, then the graph, then segment files. The idea is that the index
-must be read first, because it provides a fast tool to locate segments in the
-rest of the file. Next comes the graph, that describes how segments relate to
-each other. Last come the segments, whose relative order can be ignored.
+first the index, then the graph, then the binary references and finally the
+segment files. The idea is that the index must be read first, because it provides
+a fast tool to locate segments in the rest of the file. Next comes the graph,
+that describes how segments relate to each other. Last come the segments, whose
+relative order can be ignored.
 
 At the same time, the layout of the TAR file allows fast append-only operations
 when writing. Since the relative order of segment files is not important,
@@ -100,37 +120,127 @@ segment entries can be written in a first come, first served basis. The index at
 the end of the file will provide a fast way to access them even if they are
 scattered around the file.
 
+The picture below presents the building blocks of a TAR file as used by Oak. For
+illustration purposes, an hypothetical TAR file called `data00000a.tar` is
+dissected.
+
+![Overview of an Oak TAR file](oaktar.png)
+
 ## Segment files
 
 Segment files contain raw data about a segment. Even if there are multiple kinds
-of segments, TAR file only distinguishes between data and non-data segments. A
+of segments, a TAR file only distinguishes between data and non-data segments. A
 non-data segment is always saved as-is in the TAR file, without further
 processing. A data segment, instead, is inspected to extract references to other
-segments.
+segments or to binary content.
 
-A data segment can contain at most 255 references to other segments. These
-references are simply stored as a list of UUIDs. The referenced segments can be
-stored inside the current TAR file or outside of it. In the first case, the
-referenced segment can be found by inspecting the index. In the second case, an
-external agent is responsible to find the segment in another TAR file.
+A data segment can contain references to other segments. These references are
+simply stored as a list of UUIDs. The referenced segments can be stored inside
+the current TAR file or outside of it. In the first case, the referenced segment
+can be found by inspecting the index. In the second case, an external agent is
+responsible to find the segment in another TAR file.
 
 The list of segments referenced by a data segment will end up in the graph file.
 To speed up the process of locating a segment in the list of referenced segment,
 this list is maintained ordered.
 
+The data segment file is divided in two parts. The first is the header and the
+second contains the actual records contained in this segment.
+
+The data segment header is divided in three parts:
+
+- a fixed part (32 bytes) containing:
+
+    - a magic number (3 bytes): identifies the beginning of a data segment.
+
+    - version (1 byte): the segment version.
+
+    - empty bytes (6 bytes): reserved for future use.
+
+    - generation (4 bytes): generation of the segment, serialized as a big endian
+      integer.
+
+    - number of references (4 bytes): number of references to external segments,
+      serialized as a big endian integer.
+
+    - number of records (4 bytes): number of records in this segment, serialized
+      as a big endian integer.
+
+    - empty bytes (10 bytes): reserved for future use.
+
+- second part of the header is a variable list of references to external segments.
+  Here there will be a list of the UUIDs, matching the number of references
+  specified in the first part of the header.
+
+- the third and last part of the header consists of a list of record header
+  entries, matching the number of records specified in the first part of the
+  header. Each record header consists of:
+
+    - record number (4 bytes), serialized as a big endian integer.
+
+    - record type (1 byte): can be one of *LEAF*, *BRANCH*, *BUCKET*, *LIST*,
+      *VALUE*, *BLOCK*, *TEMPLATE*, *NODE* or *BLOB_ID*.
+
+    - record offset (4 bytes), serialized as a big endian integer: offset of the
+      record counting from the end of the segment. The actual position of the
+      record can be obtained by computing `(segment size - offset)`.
+
+After the segment header, the actual records are stored, at the offsets
+advertised in the corresponding record header stored in the last part of the
+segment header.
+
+## Binary references files
+
+The binary references file represents an index of binary references (blobs) in a
+TAR file. Each segment lists the blobs it references and the whole mapping is
+stored according to the generation of the segment.
+
+The format of the binary references file is optimized for reading. The file is
+stored in reverse order to maintain the most important information at the end of
+the file. This strategy is inline with the overall layout of the entries in the
+TAR file.
+
+The binary references file is divided in two parts. The first is a header and the
+second contains the real data in the catalog.
+
+The binary references header contains the following fields:
+
+- a magic number (4 bytes): identifies the beginning of a binary references file.
+
+- size of the whole binary references mapping (4 bytes): number of bytes occupied
+  by the entire structure holding binary references (per generation, per segment).
+
+- number of generations (4 bytes): number of different generations of the segments
+  which refer blobs.
+
+- checksum (4 bytes): a CRC2 checksum of the content of the binary references
+  file.
+
+Immediately after the graph header, the graph adjacency list is stored. The
+storage scheme used is the following:
+
+- generation of all the following segments.
+
+- number of segment to binary references mappings for the current generation.
+
+- for each mapping we have:
+
+    - UUID of the referencing segment.
+
+    - number of referenced blobs.
+
+    - an unordered enumeration of blob ids representing blobs referenced by the
+      current segment.
+
 ## Graph files
 
 The graph file represents the relationships between segments stored inside or
-outside the TAR file. The graph is stored as an adjacency list of UUID, where
-each UUID represents a segment.
+outside the TAR file. The graph is stored as an adjacency list of UUIDs, where
+each UUID represents a segment. Like the binary references file, the graph
+file is also stored backwards.
 
-The format of the graph file is optimized for reading. The graph file is stored
-in reverse order to maintain the most important information at the end of the
-file. This strategy is inline with the overall layout of the entries in the TAR
-file.
-
-The content of the graph file is divided in three main parts: a graph header, a
-graph adjacency list and a vertex mapping table.
+The content of the graph file is divided in two parts: a graph header and a
+graph adjacency list.
 
 The graph header contains the following fields:
 
@@ -139,44 +249,35 @@ The graph header contains the following fields:
 - size of the graph adjacency list (4 bytes): number of bytes occupied by the
   graph adjacency list.
 
-- size of the vertex mapping table (4 bytes): number of bytes occupied by the
-  vertex mapping table.
+- number of entries (4 bytes): how many adjacency lists are stored.
 
 - checksum (4 bytes): a CRC2 checksum of the content of the graph file.
 
-Immediately after the graph header, the graph adjacency list is stored. In the
-list, each vertex is represented by an integer. Each integer represents an index
-in the vertex mapping table. For each vertex stored in the adjacency list, the
-following information are written:
+Immediately after the graph header, the graph adjacency list is stored. The
+storage scheme used is the following:
 
-- the integer representing the current vertex.
+- UUID of the source segment.
 
-- zero or more integers for each vertex referenced by the current one.
+- size of the adjacency list of the source segment.
 
-- a sentinel value representing the list of adjacent vertices (-1).
-
-At the end, the vertex mapping table is stored. This table is just an ordered
-list of UUIDs. The integers used in the graph adjacency list can be used as
-index in the vertext mapping table to read the UUID of the corresponding
-segment. This is a space optimization. Since UUIDs can be repeated more than
-once in the adjacency list, it make sense to replace them with cheaper
-placeholders. A UUID is 128 bit long, while an integer just 4.
+- an unordered enumeration of UUIDs representing target segments referenced by
+  the source segment.
 
 ## Index files
 
 The index file is an ordered list of references to the entries contained in the
 TAR file. The references are ordered by UUID and they point to the position in
-the file where the entry is stored. Like the graph file, even the index file is
+the file where the entry is stored. Like the graph file, the index file is also
 stored backwards.
 
 The index file is divided in two parts. The first is an index header, the second
 contains the real data about the index.
 
-The index data contains the following fields:
+The index header contains the following fields:
 
 - a magic number (4 bytes): identifies the beginning of an index file.
 
-- size fo the index (4 bytes): number of bytes occupied by the index data. This
+- size for the index (4 bytes): number of bytes occupied by the index data. This
   size also contains padding bytes that are added to the index to make it align
   with the TAR block boundary.
 
@@ -185,16 +286,18 @@ The index data contains the following fields:
 - checksum (4 bytes): a CRC32 checksum of the content of the index file.
 
 After the header, the content of the index starts. For every entry contained in
-the index, the following information are stored:
+the index, the following information is stored:
 
-- the most significat bits of the UUID (8 bytes)
+- the most significant bits of the UUID (8 bytes).
 
-- the least significat bits of the UUID (8 bytes)
+- the least significant bits of the UUID (8 bytes).
 
 - the offset in the TAR file where the TAR entry containing the segment is
   located.
 
 - the size of the entry in the TAR file.
+
+- the generation of the entry.
 
 Since the entries in the index are sorted by UUID, and since the UUIDs assigned
 to the entries are uniformly distributed, when searching an entry by its UUID an
