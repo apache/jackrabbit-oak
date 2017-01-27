@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.facet.FacetsConfig;
 
@@ -32,7 +33,7 @@ class NodeStateFacetsConfig extends FacetsConfig {
     private final NodeBuilder nodeBuilder;
 
     NodeStateFacetsConfig(NodeBuilder nodeBuilder) {
-        this.nodeBuilder = nodeBuilder.child(":facet-config");
+        this.nodeBuilder = nodeBuilder.child(LuceneIndexConstants.FACETS);
         for (String child : this.nodeBuilder.getChildNodeNames()) {
             super.setMultiValued(child, this.nodeBuilder.child(child).getProperty(MULTIVALUED).getValue(Type.BOOLEAN));
         }
