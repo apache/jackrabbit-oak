@@ -275,6 +275,9 @@ class MultiplexingNodeBuilder implements NodeBuilder {
     @Override
     public NodeBuilder getChildNode(final String name) {
         String childPath = simpleConcat(path, name);
+        if (!ctx.shouldBeMultiplexed(childPath)) {
+            return nodeBuilders.get(ctx.getOwningStore(childPath)).getChildNode(name);
+        }
         Map<MountedNodeStore, NodeBuilder> newNodeBuilders = Maps.transformValues(nodeBuilders, new Function<NodeBuilder, NodeBuilder>() {
             @Override
             public NodeBuilder apply(NodeBuilder input) {
@@ -298,6 +301,9 @@ class MultiplexingNodeBuilder implements NodeBuilder {
             createAncestors(childStore);
         }
         final NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
+        if (!ctx.shouldBeMultiplexed(childPath)) {
+            return childBuilder;
+        }
 
         Map<MountedNodeStore, NodeBuilder> newNodeBuilders = Maps.transformEntries(nodeBuilders, new Maps.EntryTransformer<MountedNodeStore, NodeBuilder, NodeBuilder>() {
             @Override
