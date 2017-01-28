@@ -45,9 +45,14 @@ public class MultiplexingCompareTest {
 
     @Test
     public void reportedNodesAreWrapped() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().build();
+        SimpleMountInfoProvider.Builder mipBuilder = new SimpleMountInfoProvider.Builder();
+        mipBuilder.readOnlyMount("libs", "/libs");
+        MountInfoProvider mip = mipBuilder.build();
+
         NodeStore globalStore = new MemoryNodeStore();
-        MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).build();
+        MultiplexingNodeStore.Builder nsBuilder = new MultiplexingNodeStore.Builder(mip, globalStore);
+        nsBuilder.addMount("libs", new MemoryNodeStore());
+        MultiplexingNodeStore multiplexingNodeStore = nsBuilder.build();
 
         NodeBuilder builder = multiplexingNodeStore.getRoot().builder();
         builder.child("changed");

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -26,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -50,6 +52,8 @@ class MultiplexingContext {
 
     private final Map<Mount, MountedNodeStore> nodeStoresByMount;
 
+    private final boolean pathFragmentSupport;
+
     MultiplexingContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
@@ -60,6 +64,12 @@ class MultiplexingContext {
                 return input.getMount();
             }
         }));
+        pathFragmentSupport = Iterables.tryFind(nonDefaultStores, new Predicate<MountedNodeStore>() {
+            @Override
+            public boolean apply(MountedNodeStore input) {
+                return input.getMount().isSupportFragment();
+            }
+        }).isPresent();
     }
 
     MountedNodeStore getGlobalStore() {
@@ -95,6 +105,13 @@ class MultiplexingContext {
                 return nodeBuilders.get(input).getChildNodeNames();
             }
         });
+    }
+
+    boolean shouldBeMultiplexed(String path) {
+        if (pathFragmentSupport) {
+            return true;
+        }
+        return !mip.getMountsPlacedUnder(path).isEmpty();
     }
 
     private List<MountedNodeStore> getContributingStores(String path, Function<MountedNodeStore, Iterable<String>> childrenProvider) {

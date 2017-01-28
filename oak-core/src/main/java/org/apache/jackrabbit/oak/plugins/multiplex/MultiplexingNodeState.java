@@ -113,6 +113,9 @@ class MultiplexingNodeState extends AbstractNodeState {
     @Override
     public NodeState getChildNode(final String name) {
         String childPath = simpleConcat(path, name);
+        if (!ctx.shouldBeMultiplexed(childPath)) {
+            return nodeStates.get(ctx.getOwningStore(childPath)).getChildNode(name);
+        }
         Map<MountedNodeStore, NodeState> newNodeStates = Maps.transformValues(nodeStates, new Function<NodeState, NodeState>() {
             @Override
             public NodeState apply(NodeState input) {
