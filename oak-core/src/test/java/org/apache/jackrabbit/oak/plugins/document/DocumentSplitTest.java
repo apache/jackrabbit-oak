@@ -53,6 +53,7 @@ import com.google.common.collect.Sets;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest.randomStream;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -510,7 +511,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         UpdateOp op = new UpdateOp(id, false);
         // create some baggage from another cluster node
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 4000; i++) {
             Revision r = Revision.newRevision(2);
             op.setMapEntry("prop", r, "some long test value with many characters");
             NodeDocument.setRevision(op, r, "c");
@@ -518,14 +519,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         store.findAndUpdate(NODES, op);
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
-        assertTrue(doc.getMemory() > NodeDocument.DOC_SIZE_THRESHOLD);
+        assertTrue(doc.getMemory() > DOC_SIZE_THRESHOLD);
 
-        // these will be considered for a split
-        for (int i = 0; i < NUM_REVS_THRESHOLD / 2; i++) {
-            Revision r = Revision.newRevision(clusterId);
-            op.setMapEntry("prop", r, "value");
-            NodeDocument.setRevision(op, r, "c");
-        }
         // some fake previous doc references to trigger UpdateOp
         // for an intermediate document
         TreeSet<Revision> prev = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
@@ -977,6 +972,30 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
         // must not create split documents for small binaries less 4k
         assertEquals(0, prevDocs.size());
+    }
+
+    @Test
+    public void nonSplittableBigDocument() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        String id = Utils.getIdFromPath("/foo");
+        int num = 0;
+        while (store.find(NODES, id).getMemory() < DOC_SIZE_THRESHOLD) {
+            builder = ns.getRoot().builder();
+            for (int i = 0; i < 50; i++) {
+                builder.child("foo").setProperty("p" + num++,
+                        "some value as payload for the document");
+            }
+            merge(ns, builder);
+        }
+
+        Iterable<UpdateOp> splitOps = store.find(NODES, id)
+                .split(ns, ns.getHeadRevision(), NO_BINARY);
+        assertEquals(0, Iterables.size(splitOps));
     }
 
     private static class TestRevisionContext implements RevisionContext {
