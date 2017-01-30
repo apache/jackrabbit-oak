@@ -86,8 +86,9 @@ There are four kinds of files stored in a TAR file:
   catalog of blobs (i.e. value records) referenced by segments in this TAR file.
   This catalog is indexed by the generation of the segments it contains.
 
-- graph: this file has a name ending in `.gph` and contains a representation of a
-  graph. The graph is represented as an adjacency list of UUIDs.
+- graph: this file has a name ending in `.gph` and contains the segment graph 
+  of all the segments in this tar file. The graph is represented as an adjacency 
+  list of UUIDs.
 
 - index: this file has a name ending in `.idx` and contains a sorted list of
   every segment contained in the TAR file.
