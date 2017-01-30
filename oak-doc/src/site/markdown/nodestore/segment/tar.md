@@ -65,7 +65,7 @@ The entry header is composed of the following fields:
 Some fields are not used by Oak. In particular, Oak sets the file mode, the
 owner's numeric ID, the group's numeric ID, the checksum, and the name of linked
 file to uninteresting values. The only meaningful values assigned to the fields
-of the entry values are:
+of the entry header are:
 
 - file name: the name of the data file. There are different data files used by
   Oak. They are described below.
@@ -95,9 +95,9 @@ There are four kinds of files stored in a TAR file:
 ## Oak TAR file layout
 
 Before delving into further details, a few words on how Oak names TAR files. The
-convention is to always start with a `data00000a.tar` file. As stuff is written
-to the repository, new TAR files are added, incrementing their count from right
-to left, thus ending up with `data00001a.tar`, `data00002a.tar` and so on.
+convention is to always start with a `data00000a.tar` file. As data is written
+to the repository, new TAR files are added with increasing numbers, thus ending 
+up with `data00001a.tar`, `data00002a.tar` and so on.
 
 Each time a compaction cycle ends, there is a cleanup phase in which segments
 from an old generation are purged. Those tar files that shrink by at least 25%
@@ -111,8 +111,8 @@ bottom entries. Reading the entries from the bottom of the file, you encounter
 first the index, then the graph, then the binary references and finally the
 segment files. The idea is that the index must be read first, because it provides
 a fast tool to locate segments in the rest of the file. Next comes the graph,
-that describes how segments relate to each other. Last come the segments, whose
-relative order can be ignored.
+that describes how segments relate to each other. Then the binary references 
+index is stored. Last come the segments, whose relative order can be ignored.
 
 At the same time, the layout of the TAR file allows fast append-only operations
 when writing. Since the relative order of segment files is not important,
@@ -129,8 +129,8 @@ dissected.
 ## Segment files
 
 Segment files contain raw data about a segment. Even if there are multiple kinds
-of segments, a TAR file only distinguishes between data and non-data segments. A
-non-data segment is always saved as-is in the TAR file, without further
+of segments, a TAR file only distinguishes between data and bulk segments. A
+bulk segment is always saved as-is in the TAR file, without further
 processing. A data segment, instead, is inspected to extract references to other
 segments or to binary content.
 
@@ -169,8 +169,8 @@ The data segment header is divided in three parts:
     - empty bytes (10 bytes): reserved for future use.
 
 - second part of the header is a variable list of references to external segments.
-  Here there will be a list of the UUIDs, matching the number of references
-  specified in the first part of the header.
+  Here there will be a list of UUIDs - one per referenced segment - matching the 
+  number of references specified in the first part of the header.
 
 - the third and last part of the header consists of a list of record header
   entries, matching the number of records specified in the first part of the
@@ -192,8 +192,8 @@ segment header.
 ## Binary references files
 
 The binary references file represents an index of binary references (blobs) in a
-TAR file. Each segment lists the blobs it references and the whole mapping is
-stored according to the generation of the segment.
+TAR file. This index groups the references by generation first and segment ID 
+next.
 
 The format of the binary references file is optimized for reading. The file is
 stored in reverse order to maintain the most important information at the end of
@@ -216,8 +216,8 @@ The binary references header contains the following fields:
 - checksum (4 bytes): a CRC2 checksum of the content of the binary references
   file.
 
-Immediately after the graph header, the graph adjacency list is stored. The
-storage scheme used is the following:
+Immediately after the graph header, the index data is stored. The storage scheme 
+used is the following:
 
 - generation of all the following segments.
 
