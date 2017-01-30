@@ -181,6 +181,21 @@ As seen in the examples above, a revision is a String and may look like this:
 * A counter to distinguish revisions created with the same timestamp: `-2`
 * The cluster node id where this revision was created: `-1`
 
+Clock requirements
+------------------
+
+Revisions are used by the DocumentMK to identify the sequence of changes done
+on items in the repository. This is also done across cluster nodes for revisions
+with different cluster node ids. This requires the system clocks on the machines
+running Oak and the backend system to approximately in sync. It is recommended
+to run an NTP daemon or some similar service to keep the clock synchronized.
+Oak allows clock differences up to 2 seconds between the machine where Oak is
+running and the machine where the backend store (MongoDB or RDBMS) is running.
+Oak may refuse to start if it detects a larger clock difference. Clock
+differences between the machines running in an Oak cluster will result in
+delayed propagation of changes between cluster nodes and warnings in the log
+files.
+
 Branches
 --------
 
