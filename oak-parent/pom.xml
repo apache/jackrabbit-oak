@@ -1066,4 +1066,10 @@
       </build>
     </profile>
   </profiles>
+
+  <scm>
+    <connection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.6/oak-parent</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.6/oak-parent</developerConnection>
+    <url>https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.6/oak-parent</url>
+  </scm>
 </project>
