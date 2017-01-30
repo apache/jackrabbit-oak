@@ -51,7 +51,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROO
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_RATIO;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
@@ -377,14 +376,16 @@ class SplitOperations {
             NodeDocument oldDoc = new NodeDocument(STORE);
             UpdateUtils.applyChanges(oldDoc, old);
             setSplitDocProps(doc, oldDoc, old, high);
-            // only split if enough of the data can be moved to old document
-            // or there are binaries to split off
-            if (oldDoc.getMemory() > doc.getMemory() * SPLIT_RATIO
-                    || numValues >= numRevsThreshold
-                    || hasBinaryToSplit) {
-                splitOps.add(old);
-            } else {
-                main = null;
+            splitOps.add(old);
+
+            if (numValues < numRevsThreshold) {
+                String reason;
+                if (hasBinaryToSplit) {
+                    reason = "binary";
+                } else {
+                    reason = "size";
+                }
+                LOG.debug("Force splitting {} ({})", id, reason);
             }
         }
         return main;

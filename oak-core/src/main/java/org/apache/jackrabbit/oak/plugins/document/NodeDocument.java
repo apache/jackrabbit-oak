@@ -113,18 +113,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * A document size threshold after which a split is forced even if
      * {@link #NUM_REVS_THRESHOLD} is not reached.
      */
-    static final int DOC_SIZE_THRESHOLD = 256 * 1024;
+    static final int DOC_SIZE_THRESHOLD = 1024 * 1024;
 
     /**
      * Only split off at least this number of revisions.
      */
     static final int NUM_REVS_THRESHOLD = 100;
-
-    /**
-     * The split ratio. Only split data to an old document when at least
-     * 30% of the data can be moved.
-     */
-    static final float SPLIT_RATIO = 0.3f;
 
     /**
      * Create an intermediate previous document when there are this many
