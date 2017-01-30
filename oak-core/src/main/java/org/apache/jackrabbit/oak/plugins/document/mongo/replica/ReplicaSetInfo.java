@@ -261,8 +261,9 @@ public class ReplicaSetInfo implements Runnable {
         }
 
         Map<String, Timestamped<RevisionVector>> vectors = null;
+        Set<String> hostsToCheck = union(secondaries, of(primary));
         if (!unknownState) {
-            vectors = getRootRevisions(union(secondaries, of(primary)));
+            vectors = getRootRevisions(hostsToCheck);
             if (vectors.containsValue(null)) {
                 unknownState = true;
             }
@@ -284,7 +285,7 @@ public class ReplicaSetInfo implements Runnable {
         }
 
         LOG.debug("Minimum root revisions: {}. Current lag: {}", rootRevisions, getLag());
-        nodeCollections.retain(secondaries);
+        nodeCollections.retain(hostsToCheck);
     }
 
     /**
