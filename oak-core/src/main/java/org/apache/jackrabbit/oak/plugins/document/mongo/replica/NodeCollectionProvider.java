@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo.replica;
 
+import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.Sets.difference;
 
 import java.net.UnknownHostException;
@@ -59,7 +60,7 @@ public class NodeCollectionProvider {
     }
 
     public void retain(Set<String> hostNames) {
-        close(difference(collections.keySet(), hostNames));
+        close(copyOf(difference(collections.keySet(), hostNames)));
     }
 
     public void close() {
