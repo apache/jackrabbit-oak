@@ -641,7 +641,9 @@ Unsurprisingly, segments inspired the name of this Node Store implementation.
 Repository data is serialized to one or more records, and these records are saved into the segments.
 You can learn about the internal organization of segments and the different ways to serialize records by reading [this page](records.html).
 
-This website also contains an overview of the legacy implementation of the Segment Store and of the design decisions that brought to this implementation.
+See [this page](tarmk-classes.html) for a high level design overview of the TarMK.
+
+This page contains an overview of the legacy implementation of the Segment Store and of the design decisions that brought to this implementation.
 The page is old and describes a deprecated implementation, but can still be accessed [here](../segmentmk.html).
 
 ### <a name="format-changes"/> Format changes
