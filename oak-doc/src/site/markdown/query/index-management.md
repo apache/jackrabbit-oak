@@ -167,6 +167,7 @@ The following creates 1000 nodes `/test/n<x>`, saving every 100 nodes:
         {"$p": "/test/n", "+": "$x"},
         {"addNode": "$p", "node":{"jcr:primaryType": "oak:Unstructured"}}
     ]}
-    {"print": "done"}
     {"session": "save"}
+    {"print": "done"}
+    exit
 
