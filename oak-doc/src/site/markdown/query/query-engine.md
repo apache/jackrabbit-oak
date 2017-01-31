@@ -24,6 +24,65 @@ work but probably be very slow.
 
 Query Indices are defined under the `oak:index` node.
 
+### Query Processing
+
+Internally, the query engine uses a cost based query optimizer that asks all the available
+query indexes for the estimated cost to process the query. It then uses the index with the 
+lowest cost.
+
+By default, the following indexes are available:
+
+* A property index for each indexed property.
+* A full-text index which is based on Apache Lucene / Solr.
+* A node type index (which is based on an property index for the properties
+  jcr:primaryType and jcr:mixins).
+* A traversal index that iterates over a subtree.
+
+If no index can efficiently process the filter condition, the nodes in the repository are 
+traversed at the given subtree.
+
+Usually, data is read from the index and repository while traversing over the query 
+result. There are exceptions however, where all data is read in memory when the query
+is executed. The most common case is when using an `order by` clause and 
+the index can not provide a sorted result.
+There are other cases where paths of the results read so far are kept in memory, 
+in order to not return duplicate results. 
+This is the case when using `or` conditions such that two indexes are used 
+(internally a `union` query is executed).
+
+If you enable debug logging for the module `org.apache.jackrabbit.oak.query`, you may see this:
+
+    cost for nodeType is 1638354.0
+    cost for property is 2.0
+    cost for traverse is 3451100.0
+    
+This means the cost for the nodetype index _would_ be about 1638354.0, 
+the cost for the property index _would_ be about 2, 
+and the cost for traversal _would_ be about 3451100.0. 
+An index that can't deal with a certain condition will return the cost "Infinity".
+It doesn't say traversal is actually used, it just lists the expected costs. 
+The query engine will then pick the index with the lowest expected cost, 
+which is (in the case above) "property".
+
+The expected cost for traversal is, with Oak 1.0.x, really just a guess looking at 
+the length of the path. With Oak 1.2 and newer, the "counter" index is used 
+(see mainly OAK-1907). There is an known issue with this, if you add and remove a lot 
+of nodes in a loop, you could end up with a too-low cost, see OAK-4065.
+
+#### Cost Calculation
+
+Each query index is expected to estimate the worst-case cost to query with the given filter. 
+The returned value is between 1 (very fast; lookup of a unique node) and 
+the estimated number of entries to traverse, if the cursor would be fully read, 
+and if there could in theory be one network round-trip or disk read operation per node 
+(this method may return a lower number if the data is known to be fully in memory).
+
+The returned value is supposed to be an estimate and doesn't have to be very accurate. 
+Please note this method is called on each index whenever a query is run, 
+so the method should be reasonably fast (not read any data itself, or at least not read too much data).
+
+If an index implementation can not query the data, it has to return `Infinity` (`Double.POSITIVE_INFINITY`).
+
 ### Compatibility
 
 #### Result Size
@@ -164,13 +223,15 @@ Full-text aggregation is not currently supported.
 `@since Oak 1.1.17, 1.0.13`
 
 Oak supports spellcheck queries when using the Lucene or Solr indexes.
-Unlike most queries, spellcheck queries won't return a JCR `Node` as the outcome of such queries will be text terms 
+Unlike most queries, spellcheck queries won't return a JCR `Node` as 
+the outcome of such queries will be text terms 
 that come from content as written into JCR `properties`.
 For example, the following query will return spellchecks for the (wrongly spelled) term `helo`:
 
     /jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())
     
-The result of such a query will be a JCR `Row` which will contain the corrected terms, as spellchecked by the used underlying 
+The result of such a query will be a JCR `Row` which will contain the corrected terms, 
+as spellchecked by the used underlying 
 index, in a special property named `rep:spellcheck()`.
 
 Clients wanting to obtain spellchecks could use the following JCR code:
@@ -201,10 +262,12 @@ The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w
         spellchecks.add(row.getValue("rep:spellcheck()").getString());        
     }
     
-If either Lucene or Solr were configured to provide the spellcheck feature, see [Enable spellchecking in Lucene](lucene.html#Spellchecking) and [Enable
+If either Lucene or Solr were configured to provide the spellcheck feature, see 
+[Enable spellchecking in Lucene](lucene.html#Spellchecking) and [Enable
 spellchecking in Solr](solr.html#Spellchecking)
 
-Note that spellcheck terms come already filtered according to calling user privileges, so that users could see spellcheck 
+Note that spellcheck terms come already filtered according to calling user privileges, 
+so that users could see spellcheck 
 corrections only coming from indexed content they are allowed to read.
 
 ### Suggestions
@@ -212,13 +275,14 @@ corrections only coming from indexed content they are allowed to read.
 `@since Oak 1.1.17, 1.0.15`
 
 Oak supports search suggestions when using the Lucene or Solr indexes.
-Unlike most queries, suggest queries won't return a JCR `Node` as the outcome of such queries will be text terms 
-that come from content as written into JCR `properties`.
+Unlike most queries, suggest queries won't return a JCR `Node` as the outcome of such queries 
+will be text terms that come from content as written into JCR `properties`.
 For example, the following query will return search suggestions for the (e.g. user entered) term `in `:
 
     /jcr:root[rep:suggest('in ')]/(rep:suggest())
     
-The result of such a query will be a JCR `Row` which will contain the suggested terms, together with their score, as 
+The result of such a query will be a JCR `Row` which will contain the suggested terms, 
+together with their score, as 
 suggested and scored by the used underlying index, in a special property named `rep:suggest()`.
 
 Clients wanting to obtain suggestions could use the following JCR code:
@@ -234,9 +298,11 @@ Clients wanting to obtain suggestions could use the following JCR code:
         suggestions = row.getValue("rep:suggest()").getString()        
     }
 
-The `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
+The `suggestions` String would be have the following pattern 
+`\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
 
-    [{term=in 2015 a red fox is still a fox,weight=1.5}, {term=in 2015 my fox is red, like mike's fox and john's fox,weight=0.7}]
+    [{term=in 2015 a red fox is still a fox,weight=1.5}, {term=in 2015 my fox is red, 
+    like mike's fox and john's fox,weight=0.7}]
     
     
 `@since Oak 1.3.11, 1.2.14` each suggestion would be returned per row.
@@ -250,15 +316,18 @@ The `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W
         suggestions.add(row.getValue("rep:suggest()").getString());        
     }
     
-If either Lucene or Solr were configured to provide the suggestions feature, see [Enable suggestions in Lucene](lucene.html#Suggestions) and [Enable
+If either Lucene or Solr were configured to provide the suggestions feature, 
+see [Enable suggestions in Lucene](lucene.html#Suggestions) and [Enable
 suggestions in Solr](solr.html#Suggestions).
-Note that suggested terms come already filtered according to calling user privileges, so that users could see suggested
+Note that suggested terms come already filtered according to calling user privileges, 
+so that users could see suggested
 terms only coming from indexed content they are allowed to read.
 
 ### Facets 
 
 `@since Oak 1.3.14` Oak has support for [facets](https://en.wikipedia.org/wiki/Faceted_search). 
-Once enabled (see details for [Lucene](lucene.html#Facets) and/or [Solr](solr.html#Suggestions) indexes) facets can be retrieved on properties (backed by a proper
+Once enabled (see details for [Lucene](lucene.html#Facets) and/or [Solr](solr.html#Suggestions) indexes) 
+facets can be retrieved on properties (backed by a proper
 field in Lucene / Solr) using the following snippet:
 
     String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
@@ -297,54 +366,12 @@ When converting from XPath to SQL-2, `or` conditions are automatically converted
 `union` queries, so that indexes can be used for conditions of the form 
 `a = 'x' or b = 'y'`.
 
-### Query Processing
-
-Internally, the query engine uses a cost based query optimizer that asks all the available
-query indexes for the estimated cost to process the query. It then uses the index with the 
-lowest cost.
-
-By default, the following indexes are available:
-
-* A property index for each indexed property.
-* A full-text index which is based on Apache Lucene / Solr.
-* A node type index (which is based on an property index for the properties
-  jcr:primaryType and jcr:mixins).
-* A traversal index that iterates over a subtree.
-
-If no index can efficiently process the filter condition, the nodes in the repository are 
-traversed at the given subtree.
-
-Usually, data is read from the index and repository while traversing over the query 
-result. There are exceptions however, where all data is read in memory when the query
-is executed. The most common case is when using an `order by` clause and 
-the index can not provide a sorted result.
-There are other cases where paths of the results read so far are kept in memory, 
-in order to not return duplicate results. 
-This is the case when using `or` conditions such that two indexes are used 
-(internally a `union` query is executed).
-
-If you enable debug logging for the module `org.apache.jackrabbit.oak.query`, you may see this:
-
-    cost for nodeType is 1638354.0
-    cost for property is 2.0
-    cost for traverse is 3451100.0
-    
-This means the cost for the nodetype index _would_ be about 1638354.0, 
-the cost for the property index _would_ be about 2, 
-and the cost for traversal _would_ be about 3451100.0. 
-It doesn't say traversal is actually used, it just lists the expected costs. 
-The query engine will then pick the index with the lowest expected cost, 
-which is (in the case above) "property".
-
-The expected cost for traversal is, with Oak 1.0.x, really just a guess looking at 
-the length of the path. With Oak 1.2 and newer, the "counter" index is used 
-(see mainly OAK-1907). There is an known issue with this, if you add and remove a lot 
-of nodes in a loop, you could end up with a too-low cost, see OAK-4065.
-
 ### The Node Type Index
 
-The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on `jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
-The cost for this index is the sum of the costs of the `PropertyIndexLookup` for queries on `jcr:primaryType` and `jcr:mixinTypes`.
+The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on 
+`jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
+The cost for this index is the sum of the costs of the `PropertyIndexLookup` 
+for queries on `jcr:primaryType` and `jcr:mixinTypes`.
 
 ### Temporarily Disabling an Index
 
@@ -364,25 +391,23 @@ For help on migrating to a Lucece index please refer to:
 For historical information around the index please refer to:
 [Ordered Index](ordered-index.html).
 
-### Cost Calculation
-
-Each query index is expected to estimate the worst-case cost to query with the given filter. 
-The returned value is between 1 (very fast; lookup of a unique node) and the estimated number of entries to traverse, if the cursor would be fully read, and if there could in theory be one network round-trip or disk read operation per node (this method may return a lower number if the data is known to be fully in memory).
-
-The returned value is supposed to be an estimate and doesn't have to be very accurate. Please note this method is called on each index whenever a query is run, so the method should be reasonably fast (not read any data itself, or at least not read too much data).
-
-If an index implementation can not query the data, it has to return `Double.POSITIVE_INFINITY`.
-
 ### Index storage and manual inspection
 
 Sometimes there is a need to inspect the index content for debugging (or pure curiosity).
-The index content is generally stored as content under the index definition as hidden nodes (this doesn't apply to the solr index).
-In order to be able to browse down into an index content you need a low level repository tool that allows NodeStore level access.
-There are currently 2 options: the oak-console (command line tool, works will all existing NodeStore implementations) and the oak-explorer
-(gui based on java swing, works only with the SegmentNodeStore), both available as run modes of the [oak-run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md) module
+The index content is generally stored as content under the index definition as hidden nodes 
+(this doesn't apply to the solr index).
+In order to be able to browse down into an index content you need a low level repository tool 
+that allows NodeStore level access.
+There are currently 2 options: the oak-console (command line tool, 
+works will all existing NodeStore implementations) and the oak-explorer
+(gui based on java swing, works only with the SegmentNodeStore), 
+both available as run modes of the 
+[oak-run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md) module
 
-The structure of the index is specific to each implementation and is subject to change. What is worth mentioning is that all the _*PropertyIndex_
-flavors store the content as unstructured nodes (clear readable text), the _Lucene_ index is stored as binaries, so one would need to export the
+The structure of the index is specific to each implementation and is subject to change. 
+What is worth mentioning is that all the _*PropertyIndex_
+flavors store the content as unstructured nodes (clear readable text), 
+the _Lucene_ index is stored as binaries, so one would need to export the
 entire Lucene directory to the local file system and browse it using a dedicated tool.
 
 ### SQL2 Optimisation
