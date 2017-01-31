@@ -190,6 +190,9 @@ After the segment header, the actual records are stored, at the offsets
 advertised in the corresponding record header stored in the last part of the
 segment header.
 
+See [Segments and records](records.html) for description of the various record types
+and their format.
+
 ## Binary references files
 
 The binary references file represents an index of binary references (blobs) in a
