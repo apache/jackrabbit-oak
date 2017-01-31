@@ -276,7 +276,8 @@ public abstract class AbstractQueryTest {
             lines.add(e.toString());
         }
         time = System.currentTimeMillis() - time;
-        if (time > 10000 && !isDebugModeEnabled()) {
+        if (time > 5 * 60 * 1000 && !isDebugModeEnabled()) {
+            // more than 5 minutes
             fail("Query took too long: " + query + " took " + time + " ms");
         }
         return lines;
