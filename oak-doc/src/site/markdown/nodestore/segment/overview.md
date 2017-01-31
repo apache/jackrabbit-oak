@@ -17,8 +17,7 @@
 
 # Oak Segment Tar
 
-Oak Segment Tar is an implementation of the Node Store that stores repository data on the file system.
-
+* [Overview](#overview)
 * [Garbage Collection](#garbage-collection)
     * [Generational Garbage Collection](#generational-garbage-collection)
     * [Estimation, Compaction and Cleanup](#estimation-compaction-cleanup)
@@ -49,8 +48,26 @@ Oak Segment Tar is an implementation of the Node Store that stores repository da
     * [Debug](#debug)
     * [Diff](#diff)
     * [History](#history)
-* [Design](#design)
-    * [Format changes](#format-changes)
+
+## <a name="overview"/> Overview
+
+Oak Segment Tar is an Oak storage backend that stores content as various types of *records* within larger *segments*. Segments themselves are collected within *tar files* along with further auxiliary information. A *journal* is used to track the latest state of the repository. It is based on the following key principles:
+
+  * *Immutability*. Segments are immutable, which makes is easy to cache frequently accessed segments. This also makes it less likely for programming or system errors to cause repository inconsistencies, and simplifies features like backups or master-slave clustering.
+
+  * *Compactness*. The formatting of records is optimized for size to reduce IO costs and to fit as much content in caches as possible.
+
+  * *Locality*. Segments are written so that related records, like a node and its immediate children, usually end up stored in the same segment. This makes tree traversals very fast and avoids most cache misses for typical clients that access more than one related node per session.
+
+The content tree and all its revisions are stored in a collection of immutable *records* within *segments*. Each segment is identified by a UUID and typically contains a continuous subset of the content tree, for example a node with its properties and closest child nodes. Some segments might also be used to store commonly occurring property values or other shared data. Segments can be to up to 256KiB in size. See [Segments and records](records.html) for a detailed description of the segments and records. 
+
+Segments are collectively stored in *tar files* and check-summed to ensure their integrity. Tar files also contain an index of the tar segments, the graph of segment references of all segments it contains and an index of all external binaries referenced from the segments in the tar file. See [Structure of TAR files](tar.html) for details.
+ 
+The *journal* is a special, atomically updated file that records the state of the repository as a sequence of references to successive root node records. For crash resiliency the journal is always only updated with a new reference once the referenced record has been flushed to disk.  The most recent root node reference stored in the journal is used as the starting point for garbage collection. All content currently visible to clients must be accessible through that reference. 
+
+Oak Segment Tar is an evolution of a [previous implementation](../segmentmk.html). Upgrading requires [migrating](../../migration.html) to the [new storage format](changes.html). 
+
+See [Design of Oak Segment Tar](tarmk-classes.html) for a high level design overview of Oak Segment Tar.   
 
 ## <a name="garbage-collection"/> Garbage Collection
 
@@ -630,24 +647,3 @@ The `--depth` parameter determines if the content of a single node should be pri
 `DEPTH` must be a positive integer specifying how deep the printed content should be.
 If this option is not specified, the depth is assumed to be `0`, i.e. only information about the node will be printed.
 
-## <a name="design"/> Design
-
-The Segment Node Store serializes repository data and stores it in a set of TAR files.
-These files are the most coarse-grained containers for the repository data.
-You can learn more about the general structure of TAR files by reading [this page](tar.html).
-
-Every TAR file contains segments, finer-grained containers of repository data.
-Unsurprisingly, segments inspired the name of this Node Store implementation.
-Repository data is serialized to one or more records, and these records are saved into the segments.
-You can learn about the internal organization of segments and the different ways to serialize records by reading [this page](records.html).
-
-See [this page](tarmk-classes.html) for a high level design overview of the TarMK.
-
-This page contains an overview of the legacy implementation of the Segment Store and of the design decisions that brought to this implementation.
-The page is old and describes a deprecated implementation, but can still be accessed [here](../segmentmk.html).
-
-### <a name="format-changes"/> Format changes
-
-The Oak Segment Tar module introduces a number of changes in the data format compared to the legacy Oak Segment.
-The changes are described in greater detail [here](changes.html).
-Pointers to actual Jira issues can also be found on that page.
