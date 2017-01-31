@@ -7,9 +7,9 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4 is an incremental feature release based on and
+Jackrabbit Oak 1.6 is an incremental feature release based on and
 compatible with earlier stable Jackrabbit Oak 1.x releases. Jackrabbit
-Oak 1.4.x releases are considered stable and targeted for production
+Oak 1.6.x releases are considered stable and targeted for production
 use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
