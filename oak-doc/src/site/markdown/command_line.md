@@ -49,6 +49,10 @@ The oak-run compact operation may be used to perform an offline compaction:
 It makes sense to find and remove the old checkpoints, using the `checkpoint`
 command described above.
 
+#### Index Management
+
+The oak-run index operation is used to [manage indexes](./query/index-management.html).
+
 #### System properties supported by the oak-run
 
 When performing operations on the SegmentNodeStore (eg. backup, checkpoint, compact), it's
