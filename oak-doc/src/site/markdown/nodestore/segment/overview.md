@@ -67,7 +67,7 @@ The *journal* is a special, atomically updated file that records the state of th
 
 Oak Segment Tar is an evolution of a [previous implementation](../segmentmk.html). Upgrading requires [migrating](../../migration.html) to the [new storage format](changes.html). 
 
-See [Design of Oak Segment Tar](tarmk-classes.html) for a high level design overview of Oak Segment Tar.   
+See [Design of Oak Segment Tar](classes.html) for a high level design overview of Oak Segment Tar.   
 
 ## <a name="garbage-collection"/> Garbage Collection
 
