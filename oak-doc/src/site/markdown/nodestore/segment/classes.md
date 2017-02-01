@@ -20,7 +20,7 @@ This section gives a high level overview of the design of Oak Segment Tar, its m
 
 ## Overview
 
-![Class diagram](tarmk-classes.png)
+![Class diagram](classes.png)
 
 The `SegmentNodeStore` is Oak Segment Tar's implementation of the [NodeStore API](../overview.html). It uses a `Revisions` instance for accessing and setting the current head state, a `SegmentReader` for reading records from segments, a `SegmentWriter` for writing records to segments and a `BlobStore` for reading and writing binaries. 
 
