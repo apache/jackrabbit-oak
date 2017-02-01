@@ -17,10 +17,10 @@
 
 # Segments and records
 
-While [TAR files](tar.html) and segments are a coarse-grained mechanism to 
-divide the repository content in more manageable pieces, the real information 
-is stored inside the segments as finer-grained records. This page details the 
-structure of segments and show the binary representation of data stored by Oak. 
+While [TAR files](tar.html) and segments are a coarse-grained mechanism to
+divide the repository content in more manageable pieces, the real information
+is stored inside the segments as finer-grained records. This page details the
+structure of segments and show the binary representation of data stored by Oak.
 
 ## Segments
 
@@ -30,9 +30,9 @@ about node and properties), while the latter contains unstructured data (e.g.
 the value of binary properties or of very long strings).
 
 It is possible to tell apart a bulk segment from a data segment by just looking
-at its identifier. A segment identifier is a randomly generated UUID. Segment 
-identifiers are 16 bytes long, but Oak uses 4 bits to set apart bulk segments 
-from data segments. The following bit patterns are used (each `x` represents 
+at its identifier. A segment identifier is a randomly generated UUID. Segment
+identifiers are 16 bytes long, but Oak uses 4 bits to set apart bulk segments
+from data segments. The following bit patterns are used (each `x` represents
 four random bits):
 
   * `xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx` data segment UUID
@@ -59,16 +59,16 @@ A data segment can be roughly divided in two parts, a header and a data section.
 The header contains management information about the segment itself, while the
 data section stores the actual repository data.
 
-Repository data is split into records of different types. Every type is specialized 
-for storing a specific piece of information: node records, template records, map 
+Repository data is split into records of different types. Every type is specialized
+for storing a specific piece of information: node records, template records, map
 records, list records, etc.
 
-A record is a contiguous sequence of bytes stored at a specific offset inside a 
-segment. A record can have references to other records, where the referenced records 
-can be stored in the same segment or not. Since records can reference each other, a 
+A record is a contiguous sequence of bytes stored at a specific offset inside a
+segment. A record can have references to other records, where the referenced records
+can be stored in the same segment or not. Since records can reference each other, a
 segment actually stores a graph of records.
 
-The segment header also maintains a set of references to *root records*: those 
+The segment header also maintains a set of references to *root records*: those
 records that are not referenced from any other records in the segment.
 
 The overall structure of a data segment is:
@@ -84,18 +84,18 @@ endian format.
     +---------+---------+---------+---------+---------+---------+---------+---------+
     | magic bytes: "0aK"          | version | reserved                               
     +---------+---------+---------+---------+---------+---------+---------+---------+
-      reserved          | generation                            | idcount            
+      reserved          | generation                            | segrefcount            
     +---------+---------+---------+---------+---------+---------+---------+---------+
-      idcount           | rootcount                             | reserved           
+      segrefcount       | reccount                              | reserved           
     +---------+---------+---------+---------+---------+---------+---------+---------+
       reserved                                                                      |
     +---------+---------+---------+---------+---------+---------+---------+---------+
-    | Referenced segment identifiers  (idcount x 16 bytes)                          |
+    | Referenced segment identifiers  (segrefcount x 16 bytes)                      |
     |                                                                               |
     |                                ......                                         |
     |                                                                               |
     +---------+---------+---------+---------+---------+---------+---------+---------+
-    | Root record references  (rootcount x 9 bytes)                                 |
+    | Record headers  (reccount x 9 bytes)                                          |
     |                                                                               |
     |                                ......           +---------+---------+---------+
     |                                                 | padding (set to 0)          |
@@ -103,24 +103,22 @@ endian format.
 
 The first three bytes of a segment always contain the ASCII string "0aK",
 which is intended to make the binary segment data format easily detectable.
-The next byte indicates the version of the segment format and is currently set 
+The next byte indicates the version of the segment format and is currently set
 to 12.
 
-The `generation` field indicates the segment's generation wrt. to garbage 
+The `generation` field indicates the segment's generation wrt. to garbage
 collection. This field is used by the garbage collector to determine whether
 a segment needs to be retained or can be collected.
 
-The `idcount` field indicates how many other segments are referenced by
+The `segrefcount` field indicates how many other segments are referenced by
 records within this segment. The identifiers of those segments are listed
-starting at offset 32 of the segment header. This lookup table is used to 
-optimize garbage collection and to avoid having to repeat the 16-byte 
+starting at offset 32 of the segment header. This lookup table is used to
+optimize garbage collection and to avoid having to repeat the 16-byte
 UUIDs whenever references to records in other segments are made.
 
-The `rootcount` field indicates the number of root record references that 
-follow after the segment identifier lookup table. They identify the types 
-and locations of those records within this segment that are not accessible 
-by following references in other records within this segment. Each entry in
-that table consists of a record number (4 bytes), a record type (1 byte)
+The `reccount` field indicates the number of records in this segment. Record
+headers for each record follow after the segment identifier lookup table.
+Each header consists of a record number (4 bytes), a record type (1 byte)
 and a record offset (4 bytes) from the end of the segment.
 
 ## Record numbers and offsets
@@ -228,26 +226,26 @@ and their internal structures are described in subsections below.
 ### Block records
 
 A block record is the simplest form of record, because it is just a plain
-sequence of bytes up to 4kB. It doesn't even contain a length: it is up to 
-the writer of this record to store the length elsewhere. The only adjustment 
-performed to the data is the alignment. The implementation makes sure that 
-the written sequence of bytes is stored at a position that is a multiple of 
+sequence of bytes up to 4kB. It doesn't even contain a length: it is up to
+the writer of this record to store the length elsewhere. The only adjustment
+performed to the data is the alignment. The implementation makes sure that
+the written sequence of bytes is stored at a position that is a multiple of
 four.
 
 Block records are used as building blocks of large binary and string values.
-They are the only record type that can't contain references to other records. 
-Block records are typically stored in *bulk segments* that consist only of 
-block records and are thus easily identifiable as containing zero references 
+They are the only record type that can't contain references to other records.
+Block records are typically stored in *bulk segments* that consist only of
+block records and are thus easily identifiable as containing zero references
 to other segments.
 
 ### Value records
 
-Value records have more structure than block records and store data with an 
+Value records have more structure than block records and store data with an
 additional length and optional references to other records.
 
 The implementation represents value records in different ways depending on the
 length of the data to be written. If the data is short enough, the record can be
-written in the simplest way possible: a length field and the data inlined directly 
+written in the simplest way possible: a length field and the data inlined directly
 in the record.
 
 When the data is too big, instead, it is split into block records written into
@@ -260,12 +258,12 @@ be used straight away without further reads in the segment. If the data is too
 long, instead, it is stored separated from the repository content not to impact
 the performance of the readers of the segment.
 
-Value records are used for storing names and values of the content tree. Since 
-item names can be thought of as name values and since all JCR and Oak values can 
-be expressed in binary form (strings encoded in UTF-8), it is easiest to simply 
-use that form for storing all values. The size overhead of such a form for small 
-value types like booleans or dates is amortized by the facts that those types are 
-used only for a minority of values in typical content trees and that repeating 
+Value records are used for storing names and values of the content tree. Since
+item names can be thought of as name values and since all JCR and Oak values can
+be expressed in binary form (strings encoded in UTF-8), it is easiest to simply
+use that form for storing all values. The size overhead of such a form for small
+value types like booleans or dates is amortized by the facts that those types are
+used only for a minority of values in typical content trees and that repeating
 copies of a value can be stored just once.
 
 There are four types of value records: small, medium, long and external.
@@ -286,8 +284,8 @@ byte of the record. These bit patterns are:
 
 ### List records
 
-List records represent a general-purpose list of record identifiers. They are 
-used as building blocks for other types of records, as we saw for value records 
+List records represent a general-purpose list of record identifiers. They are
+used as building blocks for other types of records, as we saw for value records
 and as we will see for template records and node records.
 
 The list record is a logical record using two different types of physical
@@ -325,8 +323,8 @@ elements.
 
 ### Map records
 
-Map records implement a general-purpose unordered map of strings to record 
-identifiers. They are used for nodes with a large number of properties or 
+Map records implement a general-purpose unordered map of strings to record
+identifiers. They are used for nodes with a large number of properties or
 child nodes. As lists they are represented using two types of physical record:
 
 - leaf record: if the number of elements in the map is small, they are all
