@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -46,10 +47,13 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
+import static org.hamcrest.CoreMatchers.everyItem;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -754,6 +758,66 @@ public class NodeDocumentTest {
 
         ns1.dispose();
         ns2.dispose();
+    }
+
+    @Ignore("OAK-5559")
+    @Test
+    public void readsWithOverlappingPreviousDocuments() throws Exception {
+        final Map<String, Document> prevDocCalls = newLinkedHashMap();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                T doc = super.find(collection, key);
+                if (collection == NODES && Utils.getPathFromId(key).startsWith("p")) {
+                    prevDocCalls.put(key, doc);
+                }
+                return doc;
+            }
+        };
+        Random random = new Random(42);
+        DocumentNodeStore ns = createTestStore(store, 1, 0);
+        List<RevisionVector> headRevisions = Lists.newArrayList();
+
+        for (int i = 0; i < 1000; i++) {
+            NodeBuilder builder = ns.getRoot().builder();
+            NodeBuilder test = builder.child("test");
+            test.setProperty("p", i);
+            // maintain four other properties and update
+            // them with different probabilities
+            for (int j = 0; j < 4; j++) {
+                if (random.nextInt(j + 1) == 0) {
+                    test.setProperty("p" + j, i);
+                }
+            }
+            merge(ns, builder);
+            headRevisions.add(ns.getHeadRevision());
+            if (i % 3 == 0) {
+                // split the document
+                RevisionVector head = ns.getHeadRevision();
+                NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+                for (UpdateOp op : SplitOperations.forDocument(
+                        doc, ns, head, NO_BINARY, 2)) {
+                    store.createOrUpdate(NODES, op);
+                }
+            }
+        }
+        ns.runBackgroundOperations();
+
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        List<Integer> numCalls = Lists.newArrayList();
+        long count = 0;
+        // go back in time and check number of find calls
+        for (RevisionVector rv : headRevisions) {
+            prevDocCalls.clear();
+            DocumentNodeState s = doc.getNodeAtRevision(ns, rv, null);
+            assertNotNull(s);
+            assertEquals(count++, s.getProperty("p").getValue(Type.LONG).longValue());
+            numCalls.add(prevDocCalls.size());
+        }
+        assertThat(numCalls.toString(), numCalls, everyItem(lessThan(36)));
+
+        ns.dispose();
     }
 
     @Test
