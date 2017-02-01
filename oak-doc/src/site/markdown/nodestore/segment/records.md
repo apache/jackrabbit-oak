@@ -123,99 +123,37 @@ and a record offset (4 bytes) from the end of the segment.
 
 ## Record numbers and offsets
 
-TODO: bring this section up to date wrt. OAK-4659
+Records need a mechanism to reference each other, both from inside the same segment and across different segments. 
+The mechanism used to reference a record is (unsurprisingly) a record identifier.
 
-Records need a mechanism to reference each other, both from inside the same
-segment and across different segments. The mechanism used to reference a record
-is (unsurprisingly) a record identifier.
-
-A record identifier is composed of a *segment field* and a *position field*. The
-segment field is a single byte that identifies the segment where the referenced
-record is stored. The position field is the position of the record inside the
-segment identified by the segment field. There are some peculiarities in both
-the segment and the position field that may not be immediately obvious. The
-picture below shows how a segment looks like.
+A record identifier is composed of a *segment field* and a *record number field*. 
+The segment field is two-bytes short integer that identifies the segment where the referenced record is stored. 
+The record number field is the number of the record inside the segment identified by the segment field. 
+There are some peculiarities in both the segment and the position field that may not be immediately obvious. 
+The picture below shows how a segment looks like.
 
 ![Overview of a segment](segment.png)
 
-The segment field is just one byte long, but a segment identifier is 16 bytes
-long. To bridge the gap, the segment header contains an array of segment
-identifiers that is used as a look-up table. The array can store only 255
-segment identifiers, so a single byte is enough to access every element in the
-array. In fact, the segment field in a record identifier is just an index in the
-array of segment identifiers that is used as a look-up table. The look-up table
-always contains the segment identifier of the current segment in the first
-position: if a segment field is set to zero, the referenced record is stored in
-the current segment.
+The segment field is two bytes long, but a segment identifier is 16 bytes long. 
+To bridge the gap, the segment header contains an array of segment identifiers that is used as a look-up table. 
+The array can store up to `Integer.MAX_VALUE` entries, but two bytes are enough to access every element in the array in practice.
+In fact, the segment field in a record identifier is just an index in the array of segment identifiers that is used as a look-up table.
+The segment field can have the special value of `0`.
+If the segment field is `0`, the referenced record is stored in the current segment.
 
-The definition of the position field relies on some important properties of data
-segments:
+The record number field is a logical identifier for the record.
+The logical identifier is used as a lookup key in the record references table in the segment identified by the segment field.
+Once the correct row in the record references table is found, the record offset can be used to locate the position of the record in the segment.
 
-- data segments have a maximum size of 256 KiB, or `0x40000` bytes. The size of
-  a data segment can never exceed this limit, but it is perfectly legal to have
-  data segments smaller than 256 KiB.
-
-- records are always aligned on a two-bit boundaries. Stated differently, when a
-  record is written in a segment, it must be stored at a position that is a
-  multiple of four.
-
-- records are stored from the end of the segment. Even if this may seem
-  counterintuitive, it makes perfectly sense if you consider that new records
-  are written as a consequence of an in-depth traversal of a content tree.
-  Writing records from the end of the segment guarantees that the records that
-  are relevant to the root of the content tree are at the beginning of the
-  segment, while records that are relevant to the leaves of the content tree are
-  stored at the end. This makes reading from the segment faster, because
-  operating systems are optimized to read files from the beginning to the end,
-  and not backwards.
-
-So, according to the the previous properties, allowed positions range from
-`0x40000` (not included) to zero (included). Moreover, assigned positions must
-be multiples of four.
+The offset is relative to the beginning of a theoretical segment which is defined to be 256 KiB.
+Since records are added from the bottom of a segment to the top (i.e. from higher to lower offsets), and since segments could be shrunk down to be smaller than 256 KiB, the offset has to be normalized with to the following formula.
 
 ```
-0x3FFFC, 0x3FFF8, 0x3FFF4, 0x3FFF0, 0x3FFEC, ..., 0x0
+SIZE - 256 KiB + OFFSET
 ```
 
-As you can see, three bytes would be necessary to store these positions, but we
-know that a record identifier uses only two bytes to store position values. This
-is possible because of a very simple optimization made to the positions before
-being used in a record identifier. Since the positions are multiples of four,
-the last two least significant bits are always zero. Being constant, these bits
-can be removed by shifting the positions to the right twice. After the shift,
-the list of possible positions become
-
-```
-0xFFFF, 0xFFFE, 0xFFFD, 0xFFFC, 0xFFFB, ..., 0x0
-```
-
-With this optimization, only two bytes are necessary to store a position inside
-a record identifier. Of course, when you read a position from a record
-identifier you have to remember to shift the position to left twice to obtain a
-valid position.
-
-The last important piece of information about positions is that they are always
-assigned on a logic segment size of `0x40000` bytes, even if the segment ends up
-to be smaller than 256 KiB. This doesn't mean that these absolute positions are
-useless: in fact, they are converted to offsets relative to the effective end of
-the segment.
-
-Hopefully an example will clarify this.
-
-Let's suppose that you are reading from a segment whose size is just 128 bytes.
-Let's also suppose that you want to read a record from the position `0xFFF8`.
-The problem is that the position `0xFFF8` was computed on a logical segment size
-of 256 KiB (or `0x40000` bytes), so you have to convert the position `0xFFF8`
-into an offset that can be used with the segment you are reading from. First of
-all, the two least significant bits were stripped away from the position, so you
-have to rotate `0xFFF8` two places to the left to obtain a proper position of
-`0xFFF8 << 2 = 0x3FFE0`. How far was this position from the logical size of
-`0x40000` bytes? It is easy to compute that the referenced record is `0x40000 -
-0x3FFE0 = 0x20 = 32` bytes before the end of the segment.
-
-Given that the size of the current segment is only 128 bytes, you can use an
-absolute position of `128 - 32 = 96` in the segment to read the record you are
-interested in.
+`SIZE` is the actual size of the segment under inspection, and `OFFSET` is the offset looked up from the record references table.
+The normalized offset can be used to locate the position of the record in the current segment.
 
 ## Records
 
