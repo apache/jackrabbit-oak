@@ -531,7 +531,7 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check --path PATH [--journal JOURNAL] [--deep] [--notify SECS] [--bin [LENGTH]]
+java -jar oak-run.jar check PATH [--journal JOURNAL] [--deep] [--notify SECS] [--bin [LENGTH]]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
