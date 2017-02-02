@@ -531,7 +531,7 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check --path PATH [--journal JOURNAL] [--deep [SECS]] [--bin [LENGTH]]
+java -jar oak-run.jar check --path PATH [--journal JOURNAL] [--deep] [--notify SECS] [--bin [LENGTH]]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
@@ -542,9 +542,10 @@ If the `--journal` option is specified, the tool will use the journal file at `J
 `JOURNAL` must be a path to a valid journal file for the Segment Store. 
 
 If the `--deep` option is specified, the tool will perform a deep scan of the content tree, traversing every node.
-The optional argument `SECS` is the number of seconds between progress information messages.
-If not specified, `SECS` defaults to positive infinity, effectively disabling progress information messages.
-If `SECS` is specified to be `0`, every progress information message is printed.
+
+If the `--notify` option is specified, the tool will print progress information messages every `SECS` seconds.
+If not specified, progress information messages will be disabled.
+If `SECS` equals `0`, every progress information message is printed.
 
 If the `--bin` option is specified, the tool will scan the content of binary properties, up to the specified length `LENGTH`.
 The default value for `LENGTH` is `0`, effectively disabling the traversal of binary properties.

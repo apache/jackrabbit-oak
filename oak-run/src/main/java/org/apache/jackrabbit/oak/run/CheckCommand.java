@@ -37,10 +37,11 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<String> journal = parser.accepts(
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
-        ArgumentAcceptingOptionSpec<Long> deep = parser.accepts(
-                "deep", "enable deep consistency checking. An optional long " +
-                        "specifies the number of seconds between progress notifications")
-                .withOptionalArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
+        OptionSpec deep = parser.accepts(
+                "deep", "enable deep consistency checking. ");
+        ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
+                "notify", "number of seconds between progress notifications")
+                .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
         ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
                 "bin", "read the n first bytes from binary properties. -1 for all bytes.")
                 .withOptionalArg().ofType(Long.class).defaultsTo(0L);
@@ -57,7 +58,7 @@ class CheckCommand implements Command {
         File dir = isValidFileStoreOrFail(new File(path.value(options)));
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
-        long debugLevel = deep.value(options);
+        long debugLevel = notify.value(options);
         long binLen = bin.value(options);
 
         if (options.has(segment)) {

@@ -98,11 +98,11 @@ public class Check implements Runnable {
          * parameter is not required and defaults to an arbitrary large number.
          *
          * @param debugInterval number of seconds between successive debug print
-         *                      statements. It must be strictly positive.
+         *                      statements. It must be positive.
          * @return this builder.
          */
         public Builder withDebugInterval(long debugInterval) {
-            checkArgument(debugInterval > 0);
+            checkArgument(debugInterval >= 0);
             this.debugInterval = debugInterval;
             return this;
         }
