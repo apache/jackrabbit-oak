@@ -531,7 +531,7 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check PATH [--journal JOURNAL] [--deep] [--notify SECS] [--bin [LENGTH]]
+java -jar oak-run.jar check PATH [--journal JOURNAL] [--deep] [--notify SECS] [--bin [LENGTH]] [--io-stats]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
@@ -552,6 +552,9 @@ If not specified, the full traversal of binary properties is enabled.
 If `LENGTH` is set to a value greater than `0`, only the initial `LENGTH` bytes of binary properties are traversed.
 If `LENGTH` is set to `0`, the traversal is disabled.
 The `--bin` property has no effect on binary properties stored in an external Blob Store.
+
+If the `--io-stats` option is specified, the tool will print some statistics about the I/O operations performed during the execution of the check command.
+This option is optional and is disabled by default.
 
 ### <a name="compact"/> Compact
 

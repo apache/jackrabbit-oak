@@ -53,6 +53,8 @@ public class Check implements Runnable {
 
         private long minimumBinaryLength;
 
+        private boolean ioStatistics;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -115,10 +117,24 @@ public class Check implements Runnable {
          *                            binary properties. If this parameter is
          *                            set to {@code -1}, every binary property
          *                            is read in its entirety.
-         * @return
+         * @return this builder.
          */
         public Builder withMinimumBinaryLength(long minimumBinaryLength) {
             this.minimumBinaryLength = minimumBinaryLength;
+            return this;
+        }
+
+        /**
+         * Instruct the command to print statistics about I/O operations
+         * performed during the check. This parameter is not required and
+         * defaults to {@code false}.
+         *
+         * @param ioStatistics {@code true} if I/O statistics should be
+         *                     provided, {@code false} otherwise.
+         * @return this builder.
+         */
+        public Builder withIOStatistics(boolean ioStatistics) {
+            this.ioStatistics = ioStatistics;
             return this;
         }
 
@@ -145,18 +161,21 @@ public class Check implements Runnable {
 
     private final long minimumBinaryLength;
 
+    private final boolean ioStatistics;
+
     private Check(Builder builder) {
         this.path = builder.path;
         this.journal = builder.journal;
         this.fullTraversal = builder.fullTraversal;
         this.debugInterval = builder.debugInterval;
         this.minimumBinaryLength = builder.minimumBinaryLength;
+        this.ioStatistics = builder.ioStatistics;
     }
 
     @Override
     public void run() {
         try {
-            ConsistencyChecker.checkConsistency(path, journal, fullTraversal, debugInterval, minimumBinaryLength);
+            ConsistencyChecker.checkConsistency(path, journal, fullTraversal, debugInterval, minimumBinaryLength, ioStatistics);
         } catch (Exception e) {
             e.printStackTrace();
         }
