@@ -23,6 +23,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Math.min;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
@@ -35,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -42,6 +44,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -56,9 +60,27 @@ import org.slf4j.LoggerFactory;
  * reporting that latest consistent revision.
  */
 public class ConsistencyChecker implements Closeable {
+
+    private static class StatisticsIOMonitor extends IOMonitorAdapter {
+
+        private final AtomicLong ioOperations = new AtomicLong(0);
+
+        private final AtomicLong bytesRead = new AtomicLong(0);
+
+        @Override
+        public void onSegmentRead(File file, long msb, long lsb, int length) {
+            ioOperations.incrementAndGet();
+            bytesRead.addAndGet(length);
+        }
+
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(ConsistencyChecker.class);
 
+    private final StatisticsIOMonitor statisticsIOMonitor = new StatisticsIOMonitor();
+
     private final ReadOnlyFileStore store;
+
     private final long debugInterval;
 
     /**
@@ -71,18 +93,26 @@ public class ConsistencyChecker implements Closeable {
      * @param debugInterval    number of seconds between printing progress information to
      *                         the console during the full traversal phase.
      * @param binLen           number of bytes to read from binary properties. -1 for all.
-     * @return  the latest consistent revision out of the revisions listed in the journal.
      * @throws IOException
      */
-    public static String checkConsistency(File directory, String journalFileName,
-            boolean fullTraversal, long debugInterval, long binLen) throws IOException, InvalidFileStoreVersionException {
+    public static void checkConsistency(
+            File directory,
+            String journalFileName,
+            boolean fullTraversal,
+            long debugInterval,
+            long binLen,
+            boolean ioStatistics
+    ) throws IOException, InvalidFileStoreVersionException {
         print("Searching for last good revision in {}", journalFileName);
-        Set<String> badPaths = newHashSet();
         try (
-            JournalReader journal = new JournalReader(new File(directory, journalFileName));
-            ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval)) {
+                JournalReader journal = new JournalReader(new File(directory, journalFileName));
+                ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics)
+        ) {
+            Set<String> badPaths = newHashSet();
+            String latestGoodRevision = null;
             int revisionCount = 0;
-            while (journal.hasNext()) {
+
+            while (journal.hasNext() && latestGoodRevision == null) {
                 String revision = journal.next();
                 try {
                     print("Checking revision {}", revision);
@@ -94,7 +124,7 @@ public class ConsistencyChecker implements Closeable {
                     if (badPath == null) {
                         print("Found latest good revision {}", revision);
                         print("Searched through {} revisions", revisionCount);
-                        return revision;
+                        latestGoodRevision = revision;
                     } else {
                         badPaths.add(badPath);
                         print("Broken revision {}", revision);
@@ -103,10 +133,23 @@ public class ConsistencyChecker implements Closeable {
                     print("Skipping invalid record id {}", revision);
                 }
             }
-        }
 
-        print("No good revision found");
-        return null;
+            if (ioStatistics) {
+                print(
+                        "[I/O] Segment read operations: {}",
+                        checker.statisticsIOMonitor.ioOperations
+                );
+                print(
+                        "[I/O] Segment bytes read: {} ({} bytes)",
+                        humanReadableByteCount(checker.statisticsIOMonitor.bytesRead.get()),
+                        checker.statisticsIOMonitor.bytesRead
+                );
+            }
+
+            if (latestGoodRevision == null) {
+                print("No good revision found");
+            }
+        }
     }
 
     /**
@@ -117,9 +160,12 @@ public class ConsistencyChecker implements Closeable {
      *                         the console during the full traversal phase.
      * @throws IOException
      */
-    public ConsistencyChecker(File directory, long debugInterval)
-            throws IOException, InvalidFileStoreVersionException {
-        store = fileStoreBuilder(directory).buildReadOnly();
+    public ConsistencyChecker(File directory, long debugInterval, boolean ioStatistics) throws IOException, InvalidFileStoreVersionException {
+        FileStoreBuilder builder = fileStoreBuilder(directory);
+        if (ioStatistics) {
+            builder.withIOMonitor(statisticsIOMonitor);
+        }
+        this.store = builder.buildReadOnly();
         this.debugInterval = debugInterval;
     }
 
