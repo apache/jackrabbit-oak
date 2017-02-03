@@ -168,7 +168,7 @@ public class FileStore extends AbstractFileStore {
     private final FileStoreStats stats;
 
     @Nonnull
-    private final SegmentNotFoundExceptionListener snfeListener; 
+    private final SegmentNotFoundExceptionListener snfeListener;
 
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
@@ -209,7 +209,7 @@ public class FileStore extends AbstractFileStore {
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
         for (int i = indices.length - 1; i >= 0; i--) {
-            readers.add(TarReader.open(map.get(indices[i]), memoryMapping, recovery));
+            readers.add(TarReader.open(map.get(indices[i]), memoryMapping, recovery, ioMonitor));
         }
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
 
@@ -684,7 +684,7 @@ public class FileStore extends AbstractFileStore {
             File writeFile = tarWriter.getFile();
             List<TarReader> list =
                     newArrayListWithCapacity(1 + readers.size());
-            list.add(TarReader.open(writeFile, memoryMapping));
+            list.add(TarReader.open(writeFile, memoryMapping, ioMonitor));
             list.addAll(readers);
             readers = list;
             tarWriter = newWriter;

@@ -86,9 +86,8 @@ class TarReader implements Closeable {
         return BLOCK_SIZE + size + TarWriter.getPaddingSize(size);
     }
 
-    static TarReader open(File file, boolean memoryMapping) throws IOException {
-        TarReader reader = openFirstFileWithValidIndex(
-                singletonList(file), memoryMapping);
+    static TarReader open(File file, boolean memoryMapping, IOMonitor ioMonitor) throws IOException {
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
         if (reader != null) {
             return reader;
         } else {
@@ -111,14 +110,14 @@ class TarReader implements Closeable {
      * @return
      * @throws IOException
      */
-    static TarReader open(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery) throws IOException {
+    static TarReader open(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
         SortedMap<Character, File> sorted = newTreeMap();
         sorted.putAll(files);
 
         List<File> list = newArrayList(sorted.values());
         Collections.reverse(list);
 
-        TarReader reader = openFirstFileWithValidIndex(list, memoryMapping);
+        TarReader reader = openFirstFileWithValidIndex(list, memoryMapping, ioMonitor);
         if (reader != null) {
             return reader;
         }
@@ -134,7 +133,7 @@ class TarReader implements Closeable {
         File file = sorted.values().iterator().next();
         generateTarFile(entries, file, recovery);
 
-        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
+        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
         if (reader != null) {
             return reader;
         } else {
@@ -142,13 +141,12 @@ class TarReader implements Closeable {
         }
     }
 
-    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, boolean recover, TarRecovery recovery) throws IOException {
+    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, boolean recover, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         File file = files.get(Collections.max(files.keySet()));
 
-        TarReader reader = openFirstFileWithValidIndex(singletonList(file),
-                memoryMapping);
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
         if (reader != null) {
             return reader;
         }
@@ -162,8 +160,7 @@ class TarReader implements Closeable {
             collectFileEntries(file, entries, false);
             file = findAvailGen(file, ".ro.bak");
             generateTarFile(entries, file, recovery);
-            reader = openFirstFileWithValidIndex(singletonList(file),
-                    memoryMapping);
+            reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
             if (reader != null) {
                 return reader;
             }
@@ -259,7 +256,7 @@ class TarReader implements Closeable {
         return backup;
     }
 
-    private static TarReader openFirstFileWithValidIndex(List<File> files, boolean memoryMapping) {
+    private static TarReader openFirstFileWithValidIndex(List<File> files, boolean memoryMapping, IOMonitor ioMonitor) {
         for (File file : files) {
             String name = file.getName();
             try {
@@ -285,7 +282,7 @@ class TarReader implements Closeable {
                                 index = mapped.read(
                                         mapped.length() - indexSize - 16 - 1024,
                                         indexSize);
-                                return new TarReader(file, mapped, index);
+                                return new TarReader(file, mapped, index, ioMonitor);
                             } catch (IOException e) {
                                 log.warn("Failed to mmap tar file {}. Falling back to normal file " +
                                         "IO, which will negatively impact repository performance. " +
@@ -301,7 +298,7 @@ class TarReader implements Closeable {
                         // prevent the finally block from closing the file
                         // as the returned TarReader will take care of that
                         access = null;
-                        return new TarReader(file, random, index);
+                        return new TarReader(file, random, index, ioMonitor);
                     }
                 } finally {
                     if (access != null) {
@@ -504,10 +501,13 @@ class TarReader implements Closeable {
 
     private volatile boolean hasGraph;
 
-    private TarReader(File file, FileAccess access, ByteBuffer index) {
+    private final IOMonitor ioMonitor;
+
+    private TarReader(File file, FileAccess access, ByteBuffer index, IOMonitor ioMonitor) {
         this.file = file;
         this.access = access;
         this.index = index;
+        this.ioMonitor = ioMonitor;
     }
 
     long size() {
@@ -572,9 +572,10 @@ class TarReader implements Closeable {
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
         int position = findEntry(msb, lsb);
         if (position != -1) {
-            return access.read(
-                    index.getInt(position + 16),
-                    index.getInt(position + 20));
+            int pos = index.getInt(position + 16);
+            int len = index.getInt(position + 20);
+            ioMonitor.onSegmentRead(file, msb, lsb, len);
+            return access.read(pos, len);
         } else {
             return null;
         }
@@ -845,9 +846,9 @@ class TarReader implements Closeable {
         for (TarEntry entry : entries) {
             if (entry != null) {
                 byte[] data = new byte[entry.size()];
+                ioMonitor.onSegmentRead(file, entry.msb(), entry.lsb(), entry.size());
                 access.read(entry.offset(), entry.size()).get(data);
-                writer.writeEntry(
-                        entry.msb(), entry.lsb(), data, 0, entry.size(), entry.generation());
+                writer.writeEntry(entry.msb(), entry.lsb(), data, 0, entry.size(), entry.generation());
             }
         }
 
@@ -893,8 +894,7 @@ class TarReader implements Closeable {
 
         writer.close();
 
-        TarReader reader = openFirstFileWithValidIndex(
-                singletonList(newFile), access.isMemoryMapped());
+        TarReader reader = openFirstFileWithValidIndex(singletonList(newFile), access.isMemoryMapped(), ioMonitor);
         if (reader != null) {
             reclaimed.addAll(cleaned);
             return reader;

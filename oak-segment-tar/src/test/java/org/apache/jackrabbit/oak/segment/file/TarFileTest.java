@@ -68,14 +68,14 @@ public class TarFileTest {
 
         assertEquals(5120, file.length());
 
-        TarReader reader = TarReader.open(file, false);
+        TarReader reader = TarReader.open(file, false, new IOMonitorAdapter());
         try {
             assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         } finally {
             reader.close();
         }
 
-        reader = TarReader.open(file, false);
+        reader = TarReader.open(file, false, new IOMonitorAdapter());
         try {
             assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         } finally {
@@ -125,7 +125,7 @@ public class TarFileTest {
         expected.put(2, two);
         expected.put(3, three);
 
-        try (TarReader reader = TarReader.open(file, false)) {
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             assertEquals(expected, reader.getBinaryReferences());
         }
     }
@@ -147,7 +147,7 @@ public class TarFileTest {
 
         Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
 
-        try (TarReader reader = TarReader.open(file, false)) {
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
                 assertNotNull(swept);
 
@@ -184,7 +184,7 @@ public class TarFileTest {
 
         Set<UUID> sweep = newSet(new UUID(1, 2), new UUID(2, 3));
 
-        try (TarReader reader = TarReader.open(file, false)) {
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
                 assertNotNull(swept);
 

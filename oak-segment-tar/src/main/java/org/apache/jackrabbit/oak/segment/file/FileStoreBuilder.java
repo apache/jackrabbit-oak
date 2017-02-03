@@ -113,6 +113,8 @@ public class FileStoreBuilder {
 
     @Nonnull
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
+
+    private IOMonitor ioMonitor = new IOMonitorAdapter();
     
     private boolean built;
 
@@ -283,6 +285,11 @@ public class FileStoreBuilder {
         this.snfeListener = checkNotNull(snfeListener);
         return this;
     }
+
+    public FileStoreBuilder withIOMonitor(IOMonitor ioMonitor) {
+        this.ioMonitor = checkNotNull(ioMonitor);
+        return this;
+    }
     
     /**
      * Create a new {@link FileStore} instance with the settings specified in this
@@ -419,6 +426,10 @@ public class FileStoreBuilder {
                     stringDeduplicationCacheSize, templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
         }
         return cacheManager;
+    }
+
+    IOMonitor getIOMonitor() {
+        return ioMonitor;
     }
 
     @Override
