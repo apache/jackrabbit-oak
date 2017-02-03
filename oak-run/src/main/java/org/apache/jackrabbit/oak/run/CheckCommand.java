@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.run;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
 
 import java.io.File;
+import java.io.IOException;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -40,29 +41,46 @@ class CheckCommand implements Command {
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
         ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
-                "bin", "read the n first bytes from binary properties. -1 for all bytes.")
-                .withOptionalArg().ofType(Long.class).defaultsTo(0L);
+                "bin", "read the first n bytes from binary properties.")
+                .withRequiredArg().ofType(Long.class);
         OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().size() != 1) {
-            System.err.println("usage: check path/to/segmentstore <options>");
-            parser.printHelpOn(System.err);
-            System.exit(1);
+            printUsage(parser);
         }
 
         File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
         long debugLevel = notify.value(options);
-        long binLen = bin.value(options);
+
+        long binLen = -1L;
+        
+        if (options.has(bin)) {
+            binLen = bin.value(options);
+
+            if (binLen < 0) {
+                printUsage(parser, "The value for --bin option must be a positive number!");
+            }
+        }
 
         if (options.has(segment)) {
             SegmentUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
         } else {
             SegmentTarUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
         }
+    }
+
+    private void printUsage(OptionParser parser, String... messages) throws IOException {
+        for (String message : messages) {
+            System.err.println(message);
+        }
+        
+        System.err.println("usage: check path/to/segmentstore <options>");
+        parser.printHelpOn(System.err);
+        System.exit(1);
     }
 
 }
