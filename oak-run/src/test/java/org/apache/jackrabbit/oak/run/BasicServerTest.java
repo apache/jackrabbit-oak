@@ -23,16 +23,17 @@ import static org.junit.Assert.assertEquals;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class BasicServerTest {
 
-    private static int getPort() {
-        return Integer.getInteger("jetty.http.port", 8080);
-    }
+    @Rule
+    public final TemporaryPort temporaryPort = new TemporaryPort();
 
     private HttpServer server;
 
@@ -52,6 +53,10 @@ public class BasicServerTest {
         HttpURLConnection conn = (HttpURLConnection) server.openConnection();
         conn.setRequestProperty("Authorization", "Basic " + Base64.encode("admin:admin"));
         assertEquals(200, conn.getResponseCode());
+    }
+
+    private int getPort() {
+        return temporaryPort.getPort();
     }
 
 }
