@@ -548,9 +548,9 @@ If not specified, progress information messages will be disabled.
 If `SECS` equals `0`, every progress information message is printed.
 
 If the `--bin` option is specified, the tool will scan the content of binary properties, up to the specified length `LENGTH`.
-The default value for `LENGTH` is `0`, effectively disabling the traversal of binary properties.
+If not specified, the full traversal of binary properties is enabled.
 If `LENGTH` is set to a value greater than `0`, only the initial `LENGTH` bytes of binary properties are traversed.
-If `LENGTH` is set to `-1`, binary properties are fully traversed.
+If `LENGTH` is set to `0`, the traversal is disabled.
 The `--bin` property has no effect on binary properties stored in an external Blob Store.
 
 ### <a name="compact"/> Compact
