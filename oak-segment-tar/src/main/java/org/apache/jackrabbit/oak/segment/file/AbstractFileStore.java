@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.RecordType;
@@ -55,8 +56,6 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Supplier;
 
 /**
  * The storage implementation for tar files.
@@ -120,6 +119,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     };
 
+    protected final IOMonitor ioMonitor;
+
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
         this.tracker = new SegmentTracker();
@@ -132,6 +133,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             }
         }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
         this.memoryMapping = builder.getMemoryMapping();
+        this.ioMonitor = builder.getIOMonitor();
     }
 
      File getManifestFile() {
