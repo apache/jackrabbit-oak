@@ -130,7 +130,9 @@ public class LuceneDocumentMaker {
             facet |= pd.facet;
         }
 
-        dirty |= indexAggregates(path, fields, state);
+        boolean[] dirties = indexAggregates(path, fields, state);
+        dirty |= dirties[0]; // any (aggregate) indexing happened
+        facet |= dirties[1]; // facet indexing during (index-time) aggregation
         dirty |= indexNullCheckEnabledProps(path, fields, state);
         dirty |= indexFunctionRestrictions(path, fields, state);
         dirty |= indexNotNullCheckEnabledProps(path, fields, state);
@@ -521,9 +523,18 @@ public class LuceneDocumentMaker {
         return node;
     }
 
-    private boolean indexAggregates(final String path, final List<Field> fields,
+    /**
+     * index aggregates on a certain path
+     * @param path the path of the node
+     * @param fields the list of fields
+     * @param state the node state
+     * @return an array of booleans whose first element is {@code true} if any indexing has happened
+     * and the second element is {@code true} if facets on any (aggregate) property have been indexed
+     */
+    private boolean[] indexAggregates(final String path, final List<Field> fields,
                                     final NodeState state) {
         final AtomicBoolean dirtyFlag = new AtomicBoolean();
+        final AtomicBoolean facetFlag = new AtomicBoolean();
         indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
             @Override
             public void onResult(Aggregate.NodeIncludeResult result) {
@@ -543,12 +554,15 @@ public class LuceneDocumentMaker {
                 dirty |= indexProperty(path, fields, state, result.propertyState,
                         result.propertyPath, result.pd);
 
+                if (result.pd.facet) {
+                    facetFlag.set(true);
+                }
                 if (dirty) {
                     dirtyFlag.set(true);
                 }
             }
         });
-        return dirtyFlag.get();
+        return new boolean[]{dirtyFlag.get(), facetFlag.get()};
     }
     /**
      * Create the fulltext field from the aggregated nodes. If result is for aggregate for a relative node
