@@ -51,4 +51,17 @@ public class NodeStateFacetsConfigTest {
         assertTrue(dimConfig2.multiValued);
     }
 
+    @Test
+    public void testMultivaluedRelativeDimConfig() throws Exception {
+        NodeStateFacetsConfig nodeStateFacetsConfig = new NodeStateFacetsConfig(builder);
+        String dimension = "jcr:content/text";
+        nodeStateFacetsConfig.setMultiValued(dimension, true);
+        FacetsConfig.DimConfig dimConfig = nodeStateFacetsConfig.getDimConfig(dimension);
+        assertNotNull(dimConfig);
+        assertTrue(dimConfig.multiValued);
+
+        NodeStateFacetsConfig nodeStateFacetsConfig2 = new NodeStateFacetsConfig(builder);
+        assertTrue(nodeStateFacetsConfig.getDimConfig(dimension).multiValued);
+    }
+
 }
