@@ -41,13 +41,11 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Ignore("OAK-5557")
 public class DocumentNodeStoreBranchesTest {
 
     static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBranchesTest.class);
