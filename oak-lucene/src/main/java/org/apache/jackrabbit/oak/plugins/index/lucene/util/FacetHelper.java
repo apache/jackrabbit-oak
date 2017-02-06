@@ -47,7 +47,7 @@ public class FacetHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(FacetHelper.class);
 
     /**
-     * IndexPaln Attribute name which refers to the name of the fields that should used for facets.
+     * IndexPaln Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
