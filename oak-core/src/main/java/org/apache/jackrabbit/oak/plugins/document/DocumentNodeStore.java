@@ -2319,6 +2319,14 @@ public final class DocumentNodeStore
         long minTimestamp = Math.min(
                 revisionComparator.getMinimumTimestamp(fromRev, inactiveClusterNodes),
                 revisionComparator.getMinimumTimestamp(toRev, inactiveClusterNodes));
+        for (Revision r : new Revision[]{fromRev, toRev}) {
+            if (r.isBranch()) {
+                Branch b = branches.getBranch(r);
+                if (b != null) {
+                    minTimestamp = Math.min(b.getBase().getTimestamp(), minTimestamp);
+                }
+            }
+        }
         long minValue = NodeDocument.getModifiedInSecs(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
