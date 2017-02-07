@@ -817,8 +817,26 @@ public class QueryTest extends AbstractRepositoryTest {
     @Test
     public void approxCount() throws Exception {
         Session session = createAdminSession();
-        double c = getCost(session, "//*[@x=1]");
+        session.getNode("/oak:index/counter").setProperty("resolution", 100);
+        session.save();
         // *with* the counter index, the estimated cost to traverse is low
+        // but the counter index is not always up to date, so we need a loop
+        for (int i = 0; i < 100; i++) {
+            double c = getCost(session, "//*[@x=1]");
+            if (c > 0 && c < 100000) {
+                break;
+            }
+            // create a few nodes, in case there are not enough nodes
+            // for the node counter index to be available
+            Node testNode = session.getRootNode().addNode("test" + i);
+            for (int j = 0; j < 100; j++) {
+                testNode.addNode("n" + j);
+            }
+            session.save();
+            // wait for async indexing (the node counter index is async)
+            Thread.sleep(100);
+        }
+        double c = getCost(session, "//*[@x=1]");
         assertTrue("cost: " + c, c > 0 && c < 100000);
         
         // *without* the counter index, the estimated cost to traverse is high
