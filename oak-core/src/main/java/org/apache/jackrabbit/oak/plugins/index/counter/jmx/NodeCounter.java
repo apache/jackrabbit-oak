@@ -123,6 +123,10 @@ public class NodeCounter implements NodeCounterMBean {
             return -1;
         }
         s = child(s, NodeCounterEditor.DATA_NODE_NAME);
+        if (!s.exists()) {
+            // no index data (not yet indexed, or very few nodes)
+            return -1;
+        }        
         s = child(s, PathUtils.elements(path));
         if (s == null || !s.exists()) {
             // we have an index, but no data
@@ -164,6 +168,10 @@ public class NodeCounter implements NodeCounterMBean {
             return -1;
         }
         s = child(s, NodeCounterEditor.DATA_NODE_NAME);
+        if (!s.exists()) {
+            // no index data (not yet indexed, or very few nodes)
+            return -1;
+        }
         s = child(s, PathUtils.elements(path));
         if (s != null && s.exists()) {
             value = getCombinedCountIfAvailable(s);
