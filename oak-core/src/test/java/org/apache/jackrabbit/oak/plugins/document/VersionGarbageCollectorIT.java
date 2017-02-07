@@ -180,12 +180,14 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
 
         //3. Check that deleted doc does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
+        assertEquals(1, stats.deletedLeafDocGCCount);
 
         //4. Check that a revived doc (deleted and created again) does not get gc
         NodeBuilder b3 = store.getRoot().builder();
@@ -199,6 +201,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
 
     }
 
@@ -249,6 +252,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(2, stats.splitDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
 
         //Previous doc should be removed
         assertNull(getDoc(previousDocTestFoo.get(0).getPath()));
@@ -306,6 +310,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(10, stats.splitDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
 
         DocumentNodeState test = getDoc("/test").getNodeAtRevision(
                 store, store.getHeadRevision(), null);
@@ -342,6 +347,7 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
+        assertEquals(1, stats.deletedLeafDocGCCount);
 
         Set<String> children = Sets.newHashSet();
         for (ChildNodeEntry entry : store.getRoot().getChildNodeEntries()) {
@@ -369,6 +375,7 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(2, stats.splitDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
 
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
@@ -500,6 +507,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = f.get();
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(2, stats.splitDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
     }
 
     // OAK-4819
@@ -530,6 +538,7 @@ public class VersionGarbageCollectorIT {
         // gc must not fail
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
+        assertEquals(1, stats.deletedLeafDocGCCount);
     }
 
     @Test
