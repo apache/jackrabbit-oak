@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.13
 
 Introduction
 ------------
@@ -7,92 +7,45 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.12 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.13 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.12
+Changes in Oak 1.4.13
 ---------------------
 
 Technical task
 
-    [OAK-4225] - AbstractOak2OakTest never calls
-    getSoureContainer().clean()
-    [OAK-4241] - JdbcNodeStoreContainer does not correctly clean up H2
-    temp files
-    [OAK-5098] - improve DocumentNodeStoreService robustness for RDB
-    configs
+    [OAK-5554] - RDB*Store: update postgresql JDBC driver reference to 9.4.1212
+    [OAK-5555] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.73
+
 
 Bug
 
-    [OAK-4420] - RepositorySidegrade: oak-segment to oak-segment-tar
-    should migrate checkpoint info
-    [OAK-4717] - TarNodeStore.checkpoint methods represent endless
-    loop
-    [OAK-4842] - Upgrade breaks if there's no SearchManager configured
-    in repository.xml
-    [OAK-5112] - oak-upgrade breaking versionStorage node when started
-    with copy-versions=false
-    [OAK-5133] - StoreArgument class getter method opens repo in
-    read/write and unsafe MMAP mode
-    [OAK-5233] - Parameter --src-datastore is being ignored for JCR2
-    upgrade
-    [OAK-5260] - Incorrect handling of subpaths with leading left
-    curly bracket
-    [OAK-5262] - Test failure:
-    NodeTypeIndexingUtilsTest.testSynonymsFileCreation
-    [OAK-5358] - test failures for oak-auth-ldap on Windows
-    [OAK-5410] - Backport OAK-5260 (Incorrect handling of subpaths
-    with leading left curly bracket)
+    [OAK-5338] - Test failures: ExternalSharedStoreIT
+    [OAK-5533] - Lucene indexing of mv facets fails because of hidden persisted FacetsConfig
+    [OAK-5536] - Facets on relative properties do not work properly
+    [OAK-5557] - incomplete diffManyChildren during commitHook evaluation in a persisted branch
+
 
 Improvement
 
-    [OAK-4447] - RepositorySidegrade: oak-segment to oak-segment-tar
-    migrate without external datastore
-    [OAK-4564] - Use Lucene index to look for long-named nodes in JCR2
-    upgrade
-    [OAK-4624] - Optionally ignore missing blobs during sidegrade
-    [OAK-4630] - Create segment and segment tar directory only when
-    it's missing
-    [OAK-4639] - Enable --missingblobstore by default for the
-    sidegrade
-    [OAK-4696] - Improve logging for SyncHandler
-    [OAK-4725] - Enable mmap mode by default for migration to
-    SegmentNodeStore
-    [OAK-4748] - Migration tool should check if the source and
-    destination repositories are different
-    [OAK-4751] - Improve the checkpoint migration performance
-    [OAK-4758] - Allow tweaking of node migration logs threshold
-    [OAK-4761] - Reduce the number of calls to
-    /jcr:system/jcr:versionStorage during the upgrade
-    [OAK-4762] - Rebuild indexes only for partial sidegrades
-    [OAK-4831] - Don't break the upgrade tests if the directory can't
-    be cleaned-up
-    [OAK-4849] - Refactor the MigrationCliArguments from implicit to
-    explicit
-    [OAK-4970] - Sidegrade disk usage issues related to copying
-    version storage
-    [OAK-5030] - Copying the versions store is slow and increase the
-    repository size
-    [OAK-5043] - Very old JR2 repositories may have invalid nodetypes
-    for groupsPath and usersPath
-    [OAK-5100] - Provide source store external references flag via
-    command line if available
-    [OAK-5154] - Checkpoints should only be migrated if no custom
-    paths are defined
-    [OAK-5157] - Source repository should be opened in read-only mode
-    for sidegrade
-    [OAK-5290] - Backport the performance improvements for oak-upgrade
-    from trunk
-    [OAK-5337] - LastRevRecoveryAgent should avoid recovering
-    documents from its own cluster id if the instance is running
+    [OAK-5443] - VersionGarbageCollector:measure time to sort docIds separately
+
 
 New Feature
 
-    [OAK-4983] - Add --verify mode to the RepositorySidegrade
+    [OAK-5593] - Backport number of facets retrieved in query configurable for LucenePropertyIndex in branch 1.4
+
+
+Task
+
+    [OAK-5451] - Make IndexTracker public to enable its use in non OSGi environment
+    [OAK-5537] - Javadoc config fixes
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
