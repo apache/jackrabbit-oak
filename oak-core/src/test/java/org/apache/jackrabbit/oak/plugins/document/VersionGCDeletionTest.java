@@ -156,6 +156,7 @@ public class VersionGCDeletionTest {
 
         VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
+        assertEquals(noOfDocsToDelete, stats.deletedLeafDocGCCount);
 
 
         assertNull(ts.find(Collection.NODES, "1:/x"));
@@ -204,6 +205,7 @@ public class VersionGCDeletionTest {
 
         VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
+        assertEquals(noOfDocsToDelete, stats.deletedLeafDocGCCount);
     }
 
     @Test
@@ -340,6 +342,7 @@ public class VersionGCDeletionTest {
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
         VersionGCStats stats = gc.gc(30, MINUTES);
         assertEquals(90, stats.deletedDocGCCount);
+        assertEquals(90, stats.deletedLeafDocGCCount);
 
         queries.release(2);
 

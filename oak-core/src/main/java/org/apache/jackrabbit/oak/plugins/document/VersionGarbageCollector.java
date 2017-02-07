@@ -38,6 +38,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -115,6 +116,7 @@ public class VersionGarbageCollector {
         boolean ignoredGCDueToCheckPoint;
         boolean canceled;
         int deletedDocGCCount;
+        int deletedLeafDocGCCount;
         int splitDocGCCount;
         int intermediateSplitDocGCCount;
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
@@ -127,7 +129,7 @@ public class VersionGarbageCollector {
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
                     ", canceled=" + canceled +
-                    ", deletedDocGCCount=" + deletedDocGCCount +
+                    ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
@@ -135,6 +137,78 @@ public class VersionGarbageCollector {
                     ", timeTakenToDeleteDeletedDocs=" + deleteDeletedDocs +
                     ", timeTakenToCollectAndDeleteSplitDocs=" + collectAndDeleteSplitDocs +
                     '}';
+        }
+    }
+
+    private enum GCPhase {
+        NONE,
+        COLLECTING,
+        DELETING,
+        SORTING,
+        SPLITS_CLEANUP
+    }
+
+    /**
+     * Keeps track of timers when switching GC phases.
+     *
+     * Could be merged with VersionGCStats, however this way the public class is kept unchanged.
+     */
+    private static class GCPhases {
+
+        final VersionGCStats stats;
+        final Stopwatch elapsed;
+        private final List<GCPhase> phases = Lists.newArrayList();
+        private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
+
+        GCPhases() {
+            this.stats = new VersionGCStats();
+            this.elapsed = Stopwatch.createStarted();
+            this.watches.put(GCPhase.NONE, Stopwatch.createStarted());
+            this.watches.put(GCPhase.COLLECTING, stats.collectDeletedDocs);
+            this.watches.put(GCPhase.DELETING, stats.deleteDeletedDocs);
+            this.watches.put(GCPhase.SORTING, stats.sortDocIds);
+            this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
+        }
+
+        public void start(GCPhase started) {
+            suspend(currentWatch());
+            this.phases.add(started);
+            resume(currentWatch());
+        }
+
+        public void stop(GCPhase phase) {
+            if (!phases.isEmpty() && phase == phases.get(phases.size() - 1)) {
+                suspend(currentWatch());
+                phases.remove(phases.size() - 1);
+                resume(currentWatch());
+            }
+        }
+
+        public void close() {
+            while (!phases.isEmpty()) {
+                suspend(currentWatch());
+                phases.remove(phases.size() - 1);
+            }
+            this.elapsed.stop();
+        }
+
+        private GCPhase current() {
+            return phases.isEmpty()? GCPhase.NONE : phases.get(phases.size() - 1);
+        }
+
+        private Stopwatch currentWatch() {
+            return watches.get(current());
+        }
+
+        private void resume(Stopwatch w) {
+            if (!w.isRunning()) {
+                w.start();
+            }
+        }
+        private void suspend(Stopwatch w) {
+            if (w.isRunning()) {
+                w.stop();
+            }
         }
     }
 
@@ -157,8 +231,7 @@ public class VersionGarbageCollector {
         }
 
         private VersionGCStats gc(long maxRevisionAgeInMillis) throws IOException {
-            Stopwatch sw = Stopwatch.createStarted();
-            VersionGCStats stats = new VersionGCStats();
+            GCPhases phases = new GCPhases();
             final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
             final RevisionVector headRevision = nodeStore.getHeadRevision();
 
@@ -173,33 +246,33 @@ public class VersionGarbageCollector {
                         checkpoint.toReadableString(),
                         Utils.timestampToString(oldestRevTimeStamp)
                 );
-                stats.ignoredGCDueToCheckPoint = true;
-                return stats;
+                phases.stats.ignoredGCDueToCheckPoint = true;
+                return phases.stats;
             }
 
-            collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
-            collectSplitDocuments(stats, oldestRevTimeStamp);
+            collectDeletedDocuments(phases, headRevision, oldestRevTimeStamp);
+            collectSplitDocuments(phases, oldestRevTimeStamp);
 
-            sw.stop();
-            stats.canceled = cancel.get();
-            log.info("Revision garbage collection finished in {}. {}", sw, stats);
-            return stats;
+            phases.close();
+            phases.stats.canceled = cancel.get();
+            log.info("Revision garbage collection finished in {}. {}", phases.elapsed, phases.stats);
+            return phases.stats;
         }
 
-        private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
-            stats.collectAndDeleteSplitDocs.start();
-            versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, stats);
-            stats.collectAndDeleteSplitDocs.stop();
+        private void collectSplitDocuments(GCPhases phases, long oldestRevTimeStamp) {
+            phases.start(GCPhase.SPLITS_CLEANUP);
+            versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, phases.stats);
+            phases.stop(GCPhase.SPLITS_CLEANUP);
         }
 
-        private void collectDeletedDocuments(VersionGCStats stats,
+        private void collectDeletedDocuments(GCPhases phases,
                                              RevisionVector headRevision,
                                              long oldestRevTimeStamp)
                 throws IOException {
             int docsTraversed = 0;
             DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel);
             try {
-                stats.collectDeletedDocs.start();
+                phases.start(GCPhase.COLLECTING);
                 Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
                 try {
                     for (NodeDocument doc : itr) {
@@ -217,23 +290,32 @@ public class VersionGarbageCollector {
                                     docsTraversed, gc.getNumDocuments());
                         }
                         gc.possiblyDeleted(doc);
+                        if (gc.hasLeafBatch()) {
+                            phases.start(GCPhase.DELETING);
+                            gc.removeLeafDocuments(phases.stats);
+                            phases.stop(GCPhase.DELETING);
+                        }
                     }
                 } finally {
                     Utils.closeIfCloseable(itr);
                 }
-                stats.collectDeletedDocs.stop();
+                phases.stop(GCPhase.COLLECTING);
 
                 if (gc.getNumDocuments() == 0){
                     return;
                 }
 
-                stats.sortDocIds.start();
-                gc.ensureSorted();
-                stats.sortDocIds.stop();
+                phases.start(GCPhase.DELETING);
+                gc.removeLeafDocuments(phases.stats);
+                phases.stop(GCPhase.DELETING);
 
-                stats.deleteDeletedDocs.start();
-                gc.removeDocuments(stats);
-                stats.deleteDeletedDocs.stop();
+                phases.start(GCPhase.SORTING);
+                gc.ensureSorted();
+                phases.stop(GCPhase.SORTING);
+
+                phases.start(GCPhase.DELETING);
+                gc.removeDocuments(phases.stats);
+                phases.stop(GCPhase.DELETING);
             } finally {
                 gc.close();
             }
@@ -247,6 +329,7 @@ public class VersionGarbageCollector {
 
         private final RevisionVector headRevision;
         private final AtomicBoolean cancel;
+        private final List<String> leafDocIdsToDelete = Lists.newArrayList();
         private final StringSort docIdsToDelete = newStringSort();
         private final StringSort prevDocIdsToDelete = newStringSort();
         private final Set<String> exclude = Sets.newHashSet();
@@ -264,7 +347,7 @@ public class VersionGarbageCollector {
          * This number does not include the previous documents.
          */
         long getNumDocuments() {
-            return docIdsToDelete.getSize();
+            return docIdsToDelete.getSize() + leafDocIdsToDelete.size();
         }
 
         /**
@@ -289,9 +372,14 @@ public class VersionGarbageCollector {
                 return;
             }
             if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
-                addDocument(id);
                 // Collect id of all previous docs also
-                addPreviousDocuments(previousDocIdsFor(doc));
+                Iterator<String> previousDocs = previousDocIdsFor(doc);
+                if (!doc.hasChildren() && !previousDocs.hasNext()) {
+                    addLeafDocument(id);
+                } else {
+                    addDocument(id);
+                    addPreviousDocuments(previousDocs);
+                }
             }
         }
 
@@ -304,9 +392,20 @@ public class VersionGarbageCollector {
          * @param stats to track the number of removed documents.
          */
         void removeDocuments(VersionGCStats stats) throws IOException {
-            stats.deletedDocGCCount += removeDeletedDocuments();
+            removeLeafDocuments(stats);
+            stats.deletedDocGCCount += removeDeletedDocuments(getDocIdsToDelete(), "(other)");
             // FIXME: this is incorrect because that method also removes intermediate docs
             stats.splitDocGCCount += removeDeletedPreviousDocuments();
+        }
+
+        boolean hasLeafBatch() {
+            return leafDocIdsToDelete.size() >= DELETE_BATCH_SIZE;
+        }
+
+        void removeLeafDocuments(VersionGCStats stats) throws IOException {
+            int removeCount = removeDeletedDocuments(getLeafDocIdsToDelete(), "(leaf)");
+            stats.deletedLeafDocGCCount += removeCount;
+            stats.deletedDocGCCount += removeCount;
         }
 
         public void close() {
@@ -357,6 +456,10 @@ public class VersionGarbageCollector {
             docIdsToDelete.add(id);
         }
 
+        private void addLeafDocument(String id) throws IOException {
+            leafDocIdsToDelete.add(id);
+        }
+
         private long getNumPreviousDocuments() {
             return prevDocIdsToDelete.getSize() - exclude.size();
         }
@@ -370,6 +473,10 @@ public class VersionGarbageCollector {
         private Iterator<String> getDocIdsToDelete() throws IOException {
             ensureSorted();
             return docIdsToDelete.getIds();
+        }
+
+        private Iterator<String> getLeafDocIdsToDelete() throws IOException {
+            return leafDocIdsToDelete.iterator();
         }
 
         private void concurrentModification(NodeDocument doc) {
@@ -390,9 +497,8 @@ public class VersionGarbageCollector {
             });
         }
 
-        private int removeDeletedDocuments() throws IOException {
-            Iterator<String> docIdsToDelete = getDocIdsToDelete();
-            log.info("Proceeding to delete [{}] documents", getNumDocuments());
+        private int removeDeletedDocuments(Iterator<String> docIdsToDelete, String label) throws IOException {
+            log.info("Proceeding to delete [{}] documents [{}]", getNumDocuments(), label);
 
             Iterator<List<String>> idListItr = partition(docIdsToDelete, DELETE_BATCH_SIZE);
             int deletedCount = 0;
