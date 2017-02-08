@@ -2023,7 +2023,7 @@ public final class DocumentNodeStore
                         // add changes for this particular clusterId to the externalSort
                         try {
                             fillExternalChanges(externalSort, PathUtils.ROOT_PATH, last, r, store, changeSetBuilder, journalPropertyHandler);
-                        } catch (IOException e1) {
+                        } catch (Exception e1) { // OAK-5601 : catch any Exception, not only IOException
                             LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
                             IOUtils.closeQuietly(externalSort);
                             externalSort = null;

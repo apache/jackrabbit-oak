@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -149,7 +148,6 @@ public class JournalGCTest {
      * thus end up missing by later on in addTo.
      */
     @Test
-    @Ignore("OAK-5601")
     public void gcCausingMissingJournalEntries() throws Exception {
         // cluster setup
         final Semaphore enteringFind = new Semaphore(0);
