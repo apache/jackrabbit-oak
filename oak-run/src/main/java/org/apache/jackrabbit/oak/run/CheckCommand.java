@@ -36,7 +36,7 @@ class CheckCommand implements Command {
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
         OptionSpec deep = parser.accepts(
-                "deep", "enable deep consistency checking. ");
+                "deep", "<deprecated> enable deep consistency checking. ");
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
@@ -54,7 +54,6 @@ class CheckCommand implements Command {
 
         File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
-        boolean fullTraversal = options.has(deep);
         long debugLevel = notify.value(options);
 
         long binLen = -1L;
@@ -67,10 +66,15 @@ class CheckCommand implements Command {
             }
         }
 
+        if (options.has(deep)) {
+            printUsage(parser, "The --deep option was deprecated! Please do not use it in the future!"
+                    , "A deep scan of the content tree, traversing every node, will be performed by default.");
+        }
+        
         if (options.has(segment)) {
-            SegmentUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
+            SegmentUtils.check(dir, journalFileName, true, debugLevel, binLen);
         } else {
-            SegmentTarUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen, options.has(ioStatistics));
+            SegmentTarUtils.check(dir, journalFileName, true, debugLevel, binLen, options.has(ioStatistics));
         }
     }
 
