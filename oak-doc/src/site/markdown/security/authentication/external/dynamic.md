@@ -48,6 +48,12 @@ effects:
   membership nesting depth)
 - External groups will no longer be synchronised into the repository's user management 
   but will only be available as `Principal`s (see section _User Management_ below).
+  
+Note: as a further improvement the [PrincipalNameResolver] interface was introduced 
+in Oak 1.6.1 to allow for optimized resolution of a principal names from a given 
+`ExternalIdentityRef`. In order to benefit from that shortcut a given implementation 
+of `ExternalIdentityProvider` needs to also implement `PrincipalNameResolver`.
+See also [OAK-5210].
 
 ##### Automatic Membership
 
@@ -131,8 +137,10 @@ membership configuration.
 [DefaultSyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncContext.html
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncConfig.html
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+[PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4087]: https://issues.apache.org/jira/browse/OAK-4087
 [OAK-5194]: https://issues.apache.org/jira/browse/OAK-5194
 [OAK-5195]: https://issues.apache.org/jira/browse/OAK-5195
+[OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210

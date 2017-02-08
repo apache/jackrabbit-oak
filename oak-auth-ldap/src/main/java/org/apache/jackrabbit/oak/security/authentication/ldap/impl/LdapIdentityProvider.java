@@ -78,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +94,7 @@ import org.slf4j.LoggerFactory;
         policy = ConfigurationPolicy.REQUIRE
 )
 @Service
-public class LdapIdentityProvider implements ExternalIdentityProvider {
+public class LdapIdentityProvider implements ExternalIdentityProvider, PrincipalNameResolver {
 
     /**
      * default logger
@@ -183,6 +184,15 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         }
     }
 
+    //----------------------------------------------< PrincipalNameResolver >---
+    @Nonnull
+    @Override
+    public String fromExternalIdentityRef(@Nonnull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException {
+        if (!isMyRef(externalIdentityRef)) {
+            throw new ExternalIdentityException("Foreign IDP " + externalIdentityRef.getString());
+        }
+        return externalIdentityRef.getId();
+    }
 
     //-------------------------------------------< ExternalIdentityProvider >---
     @Nonnull
