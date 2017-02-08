@@ -193,6 +193,9 @@ public final class UpdateOp {
 
     /**
      * Set the property to the given String value.
+     * <p>
+     * Note that {@link Document#ID} does not need to be set using this method;
+     * it is sufficiently specified by the id parameter set in the constructor.
      *
      * @param property the property name
      * @param value the value

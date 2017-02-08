@@ -46,6 +46,7 @@ public class UpdateUtils {
      */
     public static void applyChanges(@Nonnull Document doc,
                                     @Nonnull UpdateOp update) {
+        doc.put(Document.ID, update.getId());
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();

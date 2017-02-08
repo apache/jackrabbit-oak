@@ -1050,6 +1050,7 @@ public class MongoDocumentStore implements DocumentStore {
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
+            inserts[i].put(Document.ID, update.getId());
             UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
             UpdateUtils.applyChanges(target, update);
@@ -1425,11 +1426,15 @@ public class MongoDocumentStore implements DocumentStore {
 
         // always increment modCount
         updateOp.increment(Document.MOD_COUNT, 1);
+        if (includeId) {
+            setUpdates.append(Document.ID, updateOp.getId());
+        }
 
         // other updates
         for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
             Key k = entry.getKey();
             if (!includeId && k.getName().equals(Document.ID)) {
+                // TODO: remove once set _id is prohibited (OAK-4952)
                 // avoid exception "Mod on _id not allowed"
                 continue;
             }
