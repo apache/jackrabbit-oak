@@ -139,10 +139,14 @@ public class JournalGCTest {
      * reproducing OAK-5601:
      * <ul>
      *  <li>have two documentMk's, one to make changes, one does only read</li>
-     *  <li>make a commit, let 2 hours pass, run gc, then read it from the other documentMk</li>
-     *  <li>the gc (1h timeout) will have cleaned up that 2h old journal entry, resulting in
+     *  <li>make a commit, let 1.2 seconds pass, run gc, then read it from the other documentMk</li>
+     *  <li>the gc (1sec timeout) will have cleaned up that 1.2sec old journal entry, resulting in
      *      a missing journal entry exception when reading from the 2nd documentMk</li>
      * </ul>
+     * What the test has to ensure is that the JournalEntry does the query, then blocks that
+     * thread to let the GC happen, then continues on with find(). This results in those
+     * revisions that the JournalEntry got back from the query to be removed and
+     * thus end up missing by later on in addTo.
      */
     @Test
     @Ignore("OAK-5601")
