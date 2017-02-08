@@ -33,6 +33,7 @@ accounts such as needed for the [synchronization](usersync.html) into the reposi
     - [ExternalUser]
     - [ExternalGroup]
 - [ExternalIdentityRef]: reference to an external user/group consisting of id and provider name.
+- [PrincipalNameResolver]: optimized lookup of principal name from [ExternalIdentityRef]; see section [Dynamic Membership](external/dynamic.html) and [OAK-5210] for details)
 
 ### Default Implementation
 
@@ -84,3 +85,5 @@ OSGi environment, please make sure it gets properly referenced by the
 [ExternalGroup]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalGroup.html
 [ExternalIdentityRef]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityRef.html
 [CustomExternalIdentityProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/security/authentication/external/CustomExternalIdentityProvider.java
+[PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
+[OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210

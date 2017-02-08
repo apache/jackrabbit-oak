@@ -40,6 +40,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
@@ -153,6 +154,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<String> autoMembership = parser.accepts("autoMembership", "Ids of those groups a given external identity automatically become member of.")
                 .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
+        OptionSpec<Integer> roundtripDelay = parser.accepts("roundtripDelay", "Use simplified principal name lookup from ExtIdRef by specifying roundtrip delay of value < 0.")
+                        .withOptionalArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec<Boolean> transientWrites = parser.accepts("transient", "Do not save data.")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
@@ -431,6 +434,8 @@ public class BenchmarkRunner {
             new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
+            new PrincipalNameResolutionTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), roundtripDelay.value(options)),
+
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
             new PersistentCacheTest(statsProvider)

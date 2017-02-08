@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -52,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -101,6 +103,7 @@ abstract class AbstractExternalTest extends AbstractTest {
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
 
     final ExternalIdentityProvider idp;
+    final long delay;
 
     SyncManagerImpl syncManager;
     ExternalIdentityProviderManager idpManager;
@@ -108,7 +111,16 @@ abstract class AbstractExternalTest extends AbstractTest {
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
                                    long expTime, boolean dynamicMembership,
                                    @Nonnull List<String> autoMembership) {
-        idp = new TestIdentityProvider(numberOfUsers, numberOfGroups);
+        this(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership, 0);
+    }
+
+    protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
+                                   long expTime, boolean dynamicMembership,
+                                   @Nonnull List<String> autoMembership,
+                                   int roundtripDelay) {
+
+        idp = (roundtripDelay < 0) ? new PrincipalResolvingProvider(numberOfUsers, numberOfGroups) : new TestIdentityProvider(numberOfUsers, numberOfGroups);
+        delay = roundtripDelay;
         syncConfig.user()
                 .setMembershipNestingDepth(1)
                 .setDynamicMembership(dynamicMembership)
@@ -116,6 +128,7 @@ abstract class AbstractExternalTest extends AbstractTest {
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
         syncConfig.group()
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
+
     }
 
     protected abstract Configuration createConfiguration();
@@ -237,7 +250,7 @@ abstract class AbstractExternalTest extends AbstractTest {
         }
     }
 
-    private final class TestIdentityProvider implements ExternalIdentityProvider {
+    class TestIdentityProvider implements ExternalIdentityProvider {
 
         private final int numberOfUsers;
         private final int membershipSize;
@@ -261,6 +274,13 @@ abstract class AbstractExternalTest extends AbstractTest {
             if (id.charAt(0) == 'u') {
                 return new TestUser(index);
             } else {
+                if (delay > 0) {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(delay);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
                 return new TestGroup(index);
             }
         }
@@ -313,6 +333,19 @@ abstract class AbstractExternalTest extends AbstractTest {
             } else {
                 return ImmutableSet.of();
             }
+        }
+    }
+
+    private class PrincipalResolvingProvider extends TestIdentityProvider implements PrincipalNameResolver {
+
+        private PrincipalResolvingProvider(int numberOfUsers, int membershipSize) {
+            super(numberOfUsers, membershipSize);
+        }
+
+        @Nonnull
+        @Override
+        public String fromExternalIdentityRef(@Nonnull ExternalIdentityRef externalIdentityRef) {
+            return "p_" + externalIdentityRef.getId();
         }
     }
 
