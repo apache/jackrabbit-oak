@@ -251,6 +251,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
     @After
     public void tearDown() {
+        super.tearDown()
         if (mongoConn) {
             MongoUtils.dropCollections(mongoConn.DB)
         }

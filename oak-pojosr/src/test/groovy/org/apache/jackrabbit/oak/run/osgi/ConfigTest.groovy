@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.run.osgi
 import org.apache.felix.connect.launch.BundleDescriptor
 import org.apache.felix.connect.launch.PojoServiceRegistry
 import groovy.json.JsonOutput
-import org.apache.commons.io.FileUtils
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -50,10 +49,8 @@ class ConfigTest {
     }
 
     @After
-    void tearDown(){
-        if(workDir.exists()) {
-            FileUtils.cleanDirectory(workDir);
-        }
+    void shutDown(){
+        OakOSGiRepositoryFactory.shutdown(registry, 5)
     }
 
     @Test
@@ -96,6 +93,8 @@ class ConfigTest {
         assert cm.getConfiguration('baz').properties.get('a') == 'a2'
         assert cm.getConfiguration('foo').properties.get('a') == 'a'
         assert cm.getConfiguration('bar').properties.get('a') == 'a1'
+
+        shutDown()
 
         //Now re init and remove the pid bar
         config[REPOSITORY_CONFIG] = [
