@@ -39,6 +39,9 @@ Out of the box Oak comes with the following LDAP integration setup:
 #### LDAP Identity Provider
 
 The [LdapIdentityProvider] is a service implementing the [ExternalIdentityProvider] interface.
+Since Oak 1.6.1 it also implements the [PrincipalNameResolver] interface to allow 
+for fast resolution from a given `ExternalIdentityRef` to a principal name as an 
+optimization for the [dynamic membership](external/dynamic.html) feature.
 
 In an OSGi-base setup the configuration options required in order to establish
 connections to the LDAP are obtained form the properties associated with the service.
@@ -102,6 +105,7 @@ details about the external login module and configuration options for the [Defau
 
 <!-- references -->
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+[PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
 [DefaultSyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncHandler.html
 [LdapIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/ldap/impl/LdapIdentityProvider.html
