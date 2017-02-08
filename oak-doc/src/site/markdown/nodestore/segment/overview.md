@@ -531,17 +531,16 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check PATH [--journal JOURNAL] [--deep] [--notify SECS] [--bin [LENGTH]] [--io-stats]
+java -jar oak-run.jar check PATH [--journal JOURNAL] [--notify SECS] [--bin LENGTH] [--io-stats]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
 The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest.
 For every revision, the actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged.
+A deep scan of the content tree, traversing every node, will be performed by default.
   
 If the `--journal` option is specified, the tool will use the journal file at `JOURNAL` instead of picking up the one contained in `PATH`. 
 `JOURNAL` must be a path to a valid journal file for the Segment Store. 
-
-If the `--deep` option is specified, the tool will perform a deep scan of the content tree, traversing every node.
 
 If the `--notify` option is specified, the tool will print progress information messages every `SECS` seconds.
 If not specified, progress information messages will be disabled.
