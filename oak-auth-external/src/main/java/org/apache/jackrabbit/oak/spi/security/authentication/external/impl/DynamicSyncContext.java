@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -150,17 +151,22 @@ public class DynamicSyncContext extends DefaultSyncContext {
      * @throws ExternalIdentityException If an error occurs while resolving the the external group references.
      */
     private void collectPrincipalNames(@Nonnull Set<String> principalNames, @Nonnull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
+        boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
         for (ExternalIdentityRef ref : declaredGroupIdRefs) {
-            // get group
-            ExternalIdentity extId = idp.getIdentity(ref);
-            if (extId instanceof ExternalGroup) {
-                principalNames.add(extId.getPrincipalName());
-                // recursively apply further membership until the configured depth is reached
-                if (depth > 1) {
-                    collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
-                }
+            if (shortcut) {
+                principalNames.add(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref));
             } else {
-                log.debug("Not an external group ({}) => ignore.", extId);
+                // get group from the IDP
+                ExternalIdentity extId = idp.getIdentity(ref);
+                if (extId instanceof ExternalGroup) {
+                    principalNames.add(extId.getPrincipalName());
+                    // recursively apply further membership until the configured depth is reached
+                    if (depth > 1) {
+                        collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
+                    }
+                } else {
+                    log.debug("Not an external group ({}) => ignore.", extId);
+                }
             }
         }
     }

@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityP
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
@@ -412,6 +413,26 @@ public class LdapProviderTest {
     public void testRemoveEmptyString() throws Exception {
         providerConfig.setCustomAttributes(new String[] {"a", Strings.EMPTY_STRING, "b" });
         assertArrayEquals("Array must not contain empty strings", new String[] {"a", "b" }, providerConfig.getCustomAttributes());
+    }
+
+    @Test
+    public void testResolvePrincipalNameUser() throws ExternalIdentityException {
+        ExternalUser user = idp.getUser(TEST_USER5_UID);
+        assertNotNull(user);
+        assertEquals(user.getPrincipalName(), idp.fromExternalIdentityRef(user.getExternalId()));
+    }
+
+    @Test
+    public void testResolvePrincipalNameGroup() throws ExternalIdentityException {
+        ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
+        assertNotNull(gr);
+
+        assertEquals(gr.getPrincipalName(), idp.fromExternalIdentityRef(gr.getExternalId()));
+    }
+
+    @Test(expected = ExternalIdentityException.class)
+    public void testResolvePrincipalNameForeignExtId() throws Exception {
+        idp.fromExternalIdentityRef(new ExternalIdentityRef("anyId", "anotherProviderName"));
     }
 
     public static void assertIfEquals(String message, String[] expected, Iterable<ExternalIdentityRef> result) {
