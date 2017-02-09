@@ -40,9 +40,7 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
-        ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
-                "bin", "read the first n bytes from binary properties.")
-                .withRequiredArg().ofType(Long.class);
+        OptionSpec bin = parser.accepts("bin", "read the content of binary properties");
         OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSpec ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
 
@@ -56,14 +54,10 @@ class CheckCommand implements Command {
         String journalFileName = journal.value(options);
         long debugLevel = notify.value(options);
 
-        long binLen = -1L;
+        long binLen = 0L;
         
         if (options.has(bin)) {
-            binLen = bin.value(options);
-
-            if (binLen < 0) {
-                printUsage(parser, "The value for --bin option must be a positive number!");
-            }
+            binLen = -1L;        
         }
 
         if (options.has(deep)) {
