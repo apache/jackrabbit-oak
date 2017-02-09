@@ -40,9 +40,7 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
-        ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
-                "bin", "read the n first bytes from binary properties. -1 for all bytes.")
-                .withOptionalArg().ofType(Long.class).defaultsTo(0L);
+        OptionSpec bin = parser.accepts("bin", "read the content of binary properties");
         OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
         OptionSet options = parser.parse(args);
@@ -56,7 +54,12 @@ class CheckCommand implements Command {
         File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
         long debugLevel = notify.value(options);
-        long binLen = bin.value(options);
+
+        long binLen = 0L;
+        
+        if (options.has(bin)) {
+            binLen = -1L;        
+        }
 
         if (options.has(deep)) {
             printUsage(parser, "The --deep option was deprecated! Please do not use it in the future!"

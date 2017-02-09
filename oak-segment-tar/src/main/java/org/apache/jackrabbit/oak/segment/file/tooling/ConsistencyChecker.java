@@ -176,7 +176,7 @@ public class ConsistencyChecker implements Closeable {
             propertyCount = 0;
             String result = traverse(SegmentNodeStoreBuilders.builder(store).build()
                     .getRoot(), "/", true, binLen);
-            print("Traversed {} nodes and {} properties", nodeCount, propertyCount);
+            print("Checked {} nodes and {} properties", nodeCount, propertyCount);
             return result;
         } catch (RuntimeException e) {
             print("Error while traversing {}", revision, e.getMessage());
@@ -198,9 +198,9 @@ public class ConsistencyChecker implements Closeable {
                         traverse(blob, binLen);
                     }
                 } else {
+                    propertyCount++;
                     propertyState.getValue(type);
                 }
-                propertyCount++;
             }
             for (ChildNodeEntry cne : node.getChildNodeEntries()) {
                 String childName = cne.getName();
@@ -219,7 +219,7 @@ public class ConsistencyChecker implements Closeable {
         }
     }
 
-    private static void traverse(Blob blob, long length) throws IOException {
+    private void traverse(Blob blob, long length) throws IOException {
         if (length < 0) {
             length = Long.MAX_VALUE;
         }
@@ -234,6 +234,8 @@ public class ConsistencyChecker implements Closeable {
             } finally {
                 s.close();
             }
+            
+            propertyCount++;
         }
     }
 
