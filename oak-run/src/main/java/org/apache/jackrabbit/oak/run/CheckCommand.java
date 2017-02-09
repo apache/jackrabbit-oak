@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.run;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
 
 import java.io.File;
+import java.io.IOException;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -35,7 +36,7 @@ class CheckCommand implements Command {
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
         OptionSpec deep = parser.accepts(
-                "deep", "enable deep consistency checking. ");
+                "deep", "<deprecated> enable deep consistency checking. ");
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
@@ -54,15 +55,29 @@ class CheckCommand implements Command {
 
         File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
-        boolean fullTraversal = options.has(deep);
         long debugLevel = notify.value(options);
         long binLen = bin.value(options);
 
-        if (options.has(segment)) {
-            SegmentUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
-        } else {
-            SegmentTarUtils.check(dir, journalFileName, fullTraversal, debugLevel, binLen);
+        if (options.has(deep)) {
+            printUsage(parser, "The --deep option was deprecated! Please do not use it in the future!"
+                    , "A deep scan of the content tree, traversing every node, will be performed by default.");
         }
+        
+        if (options.has(segment)) {
+            SegmentUtils.check(dir, journalFileName, true, debugLevel, binLen);
+        } else {
+            SegmentTarUtils.check(dir, journalFileName, true, debugLevel, binLen);
+        }
+    }
+
+    private void printUsage(OptionParser parser, String... messages) throws IOException {
+        for (String message : messages) {
+            System.err.println(message);
+        }
+        
+        System.err.println("usage: check path/to/segmentstore <options>");
+        parser.printHelpOn(System.err);
+        System.exit(1);
     }
 
 }
