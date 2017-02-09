@@ -107,6 +107,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1538,6 +1539,54 @@ public class ObservationTest extends AbstractRepositoryTest {
         oManager.removeEventListener(listener);
         testNode.getNode("a").remove();
         testNode.getSession().save();
+    }
+    
+    /**
+     * This tests a filter which registers a few paths and then expects
+     * NOT to get any event if an unrelated parent is removed
+     */
+    @Test
+    @Ignore("OAK-5619")
+    public void includeAncestorsRemove_Unrelated() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+
+        // [/conf/global/settings/granite/operations/maintenance, /libs/settings/granite/operations/maintenance, /apps/settings/granite/operations/maintenance]
+        JackrabbitEventFilter filterWithAncestorsRemove = new JackrabbitEventFilter();
+        filterWithAncestorsRemove.setEventTypes(ALL_EVENTS);
+        filterWithAncestorsRemove.setAbsPath(TEST_PATH + "/a/b/c/d");
+        filterWithAncestorsRemove.setIsDeep(true);
+        filterWithAncestorsRemove = FilterFactory.wrap(filterWithAncestorsRemove).withIncludeAncestorsRemove();
+        ExpectationListener listenerWithAncestorsRemove = new ExpectationListener();
+        oManager.addEventListener(listenerWithAncestorsRemove, filterWithAncestorsRemove);
+
+        JackrabbitEventFilter filterWithoutAncestorsRemove = new JackrabbitEventFilter();
+        filterWithoutAncestorsRemove.setEventTypes(ALL_EVENTS);
+        filterWithoutAncestorsRemove.setAbsPath(TEST_PATH + "/a/b/c/d");
+        filterWithoutAncestorsRemove.setIsDeep(true);
+        ExpectationListener listenerWithoutAncestorsRemove = new ExpectationListener();
+        oManager.addEventListener(listenerWithoutAncestorsRemove, filterWithoutAncestorsRemove);
+
+        Session session = getAdminSession();
+        session.getRootNode().addNode("unrelated");
+        session.save();
+
+        session.getRootNode().getNode("unrelated").remove();
+        Node testNode = session.getRootNode().getNode(TEST_NODE);
+        listenerWithAncestorsRemove.expect(testNode.getPath(), NODE_REMOVED);
+        testNode.remove();
+        session.save();
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listenerWithoutAncestorsRemove.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listenerWithoutAncestorsRemove.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        missing = listenerWithAncestorsRemove.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listenerWithAncestorsRemove.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
     }
 
     @Test
