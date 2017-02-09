@@ -31,9 +31,6 @@ class CheckCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        ArgumentAcceptingOptionSpec<String> path = parser.accepts(
-                "path", "path to the segment store (required)")
-                .withRequiredArg().ofType(String.class);
         ArgumentAcceptingOptionSpec<String> journal = parser.accepts(
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
@@ -49,13 +46,13 @@ class CheckCommand implements Command {
 
         OptionSet options = parser.parse(args);
 
-        if (!options.has(path)) {
-            System.err.println("usage: check <options>");
+        if (options.nonOptionArguments().size() != 1) {
+            System.err.println("usage: check path/to/segmentstore <options>");
             parser.printHelpOn(System.err);
             System.exit(1);
         }
 
-        File dir = isValidFileStoreOrFail(new File(path.value(options)));
+        File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
         long debugLevel = notify.value(options);
