@@ -203,6 +203,8 @@ public class QueryImpl implements Query {
 
     private boolean isInternal;
 
+    private boolean potentiallySlowTraversalQuery;
+
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
         ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
         this.statement = statement;
@@ -644,6 +646,11 @@ public class QueryImpl implements Query {
         // use a greedy algorithm
         SourceImpl result = null;
         Set<SourceImpl> available = new HashSet<SourceImpl>();
+        // the query is only slow if all possible join orders are slow
+        // (in theory, due to using the greedy algorithm, a query might be considered
+        // slow even thought there is a plan that doesn't need to use traversal, but
+        // only for 3-way and higher joins, and only if traversal is considered very fast)
+        boolean isPotentiallySlowJoin = true;
         while (sources.size() > 0) {
             int bestIndex = 0;
             double bestCost = Double.POSITIVE_INFINITY;
@@ -663,12 +670,16 @@ public class QueryImpl implements Query {
                     bestIndex = i;
                     best = test;
                 }
+                if (!potentiallySlowTraversalQuery) {
+                    isPotentiallySlowJoin = false;
+                }
                 test.unprepare();
             }
             available.add(sources.remove(bestIndex));
             result = best;
             best.prepare(bestPlan);
         }
+        potentiallySlowTraversalQuery = isPotentiallySlowJoin;
         estimatedCost = result.prepare().getEstimatedCost();
         source = result;
         isSortedByIndex = canSortByIndex();
@@ -1035,7 +1046,7 @@ public class QueryImpl implements Query {
                 bestPlan = indexPlan;
             }
         }
-        boolean potentiallySlowTraversalQuery = bestIndex == null;
+        potentiallySlowTraversalQuery = bestIndex == null;
         if (traversalEnabled) {
             TraversingIndex traversal = new TraversingIndex();
             double cost = traversal.getCost(filter, rootState);
@@ -1051,6 +1062,17 @@ public class QueryImpl implements Query {
                 }
             }
         }
+        return new SelectorExecutionPlan(filter.getSelector(), bestIndex, 
+                bestPlan, bestCost);
+    }
+
+    @Override
+    public boolean isPotentiallySlow() {
+        return potentiallySlowTraversalQuery;
+    }
+    
+    @Override
+    public void verifyNotPotentiallySlow() {
         if (potentiallySlowTraversalQuery) {
             QueryOptions.Traversal traversal = queryOptions.traversal;
             if (traversal == Traversal.DEFAULT) {
@@ -1078,7 +1100,6 @@ public class QueryImpl implements Query {
                 throw new IllegalArgumentException(message);
             }
         }
-        return new SelectorExecutionPlan(filter.getSelector(), bestIndex, bestPlan, bestCost);
     }
     
     private List<OrderEntry> getSortOrder(FilterImpl filter) {

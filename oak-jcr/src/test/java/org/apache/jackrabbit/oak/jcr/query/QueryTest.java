@@ -72,36 +72,69 @@ public class QueryTest extends AbstractRepositoryTest {
     public void traversalOption() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        try {
-            qm.createQuery("//*[@test] option(traversal fail)", 
-                    "xpath").execute();
-            fail();
-        } catch (InvalidQueryException e) {
-            // expected
-        }
-        try {
-            qm.createQuery("select * from [nt:base] option(traversal fail)", 
-                    Query.JCR_SQL2).execute();
-            fail();
-        } catch (InvalidQueryException e) {
-            // expected
-        }
-        qm.createQuery("//*[@test] option(traversal ok)", 
-                "xpath").execute();
-        qm.createQuery("//*[@test] option(traversal warn)", 
-                "xpath").execute();
-        qm.createQuery("select * from [nt:base] option(traversal ok)", 
-                Query.JCR_SQL2).execute();
-        qm.createQuery("select * from [nt:base] option(traversal warn)", 
-                Query.JCR_SQL2).execute();
-        // the following is not really traversal, it is just listing child nodes:
-        qm.createQuery("/jcr:root/*[@test] option(traversal fail)", 
-                "xpath").execute();
-        // the following is not really traversal; it is just one node:
-        qm.createQuery("/jcr:root/oak:index[@test] option(traversal fail)", 
-                "xpath").execute();
+        
+        // for union queries:
+        // both subqueries use an index
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where ischildnode('/') or [jcr:uuid] = 1 option(traversal fail)"));
+        // no subquery uses an index
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where [x] = 1 or [y] = 2 option(traversal fail)"));
+        // first one does not, second one does
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where [jcr:uuid] = 1 or [x] = 2 option(traversal fail)"));
+        // first one does, second one does not
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where [x] = 2 or [jcr:uuid] = 1 option(traversal fail)"));
+        
+        // queries that possibly use traversal (depending on the join order)
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/content//*/jcr:content[@jcr:uuid='1'] option(traversal fail)"));
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/content/*/jcr:content[@jcr:uuid='1'] option(traversal fail)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(b, a) " + 
+                "where [a].[jcr:uuid] = 1 option(traversal fail)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " + 
+                "where [a].[jcr:uuid] = 1 option(traversal fail)"));
 
-    }    
+        // union with joins
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " + 
+                "where ischildnode([a], '/') or [a].[jcr:uuid] = 1 option(traversal fail)"));
+
+        assertFalse(isValidQuery(qm, "xpath",
+                "//*[@test] option(traversal fail)"));
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] option(traversal fail)"));
+        assertTrue(isValidQuery(qm, "xpath",
+                "//*[@test] option(traversal ok)"));
+        assertTrue(isValidQuery(qm, "xpath",
+                "//*[@test] option(traversal warn)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] option(traversal ok)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] option(traversal warn)"));
+        
+        // the following is not really traversal, it is just listing child nodes:
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/*[@test] option(traversal fail)"));
+        // the following is not really traversal; it is just one node:
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/oak:index[@test] option(traversal fail)"));
+
+    }
+    
+    private static boolean isValidQuery(QueryManager qm, String language, String query) throws RepositoryException {
+        try {
+            qm.createQuery(query, language).execute();
+            return true;
+        } catch (InvalidQueryException e) {
+            assertTrue(e.toString(), e.toString().indexOf("query without index") >= 0);
+            return false;
+        }
+    }
     
     @Test
     public void firstSelector() throws Exception {
