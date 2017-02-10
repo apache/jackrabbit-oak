@@ -292,6 +292,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // we only have the original query so we prepare and return it.
             result = queries.iterator().next();
             result.prepare();
+            result.verifyNotPotentiallySlow();
             LOG.debug("No alternatives found. Query: {}", result);
         } else {
             double bestCost = Double.POSITIVE_INFINITY;
@@ -300,8 +301,12 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // it's the default behaviour. That way, we always log the cost and
             // can more easily analyze problems. The querySelectionMode flag can
             // be used to override the cheapest.
+            boolean isPotentiallySlow = true;
             for (Query q : checkNotNull(queries)) {
                 q.prepare();
+                if (!q.isPotentiallySlow()) {
+                    isPotentiallySlow = false;
+                }
                 double cost = q.getEstimatedCost();
                 LOG.debug("cost: {} for query {}", cost, q);
                 if (q.containsUnfilteredFullTextCondition()) {
@@ -328,6 +333,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // CHEAPEST is the default behaviour
             case CHEAPEST:
             default:
+            }
+            if (isPotentiallySlow) {
+                result.verifyNotPotentiallySlow();
             }
         }
         

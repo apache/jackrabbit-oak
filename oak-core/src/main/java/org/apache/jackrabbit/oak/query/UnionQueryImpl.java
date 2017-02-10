@@ -396,4 +396,16 @@ public class UnionQueryImpl implements Query {
                 right.containsUnfilteredFullTextCondition();
     }
 
+    @Override
+    public boolean isPotentiallySlow() {
+        return left.isPotentiallySlow() || 
+                right.isPotentiallySlow();
+    }
+
+    @Override
+    public void verifyNotPotentiallySlow() {
+        left.verifyNotPotentiallySlow();
+        right.verifyNotPotentiallySlow();
+    }
+
 }

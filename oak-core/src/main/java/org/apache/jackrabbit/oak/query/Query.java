@@ -190,4 +190,21 @@ public interface Query {
      */
     void setQueryOptions(QueryOptions options);
 
+    /**
+     * Whether the query is potentially slow.
+     * Only supported for prepared queries.
+     * 
+     * @return true if traversal is the only option
+     */
+    boolean isPotentiallySlow();
+
+    /**
+     * Verify the query is not potentially slow. Only supported for prepared
+     * queries.
+     * 
+     * @throws IllegalArgumentException if potentially slow, and configured to
+     *             fail in this case
+     */
+    void verifyNotPotentiallySlow();
+
 }
