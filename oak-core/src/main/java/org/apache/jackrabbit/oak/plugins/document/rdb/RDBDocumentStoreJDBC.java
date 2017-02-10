@@ -526,18 +526,35 @@ public class RDBDocumentStoreJDBC {
         }
 
         long elapsed = System.currentTimeMillis() - start;
-        if (this.queryHitsLimit != 0 && result.size() > this.queryHitsLimit) {
-            String message = String.format(
-                    "Potentially excessive query on %s with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, params minid '%s' maxid '%s' excludeKeyPatterns %s condition %s limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
-                    tmd.getName(), result.size(), limit, this.queryHitsLimit, elapsed, minId, maxId, excludeKeyPatterns, conditions,
-                    limit, dataTotal, bdataTotal);
-            LOG.info(message, new Exception("call stack"));
-        } else if (this.queryTimeLimit != 0 && elapsed > this.queryTimeLimit) {
-            String message = String.format(
-                    "Long running query on %s with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' excludeKeyPatterns %s conditions %s limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
-                    tmd.getName(), result.size(), limit, elapsed, this.queryTimeLimit, minId, maxId, excludeKeyPatterns, conditions,
-                    limit, dataTotal, bdataTotal);
-            LOG.info(message, new Exception("call stack"));
+
+        if ((this.queryHitsLimit != 0 && result.size() > this.queryHitsLimit)
+                || (this.queryTimeLimit != 0 && elapsed > this.queryTimeLimit)) {
+
+            String params = String.format("params minid '%s' maxid '%s' excludeKeyPatterns %s conditions %s limit %d.", minId,
+                    maxId, excludeKeyPatterns, conditions, limit);
+
+            String resultRange = "";
+            if (result.size() > 0) {
+                resultRange = String.format(" Result range: '%s'...'%s'.", result.get(0).getId(),
+                        result.get(result.size() - 1).getId());
+            }
+
+            String postfix = String.format(" Read %d chars from DATA and %d bytes from BDATA. Check calling method.", dataTotal,
+                    bdataTotal);
+
+            if (this.queryHitsLimit != 0 && result.size() > this.queryHitsLimit) {
+                String message = String.format(
+                        "Potentially excessive query on %s with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, %s%s%s",
+                        tmd.getName(), result.size(), limit, this.queryHitsLimit, elapsed, params, resultRange, postfix);
+                LOG.info(message, new Exception("call stack"));
+            }
+
+            if (this.queryTimeLimit != 0 && elapsed > this.queryTimeLimit) {
+                String message = String.format(
+                        "Long running query on %s with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), %s%s%s",
+                        tmd.getName(), result.size(), limit, elapsed, this.queryTimeLimit, params, resultRange, postfix);
+                LOG.info(message, new Exception("call stack"));
+            }
         }
 
         return result;
