@@ -262,7 +262,7 @@ class TarWriter implements Closeable {
         ioMonitor.beforeSegmentWrite(file, msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         access.write(data, offset, size);
-        ioMonitor.afterSegmentWrite(file, msb, lsb, size, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        ioMonitor.afterSegmentWrite(file, msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
 
         if (padding > 0) {
             access.write(ZERO_BYTES, 0, padding);

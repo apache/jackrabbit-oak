@@ -19,14 +19,54 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.File;
 
+/**
+ * Callback interface that eases the collection of statistics about I/O
+ * operations.
+ */
 public interface IOMonitor {
 
+    /**
+     * Called before a segment is read from the file system.
+     *
+     * @param file   File containing the segment.
+     * @param msb    Most significant bits of the segment ID.
+     * @param lsb    Least significant bits of the segment ID.
+     * @param length Size of the segment.
+     */
     void beforeSegmentRead(File file, long msb, long lsb, int length);
 
+    /**
+     * Called after a segment is read from the file system. This is called only
+     * in case of successful operations.
+     *
+     * @param file    File containing the segment.
+     * @param msb     Most significant bits of the segment ID.
+     * @param lsb     Least significant bits of the segment ID.
+     * @param length  Size of the segment.
+     * @param elapsed Time spent by the read operation, in nanoseconds.
+     */
     void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed);
 
+    /**
+     * Called before a segment is written to the file system.
+     *
+     * @param file   File containing the segment.
+     * @param msb    Most significant bits of the segment ID.
+     * @param lsb    Least significant bits of the segment ID.
+     * @param length Size of the segment.
+     */
     void beforeSegmentWrite(File file, long msb, long lsb, int length);
 
+    /**
+     * Called after a segment is written to the file system. This is called only
+     * in case of successful operations.
+     *
+     * @param file    File containing the segment.
+     * @param msb     Most significant bits of the segment ID.
+     * @param lsb     Least significant bits of the segment ID.
+     * @param length  Size of the segment.
+     * @param elapsed Time spent by the write operation, in nanoseconds.
+     */
     void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed);
 
 }
